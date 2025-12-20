@@ -2,6 +2,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../services/firestore_service.dart';
+import '../services/user_service.dart';
+import '../data/db_helper.dart';
+import '../models/repair_model.dart';
+import '../models/sale_order_model.dart';
+import 'repair_detail_view.dart';
+import 'sale_detail_view.dart';
 
 class ChatView extends StatefulWidget {
   const ChatView({super.key});
@@ -13,6 +19,36 @@ class ChatView extends StatefulWidget {
 class _ChatViewState extends State<ChatView> {
   final TextEditingController _msgCtrl = TextEditingController();
   final ScrollController _scrollCtrl = ScrollController();
+  final DBHelper _db = DBHelper();
+  String? _shopId;
+  bool _loadingShop = true;
+  String _role = 'user';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadShop();
+    _loadRole();
+  }
+
+  Future<void> _loadShop() async {
+    final id = await UserService.getCurrentShopId();
+    if (!mounted) return;
+    setState(() {
+      _shopId = id;
+      _loadingShop = false;
+    });
+  }
+
+  Future<void> _loadRole() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    final r = await UserService.getUserRole(uid);
+    if (!mounted) return;
+    setState(() {
+      _role = r;
+    });
+  }
 
   @override
   void dispose() {
@@ -36,30 +72,104 @@ class _ChatViewState extends State<ChatView> {
     final userId = FirebaseAuth.instance.currentUser?.uid;
     final isMe = data['senderId'] == userId;
     final ts = (data['createdAt'] as Timestamp?)?.toDate();
+    final linkedType = data['linkedType'] as String?;
+    final linkedSummary = data['linkedSummary'] as String?;
+
+    Widget content = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(data['senderName'] ?? '---', style: TextStyle(fontSize: 11, color: isMe ? Colors.white70 : Colors.blueGrey)),
+        const SizedBox(height: 2),
+        Text(data['message'] ?? '', style: TextStyle(color: isMe ? Colors.white : Colors.black)),
+        if (linkedType != null && linkedSummary != null) ...[
+          const SizedBox(height: 6),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: isMe ? Colors.white24 : Colors.white,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  linkedType == 'repair' ? Icons.build_circle_rounded : Icons.shopping_cart_rounded,
+                  size: 18,
+                  color: isMe ? Colors.yellowAccent : Colors.deepPurple,
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    linkedSummary,
+                    style: TextStyle(fontSize: 11, color: isMe ? Colors.white : Colors.black87, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+        if (ts != null) ...[
+          const SizedBox(height: 4),
+          Text("${ts.hour.toString().padLeft(2, '0')}:${ts.minute.toString().padLeft(2, '0')}", style: TextStyle(fontSize: 10, color: isMe ? Colors.white70 : Colors.grey)),
+        ]
+      ],
+    );
+
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 4),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        constraints: const BoxConstraints(maxWidth: 280),
-        decoration: BoxDecoration(
-          color: isMe ? Colors.blueAccent : Colors.grey[200],
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(data['senderName'] ?? '---', style: TextStyle(fontSize: 11, color: isMe ? Colors.white70 : Colors.blueGrey)),
-            const SizedBox(height: 2),
-            Text(data['message'] ?? '', style: TextStyle(color: isMe ? Colors.white : Colors.black)),
-            if (ts != null) ...[
-              const SizedBox(height: 4),
-              Text("${ts.hour.toString().padLeft(2, '0')}:${ts.minute.toString().padLeft(2, '0')}", style: TextStyle(fontSize: 10, color: isMe ? Colors.white70 : Colors.grey)),
-            ]
-          ],
+      child: GestureDetector(
+        onTap: () => _onBubbleTap(data),
+        child: Container(
+          margin: const EdgeInsets.symmetric(vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          constraints: const BoxConstraints(maxWidth: 280),
+          decoration: BoxDecoration(
+            color: isMe ? Colors.blueAccent : Colors.grey[200],
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: content,
         ),
       ),
     );
+  }
+
+  Future<void> _onBubbleTap(Map<String, dynamic> data) async {
+    final type = data['linkedType'] as String?;
+    final key = data['linkedKey'] as String?;
+    if (type == null || key == null || key.isEmpty) return;
+
+    try {
+      if (type == 'repair') {
+        final Repair? r = await _db.getRepairByFirestoreId(key);
+        if (r == null) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Không tìm thấy đơn sửa tương ứng')));
+          }
+          return;
+        }
+        if (!mounted) return;
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => RepairDetailView(repair: r, role: _role)),
+        );
+      } else if (type == 'sale') {
+        final SaleOrder? s = await _db.getSaleByFirestoreId(key);
+        if (s == null) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Không tìm thấy đơn bán tương ứng')));
+          }
+          return;
+        }
+        if (!mounted) return;
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => SaleDetailView(sale: s, role: _role)),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi khi mở đơn: $e')));
+      }
+    }
   }
 
   @override
@@ -68,9 +178,12 @@ class _ChatViewState extends State<ChatView> {
       appBar: AppBar(title: const Text('Chat nội bộ')),
       body: Column(
         children: [
+          if (_loadingShop)
+            const Expanded(child: Center(child: CircularProgressIndicator()))
+          else ...[
           Expanded(
             child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-              stream: FirestoreService.chatStream(limit: 200),
+              stream: FirestoreService.chatStream(shopId: _shopId, limit: 200),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
@@ -115,6 +228,7 @@ class _ChatViewState extends State<ChatView> {
               ),
             ),
           )
+          ]
         ],
       ),
     );

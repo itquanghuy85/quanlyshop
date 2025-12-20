@@ -22,6 +22,12 @@ class SaleOrder {
   int loanAmount;        // Số tiền vay ngân hàng
   String? installmentTerm; // Kỳ hạn vay (6, 12 tháng...)
   String? bankName;      // Tên ngân hàng hỗ trợ
+  int? settlementPlannedAt; // Ngày dự kiến ngân hàng tất toán
+  int? settlementReceivedAt; // Ngày đã nhận tiền từ NH
+  int settlementAmount;   // Số tiền thực nhận từ NH
+  int settlementFee;      // Phí/hoa hồng NH giữ lại
+  String? settlementNote; // Ghi chú tất toán
+  String? settlementCode; // Mã hồ sơ/biên nhận từ NH
 
   SaleOrder({
     this.id,
@@ -44,6 +50,12 @@ class SaleOrder {
     this.loanAmount = 0,
     this.installmentTerm,
     this.bankName,
+    this.settlementPlannedAt,
+    this.settlementReceivedAt,
+    this.settlementAmount = 0,
+    this.settlementFee = 0,
+    this.settlementNote,
+    this.settlementCode,
     this.isSynced = false,
   });
 
@@ -69,6 +81,12 @@ class SaleOrder {
       'loanAmount': loanAmount,
       'installmentTerm': installmentTerm,
       'bankName': bankName?.toUpperCase(),
+      'settlementPlannedAt': settlementPlannedAt,
+      'settlementReceivedAt': settlementReceivedAt,
+      'settlementAmount': settlementAmount,
+      'settlementFee': settlementFee,
+      'settlementNote': settlementNote,
+      'settlementCode': settlementCode?.toUpperCase(),
       'isSynced': isSynced ? 1 : 0,
     };
   }
@@ -95,6 +113,12 @@ class SaleOrder {
       loanAmount: map['loanAmount'] ?? 0,
       installmentTerm: map['installmentTerm'],
       bankName: map['bankName'],
+      settlementPlannedAt: map['settlementPlannedAt'],
+      settlementReceivedAt: map['settlementReceivedAt'],
+      settlementAmount: map['settlementAmount'] ?? 0,
+      settlementFee: map['settlementFee'] ?? 0,
+      settlementNote: map['settlementNote'],
+      settlementCode: map['settlementCode'],
       isSynced: map['isSynced'] == 1,
     );
   }

@@ -69,7 +69,7 @@ class _SettingsViewState extends State<SettingsView> {
               child: CircleAvatar(
                 radius: 50,
                 backgroundColor: Colors.white,
-                backgroundImage: _logoPath != null ? FileImage(File(_logoPath!)) : null,
+                backgroundImage: _logoPath != null && File(_logoPath!).existsSync() ? FileImage(File(_logoPath!)) : null,
                 child: _logoPath == null ? const Icon(Icons.add_a_photo, size: 30, color: Colors.grey) : null,
               ),
             ),

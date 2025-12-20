@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../data/db_helper.dart';
+import '../services/user_service.dart';
 
 class DebtView extends StatefulWidget {
   const DebtView({super.key});
@@ -14,12 +16,24 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
   late TabController _tabController;
   List<Map<String, dynamic>> _debts = [];
   bool _isLoading = true;
+  bool _isAdmin = false;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _loadRole();
     _refresh();
+  }
+
+  Future<void> _loadRole() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    final role = await UserService.getUserRole(uid);
+    if (!mounted) return;
+    setState(() {
+      _isAdmin = role == 'admin';
+    });
   }
 
   Future<void> _refresh() async {
@@ -74,6 +88,7 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
               'createdAt': DateTime.now().millisecondsSinceEpoch,
               'note': noteC.text,
             });
+            if (!mounted) return;
             Navigator.pop(ctx);
             _refresh();
           }, child: const Text("LƯU SỔ")),
@@ -93,6 +108,7 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("HỦY")),
           ElevatedButton(onPressed: () async {
             await db.updateDebtPaid(debt['id'], (int.tryParse(payC.text) ?? 0) * 1000);
+            if (!mounted) return;
             Navigator.pop(ctx);
             _refresh();
           }, child: const Text("XÁC NHẬN")),
@@ -170,6 +186,10 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
   }
 
   void _confirmDeleteDebt(Map<String, dynamic> d) {
+    if (!_isAdmin) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Chỉ tài khoản quản lý mới được xóa sổ nợ')));
+      return;
+    }
     final passC = TextEditingController();
     showDialog(
       context: context,
@@ -180,19 +200,38 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
           children: [
             Text("Bạn muốn xóa nợ của ${d['personName']}?"),
             const SizedBox(height: 15),
-            TextField(controller: passC, obscureText: true, decoration: const InputDecoration(hintText: "Mật khẩu Admin", border: OutlineInputBorder())),
+            TextField(
+              controller: passC,
+              obscureText: true,
+              decoration: const InputDecoration(
+                hintText: "Nhập lại mật khẩu tài khoản quản lý",
+                border: OutlineInputBorder(),
+              ),
+            ),
           ],
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("HỦY")),
           ElevatedButton(
             onPressed: () async {
-              if (passC.text == "Ro090218@") {
+              final user = FirebaseAuth.instance.currentUser;
+              if (user == null || user.email == null) {
+                if (!mounted) return;
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Không xác định được tài khoản hiện tại')));
+                return;
+              }
+              try {
+                final cred = EmailAuthProvider.credential(email: user.email!, password: passC.text);
+                await user.reauthenticateWithCredential(cred);
                 await db.deleteDebt(d['id']);
+                if (!mounted) return;
                 Navigator.pop(ctx);
                 _refresh();
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Sai mật khẩu!")));
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ĐÃ XÓA SỔ NỢ')));
+              } catch (_) {
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Mật khẩu không đúng')));
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),

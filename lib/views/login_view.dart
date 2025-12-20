@@ -16,6 +16,7 @@ class _LoginViewState extends State<LoginView> {
   bool _loading = false;
   bool _rememberMe = false;
   String? _error;
+  DateTime _currentMonth = DateTime(DateTime.now().year, DateTime.now().month);
 
   @override
   void initState() {
@@ -130,8 +131,177 @@ class _LoginViewState extends State<LoginView> {
                       : const Text('ĐĂNG NHẬP', style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
               ),
+              const SizedBox(height: 30),
+              _buildCalendarCard(),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  void _changeMonth(int delta) {
+    setState(() {
+      _currentMonth = DateTime(_currentMonth.year, _currentMonth.month + delta);
+    });
+  }
+
+  Widget _buildCalendarCard() {
+    final now = DateTime.now();
+    final firstDayOfMonth = DateTime(_currentMonth.year, _currentMonth.month, 1);
+    final daysInMonth = DateTime(_currentMonth.year, _currentMonth.month + 1, 0).day;
+    final startWeekday = firstDayOfMonth.weekday; // Monday = 1, Sunday = 7
+
+    final List<Widget> dayCells = [];
+
+    for (int i = 1; i < startWeekday; i++) {
+      dayCells.add(const SizedBox());
+    }
+
+    for (int day = 1; day <= daysInMonth; day++) {
+      final date = DateTime(_currentMonth.year, _currentMonth.month, day);
+      final bool isToday =
+          date.year == now.year && date.month == now.month && date.day == now.day;
+
+      dayCells.add(Container(
+        margin: const EdgeInsets.all(2),
+        decoration: BoxDecoration(
+          color: isToday ? Colors.blueAccent : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Center(
+          child: Text(
+            '$day',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
+              color: isToday ? Colors.white : Colors.black87,
+            ),
+          ),
+        ),
+      ));
+    }
+
+    while (dayCells.length % 7 != 0) {
+      dayCells.add(const SizedBox());
+    }
+
+    final List<Row> weekRows = [];
+    for (int i = 0; i < dayCells.length; i += 7) {
+      weekRows.add(Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: dayCells.sublist(i, i + 7).map((w) {
+          return Expanded(child: w);
+        }).toList(),
+      ));
+    }
+
+    final monthYearText = '${_currentMonth.month.toString().padLeft(2, '0')}/${_currentMonth.year}';
+
+    return Card(
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          gradient: const LinearGradient(
+            colors: [Color(0xFF4F8DFF), Color(0xFF6BCBFF)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Lịch vạn niên',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Hôm nay: ${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}',
+                        style: const TextStyle(fontSize: 12, color: Colors.white70),
+                      ),
+                    ],
+                  ),
+                ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      onPressed: () => _changeMonth(-1),
+                      icon: const Icon(Icons.chevron_left, color: Colors.white),
+                    ),
+                    Text(
+                      monthYearText,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => _changeMonth(1),
+                      icon: const Icon(Icons.chevron_right, color: Colors.white),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: const [
+                Expanded(
+                  child: Center(
+                    child: Text('T2', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white)),
+                  ),
+                ),
+                Expanded(
+                  child: Center(
+                    child: Text('T3', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white)),
+                  ),
+                ),
+                Expanded(
+                  child: Center(
+                    child: Text('T4', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white)),
+                  ),
+                ),
+                Expanded(
+                  child: Center(
+                    child: Text('T5', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white)),
+                  ),
+                ),
+                Expanded(
+                  child: Center(
+                    child: Text('T6', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white)),
+                  ),
+                ),
+                Expanded(
+                  child: Center(
+                    child: Text('T7', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white)),
+                  ),
+                ),
+                Expanded(
+                  child: Center(
+                    child: Text('CN', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white)),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            ...weekRows,
+          ],
         ),
       ),
     );

@@ -18,7 +18,57 @@ class UserService {
       if (address.trim().isEmpty) return 'Địa chỉ không được để trống';
       return null;
     }
+
   static final _db = FirebaseFirestore.instance;
+  static String? _cachedShopId;
+
+  static bool _isSuperAdmin(User? user) {
+    return user?.email == 'admin@huluca.com';
+  }
+
+  static bool isCurrentUserSuperAdmin() {
+    return _isSuperAdmin(FirebaseAuth.instance.currentUser);
+  }
+
+  static Map<String, bool> _defaultPermissionsForRole(String role) {
+    final isAdminRole = role == 'admin';
+    return {
+      // Mặc định cho tài khoản QUẢN LÝ: xem được tất cả
+      // Mặc định cho NHÂN VIÊN: xem được nghiệp vụ cơ bản, không xem tài chính
+      'allowViewSales': true,
+      'allowViewRepairs': true,
+      'allowViewInventory': true,
+      'allowViewParts': true,
+      'allowViewSuppliers': true,
+      'allowViewCustomers': true,
+      'allowViewWarranty': true,
+      'allowViewChat': true,
+      'allowViewPrinter': true,
+      'allowViewRevenue': isAdminRole,
+      'allowViewExpenses': isAdminRole,
+      'allowViewDebts': isAdminRole,
+      'shopAppLocked': false,
+      'shopAdminFinanceLocked': false,
+    };
+  }
+
+  static Future<String?> getCurrentShopId() async {
+    if (_cachedShopId != null) return _cachedShopId;
+
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return null;
+    if (_isSuperAdmin(currentUser)) return null; // Super admin không bị khóa bởi shopId
+
+    try {
+      final doc = await _db.collection('users').doc(currentUser.uid).get();
+      final data = doc.data();
+      final shopId = data != null ? data['shopId'] as String? : null;
+      _cachedShopId = shopId;
+      return shopId;
+    } catch (_) {
+      return null;
+    }
+  }
 
   // Lấy quyền của người dùng (Có nhận diện Admin đặc biệt)
   static Future<String> getUserRole(String uid) async {
@@ -45,6 +95,20 @@ class UserService {
   }
 
   static Stream<QuerySnapshot> getAllUsersStream() {
+    final currentUser = FirebaseAuth.instance.currentUser;
+
+    // Super admin xem được toàn bộ
+    if (currentUser != null && _isSuperAdmin(currentUser)) {
+      return _db.collection('users').snapshots();
+    }
+
+    // Người dùng thường: ưu tiên lọc theo shopId nếu đã có
+    final shopId = _cachedShopId;
+    if (shopId != null && shopId.trim().isNotEmpty) {
+      return _db.collection('users').where('shopId', isEqualTo: shopId).snapshots();
+    }
+
+    // Trường hợp chưa đồng bộ shopId, tạm thời trả toàn bộ (sẽ thu hẹp sau khi syncUserInfo chạy)
     return _db.collection('users').snapshots();
   }
 
@@ -84,18 +148,190 @@ class UserService {
 
   static Future<void> syncUserInfo(String uid, String email) async {
     // Lấy thông tin hiện tại để đồng bộ
-    final userDoc = await _db.collection('users').doc(uid).get();
+    final userRef = _db.collection('users').doc(uid);
+    final userDoc = await userRef.get();
     final data = userDoc.data() ?? {};
-    await _db.collection('users').doc(uid).set({
+
+    final bool isSuperAdmin = email == 'admin@huluca.com';
+    String? shopId = data['shopId'];
+
+    // Nếu chưa có shopId và không phải super admin => tạo 1 shop trùng với uid
+    if (!isSuperAdmin && (shopId == null || (shopId is String && shopId.trim().isEmpty))) {
+      shopId = uid;
+      await _db.collection('shops').doc(shopId).set({
+        'ownerUid': uid,
+        'ownerEmail': email,
+        'createdAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    }
+
+    _cachedShopId = shopId is String ? shopId : null;
+
+    await userRef.set({
       'email': email,
       'displayName': data['displayName'] ?? '',
       'phone': data['phone'] ?? '',
       'address': data['address'] ?? '',
-      'role': email == 'admin@huluca.com' ? 'admin' : (data['role'] ?? 'user'),
+      'role': isSuperAdmin ? 'admin' : (data['role'] ?? 'user'),
+      'shopId': shopId,
       'lastLogin': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
 
     // Đồng bộ dữ liệu liên quan nếu cần (ví dụ: cập nhật email ở các bảng khác)
     // TODO: Nếu có bảng orders, repair_orders,... thì cập nhật thông tin liên quan ở đó
+  }
+
+  /// GÁN một nhân viên vào cùng cửa hàng với user hiện tại
+  static Future<void> assignUserToCurrentShop(String targetUid) async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return;
+    if (_isSuperAdmin(currentUser)) {
+      // Super admin cố tình gán shop nên vẫn cho phép, nhưng cần có shopId hiện tại
+      // Nếu chưa có shopId cache thì không làm gì để tránh gán nhầm.
+      final currentShop = _cachedShopId;
+      if (currentShop == null || currentShop.trim().isEmpty) return;
+      await _db.collection('users').doc(targetUid).set({
+        'shopId': currentShop,
+      }, SetOptions(merge: true));
+      return;
+    }
+
+    final shopId = await getCurrentShopId();
+    if (shopId == null || shopId.trim().isEmpty) return;
+
+    await _db.collection('users').doc(targetUid).set({
+      'shopId': shopId,
+    }, SetOptions(merge: true));
+  }
+
+  /// Lấy quyền xem các màn hình nhạy cảm (doanh thu, chi phí, công nợ) của tài khoản hiện tại
+  static Future<Map<String, bool>> getCurrentUserPermissions() async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      return _defaultPermissionsForRole('user');
+    }
+
+    // Admin tối cao luôn có toàn quyền
+    if (_isSuperAdmin(currentUser)) {
+      return _defaultPermissionsForRole('admin');
+    }
+
+    try {
+      final snap = await _db.collection('users').doc(currentUser.uid).get();
+      final data = snap.data() ?? {};
+      final role = (data['role'] as String?) ?? 'user';
+      final defaults = _defaultPermissionsForRole(role);
+
+      // Bắt đầu từ quyền riêng trên tài khoản (nếu chưa cấu hình thì dùng mặc định theo role)
+      final perms = <String, bool>{
+        'allowViewSales': (data['allowViewSales'] as bool?) ?? defaults['allowViewSales']!,
+        'allowViewRepairs': (data['allowViewRepairs'] as bool?) ?? defaults['allowViewRepairs']!,
+        'allowViewInventory': (data['allowViewInventory'] as bool?) ?? defaults['allowViewInventory']!,
+        'allowViewParts': (data['allowViewParts'] as bool?) ?? defaults['allowViewParts']!,
+        'allowViewSuppliers': (data['allowViewSuppliers'] as bool?) ?? defaults['allowViewSuppliers']!,
+        'allowViewCustomers': (data['allowViewCustomers'] as bool?) ?? defaults['allowViewCustomers']!,
+        'allowViewWarranty': (data['allowViewWarranty'] as bool?) ?? defaults['allowViewWarranty']!,
+        'allowViewChat': (data['allowViewChat'] as bool?) ?? defaults['allowViewChat']!,
+        'allowViewPrinter': (data['allowViewPrinter'] as bool?) ?? defaults['allowViewPrinter']!,
+        'allowViewRevenue': (data['allowViewRevenue'] as bool?) ?? defaults['allowViewRevenue']!,
+        'allowViewExpenses': (data['allowViewExpenses'] as bool?) ?? defaults['allowViewExpenses']!,
+        'allowViewDebts': (data['allowViewDebts'] as bool?) ?? defaults['allowViewDebts']!,
+        'shopAppLocked': false,
+        'shopAdminFinanceLocked': false,
+      };
+
+      // Áp thêm luật điều khiển ở cấp shop (do Super Admin thiết lập)
+      final shopId = (data['shopId'] as String?) ?? _cachedShopId;
+      if (shopId != null && shopId.trim().isNotEmpty) {
+        try {
+          final shopSnap = await _db.collection('shops').doc(shopId).get();
+          final shopData = shopSnap.data() ?? {};
+          final appLocked = shopData['appLocked'] == true;
+          final adminFinanceLocked = shopData['adminFinanceLocked'] == true;
+
+          if (appLocked) {
+            // Khóa toàn bộ app cho shop này
+            for (final key in perms.keys.toList()) {
+              if (key != 'shopAppLocked' && key != 'shopAdminFinanceLocked') {
+                perms[key] = false;
+              }
+            }
+            perms['shopAppLocked'] = true;
+          }
+
+          if (adminFinanceLocked && role == 'admin') {
+            perms['allowViewRevenue'] = false;
+            perms['allowViewExpenses'] = false;
+            perms['allowViewDebts'] = false;
+            perms['shopAdminFinanceLocked'] = true;
+          }
+        } catch (_) {
+          // Nếu lỗi đọc shop thì bỏ qua, chỉ dùng quyền theo tài khoản
+        }
+      }
+
+      return perms;
+    } catch (_) {
+      return _defaultPermissionsForRole('user');
+    }
+  }
+
+  /// Dành riêng cho Super Admin: xem danh sách tất cả shop
+  static Stream<QuerySnapshot> getAllShopsStreamForSuperAdmin() {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (!_isSuperAdmin(currentUser)) {
+      // Người thường không được xem, trả về stream rỗng
+      return _db.collection('shops').limit(0).snapshots();
+    }
+    return _db.collection('shops').orderBy('createdAt', descending: true).snapshots();
+  }
+
+  /// Dành riêng cho Super Admin: cập nhật cờ điều khiển ở cấp shop
+  static Future<void> updateShopControlFlags({
+    required String shopId,
+    bool? appLocked,
+    bool? adminFinanceLocked,
+  }) async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (!_isSuperAdmin(currentUser)) return;
+
+    final data = <String, dynamic>{};
+    if (appLocked != null) data['appLocked'] = appLocked;
+    if (adminFinanceLocked != null) data['adminFinanceLocked'] = adminFinanceLocked;
+    if (data.isEmpty) return;
+
+    await _db.collection('shops').doc(shopId).set(data, SetOptions(merge: true));
+  }
+
+  /// Cập nhật phân quyền ẩn/hiện nội dung cho một nhân viên cụ thể
+  static Future<void> updateUserPermissions({
+    required String uid,
+    required bool allowViewSales,
+    required bool allowViewRepairs,
+    required bool allowViewInventory,
+    required bool allowViewParts,
+    required bool allowViewSuppliers,
+    required bool allowViewCustomers,
+    required bool allowViewWarranty,
+    required bool allowViewChat,
+    required bool allowViewPrinter,
+    required bool allowViewRevenue,
+    required bool allowViewExpenses,
+    required bool allowViewDebts,
+  }) async {
+    await _db.collection('users').doc(uid).set({
+      'allowViewSales': allowViewSales,
+      'allowViewRepairs': allowViewRepairs,
+      'allowViewInventory': allowViewInventory,
+      'allowViewParts': allowViewParts,
+      'allowViewSuppliers': allowViewSuppliers,
+      'allowViewCustomers': allowViewCustomers,
+      'allowViewWarranty': allowViewWarranty,
+      'allowViewChat': allowViewChat,
+      'allowViewPrinter': allowViewPrinter,
+      'allowViewRevenue': allowViewRevenue,
+      'allowViewExpenses': allowViewExpenses,
+      'allowViewDebts': allowViewDebts,
+    }, SetOptions(merge: true));
   }
 }

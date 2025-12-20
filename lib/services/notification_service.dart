@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'user_service.dart';
 
 class NotificationService {
   static final _db = FirebaseFirestore.instance;
@@ -17,8 +18,11 @@ class NotificationService {
   static Future<void> sendCloudNotification({required String title, required String body}) async {
     final user = FirebaseAuth.instance.currentUser;
     String sender = user?.email?.split('@').first.toUpperCase() ?? "NV";
+    final bool isSuperAdmin = UserService.isCurrentUserSuperAdmin();
+    final String? shopId = isSuperAdmin ? null : await UserService.getCurrentShopId();
 
     await _db.collection('shop_notifications').add({
+      'shopId': shopId,
       'title': title,
       'body': body,
       'sender': sender,
@@ -28,14 +32,20 @@ class NotificationService {
   }
 
   /// Lắng nghe thông báo mới từ Cloud và hiện thông báo rung máy
-  static void listenToNotifications(Function(String, String) onMessageReceived) {
+  static Future<void> listenToNotifications(Function(String, String) onMessageReceived) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
+    final bool isSuperAdmin = UserService.isCurrentUserSuperAdmin();
+    final String? shopId = isSuperAdmin ? null : await UserService.getCurrentShopId();
 
-    _db.collection('shop_notifications')
-      .where('readBy', isNotEqualTo: user.uid)
-      .snapshots()
-      .listen((snapshot) {
+    Query<Map<String, dynamic>> q = _db.collection('shop_notifications')
+      .where('readBy', isNotEqualTo: user.uid);
+
+    if (shopId != null) {
+      q = q.where('shopId', isEqualTo: shopId);
+    }
+
+    q.snapshots().listen((snapshot) {
         for (var doc in snapshot.docs) {
           final data = doc.data();
           String title = data['title'] ?? "THÔNG BÁO SHOP";
@@ -52,13 +62,18 @@ class NotificationService {
   }
 
   /// Lắng nghe tin nhắn chat mới trong phòng chat chung
-  static void listenToChatMessages(Function(String, String) onMessageReceived) {
+  static Future<void> listenToChatMessages(Function(String, String) onMessageReceived) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
+    final bool isSuperAdmin = UserService.isCurrentUserSuperAdmin();
+    final String? shopId = isSuperAdmin ? null : await UserService.getCurrentShopId();
 
-    _db
-        .collection('chats')
-        .orderBy('createdAt', descending: true)
+    Query<Map<String, dynamic>> q = _db.collection('chats');
+    if (shopId != null) {
+      q = q.where('shopId', isEqualTo: shopId);
+    }
+
+    q.orderBy('createdAt', descending: true)
         .limit(50)
         .snapshots()
         .listen((snapshot) {

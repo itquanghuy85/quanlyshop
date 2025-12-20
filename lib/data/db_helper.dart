@@ -1,5 +1,6 @@
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:intl/intl.dart';
 import '../models/repair_model.dart';
 import '../models/product_model.dart';
 import '../models/sale_order_model.dart';
@@ -18,10 +19,10 @@ class DBHelper {
 
   Future<Database> _initDB() async {
     String path = join(await getDatabasesPath(), 'repair_shop_v19.db'); 
-     return await openDatabase(
-       path,
-       version: 3,
-       onCreate: (db, version) async {
+    return await openDatabase(
+      path,
+      version: 9,
+      onCreate: (db, version) async {
         await db.execute('''
         CREATE TABLE repairs(
           id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -30,6 +31,7 @@ class DBHelper {
           accessories TEXT, address TEXT, imagePath TEXT, 
           deliveredImage TEXT, warranty TEXT, partsUsed TEXT,
           status INTEGER, price INTEGER, cost INTEGER,
+          paymentMethod TEXT,
           createdAt INTEGER, startedAt INTEGER, finishedAt INTEGER, deliveredAt INTEGER,
           createdBy TEXT, repairedBy TEXT, deliveredBy TEXT,
           lastCaredAt INTEGER, isSynced INTEGER DEFAULT 0
@@ -69,6 +71,12 @@ class DBHelper {
           isInstallment INTEGER DEFAULT 0, downPayment INTEGER DEFAULT 0,
            loanAmount INTEGER DEFAULT 0, installmentTerm TEXT, bankName TEXT,
            warranty TEXT,
+           settlementPlannedAt INTEGER,
+           settlementReceivedAt INTEGER,
+           settlementAmount INTEGER DEFAULT 0,
+           settlementFee INTEGER DEFAULT 0,
+           settlementNote TEXT,
+           settlementCode TEXT,
           isSynced INTEGER DEFAULT 0
         )
       ''');
@@ -78,14 +86,29 @@ class DBHelper {
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           name TEXT UNIQUE, contactPerson TEXT, phone TEXT, address TEXT,
           items TEXT, importCount INTEGER DEFAULT 0, totalAmount INTEGER DEFAULT 0,
-          createdAt INTEGER
+          createdAt INTEGER, shopId TEXT
         )
       ''');
 
         await db.execute('''
         CREATE TABLE expenses(
           id INTEGER PRIMARY KEY AUTOINCREMENT,
-          title TEXT, amount INTEGER, category TEXT, date INTEGER, note TEXT
+          title TEXT, amount INTEGER, category TEXT, date INTEGER, note TEXT, paymentMethod TEXT
+        )
+      ''');
+
+        await db.execute('''
+        CREATE TABLE cash_closings(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          dateKey TEXT UNIQUE,
+          cashStart INTEGER DEFAULT 0,
+          bankStart INTEGER DEFAULT 0,
+          cashEnd INTEGER DEFAULT 0,
+          bankEnd INTEGER DEFAULT 0,
+          expectedCashDelta INTEGER DEFAULT 0,
+          expectedBankDelta INTEGER DEFAULT 0,
+          note TEXT,
+          createdAt INTEGER
         )
       ''');
 
@@ -107,14 +130,47 @@ class DBHelper {
           createdAt INTEGER
         )
       ''');
+
+        await db.execute('''
+        CREATE TABLE attendance(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          userId TEXT,
+          email TEXT,
+          name TEXT,
+          dateKey TEXT,
+          checkInAt INTEGER,
+          checkOutAt INTEGER,
+          overtimeOn INTEGER DEFAULT 0,
+          photoIn TEXT,
+          photoOut TEXT,
+          note TEXT,
+          status TEXT DEFAULT 'pending',
+          approvedBy TEXT,
+          approvedAt INTEGER,
+          rejectReason TEXT,
+          locked INTEGER DEFAULT 0,
+          createdAt INTEGER
+        )
+      ''');
+
+        await db.execute('''
+        CREATE TABLE payroll_locks(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          monthKey TEXT UNIQUE,
+          locked INTEGER DEFAULT 1,
+          lockedBy TEXT,
+          note TEXT,
+          lockedAt INTEGER
+        )
+      ''');
       },
-       onUpgrade: (db, oldV, newV) async {
-         if (oldV < 2) {
-           // Thêm cột bảo hành cho bảng sales (đơn bán)
-           await db.execute("ALTER TABLE sales ADD COLUMN warranty TEXT");
-         }
-         if (oldV < 3) {
-           await db.execute('''
+      onUpgrade: (db, oldV, newV) async {
+        if (oldV < 2) {
+          // Thêm cột bảo hành cho bảng sales (đơn bán)
+          await db.execute("ALTER TABLE sales ADD COLUMN warranty TEXT");
+        }
+        if (oldV < 3) {
+          await db.execute('''
             CREATE TABLE IF NOT EXISTS customers(
               id INTEGER PRIMARY KEY AUTOINCREMENT,
               name TEXT,
@@ -123,8 +179,89 @@ class DBHelper {
               createdAt INTEGER
             )
           ''');
-         }
-       },
+        }
+        if (oldV < 4) {
+          // Thêm cột shopId cho bảng suppliers để gắn dữ liệu theo cửa hàng
+          try {
+            await db.execute("ALTER TABLE suppliers ADD COLUMN shopId TEXT");
+          } catch (_) {
+            // bỏ qua nếu cột đã tồn tại
+          }
+        }
+        if (oldV < 5) {
+          try {
+            await db.execute("ALTER TABLE repairs ADD COLUMN paymentMethod TEXT");
+          } catch (_) {}
+        }
+        if (oldV < 6) {
+          try {
+            await db.execute("ALTER TABLE expenses ADD COLUMN paymentMethod TEXT");
+          } catch (_) {}
+          try {
+            await db.execute('''
+              CREATE TABLE IF NOT EXISTS cash_closings(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                dateKey TEXT UNIQUE,
+                cashStart INTEGER DEFAULT 0,
+                bankStart INTEGER DEFAULT 0,
+                cashEnd INTEGER DEFAULT 0,
+                bankEnd INTEGER DEFAULT 0,
+                expectedCashDelta INTEGER DEFAULT 0,
+                expectedBankDelta INTEGER DEFAULT 0,
+                note TEXT,
+                createdAt INTEGER
+              )
+             ''');
+          } catch (_) {}
+        }
+        if (oldV < 7) {
+          try { await db.execute("ALTER TABLE sales ADD COLUMN settlementPlannedAt INTEGER"); } catch (_) {}
+          try { await db.execute("ALTER TABLE sales ADD COLUMN settlementReceivedAt INTEGER"); } catch (_) {}
+          try { await db.execute("ALTER TABLE sales ADD COLUMN settlementAmount INTEGER DEFAULT 0"); } catch (_) {}
+          try { await db.execute("ALTER TABLE sales ADD COLUMN settlementFee INTEGER DEFAULT 0"); } catch (_) {}
+          try { await db.execute("ALTER TABLE sales ADD COLUMN settlementNote TEXT"); } catch (_) {}
+          try { await db.execute("ALTER TABLE sales ADD COLUMN settlementCode TEXT"); } catch (_) {}
+        }
+        if (oldV < 8) {
+          try {
+            await db.execute('''
+              CREATE TABLE IF NOT EXISTS attendance(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                userId TEXT,
+                email TEXT,
+                name TEXT,
+                dateKey TEXT,
+                checkInAt INTEGER,
+                checkOutAt INTEGER,
+                overtimeOn INTEGER DEFAULT 0,
+                photoIn TEXT,
+                photoOut TEXT,
+                note TEXT,
+                createdAt INTEGER
+              )
+             ''');
+          } catch (_) {}
+        }
+        if (oldV < 9) {
+          try { await db.execute("ALTER TABLE attendance ADD COLUMN status TEXT DEFAULT 'pending'"); } catch (_) {}
+          try { await db.execute("ALTER TABLE attendance ADD COLUMN approvedBy TEXT"); } catch (_) {}
+          try { await db.execute("ALTER TABLE attendance ADD COLUMN approvedAt INTEGER"); } catch (_) {}
+          try { await db.execute("ALTER TABLE attendance ADD COLUMN rejectReason TEXT"); } catch (_) {}
+          try { await db.execute("ALTER TABLE attendance ADD COLUMN locked INTEGER DEFAULT 0"); } catch (_) {}
+          try {
+            await db.execute('''
+              CREATE TABLE IF NOT EXISTS payroll_locks(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                monthKey TEXT UNIQUE,
+                locked INTEGER DEFAULT 1,
+                lockedBy TEXT,
+                note TEXT,
+                lockedAt INTEGER
+              )
+            ''');
+          } catch (_) {}
+        }
+      },
     );
   }
 
@@ -192,6 +329,20 @@ class DBHelper {
     return List.generate(maps.length, (i) => SaleOrder.fromMap(maps[i]));
   }
 
+  Future<Repair?> getRepairByFirestoreId(String firestoreId) async {
+    final db = await database;
+    final maps = await db.query('repairs', where: 'firestoreId = ?', whereArgs: [firestoreId], limit: 1);
+    if (maps.isEmpty) return null;
+    return Repair.fromMap(maps.first);
+  }
+
+  Future<SaleOrder?> getSaleByFirestoreId(String firestoreId) async {
+    final db = await database;
+    final maps = await db.query('sales', where: 'firestoreId = ?', whereArgs: [firestoreId], limit: 1);
+    if (maps.isEmpty) return null;
+    return SaleOrder.fromMap(maps.first);
+  }
+
   // --- CẬP NHẬT & XÓA ---
   Future<int> updateRepair(Repair r) async => (await database).update('repairs', r.toMap(), where: 'id = ?', whereArgs: [r.id]);
   Future<int> updateProduct(Product p) async => (await database).update('products', p.toMap(), where: 'id = ?', whereArgs: [p.id]);
@@ -223,6 +374,7 @@ class DBHelper {
   Future<int> updateDebtPaid(int id, int paid) async => (await database).rawUpdate('UPDATE debts SET paidAmount = paidAmount + ?, status = CASE WHEN (paidAmount + ?) >= totalAmount THEN "ĐÃ TRẢ" ELSE "NỢ" END WHERE id = ?', [paid, paid, id]);
   Future<int> insertSupplier(Map<String, dynamic> s) async => (await database).insert('suppliers', s, conflictAlgorithm: ConflictAlgorithm.ignore);
   Future<List<Map<String, dynamic>>> getSuppliers() async => (await (await database).query('suppliers', orderBy: 'name ASC'));
+  Future<int> deleteSupplier(int id) async => (await database).delete('suppliers', where: 'id = ?', whereArgs: [id]);
   Future<void> incrementSupplierStats(String supplierName, int importAmount) async {
     final db = await database;
     await db.rawUpdate(
@@ -237,11 +389,143 @@ class DBHelper {
     return await db.insert('customers', c, conflictAlgorithm: ConflictAlgorithm.ignore);
   }
 
+  // --- CASH CLOSINGS ---
+  Future<int> upsertClosing(Map<String, dynamic> closing) async {
+    final db = await database;
+    return await db.insert('cash_closings', closing, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<Map<String, dynamic>?> getClosingByDate(String dateKey) async {
+    final db = await database;
+    final res = await db.query('cash_closings', where: 'dateKey = ?', whereArgs: [dateKey], limit: 1);
+    if (res.isEmpty) return null;
+    return res.first;
+  }
+
+  Future<List<Map<String, dynamic>>> getClosings({int limit = 30}) async {
+    final db = await database;
+    return await db.query('cash_closings', orderBy: 'dateKey DESC', limit: limit);
+  }
+
   Future<Map<String, dynamic>?> getCustomerByPhone(String phone) async {
     final db = await database;
     final res = await db.query('customers', where: 'phone = ?', whereArgs: [phone], limit: 1);
     if (res.isEmpty) return null;
     return res.first;
+  }
+
+  Future<int> deleteCustomerByPhone(String phone) async {
+    final db = await database;
+    return await db.delete('customers', where: 'phone = ?', whereArgs: [phone]);
+  }
+
+  // --- ATTENDANCE ---
+  Future<int> upsertAttendance(Map<String, dynamic> data) async {
+    final db = await database;
+    final dateKey = data['dateKey'] as String?;
+    final userId = data['userId'] as String?;
+    if (dateKey == null || userId == null) return 0;
+    final existing = await db.query('attendance', where: 'dateKey = ? AND userId = ?', whereArgs: [dateKey, userId], limit: 1);
+    if (existing.isNotEmpty) {
+      final row = existing.first;
+      if ((row['locked'] ?? 0) == 1) return 0; // không cho sửa khi đã khóa
+      final updateData = Map<String, dynamic>.from(data);
+      updateData['status'] = data['status'] ?? row['status'] ?? 'pending';
+      updateData['locked'] = data['locked'] ?? row['locked'] ?? 0;
+      updateData['approvedBy'] = data['approvedBy'] ?? row['approvedBy'];
+      updateData['approvedAt'] = data['approvedAt'] ?? row['approvedAt'];
+      updateData['rejectReason'] = data['rejectReason'] ?? row['rejectReason'];
+      return await db.update('attendance', updateData, where: 'id = ?', whereArgs: [row['id']]);
+    }
+
+    final insertData = Map<String, dynamic>.from(data);
+    insertData['status'] = data['status'] ?? 'pending';
+    insertData['locked'] = data['locked'] ?? 0;
+    return await db.insert('attendance', insertData);
+  }
+
+  Future<Map<String, dynamic>?> getAttendance(String dateKey, String userId) async {
+    final db = await database;
+    final res = await db.query('attendance', where: 'dateKey = ? AND userId = ?', whereArgs: [dateKey, userId], limit: 1);
+    if (res.isEmpty) return null;
+    return res.first;
+  }
+
+  Future<List<Map<String, dynamic>>> getAttendanceRange(DateTime from, DateTime to, {String? userId}) async {
+    final db = await database;
+    final fromKey = DateFormat('yyyy-MM-dd').format(from);
+    final toKey = DateFormat('yyyy-MM-dd').format(to);
+    final where = StringBuffer('dateKey BETWEEN ? AND ?');
+    final args = <Object>[fromKey, toKey];
+    if (userId != null) {
+      where.write(' AND userId = ?');
+      args.add(userId);
+    }
+    return await db.query('attendance', where: where.toString(), whereArgs: args, orderBy: 'dateKey DESC');
+  }
+
+  Future<List<Map<String, dynamic>>> getPendingAttendance({int daysBack = 14}) async {
+    final db = await database;
+    final fromKey = DateFormat('yyyy-MM-dd').format(DateTime.now().subtract(Duration(days: daysBack)));
+    return await db.query(
+      'attendance',
+      where: 'dateKey >= ? AND (status IS NULL OR status != ?)',
+      whereArgs: [fromKey, 'approved'],
+      orderBy: 'dateKey DESC',
+    );
+  }
+
+  Future<int> approveAttendance(int id, {required String approver}) async {
+    final db = await database;
+    return await db.update(
+      'attendance',
+      {
+        'status': 'approved',
+        'approvedBy': approver,
+        'approvedAt': DateTime.now().millisecondsSinceEpoch,
+        'rejectReason': null,
+      },
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  Future<int> rejectAttendance(int id, {required String approver, String? reason}) async {
+    final db = await database;
+    return await db.update(
+      'attendance',
+      {
+        'status': 'rejected',
+        'approvedBy': approver,
+        'approvedAt': DateTime.now().millisecondsSinceEpoch,
+        'rejectReason': reason,
+      },
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  Future<bool> isPayrollMonthLocked(String monthKey) async {
+    final db = await database;
+    final res = await db.query('payroll_locks', where: 'monthKey = ? AND locked = 1', whereArgs: [monthKey], limit: 1);
+    return res.isNotEmpty;
+  }
+
+  Future<void> setPayrollMonthLock(String monthKey, {required bool locked, required String lockedBy, String? note}) async {
+    final db = await database;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    await db.insert(
+      'payroll_locks',
+      {
+        'monthKey': monthKey,
+        'locked': locked ? 1 : 0,
+        'lockedBy': lockedBy,
+        'note': note,
+        'lockedAt': now,
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+    await db.rawUpdate('UPDATE attendance SET locked = ? WHERE dateKey LIKE ?', [locked ? 1 : 0, '$monthKey%']);
   }
 
   // --- ANALYTICS & UTILS ---
@@ -282,8 +566,38 @@ class DBHelper {
     await db.execute('DELETE FROM sales WHERE id NOT IN (SELECT MAX(id) FROM sales GROUP BY firestoreId)');
   }
 
+  Future<void> clearAllData() async {
+    final db = await database;
+    final tables = [
+      'repairs',
+      'products',
+      'sales',
+      'suppliers',
+      'expenses',
+      'debts',
+      'customers',
+      'repair_parts',
+    ];
+    final batch = db.batch();
+    for (final t in tables) {
+      batch.delete(t);
+    }
+    await batch.commit(noResult: true);
+  }
+
   // --- TƯƠNG THÍCH NGƯỢC ---
   Future<void> insertRepair(Repair r) async => upsertRepair(r);
   Future<void> insertProduct(Product p) async => upsertProduct(p);
   Future<void> insertSale(SaleOrder s) async => upsertSale(s);
+  Future<void> upsertSupplier(Map<String, dynamic> s) async {
+    final db = await database;
+    final name = s['name'];
+    if (name == null) return;
+    final existing = await db.query('suppliers', where: 'name = ?', whereArgs: [name], limit: 1);
+    if (existing.isNotEmpty) {
+      await db.update('suppliers', s, where: 'id = ?', whereArgs: [existing.first['id']]);
+    } else {
+      await db.insert('suppliers', s);
+    }
+  }
 }

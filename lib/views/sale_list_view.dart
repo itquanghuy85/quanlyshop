@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../data/db_helper.dart';
 import '../models/sale_order_model.dart';
 import 'create_sale_view.dart';
@@ -38,6 +39,46 @@ class _SaleListViewState extends State<SaleListView> {
     });
   }
 
+  void _confirmDelete(SaleOrder s) {
+    if (widget.role != 'admin') return;
+    final passCtrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("XÁC NHẬN XÓA ĐƠN BÁN"),
+        content: TextField(
+          controller: passCtrl,
+          obscureText: true,
+          decoration: const InputDecoration(hintText: "Nhập lại mật khẩu tài khoản quản lý"),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("HỦY")),
+          ElevatedButton(
+            onPressed: () async {
+              final user = FirebaseAuth.instance.currentUser;
+              if (user == null || user.email == null) {
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Không xác định được tài khoản hiện tại')));
+                return;
+              }
+              try {
+                final cred = EmailAuthProvider.credential(email: user.email!, password: passCtrl.text);
+                await user.reauthenticateWithCredential(cred);
+                await db.deleteSale(s.id!);
+                Navigator.pop(ctx);
+                _refresh();
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ĐÃ XÓA ĐƠN BÁN')));
+              } catch (_) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Mật khẩu không đúng')));
+              }
+            },
+            child: const Text("XÓA"),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -66,6 +107,7 @@ class _SaleListViewState extends State<SaleListView> {
                       final res = await Navigator.push(context, MaterialPageRoute(builder: (_) => SaleDetailView(sale: s, role: widget.role)));
                       if (res == true) _refresh();
                     },
+                    onLongPress: () => _confirmDelete(s),
                     leading: CircleAvatar(
                       backgroundColor: Colors.pink.withOpacity(0.1),
                       child: Icon(Icons.phone_iphone, color: Colors.pink, size: 20),

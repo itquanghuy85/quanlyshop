@@ -1,6 +1,6 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../data/db_helper.dart';
 import '../models/repair_model.dart';
 import 'repair_detail_view.dart';
@@ -119,16 +119,34 @@ class OrderListViewState extends State<OrderListView> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text("XÁC NHẬN XÓA ĐƠN"),
-        content: TextField(controller: passCtrl, obscureText: true, decoration: const InputDecoration(hintText: "Mật khẩu Admin")),
+        content: TextField(
+          controller: passCtrl,
+          obscureText: true,
+          decoration: const InputDecoration(hintText: "Nhập lại mật khẩu tài khoản quản lý"),
+        ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("HỦY")),
-          ElevatedButton(onPressed: () async {
-            if (passCtrl.text == "Ro090218@") {
-              await db.deleteRepair(r.id!);
-              Navigator.pop(ctx);
-              _loadInitialData();
-            }
-          }, child: const Text("XÓA")),
+          ElevatedButton(
+            onPressed: () async {
+              final user = FirebaseAuth.instance.currentUser;
+              if (user == null || user.email == null) {
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Không xác định được tài khoản hiện tại')));
+                return;
+              }
+              try {
+                final cred = EmailAuthProvider.credential(email: user.email!, password: passCtrl.text);
+                await user.reauthenticateWithCredential(cred);
+                await db.deleteRepair(r.id!);
+                Navigator.pop(ctx);
+                _loadInitialData();
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ĐÃ XÓA ĐƠN SỬA')));
+              } catch (_) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Mật khẩu không đúng')));
+              }
+            },
+            child: const Text("XÓA"),
+          ),
         ],
       ),
     );

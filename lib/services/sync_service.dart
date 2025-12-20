@@ -5,15 +5,30 @@ import '../models/repair_model.dart';
 import '../models/product_model.dart';
 import '../models/sale_order_model.dart';
 import 'storage_service.dart';
+import 'user_service.dart';
 
 class SyncService {
   static final _db = FirebaseFirestore.instance;
 
-  static void initRealTimeSync(Function onDataChanged) {
+  static Future<void> initRealTimeSync(Function onDataChanged) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
+    final bool isSuperAdmin = UserService.isCurrentUserSuperAdmin();
+    final String? shopId = isSuperAdmin ? null : await UserService.getCurrentShopId();
 
-    _db.collection('repairs').snapshots().listen((snapshot) async {
+    Query<Map<String, dynamic>> repairsQuery = _db.collection('repairs');
+    Query<Map<String, dynamic>> salesQuery = _db.collection('sales');
+    Query<Map<String, dynamic>> productsQuery = _db.collection('products');
+    Query<Map<String, dynamic>> suppliersQuery = _db.collection('suppliers');
+
+    if (shopId != null) {
+      repairsQuery = repairsQuery.where('shopId', isEqualTo: shopId);
+      salesQuery = salesQuery.where('shopId', isEqualTo: shopId);
+      productsQuery = productsQuery.where('shopId', isEqualTo: shopId);
+      suppliersQuery = suppliersQuery.where('shopId', isEqualTo: shopId);
+    }
+
+    repairsQuery.snapshots().listen((snapshot) async {
       final db = DBHelper();
       for (var change in snapshot.docChanges) {
         final data = change.doc.data();
@@ -26,7 +41,7 @@ class SyncService {
       onDataChanged();
     });
 
-    _db.collection('sales').snapshots().listen((snapshot) async {
+    salesQuery.snapshots().listen((snapshot) async {
       final db = DBHelper();
       for (var change in snapshot.docChanges) {
         final data = change.doc.data();
@@ -39,7 +54,7 @@ class SyncService {
       onDataChanged();
     });
 
-    _db.collection('products').snapshots().listen((snapshot) async {
+    productsQuery.snapshots().listen((snapshot) async {
       final db = DBHelper();
       for (var change in snapshot.docChanges) {
         final data = change.doc.data();
@@ -51,16 +66,32 @@ class SyncService {
       }
       onDataChanged();
     });
+
+    suppliersQuery.snapshots().listen((snapshot) async {
+      final db = DBHelper();
+      for (var change in snapshot.docChanges) {
+        final data = change.doc.data();
+        if (data != null && (change.type == DocumentChangeType.added || change.type == DocumentChangeType.modified)) {
+          await db.upsertSupplier(data);
+        }
+      }
+      onDataChanged();
+    });
   }
 
   static Future<void> syncAllToCloud() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
+    final bool isSuperAdmin = UserService.isCurrentUserSuperAdmin();
+    final String? shopId = isSuperAdmin ? null : await UserService.getCurrentShopId();
     final dbHelper = DBHelper();
 
     final repairs = await dbHelper.getAllRepairs();
     for (var r in repairs) {
       Map<String, dynamic> data = r.toMap();
+      if (shopId != null) {
+        data['shopId'] = shopId;
+      }
       if (r.imagePath != null && r.imagePath!.isNotEmpty && !r.imagePath!.startsWith('http')) {
         List<String> urls = await StorageService.uploadMultipleImages(r.imagePath!.split(','), 'repairs/${r.createdAt}');
         data['imagePath'] = urls.join(',');
@@ -72,22 +103,57 @@ class SyncService {
 
     final sales = await dbHelper.getAllSales();
     for (var s in sales) {
-      await _db.collection('sales').doc(s.firestoreId ?? "sale_${s.soldAt}").set(s.toMap(), SetOptions(merge: true));
+      final data = s.toMap();
+      if (shopId != null) {
+        data['shopId'] = shopId;
+      }
+      await _db.collection('sales').doc(s.firestoreId ?? "sale_${s.soldAt}").set(data, SetOptions(merge: true));
       s.isSynced = true; await dbHelper.updateSale(s);
     }
 
     final prods = await dbHelper.getAllProducts();
     for (var p in prods) {
-      await _db.collection('products').doc(p.firestoreId ?? "prod_${p.createdAt}").set(p.toMap(), SetOptions(merge: true));
+      final data = p.toMap();
+      if (shopId != null) {
+        data['shopId'] = shopId;
+      }
+      await _db.collection('products').doc(p.firestoreId ?? "prod_${p.createdAt}").set(data, SetOptions(merge: true));
+    }
+
+    final suppliers = await dbHelper.getSuppliers();
+    for (var s in suppliers) {
+      final data = Map<String, dynamic>.from(s);
+      data.remove('id');
+      if (shopId != null) {
+        data['shopId'] = shopId;
+      }
+      final docId = shopId != null ? "${shopId}_${s['name']}" : (s['name'] as String);
+      await _db.collection('suppliers').doc(docId).set(data, SetOptions(merge: true));
     }
   }
 
   static Future<void> downloadAllFromCloud() async {
     final db = DBHelper();
+    final bool isSuperAdmin = UserService.isCurrentUserSuperAdmin();
+    final String? shopId = isSuperAdmin ? null : await UserService.getCurrentShopId();
+
+    Query<Map<String, dynamic>> repairsQuery = _db.collection('repairs');
+    Query<Map<String, dynamic>> productsQuery = _db.collection('products');
+    Query<Map<String, dynamic>> salesQuery = _db.collection('sales');
+    Query<Map<String, dynamic>> suppliersQuery = _db.collection('suppliers');
+
+    if (shopId != null) {
+      repairsQuery = repairsQuery.where('shopId', isEqualTo: shopId);
+      productsQuery = productsQuery.where('shopId', isEqualTo: shopId);
+      salesQuery = salesQuery.where('shopId', isEqualTo: shopId);
+      suppliersQuery = suppliersQuery.where('shopId', isEqualTo: shopId);
+    }
+
     final snaps = await Future.wait([
-      _db.collection('repairs').get(),
-      _db.collection('products').get(),
-      _db.collection('sales').get(),
+      repairsQuery.get(),
+      productsQuery.get(),
+      salesQuery.get(),
+      suppliersQuery.get(),
     ]);
 
     for (var doc in snaps[0].docs) {
@@ -104,6 +170,11 @@ class SyncService {
       final data = doc.data();
       data['firestoreId'] = doc.id;
       await db.upsertSale(SaleOrder.fromMap(data));
+    }
+
+    for (var doc in snaps[3].docs) {
+      final data = doc.data();
+      await db.upsertSupplier(data);
     }
   }
 }

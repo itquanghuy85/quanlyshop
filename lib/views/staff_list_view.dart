@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import '../services/user_service.dart';
@@ -9,6 +11,13 @@ import '../models/repair_model.dart';
 import '../models/sale_order_model.dart';
 import 'repair_detail_view.dart';
 import 'sale_detail_view.dart';
+
+ImageProvider? _safeImageProvider(String? path) {
+  if (path == null || path.isEmpty) return null;
+  if (path.startsWith('http')) return NetworkImage(path);
+  final file = File(path);
+  return file.existsSync() ? FileImage(file) : null;
+}
 
 class StaffListView extends StatefulWidget {
   const StaffListView({super.key});
@@ -19,60 +28,245 @@ class StaffListView extends StatefulWidget {
 
 class _StaffListViewState extends State<StaffListView> {
   final db = DBHelper();
+  String? _currentRole;
+  String? _currentShopId;
+  bool _isSuperAdmin = false;
+  bool _loadingRole = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrentUserRole();
+  }
+
+  Future<void> _loadCurrentUserRole() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (!mounted) return;
+    if (user == null) {
+      setState(() => _loadingRole = false);
+      return;
+    }
+
+    final role = await UserService.getUserRole(user.uid);
+    final shopId = await UserService.getCurrentShopId();
+
+    if (!mounted) return;
+    setState(() {
+      _currentRole = role;
+      _currentShopId = shopId;
+      _isSuperAdmin = UserService.isCurrentUserSuperAdmin();
+      _loadingRole = false;
+    });
+  }
+
+  bool get _canManageStaff => _isSuperAdmin || _currentRole == 'admin';
+
+  void _openCreateStaffDialog() {
+    final emailC = TextEditingController();
+    final passC = TextEditingController();
+    final nameC = TextEditingController();
+    final phoneC = TextEditingController();
+    final addressC = TextEditingController();
+    final shopC = TextEditingController(text: _currentShopId ?? "");
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        String role = 'user';
+        String? errorText;
+        bool submitting = false;
+
+        return StatefulBuilder(
+          builder: (ctx, setState) {
+            Future<void> submit() async {
+              if (submitting) return;
+              final email = emailC.text.trim();
+              final password = passC.text.trim();
+              final displayName = nameC.text.trim();
+              if (email.isEmpty || password.length < 6 || displayName.isEmpty) {
+                setState(() => errorText = 'Nhập email, mật khẩu >= 6 ký tự và họ tên');
+                return;
+              }
+
+              if (_isSuperAdmin && shopC.text.trim().isEmpty) {
+                setState(() => errorText = 'Nhập shopId khi tạo từ tài khoản super admin');
+                return;
+              }
+
+              setState(() {
+                submitting = true;
+                errorText = null;
+              });
+
+              try {
+                final callable = FirebaseFunctions.instance.httpsCallable('createStaffAccount');
+                final payload = {
+                  'email': email,
+                  'password': password,
+                  'displayName': displayName,
+                  'phone': phoneC.text.trim(),
+                  'address': addressC.text.trim(),
+                  'role': role,
+                };
+                if (_isSuperAdmin) {
+                  payload['shopId'] = shopC.text.trim();
+                }
+
+                final result = await callable.call(payload);
+                final resultData = result.data;
+                final createdShop =
+                    resultData is Map && resultData['shopId'] != null ? resultData['shopId'] : (_currentShopId ?? '');
+                if (!mounted) return;
+                Navigator.of(ctx).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Đã tạo tài khoản nhân viên cho ${displayName.toUpperCase()} (shop: $createdShop)')),
+                );
+              } on FirebaseFunctionsException catch (e) {
+                setState(() => errorText = e.message ?? 'Không thể tạo tài khoản');
+              } catch (e) {
+                setState(() => errorText = 'Lỗi: $e');
+              } finally {
+                setState(() => submitting = false);
+              }
+            }
+
+            return AlertDialog(
+              title: const Text('TẠO TÀI KHOẢN NHÂN VIÊN'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: emailC,
+                      decoration: const InputDecoration(labelText: 'Email đăng nhập'),
+                    ),
+                    TextField(
+                      controller: passC,
+                      obscureText: true,
+                      decoration: const InputDecoration(labelText: 'Mật khẩu (>=6 ký tự)'),
+                    ),
+                    TextField(
+                      controller: nameC,
+                      decoration: const InputDecoration(labelText: 'Họ tên nhân viên'),
+                    ),
+                    TextField(
+                      controller: phoneC,
+                      keyboardType: TextInputType.phone,
+                      decoration: const InputDecoration(labelText: 'Số điện thoại'),
+                    ),
+                    TextField(
+                      controller: addressC,
+                      decoration: const InputDecoration(labelText: 'Địa chỉ'),
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Quyền'),
+                        DropdownButton<String>(
+                          value: role,
+                          items: const [
+                            DropdownMenuItem(value: 'user', child: Text('Nhân viên')),
+                            DropdownMenuItem(value: 'admin', child: Text('Quản lý')),
+                          ],
+                          onChanged: (v) => setState(() => role = v ?? 'user'),
+                        ),
+                      ],
+                    ),
+                    if (_isSuperAdmin)
+                      TextField(
+                        controller: shopC,
+                        decoration: const InputDecoration(labelText: 'Shop ID (nhập khi tạo từ super admin)'),
+                      ),
+                    if (errorText != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8.0),
+                        child: Text(errorText!, style: const TextStyle(color: Colors.red, fontSize: 12)),
+                      ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: submitting ? null : () => Navigator.of(ctx).pop(),
+                  child: const Text('HỦY'),
+                ),
+                ElevatedButton(
+                  onPressed: submitting ? null : submit,
+                  child: submitting
+                      ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Text('TẠO TÀI KHOẢN'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFF),
       appBar: AppBar(title: const Text("QUẢN LÝ NHÂN VIÊN", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: UserService.getAllUsersStream(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+      floatingActionButton: _canManageStaff
+          ? FloatingActionButton.extended(
+              onPressed: _openCreateStaffDialog,
+              icon: const Icon(Icons.person_add_alt_1),
+              label: const Text("Thêm nhân viên"),
+            )
+          : null,
+      body: _loadingRole
+          ? const Center(child: CircularProgressIndicator())
+          : StreamBuilder<QuerySnapshot>(
+              stream: UserService.getAllUsersStream(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
 
-          final users = snapshot.data!.docs;
-          if (users.isEmpty) {
-            return const Center(
-              child: Text(
-                "Chưa có dữ liệu nhân viên\nMỗi tài khoản sẽ tự xuất hiện sau khi đăng nhập",
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey),
-              ),
-            );
-          }
+                final users = snapshot.data!.docs;
+                if (users.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      "Chưa có dữ liệu nhân viên\nMỗi tài khoản sẽ tự xuất hiện sau khi đăng nhập",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  );
+                }
 
-          return ListView.builder(
-            padding: const EdgeInsets.all(15),
-            itemCount: users.length,
-            itemBuilder: (ctx, i) {
-              final userData = users[i].data() as Map<String, dynamic>;
-              final uid = users[i].id;
-              final email = userData['email'] ?? "Chưa có email";
-              final role = userData['role'] ?? 'user';
-              final displayName = userData['displayName'] ?? email.split('@').first.toUpperCase();
-              final phone = userData['phone'] ?? "Chưa có SĐT";
-              final photoUrl = userData['photoUrl'];
+                return ListView.builder(
+                  padding: const EdgeInsets.all(15),
+                  itemCount: users.length,
+                  itemBuilder: (ctx, i) {
+                    final userData = users[i].data() as Map<String, dynamic>;
+                    final uid = users[i].id;
+                    final email = userData['email'] ?? "Chưa có email";
+                    final role = userData['role'] ?? 'user';
+                    final displayName = userData['displayName'] ?? email.split('@').first.toUpperCase();
+                    final phone = userData['phone'] ?? "Chưa có SĐT";
+                    final photoUrl = userData['photoUrl'];
 
-              return Card(
-                margin: const EdgeInsets.only(bottom: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundImage: photoUrl != null ? FileImage(File(photoUrl)) : null,
-                    backgroundColor: role == 'admin' ? Colors.red.withOpacity(0.1) : Colors.blue.withOpacity(0.1),
-                    child: photoUrl == null ? Icon(role == 'admin' ? Icons.admin_panel_settings : Icons.person, color: role == 'admin' ? Colors.red : Colors.blue) : null,
-                  ),
-                  title: Text(displayName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                  subtitle: Text("$email\nSĐT: $phone", style: const TextStyle(fontSize: 11, color: Colors.grey)),
-                  isThreeLine: true,
-                  trailing: Icon(Icons.edit_note_rounded, color: Colors.blueAccent),
-                  onTap: () => _showStaffActivityCenter(uid, displayName, email, role, userData),
-                ),
-              );
-            },
-          );
-        },
-      ),
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundImage: _safeImageProvider(photoUrl),
+                          backgroundColor: role == 'admin' ? Colors.red.withOpacity(0.1) : Colors.blue.withOpacity(0.1),
+                          child: photoUrl == null ? Icon(role == 'admin' ? Icons.admin_panel_settings : Icons.person, color: role == 'admin' ? Colors.red : Colors.blue) : null,
+                        ),
+                        title: Text(displayName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                        subtitle: Text("$email\nSĐT: $phone", style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                        isThreeLine: true,
+                        trailing: Icon(Icons.edit_note_rounded, color: Colors.blueAccent),
+                        onTap: () => _showStaffActivityCenter(uid, displayName, email, role, userData),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
     );
   }
 
@@ -107,6 +301,25 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter> with SingleT
   String _selectedRole = 'user';
   bool _isEditing = false;
 
+  String? _staffShopId;
+  String? _currentUserShopId;
+  bool _loadingShop = true;
+  bool _assigningShop = false;
+
+  // Phân quyền ẩn/hiện nội dung cho nhân viên
+  bool _canViewSales = true;
+  bool _canViewRepairs = true;
+  bool _canViewInventory = true;
+  bool _canViewParts = true;
+  bool _canViewSuppliers = true;
+  bool _canViewCustomers = true;
+  bool _canViewWarranty = true;
+  bool _canViewChat = true;
+  bool _canViewPrinter = true;
+  bool _canViewRevenue = false;
+  bool _canViewExpenses = false;
+  bool _canViewDebts = false;
+
   List<Repair> _repairsReceived = [];
   List<Repair> _repairsDelivered = [];
   List<SaleOrder> _sales = [];
@@ -122,8 +335,33 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter> with SingleT
     addressCtrl.text = widget.fullData['address'] ?? "";
     _photoPath = widget.fullData['photoUrl'];
     _selectedRole = widget.role;
+    _staffShopId = widget.fullData['shopId'];
 
+    // Quyền xem nội dung (mặc định: chỉ quản lý thấy toàn bộ tài chính)
+    _canViewSales = widget.fullData['allowViewSales'] == true;
+    _canViewRepairs = widget.fullData['allowViewRepairs'] == true;
+    _canViewInventory = widget.fullData['allowViewInventory'] == true;
+    _canViewParts = widget.fullData['allowViewParts'] == true;
+    _canViewSuppliers = widget.fullData['allowViewSuppliers'] == true;
+    _canViewCustomers = widget.fullData['allowViewCustomers'] == true;
+    _canViewWarranty = widget.fullData['allowViewWarranty'] == true;
+    _canViewChat = widget.fullData['allowViewChat'] == true;
+    _canViewPrinter = widget.fullData['allowViewPrinter'] == true;
+    _canViewRevenue = widget.fullData['allowViewRevenue'] == true;
+    _canViewExpenses = widget.fullData['allowViewExpenses'] == true;
+    _canViewDebts = widget.fullData['allowViewDebts'] == true;
+
+    _loadCurrentShop();
     _loadAllStaffData();
+  }
+
+  Future<void> _loadCurrentShop() async {
+    final id = await UserService.getCurrentShopId();
+    if (!mounted) return;
+    setState(() {
+      _currentUserShopId = id;
+      _loadingShop = false;
+    });
   }
 
   Future<void> _loadAllStaffData() async {
@@ -150,8 +388,45 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter> with SingleT
       role: _selectedRole,
       photoUrl: _photoPath,
     );
+
+    // Lưu cấu hình phân quyền hiển thị nội dung
+    await UserService.updateUserPermissions(
+      uid: widget.uid,
+      allowViewSales: _canViewSales,
+      allowViewRepairs: _canViewRepairs,
+      allowViewInventory: _canViewInventory,
+      allowViewParts: _canViewParts,
+      allowViewSuppliers: _canViewSuppliers,
+      allowViewCustomers: _canViewCustomers,
+      allowViewWarranty: _canViewWarranty,
+      allowViewChat: _canViewChat,
+      allowViewPrinter: _canViewPrinter,
+      allowViewRevenue: _selectedRole == 'admin' ? true : _canViewRevenue,
+      allowViewExpenses: _selectedRole == 'admin' ? true : _canViewExpenses,
+      allowViewDebts: _selectedRole == 'admin' ? true : _canViewDebts,
+    );
+
     setState(() => _isEditing = false);
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ĐÃ CẬP NHẬT HỒ SƠ NHÂN VIÊN!")));
+  }
+
+  Future<void> _assignToMyShop() async {
+    if (_currentUserShopId == null || _currentUserShopId!.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Không xác định được cửa hàng hiện tại")));
+      return;
+    }
+    setState(() => _assigningShop = true);
+    try {
+      await UserService.assignUserToCurrentShop(widget.uid);
+      setState(() {
+        _staffShopId = _currentUserShopId;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ĐÃ GÁN NHÂN VIÊN VÀO CỬA HÀNG CỦA BẠN")));
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Lỗi khi gán cửa hàng: $e")));
+    } finally {
+      if (mounted) setState(() => _assigningShop = false);
+    }
   }
 
   @override
@@ -172,7 +447,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter> with SingleT
                   onTap: _isEditing ? _pickPhoto : null,
                   child: CircleAvatar(
                     radius: 30,
-                    backgroundImage: _photoPath != null ? FileImage(File(_photoPath!)) : null,
+                    backgroundImage: _safeImageProvider(_photoPath),
                     backgroundColor: Colors.blue.withOpacity(0.1),
                     child: _photoPath == null ? const Icon(Icons.camera_alt, color: Colors.blue) : null,
                   ),
@@ -198,31 +473,184 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter> with SingleT
             ),
           ),
 
-          if (_isEditing) 
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Column(
-                children: [
-                  _editInput(nameCtrl, "Họ và tên nhân viên", Icons.person_outline),
-                  _editInput(phoneCtrl, "Số điện thoại liên hệ", Icons.phone_android_outlined, type: TextInputType.phone),
-                  _editInput(addressCtrl, "Địa chỉ thường trú", Icons.location_on_outlined),
-                  const SizedBox(height: 10),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          if (_isEditing)
+            SizedBox(
+              height: MediaQuery.of(context).size.height * 0.4,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: SingleChildScrollView(
+                  child: Column(
                     children: [
-                      const Text("Quyền hệ thống:", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                      DropdownButton<String>(
-                        value: _selectedRole,
-                        items: const [
-                          DropdownMenuItem(value: 'user', child: Text("NHÂN VIÊN")),
-                          DropdownMenuItem(value: 'admin', child: Text("QUẢN LÝ")),
+                      _editInput(nameCtrl, "Họ và tên nhân viên", Icons.person_outline),
+                      _editInput(phoneCtrl, "Số điện thoại liên hệ", Icons.phone_android_outlined, type: TextInputType.phone),
+                      _editInput(addressCtrl, "Địa chỉ thường trú", Icons.location_on_outlined),
+                      const SizedBox(height: 10),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text("Quyền hệ thống:", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                          DropdownButton<String>(
+                            value: _selectedRole,
+                            items: const [
+                              DropdownMenuItem(value: 'user', child: Text("NHÂN VIÊN")),
+                              DropdownMenuItem(value: 'admin', child: Text("QUẢN LÝ")),
+                            ],
+                            onChanged: (v) => setState(() => _selectedRole = v!),
+                          ),
                         ],
-                        onChanged: (v) => setState(() => _selectedRole = v!),
                       ),
+                      const SizedBox(height: 8),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              "Cửa hàng của nhân viên: ${_staffShopId ?? 'Chưa gán'}",
+                              style: const TextStyle(fontSize: 12, color: Colors.grey),
+                            ),
+                          ),
+                          if (!_loadingShop && _currentUserShopId != null)
+                            TextButton.icon(
+                              onPressed: _assigningShop ? null : _assignToMyShop,
+                              icon: _assigningShop
+                                  ? const SizedBox(
+                                      width: 14,
+                                      height: 14,
+                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                    )
+                                  : const Icon(Icons.store_mall_directory, size: 18),
+                              label: const Text("GÁN VÀO SHOP CỦA TÔI", style: TextStyle(fontSize: 11)),
+                            ),
+                        ],
+                      ),
+                      const Divider(),
+
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          "PHÂN QUYỀN NỘI DUNG CHO NHÂN VIÊN",
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blueGrey[700]),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.grey[50],
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey.withOpacity(0.2)),
+                        ),
+                        child: Column(
+                          children: [
+                            if (_selectedRole == 'admin')
+                              const Padding(
+                                padding: EdgeInsets.all(10),
+                                child: Text(
+                                  "Tài khoản QUẢN LÝ luôn được xem đầy đủ mọi nội dung trong hệ thống.",
+                                  style: TextStyle(fontSize: 11, color: Colors.grey),
+                                ),
+                              )
+                            else ...[
+                              const Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                child: Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                    "MÀN HÌNH NGHIỆP VỤ",
+                                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.blueGrey),
+                                  ),
+                                ),
+                              ),
+                              SwitchListTile(
+                                title: const Text("BÁN HÀNG", style: TextStyle(fontSize: 12)),
+                                subtitle: const Text("Xem và tạo đơn bán máy / phụ kiện", style: TextStyle(fontSize: 11, color: Colors.grey)),
+                                value: _canViewSales,
+                                onChanged: (v) => setState(() => _canViewSales = v),
+                              ),
+                              SwitchListTile(
+                                title: const Text("SỬA CHỮA", style: TextStyle(fontSize: 12)),
+                                subtitle: const Text("Xem danh sách đơn sửa, tạo đơn mới", style: TextStyle(fontSize: 11, color: Colors.grey)),
+                                value: _canViewRepairs,
+                                onChanged: (v) => setState(() => _canViewRepairs = v),
+                              ),
+                              SwitchListTile(
+                                title: const Text("KHO", style: TextStyle(fontSize: 12)),
+                                subtitle: const Text("Xem hàng tồn kho và phụ kiện", style: TextStyle(fontSize: 11, color: Colors.grey)),
+                                value: _canViewInventory,
+                                onChanged: (v) => setState(() => _canViewInventory = v),
+                              ),
+                              SwitchListTile(
+                                title: const Text("KHO LINH KIỆN SỬA CHỮA", style: TextStyle(fontSize: 12)),
+                                subtitle: const Text("Quản lý linh kiện dùng cho sửa chữa", style: TextStyle(fontSize: 11, color: Colors.grey)),
+                                value: _canViewParts,
+                                onChanged: (v) => setState(() => _canViewParts = v),
+                              ),
+                              SwitchListTile(
+                                title: const Text("NHÀ CUNG CẤP", style: TextStyle(fontSize: 12)),
+                                subtitle: const Text("Xem sổ nhà phân phối, lịch sử nhập hàng", style: TextStyle(fontSize: 11, color: Colors.grey)),
+                                value: _canViewSuppliers,
+                                onChanged: (v) => setState(() => _canViewSuppliers = v),
+                              ),
+                              SwitchListTile(
+                                title: const Text("KHÁCH HÀNG", style: TextStyle(fontSize: 12)),
+                                subtitle: const Text("Xem danh sách khách và lịch sử mua/sửa", style: TextStyle(fontSize: 11, color: Colors.grey)),
+                                value: _canViewCustomers,
+                                onChanged: (v) => setState(() => _canViewCustomers = v),
+                              ),
+                              SwitchListTile(
+                                title: const Text("BẢO HÀNH", style: TextStyle(fontSize: 12)),
+                                subtitle: const Text("Truy cập sổ bảo hành của cửa hàng", style: TextStyle(fontSize: 11, color: Colors.grey)),
+                                value: _canViewWarranty,
+                                onChanged: (v) => setState(() => _canViewWarranty = v),
+                              ),
+                              SwitchListTile(
+                                title: const Text("CHAT NỘI BỘ", style: TextStyle(fontSize: 12)),
+                                subtitle: const Text("Cho phép sử dụng phòng chat trong cửa hàng", style: TextStyle(fontSize: 11, color: Colors.grey)),
+                                value: _canViewChat,
+                                onChanged: (v) => setState(() => _canViewChat = v),
+                              ),
+                              SwitchListTile(
+                                title: const Text("CẤU HÌNH MÁY IN", style: TextStyle(fontSize: 12)),
+                                subtitle: const Text("Kết nối và in hóa đơn qua Bluetooth", style: TextStyle(fontSize: 11, color: Colors.grey)),
+                                value: _canViewPrinter,
+                                onChanged: (v) => setState(() => _canViewPrinter = v),
+                              ),
+
+                              const Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                child: Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                    "MÀN HÌNH TÀI CHÍNH NHẠY CẢM",
+                                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.blueGrey),
+                                  ),
+                                ),
+                              ),
+                              SwitchListTile(
+                                title: const Text("Cho phép xem màn DOANH THU", style: TextStyle(fontSize: 12)),
+                                subtitle: const Text("Bao gồm báo cáo lời/lỗ, doanh số bán và sửa", style: TextStyle(fontSize: 11, color: Colors.grey)),
+                                value: _canViewRevenue,
+                                onChanged: (v) => setState(() => _canViewRevenue = v),
+                              ),
+                              SwitchListTile(
+                                title: const Text("Cho phép xem màn CHI PHÍ", style: TextStyle(fontSize: 12)),
+                                subtitle: const Text("Xem và quản lý các khoản chi ra của cửa hàng", style: TextStyle(fontSize: 11, color: Colors.grey)),
+                                value: _canViewExpenses,
+                                onChanged: (v) => setState(() => _canViewExpenses = v),
+                              ),
+                              SwitchListTile(
+                                title: const Text("Cho phép xem SỔ CÔNG NỢ", style: TextStyle(fontSize: 12)),
+                                subtitle: const Text("Bao gồm khách nợ shop và shop nợ nhà cung cấp", style: TextStyle(fontSize: 11, color: Colors.grey)),
+                                value: _canViewDebts,
+                                onChanged: (v) => setState(() => _canViewDebts = v),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 10),
                     ],
                   ),
-                  const Divider(),
-                ],
+                ),
               ),
             ),
 

@@ -1,10 +1,9 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:image_picker/image_picker.dart';
 import '../data/db_helper.dart';
 import '../models/product_model.dart';
 import 'supplier_view.dart';
+import '../services/user_service.dart';
 
 class InventoryView extends StatefulWidget {
   final String role;
@@ -19,6 +18,10 @@ class _InventoryViewState extends State<InventoryView> {
   List<Product> _products = [];
   List<Map<String, dynamic>> _suppliers = [];
   bool _isLoading = true;
+  bool _selectionMode = false;
+  final Set<int> _selectedIds = {};
+
+  bool get _isAdmin => widget.role == 'admin';
 
   @override
   void initState() {
@@ -31,6 +34,107 @@ class _InventoryViewState extends State<InventoryView> {
     final data = await db.getInStockProducts();
     final suppliers = await db.getSuppliers();
     setState(() { _products = data; _suppliers = suppliers; _isLoading = false; });
+    if (_products.isEmpty) {
+      _selectionMode = false;
+      _selectedIds.clear();
+    }
+  }
+
+  Future<void> _confirmDeleteProduct(Product p) async {
+    if (!_isAdmin) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Chỉ tài khoản QUẢN LÝ mới được xóa hàng khỏi kho')), 
+      );
+      return;
+    }
+
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("XÓA SẢN PHẨM KHỎI KHO"),
+        content: Text("Bạn chắc chắn muốn xóa \"${p.name}\" khỏi danh sách kho? Hành động này không ảnh hưởng đến các đơn đã bán."),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("HỦY")),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text("XÓA")),
+        ],
+      ),
+    );
+
+    if (ok == true) {
+      await db.deleteProduct(p.id!);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ĐÃ XÓA SẢN PHẨM KHỎI KHO')), 
+      );
+      _refresh();
+    }
+  }
+
+  Future<void> _confirmDeleteSelected() async {
+    if (!_isAdmin) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Chỉ tài khoản QUẢN LÝ mới được xóa hàng khỏi kho')),
+      );
+      return;
+    }
+    if (_selectedIds.isEmpty) return;
+
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("XÓA NHIỀU SẢN PHẨM"),
+        content: Text("Bạn chắc chắn muốn xóa ${_selectedIds.length} sản phẩm đã chọn khỏi kho?"),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("HỦY")),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text("XÓA")),
+        ],
+      ),
+    );
+
+    if (ok == true) {
+      for (final id in _selectedIds) {
+        await db.deleteProduct(id);
+      }
+      if (!mounted) return;
+      _selectedIds.clear();
+      _selectionMode = false;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ĐÃ XÓA CÁC SẢN PHẨM ĐÃ CHỌN')), 
+      );
+      _refresh();
+    }
+  }
+
+  void _toggleSelection(Product p) {
+    final id = p.id;
+    if (id == null) return;
+    setState(() {
+      if (!_selectionMode) {
+        _selectionMode = true;
+      }
+      if (_selectedIds.contains(id)) {
+        _selectedIds.remove(id);
+        if (_selectedIds.isEmpty) _selectionMode = false;
+      } else {
+        _selectedIds.add(id);
+      }
+    });
+  }
+
+  void _selectAll() {
+    setState(() {
+      _selectionMode = true;
+      _selectedIds
+        ..clear()
+        ..addAll(_products.where((p) => p.id != null).map((p) => p.id!));
+    });
+  }
+
+  void _clearSelection() {
+    setState(() {
+      _selectionMode = false;
+      _selectedIds.clear();
+    });
   }
 
   void _showAddProductDialog() {
@@ -172,35 +276,117 @@ class _InventoryViewState extends State<InventoryView> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFF),
       appBar: AppBar(
-        title: const Text("KHO MÁY & PHỤ KIỆN"),
+        title: const Text("KHO"),
         actions: [
-          IconButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SupplierView())), icon: const Icon(Icons.business)),
+          IconButton(
+            onPressed: () async {
+              final perms = await UserService.getCurrentUserPermissions();
+              final canView = perms['allowViewSuppliers'] ?? false;
+              if (!canView) {
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Tài khoản này không được phép xem danh sách NHÀ PHÂN PHỐI. Liên hệ chủ shop để phân quyền.")),
+                );
+                return;
+              }
+              if (!mounted) return;
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const SupplierView()));
+            },
+            icon: const Icon(Icons.business),
+          ),
         ],
       ),
       body: _isLoading 
         ? const Center(child: CircularProgressIndicator())
-        : ListView.builder(
-            padding: const EdgeInsets.all(15),
-            itemCount: _products.length,
-            itemBuilder: (ctx, i) {
-              final p = _products[i];
-              return Card(
-                margin: const EdgeInsets.only(bottom: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                child: ListTile(
-                  leading: CircleAvatar(child: Icon(p.type == 'PHONE' ? Icons.phone_android : Icons.headset)),
-                  title: Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text("NCC: ${p.supplier ?? '---'}\nIMEI: ${p.imei ?? 'N/A'} | SL: ${p.quantity}"),
-                  trailing: Text("${NumberFormat('#,###').format(p.price)} đ", style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+        : Column(
+            children: [
+              if (_selectionMode)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  color: Colors.blue.withOpacity(0.06),
+                  child: Row(
+                    children: [
+                      Text("Đã chọn: ${_selectedIds.length}", style: const TextStyle(fontWeight: FontWeight.bold)),
+                      const SizedBox(width: 10),
+                      TextButton.icon(
+                        onPressed: _selectAll,
+                        icon: const Icon(Icons.select_all, size: 18),
+                        label: const Text("Chọn tất cả"),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        icon: const Icon(Icons.clear),
+                        tooltip: "Bỏ chọn",
+                        onPressed: _clearSelection,
+                      ),
+                    ],
+                  ),
                 ),
-              );
-            },
+              Expanded(
+                child: ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(15, 15, 15, 100),
+                  itemCount: _products.length,
+                  itemBuilder: (ctx, i) {
+                    final p = _products[i];
+                    final isSelected = p.id != null && _selectedIds.contains(p.id);
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                      child: ListTile(
+                        onLongPress: () => _toggleSelection(p),
+                        onTap: _selectionMode ? () => _toggleSelection(p) : null,
+                        leading: _selectionMode
+                            ? Checkbox(
+                                value: isSelected,
+                                onChanged: (_) => _toggleSelection(p),
+                              )
+                            : CircleAvatar(child: Icon(p.type == 'PHONE' ? Icons.phone_android : Icons.headset)),
+                        title: Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: Text("NCC: ${p.supplier ?? '---'}\nIMEI: ${p.imei ?? 'N/A'} | SL: ${p.quantity}"),
+                        trailing: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              "${NumberFormat('#,###').format(p.price)} đ",
+                              style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                            ),
+                            if (_isAdmin && !_selectionMode)
+                              IconButton(
+                                icon: const Icon(Icons.delete_outline, size: 18, color: Colors.grey),
+                                tooltip: "Xóa khỏi kho",
+                                onPressed: () => _confirmDeleteProduct(p),
+                              ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showAddProductDialog,
-        label: const Text("NHẬP HÀNG MỚI"),
-        icon: const Icon(Icons.add),
-        backgroundColor: Colors.blueAccent,
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (_selectionMode && _isAdmin)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: FloatingActionButton.extended(
+                onPressed: _confirmDeleteSelected,
+                backgroundColor: Colors.redAccent,
+                icon: const Icon(Icons.delete_sweep_rounded),
+                label: const Text("Xóa đã chọn"),
+              ),
+            ),
+          FloatingActionButton.extended(
+            onPressed: _showAddProductDialog,
+            label: const Text("NHẬP HÀNG MỚI"),
+            icon: const Icon(Icons.add),
+            backgroundColor: Colors.blueAccent,
+          ),
+        ],
       ),
     );
   }

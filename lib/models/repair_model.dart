@@ -14,6 +14,7 @@ class Repair {
   int status; // 1: Nhận, 2: Sửa, 3: Xong, 4: Giao
   int price;
   int cost;
+  String paymentMethod;
   int createdAt;
   int? startedAt;
   int? finishedAt;
@@ -40,6 +41,7 @@ class Repair {
     this.status = 1,
     this.price = 0,
     this.cost = 0,
+    this.paymentMethod = "TIỀN MẶT",
     required this.createdAt,
     this.startedAt,
     this.finishedAt,
@@ -71,6 +73,7 @@ class Repair {
       'status': status,
       'price': price,
       'cost': cost,
+      'paymentMethod': paymentMethod,
       'createdAt': createdAt,
       'startedAt': startedAt,
       'finishedAt': finishedAt,
@@ -100,6 +103,7 @@ class Repair {
       status: map['status'] ?? 1,
       price: map['price'] ?? 0,
       cost: map['cost'] ?? 0,
+      paymentMethod: map['paymentMethod'] ?? "TIỀN MẶT",
       createdAt: map['createdAt'] ?? 0,
       startedAt: map['startedAt'],
       finishedAt: map['finishedAt'],

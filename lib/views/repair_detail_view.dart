@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:photo_view/photo_view.dart';
@@ -8,15 +9,18 @@ import 'package:screenshot/screenshot.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:qr_flutter/qr_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:esc_pos_printer/esc_pos_printer.dart';
 import 'package:esc_pos_utils/esc_pos_utils.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import '../models/repair_model.dart';
 import '../data/db_helper.dart';
 import '../services/storage_service.dart';
 import '../services/firestore_service.dart';
+import '../services/user_service.dart';
+import '../services/audit_service.dart';
 
 class RepairDetailView extends StatefulWidget {
   final Repair repair;
@@ -47,7 +51,9 @@ class _RepairDetailViewState extends State<RepairDetailView> {
   String _selectedWarranty = "KO BH";
 
   bool get isAdmin => widget.role == 'admin';
-  bool get isReadOnly => !isAdmin && r.status >= 3; // NV chỉ xem khi đơn đã xong/giao
+  bool _managerUnlocked = false;
+  bool _checkingManager = false;
+  bool get isReadOnly => !(_managerUnlocked || isAdmin) && r.status >= 3; // Chỉ khóa khi chưa mở khóa quản lý
 
   @override
   void initState() {
@@ -74,6 +80,54 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     priceCtrl.text = r.price > 0 ? (r.price / 1000).toStringAsFixed(0) : "";
     costCtrl.text = r.cost > 0 ? (r.cost / 1000).toStringAsFixed(0) : "";
     _selectedWarranty = _normalizeWarranty(r.warranty);
+  }
+
+  Future<void> _unlockManager() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("CẦN ĐĂNG NHẬP TÀI KHOẢN QUẢN LÝ")));
+      return;
+    }
+    final role = await UserService.getUserRole(user.uid);
+    final isSuper = UserService.isCurrentUserSuperAdmin();
+    if (role != 'admin' && !isSuper) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Chỉ tài khoản quản lý mới được sửa/xóa")));
+      return;
+    }
+
+    final passCtrl = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("XÁC THỰC QUẢN LÝ"),
+        content: TextField(controller: passCtrl, obscureText: true, decoration: const InputDecoration(labelText: "Mật khẩu quản lý")),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("HỦY")),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text("XÁC NHẬN")),
+        ],
+      ),
+    );
+
+    if (ok != true) return;
+
+    try {
+      setState(() => _checkingManager = true);
+      final cred = EmailAuthProvider.credential(email: user.email ?? '', password: passCtrl.text);
+      await user.reauthenticateWithCredential(cred);
+      if (mounted) {
+        setState(() {
+          _managerUnlocked = true;
+          _checkingManager = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ĐÃ MỞ KHÓA CHỈNH SỬA")));
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _checkingManager = false);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Sai mật khẩu quản lý")));
+      }
+    }
   }
 
   // --- LOGIC CHUYỂN TRẠNG THÁI CHUẨN ---
@@ -136,6 +190,13 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     await db.upsertRepair(r);
     await FirestoreService.upsertRepair(r);
     setState(() => _isSaving = false);
+    AuditService.logAction(
+      action: 'UPDATE_REPAIR',
+      entityType: 'repair',
+      entityId: r.firestoreId ?? "repair_${r.createdAt}_${r.phone}",
+      summary: r.customerName,
+      payload: {'status': r.status, 'price': r.price},
+    );
     Navigator.pop(context, true);
   }
 
@@ -146,8 +207,20 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       appBar: AppBar(
         title: const Text("CHI TIẾT ĐƠN HÀNG"),
         actions: [
-          IconButton(onPressed: _shareRepair, icon: const Icon(Icons.share_rounded, color: Colors.blueAccent)),
+          if (_checkingManager)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+              child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
+            ),
+          if (!_managerUnlocked)
+            IconButton(onPressed: _unlockManager, icon: const Icon(Icons.edit, color: Colors.black87)),
+          IconButton(onPressed: _sendSmsToCustomer, icon: const Icon(Icons.sms_outlined, color: Colors.green)),
+          IconButton(onPressed: _sendToChat, icon: const Icon(Icons.chat_bubble_outline_rounded, color: Colors.deepPurple)),
+          IconButton(onPressed: _printWifi, icon: const Icon(Icons.print_rounded, color: Colors.blueAccent)),
+          IconButton(onPressed: _shareRepair, icon: const Icon(Icons.share_rounded, color: Colors.pink)),
           IconButton(onPressed: _saveAll, icon: const Icon(Icons.check_circle, color: Colors.green, size: 28)),
+          if (_managerUnlocked)
+            IconButton(onPressed: _deleteRepair, icon: const Icon(Icons.delete_forever, color: Colors.redAccent)),
         ],
       ),
       body: _isSaving ? const Center(child: CircularProgressIndicator()) : ListView(
@@ -218,6 +291,193 @@ class _RepairDetailViewState extends State<RepairDetailView> {
   Widget _input(TextEditingController c, String h, IconData i, {bool caps = false, TextInputType type = TextInputType.text, String? suffix, bool readOnly = false}) => TextField(controller: c, keyboardType: type, textCapitalization: caps ? TextCapitalization.characters : TextCapitalization.none, readOnly: readOnly, decoration: InputDecoration(labelText: h, prefixIcon: Icon(i, size: 18), suffixText: suffix, border: const OutlineInputBorder()));
   Widget _imageGrid(List<String> cloud, List<File> local, bool isDel) => SizedBox(height: 80, child: ListView(scrollDirection: Axis.horizontal, children: [...cloud.map((url) => GestureDetector(onTap: () => _openGallery(cloud, cloud.indexOf(url)), child: Container(margin: const EdgeInsets.only(right: 8), width: 80, decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.blueAccent)), child: ClipRRect(borderRadius: BorderRadius.circular(6), child: Image.network(url, fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.broken_image)))))), ...local.map((f) => Container(margin: const EdgeInsets.only(right: 8), width: 80, decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.orange)), child: ClipRRect(borderRadius: BorderRadius.circular(6), child: Image.file(f, fit: BoxFit.cover)))), GestureDetector(onTap: () async { final f = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 50); if (f != null) setState(() { if (isDel) _deliveryImages.add(File(f.path)); else _receiveImages.add(File(f.path)); }); }, child: Container(width: 80, decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(8)), child: const Icon(Icons.add_a_photo, color: Colors.grey)))]));
 
+  String _fmtDate(int ms) => DateFormat('HH:mm dd/MM/yyyy').format(DateTime.fromMillisecondsSinceEpoch(ms));
+
+  String _toNoSign(String str) {
+    var withDia = 'àáâãèéêìíòóôõùúýỳỹỷỵửữừứựửữừứựàáâãèéêìíòóôõùúýỳỹỷỵửữừứựửữừứự';
+    var withoutDia = 'aaaaeeeeiioooouuyyyyyuuuuuuuuuuuaaaaeeeeiioooouuyyyyyuuuuuuuuuuu';
+    for (int i = 0; i < withDia.length; i++) {
+      str = str.replaceAll(withDia[i], withoutDia[i]);
+    }
+    return str.toUpperCase();
+  }
+
+  Future<void> _printWifi() async {
+    final prefs = await SharedPreferences.getInstance();
+    final ip = prefs.getString('printer_ip')?.trim();
+    if (ip == null || ip.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("CHƯA CÀI ĐẶT IP MÁY IN!")));
+      }
+      return;
+    }
+
+    final shopName = prefs.getString('shop_name') ?? 'TEN SHOP';
+    final shopAddr = prefs.getString('shop_address') ?? 'DIA CHI';
+    final shopPhone = prefs.getString('shop_phone') ?? 'SDT';
+
+    try {
+      const PaperSize paper = PaperSize.mm58;
+      final profile = await CapabilityProfile.load();
+      final printer = NetworkPrinter(paper, profile);
+
+      final PosPrintResult res = await printer.connect(ip, port: 9100);
+      if (res == PosPrintResult.success) {
+        // HEADER SHOP
+        printer.text(_toNoSign(shopName), styles: const PosStyles(align: PosAlign.center, bold: true));
+        printer.text(_toNoSign(shopAddr), styles: const PosStyles(align: PosAlign.center));
+        printer.text('SDT: ${_toNoSign(shopPhone)}', styles: const PosStyles(align: PosAlign.center));
+        printer.hr();
+
+        // TIEU DE PHIEU
+        printer.text('PHIEU NHAN SUA CHUA', styles: const PosStyles(align: PosAlign.center, bold: true));
+        printer.hr();
+
+        // THONG TIN KHACH
+        printer.text('KHACH HANG : ${_toNoSign(r.customerName)}');
+        printer.text('SDT        : ${_toNoSign(r.phone)}');
+
+        // THONG TIN MAY
+        printer.text('MAY        : ${_toNoSign(r.model)}');
+        printer.text('LOI        : ${_toNoSign(r.issue)}');
+        printer.text('BAO HANH   : ${_toNoSign(_normalizeWarranty(_selectedWarranty))}');
+
+        // TRANG THAI & NHAN VIEN
+        printer.text('TRANG THAI : ${_toNoSign(_getStatusLabel(r.status))}');
+        final staff = (r.deliveredBy ?? r.repairedBy ?? r.createdBy ?? '---').toUpperCase();
+        printer.text('NHAN VIEN  : ${_toNoSign(staff)}');
+        final timeMs = r.deliveredAt ?? r.finishedAt ?? r.createdAt;
+        printer.text('THOI GIAN  : ${_fmtDate(timeMs)}');
+
+        printer.hr();
+        printer.text('TIEN SUA   : ${NumberFormat('#,###').format(r.price)} VND', styles: const PosStyles(bold: true));
+        printer.hr();
+
+        // MA QR DE DOI CHIEU DON
+        printer.text('QUET QR DE XEM CHI TIET DON', styles: const PosStyles(align: PosAlign.center));
+        printer.qrcode(r.firestoreId ?? r.id?.toString() ?? 'REPAIR', size: QRSize.Size4, cor: QRCorrection.L);
+
+        printer.feed(2);
+        printer.text('CAM ON QUY KHACH DA TIN TUONG!', styles: const PosStyles(align: PosAlign.center));
+        printer.feed(2);
+        printer.cut();
+        printer.disconnect();
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ĐÃ GỬI LỆNH IN PHIẾU SỬA TỚI MÁY IN')));
+        }
+      } else {
+        printer.disconnect();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('IN PHIẾU SỬA THẤT BẠI: ${res.msg}. Vui lòng kiểm tra lại IP và kết nối mạng.')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('LỖI KHI IN PHIẾU SỬA: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _sendToChat() async {
+    final user = FirebaseAuth.instance.currentUser;
+    final senderId = user?.uid ?? 'guest';
+    final senderName = user?.email?.split('@').first.toUpperCase() ?? 'KHACH';
+    final key = r.firestoreId ?? "${r.createdAt}_${r.phone}";
+    final summary = "ĐƠN SỬA - ${r.customerName} - ${r.phone} - ${r.model}";
+    final msg = "Trao đổi về $summary";
+
+    await FirestoreService.sendChat(
+      message: msg,
+      senderId: senderId,
+      senderName: senderName,
+      linkedType: 'repair',
+      linkedKey: key,
+      linkedSummary: summary,
+    );
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("ĐÃ GIM ĐƠN SỬA VÀO CHAT NỘI BỘ")),
+      );
+    }
+  }
+
+  Future<void> _sendSmsToCustomer() async {
+    final phone = r.phone.trim();
+    if (phone.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("KHÔNG CÓ SỐ ĐIỆN THOẠI KHÁCH")),
+      );
+      return;
+    }
+
+    final customer = r.customerName.isNotEmpty ? r.customerName : phone;
+    final body = "SHOP xin chào $customer, máy ${r.model} đã sửa xong/đang chờ giao. Anh/chị sắp xếp ghé nhận khi tiện nhé. Cảm ơn!";
+
+    await Clipboard.setData(ClipboardData(text: body));
+
+    final uri = Uri(
+      scheme: 'sms',
+      path: phone,
+      queryParameters: {'body': body},
+    );
+
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("ĐÃ MỞ ỨNG DỤNG NHẮN TIN (nội dung đã copy sẵn).")),
+        );
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("KHÔNG MỞ ĐƯỢC ỨNG DỤNG NHẮN TIN, anh/chị dán nội dung vào Zalo/SMS giúp em.")),
+        );
+      }
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("LỖI KHI GỬI TIN NHẮN, nhưng nội dung đã được copy sẵn.")),
+      );
+    }
+  }
+
+  Future<void> _deleteRepair() async {
+    if (r.id == null) return;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("XÓA ĐƠN SỬA"),
+        content: const Text("Bạn chắc chắn muốn xóa đơn này?"),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("HỦY")),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text("XÓA")),
+        ],
+      ),
+    );
+
+    if (ok == true) {
+      await db.deleteRepair(r.id!);
+      AuditService.logAction(
+        action: 'DELETE_REPAIR',
+        entityType: 'repair',
+        entityId: r.firestoreId ?? "repair_${r.createdAt}_${r.phone}",
+        summary: r.customerName,
+        payload: {'model': r.model},
+      );
+      if (mounted) {
+        Navigator.pop(context, true);
+      }
+    }
+  }
+
   Future<void> _shareRepair() async {
     final dir = (await getApplicationDocumentsDirectory()).path;
     final fileName = 'PHIEU_SUA_${r.customerName.replaceAll(' ', '_')}.png';
@@ -239,6 +499,38 @@ class _RepairDetailViewState extends State<RepairDetailView> {
           _shareRow('TRẠNG THÁI', _getStatusLabel(r.status)),
           _shareRow('NHÂN VIÊN', (r.deliveredBy ?? r.repairedBy ?? r.createdBy ?? '---').toUpperCase()),
           _shareRow('GIÁ SỬA', '${NumberFormat('#,###').format(r.price)} đ'),
+          if (r.receiveImages.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            const Text('ẢNH TRƯỚC KHI NHẬN', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: r.receiveImages
+                  .take(4)
+                  .map((url) => ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: Image.network(url, width: 70, height: 70, fit: BoxFit.cover),
+                      ))
+                  .toList(),
+            ),
+          ],
+          if (r.deliverImages.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            const Text('ẢNH SAU KHI GIAO', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: r.deliverImages
+                  .take(4)
+                  .map((url) => ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: Image.network(url, width: 70, height: 70, fit: BoxFit.cover),
+                      ))
+                  .toList(),
+            ),
+          ],
           const SizedBox(height: 12),
           Center(child: QrImageView(data: r.firestoreId ?? r.id?.toString() ?? 'REPAIR', size: 100)),
           const SizedBox(height: 8),

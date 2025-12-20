@@ -1,7 +1,8 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../data/db_helper.dart';
+import '../services/user_service.dart';
 
 class SupplierView extends StatefulWidget {
   const SupplierView({super.key});
@@ -14,11 +15,23 @@ class _SupplierViewState extends State<SupplierView> {
   final db = DBHelper();
   List<Map<String, dynamic>> _suppliers = [];
   bool _isLoading = true;
+  bool _isAdmin = false;
 
   @override
   void initState() {
     super.initState();
+    _loadRole();
     _refresh();
+  }
+
+  Future<void> _loadRole() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    final role = await UserService.getUserRole(uid);
+    if (!mounted) return;
+    setState(() {
+      _isAdmin = role == 'admin';
+    });
   }
 
   Future<void> _refresh() async {
@@ -28,6 +41,38 @@ class _SupplierViewState extends State<SupplierView> {
       _suppliers = data;
       _isLoading = false;
     });
+  }
+
+  Future<void> _confirmDeleteSupplier(Map<String, dynamic> s) async {
+    if (!_isAdmin) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Chỉ tài khoản QUẢN LÝ mới được xóa nhà cung cấp')),
+      );
+      return;
+    }
+
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("XÓA NHÀ CUNG CẤP"),
+        content: Text(
+          "Bạn chắc chắn muốn xóa nhà cung cấp \"${s['name']}\" khỏi danh sách? Các sản phẩm cũ vẫn giữ nguyên thông tin NCC dạng chữ.",
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("HỦY")),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text("XÓA")),
+        ],
+      ),
+    );
+
+    if (ok == true) {
+      await db.deleteSupplier(s['id'] as int);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ĐÃ XÓA NHÀ CUNG CẤP')), 
+      );
+      _refresh();
+    }
   }
 
   void _showAddSupplier() {
@@ -121,6 +166,18 @@ class _SupplierViewState extends State<SupplierView> {
                                 ],
                               ),
                             ),
+                            if (_isAdmin)
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: TextButton.icon(
+                                  onPressed: () => _confirmDeleteSupplier(s),
+                                  icon: const Icon(Icons.delete_outline, size: 18, color: Colors.redAccent),
+                                  label: const Text(
+                                    "XÓA NHÀ CUNG CẤP",
+                                    style: TextStyle(color: Colors.redAccent, fontSize: 12),
+                                  ),
+                                ),
+                              ),
                           ],
                         ),
                       )

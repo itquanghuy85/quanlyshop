@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
 import '../data/db_helper.dart';
 import '../models/product_model.dart';
 import '../models/sale_order_model.dart';
 import '../services/notification_service.dart';
+import '../services/audit_service.dart';
 
 class CreateSaleView extends StatefulWidget {
   final String role;
@@ -28,6 +28,10 @@ class _CreateSaleViewState extends State<CreateSaleView> {
   final downPaymentCtrl = TextEditingController(text: "0");
   final loanAmountCtrl = TextEditingController(text: "0");
   final bankCtrl = TextEditingController();
+  final settlementNoteCtrl = TextEditingController();
+  final settlementCodeCtrl = TextEditingController();
+  int? _settlementPlannedAt;
+  String _paymentMethod = "TIỀN MẶT";
   final List<String> warrantyOptions = ["KO BH", "1 THÁNG", "3 THÁNG", "6 THÁNG", "12 THÁNG"];
   String _saleWarranty = "KO BH";
   bool _autoCalcTotal = true;
@@ -44,6 +48,22 @@ class _CreateSaleViewState extends State<CreateSaleView> {
     super.initState();
     _loadData();
     downPaymentCtrl.addListener(_calculateTotal);
+  }
+
+  @override
+  void dispose() {
+    nameCtrl.dispose();
+    phoneCtrl.dispose();
+    addressCtrl.dispose();
+    priceCtrl.dispose();
+    noteCtrl.dispose();
+    searchProdCtrl.dispose();
+    downPaymentCtrl.dispose();
+    loanAmountCtrl.dispose();
+    bankCtrl.dispose();
+    settlementNoteCtrl.dispose();
+    settlementCodeCtrl.dispose();
+    super.dispose();
   }
 
   Future<void> _loadData() async {
@@ -109,12 +129,17 @@ class _CreateSaleViewState extends State<CreateSaleView> {
       productImeis: _selectedItems.map((e) => (e['product'] as Product).imei ?? "PK").join(', '),
       totalPrice: (int.tryParse(priceCtrl.text) ?? 0) * 1000,
       totalCost: _selectedItems.fold(0, (sum, item) => sum + (item['product'] as Product).cost),
+      paymentMethod: _paymentMethod,
       sellerName: seller,
       soldAt: DateTime.now().millisecondsSinceEpoch,
-      isInstallment: _isInstallment,
+      isInstallment: _paymentMethod == "TRẢ GÓP (NH)" ? true : _isInstallment,
       downPayment: (int.tryParse(downPaymentCtrl.text) ?? 0) * 1000,
       loanAmount: (int.tryParse(loanAmountCtrl.text) ?? 0) * 1000,
       bankName: bankCtrl.text,
+      settlementPlannedAt: _paymentMethod == "TRẢ GÓP (NH)" ? _settlementPlannedAt : null,
+      settlementAmount: _paymentMethod == "TRẢ GÓP (NH)" ? (int.tryParse(loanAmountCtrl.text) ?? 0) * 1000 : 0,
+      settlementNote: _paymentMethod == "TRẢ GÓP (NH)" ? settlementNoteCtrl.text : null,
+      settlementCode: _paymentMethod == "TRẢ GÓP (NH)" ? settlementCodeCtrl.text : null,
       notes: noteCtrl.text,
       warranty: _saleWarranty,
     );
@@ -135,6 +160,17 @@ class _CreateSaleViewState extends State<CreateSaleView> {
     }
 
     await NotificationService.sendCloudNotification(title: "BÁN HÀNG THÀNH CÔNG", body: "NHÂN VIÊN $seller ĐÃ BÁN CHO ${sale.customerName}");
+    AuditService.logAction(
+      action: 'CREATE_SALE',
+      entityType: 'sale',
+      entityId: sale.firestoreId ?? "sale_${sale.soldAt}",
+      summary: "${sale.customerName} - ${NumberFormat('#,###').format(sale.totalPrice)}",
+      payload: {
+        'paymentMethod': sale.paymentMethod,
+        'installment': sale.isInstallment,
+        'downPayment': sale.downPayment,
+      },
+    );
     if (mounted) Navigator.pop(context, true);
   }
 
@@ -241,6 +277,20 @@ class _CreateSaleViewState extends State<CreateSaleView> {
               Text("${NumberFormat('#,###').format((int.tryParse(priceCtrl.text) ?? 0) * 1000)} Đ", style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.red)),
             ],
           ),
+          const SizedBox(height: 10),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              children: [
+                _payChip("TIỀN MẶT"),
+                _payChip("CHUYỂN KHOẢN"),
+                _payChip("CÔNG NỢ"),
+                _payChip("TRẢ GÓP (NH)"),
+              ],
+            ),
+          ),
           const Divider(height: 30),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -283,9 +333,32 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                   _bankChip("HD SAISON", Colors.amber[800] ?? Colors.amber),
                   _bankChip("MBBANK", Colors.indigo),
                   _bankChip("VPBANK", Colors.green),
+                  _bankChip("F83", Colors.teal),
+                  _bankChip("F88", Colors.purple),
                 ],
               ),
             ),
+            if (_paymentMethod == "TRẢ GÓP (NH)") ...[
+              const SizedBox(height: 10),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(color: Colors.orange.withOpacity(0.04), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.orange.withOpacity(0.2))),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Text("LỊCH TẤT TOÁN NGÂN HÀNG", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange)),
+                  const SizedBox(height: 8),
+                  Row(children: [
+                    Expanded(child: ElevatedButton.icon(onPressed: _pickSettlementDate, style: ElevatedButton.styleFrom(backgroundColor: Colors.orange), icon: const Icon(Icons.event_available, size: 18), label: Text(_settlementPlannedAt == null ? "Chọn ngày dự kiến" : DateFormat('dd/MM/yyyy').format(DateTime.fromMillisecondsSinceEpoch(_settlementPlannedAt!))))),
+                    const SizedBox(width: 10),
+                    Expanded(child: TextField(controller: settlementCodeCtrl, decoration: const InputDecoration(labelText: "Mã hồ sơ NH", border: OutlineInputBorder()))),
+                  ]),
+                  const SizedBox(height: 8),
+                  TextField(controller: settlementNoteCtrl, decoration: const InputDecoration(labelText: "Ghi chú tất toán", border: OutlineInputBorder()), maxLines: 2),
+                  const SizedBox(height: 6),
+                  const Text("Down payment được tính vào tiền mặt hôm nay, phần còn lại sẽ vào quỹ khi bấm \"Nhận tiền từ NH\".", style: TextStyle(fontSize: 12, color: Colors.black54)),
+                ]),
+              ),
+            ],
           ],
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
@@ -309,12 +382,22 @@ class _CreateSaleViewState extends State<CreateSaleView> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Colors.black12)),
           child: ListTile(
             title: Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-            subtitle: Text(item['isGift'] ? "TẶNG KÈM MIỄN PHÍ" : "Giá: ${NumberFormat('#,###').format(item['sellPrice'])} đ", style: TextStyle(color: item['isGift'] ? Colors.green : Colors.red, fontWeight: FontWeight.bold)),
+            subtitle: Text(
+              item['isGift']
+                  ? "TẶNG KÈM MIỄN PHÍ"
+                  : "Giá: ${NumberFormat('#,###').format(item['sellPrice'])} đ",
+              style: TextStyle(color: item['isGift'] ? Colors.green : Colors.red, fontWeight: FontWeight.bold),
+            ),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 const Text("Tặng", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                 Switch(value: item['isGift'], activeColor: Colors.green, onChanged: (v) { setState(() { item['isGift'] = v; _calculateTotal(); }); }),
+                IconButton(
+                  icon: const Icon(Icons.edit, color: Colors.blueGrey),
+                  tooltip: "Đổi giá bán",
+                  onPressed: item['isGift'] ? null : () => _editItemPrice(item),
+                ),
                 IconButton(icon: const Icon(Icons.delete_forever, color: Colors.red), onPressed: () { setState(() { _selectedItems.remove(item); _calculateTotal(); }); }),
               ],
             ),
@@ -322,6 +405,33 @@ class _CreateSaleViewState extends State<CreateSaleView> {
         );
       }).toList(),
     );
+  }
+
+  Future<void> _editItemPrice(Map<String, dynamic> item) async {
+    final ctrl = TextEditingController(text: ((item['sellPrice'] as int) / 1000).toStringAsFixed(0));
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("NHẬP GIÁ BÁN (Đơn vị: .000đ)"),
+        content: TextField(
+          controller: ctrl,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(prefixText: "Đ ", suffixText: ".000"),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("HỦY")),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text("LƯU")),
+        ],
+      ),
+    );
+
+    if (ok == true) {
+      final entered = int.tryParse(ctrl.text) ?? 0;
+      setState(() {
+        item['sellPrice'] = entered * 1000;
+        _calculateTotal();
+      });
+    }
   }
 
   Widget _buildBottomButton() {
@@ -381,6 +491,35 @@ class _CreateSaleViewState extends State<CreateSaleView> {
     );
   }
 
+  Future<void> _pickSettlementDate() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _settlementPlannedAt != null ? DateTime.fromMillisecondsSinceEpoch(_settlementPlannedAt!) : now,
+      firstDate: now.subtract(const Duration(days: 30)),
+      lastDate: now.add(const Duration(days: 365)),
+    );
+    if (picked != null) {
+      setState(() => _settlementPlannedAt = picked.millisecondsSinceEpoch);
+    }
+  }
+
+  Widget _payChip(String label) {
+    final isSelected = _paymentMethod == label;
+    return ChoiceChip(
+      label: Text(label, style: TextStyle(color: isSelected ? Colors.white : Colors.black87, fontWeight: FontWeight.bold)),
+      selected: isSelected,
+      selectedColor: Colors.blueAccent,
+      backgroundColor: Colors.grey.shade200,
+      onSelected: (_) => setState(() {
+        _paymentMethod = label;
+        if (label == "TRẢ GÓP (NH)") {
+          _isInstallment = true;
+        }
+      }),
+    );
+  }
+
   Future<void> _addCustomerToContactsFromSale() async {
     final name = nameCtrl.text.trim().toUpperCase();
     final phone = phoneCtrl.text.trim();
@@ -394,6 +533,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
     }
 
     final existing = await db.getCustomerByPhone(phone);
+    if (!mounted) return;
     if (existing != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("KHÁCH HÀNG NÀY ĐÃ CÓ TRONG DANH BẠ")),

@@ -1,14 +1,17 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/repair_model.dart';
+import 'user_service.dart';
 
 class FirestoreService {
   static final _db = FirebaseFirestore.instance;
 
   static Future<String?> addRepair(Repair r) async {
     try {
+      final shopId = await UserService.getCurrentShopId();
       // Ghi rõ firestoreId vào document để các máy khác nhận ra bản ghi duy nhất
       final docRef = _db.collection('repairs').doc(r.firestoreId ?? "${r.createdAt}_${r.phone}");
       await docRef.set({
+        'shopId': shopId,
         'firestoreId': docRef.id,
         'customerName': r.customerName,
         'phone': r.phone,
@@ -18,6 +21,7 @@ class FirestoreService {
         'accessories': r.accessories,
         'price': r.price,
         'cost': r.cost,
+        'paymentMethod': r.paymentMethod,
         'status': r.status,
         'warranty': r.warranty,
         'createdAt': r.createdAt,
@@ -37,8 +41,10 @@ class FirestoreService {
   // Upsert dùng chung cho cập nhật trạng thái và chỉnh sửa
   static Future<bool> upsertRepair(Repair r) async {
     try {
+      final shopId = await UserService.getCurrentShopId();
       final docRef = _db.collection('repairs').doc(r.firestoreId ?? "${r.createdAt}_${r.phone}");
       await docRef.set({
+        'shopId': shopId,
         'firestoreId': docRef.id,
         'customerName': r.customerName,
         'phone': r.phone,
@@ -48,6 +54,7 @@ class FirestoreService {
         'accessories': r.accessories,
         'price': r.price,
         'cost': r.cost,
+        'paymentMethod': r.paymentMethod,
         'status': r.status,
         'warranty': r.warranty,
         'createdAt': r.createdAt,
@@ -67,15 +74,32 @@ class FirestoreService {
   }
 
   // --- CHAT ---
-  static Stream<QuerySnapshot<Map<String, dynamic>>> chatStream({int limit = 100}) {
-    return _db.collection('chats').orderBy('createdAt', descending: true).limit(limit).snapshots();
+  static Stream<QuerySnapshot<Map<String, dynamic>>> chatStream({String? shopId, int limit = 100}) {
+    Query<Map<String, dynamic>> q = _db.collection('chats');
+    if (shopId != null) {
+      q = q.where('shopId', isEqualTo: shopId);
+    }
+    q = q.orderBy('createdAt', descending: true).limit(limit);
+    return q.snapshots();
   }
 
-  static Future<void> sendChat({required String message, required String senderId, required String senderName}) async {
+  static Future<void> sendChat({
+    required String message,
+    required String senderId,
+    required String senderName,
+    String? linkedType,
+    String? linkedKey,
+    String? linkedSummary,
+  }) async {
+    final shopId = await UserService.getCurrentShopId();
     await _db.collection('chats').add({
+      'shopId': shopId,
       'message': message,
       'senderId': senderId,
       'senderName': senderName,
+      'linkedType': linkedType,
+      'linkedKey': linkedKey,
+      'linkedSummary': linkedSummary,
       'createdAt': FieldValue.serverTimestamp(),
     });
   }

@@ -81,7 +81,7 @@ class _MyProfileViewState extends State<MyProfileView> {
                     children: [
                       CircleAvatar(
                         radius: 30,
-                        backgroundImage: _photoPath != null ? FileImage(File(_photoPath!)) : null,
+                        backgroundImage: _photoPath != null && File(_photoPath!).existsSync() ? FileImage(File(_photoPath!)) : null,
                         child: _photoPath == null ? const Icon(Icons.person, size: 30) : null,
                       ),
                       const SizedBox(width: 12),

@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../data/db_helper.dart';
 import '../models/repair_model.dart';
 import '../models/sale_order_model.dart';
+import '../services/user_service.dart';
+import '../services/firestore_service.dart';
 import 'repair_detail_view.dart';
 import 'sale_detail_view.dart';
 
@@ -16,11 +19,23 @@ class _WarrantyViewState extends State<WarrantyView> {
   final db = DBHelper();
   List<Map<String, dynamic>> _warrantyList = []; // Chứa cả Repair và SaleOrder
   bool _isLoading = true;
+  bool _isAdmin = false;
 
   @override
   void initState() {
     super.initState();
+    _loadRole();
     _loadAllWarranty();
+  }
+
+  Future<void> _loadRole() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    final role = await UserService.getUserRole(uid);
+    if (!mounted) return;
+    setState(() {
+      _isAdmin = role == 'admin';
+    });
   }
 
   Future<void> _loadAllWarranty() async {
@@ -111,7 +126,18 @@ class _WarrantyViewState extends State<WarrantyView> {
                         Text("Còn lại: $daysLeft ngày", style: TextStyle(fontSize: 11, color: daysLeft < 7 ? Colors.red : Colors.green, fontWeight: FontWeight.bold)),
                       ],
                     ),
-                    trailing: const Icon(Icons.chevron_right),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (_isAdmin)
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline, size: 18, color: Colors.redAccent),
+                            tooltip: "Gỡ khỏi danh sách bảo hành",
+                            onPressed: () => _confirmRemoveWarranty(item),
+                          ),
+                        const Icon(Icons.chevron_right),
+                      ],
+                    ),
                     onTap: () {
                       if (isSale) {
                         Navigator.push(context, MaterialPageRoute(builder: (_) => SaleDetailView(sale: item['data'] as SaleOrder, role: 'user')));
@@ -124,5 +150,50 @@ class _WarrantyViewState extends State<WarrantyView> {
               },
             ),
     );
+  }
+
+  Future<void> _confirmRemoveWarranty(Map<String, dynamic> item) async {
+    if (!_isAdmin) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Chỉ tài khoản QUẢN LÝ mới được chỉnh sửa bảo hành')), 
+      );
+      return;
+    }
+
+    final bool isSale = item['type'] == 'SALE';
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("GỠ KHỎI DANH SÁCH BẢO HÀNH"),
+        content: Text(
+          isSale
+              ? "Bạn muốn kết thúc bảo hành cho đơn BÁN này? Máy sẽ không còn hiển thị trong danh sách bảo hành."
+              : "Bạn muốn kết thúc bảo hành cho đơn SỬA này? Máy sẽ không còn hiển thị trong danh sách bảo hành.",
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("HỦY")),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text("ĐỒNG Ý")),
+        ],
+      ),
+    );
+
+    if (ok == true) {
+      if (isSale) {
+        final s = item['data'] as SaleOrder;
+        s.warranty = 'KO BH';
+        await db.updateSale(s);
+      } else {
+        final r = item['data'] as Repair;
+        r.warranty = 'KO BH';
+        await db.updateRepair(r);
+        await FirestoreService.upsertRepair(r);
+      }
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ĐÃ GỠ MÁY KHỎI DANH SÁCH BẢO HÀNH')), 
+      );
+      _loadAllWarranty();
+    }
   }
 }

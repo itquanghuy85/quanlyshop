@@ -77,18 +77,21 @@ class _CustomerHistoryViewState extends State<CustomerHistoryView> {
   }
 
   void _openGallery(List<String> images, int index) {
+    final validImages = images.where((p) => p.startsWith('http') || File(p).existsSync()).toList();
+    if (validImages.isEmpty) return;
+
     m.Navigator.push(context, m.MaterialPageRoute(builder: (_) => m.Scaffold(
       appBar: m.AppBar(backgroundColor: m.Colors.black, iconTheme: const m.IconThemeData(color: m.Colors.white)),
       backgroundColor: m.Colors.black,
       body: PhotoViewGallery.builder(
-        itemCount: images.length,
+        itemCount: validImages.length,
         builder: (context, i) => PhotoViewGalleryPageOptions(
-          imageProvider: images[i].startsWith('http') ? m.NetworkImage(images[i]) : m.FileImage(File(images[i])) as m.ImageProvider,
+          imageProvider: validImages[i].startsWith('http') ? m.NetworkImage(validImages[i]) : m.FileImage(File(validImages[i])) as m.ImageProvider,
           initialScale: PhotoViewComputedScale.contained,
           minScale: PhotoViewComputedScale.contained,
           maxScale: PhotoViewComputedScale.covered * 3,
         ),
-        pageController: PageController(initialPage: index),
+        pageController: PageController(initialPage: index.clamp(0, validImages.length - 1)),
         scrollPhysics: const m.BouncingScrollPhysics(),
       ),
     )));
@@ -118,6 +121,11 @@ class _CustomerHistoryViewState extends State<CustomerHistoryView> {
                     final item = combinedHistory[index];
                     final bool isRepair = item['type'] == 'REPAIR';
                     final List<String> imgs = List<String>.from(item['images']);
+                    final String thumb = imgs.firstWhere(
+                      (p) => p.startsWith('http') || File(p).existsSync(),
+                      orElse: () => '',
+                    );
+                    final bool hasThumb = thumb.isNotEmpty;
 
                     return m.Container(
                       margin: const m.EdgeInsets.only(bottom: 12),
@@ -136,8 +144,13 @@ class _CustomerHistoryViewState extends State<CustomerHistoryView> {
                               color: isRepair ? m.Colors.orange.withOpacity(0.1) : m.Colors.pink.withOpacity(0.1),
                               borderRadius: m.BorderRadius.circular(10),
                             ),
-                            child: (imgs.isNotEmpty && File(imgs.first).existsSync())
-                              ? m.ClipRRect(borderRadius: m.BorderRadius.circular(10), child: m.Image.file(File(imgs.first), fit: m.BoxFit.cover))
+                            child: hasThumb
+                              ? m.ClipRRect(
+                                  borderRadius: m.BorderRadius.circular(10),
+                                  child: thumb.startsWith('http')
+                                      ? m.Image.network(thumb, fit: m.BoxFit.cover)
+                                      : m.Image.file(File(thumb), fit: m.BoxFit.cover),
+                                )
                               : m.Icon(isRepair ? m.Icons.build : m.Icons.shopping_bag, color: isRepair ? m.Colors.orange : m.Colors.pink, size: 24),
                           ),
                         ),

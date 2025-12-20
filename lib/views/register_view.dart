@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import '../services/user_service.dart';
 
 class RegisterView extends StatefulWidget {
   const RegisterView({super.key});
@@ -32,45 +30,9 @@ class _RegisterViewState extends State<RegisterView> {
   Future<void> _register() async {
     if (!mounted) return;
     setState(() {
-      _loading = true;
-      _error = null;
+      _loading = false;
+      _error = 'Ứng dụng đã khóa đăng ký. Vui lòng nhờ chủ shop tạo tài khoản cho bạn.';
     });
-
-    try {
-      final email = _emailC.text.trim();
-      final pass = _passC.text.trim();
-      final name = _nameC.text.trim();
-      final phone = _phoneC.text.trim();
-      final address = _addressC.text.trim();
-
-      if (email.isEmpty || pass.isEmpty || name.isEmpty) {
-        setState(() => _error = 'Vui lòng nhập đủ Email, Mật khẩu, Họ tên');
-        return;
-      }
-
-      final cred = await FirebaseAuth.instance.createUserWithEmailAndPassword(email: email, password: pass);
-      final uid = cred.user!.uid;
-
-      await UserService.updateUserInfo(
-        uid: uid,
-        name: name,
-        phone: phone,
-        address: address,
-        role: 'user',
-        photoUrl: null,
-      );
-
-      if (mounted) Navigator.pop(context);
-    } on FirebaseAuthException catch (e) {
-      String msg = 'Không thể tạo tài khoản';
-      if (e.code == 'email-already-in-use') msg = 'Email đã được sử dụng';
-      if (e.code == 'weak-password') msg = 'Mật khẩu quá yếu (>= 6 ký tự)';
-      setState(() => _error = msg);
-    } catch (e) {
-      setState(() => _error = 'Lỗi: $e');
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
   }
 
   @override
@@ -81,6 +43,29 @@ class _RegisterViewState extends State<RegisterView> {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.orange.withOpacity(0.3)),
+              ),
+              child: const Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.lock_outline, color: Colors.orange),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Đăng ký đã bị khóa. Chủ shop sẽ tạo tài khoản nhân viên trực tiếp trong ứng dụng.',
+                      style: TextStyle(fontSize: 13, color: Colors.orange),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
             TextField(
               controller: _emailC,
               keyboardType: TextInputType.emailAddress,
@@ -118,10 +103,10 @@ class _RegisterViewState extends State<RegisterView> {
               width: double.infinity,
               height: 48,
               child: ElevatedButton(
-                onPressed: _loading ? null : _register,
+                onPressed: _register,
                 child: _loading
                     ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text('ĐĂNG KÝ', style: TextStyle(fontWeight: FontWeight.bold)),
+                    : const Text('ĐĂNG KÝ (ĐÃ KHÓA)', style: TextStyle(fontWeight: FontWeight.bold)),
               ),
             )
           ],
