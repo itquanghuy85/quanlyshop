@@ -275,7 +275,14 @@ class _StaffListViewState extends State<StaffListView> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => _StaffActivityCenter(uid: uid, name: name, email: email, role: currentRole, fullData: fullData),
+      builder: (ctx) => _StaffActivityCenter(
+        uid: uid,
+        name: name,
+        email: email,
+        role: currentRole,
+        fullData: fullData,
+        isSuperAdmin: _isSuperAdmin,
+      ),
     );
   }
 }
@@ -283,7 +290,8 @@ class _StaffListViewState extends State<StaffListView> {
 class _StaffActivityCenter extends StatefulWidget {
   final String uid, name, email, role;
   final Map<String, dynamic> fullData;
-  const _StaffActivityCenter({required this.uid, required this.name, required this.email, required this.role, required this.fullData});
+  final bool isSuperAdmin;
+  const _StaffActivityCenter({required this.uid, required this.name, required this.email, required this.role, required this.fullData, required this.isSuperAdmin});
 
   @override
   State<_StaffActivityCenter> createState() => _StaffActivityCenterState();
@@ -459,6 +467,8 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter> with SingleT
                     children: [
                       Text(widget.name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                       Text(widget.email, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                      if (widget.isSuperAdmin)
+                        Text("UID: ${widget.uid}", style: const TextStyle(fontSize: 11, color: Colors.grey)),
                     ],
                   ),
                 ),

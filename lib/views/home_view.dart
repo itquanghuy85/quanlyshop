@@ -19,6 +19,9 @@ import 'supplier_view.dart';
 import 'chat_view.dart';
 import 'super_admin_view.dart';
 import 'qr_scan_view.dart';
+import 'attendance_view.dart';
+import 'staff_performance_view.dart';
+import 'payroll_view.dart';
 import '../data/db_helper.dart';
 import '../widgets/perpetual_calendar.dart';
 import '../services/sync_service.dart';
@@ -344,107 +347,161 @@ class _HomeViewState extends State<HomeView> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: _onWillPop,
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF8FAFF),
-        appBar: AppBar(
-          backgroundColor: Colors.white, elevation: 0,
-          title: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.store_rounded, color: Colors.blueAccent),
-              const SizedBox(width: 10),
-              Flexible(
-                child: Text(
-                  isAdmin ? "QUẢN LÝ SHOP" : "NHÂN VIÊN",
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold),
+    return DefaultTabController(
+      length: 2,
+      child: WillPopScope(
+        onWillPop: _onWillPop,
+        child: Scaffold(
+          backgroundColor: const Color(0xFFF8FAFF),
+          appBar: AppBar(
+            backgroundColor: Colors.white, elevation: 0,
+            title: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.store_rounded, color: Colors.blueAccent),
+                const SizedBox(width: 10),
+                Flexible(
+                  child: Text(
+                    isAdmin ? "QUẢN LÝ SHOP" : "NHÂN VIÊN",
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
                 ),
+              ],
+            ),
+            actions: [
+              IconButton(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => QrScanView(role: widget.role)),
+                ),
+                icon: const Icon(Icons.qr_code_scanner_rounded, color: Colors.blueAccent),
               ),
+              IconButton(onPressed: _loadStats, icon: const Icon(Icons.refresh_rounded, color: Colors.blue)),
+              IconButton(
+                onPressed: _isSyncing ? null : () => _syncNow(),
+                icon: _isSyncing
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.sync, color: Colors.green),
+              ),
+              IconButton(onPressed: () => FirebaseAuth.instance.signOut(), icon: const Icon(Icons.logout_rounded, color: Colors.redAccent)),
             ],
+            bottom: const TabBar(
+              labelColor: Colors.blueAccent,
+              indicatorColor: Colors.blueAccent,
+              tabs: [
+                Tab(text: "TỔNG QUAN"),
+                Tab(text: "CHẤM CÔNG"),
+              ],
+            ),
           ),
-          actions: [
-            IconButton(
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => QrScanView(role: widget.role)),
-              ),
-              icon: const Icon(Icons.qr_code_scanner_rounded, color: Colors.blueAccent),
-            ),
-            IconButton(onPressed: _loadStats, icon: const Icon(Icons.refresh_rounded, color: Colors.blue)),
-            IconButton(
-              onPressed: _isSyncing ? null : () => _syncNow(),
-              icon: _isSyncing
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.sync, color: Colors.green),
-            ),
-            IconButton(onPressed: () => FirebaseAuth.instance.signOut(), icon: const Icon(Icons.logout_rounded, color: Colors.redAccent)),
-          ],
-        ),
-        body: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          body: TabBarView(
             children: [
-              if (_shopLocked)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  margin: const EdgeInsets.only(bottom: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.red.shade50,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.redAccent),
-                  ),
-                  child: const Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(Icons.lock_clock_rounded, color: Colors.redAccent, size: 20),
-                      SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          "CỬA HÀNG ĐANG BỊ SUPER ADMIN KHÓA TẠM THỜI. Mọi chức năng đều bị giới hạn cho đến khi được mở lại.",
-                          style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w600, fontSize: 12),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              TextField(
-                controller: _phoneSearchCtrl,
-                keyboardType: TextInputType.phone,
-                decoration: InputDecoration(
-                  hintText: "Tìm nhanh khách theo SĐT",
-                  prefixIcon: const Icon(Icons.search_rounded),
-                  suffixIcon: IconButton(
-                    icon: const Icon(Icons.arrow_forward_rounded),
-                    onPressed: _openCustomerHistoryQuick,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  filled: true,
-                  fillColor: Colors.white,
-                ),
-                onSubmitted: (_) => _openCustomerHistoryQuick(),
-              ),
-              const SizedBox(height: 20),
-              const PerpetualCalendar(),
-              const SizedBox(height: 25),
-              _buildQuickStats(),
-              const SizedBox(height: 25),
-              _buildTodaySummary(),
-              const SizedBox(height: 25),
-              _buildGridMenu(),
-              const SizedBox(height: 50),
+              _buildMainHome(),
+              _buildAttendanceTab(),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildMainHome() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (_shopLocked)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.redAccent),
+              ),
+              child: const Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.lock_clock_rounded, color: Colors.redAccent, size: 20),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      "CỬA HÀNG ĐANG BỊ SUPER ADMIN KHÓA TẠM THỜI. Mọi chức năng đều bị giới hạn cho đến khi được mở lại.",
+                      style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w600, fontSize: 12),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          TextField(
+            controller: _phoneSearchCtrl,
+            keyboardType: TextInputType.phone,
+            decoration: InputDecoration(
+              hintText: "Tìm nhanh khách theo SĐT",
+              prefixIcon: const Icon(Icons.search_rounded),
+              suffixIcon: IconButton(
+                icon: const Icon(Icons.arrow_forward_rounded),
+                onPressed: _openCustomerHistoryQuick,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              filled: true,
+              fillColor: Colors.white,
+            ),
+            onSubmitted: (_) => _openCustomerHistoryQuick(),
+          ),
+          const SizedBox(height: 20),
+          const PerpetualCalendar(),
+          const SizedBox(height: 25),
+          _buildQuickStats(),
+          const SizedBox(height: 25),
+          _buildTodaySummary(),
+          const SizedBox(height: 25),
+          _buildGridMenu(),
+          const SizedBox(height: 50),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAttendanceTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Chấm công & lương', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              SizedBox(
+                width: 160,
+                height: 140,
+                child: _menuTile('CHẤM CÔNG', Icons.fingerprint, [Colors.deepPurple, Colors.purpleAccent], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AttendanceView()))),
+              ),
+              SizedBox(
+                width: 160,
+                height: 140,
+                child: _menuTile('DS NHÂN VIÊN', Icons.people_alt_rounded, [Colors.indigo, Colors.blue], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StaffPerformanceView()))),
+              ),
+              SizedBox(
+                width: 160,
+                height: 140,
+                child: _menuTile('BẢNG LƯƠNG', Icons.payments, [Colors.green, Colors.teal], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PayrollView()))),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

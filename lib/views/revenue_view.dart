@@ -326,7 +326,6 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
                     _buildDashboard(),
                     _buildSalesReport(),
                     _buildStaffReport(), 
-                    _buildRepairReport(),
                     _buildImportReport(),
                   ],
                 ),
