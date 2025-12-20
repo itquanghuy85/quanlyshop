@@ -1,0 +1,61 @@
+name: QuanLyShop
+description: "Phần mềm quản lý tiệm sửa chữa điện thoại"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.10.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.6
+  firebase_core: ^3.15.2
+  firebase_auth: ^5.3.0
+  cloud_firestore: ^5.3.0
+  sqflite: ^2.3.0
+  path: ^1.8.3
+  intl: ^0.19.0
+  image_picker: ^1.0.7
+  photo_view: ^0.15.0
+  url_launcher: ^6.3.2
+  flutter_local_notifications: ^17.1.2
+  firebase_storage: ^12.4.10
+  shared_preferences: ^2.5.4
+  screenshot: ^3.0.0
+  path_provider: ^2.1.5
+  share_plus: ^12.0.1
+  gal: ^2.3.2
+  mobile_scanner: ^5.1.1
+  fl_chart: ^0.66.0
+  excel: ^4.0.0
+  qr_flutter: ^4.1.0
+  # GIẢI PHÁP IN WIFI ỔN ĐỊNH
+  esc_pos_utils: ^1.1.0
+  esc_pos_printer: ^4.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+  # HẠ CẤP THEO GỢI Ý ĐỂ SỬA LỖI XUNG ĐỘT
+  flutter_launcher_icons: ^0.11.0
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/images/icon.png"
+  min_sdk_android: 21
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - assets/fonts/
+
+  fonts:
+    - family: AppFont
+      fonts:
+        - asset: assets/fonts/Roboto-Regular.ttf
+        - asset: assets/fonts/Roboto-Bold.ttf
+          weight: 700
