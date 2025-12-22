@@ -208,4 +208,94 @@ class UnifiedPrinterService {
 
     return bytes;
   }
+
+  static Future<bool> printPhoneLabel(Map<String, dynamic> labelData) async {
+    final bytes = await _generatePhoneLabelBytes(labelData);
+    return _sendToPrinter(bytes);
+  }
+
+  static Future<bool> printPhoneLabelToWifi(Map<String, dynamic> labelData, String ipAddress) async {
+    final bytes = await _generatePhoneLabelBytes(labelData);
+    return _sendToWifiPrinter(bytes, ipAddress);
+  }
+
+  static Future<bool> _sendToWifiPrinter(List<int> bytes, String ipAddress) async {
+    try {
+      // Kết nối trực tiếp đến máy in WiFi với IP cụ thể
+      final wifiService = WifiPrinterService.instance;
+      await wifiService.connect(ip: ipAddress, port: 9100); // Port mặc định cho máy in nhiệt
+      await wifiService.printBytes(bytes);
+      await wifiService.disconnect();
+      return true;
+    } catch (e) {
+      debugPrint('WiFi print to $ipAddress failed: $e');
+      return false;
+    }
+  }
+
+  static Future<List<int>> _generatePhoneLabelBytes(Map<String, dynamic> labelData) async {
+    final profile = await CapabilityProfile.load();
+    final generator = Generator(PaperSize.mm80, profile);
+
+    final bytes = <int>[];
+    bytes.addAll(generator.reset());
+
+    // Header - TEM DIEN THOAI (chữ hoa)
+    bytes.addAll(generator.text(
+      'TEM DIEN THOAI',
+      styles: const PosStyles(align: PosAlign.center, bold: true, height: PosTextSize.size2),
+    ));
+
+    bytes.addAll(generator.feed(1));
+
+    // Thông tin điện thoại - tất cả chữ hoa
+    bytes.addAll(generator.text('TEN: ${labelData['name'] ?? ''}', styles: const PosStyles(bold: true)));
+    bytes.addAll(generator.text('IMEI: ${labelData['imei'] ?? ''}'));
+    bytes.addAll(generator.text('MAU: ${labelData['color'] ?? ''}'));
+    
+    // Giá trên 2 dòng - KPK và CPK
+    bytes.addAll(generator.text('KPK: ${(labelData['cost'] ?? 0).toString()} VND', styles: const PosStyles(bold: true)));
+    bytes.addAll(generator.text('CPK: ${(labelData['price'] ?? 0).toString()} VND', styles: const PosStyles(bold: true)));
+    
+    bytes.addAll(generator.text('TINH TRANG: ${labelData['condition'] ?? ''}'));
+
+    if (labelData['accessories'] != null && labelData['accessories'].toString().isNotEmpty) {
+      bytes.addAll(generator.text('PHU KIEN: ${labelData['accessories']}'));
+    }
+
+    bytes.addAll(generator.feed(1));
+
+    // QR Code Data - JSON format để quét tạo đơn hàng nhanh
+    final qrData = {
+      'type': 'phone_label',
+      'name': labelData['name'] ?? '',
+      'imei': labelData['imei'] ?? '',
+      'color': labelData['color'] ?? '',
+      'cost': labelData['cost'] ?? 0,
+      'price': labelData['price'] ?? 0,
+      'condition': labelData['condition'] ?? '',
+      'accessories': labelData['accessories'] ?? '',
+      'timestamp': DateTime.now().millisecondsSinceEpoch,
+    };
+
+    final qrJson = qrData.toString();
+    bytes.addAll(generator.text(
+      'QR DATA:',
+      styles: const PosStyles(bold: true),
+    ));
+    bytes.addAll(generator.text(qrJson, styles: const PosStyles(fontType: PosFontType.fontB)));
+
+    bytes.addAll(generator.feed(1));
+
+    // Footer
+    bytes.addAll(generator.text(
+      'SHOP NEW',
+      styles: const PosStyles(align: PosAlign.center, bold: true),
+    ));
+
+    bytes.addAll(generator.feed(2));
+    bytes.addAll(generator.cut());
+
+    return bytes;
+  }
 }

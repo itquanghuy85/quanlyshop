@@ -18,6 +18,8 @@ import 'settings_view.dart';
 import 'printer_setting_view.dart';
 import 'chat_view.dart';
 import 'thermal_printer_design_view.dart';
+import 'inventory_check_view.dart';
+import 'repair_receipt_view.dart';
 import 'super_admin_view.dart' as admin_view;
 import 'staff_list_view.dart';
 import 'qr_scan_view.dart';
@@ -179,6 +181,8 @@ class _HomeViewState extends State<HomeView> {
 
   Future<void> _updateShopLockState() async {
     final perms = await UserService.getCurrentUserPermissions();
+    print('DEBUG HOME: User permissions: $perms');
+    print('DEBUG HOME: allowViewInventory: ${perms['allowViewInventory']}');
     if (!mounted) return;
     setState(() {
       _shopLocked = perms['shopAppLocked'] == true;
@@ -306,6 +310,15 @@ class _HomeViewState extends State<HomeView> {
             children: [
               Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(10))),
               const SizedBox(height: 12),
+              ListTile(
+                leading: const Icon(Icons.inventory_2_rounded, color: Colors.orange),
+                title: const Text("KIỂM KHO", style: TextStyle(fontWeight: FontWeight.bold)),
+                subtitle: const Text("Kiểm tra tồn kho điện thoại & phụ kiện"),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => const InventoryCheckView()));
+                },
+              ),
               ListTile(
                 leading: const Icon(Icons.receipt_long_rounded, color: Colors.blueAccent),
                 title: const Text("MÁY IN HÓA ĐƠN", style: TextStyle(fontWeight: FontWeight.bold)),
@@ -444,8 +457,39 @@ class _HomeViewState extends State<HomeView> {
                 MaterialPageRoute(builder: (_) => QrScanView(role: widget.role)),
               ),
               icon: const Icon(Icons.qr_code_scanner_rounded, color: Colors.blueAccent),
+              tooltip: 'Quét QR đơn hàng & tem điện thoại',
             ),
             IconButton(onPressed: _loadStats, icon: const Icon(Icons.refresh_rounded, color: Colors.blue)),
+            IconButton(
+              onPressed: () async {
+                final user = FirebaseAuth.instance.currentUser;
+                final perms = await UserService.getCurrentUserPermissions();
+                if (!mounted) return;
+                showDialog(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('THÔNG TIN TÀI KHOAN'),
+                    content: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Email: ${user?.email ?? 'N/A'}'),
+                        Text('Admin: ${perms['allowViewInventory'] == true ? 'Có' : 'Không'}'),
+                        Text('Quyền xem kho: ${perms['allowViewInventory'] == true ? 'Có' : 'Không'}'),
+                      ],
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        child: const Text('ĐÓNG'),
+                      ),
+                    ],
+                  ),
+                );
+              },
+              icon: const Icon(Icons.account_circle, color: Colors.blue),
+              tooltip: 'Thông tin tài khoản',
+            ),
             IconButton(
               onPressed: _isSyncing ? null : () => _syncNow(),
               icon: _isSyncing
@@ -460,6 +504,86 @@ class _HomeViewState extends State<HomeView> {
           ],
         ),
         body: _buildMainHome(),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () {
+            showModalBottomSheet(
+              context: context,
+              shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+              builder: (ctx) => SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(10))),
+                      const SizedBox(height: 12),
+                      const Text('TRUY CẬP NHANH', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 16),
+                      ListTile(
+                        leading: const Icon(Icons.inventory_2_rounded, color: Colors.orange),
+                        title: const Text("KIỂM KHO", style: TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: const Text("Kiểm tra tồn kho điện thoại & phụ kiện"),
+                        onTap: () {
+                          Navigator.pop(ctx);
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => const InventoryCheckView()));
+                        },
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.inventory_2_rounded, color: Colors.amber),
+                        title: const Text("QUẢN LÝ KHO", style: TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: const Text("Xem & in tem điện thoại"),
+                        onTap: () {
+                          Navigator.pop(ctx);
+                          _openInventory();
+                        },
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.account_circle, color: Colors.blue),
+                        title: const Text("THÔNG TIN TÀI KHOAN", style: TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: const Text("Xem quyền và thông tin tài khoản"),
+                        onTap: () async {
+                          Navigator.pop(ctx);
+                          final user = FirebaseAuth.instance.currentUser;
+                          final perms = await UserService.getCurrentUserPermissions();
+                          if (!mounted) return;
+                          showDialog(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              title: const Text('THÔNG TIN TÀI KHOAN'),
+                              content: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Email: ${user?.email ?? 'N/A'}'),
+                                  Text('Super Admin: ${_isSuperAdmin ? 'Có' : 'Không'}'),
+                                  Text('Admin: ${perms['allowViewInventory'] == true ? 'Có' : 'Không'}'),
+                                  Text('Quyền xem kho: ${perms['allowViewInventory'] == true ? 'Có' : 'Không'}'),
+                                  const SizedBox(height: 10),
+                                  const Text('Quyền khác:', style: TextStyle(fontWeight: FontWeight.bold)),
+                                  Text('• Bán hàng: ${perms['allowViewSales'] == true ? 'Có' : 'Không'}'),
+                                  Text('• Sửa chữa: ${perms['allowViewRepairs'] == true ? 'Có' : 'Không'}'),
+                                  Text('• Máy in: ${perms['allowViewPrinter'] == true ? 'Có' : 'Không'}'),
+                                ],
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(ctx),
+                                  child: const Text('ĐÓNG'),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+          child: const Icon(Icons.menu),
+          tooltip: 'Menu nhanh',
+        ),
       ),
     );
   }
@@ -569,6 +693,11 @@ class _HomeViewState extends State<HomeView> {
     addTile(perms['allowViewRevenue'] ?? true, "DOANH THU", Icons.leaderboard_rounded, [Colors.indigo, Colors.deepPurple], _openRevenueView);
     addTile(perms['allowViewPrinter'] ?? true, "MÁY IN", Icons.print_rounded, [Colors.blueGrey, Colors.grey], _showPrinterMenu);
     addTile(perms['allowViewSettings'] ?? (isAdmin || _isSuperAdmin), "CÀI ĐẶT", Icons.settings_rounded, [Colors.blueGrey, Colors.black87], _openSettingsCenter);
+
+    print('DEBUG: Total tiles created: ${tiles.length}');
+    // for (var i = 0; i < tiles.length; i++) {
+    //   print('DEBUG: Tile $i: ${tiles[i].title}');
+    // }
 
     return GridView.count(
       shrinkWrap: true,

@@ -21,6 +21,7 @@ class _CustomerListViewState extends State<CustomerListView> {
   List<Map<String, dynamic>> _customers = [];
   bool _isLoading = true;
   bool _isAdmin = false;
+  bool _showUnassignedOnly = false; // Thêm biến này
   
   // Multi-select state
   bool _isSelectionMode = false;
@@ -46,9 +47,70 @@ class _CustomerListViewState extends State<CustomerListView> {
 
   Future<void> _refresh() async {
     setState(() => _isLoading = true);
-    final data = await db.getUniqueCustomersAll();
+
+    // Lấy toàn bộ repairs và sales
+    final allRepairs = await db.getAllRepairs();
+    final allSales = await db.getAllSales();
+
+    // Map<phone, customer info>
+    final Map<String, Map<String, dynamic>> customerMap = {};
+
+    // Gộp từ repairs
+    for (var r in allRepairs) {
+      final phone = r.phone;
+      if (phone.isNotEmpty) {
+        final key = phone;
+        customerMap.putIfAbsent(key, () => {
+          'customerName': r.customerName,
+          'phone': phone,
+          'address': r.address,
+          'totalSpent': 0,
+          'repairCount': 0,
+          'saleCount': 0,
+        });
+        customerMap[key]!['totalSpent'] = (customerMap[key]!['totalSpent'] as int) + r.price;
+        customerMap[key]!['repairCount'] = (customerMap[key]!['repairCount'] as int) + 1;
+      }
+    }
+
+    // Gộp từ sales
+    for (var s in allSales) {
+      final phone = s.phone;
+      if (phone.isNotEmpty) {
+        final key = phone;
+        customerMap.putIfAbsent(key, () => {
+          'customerName': s.customerName,
+          'phone': phone,
+          'address': s.address,
+          'totalSpent': 0,
+          'repairCount': 0,
+          'saleCount': 0,
+        });
+        customerMap[key]!['totalSpent'] = (customerMap[key]!['totalSpent'] as int) + s.totalPrice;
+        customerMap[key]!['saleCount'] = (customerMap[key]!['saleCount'] as int) + 1;
+      }
+    }
+
+    // Nếu lọc khách chưa gán shop, chỉ lấy từ bảng customers chưa có shopId
+    List<Map<String, dynamic>> result;
+    if (_showUnassignedOnly) {
+      final unassigned = await db.getCustomersWithoutShop();
+      // Chỉ lấy những khách chưa gán shop có trong customerMap
+      result = unassigned.where((c) => customerMap.containsKey(c['phone'])).map((c) {
+        final merged = Map<String, dynamic>.from(customerMap[c['phone']]!);
+        merged['customerName'] = c['customerName'] ?? merged['customerName'];
+        merged['address'] = c['address'] ?? merged['address'];
+        return merged;
+      }).toList();
+    } else {
+      result = customerMap.values.toList();
+    }
+
+    // Sắp xếp theo tên khách hàng
+    result.sort((a, b) => (a['customerName'] ?? '').toString().compareTo((b['customerName'] ?? '').toString()));
+
     setState(() {
-      _customers = data;
+      _customers = result;
       _isLoading = false;
     });
   }
@@ -178,7 +240,9 @@ class _CustomerListViewState extends State<CustomerListView> {
         title: Text(
           _isSelectionMode 
             ? "Đã chọn ${_selectedIndices.length} khách hàng"
-            : "HỆ THỐNG KHÁCH HÀNG", 
+            : _showUnassignedOnly 
+              ? "KHÁCH HÀNG CHƯA GÁN SHOP (${_customers.length})"
+              : "HỆ THỐNG KHÁCH HÀNG (${_customers.length})", 
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)
         ),
         actions: _isSelectionMode ? [
@@ -193,7 +257,16 @@ class _CustomerListViewState extends State<CustomerListView> {
               onPressed: _isDeleting ? null : _deleteSelectedCustomers,
               tooltip: "Xóa các khách đã chọn",
             ),
-        ] : null,
+        ] : [
+          IconButton(
+            icon: Icon(_showUnassignedOnly ? Icons.group : Icons.group_off),
+            onPressed: () {
+              setState(() => _showUnassignedOnly = !_showUnassignedOnly);
+              _refresh();
+            },
+            tooltip: _showUnassignedOnly ? "Xem tất cả khách hàng" : "Xem khách chưa gán shop",
+          ),
+        ],
       ),
       body: _isLoading 
         ? const Center(child: CircularProgressIndicator())
@@ -255,9 +328,16 @@ class _CustomerListViewState extends State<CustomerListView> {
                       tooltip: "Xóa khách khỏi danh sách",
                       onPressed: () => _confirmDeleteCustomer(c),
                     ),
-                  Text(
-                    "${NumberFormat('#,###').format(c['totalSpent'])} đ",
-                    style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.red,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      "${NumberFormat('#,###').format(c['totalSpent'] ?? 0)} đ",
+                      style: const TextStyle(color: Colors.yellow, fontWeight: FontWeight.bold, fontSize: 12),
+                    ),
                   ),
                 ],
               ),
@@ -274,9 +354,9 @@ class _CustomerListViewState extends State<CustomerListView> {
               const Divider(height: 20),
               Row(
                 children: [
-                  _miniStat(Icons.build_circle_outlined, "${c['repairCount']} lần sửa", Colors.blue),
+                  _miniStat(Icons.build_circle_outlined, "${c['repairCount'] ?? 0} lần sửa", Colors.blue),
                   const SizedBox(width: 20),
-                  _miniStat(Icons.shopping_bag_outlined, "${c['saleCount']} máy đã mua", Colors.pink),
+                  _miniStat(Icons.shopping_bag_outlined, "${c['saleCount'] ?? 0} máy đã mua", Colors.pink),
                 ],
               )
             ],
@@ -319,7 +399,7 @@ class _CustomerListViewState extends State<CustomerListView> {
               child: Column(
                 children: [
                   Text(c['customerName'].toString().toUpperCase(), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  Text("Tổng chi tiêu: ${NumberFormat('#,###').format(c['totalSpent'])} đ", style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                  Text("Tổng chi tiêu: ${NumberFormat('#,###').format(c['totalSpent'] ?? 0)} đ", style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
                 ],
               ),
             ),

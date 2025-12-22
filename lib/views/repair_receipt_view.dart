@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:esc_pos_utils/esc_pos_utils.dart';
 import '../services/firestore_service.dart';
 import '../services/bluetooth_printer_service.dart';
 import '../services/unified_printer_service.dart';
@@ -56,13 +57,13 @@ class _RepairReceiptViewState extends State<RepairReceiptView> {
         status: 0, // Received
         createdAt: DateTime.now().millisecondsSinceEpoch,
         lastCaredAt: DateTime.now().millisecondsSinceEpoch,
-        isSynced: 0,
-        deleted: 0,
+        isSynced: false,
+        deleted: false,
       );
 
       // Lưu vào database
       final firestoreService = FirestoreService();
-      final docId = await firestoreService.addRepair(repair.toMap());
+      final docId = await FirestoreService.addRepair(repair);
 
       if (docId != null) {
         // In phiếu tiếp nhận
@@ -179,12 +180,7 @@ class _RepairReceiptViewState extends State<RepairReceiptView> {
               ValidatedTextField(
                 controller: _customerNameController,
                 label: 'Tên khách hàng *',
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Vui lòng nhập tên khách hàng';
-                  }
-                  return null;
-                },
+                required: true,
               ),
 
               const SizedBox(height: 12),
@@ -193,15 +189,7 @@ class _RepairReceiptViewState extends State<RepairReceiptView> {
                 controller: _phoneController,
                 label: 'Số điện thoại *',
                 keyboardType: TextInputType.phone,
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Vui lòng nhập số điện thoại';
-                  }
-                  if (!RegExp(r'^[0-9+\-\s]+$').hasMatch(value)) {
-                    return 'Số điện thoại không hợp lệ';
-                  }
-                  return null;
-                },
+                required: true,
               ),
 
               const SizedBox(height: 12),
@@ -209,7 +197,6 @@ class _RepairReceiptViewState extends State<RepairReceiptView> {
               ValidatedTextField(
                 controller: _addressController,
                 label: 'Địa chỉ',
-                maxLines: 2,
               ),
 
               const SizedBox(height: 24),
@@ -224,12 +211,7 @@ class _RepairReceiptViewState extends State<RepairReceiptView> {
               ValidatedTextField(
                 controller: _deviceModelController,
                 label: 'Model thiết bị *',
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Vui lòng nhập model thiết bị';
-                  }
-                  return null;
-                },
+                required: true,
               ),
 
               const SizedBox(height: 12),
@@ -237,13 +219,7 @@ class _RepairReceiptViewState extends State<RepairReceiptView> {
               ValidatedTextField(
                 controller: _issueController,
                 label: 'Tình trạng hỏng *',
-                maxLines: 3,
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Vui lòng nhập tình trạng hỏng';
-                  }
-                  return null;
-                },
+                required: true,
               ),
 
               const SizedBox(height: 12),
@@ -252,7 +228,6 @@ class _RepairReceiptViewState extends State<RepairReceiptView> {
                 controller: _accessoriesController,
                 label: 'Phụ kiện đi kèm',
                 hint: 'Ví dụ: Sạc, tai nghe, ốp lưng...',
-                maxLines: 2,
               ),
 
               const SizedBox(height: 12),

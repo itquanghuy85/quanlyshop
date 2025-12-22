@@ -28,19 +28,19 @@ class _BluetoothPrinterTestViewState extends State<BluetoothPrinterTestView> {
     });
 
     try {
-      _addLog("Bắt đầu yêu cầu quyền Bluetooth");
+      _addLog("Bắt đầu yêu cầu quyền Bluetooth tối ưu");
 
-      final permissionResult = await BluetoothPrinterService.requestBluetoothPermissionsComprehensive();
+      final permissionResult = await BluetoothPrinterService.requestBluetoothPermissionsOptimized();
 
       if (permissionResult['success'] as bool) {
-        _addLog("✅ Tất cả quyền Bluetooth đã được cấp");
+        _addLog("✅ Quyền Bluetooth quan trọng đã được cấp");
         final permissions = permissionResult['permissions'] as Map<String, bool>;
         permissions.forEach((key, granted) {
           if (granted) _addLog("  - $key: ✅");
         });
         setState(() => _status = "Thành công: Quyền đã được cấp");
       } else {
-        _addLog("❌ Một số quyền Bluetooth chưa được cấp:");
+        _addLog("❌ Quyền Bluetooth quan trọng chưa được cấp:");
         final errors = permissionResult['errors'] as List<String>;
         for (var error in errors) {
           _addLog("  - $error");
@@ -52,7 +52,16 @@ class _BluetoothPrinterTestViewState extends State<BluetoothPrinterTestView> {
           _addLog("  - $key: ${granted ? '✅' : '❌'}");
         });
 
-        setState(() => _status = "Lỗi: Thiếu quyền Bluetooth");
+        setState(() => _status = "Lỗi: Thiếu quyền Bluetooth quan trọng");
+      }
+
+      // Hiển thị cảnh báo nếu có
+      final warnings = permissionResult['warnings'] as List<String>;
+      if (warnings.isNotEmpty) {
+        _addLog("⚠️ Cảnh báo:");
+        for (var warning in warnings) {
+          _addLog("  - $warning");
+        }
       }
     } catch (e) {
       _addLog("❌ Lỗi khi yêu cầu quyền: $e");
@@ -74,10 +83,10 @@ class _BluetoothPrinterTestViewState extends State<BluetoothPrinterTestView> {
 
       // 1. Kiểm tra và yêu cầu quyền chi tiết
       _addLog("Kiểm tra quyền Bluetooth chi tiết...");
-      final permissionResult = await BluetoothPrinterService.requestBluetoothPermissionsComprehensive();
+      final permissionResult = await BluetoothPrinterService.requestBluetoothPermissionsOptimized();
 
       if (!(permissionResult['success'] as bool)) {
-        _addLog("❌ Một số quyền Bluetooth chưa được cấp:");
+        _addLog("❌ Quyền Bluetooth quan trọng chưa được cấp:");
         final errors = permissionResult['errors'] as List<String>;
         for (var error in errors) {
           _addLog("  - $error");
@@ -89,15 +98,24 @@ class _BluetoothPrinterTestViewState extends State<BluetoothPrinterTestView> {
           _addLog("  - $key: ${granted ? '✅' : '❌'}");
         });
 
-        setState(() => _status = "Lỗi: Thiếu quyền Bluetooth");
+        setState(() => _status = "Lỗi: Thiếu quyền Bluetooth quan trọng");
         return;
       }
 
-      _addLog("✅ Tất cả quyền Bluetooth đã được cấp");
+      _addLog("✅ Quyền Bluetooth quan trọng đã được cấp");
       final permissions = permissionResult['permissions'] as Map<String, bool>;
       permissions.forEach((key, granted) {
         if (granted) _addLog("  - $key: ✅");
       });
+
+      // Hiển thị cảnh báo nếu có
+      final warnings = permissionResult['warnings'] as List<String>;
+      if (warnings.isNotEmpty) {
+        _addLog("⚠️ Cảnh báo:");
+        for (var warning in warnings) {
+          _addLog("  - $warning");
+        }
+      }
 
       // 2. Kiểm tra Bluetooth có bật
       _addLog("Kiểm tra Bluetooth có bật...");

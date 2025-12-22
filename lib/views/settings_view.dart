@@ -6,7 +6,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/user_service.dart';
-import 'printer_setting_view.dart';
 import 'invoice_template_view.dart';
 
 class SettingsView extends StatefulWidget {
@@ -94,14 +93,118 @@ class _SettingsViewState extends State<SettingsView> {
           _input(footerCtrl, "Lời chào chân trang", Icons.chat_bubble_outline),
           
           const SizedBox(height: 20),
-          _menuTile("Kết nối máy in nhiệt Bluetooth", Icons.print_rounded, Colors.blueAccent, () {
-            Navigator.push(context, MaterialPageRoute(builder: (_) => const PrinterSettingView()));
-          }),
           _menuTile("Tạo mẫu hóa đơn", Icons.receipt_long, Colors.green, () {
             Navigator.push(context, MaterialPageRoute(builder: (_) => const InvoiceTemplateView()));
           }),
           _menuTile("Nhập mã mời tham gia shop", Icons.group_add, Colors.orange, _joinShopDialog),
           _menuTile("Quản lý cleanup: Xóa lịch sửa cũ (tùy chọn)", Icons.cleaning_services_rounded, Colors.purple, _openCleanupDialog),
+
+          const SizedBox(height: 30),
+          _sectionTitle("GIỚI THIỆU"),
+          const SizedBox(height: 15),
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(15),
+              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 2))],
+            ),
+            child: Column(
+              children: [
+                // Logo và tên app
+                Row(
+                  children: [
+                    Container(
+                      width: 60,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        color: Colors.blueAccent,
+                        borderRadius: BorderRadius.circular(15),
+                        boxShadow: [BoxShadow(color: Colors.blueAccent.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4))],
+                      ),
+                      child: const Icon(Icons.phone_android, color: Colors.white, size: 30),
+                    ),
+                    const SizedBox(width: 15),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text("Shop Manager", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blueAccent.shade700)),
+                          Text("Quản lý cửa hàng sửa chữa điện thoại", style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                // Thông tin phiên bản
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.blueAccent.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline, color: Colors.blueAccent.shade700, size: 20),
+                      const SizedBox(width: 10),
+                      Text("Phiên bản: 2.1.0", style: TextStyle(fontWeight: FontWeight.w500, color: Colors.blueAccent.shade700)),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 15),
+                // Thông tin liên hệ
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.contact_support, color: Colors.green.shade700, size: 20),
+                          const SizedBox(width: 10),
+                          Text("Liên hệ hỗ trợ", style: TextStyle(fontWeight: FontWeight.w500, color: Colors.green.shade700)),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text("📧 Email: support@huluca.com", style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+                      Text("📱 Hotline: 1900-xxxx", style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+                      Text("🌐 Website: www.huluca.com", style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 15),
+                // Thông tin developer
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.purple.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.code, color: Colors.purple.shade700, size: 20),
+                          const SizedBox(width: 10),
+                          Text("Người phát triển", style: TextStyle(fontWeight: FontWeight.w500, color: Colors.purple.shade700)),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text("👨‍💻 Huluca Technology Team", style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+                      Text("🚀 Chuyên phát triển phần mềm quản lý kinh doanh", style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+                      Text("💡 Đổi mới công nghệ cho doanh nghiệp Việt Nam", style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
 
           const SizedBox(height: 40),
           SizedBox(

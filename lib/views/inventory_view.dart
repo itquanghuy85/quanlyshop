@@ -5,6 +5,19 @@ import '../models/product_model.dart';
 import 'supplier_view.dart';
 import '../services/user_service.dart';
 import '../services/firestore_service.dart';
+import '../services/unified_printer_service.dart';
+import '../services/bluetooth_printer_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+enum PrinterType { bluetooth, wifi, none }
+
+class PrinterOption {
+  final PrinterType type;
+  final String name;
+  final String address;
+
+  PrinterOption({required this.type, required this.name, required this.address});
+}
 
 class InventoryView extends StatefulWidget {
   const InventoryView({super.key});
@@ -31,10 +44,13 @@ class _InventoryViewState extends State<InventoryView> {
 
   Future<void> _loadPermissions() async {
     final perms = await UserService.getCurrentUserPermissions();
+    print('DEBUG: User permissions: $perms');
+    print('DEBUG: allowViewInventory: ${perms['allowViewInventory']}');
     if (!mounted) return;
     setState(() {
       _isAdmin = perms['allowViewInventory'] ?? false;
     });
+    print('DEBUG: _isAdmin set to: $_isAdmin');
   }
 
   Future<void> _refresh() async {
@@ -283,6 +299,177 @@ class _InventoryViewState extends State<InventoryView> {
     );
   }
 
+  Future<List<PrinterOption>> _getAvailablePrinters() async {
+    final printers = <PrinterOption>[];
+
+    // Thêm máy in Bluetooth
+    final bluetoothPrinters = await BluetoothPrinterService.getPairedPrinters();
+    print('DEBUG: Found ${bluetoothPrinters.length} Bluetooth printers');
+    for (final device in bluetoothPrinters) {
+      printers.add(PrinterOption(
+        type: PrinterType.bluetooth,
+        name: device.name ?? 'Unknown Bluetooth Printer',
+        address: device.macAdress ?? '',
+      ));
+    }
+
+    // Thêm máy in WiFi từ SharedPreferences
+    final prefs = await SharedPreferences.getInstance();
+    final wifiPrinters = prefs.getStringList('wifi_printers') ?? [];
+    print('DEBUG: Found ${wifiPrinters.length} WiFi printers: $wifiPrinters');
+    for (final ip in wifiPrinters) {
+      printers.add(PrinterOption(
+        type: PrinterType.wifi,
+        name: 'WiFi Printer ($ip)',
+        address: ip,
+      ));
+    }
+
+    // TEST: Thêm máy in giả để test dialog
+    if (printers.isEmpty) {
+      print('DEBUG: Adding test printers for testing');
+      printers.add(PrinterOption(
+        type: PrinterType.bluetooth,
+        name: 'Test Bluetooth Printer',
+        address: '00:11:22:33:44:55',
+      ));
+      printers.add(PrinterOption(
+        type: PrinterType.wifi,
+        name: 'Test WiFi Printer (192.168.1.100)',
+        address: '192.168.1.100',
+      ));
+    }
+
+    print('DEBUG: Total printers available: ${printers.length}');
+    return printers;
+  }
+
+  Future<PrinterOption?> _showPrinterSelectionDialog() async {
+    final printers = await _getAvailablePrinters();
+
+    if (printers.isEmpty) {
+      print('DEBUG: No printers found, showing snackbar');
+      if (!mounted) return null;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Không tìm thấy máy in nào. Vui lòng kết nối máy in trước.')),
+      );
+      return null;
+    }
+
+    return showDialog<PrinterOption>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('CHỌN MÁY IN'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: printers.length,
+            itemBuilder: (context, index) {
+              final printer = printers[index];
+              return ListTile(
+                leading: Icon(
+                  printer.type == PrinterType.bluetooth
+                      ? Icons.bluetooth
+                      : Icons.wifi,
+                ),
+                title: Text(printer.name),
+                subtitle: Text(printer.address),
+                onTap: () => Navigator.pop(ctx, printer),
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('HỦY'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _printPhoneLabel(Product product) async {
+    print('DEBUG: _printPhoneLabel called for product: ${product.name}');
+    try {
+      // Hiển thị dialog xác nhận
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text("IN TEM ĐIỆN THOẠI"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text("Tên: ${product.name.toUpperCase()}"),
+              Text("IMEI: ${product.imei?.toUpperCase() ?? 'N/A'}"),
+              Text("Màu: ${product.color?.toUpperCase() ?? 'N/A'}"),
+              Text("Giá: ${NumberFormat('#,###').format(product.price)} đ"),
+              Text("Tình trạng: ${product.condition.toUpperCase()}"),
+              if (product.description.isNotEmpty)
+                Text("Phụ kiện: ${product.description.toUpperCase()}"),
+              const SizedBox(height: 10),
+              const Text("Bạn có muốn in tem cho điện thoại này?"),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text("HỦY"),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text("IN TEM"),
+            ),
+          ],
+        ),
+      );
+
+      if (confirm != true) return;
+
+      // Chọn máy in
+      final selectedPrinter = await _showPrinterSelectionDialog();
+      if (selectedPrinter == null) return;
+
+      // Tạo dữ liệu tem
+      final labelData = {
+        'name': product.name.toUpperCase(),
+        'imei': product.imei?.toUpperCase() ?? 'N/A',
+        'color': product.color?.toUpperCase() ?? 'N/A',
+        'cost': NumberFormat('#,###').format(product.cost),
+        'price': NumberFormat('#,###').format(product.price),
+        'condition': product.condition.toUpperCase(),
+        'accessories': product.description.isNotEmpty ? product.description.toUpperCase() : 'KHÔNG CÓ',
+      };
+
+      // In tem với máy in đã chọn
+      bool printSuccess = false;
+      if (selectedPrinter.type == PrinterType.bluetooth) {
+        printSuccess = await BluetoothPrinterService.printPhoneLabel(labelData, selectedPrinter.address);
+      } else if (selectedPrinter.type == PrinterType.wifi) {
+        printSuccess = await UnifiedPrinterService.printPhoneLabelToWifi(labelData, selectedPrinter.address);
+      }
+
+      if (!mounted) return;
+      
+      if (printSuccess) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("ĐÃ IN TEM THÀNH CÔNG")),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("IN TEM THẤT BẠI - KIỂM TRA MÁY IN")),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("LỖI KHI IN TEM: $e")),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -362,13 +549,28 @@ class _InventoryViewState extends State<InventoryView> {
                           children: [
                             Text(
                               "${NumberFormat('#,###').format(p.price)} đ",
-                              style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                              style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 12),
                             ),
                             if (_isAdmin && !_selectionMode)
-                              IconButton(
-                                icon: const Icon(Icons.delete_outline, size: 18, color: Colors.grey),
-                                tooltip: "Xóa khỏi kho",
-                                onPressed: () => _confirmDeleteProduct(p),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (p.type == 'PHONE')
+                                    IconButton(
+                                      icon: const Icon(Icons.label_outline, size: 16, color: Colors.blue),
+                                      tooltip: "In tem điện thoại",
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(),
+                                      onPressed: () => _printPhoneLabel(p),
+                                    ),
+                                  IconButton(
+                                    icon: const Icon(Icons.delete_outline, size: 16, color: Colors.grey),
+                                    tooltip: "Xóa khỏi kho",
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                    onPressed: () => _confirmDeleteProduct(p),
+                                  ),
+                                ],
                               ),
                           ],
                         ),

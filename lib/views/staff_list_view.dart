@@ -37,6 +37,7 @@ class _StaffListViewState extends State<StaffListView> {
   
   // Invite code QR
   String? _currentInviteCode;
+  String? _currentShopName;
   bool _generatingInvite = false;
 
   @override
@@ -67,6 +68,27 @@ class _StaffListViewState extends State<StaffListView> {
     // Load current invite code if owner
     if (role == 'owner' && shopId != null) {
       _loadCurrentInviteCode();
+      _loadShopName();
+    }
+  }
+
+  Future<void> _loadShopName() async {
+    if (_currentShopId == null) return;
+    
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('shops')
+          .doc(_currentShopId)
+          .get();
+      
+      if (doc.exists) {
+        final data = doc.data();
+        setState(() => _currentShopName = data?['name'] ?? 'Shop không tên');
+      } else {
+        setState(() => _currentShopName = 'Shop không tên');
+      }
+    } catch (e) {
+      setState(() => _currentShopName = 'Shop không tên');
     }
   }
 
@@ -144,7 +166,9 @@ class _StaffListViewState extends State<StaffListView> {
                     border: Border.all(color: Colors.grey.shade300),
                   ),
                   child: QrImageView(
-                    data: _currentInviteCode!,
+                    data: _currentInviteCode != null && _currentShopName != null
+                        ? '{"type":"invite_code","code":"$_currentInviteCode","shopName":"$_currentShopName"}'
+                        : _currentInviteCode ?? '',
                     size: 200,
                     backgroundColor: Colors.white,
                   ),
@@ -434,6 +458,7 @@ class _StaffListViewState extends State<StaffListView> {
                     final displayName = userData['displayName'] ?? email.split('@').first.toUpperCase();
                     final phone = userData['phone'] ?? "Chưa có SĐT";
                     final photoUrl = userData['photoUrl'];
+                    final shopId = userData['shopId'];
 
                     return Card(
                       margin: const EdgeInsets.only(bottom: 12),
@@ -445,7 +470,31 @@ class _StaffListViewState extends State<StaffListView> {
                           child: photoUrl == null ? Icon(role == 'owner' ? Icons.business : role == 'manager' ? Icons.supervisor_account : role == 'employee' ? Icons.work : role == 'technician' ? Icons.build : role == 'admin' ? Icons.admin_panel_settings : Icons.person, color: role == 'owner' ? Colors.purple : role == 'manager' ? Colors.orange : role == 'employee' ? Colors.blue : role == 'technician' ? Colors.green : role == 'admin' ? Colors.red : Colors.grey) : null,
                         ),
                         title: Text(displayName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                        subtitle: Text("$email\nSĐT: $phone\nVai trò: ${role == 'owner' ? 'Chủ shop' : role == 'manager' ? 'Quản lý' : role == 'employee' ? 'Nhân viên' : role == 'technician' ? 'Kỹ thuật' : role == 'admin' ? 'Admin' : role}", style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(email, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                            Text("SĐT: $phone", style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                            Text("Vai trò: ${role == 'owner' ? 'Chủ shop' : role == 'manager' ? 'Quản lý' : role == 'employee' ? 'Nhân viên' : role == 'technician' ? 'Kỹ thuật' : role == 'admin' ? 'Admin' : role}", style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                            if (shopId != null)
+                              FutureBuilder<DocumentSnapshot>(
+                                future: FirebaseFirestore.instance.collection('shops').doc(shopId).get(),
+                                builder: (context, snapshot) {
+                                  if (snapshot.hasData && snapshot.data!.exists) {
+                                    final shopData = snapshot.data!.data() as Map<String, dynamic>;
+                                    final shopName = shopData['name'] ?? 'Shop không tên';
+                                    return Text("Shop: $shopName", style: const TextStyle(fontSize: 11, color: Colors.blue, fontWeight: FontWeight.w500));
+                                  } else if (snapshot.hasError) {
+                                    return Text("Shop: Lỗi tải", style: const TextStyle(fontSize: 11, color: Colors.red));
+                                  } else {
+                                    return Text("Shop: $shopId", style: const TextStyle(fontSize: 11, color: Colors.blue));
+                                  }
+                                },
+                              )
+                            else
+                              const Text("Shop: Chưa gán", style: TextStyle(fontSize: 11, color: Colors.orange)),
+                          ],
+                        ),
                         isThreeLine: true,
                         trailing: Icon(Icons.edit_note_rounded, color: Colors.blueAccent),
                         onTap: () => _showStaffActivityCenter(uid, displayName, email, role, userData),

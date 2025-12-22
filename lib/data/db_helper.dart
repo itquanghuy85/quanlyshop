@@ -7,6 +7,7 @@ import '../models/product_model.dart';
 import '../models/sale_order_model.dart';
 import '../models/expense_model.dart';
 import '../models/debt_model.dart';
+import '../models/inventory_check_model.dart';
 
 class DBHelper {
   static final DBHelper _instance = DBHelper._internal();
@@ -24,10 +25,10 @@ class DBHelper {
     String path = join(await getDatabasesPath(), 'repair_shop_v22.db'); 
     return await openDatabase(
       path,
-      version: 13,
+      version: 15,
       onCreate: (db, version) async {
         // ... (Cấu hình CREATE TABLE giữ nguyên như bản gốc để không mất dữ liệu)
-        await db.execute('CREATE TABLE IF NOT EXISTS repairs(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, customerName TEXT, phone TEXT, model TEXT, issue TEXT, accessories TEXT, address TEXT, imagePath TEXT, deliveredImage TEXT, warranty TEXT, partsUsed TEXT, status INTEGER, price INTEGER, cost INTEGER, paymentMethod TEXT, createdAt INTEGER, startedAt INTEGER, finishedAt INTEGER, deliveredAt INTEGER, createdBy TEXT, repairedBy TEXT, deliveredBy TEXT, lastCaredAt INTEGER, isSynced INTEGER DEFAULT 0, deleted INTEGER DEFAULT 0)');
+        await db.execute('CREATE TABLE IF NOT EXISTS repairs(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, customerName TEXT, phone TEXT, model TEXT, issue TEXT, accessories TEXT, address TEXT, imagePath TEXT, deliveredImage TEXT, warranty TEXT, partsUsed TEXT, status INTEGER, price INTEGER, cost INTEGER, paymentMethod TEXT, createdAt INTEGER, startedAt INTEGER, finishedAt INTEGER, deliveredAt INTEGER, createdBy TEXT, repairedBy TEXT, deliveredBy TEXT, lastCaredAt INTEGER, isSynced INTEGER DEFAULT 0, deleted INTEGER DEFAULT 0, color TEXT, imei TEXT, condition TEXT)');
         await db.execute('CREATE TABLE IF NOT EXISTS products(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, name TEXT, brand TEXT, imei TEXT, cost INTEGER, price INTEGER, condition TEXT, status INTEGER DEFAULT 1, description TEXT, images TEXT, warranty TEXT, createdAt INTEGER, supplier TEXT, type TEXT DEFAULT "PHONE", quantity INTEGER DEFAULT 1, color TEXT, isSynced INTEGER DEFAULT 0)');
         await db.execute('CREATE TABLE IF NOT EXISTS sales(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, customerName TEXT, phone TEXT, address TEXT, productNames TEXT, productImeis TEXT, totalPrice INTEGER, totalCost INTEGER, paymentMethod TEXT, sellerName TEXT, soldAt INTEGER, notes TEXT, gifts TEXT, isInstallment INTEGER DEFAULT 0, downPayment INTEGER DEFAULT 0, loanAmount INTEGER DEFAULT 0, installmentTerm TEXT, bankName TEXT, warranty TEXT, settlementPlannedAt INTEGER, settlementReceivedAt INTEGER, settlementAmount INTEGER DEFAULT 0, settlementFee INTEGER DEFAULT 0, settlementNote TEXT, settlementCode TEXT, isSynced INTEGER DEFAULT 0)');
         await db.execute('CREATE TABLE IF NOT EXISTS customers(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, name TEXT, phone TEXT UNIQUE, address TEXT, createdAt INTEGER, shopId TEXT, isSynced INTEGER DEFAULT 0)');
@@ -38,6 +39,19 @@ class DBHelper {
         await db.execute('CREATE TABLE IF NOT EXISTS attendance(id INTEGER PRIMARY KEY AUTOINCREMENT, userId TEXT, email TEXT, name TEXT, dateKey TEXT, checkInAt INTEGER, checkOutAt INTEGER, overtimeOn INTEGER DEFAULT 0, photoIn TEXT, photoOut TEXT, note TEXT, status TEXT DEFAULT "pending", approvedBy TEXT, approvedAt INTEGER, rejectReason TEXT, locked INTEGER DEFAULT 0, createdAt INTEGER)');
         await db.execute('CREATE TABLE IF NOT EXISTS payroll_locks(id INTEGER PRIMARY KEY AUTOINCREMENT, monthKey TEXT UNIQUE, locked INTEGER DEFAULT 1, lockedBy TEXT, note TEXT, lockedAt INTEGER)');
         await db.execute('CREATE TABLE IF NOT EXISTS cash_closings(id INTEGER PRIMARY KEY AUTOINCREMENT, dateKey TEXT UNIQUE, cashStart INTEGER DEFAULT 0, bankStart INTEGER DEFAULT 0, cashEnd INTEGER DEFAULT 0, bankEnd INTEGER DEFAULT 0, expectedCashDelta INTEGER DEFAULT 0, expectedBankDelta INTEGER DEFAULT 0, note TEXT, createdAt INTEGER)');
+        await db.execute('CREATE TABLE IF NOT EXISTS inventory_checks(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, checkType TEXT, checkDate INTEGER, checkedBy TEXT, items TEXT, isCompleted INTEGER DEFAULT 0, isSynced INTEGER DEFAULT 0, createdAt INTEGER)');
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 14) {
+          // Thêm các cột mới cho bảng repairs
+          await db.execute('ALTER TABLE repairs ADD COLUMN color TEXT');
+          await db.execute('ALTER TABLE repairs ADD COLUMN imei TEXT');
+          await db.execute('ALTER TABLE repairs ADD COLUMN condition TEXT');
+        }
+        if (oldVersion < 15) {
+          // Thêm bảng inventory_checks
+          await db.execute('CREATE TABLE IF NOT EXISTS inventory_checks(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, checkType TEXT, checkDate INTEGER, checkedBy TEXT, items TEXT, isCompleted INTEGER DEFAULT 0, isSynced INTEGER DEFAULT 0, createdAt INTEGER)');
+        }
       },
     );
   }
@@ -159,6 +173,7 @@ class DBHelper {
     return rows.map((r) => SaleOrder.fromMap(r)).toList();
   }
   Future<List<Map<String, dynamic>>> getCustomers() async => (await database).query('customers', orderBy: 'name ASC');
+  Future<List<Map<String, dynamic>>> getCustomersWithoutShop() async => (await database).query('customers', where: 'shopId IS NULL OR shopId = ?', whereArgs: [''], orderBy: 'name ASC');
   Future<Map<String, dynamic>?> getCustomerByPhone(String phone) async { final res = await (await database).query('customers', where: 'phone = ?', whereArgs: [phone], limit: 1); return res.isNotEmpty ? res.first : null; }
   Future<int> insertCustomer(Map<String, dynamic> c) async => (await database).insert('customers', c, conflictAlgorithm: ConflictAlgorithm.ignore);
   Future<int> updateRepair(Repair r) async => (await database).update('repairs', r.toMap(), where: 'id = ?', whereArgs: [r.id]);
@@ -190,6 +205,11 @@ class DBHelper {
 
   Future<Repair?> getRepairByFirestoreId(String firestoreId) async {
     final res = await (await database).query('repairs', where: 'firestoreId = ?', whereArgs: [firestoreId], limit: 1);
+    return res.isNotEmpty ? Repair.fromMap(res.first) : null;
+  }
+
+  Future<Repair?> getRepairById(int id) async {
+    final res = await (await database).query('repairs', where: 'id = ?', whereArgs: [id], limit: 1);
     return res.isNotEmpty ? Repair.fromMap(res.first) : null;
   }
 
@@ -277,5 +297,68 @@ class DBHelper {
         }
       }
     });
+  }
+
+  // --- INVENTORY CHECK METHODS ---
+  Future<int> insertInventoryCheck(InventoryCheck check) async {
+    final db = await database;
+    final map = check.toMap();
+    map['items'] = check.items.map((item) => item.toMap()).toList().toString();
+    return await db.insert('inventory_checks', map);
+  }
+
+  Future<int> updateInventoryCheck(InventoryCheck check) async {
+    final db = await database;
+    final map = check.toMap();
+    map['items'] = check.items.map((item) => item.toMap()).toList().toString();
+    return await db.update('inventory_checks', map, where: 'id = ?', whereArgs: [check.id]);
+  }
+
+  Future<List<InventoryCheck>> getInventoryChecks({String? checkType, bool? isCompleted}) async {
+    final db = await database;
+    String where = '';
+    List<Object> args = [];
+
+    if (checkType != null) {
+      where += 'checkType = ?';
+      args.add(checkType);
+    }
+
+    if (isCompleted != null) {
+      if (where.isNotEmpty) where += ' AND ';
+      where += 'isCompleted = ?';
+      args.add(isCompleted ? 1 : 0);
+    }
+
+    final rows = await db.query('inventory_checks',
+      where: where.isNotEmpty ? where : null,
+      whereArgs: args.isNotEmpty ? args : null,
+      orderBy: 'createdAt DESC'
+    );
+
+    return rows.map((row) => InventoryCheck.fromMap(row)).toList();
+  }
+
+  Future<InventoryCheck?> getInventoryCheckById(int id) async {
+    final db = await database;
+    final rows = await db.query('inventory_checks', where: 'id = ?', whereArgs: [id]);
+    if (rows.isEmpty) return null;
+    return InventoryCheck.fromMap(rows.first);
+  }
+
+  Future<int> deleteInventoryCheck(int id) async {
+    final db = await database;
+    return await db.delete('inventory_checks', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // Get items for inventory check based on type
+  Future<List<Map<String, dynamic>>> getItemsForInventoryCheck(String type) async {
+    final db = await database;
+    if (type == 'PHONE') {
+      return await db.query('products', where: 'status = 1 AND quantity > 0', orderBy: 'name ASC');
+    } else if (type == 'ACCESSORY') {
+      return await db.query('repair_parts', where: 'quantity > 0', orderBy: 'partName ASC');
+    }
+    return [];
   }
 }

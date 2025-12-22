@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:esc_pos_utils/esc_pos_utils.dart';
 import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -59,73 +60,81 @@ class BluetoothPrinterService {
     return await PrintBluetoothThermal.isPermissionBluetoothGranted;
   }
 
-  // Yêu cầu quyền Bluetooth toàn diện
-  static Future<Map<String, dynamic>> requestBluetoothPermissionsComprehensive() async {
+  // Yêu cầu quyền Bluetooth tối ưu cho từng phiên bản Android
+  static Future<Map<String, dynamic>> requestBluetoothPermissionsOptimized() async {
     try {
       Map<String, dynamic> results = {
         'success': true,
         'permissions': <String, bool>{},
         'errors': <String>[],
+        'warnings': <String>[],
       };
 
-      // 1. Quyền Location (cần cho Bluetooth scanning)
-      _addLog('Requesting location permissions...');
+      // Kiểm tra phiên bản Android để áp dụng logic phù hợp
+      // Trên Android 12+ (API 31+), Location permission không bắt buộc cho Bluetooth
+      // Trên Android 6-11, Location permission vẫn cần thiết
+
+      // 1. Quyền Location (quan trọng cho Android < 12)
+      _addLog('Yêu cầu quyền vị trí...');
       final locationStatus = await Permission.location.request();
       results['permissions']['location'] = locationStatus.isGranted;
+
       if (!locationStatus.isGranted) {
-        results['errors'].add('Location permission denied');
-        results['success'] = false;
+        results['warnings'].add('Quyền vị trí bị từ chối - có thể ảnh hưởng đến việc tìm máy in trên Android cũ');
       }
 
-      // 2. Quyền Location luôn cho phép (Android 10+)
-      if (locationStatus.isGranted) {
-        final locationAlwaysStatus = await Permission.locationAlways.request();
-        results['permissions']['locationAlways'] = locationAlwaysStatus.isGranted;
-        if (!locationAlwaysStatus.isGranted) {
-          results['errors'].add('Location always permission denied (may affect background scanning)');
-        }
-      }
-
-      // 3. Quyền Bluetooth cơ bản (cho Android < 12)
-      final bluetoothStatus = await Permission.bluetooth.request();
-      results['permissions']['bluetooth'] = bluetoothStatus.isGranted;
-      if (!bluetoothStatus.isGranted) {
-        results['errors'].add('Bluetooth permission denied');
-        results['success'] = false;
-      }
-
-      // 4. Quyền Bluetooth Connect (Android 12+)
+      // 2. Quyền Bluetooth Connect (quan trọng nhất cho Android 12+)
+      _addLog('Yêu cầu quyền Bluetooth Connect...');
       final bluetoothConnectStatus = await Permission.bluetoothConnect.request();
       results['permissions']['bluetoothConnect'] = bluetoothConnectStatus.isGranted;
+
       if (!bluetoothConnectStatus.isGranted) {
-        results['errors'].add('Bluetooth Connect permission denied');
+        results['errors'].add('Quyền Bluetooth Connect bị từ chối - không thể kết nối máy in');
         results['success'] = false;
       }
 
-      // 5. Quyền Bluetooth Scan (Android 12+)
+      // 3. Quyền Bluetooth Scan (quan trọng cho việc tìm máy in)
+      _addLog('Yêu cầu quyền Bluetooth Scan...');
       final bluetoothScanStatus = await Permission.bluetoothScan.request();
       results['permissions']['bluetoothScan'] = bluetoothScanStatus.isGranted;
+
       if (!bluetoothScanStatus.isGranted) {
-        results['errors'].add('Bluetooth Scan permission denied');
+        results['errors'].add('Quyền Bluetooth Scan bị từ chối - không thể tìm máy in');
         results['success'] = false;
       }
 
-      // 6. Quyền Bluetooth Advertise (Android 12+)
+      // 4. Quyền Bluetooth cơ bản (cho Android < 12)
+      _addLog('Yêu cầu quyền Bluetooth cơ bản...');
+      final bluetoothStatus = await Permission.bluetooth.request();
+      results['permissions']['bluetooth'] = bluetoothStatus.isGranted;
+
+      if (!bluetoothStatus.isGranted) {
+        results['warnings'].add('Quyền Bluetooth cơ bản bị từ chối - có thể ảnh hưởng trên Android cũ');
+      }
+
+      // 5. Quyền Bluetooth Advertise (tùy chọn)
       final bluetoothAdvertiseStatus = await Permission.bluetoothAdvertise.request();
       results['permissions']['bluetoothAdvertise'] = bluetoothAdvertiseStatus.isGranted;
+
       if (!bluetoothAdvertiseStatus.isGranted) {
-        results['errors'].add('Bluetooth Advertise permission denied (may affect some devices)');
+        results['warnings'].add('Quyền Bluetooth Advertise bị từ chối - một số thiết bị có thể không tương thích');
       }
 
       return results;
     } catch (e) {
-      print('Error requesting comprehensive Bluetooth permissions: $e');
+      print('Lỗi khi yêu cầu quyền Bluetooth: $e');
       return {
         'success': false,
         'permissions': <String, bool>{},
-        'errors': ['Exception during permission request: $e'],
+        'errors': ['Lỗi hệ thống khi yêu cầu quyền: $e'],
+        'warnings': <String>[],
       };
     }
+  }
+
+  // Yêu cầu quyền Bluetooth toàn diện (phương thức cũ)
+  static Future<Map<String, dynamic>> requestBluetoothPermissionsComprehensive() async {
+    return await requestBluetoothPermissionsOptimized();
   }
 
   // Yêu cầu quyền Bluetooth (phương thức cũ, giữ để tương thích)
@@ -254,6 +263,143 @@ class BluetoothPrinterService {
   // Alias cho printBytes
   static Future<bool> writeBytes(List<int> bytes) async {
     return await printBytes(bytes);
+  }
+
+  // In tem điện thoại với máy in Bluetooth cụ thể
+  // In tem điện thoại qua Bluetooth
+  static Future<bool> printPhoneLabel(Map<String, dynamic> labelData, [String? macAddress]) async {
+    try {
+      print('DEBUG: printPhoneLabel called with data: $labelData');
+      
+      bool connected = false;
+      
+      if (macAddress != null && macAddress.isNotEmpty) {
+        // Kiểm tra xem đã kết nối đến máy in này chưa
+        final currentConnection = await isConnected();
+        if (currentConnection) {
+          // Đã có kết nối, kiểm tra xem có phải máy in được yêu cầu không
+          final savedPrinter = await getSavedPrinter();
+          if (savedPrinter != null && savedPrinter.macAddress == macAddress) {
+            connected = true;
+            print('DEBUG: Using existing connection to $macAddress');
+          } else {
+            // Ngắt kết nối cũ và kết nối đến máy in mới
+            // await PrintBluetoothThermal.disconnect(); // Có thể không cần
+            connected = await connect(macAddress);
+            print('DEBUG: Connected to new printer $macAddress: $connected');
+          }
+        } else {
+          // Chưa có kết nối, kết nối đến máy in được chỉ định
+          connected = await connect(macAddress);
+          print('DEBUG: Connected to printer $macAddress: $connected');
+        }
+      } else {
+        // Sử dụng máy in đã lưu
+        connected = await ensureConnection();
+        print('DEBUG: Using saved printer connection: $connected');
+      }
+
+      if (!connected) {
+        print('DEBUG: No printer connected');
+        return false;
+      }
+
+      // Tạo bytes cho tem
+      final bytes = await _generatePhoneLabelBytes(labelData);
+      print('DEBUG: Generated ${bytes.length} bytes for printing');
+
+      // In bytes
+      final success = await printBytes(bytes);
+      print('DEBUG: Print result: $success');
+      
+      // Nếu in thành công và có macAddress cụ thể, lưu làm máy in mặc định
+      if (success && macAddress != null && macAddress.isNotEmpty) {
+        final pairedPrinters = await getPairedPrinters();
+        final printerInfo = pairedPrinters.firstWhere(
+          (p) => p.macAdress == macAddress,
+        );
+        if (printerInfo != null) {
+          final config = BluetoothPrinterConfig(
+            name: printerInfo.name ?? 'Unknown',
+            macAddress: printerInfo.macAdress ?? macAddress,
+          );
+          await savePrinter(config);
+          print('DEBUG: Saved printer $macAddress as default');
+        }
+      }
+      
+      return success;
+    } catch (e) {
+      print('DEBUG: Error printing phone label: $e');
+      return false;
+    }
+  }
+
+  // Tạo bytes cho tem điện thoại (tương tự như trong UnifiedPrinterService)
+  static Future<List<int>> _generatePhoneLabelBytes(Map<String, dynamic> labelData) async {
+    // Hàm loại bỏ dấu tiếng Việt
+    String removeVietnameseAccents(String str) {
+      const vietnameseChars = 'àáảãạâầấẩẫậăằắẳẵặèéẻẽẹêềếểễệđìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵÀÁẢÃẠÂẦẤẨẪẬĂẰẮẲẴẶÈÉẺẼẸÊỀẾỂỄỆĐÌÍỈĨỊÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢÙÚỦŨỤƯỪỨỬỮỰỲÝỶỸỴ';
+      const asciiChars = 'aaaaaaaaaaaaaaaaaeeeeeeeeeeediiiiiooooooooooooooooouuuuuuuuuuuyyyyyAAAAAAAAAAAAAAAAAEEEEEEEEEEEDIIIIIOOOOOOOOOOOOOOOOOUUUUUUUUUUUYYYYY';
+      var result = str;
+      for (var i = 0; i < vietnameseChars.length; i++) {
+        result = result.replaceAll(vietnameseChars[i], asciiChars[i]);
+      }
+      return result;
+    }
+
+    // Import cần thiết cho generator
+    final profile = await CapabilityProfile.load();
+    final generator = Generator(PaperSize.mm80, profile);
+
+    final bytes = <int>[];
+    bytes.addAll(generator.reset());
+
+    // Header - TEM DIEN THOAI (chữ hoa)
+    bytes.addAll(generator.text(
+      'TEM DIEN THOAI',
+      styles: const PosStyles(align: PosAlign.center, bold: true, height: PosTextSize.size2),
+    ));
+
+    bytes.addAll(generator.feed(1));
+
+    // Thông tin điện thoại - tất cả chữ hoa, loại bỏ dấu
+    bytes.addAll(generator.text('TEN: ${removeVietnameseAccents((labelData['name'] ?? '').toString().toUpperCase())}', styles: const PosStyles(bold: true)));
+    bytes.addAll(generator.text('IMEI: ${labelData['imei'] ?? ''}'));
+    bytes.addAll(generator.text('MAU: ${removeVietnameseAccents((labelData['color'] ?? '').toString().toUpperCase())}'));
+
+    // Giá trên 2 dòng - KPK và CPK
+    bytes.addAll(generator.text('KPK: ${(labelData['cost'] ?? 0).toString()} VND', styles: const PosStyles(bold: true)));
+    bytes.addAll(generator.text('CPK: ${(labelData['price'] ?? 0).toString()} VND', styles: const PosStyles(bold: true)));
+
+    bytes.addAll(generator.text('TINH TRANG: ${removeVietnameseAccents((labelData['condition'] ?? '').toString().toUpperCase())}'));
+
+    if (labelData['accessories'] != null && labelData['accessories'].toString().isNotEmpty) {
+      bytes.addAll(generator.text('PHU KIEN: ${removeVietnameseAccents((labelData['accessories'] ?? '').toString().toUpperCase())}'));
+    }
+
+    bytes.addAll(generator.feed(1));
+
+    // QR Code Data - JSON format để quét tạo đơn hàng nhanh
+    final qrData = {
+      'type': 'phone_label',
+      'name': labelData['name'] ?? '',
+      'imei': labelData['imei'] ?? '',
+      'color': labelData['color'] ?? '',
+      'cost': labelData['cost'] ?? 0,
+      'price': labelData['price'] ?? 0,
+      'condition': labelData['condition'] ?? '',
+      'accessories': labelData['accessories'] ?? '',
+    };
+
+    final qrJson = jsonEncode(qrData);
+    bytes.addAll(generator.text('QR DATA:', styles: const PosStyles(bold: true)));
+    bytes.addAll(generator.text(qrJson, styles: const PosStyles(fontType: PosFontType.fontB)));
+
+    bytes.addAll(generator.feed(2));
+    bytes.addAll(generator.cut());
+
+    return bytes;
   }
 
   // Đảm bảo kết nối

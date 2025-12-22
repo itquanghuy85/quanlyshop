@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:timezone/data/latest.dart' as tz;
+import 'package:timezone/timezone.dart' as tz;
 import 'user_service.dart';
 
 class NotificationService {
@@ -16,6 +18,78 @@ class NotificationService {
     const AndroidInitializationSettings initializationSettingsAndroid = AndroidInitializationSettings('@mipmap/ic_launcher');
     const InitializationSettings initializationSettings = InitializationSettings(android: initializationSettingsAndroid);
     await _localNotifications.initialize(initializationSettings);
+    
+    // Khởi tạo timezone
+    tz.initializeTimeZones();
+    
+    // Schedule thông báo nhắc nhở chốt quỹ
+    await _scheduleDailyCashClosingReminders();
+  }
+
+  /// Schedule thông báo nhắc nhở chốt quỹ hàng ngày (8:00 sáng và 21:00 tối)
+  static Future<void> _scheduleDailyCashClosingReminders() async {
+    // Thông báo sáng 8:00
+    await _scheduleDailyNotification(
+      id: 1001,
+      hour: 8,
+      minute: 0,
+      title: 'NHẮC NHỞ CHỐT QUỸ',
+      body: 'Đã đến giờ chốt quỹ buổi sáng. Vui lòng kiểm tra và báo cáo số liệu.',
+    );
+
+    // Thông báo tối 21:00
+    await _scheduleDailyNotification(
+      id: 1002,
+      hour: 21,
+      minute: 0,
+      title: 'NHẮC NHỞ CHỐT QUỸ',
+      body: 'Đã đến giờ chốt quỹ buổi tối. Vui lòng kiểm tra và báo cáo số liệu.',
+    );
+  }
+
+  /// Schedule thông báo hàng ngày vào giờ cụ thể
+  static Future<void> _scheduleDailyNotification({
+    required int id,
+    required int hour,
+    required int minute,
+    required String title,
+    required String body,
+  }) async {
+    final now = tz.TZDateTime.now(tz.local);
+    var scheduledDate = tz.TZDateTime(
+      tz.local,
+      now.year,
+      now.month,
+      now.day,
+      hour,
+      minute,
+    );
+
+    // Nếu thời gian đã qua trong ngày hôm nay, schedule cho ngày mai
+    if (scheduledDate.isBefore(now)) {
+      scheduledDate = scheduledDate.add(const Duration(days: 1));
+    }
+
+    const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+      'cash_closing_channel',
+      'Nhắc nhở chốt quỹ',
+      channelDescription: 'Thông báo nhắc nhở chốt quỹ hàng ngày',
+      importance: Importance.high,
+      priority: Priority.high,
+    );
+
+    const NotificationDetails details = NotificationDetails(android: androidDetails);
+
+    await _localNotifications.zonedSchedule(
+      id,
+      title,
+      body,
+      scheduledDate,
+      details,
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+      matchDateTimeComponents: DateTimeComponents.time, // Lặp lại hàng ngày cùng giờ
+    );
   }
 
   /// Hiển thị SnackBar từ bất kỳ đâu trong app

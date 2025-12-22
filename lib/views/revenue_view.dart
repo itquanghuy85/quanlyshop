@@ -15,8 +15,6 @@ import 'payroll_view.dart';
 import '../services/user_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/audit_service.dart';
-import 'printer_setting_view.dart';
-import 'thermal_printer_design_view.dart';
 
 class RevenueView extends StatefulWidget {
   const RevenueView({super.key});
@@ -26,37 +24,6 @@ class RevenueView extends StatefulWidget {
 }
 
 class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStateMixin {
-    // Tab máy in: gom cài đặt, test, thiết kế mẫu in, hướng dẫn sử dụng
-    Widget _buildPrinterTab() {
-      return DefaultTabController(
-        length: 3,
-        child: Scaffold(
-          backgroundColor: const Color(0xFFF8FAFF),
-          appBar: AppBar(
-            automaticallyImplyLeading: false,
-            backgroundColor: Colors.white,
-            elevation: 0,
-            title: const Text("MÁY IN", style: TextStyle(fontWeight: FontWeight.bold)),
-            bottom: const TabBar(
-              labelColor: Colors.deepOrange,
-              indicatorColor: Colors.deepOrange,
-              tabs: [
-                Tab(icon: Icon(Icons.settings), text: "CÀI ĐẶT WIFI"),
-                Tab(icon: Icon(Icons.thermostat_rounded), text: "IN NHIỆT & TEM"),
-                Tab(icon: Icon(Icons.help_outline_rounded), text: "HƯỚNG DẪN"),
-              ],
-            ),
-          ),
-          body: TabBarView(
-            children: [
-              PrinterSettingView(),
-              ThermalPrinterDesignView(),
-              _PrinterGuideTab(),
-            ],
-          ),
-        ),
-      );
-    }
   final db = DBHelper();
   late TabController _tabController;
   
@@ -371,10 +338,6 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
                   icon: Icon(Icons.receipt_long_rounded, size: 30, shadows: [Shadow(color: Colors.deepPurple, blurRadius: 2)]),
                   text: "CÔNG NỢ",
                 ),
-                Tab(
-                  icon: Icon(Icons.print_rounded, size: 32, color: Colors.deepOrange, shadows: [Shadow(color: Colors.deepOrange, blurRadius: 3)]),
-                  text: "MÁY IN",
-                ),
               ],
             ),
           ),
@@ -408,7 +371,6 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
                     _buildAttendanceTab(),
                     _buildPayrollTab(),
                     _buildDebtTab(),
-                    _buildPrinterTab(),
                   ],
                 ),
               ),
@@ -785,29 +747,4 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
   }
 }
 
-// Widget hướng dẫn sử dụng máy in
-class _PrinterGuideTab extends StatelessWidget {
-  const _PrinterGuideTab();
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
-          Text("HƯỚNG DẪN SỬ DỤNG MÁY IN", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-          SizedBox(height: 20),
-          Text("1. Cài đặt máy in Wifi/LAN: Nhập đúng địa chỉ IP, nhấn Lưu & In thử để kiểm tra kết nối."),
-          SizedBox(height: 10),
-          Text("2. Máy in nhiệt Bluetooth: Quét, chọn máy in, in thử mẫu tem."),
-          SizedBox(height: 10),
-          Text("3. Thiết kế mẫu tem: Tuỳ chỉnh thông tin, kích thước, cỡ chữ, xem trước mẫu tem."),
-          SizedBox(height: 10),
-          Text("4. Lưu ý: Điện thoại và máy in phải cùng mạng Wifi (với máy in Wifi/LAN) hoặc bật Bluetooth (với máy in nhiệt)."),
-          SizedBox(height: 20),
-          Text("Nếu gặp lỗi không cấp quyền, hãy vào Cài đặt > Ứng dụng > [Tên app] > Quyền và cấp đầy đủ quyền Bluetooth, Vị trí."),
-        ],
-      ),
-    );
-  }
-}
+

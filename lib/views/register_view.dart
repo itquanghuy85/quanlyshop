@@ -76,6 +76,11 @@ class _RegisterViewState extends State<RegisterView> {
             setState(() {
               _inviteCodeC.text = data['code'];
             });
+            final shopName = data['shopName'] ?? 'Shop không tên';
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Đã quét mã mời từ shop: $shopName')),
+            );
+            return;
           }
         }
         ScaffoldMessenger.of(context).showSnackBar(
