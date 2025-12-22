@@ -218,33 +218,43 @@ class BluetoothPrinterService {
   // Kết nối đến máy in với kiểm tra chi tiết
   static Future<Map<String, dynamic>> connectWithStatus(String macAddress) async {
     try {
+      print('DEBUG: Starting connection to printer $macAddress');
+
       // Kiểm tra quyền trước
       final permissionsGranted = await requestBluetoothPermissions();
+      print('DEBUG: Bluetooth permissions granted: $permissionsGranted');
       if (!permissionsGranted) {
         return {'success': false, 'error': 'Bluetooth permissions not granted'};
       }
 
       // Kiểm tra Bluetooth có bật
       final isEnabled = await isBluetoothEnabled();
+      print('DEBUG: Bluetooth enabled: $isEnabled');
       if (!isEnabled) {
         return {'success': false, 'error': 'Bluetooth is not enabled'};
       }
 
       // Kiểm tra máy in có trong danh sách paired không
       final pairedPrinters = await getPairedPrinters();
+      print('DEBUG: Found ${pairedPrinters.length} paired printers');
       final isPaired = pairedPrinters.any((printer) => printer.macAdress == macAddress);
+      print('DEBUG: Printer $macAddress is paired: $isPaired');
       if (!isPaired) {
         return {'success': false, 'error': 'Printer not paired. Please pair the printer first in device settings'};
       }
 
       // Thử kết nối
+      print('DEBUG: Attempting to connect via PrintBluetoothThermal.connect');
       final connected = await PrintBluetoothThermal.connect(macPrinterAddress: macAddress);
+      print('DEBUG: PrintBluetoothThermal.connect result: $connected');
+
       if (connected) {
         return {'success': true, 'message': 'Connected successfully'};
       } else {
         return {'success': false, 'error': 'Failed to connect to printer'};
       }
     } catch (e) {
+      print('DEBUG: Exception during connection: $e');
       return {'success': false, 'error': 'Connection error: $e'};
     }
   }
@@ -270,31 +280,32 @@ class BluetoothPrinterService {
   static Future<bool> printPhoneLabel(Map<String, dynamic> labelData, [String? macAddress]) async {
     try {
       print('DEBUG: printPhoneLabel called with data: $labelData');
-      
+      // Log chi tiết từng trường dữ liệu
+      labelData.forEach((k, v) {
+        print('DEBUG: labelData[$k] = ${v?.toString() ?? 'null'}');
+      });
+
       bool connected = false;
-      
+
       if (macAddress != null && macAddress.isNotEmpty) {
-        // Kiểm tra xem đã kết nối đến máy in này chưa
         final currentConnection = await isConnected();
         if (currentConnection) {
-          // Đã có kết nối, kiểm tra xem có phải máy in được yêu cầu không
           final savedPrinter = await getSavedPrinter();
           if (savedPrinter != null && savedPrinter.macAddress == macAddress) {
             connected = true;
             print('DEBUG: Using existing connection to $macAddress');
           } else {
-            // Ngắt kết nối cũ và kết nối đến máy in mới
-            // await PrintBluetoothThermal.disconnect(); // Có thể không cần
+            print('DEBUG: Attempting to connect to new printer $macAddress');
             connected = await connect(macAddress);
             print('DEBUG: Connected to new printer $macAddress: $connected');
           }
         } else {
-          // Chưa có kết nối, kết nối đến máy in được chỉ định
+          print('DEBUG: No existing connection, connecting to $macAddress');
           connected = await connect(macAddress);
           print('DEBUG: Connected to printer $macAddress: $connected');
         }
       } else {
-        // Sử dụng máy in đã lưu
+        print('DEBUG: No specific MAC address, using saved printer');
         connected = await ensureConnection();
         print('DEBUG: Using saved printer connection: $connected');
       }
@@ -305,38 +316,53 @@ class BluetoothPrinterService {
       }
 
       // Tạo bytes cho tem
-      final bytes = await _generatePhoneLabelBytes(labelData);
-      print('DEBUG: Generated ${bytes.length} bytes for printing');
+      List<int> bytes = [];
+      try {
+        bytes = await _generatePhoneLabelBytesSimple(labelData);
+        print('DEBUG: Generated ${bytes.length} bytes for printing');
+      } catch (genErr) {
+        print('DEBUG: Error generating label bytes: $genErr');
+        return false;
+      }
 
       // In bytes
-      final success = await printBytes(bytes);
-      print('DEBUG: Print result: $success');
-      
+      bool success = false;
+      try {
+        success = await printBytes(bytes);
+        print('DEBUG: Print result: $success');
+      } catch (printErr) {
+        print('DEBUG: Error sending bytes to printer: $printErr');
+        return false;
+      }
+
       // Nếu in thành công và có macAddress cụ thể, lưu làm máy in mặc định
       if (success && macAddress != null && macAddress.isNotEmpty) {
-        final pairedPrinters = await getPairedPrinters();
-        final printerInfo = pairedPrinters.firstWhere(
-          (p) => p.macAdress == macAddress,
-        );
-        if (printerInfo != null) {
+        try {
+          final pairedPrinters = await getPairedPrinters();
+          final printerInfo = pairedPrinters.firstWhere(
+            (p) => p.macAdress == macAddress,
+          );
           final config = BluetoothPrinterConfig(
-            name: printerInfo.name ?? 'Unknown',
-            macAddress: printerInfo.macAdress ?? macAddress,
+            name: printerInfo.name,
+            macAddress: printerInfo.macAdress,
           );
           await savePrinter(config);
           print('DEBUG: Saved printer $macAddress as default');
+        } catch (saveErr) {
+          print('DEBUG: Error saving default printer: $saveErr');
         }
       }
-      
+
       return success;
-    } catch (e) {
+    } catch (e, stack) {
       print('DEBUG: Error printing phone label: $e');
+      print('DEBUG: Stacktrace: $stack');
       return false;
     }
   }
 
-  // Tạo bytes cho tem điện thoại (tương tự như trong UnifiedPrinterService)
-  static Future<List<int>> _generatePhoneLabelBytes(Map<String, dynamic> labelData) async {
+  // Tạo bytes cho tem điện thoại đơn giản (không QR để tránh lỗi máy in)
+  static Future<List<int>> _generatePhoneLabelBytesSimple(Map<String, dynamic> labelData) async {
     // Hàm loại bỏ dấu tiếng Việt
     String removeVietnameseAccents(String str) {
       const vietnameseChars = 'àáảãạâầấẩẫậăằắẳẵặèéẻẽẹêềếểễệđìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵÀÁẢÃẠÂẦẤẨẪẬĂẰẮẲẴẶÈÉẺẼẸÊỀẾỂỄỆĐÌÍỈĨỊÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢÙÚỦŨỤƯỪỨỬỮỰỲÝỶỸỴ';
@@ -348,6 +374,21 @@ class BluetoothPrinterService {
       return result;
     }
 
+    // Validate dữ liệu đầu vào
+    final name = removeVietnameseAccents((labelData['name'] ?? 'N/A').toString().toUpperCase());
+    final imei = (labelData['imei'] ?? 'N/A').toString();
+    final color = removeVietnameseAccents((labelData['color'] ?? 'N/A').toString().toUpperCase());
+    final capacity = removeVietnameseAccents((labelData['capacity'] ?? '').toString().toUpperCase());
+    final cost = (labelData['cost'] ?? '0').toString();
+    final price = (labelData['price'] ?? '0').toString(); // KPK
+    final cpkPrice = (labelData['cpkPrice'] ?? cost).toString(); // CPK
+    final condition = removeVietnameseAccents((labelData['condition'] ?? 'N/A').toString().toUpperCase());
+    final accessories = labelData['accessories'] != null && labelData['accessories'].toString().isNotEmpty
+        ? removeVietnameseAccents(labelData['accessories'].toString().toUpperCase())
+        : 'KHONG CO';
+
+    print('DEBUG: Simple label data - name: $name, imei: $imei, color: $color, capacity: $capacity, cost: $cost, price: $price, cpkPrice: $cpkPrice');
+
     // Import cần thiết cho generator
     final profile = await CapabilityProfile.load();
     final generator = Generator(PaperSize.mm80, profile);
@@ -355,50 +396,53 @@ class BluetoothPrinterService {
     final bytes = <int>[];
     bytes.addAll(generator.reset());
 
-    // Header - TEM DIEN THOAI (chữ hoa)
-    bytes.addAll(generator.text(
-      'TEM DIEN THOAI',
-      styles: const PosStyles(align: PosAlign.center, bold: true, height: PosTextSize.size2),
-    ));
-
+    // Tên sản phẩm căn giữa
+    final productInfo = capacity.isNotEmpty ? '$name $capacity' : name;
+    bytes.addAll(generator.text(productInfo, styles: const PosStyles(align: PosAlign.center, bold: true, height: PosTextSize.size1, width: PosTextSize.size1)));
     bytes.addAll(generator.feed(1));
 
-    // Thông tin điện thoại - tất cả chữ hoa, loại bỏ dấu
-    bytes.addAll(generator.text('TEN: ${removeVietnameseAccents((labelData['name'] ?? '').toString().toUpperCase())}', styles: const PosStyles(bold: true)));
-    bytes.addAll(generator.text('IMEI: ${labelData['imei'] ?? ''}'));
-    bytes.addAll(generator.text('MAU: ${removeVietnameseAccents((labelData['color'] ?? '').toString().toUpperCase())}'));
-
-    // Giá trên 2 dòng - KPK và CPK
-    bytes.addAll(generator.text('KPK: ${(labelData['cost'] ?? 0).toString()} VND', styles: const PosStyles(bold: true)));
-    bytes.addAll(generator.text('CPK: ${(labelData['price'] ?? 0).toString()} VND', styles: const PosStyles(bold: true)));
-
-    bytes.addAll(generator.text('TINH TRANG: ${removeVietnameseAccents((labelData['condition'] ?? '').toString().toUpperCase())}'));
-
-    if (labelData['accessories'] != null && labelData['accessories'].toString().isNotEmpty) {
-      bytes.addAll(generator.text('PHU KIEN: ${removeVietnameseAccents((labelData['accessories'] ?? '').toString().toUpperCase())}'));
-    }
-
+    // IMEI căn giữa
+    bytes.addAll(generator.text('IMEI: $imei', styles: const PosStyles(align: PosAlign.center, bold: true, height: PosTextSize.size1, width: PosTextSize.size1)));
     bytes.addAll(generator.feed(1));
 
-    // QR Code Data - JSON format để quét tạo đơn hàng nhanh
+    // KPK GIÁ
+    bytes.addAll(generator.text('KPK GIÁ: $price VND', styles: const PosStyles(align: PosAlign.center, bold: true, height: PosTextSize.size1, width: PosTextSize.size1)));
+    bytes.addAll(generator.feed(1));
+
+    // PK GIÁ
+    bytes.addAll(generator.text('PK GIÁ: $cpkPrice VND', styles: const PosStyles(align: PosAlign.center, bold: true, height: PosTextSize.size1, width: PosTextSize.size1)));
+    bytes.addAll(generator.feed(1));
+
+    // QR code căn giữa
     final qrData = {
       'type': 'phone_label',
-      'name': labelData['name'] ?? '',
-      'imei': labelData['imei'] ?? '',
-      'color': labelData['color'] ?? '',
-      'cost': labelData['cost'] ?? 0,
-      'price': labelData['price'] ?? 0,
-      'condition': labelData['condition'] ?? '',
-      'accessories': labelData['accessories'] ?? '',
+      'name': name,
+      'imei': imei,
+      'color': color,
+      'capacity': capacity,
+      'kpk': price,
+      'pk': cpkPrice,
+      'condition': condition,
+      'accessories': accessories,
     };
 
-    final qrJson = jsonEncode(qrData);
-    bytes.addAll(generator.text('QR DATA:', styles: const PosStyles(bold: true)));
-    bytes.addAll(generator.text(qrJson, styles: const PosStyles(fontType: PosFontType.fontB)));
+    try {
+      final qrJson = jsonEncode(qrData);
+      print('DEBUG: QR JSON length: ${qrJson.length}');
+      if (qrJson.length < 200) { // Tăng giới hạn độ dài
+        bytes.addAll(generator.feed(1));
+        bytes.addAll(generator.qrcode(qrJson, size: QRSize.Size2)); // Tăng size QR
+      } else {
+        print('DEBUG: QR data too long, skipping QR code');
+      }
+    } catch (e) {
+      print('DEBUG: Error encoding QR data: $e');
+    }
 
-    bytes.addAll(generator.feed(2));
+    bytes.addAll(generator.feed(1)); // Giảm khoảng cách cuối
     bytes.addAll(generator.cut());
 
+    print('DEBUG: Simple label bytes generated: ${bytes.length}');
     return bytes;
   }
 

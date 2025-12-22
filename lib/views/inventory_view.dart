@@ -169,7 +169,9 @@ class _InventoryViewState extends State<InventoryView> {
     final nameC = TextEditingController();
     final imeiC = TextEditingController();
     final costC = TextEditingController();
-    final priceC = TextEditingController();
+    final kpkPriceC = TextEditingController(); // Giá bán kèm phụ kiện
+    final pkPriceC = TextEditingController(); // Giá phụ kiện
+    final capacityC = TextEditingController(); // Dung lượng
     final qtyC = TextEditingController(text: "1");
     String type = "PHONE";
     String? supplier = _suppliers.isNotEmpty ? _suppliers.first['name'] as String : null;
@@ -197,8 +199,10 @@ class _InventoryViewState extends State<InventoryView> {
                 Row(children: [
                   Expanded(child: TextField(controller: costC, decoration: const InputDecoration(labelText: "Giá vốn", suffixText: ".000"), keyboardType: TextInputType.number)),
                   const SizedBox(width: 10),
-                  Expanded(child: TextField(controller: priceC, decoration: const InputDecoration(labelText: "Giá bán", suffixText: ".000"), keyboardType: TextInputType.number)),
+                  Expanded(child: TextField(controller: kpkPriceC, decoration: const InputDecoration(labelText: "Giá KPK", suffixText: ".000"), keyboardType: TextInputType.number)),
                 ]),
+                TextField(controller: pkPriceC, decoration: const InputDecoration(labelText: "Giá PK", suffixText: ".000"), keyboardType: TextInputType.number),
+                TextField(controller: capacityC, decoration: const InputDecoration(labelText: "Dung lượng (ví dụ: 64GB, 128GB)"), textCapitalization: TextCapitalization.characters),
                 TextField(controller: qtyC, decoration: const InputDecoration(labelText: "Số lượng"), keyboardType: TextInputType.number),
                 const SizedBox(height: 10),
                 DropdownButtonFormField<String>(
@@ -235,14 +239,17 @@ class _InventoryViewState extends State<InventoryView> {
                 name: nameC.text.toUpperCase(),
                 imei: imeiC.text.toUpperCase(),
                 cost: (int.tryParse(costC.text) ?? 0) * 1000,
-                price: (int.tryParse(priceC.text) ?? 0) * 1000,
+                price: (int.tryParse(pkPriceC.text) ?? 0) * 1000, // Giá bán = giá PK
+                capacity: capacityC.text.isNotEmpty ? capacityC.text.toUpperCase() : null,
+                kpkPrice: kpkPriceC.text.isNotEmpty ? (int.tryParse(kpkPriceC.text) ?? 0) * 1000 : null,
+                pkPrice: (int.tryParse(pkPriceC.text) ?? 0) * 1000,
                 quantity: qty,
                 type: type,
                 createdAt: DateTime.now().millisecondsSinceEpoch,
                 status: 1,
                 supplier: supplier,
               );
-              await db.insertProduct(p);
+              await db.upsertProduct(p);
               await db.incrementSupplierStats(supplier!, p.cost * qty);
               Navigator.pop(ctx);
               _refresh();
@@ -437,8 +444,10 @@ class _InventoryViewState extends State<InventoryView> {
         'name': product.name.toUpperCase(),
         'imei': product.imei?.toUpperCase() ?? 'N/A',
         'color': product.color?.toUpperCase() ?? 'N/A',
+        'capacity': product.capacity?.toUpperCase() ?? '',
         'cost': NumberFormat('#,###').format(product.cost),
-        'price': NumberFormat('#,###').format(product.price),
+        'kpkPrice': NumberFormat('#,###').format(product.kpkPrice ?? product.price),
+        'pkPrice': NumberFormat('#,###').format(product.pkPrice ?? product.price),
         'condition': product.condition.toUpperCase(),
         'accessories': product.description.isNotEmpty ? product.description.toUpperCase() : 'KHÔNG CÓ',
       };

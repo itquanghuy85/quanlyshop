@@ -16,6 +16,9 @@ class Product {
   String type;
   int quantity;
   String? color;
+  String? capacity; // Dung lượng (ví dụ: 64GB, 128GB, etc.)
+  int? kpkPrice; // Giá bán kèm phụ kiện
+  int? pkPrice; // Giá phụ kiện
   bool isSynced;
 
   Product({
@@ -36,6 +39,9 @@ class Product {
     this.type = 'PHONE',
     this.quantity = 1,
     this.color,
+    this.capacity,
+    this.kpkPrice,
+    this.pkPrice,
     this.isSynced = false,
   });
 
@@ -58,6 +64,9 @@ class Product {
       'type': type,
       'quantity': quantity,
       'color': color,
+      'capacity': capacity,
+      'kpkPrice': kpkPrice,
+      'pkPrice': pkPrice,
       'isSynced': isSynced ? 1 : 0,
     };
   }
@@ -81,6 +90,9 @@ class Product {
       type: map['type'] ?? 'PHONE',
       quantity: map['quantity'] ?? 1,
       color: map['color'],
+      capacity: map['capacity'],
+      kpkPrice: map['kpkPrice'],
+      pkPrice: map['pkPrice'],
       isSynced: map['isSynced'] == 1,
     );
   }
