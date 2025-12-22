@@ -24,6 +24,10 @@ class Repair {
   String? deliveredBy;
   int? lastCaredAt;
   bool isSynced;
+  // Thông tin máy cho tem nhiệt
+  String? color;
+  String? imei;
+  String? condition;
 
   Repair({
     this.id,
@@ -51,6 +55,9 @@ class Repair {
     this.deliveredBy,
     this.lastCaredAt,
     this.isSynced = false,
+    this.color,
+    this.imei,
+    this.condition,
   });
 
   List<String> get receiveImages => imagePath?.split(',').where((e) => e.isNotEmpty).toList() ?? [];
@@ -113,6 +120,9 @@ class Repair {
       deliveredBy: map['deliveredBy'],
       lastCaredAt: map['lastCaredAt'],
       isSynced: map['isSynced'] == 1,
+      color: map['color'],
+      imei: map['imei'],
+      condition: map['condition'],
     );
   }
 }

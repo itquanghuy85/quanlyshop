@@ -83,6 +83,16 @@ class FirestoreService {
     return q.snapshots();
   }
 
+  /// Xóa repair trên Firestore (dùng khi xóa từ app để tránh bị sync lại)
+  static Future<bool> deleteRepair(String firestoreId) async {
+    try {
+      await _db.collection('repairs').doc(firestoreId).delete();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   static Future<void> sendChat({
     required String message,
     required String senderId,

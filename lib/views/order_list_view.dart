@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../data/db_helper.dart';
 import '../models/repair_model.dart';
+import '../services/firestore_service.dart';
 import 'repair_detail_view.dart';
 import 'create_repair_order_view.dart';
 
@@ -29,6 +30,11 @@ class OrderListViewState extends State<OrderListView> {
   
   String _currentSearch = "";
   bool get _useFilter => widget.statusFilter != null || widget.todayOnly;
+
+  // Multi-select state
+  bool _isSelectionMode = false;
+  Set<int> _selectedIndices = {};
+  bool _isDeleting = false;
 
   @override
   void initState() {
@@ -101,6 +107,128 @@ class OrderListViewState extends State<OrderListView> {
     return d.year == now.year && d.month == now.month && d.day == now.day;
   }
 
+  void _toggleSelection(int index) {
+    setState(() {
+      if (_selectedIndices.contains(index)) {
+        _selectedIndices.remove(index);
+        if (_selectedIndices.isEmpty) {
+          _isSelectionMode = false;
+        }
+      } else {
+        _selectedIndices.add(index);
+      }
+    });
+  }
+
+  void _startSelection(int index) {
+    setState(() {
+      _isSelectionMode = true;
+      _selectedIndices.add(index);
+    });
+  }
+
+  void _cancelSelection() {
+    setState(() {
+      _isSelectionMode = false;
+      _selectedIndices.clear();
+    });
+  }
+
+  Future<void> _deleteSelectedRepairs() async {
+    if (_selectedIndices.isEmpty || widget.role != 'admin') return;
+
+    // Xác thực mật khẩu admin
+    final password = await _showPasswordDialog();
+    if (password == null || password.isEmpty) return;
+
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return;
+
+    try {
+      // Re-authenticate với mật khẩu
+      final credential = EmailAuthProvider.credential(
+        email: currentUser.email!,
+        password: password,
+      );
+      await currentUser.reauthenticateWithCredential(credential);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Mật khẩu không đúng!"))
+        );
+      }
+      return;
+    }
+
+    setState(() => _isDeleting = true);
+
+    try {
+      final selectedRepairs = _selectedIndices.map((i) => _displayedRepairs[i]).toList();
+      
+      for (final repair in selectedRepairs) {
+        if (repair.id != null) {
+          await db.deleteRepair(repair.id!);
+          // Nếu entry đã có firestoreId thì xóa trên Firestore để không bị đồng bộ lại
+          if (repair.firestoreId != null) {
+            await FirestoreService.deleteRepair(repair.firestoreId!);
+          }
+        }
+      }
+
+      await _loadInitialData();
+      _cancelSelection();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Đã xóa ${selectedRepairs.length} đơn sửa chữa"))
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Lỗi khi xóa: $e"))
+        );
+      }
+    } finally {
+      setState(() => _isDeleting = false);
+    }
+  }
+
+  Future<String?> _showPasswordDialog() async {
+    String password = '';
+    return showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Xác nhận xóa"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text("Nhập mật khẩu tài khoản quản lý để xóa:"),
+            const SizedBox(height: 10),
+            TextField(
+              obscureText: true,
+              onChanged: (value) => password = value,
+              decoration: const InputDecoration(
+                hintText: "Mật khẩu",
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Hủy"),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, password),
+            child: const Text("Xác nhận"),
+          ),
+        ],
+      ),
+    );
+  }
+
   List<Repair> _applyFilters(List<Repair> list) {
     return list.where((r) {
       if (widget.statusFilter != null && !widget.statusFilter!.contains(r.status)) return false;
@@ -137,8 +265,7 @@ class OrderListViewState extends State<OrderListView> {
               try {
                 final cred = EmailAuthProvider.credential(email: user.email!, password: passCtrl.text);
                 await user.reauthenticateWithCredential(cred);
-                await db.deleteRepair(r.id!);
-                Navigator.pop(ctx);
+                await db.deleteRepair(r.id!);                if (r.firestoreId != null) await FirestoreService.deleteRepair(r.firestoreId!);                Navigator.pop(ctx);
                 _loadInitialData();
                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ĐÃ XÓA ĐƠN SỬA')));
               } catch (_) {
@@ -160,8 +287,26 @@ class OrderListViewState extends State<OrderListView> {
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         backgroundColor: Colors.white,
-        title: const Text("DANH SÁCH SỬA CHỮA", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        title: Text(
+          _isSelectionMode 
+            ? "Đã chọn ${_selectedIndices.length} đơn sửa"
+            : "DANH SÁCH SỬA CHỮA", 
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)
+        ),
         elevation: 0,
+        actions: _isSelectionMode ? [
+          IconButton(
+            icon: const Icon(Icons.close),
+            onPressed: _cancelSelection,
+            tooltip: "Hủy chọn",
+          ),
+          if (widget.role == 'admin')
+            IconButton(
+              icon: const Icon(Icons.delete_forever, color: Colors.red),
+              onPressed: _isDeleting ? null : _deleteSelectedRepairs,
+              tooltip: "Xóa các đơn đã chọn",
+            ),
+        ] : null,
       ),
       body: Column(
         children: [
@@ -200,23 +345,32 @@ class OrderListViewState extends State<OrderListView> {
 
                   return Card(
                     elevation: 2,
-                    color: Colors.white, // Nền luôn trắng để nổi bật
+                    color: _isSelectionMode && _selectedIndices.contains(i) ? Colors.blue.shade50 : Colors.white,
                     margin: const EdgeInsets.only(bottom: 12),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                     child: ListTile(
-                      onTap: () async {
-                        final res = await Navigator.push(context, MaterialPageRoute(builder: (_) => RepairDetailView(repair: r, role: widget.role)));
-                        if (res == true) _loadInitialData();
-                      },
-                      onLongPress: () => _confirmDelete(r),
-                      leading: Container(
-                        width: 50, height: 50,
-                        decoration: BoxDecoration(
-                          color: isDone ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1), 
-                          borderRadius: BorderRadius.circular(10)
+                      onTap: _isSelectionMode 
+                        ? () => _toggleSelection(i)
+                        : () async {
+                          final res = await Navigator.push(context, MaterialPageRoute(builder: (_) => RepairDetailView(repair: r)));
+                          if (res == true) _loadInitialData();
+                        },
+                      onLongPress: _isSelectionMode 
+                        ? null 
+                        : () => _startSelection(i),
+                      leading: _isSelectionMode
+                        ? Checkbox(
+                            value: _selectedIndices.contains(i),
+                            onChanged: (value) => _toggleSelection(i),
+                          )
+                        : Container(
+                          width: 50, height: 50,
+                          decoration: BoxDecoration(
+                            color: isDone ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1), 
+                            borderRadius: BorderRadius.circular(10)
+                          ),
+                          child: Icon(isDone ? Icons.check_circle : Icons.build_circle, color: isDone ? Colors.green : Colors.orange),
                         ),
-                        child: Icon(isDone ? Icons.check_circle : Icons.build_circle, color: isDone ? Colors.green : Colors.orange),
-                      ),
                       title: Text("${r.customerName} - ${r.model}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                       subtitle: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
