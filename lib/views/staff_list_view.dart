@@ -1,10 +1,12 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import '../services/user_service.dart';
 import '../data/db_helper.dart';
 import '../models/repair_model.dart';
@@ -32,6 +34,10 @@ class _StaffListViewState extends State<StaffListView> {
   String? _currentShopId;
   bool _isSuperAdmin = false;
   bool _loadingRole = true;
+  
+  // Invite code QR
+  String? _currentInviteCode;
+  bool _generatingInvite = false;
 
   @override
   void initState() {
@@ -57,9 +63,156 @@ class _StaffListViewState extends State<StaffListView> {
       _isSuperAdmin = UserService.isCurrentUserSuperAdmin();
       _loadingRole = false;
     });
+
+    // Load current invite code if owner
+    if (role == 'owner' && shopId != null) {
+      _loadCurrentInviteCode();
+    }
   }
 
-  bool get _canManageStaff => _isSuperAdmin || _currentRole == 'admin';
+  Future<void> _loadCurrentInviteCode() async {
+    if (_currentShopId == null) return;
+    
+    try {
+      final query = await FirebaseFirestore.instance
+          .collection('invites')
+          .where('shopId', isEqualTo: _currentShopId)
+          .where('used', isEqualTo: false)
+          .orderBy('createdAt', descending: true)
+          .limit(1)
+          .get();
+      
+      if (query.docs.isNotEmpty) {
+        final inviteData = query.docs.first.data();
+        final expiresAt = DateTime.parse(inviteData['expiresAt']);
+        if (expiresAt.isAfter(DateTime.now())) {
+          setState(() => _currentInviteCode = query.docs.first.id);
+        }
+      }
+    } catch (e) {
+      // Ignore errors when loading current invite code
+    }
+  }
+
+  bool get _canManageStaff => _isSuperAdmin || _currentRole == 'admin' || _currentRole == 'owner';
+
+  Future<void> _generateInviteCode() async {
+    if (_currentShopId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Không tìm thấy thông tin shop')),
+      );
+      return;
+    }
+
+    setState(() => _generatingInvite = true);
+    try {
+      final code = await UserService.createInviteCode(_currentShopId!);
+      setState(() => _currentInviteCode = code);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Đã tạo mã mời mới!')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi tạo mã mời: $e')),
+      );
+    } finally {
+      setState(() => _generatingInvite = false);
+    }
+  }
+
+  void _showInviteQRDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('MÃ MỜI THAM GIA SHOP'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (_currentInviteCode != null) ...[
+                const Text(
+                  'Quét mã QR hoặc nhập mã bên dưới để tham gia shop:',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 14),
+                ),
+                const SizedBox(height: 20),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+                  child: QrImageView(
+                    data: _currentInviteCode!,
+                    size: 200,
+                    backgroundColor: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 15),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.blue.shade200),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          _currentInviteCode!,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue,
+                            letterSpacing: 2,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.copy, color: Colors.blue),
+                        onPressed: () async {
+                          await Clipboard.setData(ClipboardData(text: _currentInviteCode!));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Đã sao chép mã mời vào clipboard')),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 10),
+                const Text(
+                  'Mã có hiệu lực trong 7 ngày',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ] else ...[
+                const Text(
+                  'Chưa có mã mời nào được tạo',
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('ĐÓNG'),
+          ),
+          ElevatedButton.icon(
+            onPressed: _generatingInvite ? null : _generateInviteCode,
+            icon: _generatingInvite 
+              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+              : const Icon(Icons.refresh),
+            label: Text(_generatingInvite ? 'ĐANG TẠO...' : 'TẠO MÃ MỚI'),
+          ),
+        ],
+      ),
+    );
+  }
 
   void _openCreateStaffDialog() {
     final emailC = TextEditingController();
@@ -138,6 +291,7 @@ class _StaffListViewState extends State<StaffListView> {
                   children: [
                     TextField(
                       controller: emailC,
+                      keyboardType: TextInputType.emailAddress,
                       decoration: const InputDecoration(labelText: 'Email đăng nhập'),
                     ),
                     TextField(
@@ -166,10 +320,12 @@ class _StaffListViewState extends State<StaffListView> {
                         DropdownButton<String>(
                           value: role,
                           items: const [
-                            DropdownMenuItem(value: 'user', child: Text('Nhân viên')),
-                            DropdownMenuItem(value: 'admin', child: Text('Quản lý')),
+                            DropdownMenuItem(value: 'employee', child: Text('Nhân viên')),
+                            DropdownMenuItem(value: 'technician', child: Text('Kỹ thuật')),
+                            DropdownMenuItem(value: 'manager', child: Text('Quản lý')),
+                            DropdownMenuItem(value: 'owner', child: Text('Chủ shop')),
                           ],
-                          onChanged: (v) => setState(() => role = v ?? 'user'),
+                          onChanged: (v) => setState(() => role = v ?? 'employee'),
                         ),
                       ],
                     ),
@@ -209,12 +365,44 @@ class _StaffListViewState extends State<StaffListView> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFF),
-      appBar: AppBar(title: const Text("QUẢN LÝ NHÂN VIÊN", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
+      appBar: AppBar(
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text("QUẢN LÝ NHÂN VIÊN", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            if (_currentRole != null)
+              Text("Role: $_currentRole", style: const TextStyle(fontSize: 10, color: Colors.white70)),
+          ],
+        ),
+        actions: [
+          if (_currentRole == 'owner' || _currentRole == 'admin')
+            IconButton(
+              icon: const Icon(Icons.qr_code_2, color: Colors.white),
+              tooltip: 'Tạo mã mời QR',
+              onPressed: _showInviteQRDialog,
+            ),
+        ],
+      ),
       floatingActionButton: _canManageStaff
-          ? FloatingActionButton.extended(
-              onPressed: _openCreateStaffDialog,
-              icon: const Icon(Icons.person_add_alt_1),
-              label: const Text("Thêm nhân viên"),
+          ? Column(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                if (_currentRole == 'owner' || _currentRole == 'admin')
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: FloatingActionButton(
+                      onPressed: _showInviteQRDialog,
+                      tooltip: 'Tạo mã mời QR',
+                      child: const Icon(Icons.qr_code_2),
+                      backgroundColor: Colors.blue,
+                    ),
+                  ),
+                FloatingActionButton.extended(
+                  onPressed: _openCreateStaffDialog,
+                  icon: const Icon(Icons.person_add_alt_1),
+                  label: const Text("Thêm nhân viên"),
+                ),
+              ],
             )
           : null,
       body: _loadingRole
@@ -253,11 +441,11 @@ class _StaffListViewState extends State<StaffListView> {
                       child: ListTile(
                         leading: CircleAvatar(
                           backgroundImage: _safeImageProvider(photoUrl),
-                          backgroundColor: role == 'admin' ? Colors.red.withOpacity(0.1) : Colors.blue.withOpacity(0.1),
-                          child: photoUrl == null ? Icon(role == 'admin' ? Icons.admin_panel_settings : Icons.person, color: role == 'admin' ? Colors.red : Colors.blue) : null,
+                          backgroundColor: role == 'owner' ? Colors.purple.withOpacity(0.1) : role == 'manager' ? Colors.orange.withOpacity(0.1) : role == 'employee' ? Colors.blue.withOpacity(0.1) : role == 'technician' ? Colors.green.withOpacity(0.1) : role == 'admin' ? Colors.red.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
+                          child: photoUrl == null ? Icon(role == 'owner' ? Icons.business : role == 'manager' ? Icons.supervisor_account : role == 'employee' ? Icons.work : role == 'technician' ? Icons.build : role == 'admin' ? Icons.admin_panel_settings : Icons.person, color: role == 'owner' ? Colors.purple : role == 'manager' ? Colors.orange : role == 'employee' ? Colors.blue : role == 'technician' ? Colors.green : role == 'admin' ? Colors.red : Colors.grey) : null,
                         ),
                         title: Text(displayName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                        subtitle: Text("$email\nSĐT: $phone", style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                        subtitle: Text("$email\nSĐT: $phone\nVai trò: ${role == 'owner' ? 'Chủ shop' : role == 'manager' ? 'Quản lý' : role == 'employee' ? 'Nhân viên' : role == 'technician' ? 'Kỹ thuật' : role == 'admin' ? 'Admin' : role}", style: const TextStyle(fontSize: 11, color: Colors.grey)),
                         isThreeLine: true,
                         trailing: Icon(Icons.edit_note_rounded, color: Colors.blueAccent),
                         onTap: () => _showStaffActivityCenter(uid, displayName, email, role, userData),
@@ -717,7 +905,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter> with SingleT
       itemBuilder: (ctx, i) => ListTile(
         title: Text(list[i].model, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
         subtitle: Text("KH: ${list[i].customerName} | ${DateFormat('dd/MM').format(DateTime.fromMillisecondsSinceEpoch(list[i].createdAt))}"),
-        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => RepairDetailView(repair: list[i], role: 'admin'))),
+        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => RepairDetailView(repair: list[i]))),
       ),
     );
   }
@@ -730,7 +918,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter> with SingleT
       itemBuilder: (ctx, i) => ListTile(
         title: Text(list[i].productNames, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
         subtitle: Text("KH: ${list[i].customerName} | ${NumberFormat('#,###').format(list[i].totalPrice)} đ"),
-        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => SaleDetailView(sale: list[i], role: 'admin'))),
+        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => SaleDetailView(sale: list[i]))),
       ),
     );
   }

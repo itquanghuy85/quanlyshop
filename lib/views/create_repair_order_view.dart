@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../data/db_helper.dart';
@@ -8,6 +9,8 @@ import 'customer_history_view.dart';
 import '../services/notification_service.dart';
 import '../services/firestore_service.dart';
 import '../services/audit_service.dart';
+import '../services/user_service.dart';
+import '../widgets/validated_text_field.dart';
 
 class CreateRepairOrderView extends StatefulWidget {
   final String role;
@@ -76,11 +79,36 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
     }
   }
 
+  int _parseCurrency(String text) {
+    final cleaned = text.replaceAll('.', '');
+    return int.tryParse(cleaned) ?? 0;
+  }
+
   Future<void> _save() async {
-    if (phoneCtrl.text.isEmpty || modelCtrl.text.isEmpty || issueCtrl.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("BẮT BUỘC: SĐT, MÁY VÀ LỖI!"), backgroundColor: Colors.red));
+    // Validate required fields
+    final phoneError = UserService.validatePhone(phoneCtrl.text);
+    final nameError = UserService.validateName(nameCtrl.text);
+    final modelError = modelCtrl.text.trim().isEmpty ? 'Mô hình máy không được để trống' : null;
+    final issueError = issueCtrl.text.trim().isEmpty ? 'Lỗi máy không được để trống' : null;
+
+    if (phoneError != null || nameError != null || modelError != null || issueError != null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(phoneError ?? nameError ?? modelError ?? issueError!),
+        backgroundColor: Colors.red,
+      ));
       return;
     }
+
+    // Validate price
+    final price = _parseCurrency(priceCtrl.text);
+    if (price < 0) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text("GIÁ TIẾP NHẬN PHẢI LỚN HƠN HOẶC BẰNG 0!"),
+        backgroundColor: Colors.red,
+      ));
+      return;
+    }
+
     setState(() => _saving = true);
     final user = FirebaseAuth.instance.currentUser;
     final r = Repair(
@@ -91,7 +119,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
       accessories: accCtrl.text.toUpperCase(),
       address: addressCtrl.text.toUpperCase(),
       paymentMethod: _paymentMethod,
-      price: (int.tryParse(priceCtrl.text) ?? 0) * 1000,
+      price: price,
       createdAt: DateTime.now().millisecondsSinceEpoch,
       imagePath: _images.map((e) => e.path).join(','),
       createdBy: user?.email?.split('@').first.toUpperCase() ?? "NV",
@@ -126,9 +154,26 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
         padding: const EdgeInsets.all(15),
         child: Column(
           children: [
-            _input(nameCtrl, "TÊN KHÁCH HÀNG", Icons.person, caps: true),
-            _input(phoneCtrl, "SỐ ĐIỆN THOẠI *", Icons.phone, type: TextInputType.phone, requiredField: true),
-            _input(addressCtrl, "ĐỊA CHỈ KHÁCH HÀNG", Icons.location_on, caps: true),
+            ValidatedTextField(
+              controller: nameCtrl,
+              label: "TÊN KHÁCH HÀNG",
+              icon: Icons.person,
+              inputFormatters: [TextInputFormatter.withFunction((oldValue, newValue) => TextEditingValue(text: newValue.text.toUpperCase(), selection: newValue.selection))],
+            ),
+            ValidatedTextField(
+              controller: phoneCtrl,
+              label: "SỐ ĐIỆN THOẠI",
+              icon: Icons.phone,
+              keyboardType: TextInputType.phone,
+              required: true,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(11)],
+            ),
+            ValidatedTextField(
+              controller: addressCtrl,
+              label: "ĐỊA CHỈ KHÁCH HÀNG",
+              icon: Icons.location_on,
+              inputFormatters: [TextInputFormatter.withFunction((oldValue, newValue) => TextEditingValue(text: newValue.text.toUpperCase(), selection: newValue.selection))],
+            ),
             Align(
               alignment: Alignment.centerRight,
               child: TextButton.icon(
@@ -165,10 +210,31 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
             _input(modelCtrl, "MODEL MÁY *", Icons.phone_android, caps: true, requiredField: true, focusNode: _modelFocus),
             _quick(issues, issueCtrl, _issueFocus),
             _input(issueCtrl, "LỖI MÁY *", Icons.build, caps: true, requiredField: true, focusNode: _issueFocus),
-            _input(appearanceCtrl, "TÌNH TRẠNG NGOẠI QUAN (TRẦY, BỂ...)", Icons.visibility),
-            _input(accCtrl, "PHỤ KIỆN ĐI KÈM", Icons.usb),
-            _input(passCtrl, "MẬT KHẨU MÀN HÌNH", Icons.lock_open),
-            _input(priceCtrl, "GIÁ DỰ KIẾN", Icons.monetization_on, type: TextInputType.number, suffix: ".000 Đ"),
+            ValidatedTextField(
+              controller: appearanceCtrl,
+              label: "TÌNH TRẠNG NGOẠI QUAN",
+              hint: "Ví dụ: TRẦY, BỂ, VÊNH...",
+              inputFormatters: [TextInputFormatter.withFunction((oldValue, newValue) => TextEditingValue(text: newValue.text.toUpperCase(), selection: newValue.selection))],
+            ),
+            ValidatedTextField(
+              controller: accCtrl,
+              label: "PHỤ KIỆN ĐI KÈM",
+              hint: "Ví dụ: SẠC, TAI NGHE...",
+              inputFormatters: [TextInputFormatter.withFunction((oldValue, newValue) => TextEditingValue(text: newValue.text.toUpperCase(), selection: newValue.selection))],
+            ),
+            ValidatedTextField(
+              controller: passCtrl,
+              label: "MẬT KHẨU MÀN HÌNH",
+              hint: "Nhập mật khẩu nếu có",
+            ),
+            ValidatedTextField(
+              controller: priceCtrl,
+              label: "GIÁ DỰ KIẾN",
+              icon: Icons.monetization_on,
+              keyboardType: TextInputType.number,
+              inputFormatters: [CurrencyInputFormatter()],
+              hint: "Nhập giá dự kiến",
+            ),
             Align(
               alignment: Alignment.centerLeft,
               child: Padding(
@@ -214,7 +280,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
     );
   }
 
-  Widget _input(TextEditingController c, String l, IconData i, {bool caps = false, TextInputType type = TextInputType.text, String? suffix, bool requiredField = false, FocusNode? focusNode}) {
+  Widget _input(TextEditingController c, String l, IconData i, {bool caps = false, TextInputType type = TextInputType.text, String? suffix, bool requiredField = false, FocusNode? focusNode, List<TextInputFormatter>? inputFormatters}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: TextField(
@@ -222,6 +288,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
         focusNode: focusNode,
         keyboardType: type,
         textCapitalization: caps ? TextCapitalization.characters : TextCapitalization.none,
+        inputFormatters: inputFormatters,
         decoration: InputDecoration(
           labelText: l,
           prefixIcon: Icon(i, size: 20, color: requiredField ? Colors.redAccent : null),
@@ -332,5 +399,45 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
         const SnackBar(content: Text("ĐÃ THÊM KHÁCH HÀNG VÀO DANH BẠ")),
       );
     }
+  }
+}
+
+class CurrencyInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    if (newValue.text.isEmpty) {
+      return newValue;
+    }
+
+    // Allow only numbers
+    final regEx = RegExp(r'^\d+$');
+    if (!regEx.hasMatch(newValue.text)) {
+      return oldValue;
+    }
+
+    // Format with dots every 3 digits
+    final number = int.tryParse(newValue.text) ?? 0;
+    final formatted = _formatCurrency(number);
+
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+
+  String _formatCurrency(int number) {
+    if (number == 0) return '0';
+
+    final String numberStr = number.toString();
+    final StringBuffer buffer = StringBuffer();
+
+    for (int i = numberStr.length - 1, count = 0; i >= 0; i--, count++) {
+      buffer.write(numberStr[i]);
+      if ((count + 1) % 3 == 0 && i > 0) {
+        buffer.write('.');
+      }
+    }
+
+    return buffer.toString().split('').reversed.join('');
   }
 }

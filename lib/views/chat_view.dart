@@ -22,13 +22,11 @@ class _ChatViewState extends State<ChatView> {
   final DBHelper _db = DBHelper();
   String? _shopId;
   bool _loadingShop = true;
-  String _role = 'user';
 
   @override
   void initState() {
     super.initState();
     _loadShop();
-    _loadRole();
   }
 
   Future<void> _loadShop() async {
@@ -37,16 +35,6 @@ class _ChatViewState extends State<ChatView> {
     setState(() {
       _shopId = id;
       _loadingShop = false;
-    });
-  }
-
-  Future<void> _loadRole() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
-    final r = await UserService.getUserRole(uid);
-    if (!mounted) return;
-    setState(() {
-      _role = r;
     });
   }
 
@@ -149,7 +137,7 @@ class _ChatViewState extends State<ChatView> {
         if (!mounted) return;
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => RepairDetailView(repair: r, role: _role)),
+          MaterialPageRoute(builder: (_) => RepairDetailView(repair: r)),
         );
       } else if (type == 'sale') {
         final SaleOrder? s = await _db.getSaleByFirestoreId(key);
@@ -162,7 +150,7 @@ class _ChatViewState extends State<ChatView> {
         if (!mounted) return;
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => SaleDetailView(sale: s, role: _role)),
+          MaterialPageRoute(builder: (_) => SaleDetailView(sale: s)),
         );
       }
     } catch (e) {

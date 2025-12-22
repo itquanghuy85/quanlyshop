@@ -5,11 +5,12 @@ import '../data/db_helper.dart';
 import '../models/sale_order_model.dart';
 import 'create_sale_view.dart';
 import 'sale_detail_view.dart';
+import '../services/user_service.dart';
+import '../services/firestore_service.dart';
 
 class SaleListView extends StatefulWidget {
-  final String role;
   final bool todayOnly;
-  const SaleListView({super.key, required this.role, this.todayOnly = false});
+  const SaleListView({super.key, this.todayOnly = false});
 
   @override
   State<SaleListView> createState() => _SaleListViewState();
@@ -19,11 +20,21 @@ class _SaleListViewState extends State<SaleListView> {
   final db = DBHelper();
   List<SaleOrder> _sales = [];
   bool _isLoading = true;
+  bool _canDelete = false;
 
   @override
   void initState() {
     super.initState();
+    _loadPermissions();
     _refresh();
+  }
+
+  Future<void> _loadPermissions() async {
+    final perms = await UserService.getCurrentUserPermissions();
+    if (!mounted) return;
+    setState(() {
+      _canDelete = perms['allowViewSales'] ?? false; // Assuming delete requires sales permission
+    });
   }
 
   Future<void> _refresh() async {
@@ -40,7 +51,7 @@ class _SaleListViewState extends State<SaleListView> {
   }
 
   void _confirmDelete(SaleOrder s) {
-    if (widget.role != 'admin') return;
+    if (!_canDelete) return;
     final passCtrl = TextEditingController();
     showDialog(
       context: context,
@@ -64,6 +75,10 @@ class _SaleListViewState extends State<SaleListView> {
               try {
                 final cred = EmailAuthProvider.credential(email: user.email!, password: passCtrl.text);
                 await user.reauthenticateWithCredential(cred);
+                // Xóa trên Firestore nếu có firestoreId
+                if (s.firestoreId != null) {
+                  await FirestoreService.deleteSale(s.firestoreId!);
+                }
                 await db.deleteSale(s.id!);
                 Navigator.pop(ctx);
                 _refresh();
@@ -104,7 +119,7 @@ class _SaleListViewState extends State<SaleListView> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                   child: ListTile(
                     onTap: () async {
-                      final res = await Navigator.push(context, MaterialPageRoute(builder: (_) => SaleDetailView(sale: s, role: widget.role)));
+                      final res = await Navigator.push(context, MaterialPageRoute(builder: (_) => SaleDetailView(sale: s)));
                       if (res == true) _refresh();
                     },
                     onLongPress: () => _confirmDelete(s),
@@ -128,7 +143,7 @@ class _SaleListViewState extends State<SaleListView> {
             ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
-          final res = await Navigator.push(context, MaterialPageRoute(builder: (_) => CreateSaleView(role: widget.role)));
+          final res = await Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateSaleView()));
           if (res == true) _refresh();
         },
         label: const Text("BÁN MÁY MỚI"),

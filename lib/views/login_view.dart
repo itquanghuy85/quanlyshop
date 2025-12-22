@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/user_service.dart';
+import 'register_view.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
@@ -89,6 +90,8 @@ class _LoginViewState extends State<LoginView> {
                   labelText: 'Email',
                   prefixIcon: const Icon(Icons.email_outlined),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  helperText: 'Ví dụ: ten@domain.com hoặc ten@gmail.com',
+                  helperStyle: const TextStyle(color: Colors.grey, fontSize: 12),
                 ),
               ),
               const SizedBox(height: 15),
@@ -130,8 +133,18 @@ class _LoginViewState extends State<LoginView> {
                       ? const CircularProgressIndicator(color: Colors.white)
                       : const Text('ĐĂNG NHẬP', style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
-              ),
-              const SizedBox(height: 30),
+              ),              const SizedBox(height: 15),
+              TextButton(
+                onPressed: () async {
+                  final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => const RegisterView()));
+                  if (result == true && mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Đăng ký thành công! Vui lòng đăng nhập.')),
+                    );
+                  }
+                },
+                child: const Text('Chưa có tài khoản? Đăng ký ngay', style: TextStyle(color: Colors.blueAccent)),
+              ),              const SizedBox(height: 30),
               _buildCalendarCard(),
             ],
           ),

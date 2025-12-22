@@ -5,6 +5,7 @@ import '../data/db_helper.dart';
 import '../models/repair_model.dart';
 import '../models/sale_order_model.dart';
 import '../services/user_service.dart';
+import '../services/firestore_service.dart';
 import 'repair_detail_view.dart';
 
 class CustomerListView extends StatefulWidget {
@@ -20,6 +21,11 @@ class _CustomerListViewState extends State<CustomerListView> {
   List<Map<String, dynamic>> _customers = [];
   bool _isLoading = true;
   bool _isAdmin = false;
+  
+  // Multi-select state
+  bool _isSelectionMode = false;
+  Set<int> _selectedIndices = {};
+  bool _isDeleting = false;
 
   @override
   void initState() {
@@ -47,11 +53,148 @@ class _CustomerListViewState extends State<CustomerListView> {
     });
   }
 
+  void _toggleSelection(int index) {
+    setState(() {
+      if (_selectedIndices.contains(index)) {
+        _selectedIndices.remove(index);
+        if (_selectedIndices.isEmpty) {
+          _isSelectionMode = false;
+        }
+      } else {
+        _selectedIndices.add(index);
+      }
+    });
+  }
+
+  void _startSelection(int index) {
+    setState(() {
+      _isSelectionMode = true;
+      _selectedIndices.add(index);
+    });
+  }
+
+  void _cancelSelection() {
+    setState(() {
+      _isSelectionMode = false;
+      _selectedIndices.clear();
+    });
+  }
+
+  Future<void> _deleteSelectedCustomers() async {
+    if (_selectedIndices.isEmpty) return;
+
+    // Xác thực mật khẩu admin
+    final password = await _showPasswordDialog();
+    if (password == null || password.isEmpty) return;
+
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return;
+
+    try {
+      // Re-authenticate với mật khẩu
+      final credential = EmailAuthProvider.credential(
+        email: currentUser.email!,
+        password: password,
+      );
+      await currentUser.reauthenticateWithCredential(credential);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Mật khẩu không đúng!"))
+        );
+      }
+      return;
+    }
+
+    setState(() => _isDeleting = true);
+
+    try {
+      final selectedCustomers = _selectedIndices.map((i) => _customers[i]).toList();
+      
+      for (final customer in selectedCustomers) {
+        // Xóa tất cả repairs và sales của customer này
+        await db.deleteCustomerData(customer['customerName'], customer['phone']);
+      }
+
+      await _refresh();
+      _cancelSelection();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Đã xóa ${selectedCustomers.length} khách hàng"))
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Lỗi khi xóa: $e"))
+        );
+      }
+    } finally {
+      setState(() => _isDeleting = false);
+    }
+  }
+
+  Future<String?> _showPasswordDialog() async {
+    String password = '';
+    return showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Xác nhận xóa"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text("Nhập mật khẩu tài khoản chủ shop để xóa:"),
+            const SizedBox(height: 10),
+            TextField(
+              obscureText: true,
+              onChanged: (value) => password = value,
+              decoration: const InputDecoration(
+                hintText: "Mật khẩu",
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Hủy"),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, password),
+            child: const Text("Xác nhận"),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFF),
-      appBar: AppBar(title: const Text("HỆ THỐNG KHÁCH HÀNG", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
+      appBar: AppBar(
+        title: Text(
+          _isSelectionMode 
+            ? "Đã chọn ${_selectedIndices.length} khách hàng"
+            : "HỆ THỐNG KHÁCH HÀNG", 
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)
+        ),
+        actions: _isSelectionMode ? [
+          IconButton(
+            icon: const Icon(Icons.close),
+            onPressed: _cancelSelection,
+            tooltip: "Hủy chọn",
+          ),
+          if (_isAdmin)
+            IconButton(
+              icon: const Icon(Icons.delete_forever, color: Colors.red),
+              onPressed: _isDeleting ? null : _deleteSelectedCustomers,
+              tooltip: "Xóa các khách đã chọn",
+            ),
+        ] : null,
+      ),
       body: _isLoading 
         ? const Center(child: CircularProgressIndicator())
         : _customers.isEmpty
@@ -61,19 +204,27 @@ class _CustomerListViewState extends State<CustomerListView> {
               itemCount: _customers.length,
               itemBuilder: (ctx, i) {
                 final c = _customers[i];
-                return _customerCard(c);
+                return _customerCard(c, i);
               },
             ),
     );
   }
 
-  Widget _customerCard(Map<String, dynamic> c) {
+  Widget _customerCard(Map<String, dynamic> c, int index) {
     final bool canDelete = _isAdmin && (c['repairCount'] as int? ?? 0) == 0 && (c['saleCount'] as int? ?? 0) == 0;
+    final bool isSelected = _selectedIndices.contains(index);
+    
     return Card(
       margin: const EdgeInsets.only(bottom: 15),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      color: isSelected ? Colors.blue.shade50 : null,
       child: InkWell(
-        onTap: () => _showCustomerFullHistory(c),
+        onTap: _isSelectionMode 
+          ? () => _toggleSelection(index)
+          : () => _showCustomerFullHistory(c),
+        onLongPress: _isSelectionMode 
+          ? null 
+          : () => _startSelection(index),
         borderRadius: BorderRadius.circular(15),
         child: Padding(
           padding: const EdgeInsets.all(15),
@@ -83,13 +234,22 @@ class _CustomerListViewState extends State<CustomerListView> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
+                  if (_isSelectionMode)
+                    Checkbox(
+                      value: isSelected,
+                      onChanged: (value) => _toggleSelection(index),
+                    ),
                   Expanded(
                     child: Text(
                       "${c['customerName']}",
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.blueAccent),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold, 
+                        fontSize: 15, 
+                        color: isSelected ? Colors.blue : Colors.blueAccent
+                      ),
                     ),
                   ),
-                  if (canDelete)
+                  if (!_isSelectionMode && canDelete)
                     IconButton(
                       icon: const Icon(Icons.delete_outline, size: 18, color: Colors.redAccent),
                       tooltip: "Xóa khách khỏi danh sách",
@@ -209,7 +369,7 @@ class _CustomerListViewState extends State<CustomerListView> {
           trailing: Text("${NumberFormat('#,###').format(r.price)} đ", style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
           onTap: () {
             Navigator.pop(ctx);
-            Navigator.push(context, MaterialPageRoute(builder: (_) => RepairDetailView(repair: r, role: widget.role)));
+            Navigator.push(context, MaterialPageRoute(builder: (_) => RepairDetailView(repair: r)));
           },
         );
       },
@@ -264,6 +424,10 @@ class _CustomerListViewState extends State<CustomerListView> {
     );
 
     if (ok == true) {
+      final firestoreId = c['firestoreId'] as String?;
+      if (firestoreId != null) {
+        await FirestoreService.deleteCustomer(firestoreId);
+      }
       await db.deleteCustomerByPhone(c['phone'] as String);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

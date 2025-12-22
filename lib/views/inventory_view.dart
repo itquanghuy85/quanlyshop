@@ -4,10 +4,10 @@ import '../data/db_helper.dart';
 import '../models/product_model.dart';
 import 'supplier_view.dart';
 import '../services/user_service.dart';
+import '../services/firestore_service.dart';
 
 class InventoryView extends StatefulWidget {
-  final String role;
-  const InventoryView({super.key, required this.role});
+  const InventoryView({super.key});
 
   @override
   State<InventoryView> createState() => _InventoryViewState();
@@ -20,13 +20,21 @@ class _InventoryViewState extends State<InventoryView> {
   bool _isLoading = true;
   bool _selectionMode = false;
   final Set<int> _selectedIds = {};
-
-  bool get _isAdmin => widget.role == 'admin';
+  bool _isAdmin = false;
 
   @override
   void initState() {
     super.initState();
+    _loadPermissions();
     _refresh();
+  }
+
+  Future<void> _loadPermissions() async {
+    final perms = await UserService.getCurrentUserPermissions();
+    if (!mounted) return;
+    setState(() {
+      _isAdmin = perms['allowViewInventory'] ?? false;
+    });
   }
 
   Future<void> _refresh() async {
@@ -61,6 +69,10 @@ class _InventoryViewState extends State<InventoryView> {
     );
 
     if (ok == true) {
+      // Xóa trên Firestore nếu có firestoreId
+      if (p.firestoreId != null) {
+        await FirestoreService.deleteProduct(p.firestoreId!);
+      }
       await db.deleteProduct(p.id!);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

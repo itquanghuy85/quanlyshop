@@ -10,6 +10,8 @@ list(APPEND FLUTTER_PLUGIN_LIST
   firebase_core
   firebase_storage
   gal
+  permission_handler_windows
+  print_bluetooth_thermal
   share_plus
   url_launcher_windows
 )

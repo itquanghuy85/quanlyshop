@@ -43,7 +43,7 @@ class _QrScanViewState extends State<QrScanView> {
         await Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => RepairDetailView(repair: r, role: widget.role),
+            builder: (_) => RepairDetailView(repair: r),
           ),
         );
         if (mounted) setState(() => _handling = false);
@@ -56,7 +56,7 @@ class _QrScanViewState extends State<QrScanView> {
         await Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => SaleDetailView(sale: s, role: widget.role),
+            builder: (_) => SaleDetailView(sale: s),
           ),
         );
         if (mounted) setState(() => _handling = false);

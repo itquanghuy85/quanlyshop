@@ -6,7 +6,6 @@ import '../models/repair_model.dart';
 import '../models/sale_order_model.dart';
 import '../models/product_model.dart';
 import 'supplier_view.dart';
-import 'staff_list_view.dart';
 import 'expense_view.dart';
 import 'debt_view.dart';
 import 'audit_log_view.dart';
@@ -50,7 +49,7 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     _loadData();
     _loadRole();
   }
@@ -69,9 +68,9 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
   Future<void> _loadRole() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
-    final role = await UserService.getUserRole(uid);
+    final perms = await UserService.getCurrentUserPermissions();
     if (!mounted) return;
-    setState(() => _isAdmin = role == 'admin' || UserService.isCurrentUserSuperAdmin());
+    setState(() => _isAdmin = perms['allowViewRevenue'] ?? false);
   }
 
   Future<void> _openExpenseView() async {
@@ -271,12 +270,6 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
       appBar: AppBar(
         backgroundColor: Colors.white,
         title: const Text("TRUNG TÂM TÀI CHÍNH", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-        actions: [
-          IconButton(
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StaffListView())), 
-            icon: const Icon(Icons.badge_outlined, color: Colors.blueAccent),
-          ),
-        ],
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
@@ -285,9 +278,8 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
           tabs: const [
             Tab(text: "DASHBOARD"),
             Tab(text: "BÁN HÀNG"),
-            Tab(text: "NHÂN VIÊN"),
             Tab(text: "SỬA CHỮA"),
-            Tab(text: "CHI PHÍ NHẬP"),
+            Tab(text: "QUẢN LÝ CHI PHÍ"),
           ],
         ),
       ),
@@ -297,23 +289,16 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
             children: [
               Padding(
                 padding: const EdgeInsets.all(15),
-                child: Row(
+                child: Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
                   children: [
-                    _quickActionButton("CHI PHÍ", Icons.payments_outlined, Colors.redAccent, _openExpenseView),
-                    const SizedBox(width: 12),
-                    _quickActionButton("SỔ CÔNG NỢ", Icons.menu_book_rounded, Colors.orange, _openDebtView),
-                    const SizedBox(width: 12),
                     _quickActionButton("NHÀ CC", Icons.business_rounded, Colors.blueGrey, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SupplierView()))),
-                    if (_isAdmin) const SizedBox(width: 12),
                     if (_isAdmin)
                       _quickActionButton("NHẬT KÝ", Icons.history_rounded, Colors.teal, _openAuditLogView),
-                    const SizedBox(width: 12),
                     _quickActionButton("DS NHÂN VIÊN", Icons.show_chart, Colors.indigo, _openStaffPerformance),
-                    const SizedBox(width: 12),
                     _quickActionButton("CHẤM CÔNG", Icons.fingerprint, Colors.deepPurple, _openAttendance),
-                    const SizedBox(width: 12),
                     _quickActionButton("BẢNG LƯƠNG", Icons.payments, Colors.green, _openPayroll),
-                    if (_isAdmin) const SizedBox(width: 12),
                     if (_isAdmin)
                       _quickActionButton("XÓA LOCAL", Icons.delete_sweep_rounded, Colors.red.shade700, _confirmWipeLocal),
                   ],
@@ -325,8 +310,8 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
                   children: [
                     _buildDashboard(),
                     _buildSalesReport(),
-                    _buildStaffReport(), 
-                    _buildImportReport(),
+                    _buildRepairReport(),
+                    _buildExpenseDebtTab(),
                   ],
                 ),
               ),
@@ -670,6 +655,32 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("ĐÃ XÓA TOÀN BỘ DỮ LIỆU LOCAL (SQLite)")),
+    );
+  }
+
+  Widget _buildExpenseDebtTab() {
+    return DefaultTabController(
+      length: 2,
+      child: Column(
+        children: [
+          const TabBar(
+            labelColor: Colors.blueAccent,
+            indicatorColor: Colors.blueAccent,
+            tabs: [
+              Tab(text: "CHI PHÍ"),
+              Tab(text: "CÔNG NỢ"),
+            ],
+          ),
+          Expanded(
+            child: TabBarView(
+              children: [
+                ExpenseView(),
+                DebtView(),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -25,7 +25,6 @@ class _SettingsViewState extends State<SettingsView> {
   // Cleanup config
   bool _cleanupEnabled = false;
   int _cleanupDays = 30;
-  bool _isLoadingCleanup = true;
 
   @override
   void initState() {
@@ -218,9 +217,6 @@ class _SettingsViewState extends State<SettingsView> {
       final perms = await UserService.getCurrentUserPermissions();
       if (!(perms['allowViewSettings'] ?? false)) {
         // không có quyền
-        setState(() {
-          _isLoadingCleanup = false;
-        });
         return;
       }
       final doc = await FirebaseFirestore.instance.doc('settings/cleanup').get();
@@ -228,10 +224,9 @@ class _SettingsViewState extends State<SettingsView> {
       setState(() {
         _cleanupEnabled = (data['enabled'] as bool?) ?? false;
         _cleanupDays = (data['repairRetentionDays'] as int?) ?? 30;
-        _isLoadingCleanup = false;
       });
     } catch (e) {
-      setState(() => _isLoadingCleanup = false);
+      // Handle error silently or log if needed
     }
   }
 

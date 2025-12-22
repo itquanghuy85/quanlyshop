@@ -55,12 +55,14 @@ class AuthGate extends StatefulWidget {
 }
 
 class _AuthGateState extends State<AuthGate> {
+  int _notificationCount = 0;
   @override
   void initState() {
     super.initState();
     // --- CAO KIẾN: KÍCH HOẠT LẮNG NGHE THÔNG BÁO TOÀN CỤC ---
     NotificationService.listenToNotifications((title, body) {
-      if (mounted) {
+      if (mounted && _notificationCount < 3) {
+        _notificationCount++;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text("$title: $body"),
@@ -72,19 +74,19 @@ class _AuthGateState extends State<AuthGate> {
       }
     });
 
-    // Thông báo khi có tin nhắn chat mới
-    NotificationService.listenToChatMessages((title, body) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("$title: $body"),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.deepPurple,
-            duration: const Duration(seconds: 4),
-          ),
-        );
-      }
-    });
+    // Thông báo khi có tin nhắn chat mới (TẮT để tránh quá nhiều thông báo)
+    // NotificationService.listenToChatMessages((title, body) {
+    //   if (mounted) {
+    //     ScaffoldMessenger.of(context).showSnackBar(
+    //       SnackBar(
+    //         content: Text("$title: $body"),
+    //         behavior: SnackBarBehavior.floating,
+    //         backgroundColor: Colors.deepPurple,
+    //         duration: const Duration(seconds: 4),
+    //       ),
+    //     );
+    //   }
+    // });
 
     // Đồng bộ thông tin user hiện tại (trường hợp app mở thẳng vào Home
     // mà không đi qua màn Login sau khi cập nhật code).

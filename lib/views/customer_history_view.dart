@@ -168,9 +168,9 @@ class _CustomerHistoryViewState extends State<CustomerHistoryView> {
                         trailing: const m.Icon(m.Icons.chevron_right, size: 18),
                         onTap: () async {
                           if (isRepair) {
-                            await m.Navigator.push(context, m.MaterialPageRoute(builder: (_) => RepairDetailView(repair: item['data'] as Repair, role: 'admin')));
+                            await m.Navigator.push(context, m.MaterialPageRoute(builder: (_) => RepairDetailView(repair: item['data'] as Repair)));
                           } else {
-                            await m.Navigator.push(context, m.MaterialPageRoute(builder: (_) => SaleDetailView(sale: item['data'] as SaleOrder, role: 'admin')));
+                            await m.Navigator.push(context, m.MaterialPageRoute(builder: (_) => SaleDetailView(sale: item['data'] as SaleOrder)));
                           }
                           _loadUnifiedHistory();
                          },

@@ -4,6 +4,8 @@ import 'package:intl/intl.dart';
 import '../models/repair_model.dart';
 import '../models/product_model.dart';
 import '../models/sale_order_model.dart';
+import '../models/expense_model.dart';
+import '../models/debt_model.dart';
 
 class DBHelper {
   static final DBHelper _instance = DBHelper._internal();
@@ -18,10 +20,10 @@ class DBHelper {
   }
 
   Future<Database> _initDB() async {
-    String path = join(await getDatabasesPath(), 'repair_shop_v19.db'); 
+    String path = join(await getDatabasesPath(), 'repair_shop_v22.db'); 
     return await openDatabase(
       path,
-      version: 9,
+      version: 13,
       onCreate: (db, version) async {
         await db.execute('''
         CREATE TABLE repairs(
@@ -84,9 +86,11 @@ class DBHelper {
         await db.execute('''
         CREATE TABLE suppliers(
           id INTEGER PRIMARY KEY AUTOINCREMENT,
-          name TEXT UNIQUE, contactPerson TEXT, phone TEXT, address TEXT,
+          firestoreId TEXT UNIQUE,
+          name TEXT,
+          contactPerson TEXT, phone TEXT, address TEXT,
           items TEXT, importCount INTEGER DEFAULT 0, totalAmount INTEGER DEFAULT 0,
-          createdAt INTEGER, shopId TEXT
+          createdAt INTEGER, shopId TEXT, isSynced INTEGER DEFAULT 0
         )
       ''');
 
@@ -115,19 +119,23 @@ class DBHelper {
         await db.execute('''
         CREATE TABLE debts(
           id INTEGER PRIMARY KEY AUTOINCREMENT,
+          firestoreId TEXT UNIQUE,
           personName TEXT, phone TEXT, totalAmount INTEGER, 
           paidAmount INTEGER DEFAULT 0, type TEXT, status TEXT,
-          createdAt INTEGER, note TEXT
+          createdAt INTEGER, note TEXT, isSynced INTEGER DEFAULT 0
         )
       ''');
 
         await db.execute('''
         CREATE TABLE customers(
           id INTEGER PRIMARY KEY AUTOINCREMENT,
+          firestoreId TEXT UNIQUE,
           name TEXT,
           phone TEXT UNIQUE,
           address TEXT,
-          createdAt INTEGER
+          createdAt INTEGER,
+          shopId TEXT,
+          isSynced INTEGER DEFAULT 0
         )
       ''');
 
@@ -261,6 +269,42 @@ class DBHelper {
             ''');
           } catch (_) {}
         }
+        if (oldV < 10) {
+          try { await db.execute("ALTER TABLE expenses ADD COLUMN firestoreId TEXT UNIQUE"); } catch (_) {}
+          try { await db.execute("ALTER TABLE expenses ADD COLUMN isSynced INTEGER DEFAULT 0"); } catch (_) {}
+          try { await db.execute("ALTER TABLE debts ADD COLUMN firestoreId TEXT UNIQUE"); } catch (_) {}
+          try { await db.execute("ALTER TABLE debts ADD COLUMN isSynced INTEGER DEFAULT 0"); } catch (_) {}
+          try { await db.execute("ALTER TABLE suppliers ADD COLUMN firestoreId TEXT UNIQUE"); } catch (_) {}
+          try { await db.execute("ALTER TABLE suppliers ADD COLUMN isSynced INTEGER DEFAULT 0"); } catch (_) {}
+          try { await db.execute("ALTER TABLE customers ADD COLUMN firestoreId TEXT UNIQUE"); } catch (_) {}
+          try { await db.execute("ALTER TABLE customers ADD COLUMN isSynced INTEGER DEFAULT 0"); } catch (_) {}
+        }
+        if (oldV < 11) {
+          // Force add missing columns for existing DBs
+          try { await db.execute("ALTER TABLE expenses ADD COLUMN firestoreId TEXT UNIQUE"); } catch (_) {}
+          try { await db.execute("ALTER TABLE expenses ADD COLUMN isSynced INTEGER DEFAULT 0"); } catch (_) {}
+          try { await db.execute("ALTER TABLE debts ADD COLUMN firestoreId TEXT UNIQUE"); } catch (_) {}
+          try { await db.execute("ALTER TABLE debts ADD COLUMN isSynced INTEGER DEFAULT 0"); } catch (_) {}
+          try { await db.execute("ALTER TABLE suppliers ADD COLUMN firestoreId TEXT UNIQUE"); } catch (_) {}
+          try { await db.execute("ALTER TABLE suppliers ADD COLUMN isSynced INTEGER DEFAULT 0"); } catch (_) {}
+          try { await db.execute("ALTER TABLE customers ADD COLUMN firestoreId TEXT UNIQUE"); } catch (_) {}
+          try { await db.execute("ALTER TABLE customers ADD COLUMN isSynced INTEGER DEFAULT 0"); } catch (_) {}
+        }
+        if (oldV < 12) {
+          // Ensure columns exist for DBs created before schema update
+          try { await db.execute("ALTER TABLE expenses ADD COLUMN firestoreId TEXT UNIQUE"); } catch (_) {}
+          try { await db.execute("ALTER TABLE expenses ADD COLUMN isSynced INTEGER DEFAULT 0"); } catch (_) {}
+          try { await db.execute("ALTER TABLE debts ADD COLUMN firestoreId TEXT UNIQUE"); } catch (_) {}
+          try { await db.execute("ALTER TABLE debts ADD COLUMN isSynced INTEGER DEFAULT 0"); } catch (_) {}
+          try { await db.execute("ALTER TABLE suppliers ADD COLUMN firestoreId TEXT UNIQUE"); } catch (_) {}
+          try { await db.execute("ALTER TABLE suppliers ADD COLUMN isSynced INTEGER DEFAULT 0"); } catch (_) {}
+          try { await db.execute("ALTER TABLE customers ADD COLUMN firestoreId TEXT UNIQUE"); } catch (_) {}
+          try { await db.execute("ALTER TABLE customers ADD COLUMN isSynced INTEGER DEFAULT 0"); } catch (_) {}
+        }
+        if (oldV < 13) {
+          // Add shopId to customers for multi-shop support
+          try { await db.execute("ALTER TABLE customers ADD COLUMN shopId TEXT"); } catch (_) {}
+        }
       },
     );
   }
@@ -355,6 +399,14 @@ class DBHelper {
     final db = await database;
     return await db.delete('repairs', where: 'firestoreId = ?', whereArgs: [firestoreId]);
   }
+  Future<int> deleteSaleByFirestoreId(String firestoreId) async {
+    final db = await database;
+    return await db.delete('sales', where: 'firestoreId = ?', whereArgs: [firestoreId]);
+  }
+  Future<int> deleteProductByFirestoreId(String firestoreId) async {
+    final db = await database;
+    return await db.delete('products', where: 'firestoreId = ?', whereArgs: [firestoreId]);
+  }
   Future<int> deleteSale(int id) async => (await database).delete('sales', where: 'id = ?', whereArgs: [id]);
   
   Future<int> updateProductStatus(int id, int status) async {
@@ -423,6 +475,25 @@ class DBHelper {
   Future<int> deleteCustomerByPhone(String phone) async {
     final db = await database;
     return await db.delete('customers', where: 'phone = ?', whereArgs: [phone]);
+  }
+
+  Future<List<Map<String, dynamic>>> getCustomers() async => (await database).query('customers', orderBy: 'name ASC');
+
+  Future<int> upsertCustomer(Map<String, dynamic> c) async {
+    final db = await database;
+    final phone = c['phone'];
+    if (phone == null) return 0;
+    final existing = await db.query('customers', where: 'phone = ?', whereArgs: [phone], limit: 1);
+    if (existing.isNotEmpty) {
+      return await db.update('customers', c, where: 'phone = ?', whereArgs: [phone]);
+    } else {
+      return await db.insert('customers', c);
+    }
+  }
+
+  Future<int> deleteCustomerByFirestoreId(String firestoreId) async {
+    final db = await database;
+    return await db.delete('customers', where: 'firestoreId = ?', whereArgs: [firestoreId]);
   }
 
   // --- ATTENDANCE ---
@@ -597,14 +668,19 @@ class DBHelper {
   Future<void> insertSale(SaleOrder s) async => upsertSale(s);
   Future<void> upsertSupplier(Map<String, dynamic> s) async {
     final db = await database;
-    final name = s['name'];
-    if (name == null) return;
-    final existing = await db.query('suppliers', where: 'name = ?', whereArgs: [name], limit: 1);
+    final fId = s['firestoreId'];
+    if (fId == null) return;
+    final List<Map<String, dynamic>> existing = await db.query('suppliers', where: 'firestoreId = ?', whereArgs: [fId]);
     if (existing.isNotEmpty) {
       await db.update('suppliers', s, where: 'id = ?', whereArgs: [existing.first['id']]);
     } else {
       await db.insert('suppliers', s);
     }
+  }
+
+  Future<int> deleteSupplierByFirestoreId(String firestoreId) async {
+    final db = await database;
+    return await db.delete('suppliers', where: 'firestoreId = ?', whereArgs: [firestoreId]);
   }
 
   // Xóa tất cả dữ liệu của một khách hàng (repairs và sales)
@@ -624,5 +700,41 @@ class DBHelper {
       where: 'customerName = ? AND phone = ?',
       whereArgs: [customerName, phone]
     );
+  }
+
+  Future<void> upsertExpense(Expense expense) async {
+    final db = await database;
+    final fId = expense.firestoreId ?? "${expense.date}_${expense.title}";
+    final List<Map<String, dynamic>> existing = await db.query('expenses', where: 'firestoreId = ?', whereArgs: [fId]);
+    if (existing.isNotEmpty) {
+      await db.update('expenses', expense.toMap(), where: 'id = ?', whereArgs: [existing.first['id']]);
+    } else {
+      Map<String, dynamic> data = expense.toMap(); data.remove('id');
+      await db.insert('expenses', data);
+    }
+  }
+
+  Future<void> deleteExpenseByFirestoreId(String firestoreId) async {
+    final db = await database;
+    await db.delete('expenses', where: 'firestoreId = ?', whereArgs: [firestoreId]);
+  }
+
+  Future<void> upsertDebt(Debt debt) async {
+    final db = await database;
+    final fId = debt.firestoreId ?? "${debt.createdAt}_${debt.personName}";
+    final List<Map<String, dynamic>> existing = await db.query('debts', where: 'firestoreId = ?', whereArgs: [fId]);
+    if (existing.isNotEmpty) {
+      Map<String, dynamic> data = debt.toMap();
+      data.remove('id');
+      await db.update('debts', data, where: 'id = ?', whereArgs: [existing.first['id']]);
+    } else {
+      Map<String, dynamic> data = debt.toMap(); data.remove('id');
+      await db.insert('debts', data);
+    }
+  }
+
+  Future<void> deleteDebtByFirestoreId(String firestoreId) async {
+    final db = await database;
+    await db.delete('debts', where: 'firestoreId = ?', whereArgs: [firestoreId]);
   }
 }

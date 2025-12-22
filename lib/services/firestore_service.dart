@@ -96,6 +96,58 @@ class FirestoreService {
     }
   }
 
+  /// Đánh dấu sale là đã xóa trên Firestore (tombstone) để các máy khác không sync lại.
+  static Future<bool> deleteSale(String firestoreId) async {
+    try {
+      await _db.collection('sales').doc(firestoreId).set({
+        'deleted': true,
+        'deletedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Đánh dấu product là đã xóa trên Firestore (tombstone) để các máy khác không sync lại.
+  static Future<bool> deleteProduct(String firestoreId) async {
+    try {
+      await _db.collection('products').doc(firestoreId).set({
+        'deleted': true,
+        'deletedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Đánh dấu customer là đã xóa trên Firestore (tombstone) để các máy khác không sync lại.
+  static Future<bool> deleteCustomer(String firestoreId) async {
+    try {
+      await _db.collection('customers').doc(firestoreId).set({
+        'deleted': true,
+        'deletedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Đánh dấu supplier là đã xóa trên Firestore (tombstone) để các máy khác không sync lại.
+  static Future<bool> deleteSupplier(String firestoreId) async {
+    try {
+      await _db.collection('suppliers').doc(firestoreId).set({
+        'deleted': true,
+        'deletedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   static Future<void> sendChat({
     required String message,
     required String senderId,

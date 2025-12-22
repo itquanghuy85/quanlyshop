@@ -31,22 +31,31 @@ class UserService {
   }
 
   static Map<String, bool> _defaultPermissionsForRole(String role) {
-    final isAdminRole = role == 'admin';
+    final isOwner = role == 'owner';
+    final isManager = role == 'manager';
+    final isEmployee = role == 'employee';
+    final isTechnician = role == 'technician';
+    final isAdmin = role == 'admin'; // Thêm case cho admin
+    
     return {
-      // Mặc định cho tài khoản QUẢN LÝ: xem được tất cả
-      // Mặc định cho NHÂN VIÊN: xem được nghiệp vụ cơ bản, không xem tài chính
-      'allowViewSales': true,
-      'allowViewRepairs': true,
-      'allowViewInventory': true,
-      'allowViewParts': true,
-      'allowViewSuppliers': true,
-      'allowViewCustomers': true,
-      'allowViewWarranty': true,
+      // Chủ shop: toàn quyền
+      // Quản lý: xem được tất cả, quản lý nhân viên
+      // Nhân viên: xem nghiệp vụ cơ bản, không xem tài chính
+      // Kỹ thuật: chỉ xem sửa chữa, linh kiện, khách hàng
+      // Admin: toàn quyền như owner
+      'allowViewSales': isOwner || isManager || isEmployee || isAdmin,
+      'allowViewRepairs': true, // Tất cả đều xem được repairs
+      'allowViewInventory': isOwner || isManager || isEmployee || isAdmin,
+      'allowViewParts': true, // Tất cả đều cần xem linh kiện
+      'allowViewSuppliers': isOwner || isManager || isEmployee || isAdmin,
+      'allowViewCustomers': true, // Tất cả đều cần xem khách hàng
+      'allowViewWarranty': isOwner || isManager || isEmployee || isAdmin,
       'allowViewChat': true,
       'allowViewPrinter': true,
-      'allowViewRevenue': isAdminRole,
-      'allowViewExpenses': isAdminRole,
-      'allowViewDebts': isAdminRole,
+      'allowViewRevenue': isOwner || isManager || isAdmin,
+      'allowViewExpenses': isOwner || isManager || isAdmin,
+      'allowViewDebts': isOwner || isManager || isAdmin,
+      'allowViewSettings': isOwner || isManager || isAdmin,
       'shopAppLocked': false,
       'shopAdminFinanceLocked': false,
     };
@@ -119,6 +128,7 @@ class UserService {
     required String address,
     required String role,
     String? photoUrl,
+    String? shopId,
   }) async {
     // Validate input
     final nameError = validateName(name);
@@ -133,20 +143,24 @@ class UserService {
     }
 
     // Cập nhật dữ liệu người dùng
-    await _db.collection('users').doc(uid).set({
+    final updateData = {
       'displayName': name.toUpperCase(),
       'phone': phone,
       'address': address.toUpperCase(),
       'role': role,
       'photoUrl': photoUrl,
       'updatedAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
+    };
+    if (shopId != null) {
+      updateData['shopId'] = shopId;
+    }
+    await _db.collection('users').doc(uid).set(updateData, SetOptions(merge: true));
 
     // Đồng bộ dữ liệu liên quan (ví dụ: cập nhật tên, số điện thoại ở các bảng khác nếu cần)
     // TODO: Nếu có bảng orders, repair_orders,... thì cập nhật thông tin liên quan ở đó
   }
 
-  static Future<void> syncUserInfo(String uid, String email) async {
+  static Future<void> syncUserInfo(String uid, String email, {Map<String, dynamic>? extra}) async {
     // Lấy thông tin hiện tại để đồng bộ
     final userRef = _db.collection('users').doc(uid);
     final userDoc = await userRef.get();
@@ -167,15 +181,19 @@ class UserService {
 
     _cachedShopId = shopId is String ? shopId : null;
 
-    await userRef.set({
+    final userData = {
       'email': email,
       'displayName': data['displayName'] ?? '',
       'phone': data['phone'] ?? '',
       'address': data['address'] ?? '',
-      'role': isSuperAdmin ? 'admin' : (data['role'] ?? 'user'),
+      'role': isSuperAdmin ? 'admin' : (data['role'] ?? (shopId == uid ? 'owner' : 'user')),
       'shopId': shopId,
       'lastLogin': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
+    };
+    if (extra != null) {
+      userData.addAll(extra);
+    }
+    await userRef.set(userData, SetOptions(merge: true));
 
     // Đồng bộ dữ liệu liên quan nếu cần (ví dụ: cập nhật email ở các bảng khác)
     // TODO: Nếu có bảng orders, repair_orders,... thì cập nhật thông tin liên quan ở đó
@@ -236,6 +254,7 @@ class UserService {
         'allowViewRevenue': (data['allowViewRevenue'] as bool?) ?? defaults['allowViewRevenue']!,
         'allowViewExpenses': (data['allowViewExpenses'] as bool?) ?? defaults['allowViewExpenses']!,
         'allowViewDebts': (data['allowViewDebts'] as bool?) ?? defaults['allowViewDebts']!,
+        'allowViewSettings': (data['allowViewSettings'] as bool?) ?? defaults['allowViewSettings']!,
         'shopAppLocked': false,
         'shopAdminFinanceLocked': false,
       };
@@ -333,5 +352,62 @@ class UserService {
       'allowViewExpenses': allowViewExpenses,
       'allowViewDebts': allowViewDebts,
     }, SetOptions(merge: true));
+  }
+
+  // --- INVITE SYSTEM ---
+  static Future<String> createInviteCode(String shopId) async {
+    final code = _generateInviteCode();
+    await _db.collection('invites').doc(code).set({
+      'shopId': shopId,
+      'createdBy': FirebaseAuth.instance.currentUser?.uid,
+      'createdAt': FieldValue.serverTimestamp(),
+      'expiresAt': DateTime.now().add(const Duration(days: 7)).toIso8601String(), // 7 ngày
+      'used': false,
+    });
+    return code;
+  }
+
+  static Future<Map<String, dynamic>?> getInvite(String code) async {
+    final doc = await _db.collection('invites').doc(code).get();
+    if (!doc.exists) return null;
+    final data = doc.data()!;
+    if (data['used'] == true) return null;
+    final expiresAt = DateTime.parse(data['expiresAt']);
+    if (expiresAt.isBefore(DateTime.now())) return null;
+    return data;
+  }
+
+  static Future<bool> useInviteCode(String code, String uid) async {
+    final invite = await getInvite(code);
+    if (invite == null) return false;
+    final shopId = invite['shopId'];
+    // Update user shopId
+    await _db.collection('users').doc(uid).set({
+      'shopId': shopId,
+    }, SetOptions(merge: true));
+    // Mark invite as used
+    await _db.collection('invites').doc(code).update({'used': true});
+    // Update cache
+    _cachedShopId = shopId;
+    return true;
+  }
+
+  /// Dành riêng cho Super Admin: xóa một user (chỉ xóa từ Firestore, không xóa auth)
+  static Future<void> deleteUser(String uid) async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (!_isSuperAdmin(currentUser)) return;
+
+    await _db.collection('users').doc(uid).delete();
+  }
+
+  static String _generateInviteCode() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    final random = DateTime.now().millisecondsSinceEpoch;
+    String code = '';
+    for (int i = 0; i < 8; i++) {
+      code += chars[random % chars.length];
+      // Simple random, not crypto secure but ok for demo
+    }
+    return code;
   }
 }

@@ -19,8 +19,7 @@ import '../services/audit_service.dart';
 
 class SaleDetailView extends StatefulWidget {
   final SaleOrder sale;
-  final String role;
-  const SaleDetailView({super.key, required this.sale, this.role = 'user'});
+  const SaleDetailView({super.key, required this.sale});
 
   @override
   State<SaleDetailView> createState() => _SaleDetailViewState();
@@ -63,9 +62,9 @@ class _SaleDetailViewState extends State<SaleDetailView> {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("CẦN ĐĂNG NHẬP TÀI KHOẢN QUẢN LÝ")));
       return;
     }
-    final role = await UserService.getUserRole(user.uid);
+    final perms = await UserService.getCurrentUserPermissions();
     final isSuper = UserService.isCurrentUserSuperAdmin();
-    if (role != 'admin' && !isSuper) {
+    if (!(perms['allowViewSales'] ?? false) && !isSuper) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Chỉ tài khoản quản lý mới được sửa/xóa")));
       return;

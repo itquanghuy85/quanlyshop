@@ -7,7 +7,6 @@ import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart' as path;
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -18,14 +17,12 @@ import 'package:qr_flutter/qr_flutter.dart';
 import '../models/repair_model.dart';
 import '../data/db_helper.dart';
 import '../services/storage_service.dart';
-import '../services/firestore_service.dart';
-import '../services/user_service.dart';
+import '../services/firestore_service.dart';import '../services/thermal_printer_service.dart';import '../services/user_service.dart';
 import '../services/audit_service.dart';
 
 class RepairDetailView extends StatefulWidget {
   final Repair repair;
-  final String role;
-  const RepairDetailView({super.key, required this.repair, this.role = 'user'});
+  const RepairDetailView({super.key, required this.repair});
 
   @override
   State<RepairDetailView> createState() => _RepairDetailViewState();
@@ -33,6 +30,7 @@ class RepairDetailView extends StatefulWidget {
 
 class _RepairDetailViewState extends State<RepairDetailView> {
   final db = DBHelper();
+  bool _isAdmin = false;
   late Repair r;
   
   final nameCtrl = TextEditingController();
@@ -41,6 +39,9 @@ class _RepairDetailViewState extends State<RepairDetailView> {
   final issueCtrl = TextEditingController();
   final priceCtrl = TextEditingController();
   final costCtrl = TextEditingController();
+  final colorCtrl = TextEditingController();
+  final imeiCtrl = TextEditingController();
+  final conditionCtrl = TextEditingController();
   
   final List<File> _receiveImages = [];
   final List<File> _deliveryImages = [];
@@ -50,7 +51,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
   final List<String> warrantyOptions = ["KO BH", "1 tháng", "3 tháng", "6 tháng", "12 tháng"];
   String _selectedWarranty = "KO BH";
 
-  bool get isAdmin => widget.role == 'admin';
+  bool get isAdmin => _isAdmin;
   bool _managerUnlocked = false;
   bool _checkingManager = false;
   bool get isReadOnly => !(_managerUnlocked || isAdmin) && r.status >= 3; // Chỉ khóa khi chưa mở khóa quản lý
@@ -58,8 +59,17 @@ class _RepairDetailViewState extends State<RepairDetailView> {
   @override
   void initState() {
     super.initState();
+    _loadPermissions();
     r = widget.repair;
     _fillData();
+  }
+
+  Future<void> _loadPermissions() async {
+    final perms = await UserService.getCurrentUserPermissions();
+    if (!mounted) return;
+    setState(() {
+      _isAdmin = perms['allowViewRepairs'] ?? false; // Assuming admin permission for repairs
+    });
   }
 
   String _normalizeWarranty(String w) {
@@ -79,6 +89,9 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     issueCtrl.text = r.issue;
     priceCtrl.text = r.price > 0 ? (r.price / 1000).toStringAsFixed(0) : "";
     costCtrl.text = r.cost > 0 ? (r.cost / 1000).toStringAsFixed(0) : "";
+    colorCtrl.text = r.color ?? "";
+    imeiCtrl.text = r.imei ?? "";
+    conditionCtrl.text = r.condition ?? "";
     _selectedWarranty = _normalizeWarranty(r.warranty);
   }
 
@@ -88,9 +101,9 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("CẦN ĐĂNG NHẬP TÀI KHOẢN QUẢN LÝ")));
       return;
     }
-    final role = await UserService.getUserRole(user.uid);
+    final perms = await UserService.getCurrentUserPermissions();
     final isSuper = UserService.isCurrentUserSuperAdmin();
-    if (role != 'admin' && !isSuper) {
+    if (!(perms['allowViewRepairs'] ?? false) && !isSuper) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Chỉ tài khoản quản lý mới được sửa/xóa")));
       return;
@@ -184,6 +197,9 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     r.issue = issueCtrl.text.toUpperCase();
     r.price = (int.tryParse(priceCtrl.text) ?? 0) * 1000;
     r.cost = (int.tryParse(costCtrl.text) ?? 0) * 1000;
+    r.color = colorCtrl.text.isNotEmpty ? colorCtrl.text : null;
+    r.imei = imeiCtrl.text.isNotEmpty ? imeiCtrl.text : null;
+    r.condition = conditionCtrl.text.isNotEmpty ? conditionCtrl.text : null;
     r.warranty = _normalizeWarranty(_selectedWarranty);
     r.isSynced = false;
 
@@ -217,6 +233,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
           IconButton(onPressed: _sendSmsToCustomer, icon: const Icon(Icons.sms_outlined, color: Colors.green)),
           IconButton(onPressed: _sendToChat, icon: const Icon(Icons.chat_bubble_outline_rounded, color: Colors.deepPurple)),
           IconButton(onPressed: _printWifi, icon: const Icon(Icons.print_rounded, color: Colors.blueAccent)),
+          IconButton(onPressed: _printThermalLabel, icon: const Icon(Icons.thermostat_rounded, color: Colors.redAccent)),
           IconButton(onPressed: _shareRepair, icon: const Icon(Icons.share_rounded, color: Colors.pink)),
           IconButton(onPressed: _saveAll, icon: const Icon(Icons.check_circle, color: Colors.green, size: 28)),
           if (_managerUnlocked)
@@ -267,6 +284,12 @@ class _RepairDetailViewState extends State<RepairDetailView> {
               _input(modelCtrl, "Model máy", Icons.phone_android, caps: true, readOnly: isReadOnly),
               const SizedBox(height: 10),
               _input(issueCtrl, "Lỗi máy", Icons.build, caps: true, readOnly: isReadOnly),
+              const SizedBox(height: 10),
+              _input(colorCtrl, "Màu sắc", Icons.color_lens, caps: true, readOnly: isReadOnly),
+              const SizedBox(height: 10),
+              _input(imeiCtrl, "Số IMEI", Icons.perm_device_information, readOnly: isReadOnly),
+              const SizedBox(height: 10),
+              _input(conditionCtrl, "Tình trạng", Icons.stars, caps: true, readOnly: isReadOnly),
               const SizedBox(height: 15),
               _imageGrid(r.deliverImages, _deliveryImages, true),
             ],
@@ -378,6 +401,37 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('LỖI KHI IN PHIẾU SỬA: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _printThermalLabel() async {
+    try {
+      final success = await ThermalPrinterService.printDeviceLabel(
+        deviceName: r.model,
+        color: r.color,
+        imei: r.imei,
+        condition: r.condition,
+        price: r.price != null ? '${NumberFormat('#,###').format(r.price)} VND' : null,
+        accessories: r.accessories,
+      );
+
+      if (mounted) {
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Đã in tem thông tin máy thành công!')),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('IN TEM THẤT BẠI: Vui lòng kiểm tra cài đặt máy in nhiệt.')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('LỖI KHI IN TEM: $e')),
         );
       }
     }

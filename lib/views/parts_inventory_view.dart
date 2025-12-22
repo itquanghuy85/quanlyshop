@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../data/db_helper.dart';
+import '../services/user_service.dart';
 
 class PartsInventoryView extends StatefulWidget {
-  final String role;
-  const PartsInventoryView({super.key, required this.role});
+  const PartsInventoryView({super.key});
 
   @override
   State<PartsInventoryView> createState() => _PartsInventoryViewState();
@@ -15,11 +15,21 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
   List<Map<String, dynamic>> _parts = [];
   bool _isLoading = true;
   final searchCtrl = TextEditingController();
+  bool _isAdmin = false;
 
   @override
   void initState() {
     super.initState();
+    _loadPermissions();
     _refreshParts();
+  }
+
+  Future<void> _loadPermissions() async {
+    final perms = await UserService.getCurrentUserPermissions();
+    if (!mounted) return;
+    setState(() {
+      _isAdmin = perms['allowViewParts'] ?? false;
+    });
   }
 
   Future<void> _refreshParts() async {
@@ -107,12 +117,12 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                   title: Text(p['partName'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                   subtitle: Text("Dùng cho: ${p['compatibleModels']}\nSố lượng: ${p['quantity']}"),
                   trailing: Text("${NumberFormat('#,###').format(p['price'])} đ", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
-                  onTap: () => widget.role == 'admin' ? _showAddPartDialog(part: p) : null,
+                  onTap: _isAdmin ? () => _showAddPartDialog(part: p) : null,
                 ),
               );
             },
           ),
-      floatingActionButton: widget.role == 'admin' ? FloatingActionButton.extended(
+      floatingActionButton: _isAdmin ? FloatingActionButton.extended(
         onPressed: () => _showAddPartDialog(),
         label: const Text("NHẬP LINH KIỆN"),
         icon: const Icon(Icons.add),

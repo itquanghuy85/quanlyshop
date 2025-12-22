@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../data/db_helper.dart';
 import '../services/user_service.dart';
+import '../services/firestore_service.dart';
 
 class SupplierView extends StatefulWidget {
   const SupplierView({super.key});
@@ -27,10 +28,10 @@ class _SupplierViewState extends State<SupplierView> {
   Future<void> _loadRole() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
-    final role = await UserService.getUserRole(uid);
+    final perms = await UserService.getCurrentUserPermissions();
     if (!mounted) return;
     setState(() {
-      _isAdmin = role == 'admin';
+      _isAdmin = perms['allowViewSuppliers'] ?? false;
     });
   }
 
@@ -66,6 +67,10 @@ class _SupplierViewState extends State<SupplierView> {
     );
 
     if (ok == true) {
+      final firestoreId = s['firestoreId'] as String?;
+      if (firestoreId != null) {
+        await FirestoreService.deleteSupplier(firestoreId);
+      }
       await db.deleteSupplier(s['id'] as int);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

@@ -31,10 +31,10 @@ class _WarrantyViewState extends State<WarrantyView> {
   Future<void> _loadRole() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
-    final role = await UserService.getUserRole(uid);
+    final perms = await UserService.getCurrentUserPermissions();
     if (!mounted) return;
     setState(() {
-      _isAdmin = role == 'admin';
+      _isAdmin = perms['allowViewWarranty'] ?? false;
     });
   }
 
@@ -140,9 +140,9 @@ class _WarrantyViewState extends State<WarrantyView> {
                     ),
                     onTap: () {
                       if (isSale) {
-                        Navigator.push(context, MaterialPageRoute(builder: (_) => SaleDetailView(sale: item['data'] as SaleOrder, role: 'user')));
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => SaleDetailView(sale: item['data'] as SaleOrder)));
                       } else {
-                        Navigator.push(context, MaterialPageRoute(builder: (_) => RepairDetailView(repair: item['data'] as Repair, role: 'user')));
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => RepairDetailView(repair: item['data'] as Repair)));
                       }
                     },
                   ),

@@ -1,8 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../data/db_helper.dart';
 import '../services/user_service.dart';
+
+class CurrencyInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    if (newValue.text.isEmpty) {
+      return newValue;
+    }
+    // Allow only numbers
+    final regEx = RegExp(r'^\d+$');
+    if (!regEx.hasMatch(newValue.text)) {
+      return oldValue;
+    }
+    // Add .000
+    final number = int.tryParse(newValue.text) ?? 0;
+    final formatted = NumberFormat('#,###').format(number * 1000);
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}
 
 class ExpenseView extends StatefulWidget {
   const ExpenseView({super.key});
@@ -27,10 +49,10 @@ class _ExpenseViewState extends State<ExpenseView> {
   Future<void> _loadRole() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
-    final role = await UserService.getUserRole(uid);
+    final perms = await UserService.getCurrentUserPermissions();
     if (!mounted) return;
     setState(() {
-      _isAdmin = role == 'admin';
+      _isAdmin = perms['allowViewExpenses'] ?? false;
     });
   }
 
@@ -106,7 +128,7 @@ class _ExpenseViewState extends State<ExpenseView> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(controller: titleC, decoration: const InputDecoration(labelText: "Nội dung chi (VD: Tiền điện)")),
-                TextField(controller: amountC, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "Số tiền", suffixText: ".000 đ")),
+                TextField(controller: amountC, keyboardType: TextInputType.number, inputFormatters: [CurrencyInputFormatter()], decoration: const InputDecoration(labelText: "Số tiền (VNĐ)", suffixText: " đ")),
                 TextField(controller: noteC, decoration: const InputDecoration(labelText: "Ghi chú")),
                 const SizedBox(height: 10),
                 Align(
@@ -128,7 +150,7 @@ class _ExpenseViewState extends State<ExpenseView> {
                 if (titleC.text.isEmpty || amountC.text.isEmpty) return;
                 await db.insertExpense({
                   'title': titleC.text.toUpperCase(),
-                  'amount': (int.tryParse(amountC.text) ?? 0) * 1000,
+                  'amount': NumberFormat().parse(amountC.text).toInt(),
                   'category': category,
                   'date': DateTime.now().millisecondsSinceEpoch,
                   'note': noteC.text,

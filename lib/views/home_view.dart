@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'customer_history_view.dart';
 import 'order_list_view.dart';
 import 'revenue_view.dart';
@@ -15,13 +16,11 @@ import 'debt_view.dart';
 import 'warranty_view.dart';
 import 'settings_view.dart';
 import 'printer_setting_view.dart';
-import 'supplier_view.dart';
 import 'chat_view.dart';
-import 'super_admin_view.dart';
+import 'thermal_printer_design_view.dart';
+import 'super_admin_view.dart' as admin_view;
+import 'staff_list_view.dart';
 import 'qr_scan_view.dart';
-import 'attendance_view.dart';
-import 'staff_performance_view.dart';
-import 'payroll_view.dart';
 import '../data/db_helper.dart';
 import '../widgets/perpetual_calendar.dart';
 import '../services/sync_service.dart';
@@ -53,6 +52,7 @@ class _HomeViewState extends State<HomeView> {
   final bool _isSuperAdmin = UserService.isCurrentUserSuperAdmin();
 
   bool get isAdmin => widget.role == 'admin';
+  bool get isOwner => widget.role == 'owner';
 
   @override
   void initState() {
@@ -76,6 +76,14 @@ class _HomeViewState extends State<HomeView> {
   }
 
   Future<void> _initialSetup() async {
+    final prefs = await SharedPreferences.getInstance();
+    final currentUser = FirebaseAuth.instance.currentUser;
+    final lastUserId = prefs.getString('lastUserId');
+    if (currentUser != null && currentUser.uid != lastUserId) {
+      // User mới, clear local DB để tránh data cũ
+      await db.clearAllData();
+      await prefs.setString('lastUserId', currentUser.uid);
+    }
     await db.cleanDuplicateData();
     await _loadStats();
     await _updateShopLockState();
@@ -235,7 +243,7 @@ class _HomeViewState extends State<HomeView> {
   Future<void> _openSaleList() async {
     final ok = await _ensurePermission('allowViewSales', "Tài khoản này không được phép vào mục BÁN HÀNG. Liên hệ chủ shop để phân quyền.");
     if (!ok || !mounted) return;
-    Navigator.push(context, MaterialPageRoute(builder: (_) => SaleListView(role: widget.role)));
+    Navigator.push(context, MaterialPageRoute(builder: (_) => const SaleListView()));
   }
 
   Future<void> _openOrderList() async {
@@ -247,13 +255,7 @@ class _HomeViewState extends State<HomeView> {
   Future<void> _openInventory() async {
     final ok = await _ensurePermission('allowViewInventory', "Tài khoản này không được phép vào mục KHO MÁY. Liên hệ chủ shop để phân quyền.");
     if (!ok || !mounted) return;
-    Navigator.push(context, MaterialPageRoute(builder: (_) => InventoryView(role: widget.role)));
-  }
-
-  Future<void> _openSuppliers() async {
-    final ok = await _ensurePermission('allowViewSuppliers', "Tài khoản này không được phép xem danh sách NHÀ PHÂN PHỐI. Liên hệ chủ shop để phân quyền.");
-    if (!ok || !mounted) return;
-    Navigator.push(context, MaterialPageRoute(builder: (_) => const SupplierView()));
+    Navigator.push(context, MaterialPageRoute(builder: (_) => const InventoryView()));
   }
 
   Future<void> _openCustomers() async {
@@ -278,6 +280,49 @@ class _HomeViewState extends State<HomeView> {
     final ok = await _ensurePermission('allowViewPrinter', "Tài khoản này không được phép cấu hình MÁY IN. Liên hệ chủ shop để phân quyền.");
     if (!ok || !mounted) return;
     Navigator.push(context, MaterialPageRoute(builder: (_) => const PrinterSettingView()));
+  }
+
+  Future<void> _openThermalPrinterDesign() async {
+    final ok = await _ensurePermission('allowViewPrinter', "Tài khoản này không được phép cấu hình MÁY IN. Liên hệ chủ shop để phân quyền.");
+    if (!ok || !mounted) return;
+    Navigator.push(context, MaterialPageRoute(builder: (_) => const ThermalPrinterDesignView()));
+  }
+
+  void _showPrinterMenu() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(10))),
+              const SizedBox(height: 12),
+              ListTile(
+                leading: const Icon(Icons.receipt_long_rounded, color: Colors.blueAccent),
+                title: const Text("MÁY IN HÓA ĐƠN", style: TextStyle(fontWeight: FontWeight.bold)),
+                subtitle: const Text("In hóa đơn, biên lai"),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _openPrinterSettings();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.thermostat_rounded, color: Colors.redAccent),
+                title: const Text("MÁY IN NHIỆT", style: TextStyle(fontWeight: FontWeight.bold)),
+                subtitle: const Text("In tem thông tin máy"),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _openThermalPrinterDesign();
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   void _openSettingsCenter() {
@@ -310,6 +355,16 @@ class _HomeViewState extends State<HomeView> {
                   _openPrinterSettings();
                 },
               ),
+              if (isAdmin || isOwner || _isSuperAdmin)
+                ListTile(
+                  leading: const Icon(Icons.group_rounded, color: Colors.indigo),
+                  title: const Text("QUẢN LÝ NHÂN VIÊN", style: TextStyle(fontWeight: FontWeight.bold)),
+                  subtitle: const Text("Thêm/sửa/xóa nhân viên, tạo mã mời"),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const StaffListView()));
+                  },
+                ),
               if (_isSuperAdmin)
                 ListTile(
                   leading: const Icon(Icons.admin_panel_settings_rounded, color: Colors.deepPurple),
@@ -317,7 +372,7 @@ class _HomeViewState extends State<HomeView> {
                   subtitle: const Text("Khóa/mở shop, cấu hình đặc biệt"),
                   onTap: () {
                     Navigator.pop(ctx);
-                    Navigator.push(context, MaterialPageRoute(builder: (_) => const SuperAdminView()));
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const admin_view.SuperAdminView()));
                   },
                 ),
             ],
@@ -347,65 +402,49 @@ class _HomeViewState extends State<HomeView> {
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 2,
-      child: WillPopScope(
-        onWillPop: _onWillPop,
-        child: Scaffold(
-          backgroundColor: const Color(0xFFF8FAFF),
-          appBar: AppBar(
-            backgroundColor: Colors.white, elevation: 0,
-            title: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.store_rounded, color: Colors.blueAccent),
-                const SizedBox(width: 10),
-                Flexible(
-                  child: Text(
-                    isAdmin ? "QUẢN LÝ SHOP" : "NHÂN VIÊN",
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ],
-            ),
-            actions: [
-              IconButton(
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => QrScanView(role: widget.role)),
-                ),
-                icon: const Icon(Icons.qr_code_scanner_rounded, color: Colors.blueAccent),
-              ),
-              IconButton(onPressed: _loadStats, icon: const Icon(Icons.refresh_rounded, color: Colors.blue)),
-              IconButton(
-                onPressed: _isSyncing ? null : () => _syncNow(),
-                icon: _isSyncing
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.sync, color: Colors.green),
-              ),
-              IconButton(onPressed: () => FirebaseAuth.instance.signOut(), icon: const Icon(Icons.logout_rounded, color: Colors.redAccent)),
-            ],
-            bottom: const TabBar(
-              labelColor: Colors.blueAccent,
-              indicatorColor: Colors.blueAccent,
-              tabs: [
-                Tab(text: "TỔNG QUAN"),
-                Tab(text: "CHẤM CÔNG"),
-              ],
-            ),
-          ),
-          body: TabBarView(
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF8FAFF),
+        appBar: AppBar(
+          backgroundColor: Colors.white, elevation: 0,
+          title: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              _buildMainHome(),
-              _buildAttendanceTab(),
+              const Icon(Icons.store_rounded, color: Colors.blueAccent),
+              const SizedBox(width: 10),
+              Flexible(
+                child: Text(
+                  isAdmin ? "QUẢN LÝ SHOP" : "NHÂN VIÊN",
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ),
             ],
           ),
+          actions: [
+            IconButton(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => QrScanView(role: widget.role)),
+              ),
+              icon: const Icon(Icons.qr_code_scanner_rounded, color: Colors.blueAccent),
+            ),
+            IconButton(onPressed: _loadStats, icon: const Icon(Icons.refresh_rounded, color: Colors.blue)),
+            IconButton(
+              onPressed: _isSyncing ? null : () => _syncNow(),
+              icon: _isSyncing
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.sync, color: Colors.green),
+            ),
+            IconButton(onPressed: () => FirebaseAuth.instance.signOut(), icon: const Icon(Icons.logout_rounded, color: Colors.redAccent)),
+          ],
         ),
+        body: _buildMainHome(),
       ),
     );
   }
@@ -472,47 +511,13 @@ class _HomeViewState extends State<HomeView> {
     );
   }
 
-  Widget _buildAttendanceTab() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Chấm công & lương', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: [
-              SizedBox(
-                width: 160,
-                height: 140,
-                child: _menuTile('CHẤM CÔNG', Icons.fingerprint, [Colors.deepPurple, Colors.purpleAccent], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AttendanceView()))),
-              ),
-              SizedBox(
-                width: 160,
-                height: 140,
-                child: _menuTile('DS NHÂN VIÊN', Icons.people_alt_rounded, [Colors.indigo, Colors.blue], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StaffPerformanceView()))),
-              ),
-              SizedBox(
-                width: 160,
-                height: 140,
-                child: _menuTile('BẢNG LƯƠNG', Icons.payments, [Colors.green, Colors.teal], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PayrollView()))),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildQuickStats() {
     return Row(children: [
       _statCard("Đang sửa", "$totalPendingRepair", Colors.orange, () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderListView(role: widget.role, statusFilter: const [1, 2])))),
       const SizedBox(width: 10),
       _statCard("Xong/Giao hôm nay", "$todayRepairDone", Colors.green, () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderListView(role: widget.role, statusFilter: const [3, 4], todayOnly: true)))),
       const SizedBox(width: 10),
-      _statCard("Bán máy hôm nay", "$todaySaleCount", Colors.pink, () => Navigator.push(context, MaterialPageRoute(builder: (_) => SaleListView(role: widget.role, todayOnly: true)))),
+      _statCard("Bán máy hôm nay", "$todaySaleCount", Colors.pink, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SaleListView(todayOnly: true)))),
     ]);
   }
 
@@ -546,10 +551,9 @@ class _HomeViewState extends State<HomeView> {
     addTile(perms['allowViewCustomers'] ?? true, "KHÁCH HÀNG", Icons.people_alt_rounded, [Colors.cyan, Colors.teal], _openCustomers);
     addTile(perms['allowViewWarranty'] ?? true, "BẢO HÀNH", Icons.verified_user_rounded, [Colors.green, Colors.teal], _openWarranty);
     addTile(perms['allowViewInventory'] ?? true, "KHO", Icons.inventory_2_rounded, [Colors.orange, Colors.amber], _openInventory);
-    addTile(perms['allowViewSuppliers'] ?? true, "NHÀ PHÂN PHỐI", Icons.business_rounded, [Colors.indigo, Colors.blueAccent], _openSuppliers);
     addTile(perms['allowViewRevenue'] ?? true, "DOANH THU", Icons.leaderboard_rounded, [Colors.indigo, Colors.deepPurple], _openRevenueView);
-    addTile(perms['allowViewPrinter'] ?? true, "MÁY IN", Icons.print_rounded, [Colors.blueGrey, Colors.grey], _openPrinterSettings);
-    addTile(isAdmin || _isSuperAdmin, "CÀI ĐẶT", Icons.settings_rounded, [Colors.blueGrey, Colors.black87], _openSettingsCenter);
+    addTile(perms['allowViewPrinter'] ?? true, "MÁY IN", Icons.print_rounded, [Colors.blueGrey, Colors.grey], _showPrinterMenu);
+    addTile(perms['allowViewSettings'] ?? (isAdmin || _isSuperAdmin), "CÀI ĐẶT", Icons.settings_rounded, [Colors.blueGrey, Colors.black87], _openSettingsCenter);
 
     return GridView.count(
       shrinkWrap: true,
@@ -619,7 +623,7 @@ class _HomeViewState extends State<HomeView> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => SaleListView(role: widget.role, todayOnly: true),
+                builder: (_) => const SaleListView(todayOnly: true),
               ),
             );
           }),

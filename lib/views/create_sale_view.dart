@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import '../data/db_helper.dart';
@@ -6,10 +7,12 @@ import '../models/product_model.dart';
 import '../models/sale_order_model.dart';
 import '../services/notification_service.dart';
 import '../services/audit_service.dart';
+import '../services/user_service.dart';
+import '../widgets/validated_text_field.dart';
+import '../widgets/debounced_search_field.dart';
 
 class CreateSaleView extends StatefulWidget {
-  final String role;
-  const CreateSaleView({super.key, this.role = 'user'});
+  const CreateSaleView({super.key});
 
   @override
   State<CreateSaleView> createState() => _CreateSaleViewState();
@@ -104,17 +107,59 @@ class _CreateSaleViewState extends State<CreateSaleView> {
   void _calculateTotal() {
     int total = _selectedItems.fold(0, (sum, item) => sum + (item['isGift'] ? 0 : (item['sellPrice'] as int)));
     if (_autoCalcTotal) {
-      priceCtrl.text = (total / 1000).toStringAsFixed(0);
+      priceCtrl.text = _formatCurrency(total);
     }
-    int down = (int.tryParse(downPaymentCtrl.text) ?? 0) * 1000;
-    int base = _autoCalcTotal ? total : (int.tryParse(priceCtrl.text) ?? 0) * 1000;
+    int down = _parseCurrency(downPaymentCtrl.text);
+    int base = _autoCalcTotal ? total : _parseCurrency(priceCtrl.text);
     int loan = base - down;
-    loanAmountCtrl.text = (loan > 0 ? loan / 1000 : 0).toStringAsFixed(0);
+    loanAmountCtrl.text = (loan > 0 ? _formatCurrency(loan) : '0');
+  }
+
+  int _parseCurrency(String text) {
+    final cleaned = text.replaceAll('.', '');
+    return int.tryParse(cleaned) ?? 0;
+  }
+
+  String _formatCurrency(int number) {
+    if (number == 0) return '0';
+
+    final String numberStr = number.toString();
+    final StringBuffer buffer = StringBuffer();
+
+    for (int i = numberStr.length - 1, count = 0; i >= 0; i--, count++) {
+      buffer.write(numberStr[i]);
+      if (count % 3 == 2 && i > 0) {
+        buffer.write('.');
+      }
+    }
+
+    return buffer.toString().split('').reversed.join('');
   }
 
   Future<void> _processSale() async {
-    if (_selectedItems.isEmpty || nameCtrl.text.isEmpty || phoneCtrl.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("VUI LÒNG NHẬP ĐỦ THÔNG TIN KHÁCH VÀ CHỌN HÀNG!")));
+    // Validate required fields
+    if (_selectedItems.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("VUI LÒNG CHỌN ÍT NHẤT MỘT SẢN PHẨM!")));
+      return;
+    }
+
+    final nameError = UserService.validateName(nameCtrl.text);
+    final phoneError = UserService.validatePhone(phoneCtrl.text);
+    final addressError = UserService.validateAddress(addressCtrl.text);
+
+    if (nameError != null || phoneError != null || addressError != null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(nameError ?? phoneError ?? addressError!),
+        backgroundColor: Colors.red,
+      ));
+      return;
+    }
+
+    // Validate price
+    final priceText = priceCtrl.text.replaceAll('.', '');
+    final price = int.tryParse(priceText);
+    if (price == null || price <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("GIÁ BÁN PHẢI LỚN HƠN 0!")));
       return;
     }
 
@@ -127,17 +172,17 @@ class _CreateSaleViewState extends State<CreateSaleView> {
       address: addressCtrl.text.trim().toUpperCase(),
       productNames: _selectedItems.map((e) => (e['product'] as Product).name).join(', '),
       productImeis: _selectedItems.map((e) => (e['product'] as Product).imei ?? "PK").join(', '),
-      totalPrice: (int.tryParse(priceCtrl.text) ?? 0) * 1000,
+      totalPrice: price,
       totalCost: _selectedItems.fold(0, (sum, item) => sum + (item['product'] as Product).cost),
       paymentMethod: _paymentMethod,
       sellerName: seller,
       soldAt: DateTime.now().millisecondsSinceEpoch,
       isInstallment: _paymentMethod == "TRẢ GÓP (NH)" ? true : _isInstallment,
-      downPayment: (int.tryParse(downPaymentCtrl.text) ?? 0) * 1000,
-      loanAmount: (int.tryParse(loanAmountCtrl.text) ?? 0) * 1000,
+      downPayment: _parseCurrency(downPaymentCtrl.text),
+      loanAmount: _parseCurrency(loanAmountCtrl.text) * 1000,
       bankName: bankCtrl.text,
       settlementPlannedAt: _paymentMethod == "TRẢ GÓP (NH)" ? _settlementPlannedAt : null,
-      settlementAmount: _paymentMethod == "TRẢ GÓP (NH)" ? (int.tryParse(loanAmountCtrl.text) ?? 0) * 1000 : 0,
+      settlementAmount: _paymentMethod == "TRẢ GÓP (NH)" ? _parseCurrency(loanAmountCtrl.text) : 0,
       settlementNote: _paymentMethod == "TRẢ GÓP (NH)" ? settlementNoteCtrl.text : null,
       settlementCode: _paymentMethod == "TRẢ GÓP (NH)" ? settlementCodeCtrl.text : null,
       notes: noteCtrl.text,
@@ -192,16 +237,10 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                     Row(
                       children: [
                         Expanded(
-                          child: TextField(
+                          child: DebouncedSearchField(
                             controller: searchProdCtrl,
-                            onChanged: _filterProducts,
-                            style: const TextStyle(fontSize: 16),
-                            decoration: InputDecoration(
-                              hintText: "Gõ tên máy, màu hoặc IMEI để tìm...",
-                              prefixIcon: const Icon(Icons.search, color: Colors.blueAccent),
-                              filled: true, fillColor: Colors.white,
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
-                            ),
+                            hint: "Gõ tên máy, màu hoặc IMEI để tìm...",
+                            onSearch: (value) => _filterProducts(value),
                           ),
                         ),
                       ],
@@ -213,10 +252,29 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                     
                     const SizedBox(height: 25),
                     _sectionTitle("2. THÔNG TIN KHÁCH HÀNG"),
-                    _input(nameCtrl, "TÊN KHÁCH HÀNG", icon: Icons.person, caps: true),
+                    ValidatedTextField(
+                      controller: nameCtrl,
+                      label: "TÊN KHÁCH HÀNG",
+                      icon: Icons.person,
+                      required: true,
+                      inputFormatters: [TextInputFormatter.withFunction((oldValue, newValue) => TextEditingValue(text: newValue.text.toUpperCase(), selection: newValue.selection))],
+                    ),
                     _buildCustomerSuggestions(),
-                    _input(phoneCtrl, "SỐ ĐIỆN THOẠI", icon: Icons.phone, type: TextInputType.phone),
-                    _input(addressCtrl, "ĐỊA CHỈ", icon: Icons.location_on, caps: true),
+                    ValidatedTextField(
+                      controller: phoneCtrl,
+                      label: "SỐ ĐIỆN THOẠI",
+                      icon: Icons.phone,
+                      keyboardType: TextInputType.phone,
+                      required: true,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(11)],
+                    ),
+                    ValidatedTextField(
+                      controller: addressCtrl,
+                      label: "ĐỊA CHỈ",
+                      icon: Icons.location_on,
+                      required: true,
+                      inputFormatters: [TextInputFormatter.withFunction((oldValue, newValue) => TextEditingValue(text: newValue.text.toUpperCase(), selection: newValue.selection))],
+                    ),
                     Align(
                       alignment: Alignment.centerRight,
                       child: TextButton.icon(
@@ -231,7 +289,12 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                     _buildPaymentSection(),
                     
                     const SizedBox(height: 10),
-                    _input(noteCtrl, "GHI CHÚ ĐƠN HÀNG"),
+                    ValidatedTextField(
+                      controller: noteCtrl,
+                      label: "GHI CHÚ ĐƠN HÀNG",
+                      hint: "Nhập ghi chú nếu có...",
+                      maxLength: 200,
+                    ),
                     const SizedBox(height: 100),
                   ],
                 ),
@@ -274,7 +337,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text("TỔNG THANH TOÁN:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-              Text("${NumberFormat('#,###').format((int.tryParse(priceCtrl.text) ?? 0) * 1000)} Đ", style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.red)),
+              Text("${_formatCurrency(_parseCurrency(priceCtrl.text))} Đ", style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.red)),
             ],
           ),
           const SizedBox(height: 10),
@@ -300,11 +363,12 @@ class _CreateSaleViewState extends State<CreateSaleView> {
             ],
           ),
           const SizedBox(height: 8),
-          TextField(
+          ValidatedTextField(
             controller: priceCtrl,
-            enabled: !_autoCalcTotal,
+            label: _autoCalcTotal ? "TỔNG TIỀN (TỰ TÍNH)" : "TỔNG TIỀN (NHẬP TAY)",
             keyboardType: TextInputType.number,
-            decoration: InputDecoration(prefixText: "Đ ", suffixText: ".000", labelText: _autoCalcTotal ? "Tổng tiền (tự tính)" : "Tổng tiền (nhập tay)"),
+            enabled: !_autoCalcTotal,
+            inputFormatters: [CurrencyInputFormatter()],
             onChanged: (_) => _calculateTotal(),
           ),
           const SizedBox(height: 12),
@@ -319,7 +383,12 @@ class _CreateSaleViewState extends State<CreateSaleView> {
             const SizedBox(height: 10),
             _moneyInput(loanAmountCtrl, "NGÂN HÀNG CHO VAY", enabled: false),
             const SizedBox(height: 10),
-            _input(bankCtrl, "TÊN NGÂN HÀNG", icon: Icons.account_balance, caps: true),
+            ValidatedTextField(
+              controller: bankCtrl,
+              label: "TÊN NGÂN HÀNG",
+              icon: Icons.account_balance,
+              inputFormatters: [TextInputFormatter.withFunction((oldValue, newValue) => TextEditingValue(text: newValue.text.toUpperCase(), selection: newValue.selection))],
+            ),
             const SizedBox(height: 8),
             Align(
               alignment: Alignment.centerLeft,
@@ -470,10 +539,11 @@ class _CreateSaleViewState extends State<CreateSaleView> {
       controller: ctrl, 
       enabled: enabled, 
       keyboardType: TextInputType.number, 
+      inputFormatters: [CurrencyInputFormatter()],
       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18), 
       decoration: InputDecoration(
         labelText: hint, 
-        suffixText: " .000 Đ", 
+        suffixText: " đ", 
         border: const OutlineInputBorder(), 
         filled: !enabled, 
         fillColor: !enabled ? Colors.grey[100] : null
@@ -552,5 +622,45 @@ class _CreateSaleViewState extends State<CreateSaleView> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("ĐÃ THÊM KHÁCH HÀNG VÀO DANH BẠ")),
     );
+  }
+}
+
+class CurrencyInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    if (newValue.text.isEmpty) {
+      return newValue;
+    }
+
+    // Allow only numbers
+    final regEx = RegExp(r'^\d+$');
+    if (!regEx.hasMatch(newValue.text)) {
+      return oldValue;
+    }
+
+    // Format with dots every 3 digits
+    final number = int.tryParse(newValue.text) ?? 0;
+    final formatted = _formatCurrency(number);
+
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+
+  String _formatCurrency(int number) {
+    if (number == 0) return '0';
+
+    final String numberStr = number.toString();
+    final StringBuffer buffer = StringBuffer();
+
+    for (int i = numberStr.length - 1, count = 0; i >= 0; i--, count++) {
+      buffer.write(numberStr[i]);
+      if ((count + 1) % 3 == 0 && i > 0) {
+        buffer.write('.');
+      }
+    }
+
+    return buffer.toString().split('').reversed.join('');
   }
 }
