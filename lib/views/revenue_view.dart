@@ -15,6 +15,8 @@ import 'payroll_view.dart';
 import '../services/user_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/audit_service.dart';
+import 'printer_setting_view.dart';
+import 'thermal_printer_design_view.dart';
 
 class RevenueView extends StatefulWidget {
   const RevenueView({super.key});
@@ -24,6 +26,37 @@ class RevenueView extends StatefulWidget {
 }
 
 class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStateMixin {
+    // Tab máy in: gom cài đặt, test, thiết kế mẫu in, hướng dẫn sử dụng
+    Widget _buildPrinterTab() {
+      return DefaultTabController(
+        length: 3,
+        child: Scaffold(
+          backgroundColor: const Color(0xFFF8FAFF),
+          appBar: AppBar(
+            automaticallyImplyLeading: false,
+            backgroundColor: Colors.white,
+            elevation: 0,
+            title: const Text("MÁY IN", style: TextStyle(fontWeight: FontWeight.bold)),
+            bottom: const TabBar(
+              labelColor: Colors.deepOrange,
+              indicatorColor: Colors.deepOrange,
+              tabs: [
+                Tab(icon: Icon(Icons.settings), text: "CÀI ĐẶT WIFI"),
+                Tab(icon: Icon(Icons.thermostat_rounded), text: "IN NHIỆT & TEM"),
+                Tab(icon: Icon(Icons.help_outline_rounded), text: "HƯỚNG DẪN"),
+              ],
+            ),
+          ),
+          body: TabBarView(
+            children: [
+              PrinterSettingView(),
+              ThermalPrinterDesignView(),
+              _PrinterGuideTab(),
+            ],
+          ),
+        ),
+      );
+    }
   final db = DBHelper();
   late TabController _tabController;
   
@@ -49,7 +82,7 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 11, vsync: this);
     _loadData();
     _loadRole();
   }
@@ -270,17 +303,81 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
       appBar: AppBar(
         backgroundColor: Colors.white,
         title: const Text("TRUNG TÂM TÀI CHÍNH", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-        bottom: TabBar(
-          controller: _tabController,
-          isScrollable: true,
-          labelColor: Colors.blueAccent,
-          indicatorColor: Colors.blueAccent,
-          tabs: const [
-            Tab(text: "DASHBOARD"),
-            Tab(text: "BÁN HÀNG"),
-            Tab(text: "SỬA CHỮA"),
-            Tab(text: "QUẢN LÝ CHI PHÍ"),
-          ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(70),
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.08),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: TabBar(
+              controller: _tabController,
+              isScrollable: true,
+              labelColor: Colors.deepOrange,
+              unselectedLabelColor: Colors.blueGrey,
+              indicator: BoxDecoration(
+                color: Colors.deepOrange.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+              unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal, fontSize: 12),
+              tabs: const [
+                Tab(
+                  icon: Icon(Icons.dashboard_customize_rounded, size: 30, shadows: [Shadow(color: Colors.orange, blurRadius: 2)]),
+                  text: "DASHBOARD",
+                ),
+                Tab(
+                  icon: Icon(Icons.shopping_cart_checkout_rounded, size: 30, shadows: [Shadow(color: Colors.pink, blurRadius: 2)]),
+                  text: "BÁN HÀNG",
+                ),
+                Tab(
+                  icon: Icon(Icons.build_circle_rounded, size: 30, shadows: [Shadow(color: Colors.blue, blurRadius: 2)]),
+                  text: "SỬA CHỮA",
+                ),
+                Tab(
+                  icon: Icon(Icons.money_off_csred_rounded, size: 30, shadows: [Shadow(color: Colors.redAccent, blurRadius: 2)]),
+                  text: "CHI PHÍ",
+                ),
+                Tab(
+                  icon: Icon(Icons.business_rounded, size: 30, shadows: [Shadow(color: Colors.teal, blurRadius: 2)]),
+                  text: "NHÀ CC",
+                ),
+                Tab(
+                  icon: Icon(Icons.history_rounded, size: 30, shadows: [Shadow(color: Colors.deepPurple, blurRadius: 2)]),
+                  text: "NHẬT KÝ",
+                ),
+                Tab(
+                  icon: Icon(Icons.group_rounded, size: 30, shadows: [Shadow(color: Colors.green, blurRadius: 2)]),
+                  text: "NHÂN VIÊN",
+                ),
+                Tab(
+                  icon: Icon(Icons.fingerprint_rounded, size: 30, shadows: [Shadow(color: Colors.indigo, blurRadius: 2)]),
+                  text: "CHẤM CÔNG",
+                ),
+                Tab(
+                  icon: Icon(Icons.payments_rounded, size: 30, shadows: [Shadow(color: Colors.brown, blurRadius: 2)]),
+                  text: "LƯƠNG",
+                ),
+                Tab(
+                  icon: Icon(Icons.receipt_long_rounded, size: 30, shadows: [Shadow(color: Colors.deepPurple, blurRadius: 2)]),
+                  text: "CÔNG NỢ",
+                ),
+                Tab(
+                  icon: Icon(Icons.print_rounded, size: 32, color: Colors.deepOrange, shadows: [Shadow(color: Colors.deepOrange, blurRadius: 3)]),
+                  text: "MÁY IN",
+                ),
+              ],
+            ),
+          ),
         ),
       ),
       body: _isLoading 
@@ -293,14 +390,7 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
                   spacing: 12,
                   runSpacing: 12,
                   children: [
-                    _quickActionButton("NHÀ CC", Icons.business_rounded, Colors.blueGrey, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SupplierView()))),
-                    if (_isAdmin)
-                      _quickActionButton("NHẬT KÝ", Icons.history_rounded, Colors.teal, _openAuditLogView),
-                    _quickActionButton("DS NHÂN VIÊN", Icons.show_chart, Colors.indigo, _openStaffPerformance),
-                    _quickActionButton("CHẤM CÔNG", Icons.fingerprint, Colors.deepPurple, _openAttendance),
-                    _quickActionButton("BẢNG LƯƠNG", Icons.payments, Colors.green, _openPayroll),
-                    if (_isAdmin)
-                      _quickActionButton("XÓA LOCAL", Icons.delete_sweep_rounded, Colors.red.shade700, _confirmWipeLocal),
+                    // Removed all quick action buttons
                   ],
                 ),
               ),
@@ -312,6 +402,13 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
                     _buildSalesReport(),
                     _buildRepairReport(),
                     _buildExpenseDebtTab(),
+                    _buildSupplierTab(),
+                    _buildAuditLogTab(),
+                    _buildStaffPerformanceTab(),
+                    _buildAttendanceTab(),
+                    _buildPayrollTab(),
+                    _buildDebtTab(),
+                    _buildPrinterTab(),
                   ],
                 ),
               ),
@@ -659,26 +756,56 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
   }
 
   Widget _buildExpenseDebtTab() {
-    return DefaultTabController(
-      length: 2,
+    return ExpenseView();
+  }
+
+  Widget _buildSupplierTab() {
+    return const SupplierView();
+  }
+
+  Widget _buildAuditLogTab() {
+    if (!_isAdmin) return const Center(child: Text("Không có quyền truy cập"));
+    return const AuditLogView();
+  }
+
+  Widget _buildStaffPerformanceTab() {
+    return const StaffPerformanceView();
+  }
+
+  Widget _buildAttendanceTab() {
+    return const AttendanceView();
+  }
+
+  Widget _buildPayrollTab() {
+    return const PayrollView();
+  }
+
+  Widget _buildDebtTab() {
+    return const DebtView();
+  }
+}
+
+// Widget hướng dẫn sử dụng máy in
+class _PrinterGuideTab extends StatelessWidget {
+  const _PrinterGuideTab();
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
       child: Column(
-        children: [
-          const TabBar(
-            labelColor: Colors.blueAccent,
-            indicatorColor: Colors.blueAccent,
-            tabs: [
-              Tab(text: "CHI PHÍ"),
-              Tab(text: "CÔNG NỢ"),
-            ],
-          ),
-          Expanded(
-            child: TabBarView(
-              children: [
-                ExpenseView(),
-                DebtView(),
-              ],
-            ),
-          ),
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: const [
+          Text("HƯỚNG DẪN SỬ DỤNG MÁY IN", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+          SizedBox(height: 20),
+          Text("1. Cài đặt máy in Wifi/LAN: Nhập đúng địa chỉ IP, nhấn Lưu & In thử để kiểm tra kết nối."),
+          SizedBox(height: 10),
+          Text("2. Máy in nhiệt Bluetooth: Quét, chọn máy in, in thử mẫu tem."),
+          SizedBox(height: 10),
+          Text("3. Thiết kế mẫu tem: Tuỳ chỉnh thông tin, kích thước, cỡ chữ, xem trước mẫu tem."),
+          SizedBox(height: 10),
+          Text("4. Lưu ý: Điện thoại và máy in phải cùng mạng Wifi (với máy in Wifi/LAN) hoặc bật Bluetooth (với máy in nhiệt)."),
+          SizedBox(height: 20),
+          Text("Nếu gặp lỗi không cấp quyền, hãy vào Cài đặt > Ứng dụng > [Tên app] > Quyền và cấp đầy đủ quyền Bluetooth, Vị trí."),
         ],
       ),
     );

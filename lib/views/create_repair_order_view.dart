@@ -69,6 +69,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
   void _smartFill() async {
     if (phoneCtrl.text.length >= 10) {
       final res = await db.getUniqueCustomersAll();
+      if (!mounted) return;
       final find = res.where((c) => c['phone'] == phoneCtrl.text).toList();
       if (find.isNotEmpty) {
         setState(() {
@@ -110,39 +111,55 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
     }
 
     setState(() => _saving = true);
-    final user = FirebaseAuth.instance.currentUser;
-    final r = Repair(
-      customerName: nameCtrl.text.toUpperCase(),
-      phone: phoneCtrl.text,
-      model: modelCtrl.text.toUpperCase(),
-      issue: "${issueCtrl.text.toUpperCase()} | NGOẠI QUAN: ${appearanceCtrl.text.toUpperCase()} | MK: ${passCtrl.text}",
-      accessories: accCtrl.text.toUpperCase(),
-      address: addressCtrl.text.toUpperCase(),
-      paymentMethod: _paymentMethod,
-      price: price,
-      createdAt: DateTime.now().millisecondsSinceEpoch,
-      imagePath: _images.map((e) => e.path).join(','),
-      createdBy: user?.email?.split('@').first.toUpperCase() ?? "NV",
-    );
-    await db.insertRepair(r);
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      final r = Repair(
+        customerName: nameCtrl.text.toUpperCase(),
+        phone: phoneCtrl.text,
+        model: modelCtrl.text.toUpperCase(),
+        issue: "${issueCtrl.text.toUpperCase()} | NGOẠI QUAN: ${appearanceCtrl.text.toUpperCase()} | MK: ${passCtrl.text}",
+        accessories: accCtrl.text.toUpperCase(),
+        address: addressCtrl.text.toUpperCase(),
+        paymentMethod: _paymentMethod,
+        price: price,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        imagePath: _images.map((e) => e.path).join(','),
+        createdBy: user?.email?.split('@').first.toUpperCase() ?? "NV",
+      );
+      await db.insertRepair(r);
 
-    // Đẩy ngay lên Cloud để máy khác nhận được
-    final docId = await FirestoreService.addRepair(r);
-    if (docId != null) {
-      r.firestoreId = docId;
-      r.isSynced = true;
-      await db.updateRepair(r);
+      // Đẩy ngay lên Cloud để máy khác nhận được
+      final docId = await FirestoreService.addRepair(r);
+      if (docId != null) {
+        r.firestoreId = docId;
+        r.isSynced = true;
+        await db.updateRepair(r);
+      }
+      
+      AuditService.logAction(
+        action: 'CREATE_REPAIR',
+        entityType: 'repair',
+        entityId: r.firestoreId ?? "repair_${r.createdAt}_${r.phone}",
+        summary: "${r.customerName} - ${r.model}",
+        payload: {'paymentMethod': r.paymentMethod, 'price': r.price},
+      );
+      
+      await NotificationService.sendCloudNotification(
+        title: "ĐƠN MỚI", 
+        body: "${r.createdBy} NHẬN ${r.model} CỦA KHÁCH ${r.customerName}"
+      );
+      
+      if (!mounted) return;
+      Navigator.pop(context, true);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _saving = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text("LỖI KHI LƯU ĐƠN: $e"),
+          backgroundColor: Colors.red,
+        ));
+      }
     }
-    AuditService.logAction(
-      action: 'CREATE_REPAIR',
-      entityType: 'repair',
-      entityId: r.firestoreId ?? "repair_${r.createdAt}_${r.phone}",
-      summary: "${r.customerName} - ${r.model}",
-      payload: {'paymentMethod': r.paymentMethod, 'price': r.price},
-    );
-    await NotificationService.sendCloudNotification(title: "ĐƠN MỚI", body: "${r.createdBy} NHẬN ${r.model} CỦA KHÁCH ${r.customerName}");
-    if (!mounted) return;
-    Navigator.pop(context, true);
   }
 
   @override
@@ -365,7 +382,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
       return;
     }
 
-    final addressCtrl = TextEditingController(text: this.addressCtrl.text.trim());
+    final tempAddressCtrl = TextEditingController(text: addressCtrl.text.trim());
 
     if (!mounted) return;
     final result = await showDialog<bool>(
@@ -374,7 +391,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
         return AlertDialog(
           title: const Text("THÊM VÀO DANH BẠ"),
           content: TextField(
-            controller: addressCtrl,
+            controller: tempAddressCtrl,
             textCapitalization: TextCapitalization.characters,
             decoration: const InputDecoration(labelText: "ĐỊA CHỈ KHÁCH HÀNG"),
           ),
@@ -390,7 +407,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
       await db.insertCustomer({
         'name': (name.isEmpty ? phone : name),
         'phone': phone,
-        'address': addressCtrl.text.trim().toUpperCase(),
+        'address': tempAddressCtrl.text.trim().toUpperCase(),
         'createdAt': DateTime.now().millisecondsSinceEpoch,
       });
 
@@ -399,6 +416,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
         const SnackBar(content: Text("ĐÃ THÊM KHÁCH HÀNG VÀO DANH BẠ")),
       );
     }
+    tempAddressCtrl.dispose();
   }
 }
 
@@ -409,14 +427,17 @@ class CurrencyInputFormatter extends TextInputFormatter {
       return newValue;
     }
 
-    // Allow only numbers
-    final regEx = RegExp(r'^\d+$');
-    if (!regEx.hasMatch(newValue.text)) {
-      return oldValue;
+    // Strip all non-digit characters to get the raw number
+    final String cleanedText = newValue.text.replaceAll(RegExp(r'[^\d]'), '');
+    
+    if (cleanedText.isEmpty) {
+      return const TextEditingValue(
+        text: '',
+        selection: TextSelection.collapsed(offset: 0),
+      );
     }
 
-    // Format with dots every 3 digits
-    final number = int.tryParse(newValue.text) ?? 0;
+    final number = int.tryParse(cleanedText) ?? 0;
     final formatted = _formatCurrency(number);
 
     return TextEditingValue(

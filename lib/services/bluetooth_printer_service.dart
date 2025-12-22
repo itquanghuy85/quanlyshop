@@ -79,6 +79,14 @@ class BluetoothPrinterService {
         }
       }
 
+      // Yêu cầu quyền Bluetooth scan (Android 12+)
+      if (await Permission.bluetoothScan.isRestricted || await Permission.bluetoothScan.isDenied) {
+        final scanStatus = await Permission.bluetoothScan.request();
+        if (!scanStatus.isGranted) {
+          return false;
+        }
+      }
+
       return true;
     } catch (e) {
       print('Error requesting Bluetooth permissions: $e');

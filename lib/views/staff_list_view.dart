@@ -561,13 +561,22 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter> with SingleT
   }
 
   Future<void> _loadAllStaffData() async {
-    final allR = await db.getAllRepairs();
-    final allS = await db.getAllSales();
-    setState(() {
-      _repairsReceived = allR.where((r) => r.createdBy?.toUpperCase() == widget.name).toList();
-      _repairsDelivered = allR.where((r) => r.deliveredBy?.toUpperCase() == widget.name).toList();
-      _sales = allS.where((s) => s.sellerName.toUpperCase() == widget.name).toList();
-    });
+    try {
+      final allR = await db.getAllRepairs();
+      final allS = await db.getAllSales();
+      setState(() {
+        _repairsReceived = allR.where((r) => r.createdBy?.toUpperCase() == widget.name).toList();
+        _repairsDelivered = allR.where((r) => r.deliveredBy?.toUpperCase() == widget.name).toList();
+        _sales = allS.where((s) => s.sellerName.toUpperCase() == widget.name).toList();
+      });
+    } catch (e) {
+      // Ignore errors when loading staff data
+      setState(() {
+        _repairsReceived = [];
+        _repairsDelivered = [];
+        _sales = [];
+      });
+    }
   }
 
   Future<void> _pickPhoto() async {
@@ -576,34 +585,38 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter> with SingleT
   }
 
   Future<void> _saveStaffInfo() async {
-    await UserService.updateUserInfo(
-      uid: widget.uid,
-      name: nameCtrl.text,
-      phone: phoneCtrl.text,
-      address: addressCtrl.text,
-      role: _selectedRole,
-      photoUrl: _photoPath,
-    );
+    try {
+      await UserService.updateUserInfo(
+        uid: widget.uid,
+        name: nameCtrl.text,
+        phone: phoneCtrl.text,
+        address: addressCtrl.text,
+        role: _selectedRole,
+        photoUrl: _photoPath,
+      );
 
-    // Lưu cấu hình phân quyền hiển thị nội dung
-    await UserService.updateUserPermissions(
-      uid: widget.uid,
-      allowViewSales: _canViewSales,
-      allowViewRepairs: _canViewRepairs,
-      allowViewInventory: _canViewInventory,
-      allowViewParts: _canViewParts,
-      allowViewSuppliers: _canViewSuppliers,
-      allowViewCustomers: _canViewCustomers,
-      allowViewWarranty: _canViewWarranty,
-      allowViewChat: _canViewChat,
-      allowViewPrinter: _canViewPrinter,
-      allowViewRevenue: _selectedRole == 'admin' ? true : _canViewRevenue,
-      allowViewExpenses: _selectedRole == 'admin' ? true : _canViewExpenses,
-      allowViewDebts: _selectedRole == 'admin' ? true : _canViewDebts,
-    );
+      // Lưu cấu hình phân quyền hiển thị nội dung
+      await UserService.updateUserPermissions(
+        uid: widget.uid,
+        allowViewSales: _canViewSales,
+        allowViewRepairs: _canViewRepairs,
+        allowViewInventory: _canViewInventory,
+        allowViewParts: _canViewParts,
+        allowViewSuppliers: _canViewSuppliers,
+        allowViewCustomers: _canViewCustomers,
+        allowViewWarranty: _canViewWarranty,
+        allowViewChat: _canViewChat,
+        allowViewPrinter: _canViewPrinter,
+        allowViewRevenue: _selectedRole == 'admin' ? true : _canViewRevenue,
+        allowViewExpenses: _selectedRole == 'admin' ? true : _canViewExpenses,
+        allowViewDebts: _selectedRole == 'admin' ? true : _canViewDebts,
+      );
 
-    setState(() => _isEditing = false);
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ĐÃ CẬP NHẬT HỒ SƠ NHÂN VIÊN!")));
+      setState(() => _isEditing = false);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ĐÃ CẬP NHẬT HỒ SƠ NHÂN VIÊN!")));
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Lỗi khi cập nhật: $e")));
+    }
   }
 
   Future<void> _assignToMyShop() async {

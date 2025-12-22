@@ -88,100 +88,102 @@ class _PrinterSettingViewState extends State<PrinterSettingView> {
       appBar: AppBar(title: const Text("CÀI ĐẶT MÁY IN WIFI", style: TextStyle(fontWeight: FontWeight.bold))),
       body: Padding(
         padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(25),
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)]
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(25),
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)]
+                ),
+                child: Column(
+                  children: [
+                    const Icon(Icons.wifi_tethering_rounded, size: 60, color: Colors.blueAccent),
+                    const SizedBox(height: 15),
+                    const Text("MÁY IN WIFI / LAN", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                    const Text("Kết nối qua địa chỉ IP mạng nội bộ", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  ],
+                ),
               ),
-              child: Column(
+              const SizedBox(height: 30),
+              const Text("ĐỊA CHỈ IP MÁY IN (VD: 192.168.1.100)", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+              const SizedBox(height: 10),
+              TextField(
+                controller: ipCtrl,
+                keyboardType: TextInputType.number,
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 2),
+                decoration: InputDecoration(
+                  hintText: "192.168.1.XXX",
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+                  prefixIcon: const Icon(Icons.lan_rounded, color: Colors.blueAccent),
+                ),
+              ),
+              const SizedBox(height: 25),
+              Row(
                 children: [
-                  const Icon(Icons.wifi_tethering_rounded, size: 60, color: Colors.blueAccent),
-                  const SizedBox(height: 15),
-                  const Text("MÁY IN WIFI / LAN", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                  const Text("Kết nối qua địa chỉ IP mạng nội bộ", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      color: Colors.white,
+                      border: Border.all(color: Colors.blueAccent.withOpacity(0.2)),
+                    ),
+                    child: _hasLogo
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: Image.file(File(_logoPath), fit: BoxFit.cover),
+                          )
+                        : const Icon(Icons.image, color: Colors.grey),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: const [
+                        Text("LOGO HÓA ĐƠN", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+                        SizedBox(height: 4),
+                        Text("Chọn ảnh logo (vuông, nền trắng) để in trên hóa đơn chia sẻ.", style: TextStyle(fontSize: 11, color: Colors.grey)),
+                      ],
+                    ),
+                  ),
+                  TextButton.icon(
+                    onPressed: _pickLogo,
+                    icon: const Icon(Icons.photo_library, size: 18),
+                    label: const Text("Chọn logo", style: TextStyle(fontSize: 12)),
+                  ),
                 ],
               ),
-            ),
-            const SizedBox(height: 30),
-            const Text("ĐỊA CHỈ IP MÁY IN (VD: 192.168.1.100)", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
-            const SizedBox(height: 10),
-            TextField(
-              controller: ipCtrl,
-              keyboardType: TextInputType.number,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 2),
-              decoration: InputDecoration(
-                hintText: "192.168.1.XXX",
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
-                prefixIcon: const Icon(Icons.lan_rounded, color: Colors.blueAccent),
-              ),
-            ),
-            const SizedBox(height: 25),
-            Row(
-              children: [
-                Container(
-                  width: 60,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10),
-                    color: Colors.white,
-                    border: Border.all(color: Colors.blueAccent.withOpacity(0.2)),
-                  ),
-                  child: _hasLogo
-                      ? ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
-                          child: Image.file(File(_logoPath), fit: BoxFit.cover),
-                        )
-                      : const Icon(Icons.image, color: Colors.grey),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text("LOGO HÓA ĐƠN", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
-                      SizedBox(height: 4),
-                      Text("Chọn ảnh logo (vuông, nền trắng) để in trên hóa đơn chia sẻ.", style: TextStyle(fontSize: 11, color: Colors.grey)),
-                    ],
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                height: 55,
+                child: ElevatedButton.icon(
+                  onPressed: _isTesting ? null : _saveAndTest,
+                  icon: _isTesting ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Icon(Icons.print_rounded),
+                  label: Text(_isTesting ? "ĐANG KIỂM TRA..." : "LƯU & IN THỬ", style: const TextStyle(fontWeight: FontWeight.bold)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blueAccent,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))
                   ),
                 ),
-                TextButton.icon(
-                  onPressed: _pickLogo,
-                  icon: const Icon(Icons.photo_library, size: 18),
-                  label: const Text("Chọn logo", style: TextStyle(fontSize: 12)),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              height: 55,
-              child: ElevatedButton.icon(
-                onPressed: _isTesting ? null : _saveAndTest,
-                icon: _isTesting ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Icon(Icons.print_rounded),
-                label: Text(_isTesting ? "ĐANG KIỂM TRA..." : "LƯU & IN THỬ", style: const TextStyle(fontWeight: FontWeight.bold)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blueAccent,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))
-                ),
               ),
-            ),
-            const Spacer(),
-            const Text(
-              "Lưu ý: Điện thoại và máy in phải bắt cùng một cục Wifi.",
-              style: TextStyle(fontSize: 11, color: Colors.grey, fontStyle: FontStyle.italic),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 20),
-          ],
+              const SizedBox(height: 20),
+              const Text(
+                "Lưu ý: Điện thoại và máy in phải bắt cùng một cục Wifi.",
+                style: TextStyle(fontSize: 11, color: Colors.grey, fontStyle: FontStyle.italic),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
         ),
       ),
     );

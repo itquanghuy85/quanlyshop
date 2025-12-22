@@ -11,8 +11,6 @@ import 'services/user_service.dart';
 import 'services/notification_service.dart';
 
 Future<void> main() async {
-  // Đảm bảo WidgetsFlutterBinding.ensureInitialized, Firebase.init và runApp
-  // đều chạy trong cùng một Zone để tránh lỗi Zone mismatch.
   await runZonedGuarded<Future<void>>(() async {
     WidgetsFlutterBinding.ensureInitialized();
     await initializeDateFormatting('vi_VN');
@@ -25,7 +23,8 @@ Future<void> main() async {
 
     runApp(const MyApp());
   }, (error, stack) {
-    debugPrint('ERROR: $error');
+    debugPrint('GLOBAL ERROR: $error');
+    debugPrint('STACK: $stack');
   });
 }
 
@@ -37,6 +36,8 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Quan Ly Shop',
       debugShowCheckedModeBanner: false,
+      // Global key để hiển thị SnackBar mà không cần context
+      scaffoldMessengerKey: NotificationService.messengerKey, 
       theme: ThemeData(
         brightness: Brightness.light,
         scaffoldBackgroundColor: const Color(0xFFF8FAFF),
@@ -56,40 +57,32 @@ class AuthGate extends StatefulWidget {
 
 class _AuthGateState extends State<AuthGate> {
   int _notificationCount = 0;
+  
   @override
   void initState() {
     super.initState();
-    // --- CAO KIẾN: KÍCH HOẠT LẮNG NGHE THÔNG BÁO TOÀN CỤC ---
+    _initNotificationListener();
+    _syncUserOnStart();
+  }
+
+  void _initNotificationListener() {
     NotificationService.listenToNotifications((title, body) {
       if (mounted && _notificationCount < 3) {
         _notificationCount++;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("$title: $body"),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.blueAccent,
-            duration: const Duration(seconds: 5),
-          ),
+        // Sử dụng GlobalKey để show SnackBar an toàn hơn
+        NotificationService.showSnackBar(
+          "$title: $body",
+          color: Colors.blueAccent,
         );
+        // Reset count sau 10s
+        Future.delayed(const Duration(seconds: 10), () {
+          if (mounted) _notificationCount = 0;
+        });
       }
     });
+  }
 
-    // Thông báo khi có tin nhắn chat mới (TẮT để tránh quá nhiều thông báo)
-    // NotificationService.listenToChatMessages((title, body) {
-    //   if (mounted) {
-    //     ScaffoldMessenger.of(context).showSnackBar(
-    //       SnackBar(
-    //         content: Text("$title: $body"),
-    //         behavior: SnackBarBehavior.floating,
-    //         backgroundColor: Colors.deepPurple,
-    //         duration: const Duration(seconds: 4),
-    //       ),
-    //     );
-    //   }
-    // });
-
-    // Đồng bộ thông tin user hiện tại (trường hợp app mở thẳng vào Home
-    // mà không đi qua màn Login sau khi cập nhật code).
+  void _syncUserOnStart() {
     final current = FirebaseAuth.instance.currentUser;
     if (current != null && current.email != null) {
       UserService.syncUserInfo(current.uid, current.email!);
@@ -101,13 +94,26 @@ class _AuthGateState extends State<AuthGate> {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snap) {
-        if (snap.connectionState == ConnectionState.waiting) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        if (snap.connectionState == ConnectionState.waiting) {
+          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        }
+        
         if (!snap.hasData) return const LoginView();
 
         return FutureBuilder<String>(
+          // Dùng memoization hoặc kiểm tra uid để tránh gọi lại future vô ích
           future: UserService.getUserRole(snap.data!.uid),
           builder: (context, roleSnap) {
-            if (!roleSnap.hasData) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+            if (roleSnap.connectionState == ConnectionState.waiting) {
+              return const Scaffold(body: Center(child: CircularProgressIndicator()));
+            }
+            
+            if (roleSnap.hasError || !roleSnap.hasData) {
+              // Nếu lỗi role, ép đăng xuất để tránh treo app
+              FirebaseAuth.instance.signOut();
+              return const LoginView();
+            }
+            
             return HomeView(role: roleSnap.data!);
           },
         );
