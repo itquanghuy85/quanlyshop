@@ -11,10 +11,7 @@ class BluetoothPrinterConfig {
 
   BluetoothPrinterConfig({required this.name, required this.macAddress});
 
-  Map<String, dynamic> toJson() => {
-        'name': name,
-        'macAddress': macAddress,
-      };
+  Map<String, dynamic> toJson() => {'name': name, 'macAddress': macAddress};
 
   factory BluetoothPrinterConfig.fromJson(Map<String, dynamic> json) =>
       BluetoothPrinterConfig(
@@ -61,7 +58,8 @@ class BluetoothPrinterService {
   }
 
   // Yêu cầu quyền Bluetooth tối ưu cho từng phiên bản Android
-  static Future<Map<String, dynamic>> requestBluetoothPermissionsOptimized() async {
+  static Future<Map<String, dynamic>>
+  requestBluetoothPermissionsOptimized() async {
     try {
       Map<String, dynamic> results = {
         'success': true,
@@ -80,16 +78,22 @@ class BluetoothPrinterService {
       results['permissions']['location'] = locationStatus.isGranted;
 
       if (!locationStatus.isGranted) {
-        results['warnings'].add('Quyền vị trí bị từ chối - có thể ảnh hưởng đến việc tìm máy in trên Android cũ');
+        results['warnings'].add(
+          'Quyền vị trí bị từ chối - có thể ảnh hưởng đến việc tìm máy in trên Android cũ',
+        );
       }
 
       // 2. Quyền Bluetooth Connect (quan trọng nhất cho Android 12+)
       _addLog('Yêu cầu quyền Bluetooth Connect...');
-      final bluetoothConnectStatus = await Permission.bluetoothConnect.request();
-      results['permissions']['bluetoothConnect'] = bluetoothConnectStatus.isGranted;
+      final bluetoothConnectStatus = await Permission.bluetoothConnect
+          .request();
+      results['permissions']['bluetoothConnect'] =
+          bluetoothConnectStatus.isGranted;
 
       if (!bluetoothConnectStatus.isGranted) {
-        results['errors'].add('Quyền Bluetooth Connect bị từ chối - không thể kết nối máy in');
+        results['errors'].add(
+          'Quyền Bluetooth Connect bị từ chối - không thể kết nối máy in',
+        );
         results['success'] = false;
       }
 
@@ -99,7 +103,9 @@ class BluetoothPrinterService {
       results['permissions']['bluetoothScan'] = bluetoothScanStatus.isGranted;
 
       if (!bluetoothScanStatus.isGranted) {
-        results['errors'].add('Quyền Bluetooth Scan bị từ chối - không thể tìm máy in');
+        results['errors'].add(
+          'Quyền Bluetooth Scan bị từ chối - không thể tìm máy in',
+        );
         results['success'] = false;
       }
 
@@ -109,15 +115,21 @@ class BluetoothPrinterService {
       results['permissions']['bluetooth'] = bluetoothStatus.isGranted;
 
       if (!bluetoothStatus.isGranted) {
-        results['warnings'].add('Quyền Bluetooth cơ bản bị từ chối - có thể ảnh hưởng trên Android cũ');
+        results['warnings'].add(
+          'Quyền Bluetooth cơ bản bị từ chối - có thể ảnh hưởng trên Android cũ',
+        );
       }
 
       // 5. Quyền Bluetooth Advertise (tùy chọn)
-      final bluetoothAdvertiseStatus = await Permission.bluetoothAdvertise.request();
-      results['permissions']['bluetoothAdvertise'] = bluetoothAdvertiseStatus.isGranted;
+      final bluetoothAdvertiseStatus = await Permission.bluetoothAdvertise
+          .request();
+      results['permissions']['bluetoothAdvertise'] =
+          bluetoothAdvertiseStatus.isGranted;
 
       if (!bluetoothAdvertiseStatus.isGranted) {
-        results['warnings'].add('Quyền Bluetooth Advertise bị từ chối - một số thiết bị có thể không tương thích');
+        results['warnings'].add(
+          'Quyền Bluetooth Advertise bị từ chối - một số thiết bị có thể không tương thích',
+        );
       }
 
       return results;
@@ -133,7 +145,8 @@ class BluetoothPrinterService {
   }
 
   // Yêu cầu quyền Bluetooth toàn diện (phương thức cũ)
-  static Future<Map<String, dynamic>> requestBluetoothPermissionsComprehensive() async {
+  static Future<Map<String, dynamic>>
+  requestBluetoothPermissionsComprehensive() async {
     return await requestBluetoothPermissionsOptimized();
   }
 
@@ -180,11 +193,11 @@ class BluetoothPrinterService {
       try {
         // Start scan
         FlutterBluePlus.startScan(timeout: const Duration(seconds: 10));
-        
+
         // Wait for scan to complete and get results
         await Future.delayed(const Duration(seconds: 10));
         scanResults = FlutterBluePlus.lastScanResults;
-        
+
         await FlutterBluePlus.stopScan();
       } catch (e) {
         print('FlutterBluePlus scan failed: $e');
@@ -196,10 +209,7 @@ class BluetoothPrinterService {
         // Lọc devices có thể là printer (có thể cải thiện logic này)
         final device = result.device;
         final name = device.name.isNotEmpty ? device.name : 'Unknown Device';
-        printers.add(BluetoothInfo(
-          name: name,
-          macAdress: device.remoteId.str,
-        ));
+        printers.add(BluetoothInfo(name: name, macAdress: device.remoteId.str));
       }
 
       // Nếu không tìm thấy bằng flutter_blue_plus, thử lấy paired devices
@@ -216,7 +226,9 @@ class BluetoothPrinterService {
   }
 
   // Kết nối đến máy in với kiểm tra chi tiết
-  static Future<Map<String, dynamic>> connectWithStatus(String macAddress) async {
+  static Future<Map<String, dynamic>> connectWithStatus(
+    String macAddress,
+  ) async {
     try {
       print('DEBUG: Starting connection to printer $macAddress');
 
@@ -237,15 +249,23 @@ class BluetoothPrinterService {
       // Kiểm tra máy in có trong danh sách paired không
       final pairedPrinters = await getPairedPrinters();
       print('DEBUG: Found ${pairedPrinters.length} paired printers');
-      final isPaired = pairedPrinters.any((printer) => printer.macAdress == macAddress);
+      final isPaired = pairedPrinters.any(
+        (printer) => printer.macAdress == macAddress,
+      );
       print('DEBUG: Printer $macAddress is paired: $isPaired');
       if (!isPaired) {
-        return {'success': false, 'error': 'Printer not paired. Please pair the printer first in device settings'};
+        return {
+          'success': false,
+          'error':
+              'Printer not paired. Please pair the printer first in device settings',
+        };
       }
 
       // Thử kết nối
       print('DEBUG: Attempting to connect via PrintBluetoothThermal.connect');
-      final connected = await PrintBluetoothThermal.connect(macPrinterAddress: macAddress);
+      final connected = await PrintBluetoothThermal.connect(
+        macPrinterAddress: macAddress,
+      );
       print('DEBUG: PrintBluetoothThermal.connect result: $connected');
 
       if (connected) {
@@ -277,7 +297,10 @@ class BluetoothPrinterService {
 
   // In tem điện thoại với máy in Bluetooth cụ thể
   // In tem điện thoại qua Bluetooth
-  static Future<bool> printPhoneLabel(Map<String, dynamic> labelData, [String? macAddress]) async {
+  static Future<bool> printPhoneLabel(
+    Map<String, dynamic> labelData, [
+    String? macAddress,
+  ]) async {
     try {
       print('DEBUG: printPhoneLabel called with data: $labelData');
       // Log chi tiết từng trường dữ liệu
@@ -318,7 +341,12 @@ class BluetoothPrinterService {
       // Tạo bytes cho tem
       List<int> bytes = [];
       try {
-        bytes = await _generatePhoneLabelBytesSimple(labelData);
+        // Đọc cài đặt QR từ SharedPreferences
+        final prefs = await SharedPreferences.getInstance();
+        final showQR = prefs.getBool('thermal_show_qr') ?? false;
+        print('DEBUG: Read showQR from prefs: $showQR');
+
+        bytes = await _generatePhoneLabelBytesSimple(labelData, showQR);
         print('DEBUG: Generated ${bytes.length} bytes for printing');
       } catch (genErr) {
         print('DEBUG: Error generating label bytes: $genErr');
@@ -362,32 +390,22 @@ class BluetoothPrinterService {
   }
 
   // Tạo bytes cho tem điện thoại đơn giản (không QR để tránh lỗi máy in)
-  static Future<List<int>> _generatePhoneLabelBytesSimple(Map<String, dynamic> labelData) async {
-    // Hàm loại bỏ dấu tiếng Việt
-    String removeVietnameseAccents(String str) {
-      const vietnameseChars = 'àáảãạâầấẩẫậăằắẳẵặèéẻẽẹêềếểễệđìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵÀÁẢÃẠÂẦẤẨẪẬĂẰẮẲẴẶÈÉẺẼẸÊỀẾỂỄỆĐÌÍỈĨỊÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢÙÚỦŨỤƯỪỨỬỮỰỲÝỶỸỴ';
-      const asciiChars = 'aaaaaaaaaaaaaaaaaeeeeeeeeeeediiiiiooooooooooooooooouuuuuuuuuuuyyyyyAAAAAAAAAAAAAAAAAEEEEEEEEEEEDIIIIIOOOOOOOOOOOOOOOOOUUUUUUUUUUUYYYYY';
-      var result = str;
-      for (var i = 0; i < vietnameseChars.length; i++) {
-        result = result.replaceAll(vietnameseChars[i], asciiChars[i]);
-      }
-      return result;
-    }
-
-    // Validate dữ liệu đầu vào
-    final name = removeVietnameseAccents((labelData['name'] ?? 'N/A').toString().toUpperCase());
+  static Future<List<int>> _generatePhoneLabelBytesSimple(
+    Map<String, dynamic> labelData,
+    bool showQR,
+  ) async {
+    // Validate dữ liệu đầu vào - giữ nguyên dấu tiếng Việt cho hiển thị
+    final name = (labelData['name'] ?? 'N/A').toString().toUpperCase();
     final imei = (labelData['imei'] ?? 'N/A').toString();
-    final color = removeVietnameseAccents((labelData['color'] ?? 'N/A').toString().toUpperCase());
-    final capacity = removeVietnameseAccents((labelData['capacity'] ?? '').toString().toUpperCase());
+    final color = (labelData['color'] ?? 'N/A').toString().toUpperCase();
+    final capacity = (labelData['capacity'] ?? '').toString().toUpperCase();
     final cost = (labelData['cost'] ?? '0').toString();
     final price = (labelData['price'] ?? '0').toString(); // KPK
     final cpkPrice = (labelData['cpkPrice'] ?? cost).toString(); // CPK
-    final condition = removeVietnameseAccents((labelData['condition'] ?? 'N/A').toString().toUpperCase());
-    final accessories = labelData['accessories'] != null && labelData['accessories'].toString().isNotEmpty
-        ? removeVietnameseAccents(labelData['accessories'].toString().toUpperCase())
-        : 'KHONG CO';
 
-    print('DEBUG: Simple label data - name: $name, imei: $imei, color: $color, capacity: $capacity, cost: $cost, price: $price, cpkPrice: $cpkPrice');
+    print(
+      'DEBUG: Simple label data - name: $name, imei: $imei, color: $color, capacity: $capacity, cost: $cost, price: $price, cpkPrice: $cpkPrice, showQR: $showQR',
+    );
 
     // Import cần thiết cho generator
     final profile = await CapabilityProfile.load();
@@ -398,45 +416,98 @@ class BluetoothPrinterService {
 
     // Tên sản phẩm căn giữa
     final productInfo = capacity.isNotEmpty ? '$name $capacity' : name;
-    bytes.addAll(generator.text(productInfo, styles: const PosStyles(align: PosAlign.center, bold: true, height: PosTextSize.size1, width: PosTextSize.size1)));
+    bytes.addAll(
+      generator.text(
+        productInfo,
+        styles: const PosStyles(
+          align: PosAlign.center,
+          bold: true,
+          height: PosTextSize.size1,
+          width: PosTextSize.size1,
+        ),
+      ),
+    );
     bytes.addAll(generator.feed(1));
 
     // IMEI căn giữa
-    bytes.addAll(generator.text('IMEI: $imei', styles: const PosStyles(align: PosAlign.center, bold: true, height: PosTextSize.size1, width: PosTextSize.size1)));
+    bytes.addAll(
+      generator.text(
+        'IMEI: $imei',
+        styles: const PosStyles(
+          align: PosAlign.center,
+          bold: true,
+          height: PosTextSize.size1,
+          width: PosTextSize.size1,
+        ),
+      ),
+    );
     bytes.addAll(generator.feed(1));
 
     // KPK GIÁ
-    bytes.addAll(generator.text('KPK GIÁ: $price VND', styles: const PosStyles(align: PosAlign.center, bold: true, height: PosTextSize.size1, width: PosTextSize.size1)));
+    bytes.addAll(
+      generator.text(
+        'KPK GIÁ: $price VND',
+        styles: const PosStyles(
+          align: PosAlign.center,
+          bold: true,
+          height: PosTextSize.size1,
+          width: PosTextSize.size1,
+        ),
+      ),
+    );
     bytes.addAll(generator.feed(1));
 
     // PK GIÁ
-    bytes.addAll(generator.text('PK GIÁ: $cpkPrice VND', styles: const PosStyles(align: PosAlign.center, bold: true, height: PosTextSize.size1, width: PosTextSize.size1)));
+    bytes.addAll(
+      generator.text(
+        'PK GIÁ: $cpkPrice VND',
+        styles: const PosStyles(
+          align: PosAlign.center,
+          bold: true,
+          height: PosTextSize.size1,
+          width: PosTextSize.size1,
+        ),
+      ),
+    );
     bytes.addAll(generator.feed(1));
 
-    // QR code căn giữa
-    final qrData = {
-      'type': 'phone_label',
-      'name': name,
-      'imei': imei,
-      'color': color,
-      'capacity': capacity,
-      'kpk': price,
-      'pk': cpkPrice,
-      'condition': condition,
-      'accessories': accessories,
-    };
+    // Xử lý QR code nếu được bật
+    if (showQR) {
+      // QR code căn giữa - chỉ chứa thông tin cơ bản
+      final qrData = {
+        'imei': imei,
+        'model': name.length > 15
+            ? name.substring(0, 15)
+            : name, // Giới hạn tên model ngắn hơn
+      };
 
-    try {
-      final qrJson = jsonEncode(qrData);
-      print('DEBUG: QR JSON length: ${qrJson.length}');
-      if (qrJson.length < 200) { // Tăng giới hạn độ dài
+      try {
+        final qrJson = jsonEncode(qrData);
+        print('DEBUG: QR JSON: $qrJson, length: ${qrJson.length}');
+        // Thử tạo QR code trực tiếp mà không kiểm tra độ dài
         bytes.addAll(generator.feed(1));
-        bytes.addAll(generator.qrcode(qrJson, size: QRSize.Size2)); // Tăng size QR
-      } else {
-        print('DEBUG: QR data too long, skipping QR code');
+        bytes.addAll(generator.qrcode(qrJson, size: QRSize.Size1));
+        print('DEBUG: QR code added successfully');
+      } catch (e) {
+        print('DEBUG: Error encoding QR data: $e');
+        // Fallback: in IMEI dưới dạng text
+        bytes.addAll(generator.feed(1));
+        bytes.addAll(
+          generator.text(
+            'QR: $imei',
+            styles: const PosStyles(align: PosAlign.center, bold: true),
+          ),
+        );
       }
-    } catch (e) {
-      print('DEBUG: Error encoding QR data: $e');
+    } else {
+      // Thay bằng text đơn giản với font chữ đúng
+      bytes.addAll(generator.feed(1));
+      bytes.addAll(
+        generator.text(
+          'CODE: $imei',
+          styles: const PosStyles(align: PosAlign.center, bold: true),
+        ),
+      );
     }
 
     bytes.addAll(generator.feed(1)); // Giảm khoảng cách cuối

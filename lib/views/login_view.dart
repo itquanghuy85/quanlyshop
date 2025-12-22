@@ -5,7 +5,8 @@ import '../services/user_service.dart';
 import 'register_view.dart';
 
 class LoginView extends StatefulWidget {
-  const LoginView({super.key});
+  final void Function(Locale)? setLocale;
+  const LoginView({super.key, this.setLocale});
 
   @override
   State<LoginView> createState() => _LoginViewState();
@@ -70,6 +71,7 @@ class _LoginViewState extends State<LoginView> {
     }
   }
 
+  Locale _selectedLocale = const Locale('vi');
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -83,7 +85,27 @@ class _LoginViewState extends State<LoginView> {
               const Icon(Icons.storefront_rounded, size: 80, color: Colors.blueAccent),
               const SizedBox(height: 10),
               const Text("QUẢN LÝ CỬA HÀNG", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.blueAccent)),
-              const SizedBox(height: 40),
+              const SizedBox(height: 20),
+              // Language switcher
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  DropdownButton<Locale>(
+                    value: _selectedLocale,
+                    items: const [
+                      DropdownMenuItem(value: Locale('vi'), child: Text('Tiếng Việt')),
+                      DropdownMenuItem(value: Locale('en'), child: Text('English')),
+                    ],
+                    onChanged: (locale) {
+                      if (locale != null) {
+                        setState(() => _selectedLocale = locale);
+                        widget.setLocale?.call(locale);
+                      }
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
               TextField(
                 controller: _emailC,
                 decoration: InputDecoration(

@@ -18,6 +18,11 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
   bool _isLoading = true;
   bool _isAdmin = false;
 
+  // Theme colors cho màn hình quản lý nợ
+  final Color _primaryColor = Colors.red; // Màu đỏ cho debt management
+  final Color _accentColor = Colors.red.shade600;
+  final Color _backgroundColor = const Color(0xFFF8FAFF);
+
   @override
   void initState() {
     super.initState();
@@ -120,8 +125,11 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFF),
+      backgroundColor: _backgroundColor,
       appBar: AppBar(
+        backgroundColor: _primaryColor,
+        foregroundColor: Colors.white,
+        elevation: 2,
         title: const Text("SỔ CÔNG NỢ", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
         bottom: TabBar(
           controller: _tabController,
@@ -137,7 +145,7 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _addDebt,
-        backgroundColor: Colors.blueAccent,
+        backgroundColor: _accentColor,
         child: const Icon(Icons.note_add_rounded, color: Colors.white),
       ),
     );

@@ -48,6 +48,11 @@ class _RepairDetailViewState extends State<RepairDetailView> {
   bool _isSaving = false;
   final ScreenshotController _shareController = ScreenshotController();
 
+  // Theme colors cho màn hình chi tiết đơn sửa chữa
+  final Color _primaryColor = Colors.blue; // Đồng bộ với create_repair_order_view
+  final Color _accentColor = Colors.blue.shade600;
+  final Color _backgroundColor = const Color(0xFFF8FAFF);
+
   final List<String> warrantyOptions = ["KO BH", "1 tháng", "3 tháng", "6 tháng", "12 tháng"];
   String _selectedWarranty = "KO BH";
 
@@ -219,25 +224,28 @@ class _RepairDetailViewState extends State<RepairDetailView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFF),
+      backgroundColor: _backgroundColor,
       appBar: AppBar(
-        title: const Text("CHI TIẾT ĐƠN HÀNG"),
+        backgroundColor: _primaryColor,
+        foregroundColor: Colors.white,
+        elevation: 2,
+        title: const Text("CHI TIẾT ĐƠN HÀNG", style: TextStyle(fontWeight: FontWeight.bold)),
         actions: [
           if (_checkingManager)
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-              child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
+              child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
             ),
           if (!_managerUnlocked)
-            IconButton(onPressed: _unlockManager, icon: const Icon(Icons.edit, color: Colors.black87)),
-          IconButton(onPressed: _sendSmsToCustomer, icon: const Icon(Icons.sms_outlined, color: Colors.green)),
-          IconButton(onPressed: _sendToChat, icon: const Icon(Icons.chat_bubble_outline_rounded, color: Colors.deepPurple)),
-          IconButton(onPressed: _printWifi, icon: const Icon(Icons.print_rounded, color: Colors.blueAccent)),
-          IconButton(onPressed: _printThermalLabel, icon: const Icon(Icons.thermostat_rounded, color: Colors.redAccent)),
-          IconButton(onPressed: _shareRepair, icon: const Icon(Icons.share_rounded, color: Colors.pink)),
-          IconButton(onPressed: _saveAll, icon: const Icon(Icons.check_circle, color: Colors.green, size: 28)),
+            IconButton(onPressed: _unlockManager, icon: const Icon(Icons.edit, color: Colors.white)),
+          IconButton(onPressed: _sendSmsToCustomer, icon: const Icon(Icons.sms_outlined, color: Colors.white)),
+          IconButton(onPressed: _sendToChat, icon: const Icon(Icons.chat_bubble_outline_rounded, color: Colors.white)),
+          IconButton(onPressed: _printWifi, icon: const Icon(Icons.print_rounded, color: Colors.white)),
+          IconButton(onPressed: _printThermalLabel, icon: const Icon(Icons.thermostat_rounded, color: Colors.white)),
+          IconButton(onPressed: _shareRepair, icon: const Icon(Icons.share_rounded, color: Colors.white)),
+          IconButton(onPressed: _saveAll, icon: const Icon(Icons.check_circle, color: Colors.white, size: 28)),
           if (_managerUnlocked)
-            IconButton(onPressed: _deleteRepair, icon: const Icon(Icons.delete_forever, color: Colors.redAccent)),
+            IconButton(onPressed: _deleteRepair, icon: const Icon(Icons.delete_forever, color: Colors.white)),
         ],
       ),
       body: _isSaving ? const Center(child: CircularProgressIndicator()) : ListView(
@@ -252,10 +260,10 @@ class _RepairDetailViewState extends State<RepairDetailView> {
               _timeItem("Giao", r.deliveredAt, r.deliveredBy ?? "---", r.status >= 4),
               const SizedBox(height: 15),
               if (!isReadOnly) Row(children: [
-                if (r.status == 1) Expanded(child: _actionBtn("BẮT ĐẦU SỬA", Colors.orange, () => _updateStatus(2))),
+                if (r.status == 1) Expanded(child: _actionBtn("BẮT ĐẦU SỬA", _accentColor, () => _updateStatus(2))),
                 if (r.status == 2) Expanded(child: _actionBtn("XÁC NHẬN XONG", Colors.green, () => _updateStatus(3))),
                 if (r.status == 3) ...[
-                  Expanded(child: _actionBtn("GIAO MÁY", Colors.blue, () => _updateStatus(4))),
+                  Expanded(child: _actionBtn("GIAO MÁY", _primaryColor, () => _updateStatus(4))),
                   const SizedBox(width: 10),
                   DropdownButton<String>(
                     value: _selectedWarranty,

@@ -18,6 +18,11 @@ class _SupplierViewState extends State<SupplierView> {
   bool _isLoading = true;
   bool _isAdmin = false;
 
+  // Theme colors cho màn hình nhà cung cấp
+  final Color _primaryColor = Colors.orange; // Màu chính cho đơn nhập hàng
+  final Color _accentColor = Colors.orange.shade600;
+  final Color _backgroundColor = const Color(0xFFF8FAFF);
+
   @override
   void initState() {
     super.initState();
@@ -133,10 +138,15 @@ class _SupplierViewState extends State<SupplierView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFF),
-      appBar: AppBar(title: const Text("NHÀ CUNG CẤP", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
-      body: _isLoading 
-        ? const Center(child: CircularProgressIndicator())
+      backgroundColor: _backgroundColor,
+      appBar: AppBar(
+        title: const Text("NHÀ CUNG CẤP", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        backgroundColor: _primaryColor,
+        foregroundColor: Colors.white,
+        elevation: 2,
+      ),
+      body: _isLoading
+        ? Center(child: CircularProgressIndicator(color: _primaryColor))
         : _suppliers.isEmpty
           ? const Center(child: Text("Chưa có nhà cung cấp nào"))
           : ListView.builder(

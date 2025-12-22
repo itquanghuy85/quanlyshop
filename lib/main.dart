@@ -2,6 +2,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'l10n/app_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 import 'firebase_options.dart';
@@ -28,29 +31,55 @@ Future<void> main() async {
   });
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+
+class MyApp extends StatefulWidget {
+  const MyApp({Key? key}) : super(key: key);
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  Locale? _locale;
+
+  void setLocale(Locale locale) {
+    setState(() {
+      _locale = locale;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Quan Ly Shop',
       debugShowCheckedModeBanner: false,
-      // Global key để hiển thị SnackBar mà không cần context
-      scaffoldMessengerKey: NotificationService.messengerKey, 
+      scaffoldMessengerKey: NotificationService.messengerKey,
       theme: ThemeData(
         brightness: Brightness.light,
         scaffoldBackgroundColor: const Color(0xFFF8FAFF),
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blueAccent),
         useMaterial3: true,
       ),
-      home: const AuthGate(),
+      locale: _locale,
+      supportedLocales: const [
+        Locale('vi'),
+        Locale('en'),
+      ],
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      home: AuthGate(setLocale: setLocale),
     );
   }
 }
 
 class AuthGate extends StatefulWidget {
-  const AuthGate({super.key});
+  final void Function(Locale)? setLocale;
+  AuthGate({Key? key, this.setLocale}) : super(key: key);
+
   @override
   State<AuthGate> createState() => _AuthGateState();
 }
@@ -98,7 +127,7 @@ class _AuthGateState extends State<AuthGate> {
           return const Scaffold(body: Center(child: CircularProgressIndicator()));
         }
         
-        if (!snap.hasData) return const LoginView();
+        if (!snap.hasData) return LoginView(setLocale: widget.setLocale);
 
         return FutureBuilder<String>(
           // Dùng memoization hoặc kiểm tra uid để tránh gọi lại future vô ích
@@ -114,7 +143,7 @@ class _AuthGateState extends State<AuthGate> {
               return const LoginView();
             }
             
-            return HomeView(role: roleSnap.data!);
+            return HomeView(role: roleSnap.data!, setLocale: widget.setLocale);
           },
         );
       },

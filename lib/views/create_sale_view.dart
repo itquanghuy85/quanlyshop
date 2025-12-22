@@ -46,6 +46,11 @@ class _CreateSaleViewState extends State<CreateSaleView> {
   bool _isLoading = true;
   bool _isSaving = false;
 
+  // Theme colors cho màn hình tạo đơn bán hàng
+  final Color _primaryColor = Colors.indigo; // Màu chính cho đơn bán hàng
+  final Color _accentColor = Colors.indigo.shade600;
+  final Color _backgroundColor = const Color(0xFFF8FAFF);
+
   @override
   void initState() {
     super.initState();
@@ -222,10 +227,15 @@ class _CreateSaleViewState extends State<CreateSaleView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFF),
-      appBar: AppBar(title: const Text("TẠO ĐƠN BÁN HÀNG", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18))),
-      body: _isLoading 
-        ? const Center(child: CircularProgressIndicator())
+      backgroundColor: _backgroundColor,
+      appBar: AppBar(
+        title: const Text("TẠO ĐƠN BÁN HÀNG", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        backgroundColor: _primaryColor,
+        foregroundColor: Colors.white,
+        elevation: 2,
+      ),
+      body: _isLoading
+        ? Center(child: CircularProgressIndicator(color: _primaryColor))
         : Column(
             children: [
               Expanded(

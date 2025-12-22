@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/repair_model.dart';
+import '../models/product_model.dart';
 import 'user_service.dart';
 
 class FirestoreService {
@@ -13,6 +14,24 @@ class FirestoreService {
       final docRef = _db.collection('repairs').doc(docId);
       
       Map<String, dynamic> data = r.toMap();
+      data['shopId'] = shopId;
+      data['firestoreId'] = docRef.id;
+      data.remove('id'); // Không đẩy ID local lên Firestore
+      
+      await docRef.set(data, SetOptions(merge: true));
+      return docRef.id;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  static Future<String?> addProduct(Product p) async {
+    try {
+      final shopId = await UserService.getCurrentShopId();
+      final String docId = p.firestoreId ?? "prod_${p.createdAt}";
+      final docRef = _db.collection('products').doc(docId);
+      
+      Map<String, dynamic> data = p.toMap();
       data['shopId'] = shopId;
       data['firestoreId'] = docRef.id;
       data.remove('id'); // Không đẩy ID local lên Firestore

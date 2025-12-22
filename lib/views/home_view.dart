@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'customer_history_view.dart';
 import 'order_list_view.dart';
 import 'revenue_view.dart';
+import 'revenue_report_view.dart';
 import 'customer_view.dart';
 import 'inventory_view.dart';
 import 'sale_list_view.dart';
@@ -30,7 +31,9 @@ import '../services/user_service.dart';
 
 class HomeView extends StatefulWidget {
   final String role;
-  const HomeView({super.key, this.role = 'user'});
+  final void Function(Locale)? setLocale;
+
+  HomeView({Key? key, required this.role, this.setLocale}) : super(key: key);
 
   @override
   State<HomeView> createState() => _HomeViewState();
@@ -244,6 +247,12 @@ class _HomeViewState extends State<HomeView> {
     Navigator.push(context, MaterialPageRoute(builder: (_) => const RevenueView()));
   }
 
+  Future<void> _openRevenueReportView() async {
+    final ok = await _ensurePermission('allowViewRevenue', "Tài khoản này không được phép xem màn BÁO CÁO DOANH THU. Liên hệ chủ shop để phân quyền.");
+    if (!ok || !mounted) return;
+    Navigator.push(context, MaterialPageRoute(builder: (_) => const RevenueReportView()));
+  }
+
   Future<void> _openSaleList() async {
     final ok = await _ensurePermission('allowViewSales', "Tài khoản này không được phép vào mục BÁN HÀNG. Liên hệ chủ shop để phân quyền.");
     if (!ok || !mounted) return;
@@ -371,7 +380,7 @@ class _HomeViewState extends State<HomeView> {
                 subtitle: const Text("Logo, thông tin cửa hàng, hóa đơn"),
                 onTap: () {
                   Navigator.pop(ctx);
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsView()));
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => SettingsView(setLocale: widget.setLocale)));
                 },
               ),
               ListTile(
@@ -691,6 +700,7 @@ class _HomeViewState extends State<HomeView> {
     addTile(perms['allowViewWarranty'] ?? true, "BẢO HÀNH", Icons.verified_user_rounded, [Colors.green, Colors.teal], _openWarranty);
     addTile(perms['allowViewInventory'] ?? true, "KHO", Icons.inventory_2_rounded, [Colors.orange, Colors.amber], _openInventory);
     addTile(perms['allowViewRevenue'] ?? true, "DOANH THU", Icons.leaderboard_rounded, [Colors.indigo, Colors.deepPurple], _openRevenueView);
+    addTile(perms['allowViewRevenue'] ?? true, "BÁO CÁO DT", Icons.analytics_rounded, [Colors.indigoAccent, Colors.blueAccent], _openRevenueReportView);
     addTile(perms['allowViewPrinter'] ?? true, "MÁY IN", Icons.print_rounded, [Colors.blueGrey, Colors.grey], _showPrinterMenu);
     addTile(perms['allowViewSettings'] ?? (isAdmin || _isSuperAdmin), "CÀI ĐẶT", Icons.settings_rounded, [Colors.blueGrey, Colors.black87], _openSettingsCenter);
 
@@ -730,9 +740,9 @@ class _HomeViewState extends State<HomeView> {
                 child: Icon(icon, size: 16, color: color),
               ),
               const SizedBox(width: 10),
-              Expanded(child: Text(label, style: const TextStyle(fontSize: 12))),
+              Expanded(child: Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey))),
               const SizedBox(width: 8),
-              Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+              Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87)),
             ],
           ),
         ),

@@ -17,6 +17,11 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
   final searchCtrl = TextEditingController();
   bool _isAdmin = false;
 
+  // Theme colors cho màn hình phụ tùng
+  final Color _primaryColor = Colors.purple; // Màu chính cho phụ tùng
+  final Color _accentColor = Colors.purple.shade600;
+  final Color _backgroundColor = const Color(0xFFF8FAFF);
+
   @override
   void initState() {
     super.initState();
@@ -96,10 +101,15 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFF),
-      appBar: AppBar(title: const Text("KHO LINH KIỆN SỬA CHỮA", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
-      body: _isLoading 
-        ? const Center(child: CircularProgressIndicator())
+      backgroundColor: _backgroundColor,
+      appBar: AppBar(
+        title: const Text("KHO LINH KIỆN SỬA CHỮA", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        backgroundColor: _primaryColor,
+        foregroundColor: Colors.white,
+        elevation: 2,
+      ),
+      body: _isLoading
+        ? Center(child: CircularProgressIndicator(color: _primaryColor))
         : ListView.builder(
             padding: const EdgeInsets.all(15),
             itemCount: _parts.length,
@@ -111,8 +121,8 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                 child: ListTile(
                   leading: CircleAvatar(
-                    backgroundColor: isLow ? Colors.red.withOpacity(0.1) : Colors.blue.withOpacity(0.1),
-                    child: Icon(Icons.settings_input_component, color: isLow ? Colors.red : Colors.blue),
+                    backgroundColor: isLow ? Colors.red.withOpacity(0.1) : _primaryColor.withOpacity(0.1),
+                    child: Icon(Icons.settings_input_component, color: isLow ? Colors.red : _primaryColor),
                   ),
                   title: Text(p['partName'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                   subtitle: Text("Dùng cho: ${p['compatibleModels']}\nSố lượng: ${p['quantity']}"),
@@ -126,7 +136,7 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
         onPressed: () => _showAddPartDialog(),
         label: const Text("NHẬP LINH KIỆN"),
         icon: const Icon(Icons.add),
-        backgroundColor: Colors.blueAccent,
+        backgroundColor: _primaryColor,
       ) : null,
     );
   }

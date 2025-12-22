@@ -49,7 +49,7 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 11, vsync: this);
+    _tabController = TabController(length: 10, vsync: this);
     _loadData();
     _loadRole();
   }
@@ -276,7 +276,7 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
             margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Colors.grey.withOpacity(0.05),
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
@@ -557,27 +557,95 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
           const SizedBox(height: 8),
           const Text("Điền số dư đầu ngày, nhập số đếm cuối ngày để so khớp chênh lệch."),
           const Divider(height: 18),
+          // Đầu ngày - Tiền mặt và Ngân hàng trên 1 hàng
           Row(
             children: [
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text("ĐẦU NGÀY (X 1K)", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey)),
-                    const SizedBox(height: 6),
-                    Row(children: [Expanded(child: TextField(controller: cashStartCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "Tiền mặt", border: OutlineInputBorder()))), const SizedBox(width: 8), Expanded(child: TextField(controller: bankStartCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "Ngân hàng", border: OutlineInputBorder())))]),
-                  ],
+                child: TextField(
+                  controller: cashStartCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: "Đầu ngày - Tiền mặt (x 1K)",
+                    border: const OutlineInputBorder(),
+                    filled: true,
+                    fillColor: Colors.blue.withOpacity(0.05),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  ),
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                  onEditingComplete: () {
+                    final text = cashStartCtrl.text;
+                    if (text.isNotEmpty && !text.endsWith('000')) {
+                      cashStartCtrl.text = text + '000';
+                    }
+                  },
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text("CUỐI NGÀY (X 1K)", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey)),
-                    const SizedBox(height: 6),
-                    Row(children: [Expanded(child: TextField(controller: cashEndCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "Tiền mặt", border: OutlineInputBorder()))), const SizedBox(width: 8), Expanded(child: TextField(controller: bankEndCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "Ngân hàng", border: OutlineInputBorder())))]),
-                  ],
+                child: TextField(
+                  controller: bankStartCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: "Đầu ngày - Ngân hàng (x 1K)",
+                    border: const OutlineInputBorder(),
+                    filled: true,
+                    fillColor: Colors.blue.withOpacity(0.05),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  ),
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                  onEditingComplete: () {
+                    final text = bankStartCtrl.text;
+                    if (text.isNotEmpty && !text.endsWith('000')) {
+                      bankStartCtrl.text = text + '000';
+                    }
+                  },
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Cuối ngày - Tiền mặt và Ngân hàng trên 1 hàng
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: cashEndCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: "Cuối ngày - Tiền mặt (x 1K)",
+                    border: const OutlineInputBorder(),
+                    filled: true,
+                    fillColor: Colors.green.withOpacity(0.05),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  ),
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                  onEditingComplete: () {
+                    final text = cashEndCtrl.text;
+                    if (text.isNotEmpty && !text.endsWith('000')) {
+                      cashEndCtrl.text = text + '000';
+                    }
+                  },
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: TextField(
+                  controller: bankEndCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: "Cuối ngày - Ngân hàng (x 1K)",
+                    border: const OutlineInputBorder(),
+                    filled: true,
+                    fillColor: Colors.green.withOpacity(0.05),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  ),
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                  onEditingComplete: () {
+                    final text = bankEndCtrl.text;
+                    if (text.isNotEmpty && !text.endsWith('000')) {
+                      bankEndCtrl.text = text + '000';
+                    }
+                  },
                 ),
               ),
             ],
@@ -647,7 +715,7 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
   }
 
   Widget _summaryRow(String label, int value, Color color, {bool isBold = false}) {
-    return Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(label, style: TextStyle(fontSize: 13, fontWeight: isBold ? FontWeight.bold : FontWeight.normal)), Text("${NumberFormat('#,###').format(value)} đ", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: color))]));
+    return Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(label, style: TextStyle(fontSize: 13, fontWeight: isBold ? FontWeight.bold : FontWeight.normal, color: Colors.grey[700])), Text("${NumberFormat('#,###').format(value)} đ", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: color))]));
   }
 
   // --- CÁC TAB KHÁC GIỮ NGUYÊN LOGIC NHƯNG TỐI ƯU GIAO DIỆN ---

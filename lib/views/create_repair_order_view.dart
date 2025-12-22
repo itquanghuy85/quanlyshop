@@ -165,12 +165,29 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(title: const Text("TIẾP NHẬN MÁY MỚI"), actions: [IconButton(onPressed: _save, icon: const Icon(Icons.check, color: Colors.green, size: 30))]),
-      body: _saving ? const Center(child: CircularProgressIndicator()) : SingleChildScrollView(
-        padding: const EdgeInsets.all(15),
-        child: Column(
-          children: [
+      backgroundColor: const Color(0xFFF8FAFF), // Đồng bộ với theme chính
+      appBar: AppBar(
+        title: const Text("TIẾP NHẬN MÁY MỚI", style: TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.blueAccent, // Màu chính cho đơn sửa chữa
+        foregroundColor: Colors.white,
+        elevation: 2,
+        actions: [
+          IconButton(
+            onPressed: _save,
+            icon: const Icon(Icons.check, size: 30),
+            style: IconButton.styleFrom(
+              backgroundColor: Colors.green.shade600,
+              foregroundColor: Colors.white,
+            ),
+          )
+        ],
+      ),
+      body: _saving
+          ? const Center(child: CircularProgressIndicator(color: Colors.blueAccent))
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(15),
+              child: Column(
+                children: [
             ValidatedTextField(
               controller: nameCtrl,
               label: "TÊN KHÁCH HÀNG",
@@ -259,7 +276,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text("HÌNH THỨC THANH TOÁN", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.blueGrey)),
+                    const Text("HÌNH THỨC THANH TOÁN", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.blueAccent)),
                     const SizedBox(height: 6),
                     Wrap(
                       spacing: 8,

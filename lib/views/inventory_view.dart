@@ -35,6 +35,11 @@ class _InventoryViewState extends State<InventoryView> {
   final Set<int> _selectedIds = {};
   bool _isAdmin = false;
 
+  // Theme colors cho màn hình nhập kho
+  final Color _primaryColor = Colors.green; // Màu chính cho nhập kho
+  final Color _accentColor = Colors.green.shade600;
+  final Color _backgroundColor = const Color(0xFFF8FAFF);
+
   @override
   void initState() {
     super.initState();
@@ -249,6 +254,13 @@ class _InventoryViewState extends State<InventoryView> {
                 status: 1,
                 supplier: supplier,
               );
+              
+              // Upload lên Firestore trước
+              final firestoreId = await FirestoreService.addProduct(p);
+              if (firestoreId != null) {
+                p.firestoreId = firestoreId;
+              }
+              
               await db.upsertProduct(p);
               await db.incrementSupplierStats(supplier!, p.cost * qty);
               Navigator.pop(ctx);
@@ -482,9 +494,12 @@ class _InventoryViewState extends State<InventoryView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFF),
+      backgroundColor: _backgroundColor,
       appBar: AppBar(
-        title: const Text("KHO"),
+        title: const Text("KHO HÀNG", style: TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: _primaryColor,
+        foregroundColor: Colors.white,
+        elevation: 2,
         actions: [
           IconButton(
             onPressed: () async {

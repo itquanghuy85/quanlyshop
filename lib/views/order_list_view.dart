@@ -36,6 +36,11 @@ class OrderListViewState extends State<OrderListView> {
   Set<int> _selectedIndices = {};
   bool _isDeleting = false;
 
+  // Theme colors cho màn hình danh sách đơn hàng
+  final Color _primaryColor = Colors.teal; // Màu chính cho danh sách đơn hàng
+  final Color _accentColor = Colors.teal.shade600;
+  final Color _backgroundColor = const Color(0xFFF8FAFF);
+
   @override
   void initState() {
     super.initState();
@@ -284,13 +289,14 @@ class OrderListViewState extends State<OrderListView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: _backgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: _primaryColor,
+        foregroundColor: Colors.white,
         title: Text(
-          _isSelectionMode 
+          _isSelectionMode
             ? "Đã chọn ${_selectedIndices.length} đơn sửa"
-            : "DANH SÁCH SỬA CHỮA", 
+            : "DANH SÁCH SỬA CHỮA",
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)
         ),
         elevation: 0,
@@ -315,9 +321,9 @@ class OrderListViewState extends State<OrderListView> {
             child: TextField(
               onChanged: _onSearch,
               decoration: InputDecoration(
-                hintText: "Tìm máy, khách, SĐT...", 
-                prefixIcon: const Icon(Icons.search, color: Colors.blueAccent), 
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none), 
+                hintText: "Tìm máy, khách, SĐT...",
+                prefixIcon: Icon(Icons.search, color: _primaryColor),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
                 filled: true, fillColor: Colors.white
               ),
             ),

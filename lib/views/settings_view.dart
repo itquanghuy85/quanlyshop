@@ -9,13 +9,16 @@ import '../services/user_service.dart';
 import 'invoice_template_view.dart';
 
 class SettingsView extends StatefulWidget {
-  const SettingsView({super.key});
+  final void Function(Locale)? setLocale;
+
+  SettingsView({Key? key, this.setLocale}) : super(key: key);
 
   @override
   State<SettingsView> createState() => _SettingsViewState();
 }
 
 class _SettingsViewState extends State<SettingsView> {
+  Locale _selectedLocale = const Locale('vi');
   final nameCtrl = TextEditingController();
   final addressCtrl = TextEditingController();
   final phoneCtrl = TextEditingController();
@@ -69,6 +72,29 @@ class _SettingsViewState extends State<SettingsView> {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
+          // Language switcher
+          Row(
+            children: [
+              const Icon(Icons.language, color: Colors.blueAccent),
+              const SizedBox(width: 10),
+              const Text("Ngôn ngữ:", style: TextStyle(fontWeight: FontWeight.w600)),
+              const SizedBox(width: 10),
+              DropdownButton<Locale>(
+                value: _selectedLocale,
+                items: const [
+                  DropdownMenuItem(value: Locale('vi'), child: Text('Tiếng Việt')),
+                  DropdownMenuItem(value: Locale('en'), child: Text('English')),
+                ],
+                onChanged: (locale) {
+                  if (locale != null) {
+                    setState(() => _selectedLocale = locale);
+                    widget.setLocale?.call(locale);
+                  }
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
           _sectionTitle("THÔNG TIN THƯƠNG HIỆU"),
           const SizedBox(height: 15),
           Center(
@@ -171,9 +197,9 @@ class _SettingsViewState extends State<SettingsView> {
                         ],
                       ),
                       const SizedBox(height: 8),
-                      Text("📧 Email: support@huluca.com", style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
-                      Text("📱 Hotline: 1900-xxxx", style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
-                      Text("🌐 Website: www.huluca.com", style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+                      Text("👨‍💻 Nhà phát triển: Quang Huy", style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+                      Text("📱 SĐT/Zalo: 0964 095 979", style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+                      Text("💬 Hỗ trợ kỹ thuật & phát triển app", style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
                     ],
                   ),
                 ),
@@ -196,9 +222,10 @@ class _SettingsViewState extends State<SettingsView> {
                         ],
                       ),
                       const SizedBox(height: 8),
-                      Text("👨‍💻 Huluca Technology Team", style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
-                      Text("🚀 Chuyên phát triển phần mềm quản lý kinh doanh", style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
-                      Text("💡 Đổi mới công nghệ cho doanh nghiệp Việt Nam", style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+                      Text("👨‍💻 Quang Huy", style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+                      Text("🚀 Chuyên gia phát triển ứng dụng mobile", style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+                      Text("📱 SĐT/Zalo: 0964 095 979", style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+                      Text("💡 Phát triển giải pháp quản lý kinh doanh", style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
                     ],
                   ),
                 ),

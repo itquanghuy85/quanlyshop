@@ -36,6 +36,11 @@ class _SaleDetailViewState extends State<SaleDetailView> {
   bool _managerUnlocked = false;
   bool _checkingManager = false;
 
+  // Theme colors cho màn hình chi tiết đơn bán hàng
+  final Color _primaryColor = Colors.indigo; // Đồng bộ với create_sale_view
+  final Color _accentColor = Colors.indigo.shade600;
+  final Color _backgroundColor = const Color(0xFFF8FAFF);
+
   @override
   void initState() {
     super.initState();
@@ -409,23 +414,26 @@ class _SaleDetailViewState extends State<SaleDetailView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: _backgroundColor,
       appBar: AppBar(
-        title: const Text("CHI TIẾT ĐƠN BÁN"),
+        backgroundColor: _primaryColor,
+        foregroundColor: Colors.white,
+        elevation: 2,
+        title: const Text("CHI TIẾT ĐƠN BÁN", style: TextStyle(fontWeight: FontWeight.bold)),
         actions: [
           if (_checkingManager)
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-              child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
+              child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
             ),
           if (!_managerUnlocked)
-            IconButton(onPressed: _unlockManager, icon: const Icon(Icons.edit, color: Colors.black87)),
-          IconButton(onPressed: _sendSmsToCustomer, icon: const Icon(Icons.sms_outlined, color: Colors.green)),
-          IconButton(onPressed: _sendToChat, icon: const Icon(Icons.chat_bubble_outline_rounded, color: Colors.deepPurple)),
-          IconButton(onPressed: _printWifi, icon: const Icon(Icons.print_rounded, color: Colors.blueAccent)),
-          IconButton(onPressed: _shareInvoice, icon: const Icon(Icons.share_rounded, color: Colors.pink)),
+            IconButton(onPressed: _unlockManager, icon: const Icon(Icons.edit, color: Colors.white)),
+          IconButton(onPressed: _sendSmsToCustomer, icon: const Icon(Icons.sms_outlined, color: Colors.white)),
+          IconButton(onPressed: _sendToChat, icon: const Icon(Icons.chat_bubble_outline_rounded, color: Colors.white)),
+          IconButton(onPressed: _printWifi, icon: const Icon(Icons.print_rounded, color: Colors.white)),
+          IconButton(onPressed: _shareInvoice, icon: const Icon(Icons.share_rounded, color: Colors.white)),
           if (_managerUnlocked)
-            IconButton(onPressed: _deleteSale, icon: const Icon(Icons.delete_forever, color: Colors.redAccent)),
+            IconButton(onPressed: _deleteSale, icon: const Icon(Icons.delete_forever, color: Colors.white)),
         ],
       ),
       body: SingleChildScrollView(
@@ -437,7 +445,7 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                 width: double.infinity,
                 child: ElevatedButton.icon(
                   onPressed: _openSettlementDialog,
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+                  style: ElevatedButton.styleFrom(backgroundColor: _accentColor, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
                   icon: const Icon(Icons.account_balance_wallet_outlined),
                   label: const Text("NHẬN TIỀN TỪ NGÂN HÀNG"),
                 ),
@@ -448,7 +456,7 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                 width: double.infinity,
                 child: ElevatedButton.icon(
                   onPressed: _openEditSaleDialog,
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.blueGrey, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+                  style: ElevatedButton.styleFrom(backgroundColor: _accentColor, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
                   icon: const Icon(Icons.edit_note_outlined),
                   label: const Text("SỬA THÔNG TIN ĐƠN"),
                 ),

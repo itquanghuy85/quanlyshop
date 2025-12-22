@@ -22,6 +22,11 @@ class _SaleListViewState extends State<SaleListView> {
   bool _isLoading = true;
   bool _canDelete = false;
 
+  // Theme colors cho màn hình danh sách bán hàng
+  final Color _primaryColor = Colors.cyan; // Màu chính cho danh sách bán hàng
+  final Color _accentColor = Colors.cyan.shade600;
+  final Color _backgroundColor = const Color(0xFFF8FAFF);
+
   @override
   void initState() {
     super.initState();
@@ -97,15 +102,16 @@ class _SaleListViewState extends State<SaleListView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: _backgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: _primaryColor,
+        foregroundColor: Colors.white,
         title: const Text("DANH SÁCH ĐƠN BÁN", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-        elevation: 0,
+        elevation: 2,
       ),
-      body: _isLoading 
-        ? const Center(child: CircularProgressIndicator())
-        : _sales.isEmpty 
+      body: _isLoading
+        ? Center(child: CircularProgressIndicator(color: _primaryColor))
+        : _sales.isEmpty
           ? const Center(child: Text("Chưa có đơn bán hàng nào"))
           : ListView.builder(
               padding: const EdgeInsets.all(15),
@@ -124,8 +130,8 @@ class _SaleListViewState extends State<SaleListView> {
                     },
                     onLongPress: () => _confirmDelete(s),
                     leading: CircleAvatar(
-                      backgroundColor: Colors.pink.withOpacity(0.1),
-                      child: Icon(Icons.phone_iphone, color: Colors.pink, size: 20),
+                      backgroundColor: _primaryColor.withOpacity(0.1),
+                      child: Icon(Icons.phone_iphone, color: _primaryColor, size: 20),
                     ),
                     title: Text(s.productNames, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                     subtitle: Text("Khách: ${s.customerName}"),
@@ -134,7 +140,7 @@ class _SaleListViewState extends State<SaleListView> {
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text("${NumberFormat('#,###').format(s.totalPrice)} đ", style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-                        if (s.isInstallment) const Icon(Icons.account_balance_rounded, color: Colors.blue, size: 14),
+                        if (s.isInstallment) Icon(Icons.account_balance_rounded, color: _primaryColor, size: 14),
                       ],
                     ),
                   ),
@@ -148,7 +154,7 @@ class _SaleListViewState extends State<SaleListView> {
         },
         label: const Text("BÁN MÁY MỚI"),
         icon: const Icon(Icons.add_shopping_cart),
-        backgroundColor: Colors.pink,
+        backgroundColor: _primaryColor,
       ),
     );
   }

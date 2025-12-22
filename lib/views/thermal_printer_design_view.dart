@@ -9,10 +9,12 @@ class ThermalPrinterDesignView extends StatefulWidget {
   const ThermalPrinterDesignView({super.key});
 
   @override
-  State<ThermalPrinterDesignView> createState() => _ThermalPrinterDesignViewState();
+  State<ThermalPrinterDesignView> createState() =>
+      _ThermalPrinterDesignViewState();
 }
 
-class _ThermalPrinterDesignViewState extends State<ThermalPrinterDesignView> with SingleTickerProviderStateMixin {
+class _ThermalPrinterDesignViewState extends State<ThermalPrinterDesignView>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   // Cài đặt chung
@@ -28,6 +30,7 @@ class _ThermalPrinterDesignViewState extends State<ThermalPrinterDesignView> wit
   bool _showCondition = true;
   bool _showPrice = true;
   bool _showAccessories = true;
+  bool _showQR = false; // Thêm tùy chọn hiển thị QR code
   String _fontSize = 'medium'; // small, medium, large
 
   @override
@@ -54,8 +57,12 @@ class _ThermalPrinterDesignViewState extends State<ThermalPrinterDesignView> wit
       _showCondition = prefs.getBool('thermal_show_condition') ?? true;
       _showPrice = prefs.getBool('thermal_show_price') ?? true;
       _showAccessories = prefs.getBool('thermal_show_accessories') ?? true;
+      _showQR =
+          prefs.getBool('thermal_show_qr') ?? false; // Thêm load QR setting
       _fontSize = prefs.getString('thermal_font_size') ?? 'medium';
     });
+
+    print('DEBUG: Settings loaded - showQR: $_showQR'); // Debug log
   }
 
   Future<void> _saveSettings() async {
@@ -66,11 +73,14 @@ class _ThermalPrinterDesignViewState extends State<ThermalPrinterDesignView> wit
     await prefs.setBool('thermal_show_condition', _showCondition);
     await prefs.setBool('thermal_show_price', _showPrice);
     await prefs.setBool('thermal_show_accessories', _showAccessories);
+    await prefs.setBool('thermal_show_qr', _showQR); // Thêm save QR setting
     await prefs.setString('thermal_font_size', _fontSize);
+
+    print('DEBUG: Settings saved - showQR: $_showQR'); // Debug log
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Đã lưu cài đặt máy in nhiệt!"))
+        const SnackBar(content: Text("Đã lưu cài đặt máy in nhiệt!")),
       );
     }
   }
@@ -80,11 +90,16 @@ class _ThermalPrinterDesignViewState extends State<ThermalPrinterDesignView> wit
 
     try {
       // Yêu cầu quyền Bluetooth
-      final permissionsGranted = await BluetoothPrinterService.requestBluetoothPermissions();
+      final permissionsGranted =
+          await BluetoothPrinterService.requestBluetoothPermissions();
       if (!permissionsGranted) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Không thể cấp quyền Bluetooth! Vui lòng cấp quyền trong cài đặt thiết bị."))
+            const SnackBar(
+              content: Text(
+                "Không thể cấp quyền Bluetooth! Vui lòng cấp quyền trong cài đặt thiết bị.",
+              ),
+            ),
           );
         }
         return;
@@ -95,7 +110,9 @@ class _ThermalPrinterDesignViewState extends State<ThermalPrinterDesignView> wit
       if (!isEnabled) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Vui lòng bật Bluetooth trước khi scan!"))
+            const SnackBar(
+              content: Text("Vui lòng bật Bluetooth trước khi scan!"),
+            ),
           );
         }
         return;
@@ -109,18 +126,24 @@ class _ThermalPrinterDesignViewState extends State<ThermalPrinterDesignView> wit
 
       if (printers.isEmpty && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Không tìm thấy máy in Bluetooth nào! Kiểm tra máy in có bật và trong phạm vi không."))
+          const SnackBar(
+            content: Text(
+              "Không tìm thấy máy in Bluetooth nào! Kiểm tra máy in có bật và trong phạm vi không.",
+            ),
+          ),
         );
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Tìm thấy ${printers.length} máy in Bluetooth"))
+          SnackBar(
+            content: Text("Tìm thấy ${printers.length} máy in Bluetooth"),
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Lỗi scan máy in: $e"))
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Lỗi scan máy in: $e")));
       }
     } finally {
       setState(() => _isScanning = false);
@@ -130,7 +153,9 @@ class _ThermalPrinterDesignViewState extends State<ThermalPrinterDesignView> wit
   Future<void> _selectPrinter(BluetoothInfo printer) async {
     // Kiểm tra máy in đã được pair chưa
     final pairedPrinters = await BluetoothPrinterService.getPairedPrinters();
-    final isPaired = pairedPrinters.any((p) => p.macAdress == printer.macAdress);
+    final isPaired = pairedPrinters.any(
+      (p) => p.macAdress == printer.macAdress,
+    );
 
     if (!isPaired) {
       if (mounted) {
@@ -138,11 +163,13 @@ class _ThermalPrinterDesignViewState extends State<ThermalPrinterDesignView> wit
           context: context,
           builder: (ctx) => AlertDialog(
             title: const Text("MÁY IN CHƯA ĐƯỢC PAIR"),
-            content: Text("Máy in '${printer.name}' chưa được pair với thiết bị. Vui lòng:\n\n"
-                "1. Mở Cài đặt > Bluetooth\n"
-                "2. Bật Bluetooth nếu chưa bật\n"
-                "3. Tìm và pair với máy in '${printer.name}'\n"
-                "4. Quay lại app và thử lại"),
+            content: Text(
+              "Máy in '${printer.name}' chưa được pair với thiết bị. Vui lòng:\n\n"
+              "1. Mở Cài đặt > Bluetooth\n"
+              "2. Bật Bluetooth nếu chưa bật\n"
+              "3. Tìm và pair với máy in '${printer.name}'\n"
+              "4. Quay lại app và thử lại",
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx),
@@ -155,7 +182,10 @@ class _ThermalPrinterDesignViewState extends State<ThermalPrinterDesignView> wit
       return;
     }
 
-    final config = BluetoothPrinterConfig(name: printer.name, macAddress: printer.macAdress);
+    final config = BluetoothPrinterConfig(
+      name: printer.name,
+      macAddress: printer.macAdress,
+    );
     await BluetoothPrinterService.savePrinter(config);
     setState(() {
       _selectedPrinter = config;
@@ -163,7 +193,7 @@ class _ThermalPrinterDesignViewState extends State<ThermalPrinterDesignView> wit
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Đã chọn máy in: ${printer.name}"))
+        SnackBar(content: Text("Đã chọn máy in: ${printer.name}")),
       );
     }
   }
@@ -172,7 +202,9 @@ class _ThermalPrinterDesignViewState extends State<ThermalPrinterDesignView> wit
     if (_selectedPrinter == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Vui lòng chọn máy in Bluetooth trước!"))
+          const SnackBar(
+            content: Text("Vui lòng chọn máy in Bluetooth trước!"),
+          ),
         );
       }
       return;
@@ -182,14 +214,16 @@ class _ThermalPrinterDesignViewState extends State<ThermalPrinterDesignView> wit
 
     try {
       // Kết nối đến máy in với thông tin chi tiết
-      final connectionResult = await BluetoothPrinterService.connectWithStatus(_selectedPrinter!.macAddress);
+      final connectionResult = await BluetoothPrinterService.connectWithStatus(
+        _selectedPrinter!.macAddress,
+      );
 
       if (!connectionResult['success']) {
         final error = connectionResult['error'] ?? 'Unknown error';
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Lỗi kết nối: $error"))
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text("Lỗi kết nối: $error")));
         }
         return;
       }
@@ -200,8 +234,14 @@ class _ThermalPrinterDesignViewState extends State<ThermalPrinterDesignView> wit
       final generator = Generator(paper, profile);
 
       List<int> bytes = [];
-      bytes += generator.text('TEST KET NOI BLUETOOTH', styles: const PosStyles(align: PosAlign.center, bold: true));
-      bytes += generator.text('Thoi gian: ${DateTime.now().toString()}', styles: const PosStyles(align: PosAlign.center));
+      bytes += generator.text(
+        'TEST KET NOI BLUETOOTH',
+        styles: const PosStyles(align: PosAlign.center, bold: true),
+      );
+      bytes += generator.text(
+        'Thoi gian: ${DateTime.now().toString()}',
+        styles: const PosStyles(align: PosAlign.center),
+      );
       bytes += generator.feed(2);
       bytes += generator.cut();
 
@@ -211,19 +251,23 @@ class _ThermalPrinterDesignViewState extends State<ThermalPrinterDesignView> wit
       if (mounted) {
         if (success) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Đã in mẫu tem test thành công!"))
+            const SnackBar(content: Text("Đã in mẫu tem test thành công!")),
           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Lỗi in mẫu tem test! Máy in có thể không tương thích."))
+            const SnackBar(
+              content: Text(
+                "Lỗi in mẫu tem test! Máy in có thể không tương thích.",
+              ),
+            ),
           );
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Lỗi kết nối máy in: $e"))
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Lỗi kết nối máy in: $e")));
       }
     } finally {
       setState(() => _isTesting = false);
@@ -242,19 +286,37 @@ class _ThermalPrinterDesignViewState extends State<ThermalPrinterDesignView> wit
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(20),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)]
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                ),
+              ],
             ),
             child: Column(
               children: [
                 const Icon(Icons.bluetooth, size: 60, color: Colors.blueAccent),
                 const SizedBox(height: 15),
-                const Text("MÁY IN BLUETOOTH", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                const Text("In tem thông tin máy, phụ kiện", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                const Text(
+                  "MÁY IN BLUETOOTH",
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                ),
+                const Text(
+                  "In tem thông tin máy, phụ kiện",
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
               ],
             ),
           ),
           const SizedBox(height: 30),
-          const Text("MÁY IN BLUETOOTH", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+          const Text(
+            "MÁY IN BLUETOOTH",
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              color: Colors.blueGrey,
+            ),
+          ),
           const SizedBox(height: 10),
 
           // Hiển thị máy in đã chọn
@@ -274,8 +336,17 @@ class _ThermalPrinterDesignViewState extends State<ThermalPrinterDesignView> wit
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(_selectedPrinter!.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                        Text(_selectedPrinter!.macAddress, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                        Text(
+                          _selectedPrinter!.name,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          _selectedPrinter!.macAddress,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -296,13 +367,25 @@ class _ThermalPrinterDesignViewState extends State<ThermalPrinterDesignView> wit
             child: ElevatedButton.icon(
               onPressed: _isScanning ? null : _scanBluetoothPrinters,
               icon: _isScanning
-                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
                   : const Icon(Icons.bluetooth_searching),
-              label: Text(_isScanning ? "ĐANG QUÉT..." : "QUÉT MÁY IN BLUETOOTH", style: const TextStyle(fontWeight: FontWeight.bold)),
+              label: Text(
+                _isScanning ? "ĐANG QUÉT..." : "QUÉT MÁY IN BLUETOOTH",
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blueAccent,
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
               ),
             ),
           ),
@@ -310,7 +393,14 @@ class _ThermalPrinterDesignViewState extends State<ThermalPrinterDesignView> wit
           // Danh sách máy in tìm được
           if (_availablePrinters.isNotEmpty) ...[
             const SizedBox(height: 20),
-            const Text("MÁY IN TÌM THẤY", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+            const Text(
+              "MÁY IN TÌM THẤY",
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: Colors.blueGrey,
+              ),
+            ),
             const SizedBox(height: 10),
             Container(
               constraints: const BoxConstraints(maxHeight: 200),
@@ -343,15 +433,22 @@ class _ThermalPrinterDesignViewState extends State<ThermalPrinterDesignView> wit
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const BluetoothPrinterTestView()),
+                  MaterialPageRoute(
+                    builder: (_) => const BluetoothPrinterTestView(),
+                  ),
                 );
               },
               icon: const Icon(Icons.bug_report),
-              label: const Text("KIỂM TRA KẾT NỐI (GỠ LỖI)", style: TextStyle(fontWeight: FontWeight.bold)),
+              label: const Text(
+                "KIỂM TRA KẾT NỐI (GỠ LỖI)",
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
               style: OutlinedButton.styleFrom(
                 side: const BorderSide(color: Colors.orange),
                 foregroundColor: Colors.orange,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
               ),
             ),
           ),
@@ -363,19 +460,38 @@ class _ThermalPrinterDesignViewState extends State<ThermalPrinterDesignView> wit
             child: ElevatedButton.icon(
               onPressed: _isTesting ? null : _testThermalPrint,
               icon: _isTesting
-                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
                   : const Icon(Icons.print_rounded),
-              label: Text(_isTesting ? "ĐANG IN THỬ..." : "IN MẪU TEM TEST", style: const TextStyle(fontWeight: FontWeight.bold)),
+              label: Text(
+                _isTesting ? "ĐANG IN THỬ..." : "IN MẪU TEM TEST",
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.redAccent,
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
               ),
             ),
           ),
 
           const SizedBox(height: 30),
-          const Text("HƯỚNG DẪN KHẮC PHỤC", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+          const Text(
+            "HƯỚNG DẪN KHẮC PHỤC",
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              color: Colors.blueGrey,
+            ),
+          ),
           const SizedBox(height: 10),
           Container(
             padding: const EdgeInsets.all(15),
@@ -387,7 +503,10 @@ class _ThermalPrinterDesignViewState extends State<ThermalPrinterDesignView> wit
             child: const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("Nếu máy in không kết nối được:", style: TextStyle(fontWeight: FontWeight.bold)),
+                Text(
+                  "Nếu máy in không kết nối được:",
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
                 SizedBox(height: 8),
                 Text("1. Kiểm tra máy in đã bật và có giấy"),
                 Text("2. Vào Cài đặt > Bluetooth và pair máy in"),
@@ -395,7 +514,10 @@ class _ThermalPrinterDesignViewState extends State<ThermalPrinterDesignView> wit
                 Text("4. Thử khởi động lại máy in và điện thoại"),
                 Text("5. Kiểm tra pin máy in (nếu có)"),
                 SizedBox(height: 8),
-                Text("Lưu ý: Một số máy in cần được pair trước khi sử dụng trong app", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                Text(
+                  "Lưu ý: Một số máy in cần được pair trước khi sử dụng trong app",
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
               ],
             ),
           ),
@@ -410,7 +532,10 @@ class _ThermalPrinterDesignViewState extends State<ThermalPrinterDesignView> wit
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("THIẾT KẾ MẪU TEM", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          const Text(
+            "THIẾT KẾ MẪU TEM",
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 20),
 
           // Chọn size giấy
@@ -419,12 +544,20 @@ class _ThermalPrinterDesignViewState extends State<ThermalPrinterDesignView> wit
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(15),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)]
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                ),
+              ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text("KÍCH THƯỚC GIẤY", style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text(
+                  "KÍCH THƯỚC GIẤY",
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 15),
                 Row(
                   children: [
@@ -447,18 +580,51 @@ class _ThermalPrinterDesignViewState extends State<ThermalPrinterDesignView> wit
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(15),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)]
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                ),
+              ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text("THÔNG TIN HIỂN THỊ", style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text(
+                  "THÔNG TIN HIỂN THỊ",
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 15),
-                _buildInfoToggle('Màu sắc máy', _showColor, (v) => setState(() => _showColor = v)),
-                _buildInfoToggle('Số IMEI', _showIMEI, (v) => setState(() => _showIMEI = v)),
-                _buildInfoToggle('Tình trạng máy', _showCondition, (v) => setState(() => _showCondition = v)),
-                _buildInfoToggle('Giá bán', _showPrice, (v) => setState(() => _showPrice = v)),
-                _buildInfoToggle('Có phụ kiện hay không', _showAccessories, (v) => setState(() => _showAccessories = v)),
+                _buildInfoToggle(
+                  'Màu sắc máy',
+                  _showColor,
+                  (v) => setState(() => _showColor = v),
+                ),
+                _buildInfoToggle(
+                  'Số IMEI',
+                  _showIMEI,
+                  (v) => setState(() => _showIMEI = v),
+                ),
+                _buildInfoToggle(
+                  'Tình trạng máy',
+                  _showCondition,
+                  (v) => setState(() => _showCondition = v),
+                ),
+                _buildInfoToggle(
+                  'Giá bán',
+                  _showPrice,
+                  (v) => setState(() => _showPrice = v),
+                ),
+                _buildInfoToggle(
+                  'Có phụ kiện hay không',
+                  _showAccessories,
+                  (v) => setState(() => _showAccessories = v),
+                ),
+                _buildInfoToggle(
+                  'Mã QR',
+                  _showQR,
+                  (v) => setState(() => _showQR = v),
+                ), // Thêm toggle QR
               ],
             ),
           ),
@@ -471,12 +637,20 @@ class _ThermalPrinterDesignViewState extends State<ThermalPrinterDesignView> wit
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(15),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)]
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                ),
+              ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text("CỠ CHỮ", style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text(
+                  "CỠ CHỮ",
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 15),
                 Row(
                   children: [
@@ -499,12 +673,20 @@ class _ThermalPrinterDesignViewState extends State<ThermalPrinterDesignView> wit
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(15),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)]
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                ),
+              ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text("XEM TRƯỚC MẪU TEM", style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text(
+                  "XEM TRƯỚC MẪU TEM",
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 15),
                 Container(
                   width: double.infinity,
@@ -516,13 +698,32 @@ class _ThermalPrinterDesignViewState extends State<ThermalPrinterDesignView> wit
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('iPhone 14 Pro Max', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      Text(
+                        'iPhone 14 Pro Max',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       const SizedBox(height: 8),
                       if (_showColor) Text('Màu: Đen', style: _getFontStyle()),
-                      if (_showIMEI) Text('IMEI: 123456789012345', style: _getFontStyle()),
-                      if (_showCondition) Text('Tình trạng: 99%', style: _getFontStyle()),
-                      if (_showPrice) Text('Giá: 5.000.000 VND', style: _getFontStyle()),
-                      if (_showAccessories) Text('Phụ kiện: Có', style: _getFontStyle()),
+                      if (_showIMEI)
+                        Text('IMEI: 123456789012345', style: _getFontStyle()),
+                      if (_showCondition)
+                        Text('Tình trạng: 99%', style: _getFontStyle()),
+                      if (_showPrice)
+                        Text('Giá: 5.000.000 VND', style: _getFontStyle()),
+                      if (_showAccessories)
+                        Text('Phụ kiện: Có', style: _getFontStyle()),
+                      if (_showQR)
+                        Text(
+                          '[QR Code]',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontStyle: FontStyle.italic,
+                            color: Colors.blue,
+                          ),
+                        ), // Thêm preview QR
                     ],
                   ),
                 ),
@@ -537,11 +738,16 @@ class _ThermalPrinterDesignViewState extends State<ThermalPrinterDesignView> wit
             child: ElevatedButton.icon(
               onPressed: _saveSettings,
               icon: const Icon(Icons.save_rounded),
-              label: const Text("LƯU CÀI ĐẶT", style: TextStyle(fontWeight: FontWeight.bold)),
+              label: const Text(
+                "LƯU CÀI ĐẶT",
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green,
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
               ),
             ),
           ),
@@ -557,10 +763,14 @@ class _ThermalPrinterDesignViewState extends State<ThermalPrinterDesignView> wit
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
           decoration: BoxDecoration(
-            color: _selectedSize == size ? Colors.redAccent : Colors.grey.shade100,
+            color: _selectedSize == size
+                ? Colors.redAccent
+                : Colors.grey.shade100,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
-              color: _selectedSize == size ? Colors.redAccent : Colors.grey.shade300
+              color: _selectedSize == size
+                  ? Colors.redAccent
+                  : Colors.grey.shade300,
             ),
           ),
           child: Text(
@@ -587,7 +797,9 @@ class _ThermalPrinterDesignViewState extends State<ThermalPrinterDesignView> wit
             color: _fontSize == size ? Colors.blueAccent : Colors.grey.shade100,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
-              color: _fontSize == size ? Colors.blueAccent : Colors.grey.shade300
+              color: _fontSize == size
+                  ? Colors.blueAccent
+                  : Colors.grey.shade300,
             ),
           ),
           child: Text(
@@ -637,21 +849,24 @@ class _ThermalPrinterDesignViewState extends State<ThermalPrinterDesignView> wit
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFF),
       appBar: AppBar(
-        title: const Text("MÁY IN NHIỆT & TEM", style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          "MÁY IN NHIỆT & TEM",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
             Tab(text: "MÁY IN", icon: Icon(Icons.thermostat_rounded)),
-            Tab(text: "THIẾT KẾ TEM", icon: Icon(Icons.design_services_rounded)),
+            Tab(
+              text: "THIẾT KẾ TEM",
+              icon: Icon(Icons.design_services_rounded),
+            ),
           ],
         ),
       ),
       body: TabBarView(
         controller: _tabController,
-        children: [
-          _buildPrinterSettingsTab(),
-          _buildDesignSettingsTab(),
-        ],
+        children: [_buildPrinterSettingsTab(), _buildDesignSettingsTab()],
       ),
     );
   }

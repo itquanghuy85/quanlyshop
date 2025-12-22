@@ -28,6 +28,11 @@ class _CustomerListViewState extends State<CustomerListView> {
   Set<int> _selectedIndices = {};
   bool _isDeleting = false;
 
+  // Theme colors cho màn hình quản lý khách hàng
+  final Color _primaryColor = Colors.pink; // Màu hồng cho customer management
+  final Color _accentColor = Colors.pink.shade600;
+  final Color _backgroundColor = const Color(0xFFF8FAFF);
+
   @override
   void initState() {
     super.initState();
@@ -235,8 +240,11 @@ class _CustomerListViewState extends State<CustomerListView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFF),
+      backgroundColor: _backgroundColor,
       appBar: AppBar(
+        backgroundColor: _primaryColor,
+        foregroundColor: Colors.white,
+        elevation: 2,
         title: Text(
           _isSelectionMode 
             ? "Đã chọn ${_selectedIndices.length} khách hàng"
@@ -247,19 +255,19 @@ class _CustomerListViewState extends State<CustomerListView> {
         ),
         actions: _isSelectionMode ? [
           IconButton(
-            icon: const Icon(Icons.close),
+            icon: const Icon(Icons.close, color: Colors.white),
             onPressed: _cancelSelection,
             tooltip: "Hủy chọn",
           ),
           if (_isAdmin)
             IconButton(
-              icon: const Icon(Icons.delete_forever, color: Colors.red),
+              icon: const Icon(Icons.delete_forever, color: Colors.white),
               onPressed: _isDeleting ? null : _deleteSelectedCustomers,
               tooltip: "Xóa các khách đã chọn",
             ),
         ] : [
           IconButton(
-            icon: Icon(_showUnassignedOnly ? Icons.group : Icons.group_off),
+            icon: Icon(_showUnassignedOnly ? Icons.group : Icons.group_off, color: Colors.white),
             onPressed: () {
               setState(() => _showUnassignedOnly = !_showUnassignedOnly);
               _refresh();
