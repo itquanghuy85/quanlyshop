@@ -153,13 +153,27 @@ exports.createStaffAccount = onCall(async (request) => {
   }
 });
 
-// --- CLEANUP: XÓA HOÀN TOÀN NHỮNG REPAIR ĐÃ ĐÁNH DẤU deleted=true SAU 30 NGÀY ---
+// --- CLEANUP (OPT-IN): XÓA HOÀN TOÀN NHỮNG REPAIR ĐÃ ĐÁNH DẤU deleted=true SAU N NGÀY ---
+// Tính năng này là 'opt-in' — chỉ chạy nếu doc `settings/cleanup` tồn tại và có `enabled: true`.
+// Để bật: tạo doc `settings/cleanup` với { enabled: true, repairRetentionDays: 30 }
 exports.cleanupDeletedRepairs = onSchedule("every 24 hours", async (event) => {
-  const days = 30; // số ngày trước khi xóa hẳn
-  const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-  const cutoffTs = admin.firestore.Timestamp.fromDate(cutoff);
-
   try {
+    const cfgDoc = await admin.firestore().doc('settings/cleanup').get();
+    const cfg = cfgDoc.exists ? (cfgDoc.data() || {}) : {};
+    if (!cfg.enabled) {
+      console.log('cleanupDeletedRepairs is disabled via settings/cleanup (or doc missing). Skipping.');
+      return;
+    }
+
+    const days = Number(cfg.repairRetentionDays ?? 30);
+    if (!(days > 0)) {
+      console.log('cleanupDeletedRepairs: invalid repairRetentionDays, skipping.');
+      return;
+    }
+
+    const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+    const cutoffTs = admin.firestore.Timestamp.fromDate(cutoff);
+
     const q = admin.firestore().collection('repairs')
       .where('deleted', '==', true)
       .where('deletedAt', '<=', cutoffTs)
