@@ -288,6 +288,12 @@ class _HomeViewState extends State<HomeView> {
     Navigator.push(context, MaterialPageRoute(builder: (_) => const ThermalPrinterDesignView()));
   }
 
+  Future<void> _openRepairReceipt() async {
+    final ok = await _ensurePermission('allowViewRepairs', "Tài khoản này không được phép tạo phiếu tiếp nhận. Liên hệ chủ shop để phân quyền.");
+    if (!ok || !mounted) return;
+    Navigator.push(context, MaterialPageRoute(builder: (_) => const RepairReceiptView()));
+  }
+
   void _showPrinterMenu() {
     showModalBottomSheet(
       context: context,
@@ -307,6 +313,15 @@ class _HomeViewState extends State<HomeView> {
                 onTap: () {
                   Navigator.pop(ctx);
                   _openPrinterSettings();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.assignment_rounded, color: Colors.green),
+                title: const Text("PHIẾU TIẾP NHẬN", style: TextStyle(fontWeight: FontWeight.bold)),
+                subtitle: const Text("Tạo phiếu nhận máy sửa chữa"),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _openRepairReceipt();
                 },
               ),
               ListTile(

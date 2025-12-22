@@ -24,6 +24,8 @@ class Repair {
   String? deliveredBy;
   int? lastCaredAt;
   bool isSynced;
+  bool deleted;
+
   // Thông tin máy cho tem nhiệt
   String? color;
   String? imei;
@@ -55,6 +57,7 @@ class Repair {
     this.deliveredBy,
     this.lastCaredAt,
     this.isSynced = false,
+    this.deleted = false,
     this.color,
     this.imei,
     this.condition,
@@ -66,7 +69,7 @@ class Repair {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
-      'firestoreId': firestoreId ?? "${createdAt}_$phone",
+      'firestoreId': firestoreId,
       'customerName': customerName,
       'phone': phone,
       'model': model,
@@ -90,6 +93,10 @@ class Repair {
       'deliveredBy': deliveredBy,
       'lastCaredAt': lastCaredAt,
       'isSynced': isSynced ? 1 : 0,
+      'deleted': deleted ? 1 : 0,
+      'color': color,
+      'imei': imei,
+      'condition': condition,
     };
   }
 
@@ -119,7 +126,8 @@ class Repair {
       repairedBy: map['repairedBy'],
       deliveredBy: map['deliveredBy'],
       lastCaredAt: map['lastCaredAt'],
-      isSynced: map['isSynced'] == 1,
+      isSynced: map['isSynced'] == 1 || map['isSynced'] == true,
+      deleted: map['deleted'] == 1 || map['deleted'] == true,
       color: map['color'],
       imei: map['imei'],
       condition: map['condition'],

@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:esc_pos_utils/esc_pos_utils.dart';
 import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
 import '../services/bluetooth_printer_service.dart';
+import 'bluetooth_printer_test_view.dart';
 
 class ThermalPrinterDesignView extends StatefulWidget {
   const ThermalPrinterDesignView({super.key});
@@ -127,6 +128,33 @@ class _ThermalPrinterDesignViewState extends State<ThermalPrinterDesignView> wit
   }
 
   Future<void> _selectPrinter(BluetoothInfo printer) async {
+    // Kiểm tra máy in đã được pair chưa
+    final pairedPrinters = await BluetoothPrinterService.getPairedPrinters();
+    final isPaired = pairedPrinters.any((p) => p.macAdress == printer.macAdress);
+
+    if (!isPaired) {
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text("MÁY IN CHƯA ĐƯỢC PAIR"),
+            content: Text("Máy in '${printer.name}' chưa được pair với thiết bị. Vui lòng:\n\n"
+                "1. Mở Cài đặt > Bluetooth\n"
+                "2. Bật Bluetooth nếu chưa bật\n"
+                "3. Tìm và pair với máy in '${printer.name}'\n"
+                "4. Quay lại app và thử lại"),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text("ĐÃ HIỂU"),
+              ),
+            ],
+          ),
+        );
+      }
+      return;
+    }
+
     final config = BluetoothPrinterConfig(name: printer.name, macAddress: printer.macAdress);
     await BluetoothPrinterService.savePrinter(config);
     setState(() {
@@ -153,12 +181,14 @@ class _ThermalPrinterDesignViewState extends State<ThermalPrinterDesignView> wit
     setState(() => _isTesting = true);
 
     try {
-      // Kết nối đến máy in
-      final connected = await BluetoothPrinterService.connect(_selectedPrinter!.macAddress);
-      if (!connected) {
+      // Kết nối đến máy in với thông tin chi tiết
+      final connectionResult = await BluetoothPrinterService.connectWithStatus(_selectedPrinter!.macAddress);
+
+      if (!connectionResult['success']) {
+        final error = connectionResult['error'] ?? 'Unknown error';
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Không thể kết nối đến máy in Bluetooth!"))
+            SnackBar(content: Text("Lỗi kết nối: $error"))
           );
         }
         return;
@@ -171,6 +201,7 @@ class _ThermalPrinterDesignViewState extends State<ThermalPrinterDesignView> wit
 
       List<int> bytes = [];
       bytes += generator.text('TEST KET NOI BLUETOOTH', styles: const PosStyles(align: PosAlign.center, bold: true));
+      bytes += generator.text('Thoi gian: ${DateTime.now().toString()}', styles: const PosStyles(align: PosAlign.center));
       bytes += generator.feed(2);
       bytes += generator.cut();
 
@@ -184,7 +215,7 @@ class _ThermalPrinterDesignViewState extends State<ThermalPrinterDesignView> wit
           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Lỗi in mẫu tem test!"))
+            const SnackBar(content: Text("Lỗi in mẫu tem test! Máy in có thể không tương thích."))
           );
         }
       }
@@ -307,6 +338,27 @@ class _ThermalPrinterDesignViewState extends State<ThermalPrinterDesignView> wit
           const SizedBox(height: 25),
           SizedBox(
             width: double.infinity,
+            height: 50,
+            child: OutlinedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const BluetoothPrinterTestView()),
+                );
+              },
+              icon: const Icon(Icons.bug_report),
+              label: const Text("KIỂM TRA KẾT NỐI (GỠ LỖI)", style: TextStyle(fontWeight: FontWeight.bold)),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: Colors.orange),
+                foregroundColor: Colors.orange,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 15),
+          SizedBox(
+            width: double.infinity,
             height: 55,
             child: ElevatedButton.icon(
               onPressed: _isTesting ? null : _testThermalPrint,
@@ -319,6 +371,32 @@ class _ThermalPrinterDesignViewState extends State<ThermalPrinterDesignView> wit
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))
               ),
+            ),
+          ),
+
+          const SizedBox(height: 30),
+          const Text("HƯỚNG DẪN KHẮC PHỤC", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.all(15),
+            decoration: BoxDecoration(
+              color: Colors.amber.shade50,
+              borderRadius: BorderRadius.circular(15),
+              border: Border.all(color: Colors.amber.shade200),
+            ),
+            child: const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("Nếu máy in không kết nối được:", style: TextStyle(fontWeight: FontWeight.bold)),
+                SizedBox(height: 8),
+                Text("1. Kiểm tra máy in đã bật và có giấy"),
+                Text("2. Vào Cài đặt > Bluetooth và pair máy in"),
+                Text("3. Đảm bảo máy in không được kết nối với thiết bị khác"),
+                Text("4. Thử khởi động lại máy in và điện thoại"),
+                Text("5. Kiểm tra pin máy in (nếu có)"),
+                SizedBox(height: 8),
+                Text("Lưu ý: Một số máy in cần được pair trước khi sử dụng trong app", style: TextStyle(fontSize: 12, color: Colors.grey)),
+              ],
             ),
           ),
         ],
