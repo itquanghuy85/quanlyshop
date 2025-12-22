@@ -349,6 +349,12 @@ class DBHelper {
   Future<int> updateSale(SaleOrder s) async => (await database).update('sales', s.toMap(), where: 'id = ?', whereArgs: [s.id]);
   Future<int> deleteProduct(int id) async => (await database).delete('products', where: 'id = ?', whereArgs: [id]);
   Future<int> deleteRepair(int id) async => (await database).delete('repairs', where: 'id = ?', whereArgs: [id]);
+
+  /// Xóa repair theo firestoreId (dùng khi Firestore đánh dấu deleted=true)
+  Future<int> deleteRepairByFirestoreId(String firestoreId) async {
+    final db = await database;
+    return await db.delete('repairs', where: 'firestoreId = ?', whereArgs: [firestoreId]);
+  }
   Future<int> deleteSale(int id) async => (await database).delete('sales', where: 'id = ?', whereArgs: [id]);
   
   Future<int> updateProductStatus(int id, int status) async {
@@ -599,5 +605,24 @@ class DBHelper {
     } else {
       await db.insert('suppliers', s);
     }
+  }
+
+  // Xóa tất cả dữ liệu của một khách hàng (repairs và sales)
+  Future<void> deleteCustomerData(String customerName, String phone) async {
+    final db = await database;
+    
+    // Xóa repairs của customer
+    await db.delete(
+      'repairs', 
+      where: 'customerName = ? AND phone = ?', 
+      whereArgs: [customerName, phone]
+    );
+    
+    // Xóa sales của customer  
+    await db.delete(
+      'sales',
+      where: 'customerName = ? AND phone = ?',
+      whereArgs: [customerName, phone]
+    );
   }
 }

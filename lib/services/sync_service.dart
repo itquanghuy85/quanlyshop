@@ -32,9 +32,19 @@ class SyncService {
       final db = DBHelper();
       for (var change in snapshot.docChanges) {
         final data = change.doc.data();
-        if (data != null && (change.type == DocumentChangeType.added || change.type == DocumentChangeType.modified)) {
+        if (data == null) continue;
+
+        // Nếu Firestore đã đánh dấu là deleted => xóa local theo firestoreId
+        if (data['deleted'] == true) {
+          print('[sync] Repair ${change.doc.id} marked deleted on Firestore. Deleting local copy.');
+          await db.deleteRepairByFirestoreId(change.doc.id);
+          continue;
+        }
+
+        if (change.type == DocumentChangeType.added || change.type == DocumentChangeType.modified) {
           data['firestoreId'] = change.doc.id; // đảm bảo khóa đồng bộ ổn định
           final r = Repair.fromMap(data);
+          print('[sync] Applying repair ${r.firestoreId ?? change.doc.id} to local DB');
           await db.upsertRepair(r);
         }
       }
@@ -158,6 +168,12 @@ class SyncService {
 
     for (var doc in snaps[0].docs) {
       final data = doc.data();
+      // Nếu Firestore đã đánh dấu deleted thì xóa local nếu có
+      if (data['deleted'] == true) {
+        print('[sync] Skipping deleted repair ${doc.id} during bulk download');
+        await db.deleteRepairByFirestoreId(doc.id);
+        continue;
+      }
       data['firestoreId'] = doc.id;
       await db.upsertRepair(Repair.fromMap(data));
     }

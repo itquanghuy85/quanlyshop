@@ -83,10 +83,13 @@ class FirestoreService {
     return q.snapshots();
   }
 
-  /// Xóa repair trên Firestore (dùng khi xóa từ app để tránh bị sync lại)
+  /// Đánh dấu repair là đã xóa trên Firestore (tombstone) để các máy khác không sync lại.
   static Future<bool> deleteRepair(String firestoreId) async {
     try {
-      await _db.collection('repairs').doc(firestoreId).delete();
+      await _db.collection('repairs').doc(firestoreId).set({
+        'deleted': true,
+        'deletedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
       return true;
     } catch (_) {
       return false;
