@@ -1,6 +1,7 @@
 const admin = require("firebase-admin");
 const { onDocumentCreated, onDocumentUpdated } = require("firebase-functions/v2/firestore");
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { setGlobalOptions } = require("firebase-functions/v2/options");
 
 admin.initializeApp();
@@ -149,5 +150,32 @@ exports.createStaffAccount = onCall(async (request) => {
     }
     console.error("Lỗi tạo tài khoản nhân viên:", e);
     throw new HttpsError("internal", "Không thể tạo tài khoản mới");
+  }
+});
+
+// --- CLEANUP: XÓA HOÀN TOÀN NHỮNG REPAIR ĐÃ ĐÁNH DẤU deleted=true SAU 30 NGÀY ---
+exports.cleanupDeletedRepairs = onSchedule("every 24 hours", async (event) => {
+  const days = 30; // số ngày trước khi xóa hẳn
+  const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+  const cutoffTs = admin.firestore.Timestamp.fromDate(cutoff);
+
+  try {
+    const q = admin.firestore().collection('repairs')
+      .where('deleted', '==', true)
+      .where('deletedAt', '<=', cutoffTs)
+      .limit(500);
+
+    const snaps = await q.get();
+    console.log(`Found ${snaps.size} deleted repairs older than ${days} days`);
+    for (const doc of snaps.docs) {
+      try {
+        await doc.ref.delete();
+        console.log(`Permanently deleted repair ${doc.id}`);
+      } catch (e) {
+        console.error(`Failed to delete repair ${doc.id}:`, e);
+      }
+    }
+  } catch (e) {
+    console.error('Cleanup job failed:', e);
   }
 });
