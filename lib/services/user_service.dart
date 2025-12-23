@@ -42,27 +42,31 @@ class UserService {
     final isOwner = role == 'owner';
     final isManager = role == 'manager';
     final isEmployee = role == 'employee';
-    final isAdmin = role == 'admin'; // Thêm case cho admin
-    
+    final isTechnician = role == 'technician';
+    final isAdmin = role == 'admin'; // Super admin
+    final isUser = role == 'user'; // Default fallback
+
     return {
-      // Chủ shop: toàn quyền
+      // Chủ shop: toàn quyền quản lý shop
       // Quản lý: xem được tất cả, quản lý nhân viên
       // Nhân viên: xem nghiệp vụ cơ bản, không xem tài chính
       // Kỹ thuật: chỉ xem sửa chữa, linh kiện, khách hàng
-      // Admin: toàn quyền như owner
+      // Admin: toàn quyền như owner (super admin)
+      // User: quyền tối thiểu (fallback)
       'allowViewSales': isOwner || isManager || isEmployee || isAdmin,
-      'allowViewRepairs': true, // Tất cả đều xem được repairs
+      'allowViewRepairs': isOwner || isManager || isEmployee || isTechnician || isAdmin || isUser,
       'allowViewInventory': isOwner || isManager || isEmployee || isAdmin,
-      'allowViewParts': true, // Tất cả đều cần xem linh kiện
+      'allowViewParts': isOwner || isManager || isEmployee || isTechnician || isAdmin || isUser, // Tất cả đều cần xem linh kiện
       'allowViewSuppliers': isOwner || isManager || isEmployee || isAdmin,
-      'allowViewCustomers': true, // Tất cả đều cần xem khách hàng
-      'allowViewWarranty': isOwner || isManager || isEmployee || isAdmin,
-      'allowViewChat': true,
-      'allowViewPrinter': true,
+      'allowViewCustomers': isOwner || isManager || isEmployee || isTechnician || isAdmin || isUser, // Tất cả đều cần xem khách hàng
+      'allowViewWarranty': isOwner || isManager || isEmployee || isTechnician || isAdmin,
+      'allowViewChat': isOwner || isManager || isEmployee || isTechnician || isAdmin || isUser,
+      'allowViewPrinter': isOwner || isManager || isEmployee || isTechnician || isAdmin || isUser,
       'allowViewRevenue': isOwner || isManager || isAdmin,
       'allowViewExpenses': isOwner || isManager || isAdmin,
       'allowViewDebts': isOwner || isManager || isAdmin,
       'allowViewSettings': isOwner || isManager || isAdmin,
+      'allowManageStaff': isOwner || isManager || isAdmin,
       'shopAppLocked': false,
       'shopAdminFinanceLocked': false,
     };
@@ -194,8 +198,10 @@ class UserService {
     if (!isSuperAdmin && (shopId == null || shopId.trim().isEmpty)) {
       shopId = uid;
       await _db.collection('shops').doc(shopId).set({
+        'shopId': shopId, // Add shopId field for querying
         'ownerUid': uid,
         'ownerEmail': email,
+        'name': extra?['shopName'] ?? 'Cửa hàng mới',
         'createdAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
     }
@@ -215,9 +221,6 @@ class UserService {
       userData.addAll(extra);
     }
     await userRef.set(userData, SetOptions(merge: true));
-
-    // Đồng bộ dữ liệu liên quan nếu cần (ví dụ: cập nhật email ở các bảng khác)
-    // TODO: Nếu có bảng orders, repair_orders,... thì cập nhật thông tin liên quan ở đó
   }
 
   /// GÁN một nhân viên vào cùng cửa hàng với user hiện tại
@@ -259,7 +262,9 @@ class UserService {
       final snap = await _db.collection('users').doc(currentUser.uid).get();
       final data = snap.data() ?? {};
       final role = (data['role'] as String?) ?? 'user';
+      debugPrint('getCurrentUserPermissions: role from firestore = $role');
       final defaults = _defaultPermissionsForRole(role);
+      debugPrint('getCurrentUserPermissions: defaults = $defaults');
 
       // Bắt đầu từ quyền riêng trên tài khoản (nếu chưa cấu hình thì dùng mặc định theo role)
       final perms = <String, bool>{
@@ -276,6 +281,7 @@ class UserService {
         'allowViewExpenses': (data['allowViewExpenses'] as bool?) ?? defaults['allowViewExpenses']!,
         'allowViewDebts': (data['allowViewDebts'] as bool?) ?? defaults['allowViewDebts']!,
         'allowViewSettings': (data['allowViewSettings'] as bool?) ?? defaults['allowViewSettings']!,
+        'allowManageStaff': (data['allowManageStaff'] as bool?) ?? defaults['allowManageStaff']!,
         'shopAppLocked': false,
         'shopAdminFinanceLocked': false,
       };
@@ -326,21 +332,33 @@ class UserService {
     return _db.collection('shops').orderBy('createdAt', descending: true).snapshots();
   }
 
-  /// Dành riêng cho Super Admin: cập nhật cờ điều khiển ở cấp shop
-  static Future<void> updateShopControlFlags({
-    required String shopId,
-    bool? appLocked,
-    bool? adminFinanceLocked,
-  }) async {
+  /// Temporary function to update existing shops with shopId field
+  static Future<void> updateExistingShopsWithShopId() async {
     final currentUser = FirebaseAuth.instance.currentUser;
-    if (!_isSuperAdmin(currentUser)) return;
-
-    final data = <String, dynamic>{};
-    if (appLocked != null) data['appLocked'] = appLocked;
-    if (adminFinanceLocked != null) data['adminFinanceLocked'] = adminFinanceLocked;
-    if (data.isEmpty) return;
-
-    await _db.collection('shops').doc(shopId).set(data, SetOptions(merge: true));
+    if (currentUser == null) return;
+    
+    final shopId = await getCurrentShopId();
+    if (shopId == null) return;
+    
+    // First check if shop exists
+    final shopDoc = await _db.collection('shops').doc(shopId).get();
+    if (!shopDoc.exists) {
+      await _db.collection('shops').doc(shopId).set({
+        'shopId': shopId,
+        'ownerUid': currentUser.uid,
+        'ownerEmail': currentUser.email ?? '',
+        'name': 'Cửa hàng mới',
+        'createdAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } else {
+      final data = shopDoc.data() ?? {};
+      if (!data.containsKey('shopId') || data['shopId'] != shopId) {
+        // Update shop document to include shopId field
+        await _db.collection('shops').doc(shopId).set({
+          'shopId': shopId,
+        }, SetOptions(merge: true));
+      }
+    }
   }
 
   /// Cập nhật phân quyền ẩn/hiện nội dung cho một nhân viên cụ thể
@@ -373,6 +391,24 @@ class UserService {
       'allowViewExpenses': allowViewExpenses,
       'allowViewDebts': allowViewDebts,
     }, SetOptions(merge: true));
+  }
+
+  /// Cập nhật các flag điều khiển shop (dành cho super admin)
+  static Future<void> updateShopControlFlags({
+    required String shopId,
+    bool? appLocked,
+    bool? adminFinanceLocked,
+  }) async {
+    final updateData = <String, dynamic>{
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+    if (appLocked != null) {
+      updateData['appLocked'] = appLocked;
+    }
+    if (adminFinanceLocked != null) {
+      updateData['adminFinanceLocked'] = adminFinanceLocked;
+    }
+    await _db.collection('shops').doc(shopId).set(updateData, SetOptions(merge: true));
   }
 
   // --- INVITE SYSTEM ---

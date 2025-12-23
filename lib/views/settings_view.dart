@@ -9,6 +9,7 @@ import '../services/user_service.dart';
 import '../services/firestore_service.dart';
 import '../l10n/app_localizations.dart';
 import 'invoice_template_view.dart';
+import 'staff_list_view.dart';
 
 class SettingsView extends StatefulWidget {
   final void Function(Locale)? setLocale;
@@ -37,6 +38,8 @@ class _SettingsViewState extends State<SettingsView> {
   final ownerAddressCtrl = TextEditingController();
   final ownerBusinessLicenseCtrl = TextEditingController();
   final ownerTaxCodeCtrl = TextEditingController();
+
+  String? _userRole;
 
   @override
   void initState() {
@@ -84,6 +87,13 @@ class _SettingsViewState extends State<SettingsView> {
           ownerAddressCtrl.text = userInfo['address'] ?? '';
         });
       }
+    }
+
+    // Load user role
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      _userRole = await UserService.getUserRole(currentUser.uid);
+      setState(() {});
     }
   }
 
@@ -218,6 +228,10 @@ class _SettingsViewState extends State<SettingsView> {
           }),
           _menuTile(l10n.joinShopCode, Icons.group_add, Colors.orange, _joinShopDialog),
           _menuTile(l10n.cleanupManagement, Icons.cleaning_services_rounded, Colors.purple, _openCleanupDialog),
+          if (_userRole == 'owner')
+            _menuTile('Quản lý nhân viên', Icons.group_rounded, Colors.indigo, () {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const StaffListView()));
+            }),
 
           const SizedBox(height: 30),
           _sectionTitle(l10n.aboutSection),
@@ -291,9 +305,9 @@ class _SettingsViewState extends State<SettingsView> {
                         ],
                       ),
                       const SizedBox(height: 8),
-                      Text("👨‍💻 ${l10n.developerName}", style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
-                      Text(l10n.contactPhone, style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
-                      Text(l10n.technicalSupport, style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+                      Text("👨‍💻 ${l10n.developerName}", style: TextStyle(fontSize: 12, color: Colors.black87)),
+                      Text(l10n.contactPhone, style: TextStyle(fontSize: 12, color: Colors.black87)),
+                      Text(l10n.technicalSupport, style: TextStyle(fontSize: 12, color: Colors.black87)),
                     ],
                   ),
                 ),
@@ -316,10 +330,10 @@ class _SettingsViewState extends State<SettingsView> {
                         ],
                       ),
                       const SizedBox(height: 8),
-                      Text("👨‍💻 ${l10n.developerName}", style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
-                      Text("🚀 ${l10n.developerRole}", style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
-                      Text(l10n.contactPhone, style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
-                      Text("💡 ${l10n.businessSolutions}", style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+                      Text("👨‍💻 ${l10n.developerName}", style: TextStyle(fontSize: 12, color: Colors.black87)),
+                      Text("🚀 ${l10n.developerRole}", style: TextStyle(fontSize: 12, color: Colors.black87)),
+                      Text(l10n.contactPhone, style: TextStyle(fontSize: 12, color: Colors.black87)),
+                      Text("💡 ${l10n.businessSolutions}", style: TextStyle(fontSize: 12, color: Colors.black87)),
                     ],
                   ),
                 ),

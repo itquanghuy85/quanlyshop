@@ -42,6 +42,8 @@ dependencies:
   esc_pos_utils: ^1.1.0
   esc_pos_printer: ^4.1.0
   mockito: ^5.6.1
+  file_picker: ^8.0.0
+  csv: ^6.0.0
 
 dev_dependencies:
   flutter_test:

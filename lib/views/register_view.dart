@@ -15,9 +15,11 @@ class RegisterView extends StatefulWidget {
 class _RegisterViewState extends State<RegisterView> {
   final _emailC = TextEditingController();
   final _passC = TextEditingController();
+  final _confirmPassC = TextEditingController();
   final _nameC = TextEditingController();
   final _phoneC = TextEditingController();
   final _addressC = TextEditingController();
+  final _shopNameC = TextEditingController();
   final _inviteCodeC = TextEditingController();
 
   bool _loading = false;
@@ -25,12 +27,34 @@ class _RegisterViewState extends State<RegisterView> {
   bool _isJoinShop = false; // false: tạo shop mới, true: tham gia shop
 
   @override
+  void initState() {
+    super.initState();
+    // Tự động tạo email khi nhập tên và tên cửa hàng
+    _nameC.addListener(_updateEmail);
+    _shopNameC.addListener(_updateEmail);
+  }
+
+  void _updateEmail() {
+    final name = _nameC.text.trim();
+    final shopName = _shopNameC.text.trim();
+    if (name.isNotEmpty && shopName.isNotEmpty) {
+      // Tạo email format: hovaten@tencuahang.com
+      final normalizedName = name.toLowerCase().replaceAll(' ', '');
+      final normalizedShopName = shopName.toLowerCase().replaceAll(' ', '');
+      final email = '$normalizedName@$normalizedShopName.com';
+      _emailC.text = email;
+    }
+  }
+
+  @override
   void dispose() {
     _emailC.dispose();
     _passC.dispose();
+    _confirmPassC.dispose();
     _nameC.dispose();
     _phoneC.dispose();
     _addressC.dispose();
+    _shopNameC.dispose();
     _inviteCodeC.dispose();
     super.dispose();
   }
@@ -102,14 +126,30 @@ class _RegisterViewState extends State<RegisterView> {
     });
     final email = _emailC.text.trim();
     final pass = _passC.text.trim();
+    final confirmPass = _confirmPassC.text.trim();
     final name = _nameC.text.trim();
     final phone = _phoneC.text.trim();
     final address = _addressC.text.trim();
     final inviteCode = _inviteCodeC.text.trim().toUpperCase();
+    final shopName = _shopNameC.text.trim();
     // Simple validation
-    if (email.isEmpty || pass.isEmpty || name.isEmpty || phone.isEmpty) {
+    if (email.isEmpty || pass.isEmpty || confirmPass.isEmpty || name.isEmpty || phone.isEmpty) {
       setState(() {
         _error = 'Vui lòng nhập đầy đủ thông tin bắt buộc';
+        _loading = false;
+      });
+      return;
+    }
+    if (pass != confirmPass) {
+      setState(() {
+        _error = 'Mật khẩu xác minh không khớp';
+        _loading = false;
+      });
+      return;
+    }
+    if (!_isJoinShop && shopName.isEmpty) {
+      setState(() {
+        _error = 'Vui lòng nhập tên cửa hàng';
         _loading = false;
       });
       return;
@@ -145,6 +185,7 @@ class _RegisterViewState extends State<RegisterView> {
             'name': name,
             'phone': phone,
             'address': address,
+            'shopName': shopName,
           });
         }
       }
@@ -203,11 +244,17 @@ class _RegisterViewState extends State<RegisterView> {
               ),
             ),
             const SizedBox(height: 20),
-            _buildTextField(_emailC, 'Email đăng nhập', Icons.email_outlined, type: TextInputType.emailAddress),
+            if (!_isJoinShop) ...[
+              _buildTextField(_shopNameC, 'Tên cửa hàng', Icons.store_outlined),
+              const SizedBox(height: 15),
+            ],
+            _buildTextField(_nameC, 'Họ và tên', Icons.person_outline),
+            const SizedBox(height: 15),
+            _buildTextField(_emailC, 'Email đăng ký', Icons.email_outlined, type: TextInputType.emailAddress, readOnly: true),
             const SizedBox(height: 15),
             _buildTextField(_passC, 'Mật khẩu', Icons.lock_outline, obscure: true),
             const SizedBox(height: 15),
-            _buildTextField(_nameC, 'Họ và tên', Icons.person_outline),
+            _buildTextField(_confirmPassC, 'Xác minh lại mật khẩu', Icons.lock_outline, obscure: true),
             const SizedBox(height: 15),
             _buildTextField(_phoneC, 'Số điện thoại', Icons.phone_android_outlined, type: TextInputType.phone),
             const SizedBox(height: 15),
@@ -248,11 +295,12 @@ class _RegisterViewState extends State<RegisterView> {
     );
   }
 
-  Widget _buildTextField(TextEditingController controller, String label, IconData icon, {TextInputType? type, bool obscure = false, String? hint, bool hasQRScan = false}) {
+  Widget _buildTextField(TextEditingController controller, String label, IconData icon, {TextInputType? type, bool obscure = false, String? hint, bool hasQRScan = false, bool readOnly = false}) {
     return TextField(
       controller: controller,
       keyboardType: type,
       obscureText: obscure,
+      readOnly: readOnly,
       textCapitalization: label.contains('mã') ? TextCapitalization.characters : TextCapitalization.words,
       decoration: InputDecoration(
         labelText: label,

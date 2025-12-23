@@ -74,8 +74,9 @@ exports.createStaffAccount = onCall(async (request) => {
   const requesterRole = isSuperAdmin ? "admin" : requesterData.role || "user";
   const requesterShopId = requesterData.shopId || requesterUid;
 
-  if (!isSuperAdmin && requesterRole !== "admin") {
-    throw new HttpsError("permission-denied", "Chỉ quản lý mới được tạo tài khoản nhân viên");
+  // Allow owner and admin to create staff accounts
+  if (!isSuperAdmin && requesterRole !== "admin" && requesterRole !== "owner") {
+    throw new HttpsError("permission-denied", "Chỉ chủ shop hoặc quản lý mới được tạo tài khoản nhân viên");
   }
 
   const email = (data.email || "").toString().trim().toLowerCase();

@@ -66,6 +66,9 @@ class _HomeViewState extends State<HomeView> {
   void initState() {
     super.initState();
     debugPrint("HomeView initState called");
+    debugPrint("HomeView: role = ${widget.role}");
+    debugPrint("HomeView: isOwner = $isOwner");
+    debugPrint("HomeView: _isSuperAdmin = $_isSuperAdmin");
     _initialSetup();
     SyncService.initRealTimeSync(_debouncedLoadStats);
 
@@ -91,10 +94,18 @@ class _HomeViewState extends State<HomeView> {
       // User mới, clear local DB để tránh data cũ
       await db.clearAllData();
       await prefs.setString('lastUserId', currentUser.uid);
+      
+      // Đảm bảo sync user info trước khi load permissions
+      if (currentUser.email != null) {
+        await UserService.syncUserInfo(currentUser.uid, currentUser.email!);
+      }
     }
     await db.cleanDuplicateData();
     await _loadStats();
     await _updateShopLockState();
+    
+    // Temporary: update existing shop documents with shopId field
+    await UserService.updateExistingShopsWithShopId();
   }
 
   Future<void> _syncNow({bool silent = false}) async {
@@ -110,6 +121,9 @@ class _HomeViewState extends State<HomeView> {
     }
     setState(() => _isSyncing = true);
     try {
+      // Temporary: update existing shop documents with shopId field
+      await UserService.updateExistingShopsWithShopId();
+      
       // Thêm timeout để tránh sync bị treo
       await Future.wait([
         SyncService.syncAllToCloud(),
@@ -210,8 +224,6 @@ class _HomeViewState extends State<HomeView> {
 
   Future<void> _updateShopLockState() async {
     final perms = await UserService.getCurrentUserPermissions();
-    print('DEBUG HOME: User permissions: $perms');
-    print('DEBUG HOME: allowViewInventory: ${perms['allowViewInventory']}');
     if (!mounted) return;
     setState(() {
       _shopLocked = perms['shopAppLocked'] == true;
@@ -401,6 +413,10 @@ class _HomeViewState extends State<HomeView> {
   }
 
   void _openSettingsCenter() {
+    print('DEBUG: _openSettingsCenter called');
+    print('DEBUG: _permissions = $_permissions');
+    print('DEBUG: allowManageStaff = ${_permissions['allowManageStaff']}');
+    print('DEBUG: _isSuperAdmin = $_isSuperAdmin');
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
@@ -430,7 +446,7 @@ class _HomeViewState extends State<HomeView> {
                   _openPrinterSettings();
                 },
               ),
-              if (isAdmin || isOwner || _isSuperAdmin)
+              if (isOwner || widget.role == 'manager' || _isSuperAdmin)
                 ListTile(
                   leading: const Icon(Icons.group_rounded, color: Colors.indigo),
                   title: const Text("QUẢN LÝ NHÂN VIÊN", style: TextStyle(fontWeight: FontWeight.bold)),
@@ -677,7 +693,6 @@ class _HomeViewState extends State<HomeView> {
       builder: (context, snapshot) {
         final userInfo = snapshot.data ?? {};
         final displayName = userInfo['displayName'] ?? 'Người dùng';
-        final role = _getRoleDisplayName(widget.role);
         final shopName = userInfo['shopName'] ?? 'Đang tải...';
 
         return Container(
@@ -708,19 +723,11 @@ class _HomeViewState extends State<HomeView> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Chào $displayName!',
+                          'Xin chào: $displayName  $shopName',
                           style: const TextStyle(
-                            fontSize: 18,
+                            fontSize: 16,
                             fontWeight: FontWeight.bold,
                             color: Colors.black87,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '$role thuộc shop $shopName',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey,
                           ),
                         ),
                       ],

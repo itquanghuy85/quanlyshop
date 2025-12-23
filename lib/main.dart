@@ -148,10 +148,10 @@ class _AuthGateState extends State<AuthGate> {
     });
   }
 
-  void _syncUserOnStart() {
+  void _syncUserOnStart() async {
     final current = FirebaseAuth.instance.currentUser;
     if (current != null && current.email != null) {
-      UserService.syncUserInfo(current.uid, current.email!);
+      await UserService.syncUserInfo(current.uid, current.email!);
     }
   }
 
