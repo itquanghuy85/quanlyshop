@@ -273,7 +273,6 @@ class _RepairDetailViewState extends State<RepairDetailView> {
             ],
             icon: const Icon(Icons.more_vert, color: Colors.white),
           ),
-          IconButton(onPressed: _saveAll, icon: const Icon(Icons.check_circle, color: Colors.white, size: 28)),
           if (_managerUnlocked)
             IconButton(onPressed: _deleteRepair, icon: const Icon(Icons.delete_forever, color: Colors.white)),
         ],

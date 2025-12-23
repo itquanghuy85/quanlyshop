@@ -31,10 +31,9 @@ class OrderListViewState extends State<OrderListView> {
   String _currentSearch = "";
   bool get _useFilter => widget.statusFilter != null || widget.todayOnly;
 
-  // Multi-select state
-  bool _isSelectionMode = false;
-  Set<int> _selectedIndices = {};
-  bool _isDeleting = false;
+  // Multi-select mode
+  bool _isMultiSelectMode = false;
+  Set<int> _selectedIndices = {}; // Store indices of selected items
 
   // Theme colors cho màn hình danh sách đơn hàng
   final Color _primaryColor = Colors.teal; // Màu chính cho danh sách đơn hàng
@@ -112,91 +111,25 @@ class OrderListViewState extends State<OrderListView> {
     return d.year == now.year && d.month == now.month && d.day == now.day;
   }
 
-  void _toggleSelection(int index) {
+  Future<void> _toggleCheckRepair(int index) async {
+    final repair = _displayedRepairs[index];
+    // Toggle status: nếu đang sửa (2) thì đánh dấu hoàn thành (3), nếu đã hoàn thành thì chuyển về đang sửa (2)
+    final newStatus = repair.status == 2 ? 3 : 2;
+
+    repair.status = newStatus;
+    repair.isSynced = false;
+
+    await db.upsertRepair(repair);
+    await FirestoreService.upsertRepair(repair);
+
     setState(() {
-      if (_selectedIndices.contains(index)) {
-        _selectedIndices.remove(index);
-        if (_selectedIndices.isEmpty) {
-          _isSelectionMode = false;
-        }
-      } else {
-        _selectedIndices.add(index);
-      }
+      // Update local list
+      _displayedRepairs[index] = repair;
     });
-  }
 
-  void _startSelection(int index) {
-    setState(() {
-      _isSelectionMode = true;
-      _selectedIndices.add(index);
-    });
-  }
-
-  void _cancelSelection() {
-    setState(() {
-      _isSelectionMode = false;
-      _selectedIndices.clear();
-    });
-  }
-
-  Future<void> _deleteSelectedRepairs() async {
-    if (_selectedIndices.isEmpty || widget.role != 'admin') return;
-
-    // Xác thực mật khẩu admin
-    final password = await _showPasswordDialog();
-    if (password == null || password.isEmpty) return;
-
-    final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser == null) return;
-
-    try {
-      // Re-authenticate với mật khẩu
-      final credential = EmailAuthProvider.credential(
-        email: currentUser.email!,
-        password: password,
-      );
-      await currentUser.reauthenticateWithCredential(credential);
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Mật khẩu không đúng!"))
-        );
-      }
-      return;
-    }
-
-    setState(() => _isDeleting = true);
-
-    try {
-      final selectedRepairs = _selectedIndices.map((i) => _displayedRepairs[i]).toList();
-      
-      for (final repair in selectedRepairs) {
-        if (repair.id != null) {
-          await db.deleteRepair(repair.id!);
-          // Nếu entry đã có firestoreId thì xóa trên Firestore để không bị đồng bộ lại
-          if (repair.firestoreId != null) {
-            await FirestoreService.deleteRepair(repair.firestoreId!);
-          }
-        }
-      }
-
-      await _loadInitialData();
-      _cancelSelection();
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Đã xóa ${selectedRepairs.length} đơn sửa chữa"))
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Lỗi khi xóa: $e"))
-        );
-      }
-    } finally {
-      setState(() => _isDeleting = false);
-    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(newStatus == 3 ? 'Đã đánh dấu hoàn thành' : 'Đã chuyển về đang sửa')),
+    );
   }
 
   Future<String?> _showPasswordDialog() async {
@@ -286,6 +219,127 @@ class OrderListViewState extends State<OrderListView> {
 
   String _fmtDate(int ms) => DateFormat('dd/MM').format(DateTime.fromMillisecondsSinceEpoch(ms));
 
+  // Multi-select methods
+  void _toggleMultiSelectMode() {
+    setState(() {
+      _isMultiSelectMode = !_isMultiSelectMode;
+      if (!_isMultiSelectMode) {
+        _selectedIndices.clear();
+      }
+    });
+  }
+
+  void _toggleSelection(int index) {
+    setState(() {
+      if (_selectedIndices.contains(index)) {
+        _selectedIndices.remove(index);
+      } else {
+        _selectedIndices.add(index);
+      }
+    });
+  }
+
+  void _selectAll() {
+    setState(() {
+      if (_selectedIndices.length == _displayedRepairs.length) {
+        _selectedIndices.clear();
+      } else {
+        _selectedIndices = Set.from(List.generate(_displayedRepairs.length, (i) => i));
+      }
+    });
+  }
+
+  Future<void> _deleteSelectedRepairs() async {
+    if (_selectedIndices.isEmpty || widget.role != 'admin') return;
+
+    final selectedRepairs = _selectedIndices.map((i) => _displayedRepairs[i]).toList();
+    
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("XÁC NHẬN XÓA NHIỀU ĐƠN"),
+        content: Text("Bạn có chắc muốn xóa ${_selectedIndices.length} đơn sửa chữa đã chọn?"),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("HỦY")),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text("XÓA", style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    // Show password dialog for confirmation
+    final passCtrl = TextEditingController();
+    final passwordConfirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("XÁC NHẬN MẬT KHẨU"),
+        content: TextField(
+          controller: passCtrl,
+          obscureText: true,
+          decoration: const InputDecoration(hintText: "Nhập mật khẩu quản lý"),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("HỦY")),
+          ElevatedButton(
+            onPressed: () async {
+              final user = FirebaseAuth.instance.currentUser;
+              if (user == null || user.email == null) {
+                Navigator.pop(ctx, false);
+                return;
+              }
+              try {
+                final cred = EmailAuthProvider.credential(email: user.email!, password: passCtrl.text);
+                await user.reauthenticateWithCredential(cred);
+                Navigator.pop(ctx, true);
+              } catch (_) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Mật khẩu không đúng'))
+                );
+                Navigator.pop(ctx, false);
+              }
+            },
+            child: const Text("XÁC NHẬN"),
+          ),
+        ],
+      ),
+    );
+
+    if (passwordConfirmed != true) return;
+
+    // Delete selected repairs
+    try {
+      for (var repair in selectedRepairs) {
+        await db.deleteRepair(repair.id!);
+        if (repair.firestoreId != null) {
+          await FirestoreService.deleteRepair(repair.firestoreId!);
+        }
+      }
+      
+      setState(() {
+        _selectedIndices.clear();
+        _isMultiSelectMode = false;
+      });
+      
+      _loadInitialData();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('ĐÃ XÓA ${_selectedIndices.length} ĐƠN SỬA'))
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi khi xóa: $e'))
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -294,25 +348,36 @@ class OrderListViewState extends State<OrderListView> {
         backgroundColor: _primaryColor,
         foregroundColor: Colors.white,
         title: Text(
-          _isSelectionMode
-            ? "Đã chọn ${_selectedIndices.length} đơn sửa"
-            : "DANH SÁCH SỬA CHỮA",
+          _isMultiSelectMode ? "ĐÃ CHỌN ${_selectedIndices.length}" : "DANH SÁCH SỬA CHỮA",
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)
         ),
         elevation: 0,
-        actions: _isSelectionMode ? [
-          IconButton(
-            icon: const Icon(Icons.close),
-            onPressed: _cancelSelection,
-            tooltip: "Hủy chọn",
-          ),
-          if (widget.role == 'admin')
+        leading: _isMultiSelectMode ? IconButton(
+          icon: const Icon(Icons.close),
+          onPressed: _toggleMultiSelectMode,
+          tooltip: 'Thoát chế độ chọn',
+        ) : null,
+        actions: [
+          if (_isMultiSelectMode) ...[
             IconButton(
-              icon: const Icon(Icons.delete_forever, color: Colors.red),
-              onPressed: _isDeleting ? null : _deleteSelectedRepairs,
-              tooltip: "Xóa các đơn đã chọn",
+              icon: const Icon(Icons.select_all),
+              onPressed: _selectAll,
+              tooltip: _selectedIndices.length == _displayedRepairs.length ? 'Bỏ chọn tất cả' : 'Chọn tất cả',
             ),
-        ] : null,
+            if (widget.role == 'admin' && _selectedIndices.isNotEmpty)
+              IconButton(
+                icon: const Icon(Icons.delete_sweep, color: Colors.red),
+                onPressed: _deleteSelectedRepairs,
+                tooltip: 'Xóa các đơn đã chọn',
+              ),
+          ] else ...[
+            IconButton(
+              icon: const Icon(Icons.checklist),
+              onPressed: _toggleMultiSelectMode,
+              tooltip: 'Chế độ chọn nhiều',
+            ),
+          ],
+        ],
       ),
       body: Column(
         children: [
@@ -351,32 +416,31 @@ class OrderListViewState extends State<OrderListView> {
 
                   return Card(
                     elevation: 2,
-                    color: _isSelectionMode && _selectedIndices.contains(i) ? Colors.blue.shade50 : Colors.white,
+                    color: _isMultiSelectMode && _selectedIndices.contains(i) ? _primaryColor.withOpacity(0.1) : Colors.white,
                     margin: const EdgeInsets.only(bottom: 12),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                     child: ListTile(
-                      onTap: _isSelectionMode 
+                      onTap: _isMultiSelectMode 
                         ? () => _toggleSelection(i)
                         : () async {
-                          final res = await Navigator.push(context, MaterialPageRoute(builder: (_) => RepairDetailView(repair: r)));
-                          if (res == true) _loadInitialData();
-                        },
-                      onLongPress: _isSelectionMode 
-                        ? null 
-                        : () => _startSelection(i),
-                      leading: _isSelectionMode
+                            final res = await Navigator.push(context, MaterialPageRoute(builder: (_) => RepairDetailView(repair: r)));
+                            if (res == true) _loadInitialData();
+                          },
+                      onLongPress: _isMultiSelectMode ? null : () => _toggleCheckRepair(i),
+                      leading: _isMultiSelectMode
                         ? Checkbox(
                             value: _selectedIndices.contains(i),
-                            onChanged: (value) => _toggleSelection(i),
+                            onChanged: (bool? value) => _toggleSelection(i),
+                            activeColor: _primaryColor,
                           )
                         : Container(
-                          width: 50, height: 50,
-                          decoration: BoxDecoration(
-                            color: isDone ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1), 
-                            borderRadius: BorderRadius.circular(10)
+                            width: 50, height: 50,
+                            decoration: BoxDecoration(
+                              color: isDone ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1), 
+                              borderRadius: BorderRadius.circular(10)
+                            ),
+                            child: Icon(isDone ? Icons.check_circle : Icons.build_circle, color: isDone ? Colors.green : Colors.orange),
                           ),
-                          child: Icon(isDone ? Icons.check_circle : Icons.build_circle, color: isDone ? Colors.green : Colors.orange),
-                        ),
                       title: Text("${r.customerName} - ${r.model}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                       subtitle: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -390,7 +454,20 @@ class OrderListViewState extends State<OrderListView> {
                           ),
                         ],
                       ),
-                      trailing: Text(_fmtDate(r.createdAt), style: const TextStyle(fontSize: 11, color: Colors.blueGrey, fontWeight: FontWeight.bold)),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(_fmtDate(r.createdAt), style: const TextStyle(fontSize: 11, color: Colors.blueGrey, fontWeight: FontWeight.bold)),
+                          if (widget.role == 'admin' && !_isMultiSelectMode) ...[
+                            const SizedBox(width: 8),
+                            IconButton(
+                              icon: const Icon(Icons.delete_forever, color: Colors.red, size: 20),
+                              onPressed: () => _confirmDelete(r),
+                              tooltip: 'Xóa đơn sửa',
+                            ),
+                          ],
+                        ],
+                      ),
                     ),
                   );
                 },
@@ -399,7 +476,7 @@ class OrderListViewState extends State<OrderListView> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: _isMultiSelectMode ? null : FloatingActionButton.extended(
         onPressed: () async {
           final res = await Navigator.push(context, MaterialPageRoute(builder: (_) => CreateRepairOrderView(role: widget.role)));
           if (res == true) _loadInitialData();

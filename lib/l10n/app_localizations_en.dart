@@ -630,6 +630,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get t86 => 'T86';
 
   @override
+  String get bankT86 => 'T86 BANK';
+
+  @override
   String get enterPhoneFirst => 'PLEASE ENTER PHONE NUMBER FIRST';
 
   @override

@@ -150,4 +150,30 @@ class FirestoreService {
       'createdAt': FieldValue.serverTimestamp(),
     });
   }
+
+  // --- SHOP SETTINGS ---
+  static Future<Map<String, dynamic>?> getShopInfo(String shopId) async {
+    try {
+      final doc = await _db.collection('shops').doc(shopId).get();
+      return doc.data();
+    } catch (e) {
+      return null;
+    }
+  }
+
+  static Future<void> updateShopInfo(String shopId, Map<String, dynamic> data) async {
+    await _db.collection('shops').doc(shopId).set(data, SetOptions(merge: true));
+  }
+
+  static Future<Map<String, dynamic>?> getCurrentShopInfo() async {
+    final shopId = await UserService.getCurrentShopId();
+    if (shopId == null) return null;
+    return getShopInfo(shopId);
+  }
+
+  static Future<void> updateCurrentShopInfo(Map<String, dynamic> data) async {
+    final shopId = await UserService.getCurrentShopId();
+    if (shopId == null) return;
+    await updateShopInfo(shopId, data);
+  }
 }

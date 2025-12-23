@@ -630,6 +630,9 @@ class AppLocalizationsVi extends AppLocalizations {
   String get t86 => 'T86';
 
   @override
+  String get bankT86 => 'NGÂN HÀNG T86';
+
+  @override
   String get enterPhoneFirst => 'VUI LÒNG NHẬP SỐ ĐIỆN THOẠI TRƯỚC';
 
   @override

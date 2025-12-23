@@ -537,16 +537,6 @@ class _HomeViewState extends State<HomeView> {
               icon: const Icon(Icons.account_circle, color: Colors.blue),
               tooltip: 'Thông tin tài khoản',
             ),
-            IconButton(
-              onPressed: _isSyncing ? null : () => _syncNow(),
-              icon: _isSyncing
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.sync, color: Colors.green),
-            ),
             IconButton(onPressed: () => FirebaseAuth.instance.signOut(), icon: const Icon(Icons.logout_rounded, color: Colors.redAccent)),
           ],
         ),

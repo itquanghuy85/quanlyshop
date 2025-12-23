@@ -238,6 +238,7 @@
   "credit": "CREDIT",
   "installment": "INSTALLMENT (NH)",
   "t86": "T86",
+  "bankT86": "T86 BANK",
   "enterPhoneFirst": "PLEASE ENTER PHONE NUMBER FIRST",
   "priceMustBePositive": "PRICE MUST BE GREATER THAN OR EQUAL TO 0!",
   "customerAddedToContacts": "CUSTOMER ADDED TO CONTACTS",

@@ -1337,6 +1337,12 @@ abstract class AppLocalizations {
   /// **'T86'**
   String get t86;
 
+  /// No description provided for @bankT86.
+  ///
+  /// In en, this message translates to:
+  /// **'T86 BANK'**
+  String get bankT86;
+
   /// No description provided for @enterPhoneFirst.
   ///
   /// In en, this message translates to:

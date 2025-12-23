@@ -163,12 +163,19 @@ class _RevenueReportViewState extends State<RevenueReportView> {
   }
 
   // Tính toán các chỉ số
+  // Chỉ tính doanh thu từ đơn sửa chữa đã thanh toán nhưng chưa bàn giao
+  List<Repair> get _paidUndeliveredRepairs {
+    return _repairs.where((repair) => 
+      repair.price > 0 && repair.status != 4 // Đã thanh toán và chưa bàn giao
+    ).toList();
+  }
+
   double get totalRevenue {
     double revenue = 0;
     for (var sale in _sales) {
       revenue += sale.totalPrice.toDouble();
     }
-    for (var repair in _repairs) {
+    for (var repair in _paidUndeliveredRepairs) {
       revenue += repair.price.toDouble();
     }
     return revenue;
@@ -183,8 +190,8 @@ class _RevenueReportViewState extends State<RevenueReportView> {
     for (var sale in _sales) {
       costs += sale.totalCost.toDouble();
     }
-    // Add repair costs
-    for (var repair in _repairs) {
+    // Add repair costs (chỉ tính cho đơn đã thanh toán nhưng chưa bàn giao)
+    for (var repair in _paidUndeliveredRepairs) {
       costs += repair.cost.toDouble();
     }
     return costs;
@@ -198,12 +205,12 @@ class _RevenueReportViewState extends State<RevenueReportView> {
   }
 
   double get revenueFromRepairs {
-    return _repairs.fold(0.0, (sum, repair) => sum + repair.price);
+    return _paidUndeliveredRepairs.fold(0.0, (sum, repair) => sum + repair.price);
   }
 
   double get costOfGoodsSold {
     return _sales.fold(0.0, (sum, sale) => sum + sale.totalCost) +
-           _repairs.fold(0.0, (sum, repair) => sum + repair.cost);
+           _paidUndeliveredRepairs.fold(0.0, (sum, repair) => sum + repair.cost);
   }
 
   double get operatingExpenses {
@@ -227,8 +234,8 @@ class _RevenueReportViewState extends State<RevenueReportView> {
       });
     }
 
-    // Thêm doanh thu từ sửa chữa
-    for (var repair in _repairs) {
+    // Thêm doanh thu từ sửa chữa (chỉ đơn đã thanh toán nhưng chưa bàn giao)
+    for (var repair in _paidUndeliveredRepairs) {
       transactions.add({
         'date': DateTime.fromMillisecondsSinceEpoch(repair.createdAt),
         'type': 'income',
@@ -237,6 +244,7 @@ class _RevenueReportViewState extends State<RevenueReportView> {
         'amount': repair.price.toDouble(),
         'cost': repair.cost.toDouble(),
         'source': 'Dịch vụ',
+        'paymentMethod': repair.paymentMethod,
       });
     }
 
@@ -266,7 +274,7 @@ class _RevenueReportViewState extends State<RevenueReportView> {
       final day = DateTime(date.year, date.month, date.day);
       dailyRevenue[day] = (dailyRevenue[day] ?? 0) + sale.totalPrice.toDouble();
     }
-    for (var repair in _repairs) {
+    for (var repair in _paidUndeliveredRepairs) {
       final date = DateTime.fromMillisecondsSinceEpoch(repair.createdAt);
       final day = DateTime(date.year, date.month, date.day);
       dailyRevenue[day] = (dailyRevenue[day] ?? 0) + repair.price.toDouble();
@@ -292,8 +300,8 @@ class _RevenueReportViewState extends State<RevenueReportView> {
       dailyCosts[day] = (dailyCosts[day] ?? 0) + sale.totalCost.toDouble();
     }
 
-    // Chi phí từ sửa chữa
-    for (var repair in _repairs) {
+    // Chi phí từ sửa chữa (chỉ đơn đã thanh toán nhưng chưa bàn giao)
+    for (var repair in _paidUndeliveredRepairs) {
       final date = DateTime.fromMillisecondsSinceEpoch(repair.createdAt);
       final day = DateTime(date.year, date.month, date.day);
       dailyCosts[day] = (dailyCosts[day] ?? 0) + repair.cost.toDouble();
@@ -1080,6 +1088,21 @@ class _RevenueReportViewState extends State<RevenueReportView> {
                                   ),
                                 ),
                               ),
+                              if (transaction['paymentMethod'] != null && transaction['category'] == 'Sửa chữa') ...[
+                                const SizedBox(width: 6),
+                                Container(
+                                  padding: const EdgeInsets.all(2),
+                                  decoration: BoxDecoration(
+                                    color: _getPaymentMethodColor(transaction['paymentMethod']),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Icon(
+                                    _getPaymentMethodIcon(transaction['paymentMethod']),
+                                    color: Colors.white,
+                                    size: 12,
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
                         ],
@@ -1147,5 +1170,32 @@ class _RevenueReportViewState extends State<RevenueReportView> {
         ],
       ),
     );
+  }
+
+  // Helper methods cho payment method icons
+  IconData _getPaymentMethodIcon(String? paymentMethod) {
+    if (paymentMethod == null) return Icons.payment;
+    
+    final method = paymentMethod.toUpperCase();
+    if (method.contains('TIỀN MẶT')) return Icons.money;
+    if (method.contains('CHUYỂN KHOẢN') || method.contains('CK')) return Icons.account_balance;
+    if (method.contains('THẺ TÍN DỤNG') || method.contains('THẺ')) return Icons.credit_card;
+    if (method.contains('TRẢ GÓP')) return Icons.schedule;
+    if (method.contains('NGÂN HÀNG') || method.contains('BANK') || method.contains('T86')) return Icons.account_balance_wallet;
+    
+    return Icons.payment;
+  }
+
+  Color _getPaymentMethodColor(String? paymentMethod) {
+    if (paymentMethod == null) return Colors.grey;
+    
+    final method = paymentMethod.toUpperCase();
+    if (method.contains('TIỀN MẶT')) return Colors.green;
+    if (method.contains('CHUYỂN KHOẢN') || method.contains('CK')) return Colors.blue;
+    if (method.contains('THẺ TÍN DỤNG') || method.contains('THẺ')) return Colors.purple;
+    if (method.contains('TRẢ GÓP')) return Colors.orange;
+    if (method.contains('NGÂN HÀNG') || method.contains('BANK') || method.contains('T86')) return Colors.teal;
+    
+    return Colors.grey;
   }
 }

@@ -137,7 +137,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
       if (docId != null) {
         r.firestoreId = docId;
         r.isSynced = true;
-        await db.updateRepair(r);
+        await db.upsertRepair(r); // Thay updateRepair bằng upsertRepair để tránh duplicate
       }
       
       AuditService.logAction(
@@ -155,50 +155,24 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
       
       if (!mounted) return;
       
-      // Hỏi người dùng có muốn tạo đơn mới không
-      final createNew = await showDialog<bool>(
-        context: context,
-        barrierDismissible: false, // Không cho phép dismiss bằng cách tap outside
-        builder: (ctx) => AlertDialog(
-          title: Text(l10n.orderCreatedSuccessfully),
-          content: Text(l10n.createNewOrderQuestion),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(l10n.back),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blueAccent,
-                foregroundColor: Colors.white,
-              ),
-              child: const Text("TẠO ĐƠN MỚI"),
-            ),
-          ],
-        ),
-      );
-      
-      if (createNew == true) {
-        // Reset form để tạo đơn mới
-        if (mounted) {
-          setState(() {
-            _images.clear();
-            phoneCtrl.clear();
-            nameCtrl.clear();
-            addressCtrl.clear();
-            modelCtrl.clear();
-            issueCtrl.clear();
-            appearanceCtrl.clear();
-            accCtrl.clear();
-            passCtrl.clear();
-            priceCtrl.clear();
-            _paymentMethod = "TIỀN MẶT";
-            _saving = false;
-          });
-          // Focus lại vào trường phone để nhập khách hàng mới
-          FocusScope.of(context).requestFocus(FocusNode());
-        }
+      // Tự động reset form để tạo đơn mới
+      if (mounted) {
+        setState(() {
+          _images.clear();
+          phoneCtrl.clear();
+          nameCtrl.clear();
+          addressCtrl.clear();
+          modelCtrl.clear();
+          issueCtrl.clear();
+          appearanceCtrl.clear();
+          accCtrl.clear();
+          passCtrl.clear();
+          priceCtrl.clear();
+          _paymentMethod = "TIỀN MẶT";
+          _saving = false;
+        });
+        // Focus lại vào trường phone để nhập khách hàng mới
+        FocusScope.of(context).requestFocus(FocusNode());
         return; // Không pop, ở lại màn hình này
       }
       
@@ -340,8 +314,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
                         _payChip(l10n.transfer),
                         _payChip(l10n.debt),
                         _payChip(l10n.installment),
-                        _payChip(l10n.t86),
-                      ],
+                        _payChip(l10n.t86),                        _payChip(l10n.bankT86),                      ],
                     ),
                   ],
                 ),

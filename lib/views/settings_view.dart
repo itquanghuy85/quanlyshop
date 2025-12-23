@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/user_service.dart';
+import '../services/firestore_service.dart';
 import '../l10n/app_localizations.dart';
 import 'invoice_template_view.dart';
 
@@ -29,6 +30,14 @@ class _SettingsViewState extends State<SettingsView> {
   bool _cleanupEnabled = false;
   int _cleanupDays = 30;
 
+  // Owner account info
+  final ownerNameCtrl = TextEditingController();
+  final ownerPhoneCtrl = TextEditingController();
+  final ownerEmailCtrl = TextEditingController();
+  final ownerAddressCtrl = TextEditingController();
+  final ownerBusinessLicenseCtrl = TextEditingController();
+  final ownerTaxCodeCtrl = TextEditingController();
+
   @override
   void initState() {
     super.initState();
@@ -45,6 +54,37 @@ class _SettingsViewState extends State<SettingsView> {
       footerCtrl.text = prefs.getString('invoice_footer') ?? "Cảm ơn quý khách đã tin tưởng!";
       _logoPath = prefs.getString('shop_logo');
     });
+
+    // Load owner info from Firestore
+    await _loadOwnerInfo();
+  }
+
+  Future<void> _loadOwnerInfo() async {
+    try {
+      final shopInfo = await FirestoreService.getCurrentShopInfo();
+      if (shopInfo != null) {
+        setState(() {
+          ownerNameCtrl.text = shopInfo['ownerName'] ?? '';
+          ownerPhoneCtrl.text = shopInfo['ownerPhone'] ?? '';
+          ownerEmailCtrl.text = shopInfo['ownerEmail'] ?? '';
+          ownerAddressCtrl.text = shopInfo['ownerAddress'] ?? '';
+          ownerBusinessLicenseCtrl.text = shopInfo['ownerBusinessLicense'] ?? '';
+          ownerTaxCodeCtrl.text = shopInfo['ownerTaxCode'] ?? '';
+        });
+      }
+    } catch (e) {
+      // Fallback to current user info if shop info not available
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser != null) {
+        final userInfo = await UserService.getUserInfo(currentUser.uid);
+        setState(() {
+          ownerNameCtrl.text = userInfo['displayName'] ?? '';
+          ownerPhoneCtrl.text = userInfo['phone'] ?? '';
+          ownerEmailCtrl.text = currentUser.email ?? '';
+          ownerAddressCtrl.text = userInfo['address'] ?? '';
+        });
+      }
+    }
   }
 
   Future<void> _saveSettings() async {
@@ -55,8 +95,37 @@ class _SettingsViewState extends State<SettingsView> {
     await prefs.setString('invoice_footer', footerCtrl.text);
     if (_logoPath != null) await prefs.setString('shop_logo', _logoPath!);
     
+    // Save shop info to Firestore
+    await _saveShopInfoToFirestore();
+    
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.shopInfoSaved)));
+    }
+  }
+
+  Future<void> _saveShopInfoToFirestore() async {
+    try {
+      final shopData = {
+        'name': nameCtrl.text.toUpperCase(),
+        'address': addressCtrl.text,
+        'phone': phoneCtrl.text,
+        'logoPath': _logoPath,
+        'ownerName': ownerNameCtrl.text.toUpperCase(),
+        'ownerPhone': ownerPhoneCtrl.text,
+        'ownerEmail': ownerEmailCtrl.text,
+        'ownerAddress': ownerAddressCtrl.text,
+        'ownerBusinessLicense': ownerBusinessLicenseCtrl.text,
+        'ownerTaxCode': ownerTaxCodeCtrl.text,
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+      await FirestoreService.updateCurrentShopInfo(shopData);
+    } catch (e) {
+      // Show error but don't block the save
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi lưu thông tin: $e')),
+        );
+      }
     }
   }
 
@@ -114,6 +183,29 @@ class _SettingsViewState extends State<SettingsView> {
           _input(nameCtrl, l10n.shopNameLabel, Icons.storefront),
           _input(phoneCtrl, l10n.shopPhoneLabel, Icons.phone, type: TextInputType.phone),
           _input(addressCtrl, l10n.shopAddressLabel, Icons.location_on),
+          
+          const SizedBox(height: 30),
+          _sectionTitle('Thông tin chủ cửa hàng'),
+          const SizedBox(height: 15),
+          _input(ownerNameCtrl, 'Tên chủ cửa hàng', Icons.person),
+          _input(ownerPhoneCtrl, 'Số điện thoại', Icons.phone_android, type: TextInputType.phone),
+          _input(ownerEmailCtrl, 'Email', Icons.email, type: TextInputType.emailAddress),
+          _input(ownerAddressCtrl, 'Địa chỉ', Icons.home),
+          _input(ownerBusinessLicenseCtrl, 'Giấy phép kinh doanh', Icons.business),
+          _input(ownerTaxCodeCtrl, 'Mã số thuế', Icons.account_balance),
+          
+          const SizedBox(height: 20),
+          ElevatedButton.icon(
+            onPressed: _saveSettings,
+            icon: const Icon(Icons.save),
+            label: const Text('Lưu thông tin cửa hàng'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blueAccent,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
           
           const SizedBox(height: 30),
           _sectionTitle(l10n.invoiceConfigSection),
