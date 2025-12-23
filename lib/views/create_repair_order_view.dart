@@ -10,11 +10,9 @@ import '../models/repair_model.dart';
 import 'customer_history_view.dart';
 import '../services/notification_service.dart';
 import '../services/firestore_service.dart';
-import '../services/audit_service.dart';
 import '../services/user_service.dart';
 import '../services/unified_printer_service.dart';
 import '../widgets/validated_text_field.dart';
-import 'package:esc_pos_utils/esc_pos_utils.dart';
 
 class CreateRepairOrderView extends StatefulWidget {
   final String role;
@@ -74,23 +72,11 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
           nameCtrl.text = find.first['customerName'] ?? "";
           addressCtrl.text = (find.first['address'] ?? "").toString();
         });
-        // Lấy lịch sử máy cũ
         final repairs = await db.getAllRepairs();
         final devices = repairs.where((r) => r.phone == phoneCtrl.text).map((r) => {'model': r.model, 'imei': r.imei}).toSet().toList();
         setState(() => _recentDevices = devices.take(3).toList());
       }
     }
-  }
-
-  Future<void> _scanIMEI() async {
-    final result = await Navigator.push(context, MaterialPageRoute(builder: (ctx) => Scaffold(
-      appBar: AppBar(title: const Text("QUÉT IMEI/SERIAL")),
-      body: MobileScanner(onDetect: (cap) {
-        final code = cap.barcodes.first.rawValue;
-        if (code != null) Navigator.pop(ctx, code);
-      }),
-    )));
-    if (result != null) setState(() => imeiCtrl.text = result.toString().toUpperCase());
   }
 
   Future<void> _saveAndPrint() async {
@@ -118,19 +104,23 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
         condition: appearanceCtrl.text.toUpperCase(),
       );
 
+      // 1. Lưu SQLite
       await db.insertRepair(r);
+      
+      // 2. Đẩy Cloud
       final docId = await FirestoreService.addRepair(r);
       if (docId != null) { r.firestoreId = docId; r.isSynced = true; await db.upsertRepair(r); }
 
-      await UnifiedPrinterService.printRepairReceipt({
-        'customerName': r.customerName,
-        'customerPhone': r.phone,
-        'deviceModel': r.model,
-        'issue': r.issue,
-        'estimatedCost': price,
-      }, PaperSize.mm80);
+      // 3. Gọi lệnh in Phiếu Tiếp Nhận (Hợp nhất từ RepairReceiptView)
+      final shopInfo = {
+        'shopName': 'SHOP NEW', // Bạn có thể lấy từ Settings sau
+        'shopAddr': addressCtrl.text.isNotEmpty ? addressCtrl.text : 'Hồ Chí Minh',
+        'shopPhone': '0123.456.789'
+      };
+      
+      await UnifiedPrinterService.printRepairReceiptFromRepair(r, shopInfo);
 
-      NotificationService.showSnackBar("ĐÃ LƯU & ĐANG IN PHIẾU...", color: Colors.green);
+      NotificationService.showSnackBar("ĐÃ LƯU & ĐANG IN PHIẾU TIẾP NHẬN", color: Colors.green);
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       setState(() => _saving = false);
@@ -141,9 +131,9 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF8FAFF),
       appBar: AppBar(
-        title: const Text("TIẾP NHẬN SIÊU TỐC", style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text("TIẾP NHẬN & IN PHIẾU", style: TextStyle(fontWeight: FontWeight.bold)),
         actions: [IconButton(onPressed: _saveAndPrint, icon: const Icon(Icons.print, size: 28, color: Colors.green))],
       ),
       body: _saving ? const Center(child: CircularProgressIndicator()) : SingleChildScrollView(
@@ -168,7 +158,16 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
             Row(children: [
               Expanded(child: _input(modelCtrl, "MODEL MÁY *", Icons.phone_android, caps: true, focusNode: _modelFocus)),
               const SizedBox(width: 8),
-              IconButton(onPressed: _scanIMEI, icon: const Icon(Icons.qr_code_scanner, color: Colors.blueAccent, size: 30)),
+              IconButton(onPressed: () async {
+                final res = await Navigator.push(context, MaterialPageRoute(builder: (ctx) => Scaffold(
+                  appBar: AppBar(title: const Text("QUÉT IMEI/SERIAL")),
+                  body: MobileScanner(onDetect: (cap) {
+                    final code = cap.barcodes.first.rawValue;
+                    if (code != null) Navigator.pop(ctx, code);
+                  }),
+                )));
+                if (res != null) setState(() => imeiCtrl.text = res.toString().toUpperCase());
+              }, icon: const Icon(Icons.qr_code_scanner, color: Colors.blueAccent, size: 30)),
             ]),
             _input(imeiCtrl, "SỐ IMEI / SERIAL", Icons.fingerprint, caps: true),
             
@@ -177,8 +176,15 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
             _input(issueCtrl, "LỖI MÁY *", Icons.build, caps: true),
             _input(priceCtrl, "GIÁ DỰ KIẾN (VNĐ)", Icons.monetization_on, type: TextInputType.number, formatters: [CurrencyInputFormatter()], focusNode: _priceFocus),
             
-            const SizedBox(height: 10),
-            _buildExpansionInfo(),
+            ExpansionTile(
+              title: const Text("THÔNG TIN BỔ SUNG", style: TextStyle(fontSize: 13, color: Colors.blue)),
+              children: [
+                _input(passCtrl, "MẬT KHẨU MÁY", Icons.lock),
+                _input(appearanceCtrl, "NGOẠI QUAN", Icons.remove_red_eye),
+                _input(accCtrl, "PHỤ KIỆN", Icons.headphones),
+                _input(addressCtrl, "ĐỊA CHỈ", Icons.map),
+              ],
+            ),
             
             const SizedBox(height: 20),
             _imageRow(),
@@ -188,8 +194,8 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
               width: double.infinity, height: 55,
               child: ElevatedButton.icon(
                 onPressed: _saveAndPrint,
-                icon: const Icon(Icons.check_circle, color: Colors.white),
-                label: const Text("LƯU & IN PHIẾU NHẬN", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                icon: const Icon(Icons.print, color: Colors.white),
+                label: const Text("LƯU & IN PHIẾU TIẾP NHẬN", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
               ),
             ),
@@ -208,6 +214,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
         controller: c, focusNode: focusNode, keyboardType: type,
         textCapitalization: caps ? TextCapitalization.characters : TextCapitalization.none,
         inputFormatters: formatters,
+        onSubmitted: (_) { if (focusNode != null) FocusScope.of(context).nextFocus(); },
         decoration: InputDecoration(
           labelText: l, prefixIcon: Icon(i, size: 20),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -234,18 +241,6 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildExpansionInfo() {
-    return ExpansionTile(
-      title: const Text("THÔNG TIN BỔ SUNG (Mật khẩu, Ngoại quan...)", style: TextStyle(fontSize: 13, color: Colors.blue)),
-      children: [
-        _input(passCtrl, "MẬT KHẨU MÁY", Icons.lock),
-        _input(appearanceCtrl, "NGOẠI QUAN (TRẦY, BỂ...)", Icons.remove_red_eye),
-        _input(accCtrl, "PHỤ KIỆN ĐI KÈM", Icons.headphones),
-        _input(addressCtrl, "ĐỊA CHỈ KHÁCH", Icons.map),
-      ],
     );
   }
 

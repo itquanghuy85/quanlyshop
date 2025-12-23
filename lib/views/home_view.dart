@@ -59,7 +59,6 @@ class _HomeViewState extends State<HomeView> {
 
   final bool _isSuperAdmin = UserService.isCurrentUserSuperAdmin();
 
-  // Logic nhận diện quyền tối cao
   bool get hasFullAccess => widget.role == 'admin' || widget.role == 'owner' || _isSuperAdmin;
 
   @override
@@ -168,23 +167,22 @@ class _HomeViewState extends State<HomeView> {
     final tiles = <Widget>[];
 
     void addTile(String permKey, String title, IconData icon, List<Color> colors, VoidCallback onTap) {
-      // NẾU LÀ CHỦ SHOP/ADMIN: Hiển thị 100% các nút.
-      // NẾU LÀ NHÂN VIÊN: Kiểm tra quyền cụ thể.
       if (hasFullAccess || (perms[permKey] ?? true)) {
         tiles.add(_menuTile(title, icon, colors, onTap));
       }
     }
 
-    addTile('allowViewSales', l10n.sales, Icons.shopping_cart_checkout_rounded, [Colors.pink, Colors.redAccent], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SaleListView())));
-    addTile('allowViewRepairs', l10n.repair, Icons.build_circle_rounded, [Colors.blue, Colors.lightBlue], () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderListView(role: widget.role))));
-    addTile('allowViewChat', l10n.chat, Icons.chat_bubble_rounded, [Colors.deepPurple, Colors.purpleAccent], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChatView())));
-    addTile('allowViewCustomers', l10n.customers, Icons.people_alt_rounded, [Colors.cyan, Colors.teal], () => Navigator.push(context, MaterialPageRoute(builder: (_) => CustomerListView(role: widget.role))));
-    addTile('allowViewWarranty', l10n.warranty, Icons.verified_user_rounded, [Colors.green, Colors.teal], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WarrantyView())));
-    addTile('allowViewInventory', l10n.inventory, Icons.inventory_2_rounded, [Colors.orange, Colors.amber], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const InventoryView())));
-    addTile('allowViewRevenue', l10n.revenue, Icons.leaderboard_rounded, [Colors.indigo, Colors.deepPurple], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RevenueView())));
-    addTile('allowViewRevenue', l10n.revenueReport, Icons.analytics_rounded, [Colors.indigoAccent, Colors.blueAccent], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RevenueReportView())));
-    addTile('allowViewPrinter', l10n.printer, Icons.print_rounded, [Colors.blueGrey, Colors.grey], _showPrinterMenu);
-    addTile('allowViewSettings', l10n.settings, Icons.settings_rounded, [Colors.blueGrey, Colors.black87], _openSettingsCenter);
+    // THỨ TỰ MENU CHÍNH
+    addTile('allowViewSales', l10n.sales, Icons.shopping_cart_checkout_rounded, [const Color(0xFFFF4081), const Color(0xFFFF80AB)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SaleListView())));
+    addTile('allowViewRepairs', l10n.repair, Icons.build_circle_rounded, [const Color(0xFF2979FF), const Color(0xFF448AFF)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderListView(role: widget.role))));
+    addTile('allowViewChat', l10n.chat, Icons.chat_bubble_rounded, [const Color(0xFF7C4DFF), const Color(0xFFB388FF)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChatView())));
+    addTile('allowViewInventory', "KIỂM KHO QR", Icons.qr_code_scanner_rounded, [const Color(0xFFFFAB00), const Color(0xFFFFD740)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const InventoryCheckView())));
+    addTile('allowViewInventory', l10n.inventory, Icons.inventory_2_rounded, [const Color(0xFFFF6D00), const Color(0xFFFFAB40)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const InventoryView())));
+    addTile('allowViewCustomers', l10n.customers, Icons.people_alt_rounded, [const Color(0xFF00BFA5), const Color(0xFF64FFDA)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => CustomerListView(role: widget.role))));
+    addTile('allowViewRevenue', l10n.revenue, Icons.leaderboard_rounded, [const Color(0xFF304FFE), const Color(0xFF536DFE)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RevenueView())));
+    addTile('allowViewRevenue', l10n.revenueReport, Icons.analytics_rounded, [const Color(0xFF3D5AFE), const Color(0xFF8C9EFF)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RevenueReportView())));
+    addTile('allowViewPrinter', l10n.printer, Icons.print_rounded, [const Color(0xFF607D8B), const Color(0xFF90A4AE)], _showPrinterMenu);
+    addTile('allowViewSettings', l10n.settings, Icons.settings_rounded, [const Color(0xFF263238), const Color(0xFF455A64)], _openSettingsCenter);
 
     return GridView.count(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), crossAxisCount: 2, mainAxisSpacing: 15, crossAxisSpacing: 15, childAspectRatio: 1.3, children: tiles);
   }
@@ -192,7 +190,6 @@ class _HomeViewState extends State<HomeView> {
   void _showPrinterMenu() {
     final l10n = AppLocalizations.of(context)!;
     showModalBottomSheet(context: context, shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))), builder: (ctx) => SafeArea(child: Padding(padding: const EdgeInsets.all(16), child: Column(mainAxisSize: MainAxisSize.min, children: [
-      ListTile(leading: const Icon(Icons.inventory_2_rounded, color: Colors.orange), title: Text(l10n.inventoryCheck), onTap: () { Navigator.pop(ctx); Navigator.push(context, MaterialPageRoute(builder: (_) => const InventoryCheckView())); }),
       ListTile(leading: const Icon(Icons.receipt_long_rounded, color: Colors.blueAccent), title: Text(l10n.receiptPrinter), onTap: () { Navigator.pop(ctx); Navigator.push(context, MaterialPageRoute(builder: (_) => const PrinterSettingView())); }),
       ListTile(leading: const Icon(Icons.assignment_rounded, color: Colors.green), title: Text(l10n.repairReceipt), onTap: () { Navigator.pop(ctx); Navigator.push(context, MaterialPageRoute(builder: (_) => const RepairReceiptView())); }),
       ListTile(leading: const Icon(Icons.thermostat_rounded, color: Colors.redAccent), title: Text(l10n.thermalPrinter), onTap: () { Navigator.pop(ctx); Navigator.push(context, MaterialPageRoute(builder: (_) => const ThermalPrinterDesignView())); }),

@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -23,28 +24,15 @@ class OrderListViewState extends State<OrderListView> {
   final ScrollController _scrollController = ScrollController();
   
   List<Repair> _displayedRepairs = [];
-  bool _isLoadingMore = false;
-  bool _hasMore = true;
-  int _currentOffset = 0;
-  final int _pageSize = 20;
-  
+  bool _isLoading = true;
   String _currentSearch = "";
-  bool get _useFilter => widget.statusFilter != null || widget.todayOnly;
 
-  // Quyền xóa dành cho Admin và Chủ shop
   bool get canDelete => widget.role == 'admin' || widget.role == 'owner';
 
   @override
   void initState() {
     super.initState();
     _loadInitialData();
-    _scrollController.addListener(() {
-      if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
-        if (!_isLoadingMore && _hasMore && _currentSearch.isEmpty) {
-          _loadMoreData();
-        }
-      }
-    });
   }
 
   @override
@@ -54,45 +42,30 @@ class OrderListViewState extends State<OrderListView> {
   }
 
   Future<void> _loadInitialData() async {
-    setState(() {
-      _currentOffset = 0;
-      _displayedRepairs = [];
-      _hasMore = !_useFilter;
-    });
+    setState(() => _isLoading = true);
     final all = await db.getAllRepairs();
+    if (!mounted) return;
     setState(() {
       _displayedRepairs = _applyFilters(all);
-    });
-  }
-
-  Future<void> _loadMoreData() async {
-    if (_isLoadingMore || _useFilter) return;
-    setState(() => _isLoadingMore = true);
-    final newData = await db.getRepairsPaged(_pageSize, _currentOffset);
-    setState(() {
-      _currentOffset += _pageSize;
-      _displayedRepairs.addAll(newData);
-      _isLoadingMore = false;
-      if (newData.length < _pageSize) _hasMore = false;
+      _isLoading = false;
     });
   }
 
   void _onSearch(String val) async {
     setState(() => _currentSearch = val);
-    if (val.isEmpty) {
-      _loadInitialData();
-    } else {
-      final all = await db.getAllRepairs();
-      setState(() {
-        final filtered = _applyFilters(all);
+    final all = await db.getAllRepairs();
+    setState(() {
+      final filtered = _applyFilters(all);
+      if (val.isEmpty) {
+        _displayedRepairs = filtered;
+      } else {
         _displayedRepairs = filtered.where((r) => 
           r.customerName.toLowerCase().contains(val.toLowerCase()) || 
           r.phone.contains(val) || 
           r.model.toLowerCase().contains(val.toLowerCase())
         ).toList();
-        _hasMore = false;
-      });
-    }
+      }
+    });
   }
 
   List<Repair> _applyFilters(List<Repair> list) {
@@ -108,27 +81,13 @@ class OrderListViewState extends State<OrderListView> {
   }
 
   void _confirmDelete(Repair r) {
-    if (!canDelete) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("BẠN KHÔNG CÓ QUYỀN XÓA ĐƠN")));
-      return;
-    }
+    if (!canDelete) return;
     final passCtrl = TextEditingController();
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text("XÁC NHẬN XÓA ĐƠN"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text("Xóa đơn của khách: ${r.customerName}"),
-            const SizedBox(height: 10),
-            TextField(
-              controller: passCtrl,
-              obscureText: true,
-              decoration: const InputDecoration(hintText: "Nhập lại mật khẩu để xác nhận"),
-            ),
-          ],
-        ),
+        content: TextField(controller: passCtrl, obscureText: true, decoration: const InputDecoration(hintText: "Nhập mật khẩu quản lý")),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("HỦY")),
           ElevatedButton(
@@ -139,18 +98,14 @@ class OrderListViewState extends State<OrderListView> {
               try {
                 final cred = EmailAuthProvider.credential(email: user.email!, password: passCtrl.text);
                 await user.reauthenticateWithCredential(cred);
-                
                 await db.deleteRepairByFirestoreId(r.firestoreId ?? "");
                 if (r.firestoreId != null) await FirestoreService.deleteRepair(r.firestoreId!);
-                
                 Navigator.pop(ctx);
                 _loadInitialData();
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ĐÃ XÓA ĐƠN THÀNH CÔNG')));
-              } catch (_) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Mật khẩu không chính xác')));
-              }
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ĐÃ XÓA THÀNH CÔNG')));
+              } catch (_) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Mật khẩu sai'))); }
             },
-            child: const Text("XÓA VĨNH VIỄN", style: TextStyle(color: Colors.white)),
+            child: const Text("XÓA", style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -160,78 +115,36 @@ class OrderListViewState extends State<OrderListView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFF),
+      backgroundColor: const Color(0xFFF0F4F8),
       appBar: AppBar(
-        backgroundColor: Colors.teal,
-        foregroundColor: Colors.white,
-        title: const Text("DANH SÁCH SỬA CHỮA", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-        elevation: 0,
+        title: const Text("DANH SÁCH MÁY SỬA", style: TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.white, elevation: 0,
       ),
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(16),
             child: TextField(
               onChanged: _onSearch,
               decoration: InputDecoration(
                 hintText: "Tìm khách, model, SĐT...",
-                prefixIcon: const Icon(Icons.search, color: Colors.teal),
+                prefixIcon: const Icon(Icons.search),
+                filled: true, fillColor: Colors.white,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
-                filled: true, fillColor: Colors.white
               ),
             ),
           ),
           Expanded(
-            child: RefreshIndicator(
-              onRefresh: _loadInitialData,
-              child: ListView.builder(
-                controller: _scrollController,
-                padding: const EdgeInsets.all(12),
-                itemCount: _displayedRepairs.length,
-                itemBuilder: (ctx, i) {
-                  final r = _displayedRepairs[i];
-                  return Dismissible(
-                    key: Key(r.id.toString() + r.createdAt.toString()),
-                    direction: canDelete ? DismissDirection.endToStart : DismissDirection.none,
-                    background: Container(
-                      alignment: Alignment.centerRight,
-                      padding: const EdgeInsets.only(right: 20),
-                      decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(15)),
-                      child: const Icon(Icons.delete_forever, color: Colors.white, size: 30),
-                    ),
-                    confirmDismiss: (dir) async {
-                      _confirmDelete(r);
-                      return false; // Không xóa ngay, đợi confirm từ dialog
-                    },
-                    child: Card(
-                      elevation: 2,
-                      margin: const EdgeInsets.only(bottom: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                      child: ListTile(
-                        onTap: () async {
-                          final res = await Navigator.push(context, MaterialPageRoute(builder: (_) => RepairDetailView(repair: r)));
-                          if (res == true) _loadInitialData();
-                        },
-                        leading: CircleAvatar(
-                          backgroundColor: r.status >= 3 ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
-                          child: Icon(r.status >= 3 ? Icons.check_circle : Icons.build_circle, color: r.status >= 3 ? Colors.green : Colors.orange),
-                        ),
-                        title: Text("${r.customerName} - ${r.model}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                        subtitle: Text("Lỗi: ${r.issue.split('|').first}", maxLines: 1, style: const TextStyle(fontSize: 12)),
-                        trailing: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(DateFormat('dd/MM').format(DateTime.fromMillisecondsSinceEpoch(r.createdAt)), style: const TextStyle(fontSize: 11, color: Colors.grey)),
-                            if (canDelete) const Icon(Icons.swipe_left, size: 14, color: Colors.redAccent),
-                          ],
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
+            child: _isLoading 
+              ? const Center(child: CircularProgressIndicator())
+              : RefreshIndicator(
+                  onRefresh: _loadInitialData,
+                  child: ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: _displayedRepairs.length,
+                    itemBuilder: (ctx, i) => _buildRepairCard(_displayedRepairs[i]),
+                  ),
+                ),
           ),
         ],
       ),
@@ -240,9 +153,89 @@ class OrderListViewState extends State<OrderListView> {
           final res = await Navigator.push(context, MaterialPageRoute(builder: (_) => CreateRepairOrderView(role: widget.role)));
           if (res == true) _loadInitialData();
         },
-        label: const Text("NHẬN MÁY"),
-        icon: const Icon(Icons.add),
-        backgroundColor: Colors.blueAccent,
+        label: const Text("NHẬN MÁY MỚI"),
+        icon: const Icon(Icons.add_a_photo_rounded),
+        backgroundColor: const Color(0xFF2962FF),
+      ),
+    );
+  }
+
+  Widget _buildRepairCard(Repair r) {
+    final bool isDone = r.status >= 3;
+    final List<String> images = r.receiveImages;
+    final String firstImage = images.isNotEmpty ? images.first : "";
+
+    return Dismissible(
+      key: Key(r.firestoreId ?? r.createdAt.toString()),
+      direction: canDelete ? DismissDirection.endToStart : DismissDirection.none,
+      background: Container(
+        alignment: Alignment.centerRight, padding: const EdgeInsets.only(right: 20),
+        decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(20)),
+        child: const Icon(Icons.delete_forever, color: Colors.white, size: 30),
+      ),
+      confirmDismiss: (_) async { _confirmDelete(r); return false; },
+      child: Card(
+        margin: const EdgeInsets.only(bottom: 16),
+        child: InkWell(
+          onTap: () async {
+            final res = await Navigator.push(context, MaterialPageRoute(builder: (_) => RepairDetailView(repair: r)));
+            if (res == true) _loadInitialData();
+          },
+          borderRadius: BorderRadius.circular(20),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 1. HÌNH ẢNH NHẬN MÁY
+                Container(
+                  width: 80, height: 80,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(12),
+                    image: firstImage.isNotEmpty 
+                      ? DecorationImage(image: firstImage.startsWith('http') ? NetworkImage(firstImage) : FileImage(File(firstImage)) as ImageProvider, fit: BoxFit.cover)
+                      : null,
+                  ),
+                  child: firstImage.isEmpty ? const Icon(Icons.image_not_supported_outlined, color: Colors.grey) : null,
+                ),
+                if (images.length > 1) 
+                  Positioned(bottom: 0, right: 0, child: Container(padding: const EdgeInsets.all(2), decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(4)), child: Text("+${images.length - 1}", style: const TextStyle(color: Colors.white, fontSize: 10)))),
+
+                const SizedBox(width: 15),
+
+                // 2. THÔNG TIN CHI TIẾT
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(r.model, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF2962FF))),
+                      Text("Khách: ${r.customerName}", style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                      const SizedBox(height: 4),
+                      Text("Lỗi: ${r.issue.split('|').first}", style: const TextStyle(color: Colors.redAccent, fontSize: 12, fontWeight: FontWeight.w500), maxLines: 1, overflow: TextOverflow.ellipsis),
+                      const SizedBox(height: 2),
+                      Text("Ghi chú: ${r.accessories}", style: const TextStyle(color: Colors.blueGrey, fontSize: 11, fontStyle: FontStyle.italic), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    ],
+                  ),
+                ),
+
+                // 3. TRẠNG THÁI & THỜI GIAN
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(DateFormat('dd/MM').format(DateTime.fromMillisecondsSinceEpoch(r.createdAt)), style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(color: isDone ? Colors.green.shade100 : Colors.orange.shade100, borderRadius: BorderRadius.circular(8)),
+                      child: Text(isDone ? "XONG" : "ĐANG SỬA", style: TextStyle(color: isDone ? Colors.green.shade700 : Colors.orange.shade700, fontSize: 10, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

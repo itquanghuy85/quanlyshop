@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../l10n/app_localizations.dart';
 import '../data/db_helper.dart';
@@ -10,19 +11,8 @@ import '../services/unified_printer_service.dart';
 import '../services/bluetooth_printer_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-enum PrinterType { bluetooth, wifi, none }
-
-class PrinterOption {
-  final PrinterType type;
-  final String name;
-  final String address;
-
-  PrinterOption({required this.type, required this.name, required this.address});
-}
-
 class InventoryView extends StatefulWidget {
   const InventoryView({super.key});
-
   @override
   State<InventoryView> createState() => _InventoryViewState();
 }
@@ -36,13 +26,6 @@ class _InventoryViewState extends State<InventoryView> {
   final Set<int> _selectedIds = {};
   bool _isAdmin = false;
 
-  // Theme colors cho màn hình nhập kho
-  final Color _primaryColor = Colors.green; // Màu chính cho nhập kho
-  final Color _accentColor = Colors.green.shade600;
-  final Color _backgroundColor = const Color(0xFFF8FAFF);
-
-  AppLocalizations get l10n => AppLocalizations.of(context)!;
-
   @override
   void initState() {
     super.initState();
@@ -52,13 +35,8 @@ class _InventoryViewState extends State<InventoryView> {
 
   Future<void> _loadPermissions() async {
     final perms = await UserService.getCurrentUserPermissions();
-    print('DEBUG: User permissions: $perms');
-    print('DEBUG: allowViewInventory: ${perms['allowViewInventory']}');
     if (!mounted) return;
-    setState(() {
-      _isAdmin = perms['allowViewInventory'] ?? false;
-    });
-    print('DEBUG: _isAdmin set to: $_isAdmin');
+    setState(() => _isAdmin = perms['allowViewInventory'] ?? false);
   }
 
   Future<void> _refresh() async {
@@ -66,121 +44,24 @@ class _InventoryViewState extends State<InventoryView> {
     final data = await db.getInStockProducts();
     final suppliers = await db.getSuppliers();
     setState(() { _products = data; _suppliers = suppliers; _isLoading = false; });
-    if (_products.isEmpty) {
-      _selectionMode = false;
-      _selectedIds.clear();
-    }
-  }
-
-  Future<void> _confirmDeleteProduct(Product p) async {
-    if (!_isAdmin) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.onlyAdminCanDelete)), 
-      );
-      return;
-    }
-
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.deleteProductFromInventory),
-        content: Text(l10n.confirmDeleteProduct(p.name)),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel)),
-          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: Text(l10n.delete)),
-        ],
-      ),
-    );
-
-    if (ok == true) {
-      // Xóa trên Firestore nếu có firestoreId
-      if (p.firestoreId != null) {
-        await FirestoreService.deleteProduct(p.firestoreId!);
-      }
-      await db.deleteProduct(p.id!);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.productDeletedFromInventory)), 
-      );
-      _refresh();
-    }
-  }
-
-  Future<void> _confirmDeleteSelected() async {
-    if (!_isAdmin) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Chỉ tài khoản QUẢN LÝ mới được xóa hàng khỏi kho')),
-      );
-      return;
-    }
-    if (_selectedIds.isEmpty) return;
-
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.deleteMultipleProducts),
-        content: Text(l10n.confirmDeleteMultipleProducts(_selectedIds.length)),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel)),
-          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: Text(l10n.delete)),
-        ],
-      ),
-    );
-
-    if (ok == true) {
-      for (final id in _selectedIds) {
-        await db.deleteProduct(id);
-      }
-      if (!mounted) return;
-      _selectedIds.clear();
-      _selectionMode = false;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.multipleProductsDeleted(_selectedIds.length))), 
-      );
-      _refresh();
-    }
-  }
-
-  void _toggleSelection(Product p) {
-    final id = p.id;
-    if (id == null) return;
-    setState(() {
-      if (!_selectionMode) {
-        _selectionMode = true;
-      }
-      if (_selectedIds.contains(id)) {
-        _selectedIds.remove(id);
-        if (_selectedIds.isEmpty) _selectionMode = false;
-      } else {
-        _selectedIds.add(id);
-      }
-    });
-  }
-
-  void _selectAll() {
-    setState(() {
-      _selectionMode = true;
-      _selectedIds
-        ..clear()
-        ..addAll(_products.where((p) => p.id != null).map((p) => p.id!));
-    });
-  }
-
-  void _clearSelection() {
-    setState(() {
-      _selectionMode = false;
-      _selectedIds.clear();
-    });
   }
 
   void _showAddProductDialog() {
     final nameC = TextEditingController();
     final imeiC = TextEditingController();
     final costC = TextEditingController();
-    final kpkPriceC = TextEditingController(); // Giá bán kèm phụ kiện
-    final pkPriceC = TextEditingController(); // Giá phụ kiện
-    final capacityC = TextEditingController(); // Dung lượng
+    final kpkPriceC = TextEditingController();
+    final pkPriceC = TextEditingController();
     final qtyC = TextEditingController(text: "1");
+    
+    // Hệ thống FocusNodes để tự nhảy dòng
+    final nameF = FocusNode();
+    final imeiF = FocusNode();
+    final costF = FocusNode();
+    final kpkF = FocusNode();
+    final pkF = FocusNode();
+    final qtyF = FocusNode();
+
     String type = "PHONE";
     String? supplier = _suppliers.isNotEmpty ? _suppliers.first['name'] as String : null;
 
@@ -188,88 +69,103 @@ class _InventoryViewState extends State<InventoryView> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setModalState) => AlertDialog(
-          title: Text(l10n.addProductToInventory),
+          title: const Text("NHẬP HÀNG VÀO KHO", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueAccent)),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 DropdownButtonFormField<String>(
                   value: type,
-                  items: [
-                    DropdownMenuItem(value: "PHONE", child: Text(l10n.phone)),
-                    DropdownMenuItem(value: "ACCESSORY", child: Text(l10n.accessory)),
-                  ],
+                  items: const [DropdownMenuItem(value: "PHONE", child: Text("ĐIỆN THOẠI")), DropdownMenuItem(value: "ACCESSORY", child: Text("PHỤ KIỆN"))],
                   onChanged: (v) => setModalState(() => type = v!),
-                  decoration: InputDecoration(labelText: l10n.productType),
+                  decoration: const InputDecoration(labelText: "Loại hàng"),
                 ),
-                TextField(controller: nameC, decoration: InputDecoration(labelText: l10n.productName), textCapitalization: TextCapitalization.characters),
-                TextField(controller: imeiC, decoration: InputDecoration(labelText: l10n.imeiOptional), textCapitalization: TextCapitalization.characters),
-                Row(children: [
-                  Expanded(child: TextField(controller: costC, decoration: InputDecoration(labelText: l10n.costPrice, suffixText: ".000"), keyboardType: TextInputType.number)),
-                  const SizedBox(width: 10),
-                  Expanded(child: TextField(controller: kpkPriceC, decoration: InputDecoration(labelText: l10n.kpkPrice, suffixText: ".000"), keyboardType: TextInputType.number)),
-                ]),
-                TextField(controller: pkPriceC, decoration: InputDecoration(labelText: l10n.pkPrice, suffixText: ".000"), keyboardType: TextInputType.number),
-                TextField(controller: capacityC, decoration: InputDecoration(labelText: l10n.capacityExample), textCapitalization: TextCapitalization.characters),
-                TextField(controller: qtyC, decoration: InputDecoration(labelText: l10n.quantity), keyboardType: TextInputType.number),
                 const SizedBox(height: 10),
+                _input(nameC, "Tên sản phẩm *", Icons.phone_android, f: nameF, next: imeiF),
+                _input(imeiC, "Số IMEI (Nếu có)", Icons.fingerprint, f: imeiF, next: costF),
+                Row(children: [
+                  Expanded(child: _input(costC, "Giá vốn", Icons.money, type: TextInputType.number, suffix: ".000", f: costF, next: kpkF)),
+                  const SizedBox(width: 10),
+                  Expanded(child: _input(kpkPriceC, "Giá KPK", Icons.sell, type: TextInputType.number, suffix: ".000", f: kpkF, next: pkF)),
+                ]),
+                _input(pkPriceC, "Giá bán lẻ (PK)", Icons.shopping_bag, type: TextInputType.number, suffix: ".000", f: pkF, next: qtyF),
+                _input(qtyC, "Số lượng", Icons.add_box, type: TextInputType.number, f: qtyF),
+                
                 DropdownButtonFormField<String>(
                   value: supplier,
-                  decoration: InputDecoration(labelText: l10n.supplierRequired),
+                  isExpanded: true,
+                  decoration: const InputDecoration(labelText: "Nhà cung cấp *", prefixIcon: Icon(Icons.business, size: 20)),
                   items: _suppliers.map((s) => DropdownMenuItem(value: s['name'] as String, child: Text(s['name']))).toList(),
                   onChanged: (v) => setModalState(() => supplier = v),
                 ),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton.icon(
-                    onPressed: () async {
-                      final created = await _showQuickAddSupplier();
-                      if (created != null) {
-                        setModalState(() => supplier = created);
-                      }
-                    },
-                    icon: const Icon(Icons.add_business, size: 18),
-                    label: Text(l10n.addSupplierQuickly),
-                  ),
+                if (_suppliers.isEmpty) 
+                  const Padding(padding: EdgeInsets.only(top: 8), child: Text("Lưu ý: Bạn chưa có Nhà cung cấp. Hãy thêm nhanh phía dưới.", style: TextStyle(color: Colors.red, fontSize: 11))),
+                
+                TextButton.icon(
+                  onPressed: () async {
+                    final created = await _showQuickAddSupplier();
+                    if (created != null) {
+                      final list = await db.getSuppliers();
+                      setModalState(() { _suppliers = list; supplier = created; });
+                    }
+                  },
+                  icon: const Icon(Icons.add_circle_outline, size: 18),
+                  label: const Text("Thêm nhanh Nhà cung cấp"),
                 ),
               ],
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: Text(l10n.cancel)),
-            ElevatedButton(onPressed: () async {
-              if (nameC.text.isEmpty || supplier == null) {
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.enterProductNameAndSupplier)));
-                return;
-              }
-              final qty = int.tryParse(qtyC.text) ?? 1;
-              final p = Product(
-                name: nameC.text.toUpperCase(),
-                imei: imeiC.text.toUpperCase(),
-                cost: (int.tryParse(costC.text) ?? 0) * 1000,
-                price: (int.tryParse(pkPriceC.text) ?? 0) * 1000, // Giá bán = giá PK
-                capacity: capacityC.text.isNotEmpty ? capacityC.text.toUpperCase() : null,
-                kpkPrice: kpkPriceC.text.isNotEmpty ? (int.tryParse(kpkPriceC.text) ?? 0) * 1000 : null,
-                pkPrice: (int.tryParse(pkPriceC.text) ?? 0) * 1000,
-                quantity: qty,
-                type: type,
-                createdAt: DateTime.now().millisecondsSinceEpoch,
-                status: 1,
-                supplier: supplier,
-              );
-              
-              // Upload lên Firestore trước
-              final firestoreId = await FirestoreService.addProduct(p);
-              if (firestoreId != null) {
-                p.firestoreId = firestoreId;
-              }
-              
-              await db.upsertProduct(p);
-              await db.incrementSupplierStats(supplier!, p.cost * qty);
-              Navigator.pop(ctx);
-              _refresh();
-            }, child: const Text("NHẬP KHO")),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("HỦY")),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
+              onPressed: () async {
+                if (nameC.text.isEmpty || supplier == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("VUI LÒNG NHẬP TÊN VÀ CHỌN NHÀ CUNG CẤP!"), backgroundColor: Colors.red));
+                  return;
+                }
+                final p = Product(
+                  name: nameC.text.toUpperCase(),
+                  imei: imeiC.text.toUpperCase(),
+                  cost: (int.tryParse(costC.text) ?? 0) * 1000,
+                  price: (int.tryParse(pkPriceC.text) ?? 0) * 1000,
+                  kpkPrice: (int.tryParse(kpkPriceC.text) ?? 0) * 1000,
+                  pkPrice: (int.tryParse(pkPriceC.text) ?? 0) * 1000,
+                  quantity: int.tryParse(qtyC.text) ?? 1,
+                  type: type,
+                  createdAt: DateTime.now().millisecondsSinceEpoch,
+                  supplier: supplier,
+                  status: 1,
+                );
+                
+                final fId = await FirestoreService.addProduct(p);
+                if (fId != null) p.firestoreId = fId;
+                
+                await db.upsertProduct(p);
+                await db.incrementSupplierStats(supplier!, p.cost * p.quantity);
+                Navigator.pop(ctx);
+                _refresh();
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ĐÃ NHẬP KHO THÀNH CÔNG"), backgroundColor: Colors.green));
+              }, 
+              child: const Text("XÁC NHẬN NHẬP KHO", style: TextStyle(color: Colors.white))
+            ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _input(TextEditingController c, String l, IconData i, {FocusNode? f, FocusNode? next, TextInputType type = TextInputType.text, String? suffix}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: TextField(
+        controller: c, focusNode: f, keyboardType: type,
+        textCapitalization: TextCapitalization.characters,
+        onSubmitted: (_) { if (next != null) FocusScope.of(context).requestFocus(next); },
+        decoration: InputDecoration(
+          labelText: l, prefixIcon: Icon(i, size: 20), suffixText: suffix,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 15),
         ),
       ),
     );
@@ -277,358 +173,50 @@ class _InventoryViewState extends State<InventoryView> {
 
   Future<String?> _showQuickAddSupplier() async {
     final nameC = TextEditingController();
-    final contactC = TextEditingController();
-    final phoneC = TextEditingController();
-    final addressC = TextEditingController();
-
     return showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(l10n.addSupplier),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(controller: nameC, decoration: InputDecoration(labelText: l10n.supplierName), textCapitalization: TextCapitalization.characters),
-              TextField(controller: contactC, decoration: InputDecoration(labelText: l10n.contactPerson), textCapitalization: TextCapitalization.characters),
-              TextField(controller: phoneC, decoration: InputDecoration(labelText: l10n.phone), keyboardType: TextInputType.phone),
-              TextField(controller: addressC, decoration: InputDecoration(labelText: l10n.address), textCapitalization: TextCapitalization.characters),
-            ],
-          ),
-        ),
+        title: const Text("THÊM NHÀ CUNG CẤP"),
+        content: TextField(controller: nameC, decoration: const InputDecoration(labelText: "Tên nhà cung cấp"), textCapitalization: TextCapitalization.characters),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(l10n.cancel)),
-          ElevatedButton(
-            onPressed: () async {
-              if (nameC.text.isEmpty) return;
-              final supplierName = nameC.text.toUpperCase();
-              await db.insertSupplier({
-                'name': supplierName,
-                'contactPerson': contactC.text.toUpperCase(),
-                'phone': phoneC.text,
-                'address': addressC.text.toUpperCase(),
-                'items': "",
-                'createdAt': DateTime.now().millisecondsSinceEpoch,
-              });
-              final list = await db.getSuppliers();
-              setState(() => _suppliers = list);
-              Navigator.pop(ctx, supplierName);
-            },
-            child: Text(l10n.save),
-          ),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("HỦY")),
+          ElevatedButton(onPressed: () async {
+            if (nameC.text.isEmpty) return;
+            await db.insertSupplier({'name': nameC.text.toUpperCase(), 'createdAt': DateTime.now().millisecondsSinceEpoch});
+            Navigator.pop(ctx, nameC.text.toUpperCase());
+          }, child: const Text("LƯU")),
         ],
       ),
     );
-  }
-
-  Future<List<PrinterOption>> _getAvailablePrinters() async {
-    final printers = <PrinterOption>[];
-
-    // Thêm máy in Bluetooth
-    final bluetoothPrinters = await BluetoothPrinterService.getPairedPrinters();
-    print('DEBUG: Found ${bluetoothPrinters.length} Bluetooth printers');
-    for (final device in bluetoothPrinters) {
-      printers.add(PrinterOption(
-        type: PrinterType.bluetooth,
-        name: device.name ?? 'Unknown Bluetooth Printer',
-        address: device.macAdress ?? '',
-      ));
-    }
-
-    // Thêm máy in WiFi từ SharedPreferences
-    final prefs = await SharedPreferences.getInstance();
-    final wifiPrinters = prefs.getStringList('wifi_printers') ?? [];
-    print('DEBUG: Found ${wifiPrinters.length} WiFi printers: $wifiPrinters');
-    for (final ip in wifiPrinters) {
-      printers.add(PrinterOption(
-        type: PrinterType.wifi,
-        name: 'WiFi Printer ($ip)',
-        address: ip,
-      ));
-    }
-
-    // TEST: Thêm máy in giả để test dialog
-    if (printers.isEmpty) {
-      print('DEBUG: Adding test printers for testing');
-      printers.add(PrinterOption(
-        type: PrinterType.bluetooth,
-        name: 'Test Bluetooth Printer',
-        address: '00:11:22:33:44:55',
-      ));
-      printers.add(PrinterOption(
-        type: PrinterType.wifi,
-        name: 'Test WiFi Printer (192.168.1.100)',
-        address: '192.168.1.100',
-      ));
-    }
-
-    print('DEBUG: Total printers available: ${printers.length}');
-    return printers;
-  }
-
-  Future<PrinterOption?> _showPrinterSelectionDialog() async {
-    final printers = await _getAvailablePrinters();
-
-    if (printers.isEmpty) {
-      print('DEBUG: No printers found, showing snackbar');
-      if (!mounted) return null;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.noPrintersFound)),
-      );
-      return null;
-    }
-
-    return showDialog<PrinterOption>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.selectPrinter),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: ListView.builder(
-            shrinkWrap: true,
-            itemCount: printers.length,
-            itemBuilder: (context, index) {
-              final printer = printers[index];
-              return ListTile(
-                leading: Icon(
-                  printer.type == PrinterType.bluetooth
-                      ? Icons.bluetooth
-                      : Icons.wifi,
-                ),
-                title: Text(printer.name),
-                subtitle: Text(printer.address),
-                onTap: () => Navigator.pop(ctx, printer),
-              );
-            },
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(l10n.cancel),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _printPhoneLabel(Product product) async {
-    print('DEBUG: _printPhoneLabel called for product: ${product.name}');
-    try {
-      // Hiển thị dialog xác nhận
-      final confirm = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: Text(l10n.printPhoneLabel),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text("${l10n.name}: ${product.name.toUpperCase()}"),
-              Text("${l10n.imei}: ${product.imei?.toUpperCase() ?? 'N/A'}"),
-              Text("${l10n.color}: ${product.color?.toUpperCase() ?? 'N/A'}"),
-              Text("${l10n.price}: ${NumberFormat('#,###').format(product.price)} đ"),
-              Text("${l10n.condition}: ${product.condition.toUpperCase()}"),
-              if (product.description.isNotEmpty)
-                Text("${l10n.accessories}: ${product.description.toUpperCase()}"),
-              const SizedBox(height: 10),
-              Text(l10n.confirmPrintLabel),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(l10n.cancel),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text(l10n.printLabel),
-            ),
-          ],
-        ),
-      );
-
-      if (confirm != true) return;
-
-      // Chọn máy in
-      final selectedPrinter = await _showPrinterSelectionDialog();
-      if (selectedPrinter == null) return;
-
-      // Tạo dữ liệu tem
-      final labelData = {
-        'name': product.name.toUpperCase(),
-        'imei': product.imei?.toUpperCase() ?? 'N/A',
-        'color': product.color?.toUpperCase() ?? 'N/A',
-        'capacity': product.capacity?.toUpperCase() ?? '',
-        'cost': NumberFormat('#,###').format(product.cost),
-        'kpkPrice': NumberFormat('#,###').format(product.kpkPrice ?? product.price),
-        'pkPrice': NumberFormat('#,###').format(product.pkPrice ?? product.price),
-        'condition': product.condition.toUpperCase(),
-        'accessories': product.description.isNotEmpty ? product.description.toUpperCase() : 'KHÔNG CÓ',
-      };
-
-      // In tem với máy in đã chọn
-      bool printSuccess = false;
-      if (selectedPrinter.type == PrinterType.bluetooth) {
-        printSuccess = await BluetoothPrinterService.printPhoneLabel(labelData, selectedPrinter.address);
-      } else if (selectedPrinter.type == PrinterType.wifi) {
-        printSuccess = await UnifiedPrinterService.printPhoneLabelToWifi(labelData, selectedPrinter.address);
-      }
-
-      if (!mounted) return;
-      
-      if (printSuccess) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.labelPrintedSuccessfully)),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.labelPrintFailed)),
-        );
-      }
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.labelPrintError(e))),
-      );
-    }
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      backgroundColor: _backgroundColor,
-      appBar: AppBar(
-        title: Text(l10n.inventory, style: const TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: _primaryColor,
-        foregroundColor: Colors.white,
-        elevation: 2,
-        actions: [
-          IconButton(
-            onPressed: () async {
-              final perms = await UserService.getCurrentUserPermissions();
-              final canView = perms['allowViewSuppliers'] ?? false;
-              if (!canView) {
-                if (!mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(l10n.noPermissionSuppliers)),
-                );
-                return;
-              }
-              if (!mounted) return;
-              Navigator.push(context, MaterialPageRoute(builder: (_) => const SupplierView()));
-            },
-            icon: const Icon(Icons.business),
-          ),
-        ],
-      ),
-      body: _isLoading 
-        ? const Center(child: CircularProgressIndicator())
-        : Column(
-            children: [
-              if (_selectionMode)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  color: Colors.blue.withOpacity(0.06),
-                  child: Row(
-                    children: [
-                      Text(l10n.selectedCount(_selectedIds.length), style: const TextStyle(fontWeight: FontWeight.bold)),
-                      const SizedBox(width: 10),
-                      TextButton.icon(
-                        onPressed: _selectAll,
-                        icon: const Icon(Icons.select_all, size: 18),
-                        label: Text(l10n.selectAll),
-                      ),
-                      const Spacer(),
-                      IconButton(
-                        icon: const Icon(Icons.clear),
-                        tooltip: l10n.clearSelection,
-                        onPressed: _clearSelection,
-                      ),
-                    ],
-                  ),
-                ),
-              Expanded(
-                child: ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(15, 15, 15, 100),
-                  itemCount: _products.length,
-                  itemBuilder: (ctx, i) {
-                    final p = _products[i];
-                    final isSelected = p.id != null && _selectedIds.contains(p.id);
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                      child: ListTile(
-                        onLongPress: () => _toggleSelection(p),
-                        onTap: _selectionMode ? () => _toggleSelection(p) : null,
-                        leading: _selectionMode
-                            ? Checkbox(
-                                value: isSelected,
-                                onChanged: (_) => _toggleSelection(p),
-                              )
-                            : CircleAvatar(child: Icon(p.type == 'PHONE' ? Icons.phone_android : Icons.headset)),
-                        title: Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text("${l10n.supplierShort}: ${p.supplier ?? '---'}\n${l10n.imei}: ${p.imei ?? 'N/A'} | ${l10n.quantityShort}: ${p.quantity}"),
-                        trailing: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              "${NumberFormat('#,###').format(p.price)} đ",
-                              style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 12),
-                            ),
-                            if (_isAdmin && !_selectionMode)
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  if (p.type == 'PHONE')
-                                    IconButton(
-                                      icon: const Icon(Icons.label_outline, size: 16, color: Colors.blue),
-                                      tooltip: l10n.printPhoneLabel,
-                                      padding: EdgeInsets.zero,
-                                      constraints: const BoxConstraints(),
-                                      onPressed: () => _printPhoneLabel(p),
-                                    ),
-                                  IconButton(
-                                    icon: const Icon(Icons.delete_outline, size: 16, color: Colors.grey),
-                                    tooltip: l10n.deleteFromInventory,
-                                    padding: EdgeInsets.zero,
-                                    constraints: const BoxConstraints(),
-                                    onPressed: () => _confirmDeleteProduct(p),
-                                  ),
-                                ],
-                              ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-      floatingActionButton: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (_selectionMode && _isAdmin)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: FloatingActionButton.extended(
-                onPressed: _confirmDeleteSelected,
-                backgroundColor: Colors.redAccent,
-                icon: const Icon(Icons.delete_sweep_rounded),
-                label: Text(l10n.deleteSelected),
-              ),
+      backgroundColor: const Color(0xFFF8FAFF),
+      appBar: AppBar(title: Text(l10n.inventory, style: const TextStyle(fontWeight: FontWeight.bold)), backgroundColor: Colors.green, foregroundColor: Colors.white),
+      body: _isLoading ? const Center(child: CircularProgressIndicator()) : ListView.builder(
+        padding: const EdgeInsets.all(15),
+        itemCount: _products.length,
+        itemBuilder: (ctx, i) {
+          final p = _products[i];
+          return Card(
+            margin: const EdgeInsets.only(bottom: 10),
+            child: ListTile(
+              leading: CircleAvatar(backgroundColor: Colors.green.withOpacity(0.1), child: Icon(p.type == 'PHONE' ? Icons.phone_android : Icons.headset, color: Colors.green)),
+              title: Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: Text("IMEI: ${p.imei ?? 'N/A'}\nNCC: ${p.supplier ?? '---'} | SL: ${p.quantity}"),
+              trailing: Text("${NumberFormat('#,###').format(p.price)} đ", style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
             ),
-          FloatingActionButton.extended(
-            onPressed: _showAddProductDialog,
-            label: Text(l10n.addNewProduct),
-            icon: const Icon(Icons.add),
-            backgroundColor: Colors.blueAccent,
-          ),
-        ],
+          );
+        },
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _showAddProductDialog,
+        label: const Text("NHẬP KHO MỚI"),
+        icon: const Icon(Icons.add_business),
+        backgroundColor: Colors.blueAccent,
       ),
     );
   }
