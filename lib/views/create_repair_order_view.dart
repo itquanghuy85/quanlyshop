@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
 import '../l10n/app_localizations.dart';
 import '../data/db_helper.dart';
 import '../models/repair_model.dart';
@@ -12,7 +11,6 @@ import '../services/notification_service.dart';
 import '../services/firestore_service.dart';
 import '../services/user_service.dart';
 import '../services/unified_printer_service.dart';
-import '../widgets/validated_text_field.dart';
 
 class CreateRepairOrderView extends StatefulWidget {
   final String role;
@@ -36,11 +34,16 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
   final accCtrl = TextEditingController();
   final passCtrl = TextEditingController();
   final priceCtrl = TextEditingController();
-  final imeiCtrl = TextEditingController();
 
-  final FocusNode _phoneFocus = FocusNode();
-  final FocusNode _modelFocus = FocusNode();
-  final FocusNode _priceFocus = FocusNode();
+  // Hệ thống FocusNode để tự động nhảy dòng
+  final phoneF = FocusNode();
+  final nameF = FocusNode();
+  final modelF = FocusNode();
+  final issueF = FocusNode();
+  final priceF = FocusNode();
+  final passF = FocusNode();
+  final appearanceF = FocusNode();
+  final accF = FocusNode();
 
   String _paymentMethod = "TIỀN MẶT";
   List<Map<String, dynamic>> _recentDevices = [];
@@ -51,7 +54,6 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
   @override
   void initState() {
     super.initState();
-    // Chỉ chạy smartFill khi gõ xong SĐT để tránh lag và lỗi data
     phoneCtrl.addListener(() {
       if (phoneCtrl.text.length == 10) _smartFill();
     });
@@ -61,8 +63,9 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
   void dispose() {
     phoneCtrl.dispose(); nameCtrl.dispose(); addressCtrl.dispose();
     modelCtrl.dispose(); issueCtrl.dispose(); appearanceCtrl.dispose();
-    accCtrl.dispose(); passCtrl.dispose(); priceCtrl.dispose(); imeiCtrl.dispose();
-    _phoneFocus.dispose(); _modelFocus.dispose(); _priceFocus.dispose();
+    accCtrl.dispose(); passCtrl.dispose(); priceCtrl.dispose();
+    phoneF.dispose(); nameF.dispose(); modelF.dispose(); issueF.dispose();
+    priceF.dispose(); passF.dispose(); appearanceF.dispose(); accF.dispose();
     super.dispose();
   }
 
@@ -75,13 +78,13 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
         addressCtrl.text = (find.first['address'] ?? "").toString();
       });
       final repairs = await db.getAllRepairs();
-      final devices = repairs.where((r) => r.phone == phoneCtrl.text).map((r) => {'model': r.model, 'imei': r.imei}).toSet().toList();
+      final devices = repairs.where((r) => r.phone == phoneCtrl.text).map((r) => {'model': r.model}).toSet().toList();
       setState(() => _recentDevices = devices.take(3).toList());
     }
   }
 
   Future<Repair?> _onlySave() async {
-    if (_saving) return null; // Chống nhấn đúp
+    if (_saving) return null;
     if (phoneCtrl.text.isEmpty || modelCtrl.text.isEmpty) {
       NotificationService.showSnackBar("Vui lòng nhập SĐT và Model máy", color: Colors.red);
       return null;
@@ -91,12 +94,10 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
     try {
       final now = DateTime.now().millisecondsSinceEpoch;
       final price = int.tryParse(priceCtrl.text.replaceAll('.', '')) ?? 0;
-      
-      // TẠO ID DUY NHẤT NGAY TỪ ĐẦU ĐỂ CHỐNG TRÙNG ĐƠN (ANTI-DUPLICATE)
       final String uniqueId = "${now}_${phoneCtrl.text}";
 
       final r = Repair(
-        firestoreId: uniqueId, // Gán ID cố định cho cả local và cloud
+        firestoreId: uniqueId,
         customerName: nameCtrl.text.toUpperCase(),
         phone: phoneCtrl.text,
         model: modelCtrl.text.toUpperCase(),
@@ -108,23 +109,14 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
         createdAt: now,
         imagePath: _images.map((e) => e.path).join(','),
         createdBy: FirebaseAuth.instance.currentUser?.email?.split('@').first.toUpperCase() ?? "NV",
-        imei: imeiCtrl.text.toUpperCase(),
-        condition: appearanceCtrl.text.toUpperCase(),
       );
 
-      // Lưu local trước với ID duy nhất
       await db.upsertRepair(r);
-      
-      // Đẩy lên Cloud với ID đã định sẵn
       final docId = await FirestoreService.addRepair(r);
-      if (docId != null) {
-        r.isSynced = true;
-        await db.upsertRepair(r); // Cập nhật lại trạng thái sync
-      }
-      
+      if (docId != null) { r.isSynced = true; await db.upsertRepair(r); }
       return r;
     } catch (e) {
-      NotificationService.showSnackBar("Lỗi lưu dữ liệu: $e", color: Colors.red);
+      NotificationService.showSnackBar("Lỗi: $e", color: Colors.red);
       return null;
     } finally {
       setState(() => _saving = false);
@@ -132,16 +124,11 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
   }
 
   Future<void> _saveAndPrint() async {
-    final savedRepair = await _onlySave();
-    if (savedRepair != null) {
+    final saved = await _onlySave();
+    if (saved != null) {
       try {
-        final shopInfo = {
-          'shopName': 'SHOP NEW',
-          'shopAddr': addressCtrl.text.isNotEmpty ? addressCtrl.text : 'Hồ Chí Minh',
-          'shopPhone': '0123.456.789'
-        };
-        await UnifiedPrinterService.printRepairReceiptFromRepair(savedRepair, shopInfo);
-        NotificationService.showSnackBar("ĐÃ LƯU & ĐANG IN PHIẾU", color: Colors.green);
+        final shopInfo = {'shopName': 'SHOP NEW', 'shopAddr': addressCtrl.text, 'shopPhone': '0123.456.789'};
+        await UnifiedPrinterService.printRepairReceiptFromRepair(saved, shopInfo);
       } catch (_) {}
       if (mounted) Navigator.pop(context, true);
     }
@@ -152,56 +139,38 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFF),
       appBar: AppBar(
-        title: const Text("TIẾP NHẬN MÁY", style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text("TIẾP NHẬN SIÊU TỐC", style: TextStyle(fontWeight: FontWeight.bold)),
         actions: [IconButton(onPressed: _saveAndPrint, icon: const Icon(Icons.print, color: Colors.blueAccent))],
       ),
       body: _saving ? const Center(child: CircularProgressIndicator()) : SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            _sectionTitle("1. THÔNG TIN KHÁCH HÀNG"),
-            _input(phoneCtrl, "SỐ ĐIỆN THOẠI *", Icons.phone, type: TextInputType.phone, focusNode: _phoneFocus),
-            _input(nameCtrl, "TÊN KHÁCH HÀNG", Icons.person, caps: true),
+            _sectionTitle("1. KHÁCH HÀNG"),
+            _input(phoneCtrl, "SỐ ĐIỆN THOẠI *", Icons.phone, type: TextInputType.phone, f: phoneF, next: nameF),
+            _input(nameCtrl, "TÊN KHÁCH HÀNG", Icons.person, caps: true, f: nameF, next: modelF),
+            
+            const SizedBox(height: 20),
+            _sectionTitle("2. THÔNG TIN MÁY"),
+            _quick(brands, modelCtrl, issueF),
+            _input(modelCtrl, "MODEL MÁY *", Icons.phone_android, caps: true, f: modelF, next: issueF),
             
             if (_recentDevices.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Wrap(spacing: 8, children: _recentDevices.map((d) => ActionChip(
-                label: Text(d['model'], style: const TextStyle(fontSize: 11)),
-                onPressed: () => setState(() { modelCtrl.text = d['model']; imeiCtrl.text = d['imei'] ?? ""; }),
-              )).toList()),
+              const SizedBox(height: 4),
+              Wrap(spacing: 8, children: _recentDevices.map((d) => ActionChip(label: Text(d['model'], style: const TextStyle(fontSize: 10)), onPressed: () => setState(() => modelCtrl.text = d['model']))).toList()),
             ],
 
-            const SizedBox(height: 20),
-            _sectionTitle("2. THÔNG TIN THIẾT BỊ"),
-            _quick(brands, modelCtrl, _modelFocus),
-            Row(children: [
-              Expanded(child: _input(modelCtrl, "MODEL MÁY *", Icons.phone_android, caps: true, focusNode: _modelFocus)),
-              const SizedBox(width: 8),
-              IconButton(onPressed: () async {
-                final res = await Navigator.push(context, MaterialPageRoute(builder: (ctx) => Scaffold(
-                  appBar: AppBar(title: const Text("QUÉT IMEI")),
-                  body: MobileScanner(onDetect: (cap) {
-                    final code = cap.barcodes.first.rawValue;
-                    if (code != null) Navigator.pop(ctx, code);
-                  }),
-                )));
-                if (res != null) setState(() => imeiCtrl.text = res.toString().toUpperCase());
-              }, icon: const Icon(Icons.qr_code_scanner, color: Colors.blueAccent, size: 30)),
-            ]),
-            _input(imeiCtrl, "SỐ IMEI / SERIAL", Icons.fingerprint, caps: true),
-            
-            _sectionTitle("3. TÌNH TRẠNG & CHI PHÍ"),
-            _quick(commonIssues, issueCtrl, null),
-            _input(issueCtrl, "LỖI MÁY *", Icons.build, caps: true),
-            _input(priceCtrl, "GIÁ DỰ KIẾN (VNĐ)", Icons.monetization_on, type: TextInputType.number, formatters: [CurrencyInputFormatter()], focusNode: _priceFocus),
+            _sectionTitle("3. TÌNH TRẠNG & GIÁ"),
+            _quick(commonIssues, issueCtrl, priceF),
+            _input(issueCtrl, "LỖI MÁY *", Icons.build, caps: true, f: issueF, next: priceF),
+            _input(priceCtrl, "GIÁ DỰ KIẾN (VNĐ)", Icons.monetization_on, type: TextInputType.number, formatters: [CurrencyInputFormatter()], f: priceF, next: passF),
             
             ExpansionTile(
-              title: const Text("THÔNG TIN BỔ SUNG", style: TextStyle(fontSize: 13, color: Colors.blueGrey)),
+              title: const Text("THÔNG TIN THÊM", style: TextStyle(fontSize: 12, color: Colors.blueGrey)),
               children: [
-                _input(passCtrl, "MẬT KHẨU MÀN HÌNH", Icons.lock),
-                _input(appearanceCtrl, "NGOẠI QUAN (TRẦY, BỂ...)", Icons.remove_red_eye),
-                _input(accCtrl, "PHỤ KIỆN KÈM THEO", Icons.headphones),
-                _input(addressCtrl, "ĐỊA CHỈ KHÁCH", Icons.map),
+                _input(passCtrl, "MẬT KHẨU MÀN HÌNH", Icons.lock, f: passF, next: appearanceF),
+                _input(appearanceCtrl, "NGOẠI QUAN", Icons.remove_red_eye, f: appearanceF, next: accF),
+                _input(accCtrl, "PHỤ KIỆN", Icons.headphones, f: accF),
               ],
             ),
             
@@ -209,57 +178,29 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
             _imageRow(),
             
             const SizedBox(height: 30),
-            Row(
-              children: [
-                Expanded(
-                  flex: 1,
-                  child: OutlinedButton(
-                    onPressed: _saving ? null : () async {
-                      final ok = await _onlySave();
-                      if (ok != null && mounted) {
-                        NotificationService.showSnackBar("ĐÃ LƯU ĐƠN THÀNH CÔNG", color: Colors.green);
-                        Navigator.pop(context, true);
-                      }
-                    },
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      side: const BorderSide(color: Colors.blueAccent),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                    ),
-                    child: const Text("CHỈ LƯU", style: TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold)),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  flex: 2,
-                  child: ElevatedButton.icon(
-                    onPressed: _saving ? null : _saveAndPrint,
-                    icon: const Icon(Icons.print, color: Colors.white),
-                    label: const Text("LƯU & IN PHIẾU", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 40),
+            Row(children: [
+              Expanded(child: OutlinedButton(onPressed: _saving ? null : () async { final ok = await _onlySave(); if (ok != null && mounted) Navigator.pop(context, true); }, style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))), child: const Text("CHỈ LƯU"))),
+              const SizedBox(width: 12),
+              Expanded(flex: 2, child: ElevatedButton.icon(onPressed: _saving ? null : _saveAndPrint, icon: const Icon(Icons.print, color: Colors.white), label: const Text("LƯU & IN PHIẾU", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))))),
+            ]),
           ],
         ),
       ),
     );
   }
 
-  Widget _sectionTitle(String title) => Padding(padding: const EdgeInsets.symmetric(vertical: 10), child: Align(alignment: Alignment.centerLeft, child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey, fontSize: 13))));
+  Widget _sectionTitle(String title) => Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Align(alignment: Alignment.centerLeft, child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey, fontSize: 12))));
 
-  Widget _input(TextEditingController c, String l, IconData i, {bool caps = false, TextInputType type = TextInputType.text, FocusNode? focusNode, List<TextInputFormatter>? formatters}) {
+  Widget _input(TextEditingController c, String l, IconData i, {bool caps = false, TextInputType type = TextInputType.text, FocusNode? f, FocusNode? next, List<TextInputFormatter>? formatters}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: TextField(
-        controller: c, focusNode: focusNode, keyboardType: type,
+        controller: c, focusNode: f, keyboardType: type,
         textCapitalization: caps ? TextCapitalization.characters : TextCapitalization.none,
         inputFormatters: formatters,
-        onSubmitted: (_) { if (focusNode != null) FocusScope.of(context).nextFocus(); },
+        onSubmitted: (_) { if (next != null) FocusScope.of(context).requestFocus(next); },
         decoration: InputDecoration(
-          labelText: l, prefixIcon: Icon(i, size: 20),
+          labelText: l, prefixIcon: Icon(i, size: 20, color: Colors.blueAccent),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           filled: true, fillColor: Colors.white,
         ),
@@ -267,9 +208,9 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
     );
   }
 
-  Widget _quick(List<String> items, TextEditingController target, FocusNode? nextFocus) {
+  Widget _quick(List<String> items, TextEditingController target, FocusNode? nextF) {
     return Container(
-      height: 40, margin: const EdgeInsets.only(bottom: 10),
+      height: 38, margin: const EdgeInsets.only(bottom: 8),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: items.length,
@@ -279,7 +220,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
             label: Text(items[i], style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
             onPressed: () {
               setState(() => target.text = items[i]);
-              if (nextFocus != null) FocusScope.of(context).requestFocus(nextFocus);
+              if (nextF != null) FocusScope.of(context).requestFocus(nextF);
             },
           ),
         ),
@@ -291,17 +232,11 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(children: [
-        ..._images.map((f) => Stack(children: [
-          Container(margin: const EdgeInsets.only(right: 10), width: 80, height: 80, decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.grey.shade300)), child: ClipRRect(borderRadius: BorderRadius.circular(10), child: Image.file(f, fit: BoxFit.cover))),
-          Positioned(right: 5, top: 0, child: GestureDetector(onTap: () => setState(() => _images.remove(f)), child: const CircleAvatar(radius: 10, backgroundColor: Colors.red, child: Icon(Icons.close, size: 12, color: Colors.white)))),
-        ])),
-        GestureDetector(
-          onTap: () async {
-            final f = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 40);
-            if (f != null) setState(() => _images.add(File(f.path)));
-          },
-          child: Container(width: 80, height: 80, decoration: BoxDecoration(color: Colors.blue.shade50, borderRadius: BorderRadius.circular(10)), child: const Icon(Icons.add_a_photo, color: Colors.blueAccent)),
-        ),
+        ..._images.map((f) => Container(margin: const EdgeInsets.only(right: 10), width: 70, height: 70, decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.grey.shade300)), child: ClipRRect(borderRadius: BorderRadius.circular(10), child: Image.file(f, fit: BoxFit.cover)))),
+        GestureDetector(onTap: () async {
+          final f = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 40);
+          if (f != null) setState(() => _images.add(File(f.path)));
+        }, child: Container(width: 70, height: 70, decoration: BoxDecoration(color: Colors.blue.shade50, borderRadius: BorderRadius.circular(10)), child: const Icon(Icons.add_a_photo, color: Colors.blueAccent))),
       ]),
     );
   }
@@ -314,11 +249,13 @@ class CurrencyInputFormatter extends TextInputFormatter {
     final String cleanedText = newValue.text.replaceAll(RegExp(r'[^\d]'), '');
     if (cleanedText.isEmpty) return const TextEditingValue(text: '', selection: TextSelection.collapsed(offset: 0));
     final number = int.tryParse(cleanedText) ?? 0;
-    final formatted = _formatCurrency(number);
+    // Tự động thêm .000 nếu người dùng nhập số nhỏ (ví dụ gõ 500 -> 500.000)
+    int finalNumber = number;
+    if (number > 0 && number < 10000) finalNumber = number * 1000;
+    final formatted = _formatCurrency(finalNumber);
     return TextEditingValue(text: formatted, selection: TextSelection.collapsed(offset: formatted.length));
   }
   String _formatCurrency(int number) {
-    if (number == 0) return '0';
     final String numberStr = number.toString();
     final StringBuffer buffer = StringBuffer();
     for (int i = numberStr.length - 1, count = 0; i >= 0; i--, count++) {

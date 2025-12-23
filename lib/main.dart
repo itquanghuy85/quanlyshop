@@ -17,7 +17,13 @@ import 'services/notification_service.dart';
 Future<void> main() async {
   await runZonedGuarded<Future<void>>(() async {
     WidgetsFlutterBinding.ensureInitialized();
-    await initializeDateFormatting('vi_VN');
+    
+    // SỬA LỖI: Khởi tạo tất cả các locale được hỗ trợ thay vì chỉ vi_VN
+    await Future.wait([
+      initializeDateFormatting('vi_VN', null),
+      initializeDateFormatting('en_US', null),
+    ]);
+
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
@@ -49,15 +55,21 @@ class _MyAppState extends State<MyApp> {
   Future<void> _loadSavedLocale() async {
     final prefs = await SharedPreferences.getInstance();
     final languageCode = prefs.getString('app_language');
-    setState(() {
-      _locale = Locale(languageCode ?? 'vi');
-    });
+    if (languageCode != null) {
+      setState(() {
+        _locale = Locale(languageCode);
+      });
+    } else {
+      // Mặc định là tiếng Việt nếu chưa lưu
+      _locale = const Locale('vi');
+    }
   }
 
   void setLocale(Locale locale) {
     setState(() {
       _locale = locale;
     });
+    // Lưu vào SharedPreferences để lần sau mở app vẫn giữ ngôn ngữ này
     SharedPreferences.getInstance().then((p) => p.setString('app_language', locale.languageCode));
   }
 
@@ -67,6 +79,10 @@ class _MyAppState extends State<MyApp> {
       title: 'Quan Ly Shop',
       debugShowCheckedModeBanner: false,
       scaffoldMessengerKey: NotificationService.messengerKey,
+      
+      // QUAN TRỌNG: Gán locale hiện tại cho MaterialApp
+      locale: _locale,
+      
       theme: ThemeData(
         useMaterial3: true,
         fontFamily: 'Roboto', 
@@ -84,7 +100,7 @@ class _MyAppState extends State<MyApp> {
           centerTitle: true,
           titleTextStyle: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),
         ),
-        cardTheme: CardThemeData(
+        cardTheme: const CardThemeData(
           elevation: 2,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           color: Colors.white,
@@ -94,29 +110,34 @@ class _MyAppState extends State<MyApp> {
           fillColor: Colors.white,
           contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide(color: Colors.grey.shade200)),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide(color: Colors.grey.shade300)),
           focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: const BorderSide(color: Color(0xFF2962FF), width: 1.5)),
           labelStyle: const TextStyle(color: Colors.blueGrey, fontSize: 14),
         ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF2962FF),
-            foregroundColor: Colors.white,
-            minimumSize: const Size(double.infinity, 55),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-            elevation: 4,
-            shadowColor: const Color(0xFF2962FF).withOpacity(0.4),
-          ),
-        ),
       ),
-      locale: _locale,
-      supportedLocales: const [Locale('vi'), Locale('en')],
+      
+      supportedLocales: const [
+        Locale('vi', ''),
+        Locale('en', ''),
+      ],
+      
       localizationsDelegates: const [
         AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
+      
+      // Đảm bảo app hiển thị đúng ngôn ngữ ngay cả khi chưa load xong SharedPreferences
+      localeResolutionCallback: (locale, supportedLocales) {
+        for (var supportedLocale in supportedLocales) {
+          if (supportedLocale.languageCode == locale?.languageCode) {
+            return supportedLocale;
+          }
+        }
+        return supportedLocales.first;
+      },
+      
       home: AuthGate(setLocale: setLocale),
     );
   }
@@ -150,17 +171,24 @@ class _AuthGateState extends State<AuthGate> {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snap) {
-        if (snap.connectionState == ConnectionState.waiting) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        if (snap.connectionState == ConnectionState.waiting) {
+          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        }
+        
         if (!snap.hasData) return LoginView(setLocale: widget.setLocale);
 
         return FutureBuilder<String>(
           future: UserService.getUserRole(snap.data!.uid),
           builder: (context, roleSnap) {
-            if (roleSnap.connectionState == ConnectionState.waiting) return const Scaffold(body: Center(child: CircularProgressIndicator()));
-            if (roleSnap.hasError || !roleSnap.hasData) {
-              FirebaseAuth.instance.signOut();
-              return LoginView(setLocale: widget.setLocale);
+            if (roleSnap.connectionState == ConnectionState.waiting) {
+              return const Scaffold(body: Center(child: CircularProgressIndicator()));
             }
+            
+            if (roleSnap.hasError || !roleSnap.hasData) {
+              // Tránh logout loop nếu có lỗi role
+              return HomeView(role: 'user', setLocale: widget.setLocale);
+            }
+            
             return HomeView(role: roleSnap.data!, setLocale: widget.setLocale);
           },
         );
