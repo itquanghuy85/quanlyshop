@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 import '../l10n/app_localizations.dart';
 import '../data/db_helper.dart';
 import '../models/repair_model.dart';
@@ -11,7 +12,9 @@ import '../services/notification_service.dart';
 import '../services/firestore_service.dart';
 import '../services/audit_service.dart';
 import '../services/user_service.dart';
+import '../services/unified_printer_service.dart';
 import '../widgets/validated_text_field.dart';
+import 'package:esc_pos_utils/esc_pos_utils.dart';
 
 class CreateRepairOrderView extends StatefulWidget {
   final String role;
@@ -26,25 +29,26 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
   final List<File> _images = [];
   bool _saving = false;
 
-  final phoneCtrl = TextEditingController(); // SĐT LÊN TRƯỚC
+  final phoneCtrl = TextEditingController();
   final nameCtrl = TextEditingController();
   final addressCtrl = TextEditingController();
   final modelCtrl = TextEditingController();
   final issueCtrl = TextEditingController();
-  final appearanceCtrl = TextEditingController(); // GHI CHÚ NGOẠI QUAN (TRẦY, BỂ...)
+  final appearanceCtrl = TextEditingController();
   final accCtrl = TextEditingController();
   final passCtrl = TextEditingController();
   final priceCtrl = TextEditingController();
+  final imeiCtrl = TextEditingController();
 
+  final FocusNode _phoneFocus = FocusNode();
   final FocusNode _modelFocus = FocusNode();
-  final FocusNode _issueFocus = FocusNode();
+  final FocusNode _priceFocus = FocusNode();
 
   String _paymentMethod = "TIỀN MẶT";
+  List<Map<String, dynamic>> _recentDevices = [];
 
   final List<String> brands = ["IPHONE", "SAMSUNG", "OPPO", "REDMI", "VIVO"];
-  final List<String> issues = ["NGUỒN", "MÀN HÌNH", "PIN", "ÉP KÍNH", "SẠC", "MẤT SÓNG", "LOA", "MIC", "CAMERA"];
-
-  AppLocalizations get l10n => AppLocalizations.of(context)!;
+  final List<String> commonIssues = ["THAY PIN", "ÉP KÍNH", "THAY MÀN", "MẤT NGUỒN", "LOA/MIC", "SẠC", "PHẦN MỀM"];
 
   @override
   void initState() {
@@ -54,319 +58,168 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
 
   @override
   void dispose() {
-    phoneCtrl.removeListener(_smartFill);
-    phoneCtrl.dispose();
-    nameCtrl.dispose();
-    addressCtrl.dispose();
-    modelCtrl.dispose();
-    issueCtrl.dispose();
-    appearanceCtrl.dispose();
-    accCtrl.dispose();
-    passCtrl.dispose();
-    priceCtrl.dispose();
-    _modelFocus.dispose();
-    _issueFocus.dispose();
+    phoneCtrl.dispose(); nameCtrl.dispose(); addressCtrl.dispose();
+    modelCtrl.dispose(); issueCtrl.dispose(); appearanceCtrl.dispose();
+    accCtrl.dispose(); passCtrl.dispose(); priceCtrl.dispose(); imeiCtrl.dispose();
+    _phoneFocus.dispose(); _modelFocus.dispose(); _priceFocus.dispose();
     super.dispose();
   }
 
   void _smartFill() async {
     if (phoneCtrl.text.length >= 10) {
       final res = await db.getUniqueCustomersAll();
-      if (!mounted) return;
       final find = res.where((c) => c['phone'] == phoneCtrl.text).toList();
       if (find.isNotEmpty) {
         setState(() {
-          nameCtrl.text = find.first['customerName'];
+          nameCtrl.text = find.first['customerName'] ?? "";
           addressCtrl.text = (find.first['address'] ?? "").toString();
         });
+        // Lấy lịch sử máy cũ
+        final repairs = await db.getAllRepairs();
+        final devices = repairs.where((r) => r.phone == phoneCtrl.text).map((r) => {'model': r.model, 'imei': r.imei}).toSet().toList();
+        setState(() => _recentDevices = devices.take(3).toList());
       }
     }
   }
 
-  int _parseCurrency(String text) {
-    final cleaned = text.replaceAll('.', '');
-    return int.tryParse(cleaned) ?? 0;
+  Future<void> _scanIMEI() async {
+    final result = await Navigator.push(context, MaterialPageRoute(builder: (ctx) => Scaffold(
+      appBar: AppBar(title: const Text("QUÉT IMEI/SERIAL")),
+      body: MobileScanner(onDetect: (cap) {
+        final code = cap.barcodes.first.rawValue;
+        if (code != null) Navigator.pop(ctx, code);
+      }),
+    )));
+    if (result != null) setState(() => imeiCtrl.text = result.toString().toUpperCase());
   }
 
-  Future<void> _save() async {
-    final l10n = AppLocalizations.of(context)!;
-    // Validate required fields
-    final phoneError = UserService.validatePhone(phoneCtrl.text);
-    final nameError = UserService.validateName(nameCtrl.text);
-    final modelError = modelCtrl.text.trim().isEmpty ? l10n.modelRequired : null;
-    final issueError = issueCtrl.text.trim().isEmpty ? l10n.issueRequired : null;
-
-    if (phoneError != null || nameError != null || modelError != null || issueError != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(phoneError ?? nameError ?? modelError ?? issueError!),
-        backgroundColor: Colors.red,
-      ));
-      return;
-    }
-
-    // Validate price
-    final price = _parseCurrency(priceCtrl.text);
-    if (price < 0) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(l10n.priceMustBePositive),
-        backgroundColor: Colors.red,
-      ));
+  Future<void> _saveAndPrint() async {
+    if (phoneCtrl.text.isEmpty || modelCtrl.text.isEmpty) {
+      NotificationService.showSnackBar("Vui lòng nhập SĐT và Model máy", color: Colors.red);
       return;
     }
 
     setState(() => _saving = true);
     try {
-      final user = FirebaseAuth.instance.currentUser;
+      final price = int.tryParse(priceCtrl.text.replaceAll('.', '')) ?? 0;
       final r = Repair(
         customerName: nameCtrl.text.toUpperCase(),
         phone: phoneCtrl.text,
         model: modelCtrl.text.toUpperCase(),
-        issue: "${issueCtrl.text.toUpperCase()} | NGOẠI QUAN: ${appearanceCtrl.text.toUpperCase()} | MK: ${passCtrl.text}",
-        accessories: accCtrl.text.toUpperCase(),
+        issue: issueCtrl.text.toUpperCase(),
+        accessories: "${accCtrl.text} | MK: ${passCtrl.text}".toUpperCase(),
         address: addressCtrl.text.toUpperCase(),
         paymentMethod: _paymentMethod,
         price: price,
         createdAt: DateTime.now().millisecondsSinceEpoch,
         imagePath: _images.map((e) => e.path).join(','),
-        createdBy: user?.email?.split('@').first.toUpperCase() ?? "NV",
+        createdBy: FirebaseAuth.instance.currentUser?.email?.split('@').first.toUpperCase() ?? "NV",
+        imei: imeiCtrl.text.toUpperCase(),
+        condition: appearanceCtrl.text.toUpperCase(),
       );
-      await db.insertRepair(r);
 
-      // Đẩy ngay lên Cloud để máy khác nhận được
+      await db.insertRepair(r);
       final docId = await FirestoreService.addRepair(r);
-      if (docId != null) {
-        r.firestoreId = docId;
-        r.isSynced = true;
-        await db.upsertRepair(r); // Thay updateRepair bằng upsertRepair để tránh duplicate
-      }
-      
-      AuditService.logAction(
-        action: 'CREATE_REPAIR',
-        entityType: 'repair',
-        entityId: r.firestoreId ?? "repair_${r.createdAt}_${r.phone}",
-        summary: "${r.customerName} - ${r.model}",
-        payload: {'paymentMethod': r.paymentMethod, 'price': r.price},
-      );
-      
-      await NotificationService.sendCloudNotification(
-        title: "ĐƠN MỚI", 
-        body: "${r.createdBy} NHẬN ${r.model} CỦA KHÁCH ${r.customerName}"
-      );
-      
-      if (!mounted) return;
-      
-      // Tự động reset form để tạo đơn mới
-      if (mounted) {
-        setState(() {
-          _images.clear();
-          phoneCtrl.clear();
-          nameCtrl.clear();
-          addressCtrl.clear();
-          modelCtrl.clear();
-          issueCtrl.clear();
-          appearanceCtrl.clear();
-          accCtrl.clear();
-          passCtrl.clear();
-          priceCtrl.clear();
-          _paymentMethod = "TIỀN MẶT";
-          _saving = false;
-        });
-        // Focus lại vào trường phone để nhập khách hàng mới
-        FocusScope.of(context).requestFocus(FocusNode());
-        return; // Không pop, ở lại màn hình này
-      }
-      
-      if (mounted) {
-        Navigator.pop(context, true);
-      }
+      if (docId != null) { r.firestoreId = docId; r.isSynced = true; await db.upsertRepair(r); }
+
+      await UnifiedPrinterService.printRepairReceipt({
+        'customerName': r.customerName,
+        'customerPhone': r.phone,
+        'deviceModel': r.model,
+        'issue': r.issue,
+        'estimatedCost': price,
+      }, PaperSize.mm80);
+
+      NotificationService.showSnackBar("ĐÃ LƯU & ĐANG IN PHIẾU...", color: Colors.green);
+      if (mounted) Navigator.pop(context, true);
     } catch (e) {
-      if (mounted) {
-        setState(() => _saving = false);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(l10n.saveOrderError(e)),
-          backgroundColor: Colors.red,
-        ));
-      }
+      setState(() => _saving = false);
+      NotificationService.showSnackBar("LỖI: $e", color: Colors.red);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFF), // Đồng bộ với theme chính
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text(l10n.createRepairOrder, style: const TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.blueAccent, // Màu chính cho đơn sửa chữa
-        foregroundColor: Colors.white,
-        elevation: 2,
-        actions: [
-          IconButton(
-            onPressed: _save,
-            icon: const Icon(Icons.check, size: 30),
-            style: IconButton.styleFrom(
-              backgroundColor: Colors.green.shade600,
-              foregroundColor: Colors.white,
-            ),
-          )
-        ],
+        title: const Text("TIẾP NHẬN SIÊU TỐC", style: TextStyle(fontWeight: FontWeight.bold)),
+        actions: [IconButton(onPressed: _saveAndPrint, icon: const Icon(Icons.print, size: 28, color: Colors.green))],
       ),
-      body: _saving
-          ? const Center(child: CircularProgressIndicator(color: Colors.blueAccent))
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(15),
-              child: Column(
-                children: [
-            ValidatedTextField(
-              controller: nameCtrl,
-              label: l10n.customerName,
-              icon: Icons.person,
-              inputFormatters: [TextInputFormatter.withFunction((oldValue, newValue) => TextEditingValue(text: newValue.text.toUpperCase(), selection: newValue.selection))],
-            ),
-            ValidatedTextField(
-              controller: phoneCtrl,
-              label: l10n.phoneNumber,
-              icon: Icons.phone,
-              keyboardType: TextInputType.phone,
-              required: true,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(11)],
-            ),
-            ValidatedTextField(
-              controller: addressCtrl,
-              label: l10n.customerAddress,
-              icon: Icons.location_on,
-              inputFormatters: [TextInputFormatter.withFunction((oldValue, newValue) => TextEditingValue(text: newValue.text.toUpperCase(), selection: newValue.selection))],
-            ),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton.icon(
-                onPressed: _addCustomerToContactsFromRepair,
-                icon: const Icon(Icons.person_add_alt_1, size: 18),
-                label: Text(l10n.addToContacts, style: const TextStyle(fontSize: 12)),
-              ),
-            ),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton.icon(
-                onPressed: () async {
-                  final phone = phoneCtrl.text.trim();
-                  if (phone.isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(l10n.enterPhoneFirst)),
-                    );
-                    return;
-                  }
-                  final name = nameCtrl.text.trim().isEmpty ? phone : nameCtrl.text.trim().toUpperCase();
-                  await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => CustomerHistoryView(phone: phone, name: name),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.history, size: 18),
-                label: Text(l10n.viewCustomerHistory, style: const TextStyle(fontSize: 12)),
-              ),
-            ),
-            const Divider(height: 30),
+      body: _saving ? const Center(child: CircularProgressIndicator()) : SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            _sectionTitle("1. KHÁCH HÀNG"),
+            _input(phoneCtrl, "SỐ ĐIỆN THOẠI *", Icons.phone, type: TextInputType.phone, focusNode: _phoneFocus),
+            _input(nameCtrl, "TÊN KHÁCH HÀNG", Icons.person, caps: true),
+            
+            if (_recentDevices.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Wrap(spacing: 8, children: _recentDevices.map((d) => ActionChip(
+                label: Text(d['model'], style: const TextStyle(fontSize: 11)),
+                onPressed: () => setState(() { modelCtrl.text = d['model']; imeiCtrl.text = d['imei'] ?? ""; }),
+              )).toList()),
+            ],
+
+            const SizedBox(height: 20),
+            _sectionTitle("2. THÔNG TIN MÁY"),
             _quick(brands, modelCtrl, _modelFocus),
-            _input(modelCtrl, l10n.deviceModel, Icons.phone_android, caps: true, requiredField: true, focusNode: _modelFocus),
-            _quick(issues, issueCtrl, _issueFocus),
-            _input(issueCtrl, l10n.deviceIssue, Icons.build, caps: true, requiredField: true, focusNode: _issueFocus),
-            ValidatedTextField(
-              controller: appearanceCtrl,
-              label: l10n.appearanceCondition,
-              hint: l10n.appearanceHint,
-              inputFormatters: [TextInputFormatter.withFunction((oldValue, newValue) => TextEditingValue(text: newValue.text.toUpperCase(), selection: newValue.selection))],
-            ),
-            ValidatedTextField(
-              controller: accCtrl,
-              label: l10n.accessoriesIncluded,
-              hint: l10n.accessoriesHint,
-              inputFormatters: [TextInputFormatter.withFunction((oldValue, newValue) => TextEditingValue(text: newValue.text.toUpperCase(), selection: newValue.selection))],
-            ),
-            ValidatedTextField(
-              controller: passCtrl,
-              label: l10n.screenPassword,
-              hint: l10n.passwordHint,
-            ),
-            ValidatedTextField(
-              controller: priceCtrl,
-              label: l10n.estimatedPrice,
-              icon: Icons.monetization_on,
-              keyboardType: TextInputType.number,
-              inputFormatters: [CurrencyInputFormatter()],
-              hint: l10n.priceHint,
-            ),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 6),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(l10n.paymentMethod, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.blueAccent)),
-                    const SizedBox(height: 6),
-                    Wrap(
-                      spacing: 8,
-                      children: [
-                        _payChip(l10n.cash),
-                        _payChip(l10n.transfer),
-                        _payChip(l10n.debt),
-                        _payChip(l10n.installment),
-                        _payChip(l10n.t86),                        _payChip(l10n.bankT86),                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            Row(children: [
+              Expanded(child: _input(modelCtrl, "MODEL MÁY *", Icons.phone_android, caps: true, focusNode: _modelFocus)),
+              const SizedBox(width: 8),
+              IconButton(onPressed: _scanIMEI, icon: const Icon(Icons.qr_code_scanner, color: Colors.blueAccent, size: 30)),
+            ]),
+            _input(imeiCtrl, "SỐ IMEI / SERIAL", Icons.fingerprint, caps: true),
+            
+            _sectionTitle("3. TÌNH TRẠNG & GIÁ"),
+            _quick(commonIssues, issueCtrl, null),
+            _input(issueCtrl, "LỖI MÁY *", Icons.build, caps: true),
+            _input(priceCtrl, "GIÁ DỰ KIẾN (VNĐ)", Icons.monetization_on, type: TextInputType.number, formatters: [CurrencyInputFormatter()], focusNode: _priceFocus),
+            
+            const SizedBox(height: 10),
+            _buildExpansionInfo(),
+            
             const SizedBox(height: 20),
             _imageRow(),
-            const SizedBox(height: 20),
+            
+            const SizedBox(height: 30),
             SizedBox(
-              width: double.infinity,
+              width: double.infinity, height: 55,
               child: ElevatedButton.icon(
-                onPressed: _save,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                icon: const Icon(Icons.check_circle_outline, color: Colors.white),
-                label: Text(l10n.saveRepairOrder, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+                onPressed: _saveAndPrint,
+                icon: const Icon(Icons.check_circle, color: Colors.white),
+                label: const Text("LƯU & IN PHIẾU NHẬN", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
               ),
             ),
-            const SizedBox(height: 40),
           ],
         ),
       ),
     );
   }
 
-  Widget _input(TextEditingController c, String l, IconData i, {bool caps = false, TextInputType type = TextInputType.text, String? suffix, bool requiredField = false, FocusNode? focusNode, List<TextInputFormatter>? inputFormatters}) {
+  Widget _sectionTitle(String title) => Padding(padding: const EdgeInsets.symmetric(vertical: 10), child: Align(alignment: Alignment.centerLeft, child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey, fontSize: 13))));
+
+  Widget _input(TextEditingController c, String l, IconData i, {bool caps = false, TextInputType type = TextInputType.text, FocusNode? focusNode, List<TextInputFormatter>? formatters}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.only(bottom: 12),
       child: TextField(
-        controller: c,
-        focusNode: focusNode,
-        keyboardType: type,
+        controller: c, focusNode: focusNode, keyboardType: type,
         textCapitalization: caps ? TextCapitalization.characters : TextCapitalization.none,
-        inputFormatters: inputFormatters,
+        inputFormatters: formatters,
         decoration: InputDecoration(
-          labelText: l,
-          prefixIcon: Icon(i, size: 20, color: requiredField ? Colors.redAccent : null),
-          suffixText: suffix,
+          labelText: l, prefixIcon: Icon(i, size: 20),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          filled: true, fillColor: Colors.grey.shade50,
         ),
       ),
     );
   }
 
-  Widget _quick(List<String> items, TextEditingController target, FocusNode focusNode) {
+  Widget _quick(List<String> items, TextEditingController target, FocusNode? nextFocus) {
     return Container(
-      alignment: Alignment.centerLeft,
-      height: 44,
-      margin: const EdgeInsets.only(bottom: 6),
+      height: 40, margin: const EdgeInsets.only(bottom: 10),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: items.length,
@@ -375,11 +228,8 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
           child: ActionChip(
             label: Text(items[i], style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
             onPressed: () {
-              final base = target.text.trim();
-              final next = base.isEmpty ? "${items[i]} " : "$base ${items[i]} ";
-              setState(() => target.text = next.toUpperCase());
-              target.selection = TextSelection.fromPosition(TextPosition(offset: target.text.length));
-              FocusScope.of(context).requestFocus(focusNode);
+              setState(() => target.text = items[i]);
+              if (nextFocus != null) FocusScope.of(context).requestFocus(nextFocus);
             },
           ),
         ),
@@ -387,124 +237,56 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
     );
   }
 
-  Widget _payChip(String label) {
-    final isSelected = _paymentMethod == label;
-    return ChoiceChip(
-      label: Text(label, style: TextStyle(color: isSelected ? Colors.white : Colors.black87, fontWeight: FontWeight.bold, fontSize: 12)),
-      selected: isSelected,
-      selectedColor: Colors.blueAccent,
-      backgroundColor: Colors.grey.shade200,
-      onSelected: (_) => setState(() => _paymentMethod = label),
+  Widget _buildExpansionInfo() {
+    return ExpansionTile(
+      title: const Text("THÔNG TIN BỔ SUNG (Mật khẩu, Ngoại quan...)", style: TextStyle(fontSize: 13, color: Colors.blue)),
+      children: [
+        _input(passCtrl, "MẬT KHẨU MÁY", Icons.lock),
+        _input(appearanceCtrl, "NGOẠI QUAN (TRẦY, BỂ...)", Icons.remove_red_eye),
+        _input(accCtrl, "PHỤ KIỆN ĐI KÈM", Icons.headphones),
+        _input(addressCtrl, "ĐỊA CHỈ KHÁCH", Icons.map),
+      ],
     );
   }
 
   Widget _imageRow() {
-    return Row(children: [
-      ..._images.map((f) => Container(margin: const EdgeInsets.only(right: 10), width: 60, height: 60, decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.grey)), child: ClipRRect(borderRadius: BorderRadius.circular(10), child: Image.file(f, fit: BoxFit.cover)))),
-      GestureDetector(onTap: () async {
-        final f = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 50);
-        if (f != null) setState(() => _images.add(File(f.path)));
-      }, child: Container(width: 60, height: 60, decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(10)), child: const Icon(Icons.add_a_photo, color: Colors.grey))),
-    ]);
-  }
-
-  Future<void> _addCustomerToContactsFromRepair() async {
-    final phone = phoneCtrl.text.trim();
-    final name = nameCtrl.text.trim().toUpperCase();
-
-    if (phone.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("VUI LÒNG NHẬP SỐ ĐIỆN THOẠI TRƯỚC")),
-      );
-      return;
-    }
-
-    final existing = await db.getCustomerByPhone(phone);
-    if (!mounted) return;
-    if (existing != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("KHÁCH HÀNG NÀY ĐÃ CÓ TRONG DANH BẠ")),
-      );
-      return;
-    }
-
-    final tempAddressCtrl = TextEditingController(text: addressCtrl.text.trim());
-
-    if (!mounted) return;
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (ctx) {
-        return AlertDialog(
-          title: const Text("THÊM VÀO DANH BẠ"),
-          content: TextField(
-            controller: tempAddressCtrl,
-            textCapitalization: TextCapitalization.characters,
-            decoration: const InputDecoration(labelText: "ĐỊA CHỈ KHÁCH HÀNG"),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("HỦY")),
-            TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text("LƯU")),
-          ],
-        );
-      },
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(children: [
+        ..._images.map((f) => Stack(children: [
+          Container(margin: const EdgeInsets.only(right: 10), width: 80, height: 80, decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.grey.shade300)), child: ClipRRect(borderRadius: BorderRadius.circular(10), child: Image.file(f, fit: BoxFit.cover))),
+          Positioned(right: 5, top: 0, child: GestureDetector(onTap: () => setState(() => _images.remove(f)), child: const CircleAvatar(radius: 10, backgroundColor: Colors.red, child: Icon(Icons.close, size: 12, color: Colors.white)))),
+        ])),
+        GestureDetector(
+          onTap: () async {
+            final f = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 40);
+            if (f != null) setState(() => _images.add(File(f.path)));
+          },
+          child: Container(width: 80, height: 80, decoration: BoxDecoration(color: Colors.blue.shade50, borderRadius: BorderRadius.circular(10)), child: const Icon(Icons.add_a_photo, color: Colors.blueAccent)),
+        ),
+      ]),
     );
-
-    if (result == true) {
-      await db.insertCustomer({
-        'name': (name.isEmpty ? phone : name),
-        'phone': phone,
-        'address': tempAddressCtrl.text.trim().toUpperCase(),
-        'createdAt': DateTime.now().millisecondsSinceEpoch,
-      });
-
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("ĐÃ THÊM KHÁCH HÀNG VÀO DANH BẠ")),
-      );
-    }
-    tempAddressCtrl.dispose();
   }
 }
 
 class CurrencyInputFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
-    if (newValue.text.isEmpty) {
-      return newValue;
-    }
-
-    // Strip all non-digit characters to get the raw number
+    if (newValue.text.isEmpty) return newValue;
     final String cleanedText = newValue.text.replaceAll(RegExp(r'[^\d]'), '');
-    
-    if (cleanedText.isEmpty) {
-      return const TextEditingValue(
-        text: '',
-        selection: TextSelection.collapsed(offset: 0),
-      );
-    }
-
+    if (cleanedText.isEmpty) return const TextEditingValue(text: '', selection: TextSelection.collapsed(offset: 0));
     final number = int.tryParse(cleanedText) ?? 0;
     final formatted = _formatCurrency(number);
-
-    return TextEditingValue(
-      text: formatted,
-      selection: TextSelection.collapsed(offset: formatted.length),
-    );
+    return TextEditingValue(text: formatted, selection: TextSelection.collapsed(offset: formatted.length));
   }
-
   String _formatCurrency(int number) {
     if (number == 0) return '0';
-
     final String numberStr = number.toString();
     final StringBuffer buffer = StringBuffer();
-
     for (int i = numberStr.length - 1, count = 0; i >= 0; i--, count++) {
       buffer.write(numberStr[i]);
-      if ((count + 1) % 3 == 0 && i > 0) {
-        buffer.write('.');
-      }
+      if ((count + 1) % 3 == 0 && i > 0) buffer.write('.');
     }
-
     return buffer.toString().split('').reversed.join('');
   }
 }
