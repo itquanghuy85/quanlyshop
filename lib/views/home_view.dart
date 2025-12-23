@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:ui';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -508,34 +509,15 @@ class _HomeViewState extends State<HomeView> {
             ),
             IconButton(onPressed: _loadStats, icon: const Icon(Icons.refresh_rounded, color: Colors.blue)),
             IconButton(
-              onPressed: () async {
-                final user = FirebaseAuth.instance.currentUser;
-                final perms = await UserService.getCurrentUserPermissions();
-                if (!mounted) return;
-                showDialog(
-                  context: context,
-                  builder: (ctx) => AlertDialog(
-                    title: const Text('THÔNG TIN TÀI KHOAN'),
-                    content: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Email: ${user?.email ?? 'N/A'}'),
-                        Text('Admin: ${perms['allowViewInventory'] == true ? 'Có' : 'Không'}'),
-                        Text('Quyền xem kho: ${perms['allowViewInventory'] == true ? 'Có' : 'Không'}'),
-                      ],
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(ctx),
-                        child: const Text('ĐÓNG'),
-                      ),
-                    ],
-                  ),
-                );
-              },
-              icon: const Icon(Icons.account_circle, color: Colors.blue),
-              tooltip: 'Thông tin tài khoản',
+              onPressed: _isSyncing ? null : () => _syncNow(),
+              icon: _isSyncing
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.sync, color: Colors.green),
+              tooltip: 'Đồng bộ dữ liệu',
             ),
             IconButton(onPressed: () => FirebaseAuth.instance.signOut(), icon: const Icon(Icons.logout_rounded, color: Colors.redAccent)),
           ],
@@ -678,7 +660,7 @@ class _HomeViewState extends State<HomeView> {
           const SizedBox(height: 20),
           const PerpetualCalendar(),
           const SizedBox(height: 25),
-          _buildQuickStats(),
+          _buildWelcomeMessage(),
           const SizedBox(height: 25),
           _buildTodaySummary(),
           const SizedBox(height: 25),
@@ -689,14 +671,108 @@ class _HomeViewState extends State<HomeView> {
     );
   }
 
-  Widget _buildQuickStats() {
-    return Row(children: [
-      _statCard("Đang sửa", "$totalPendingRepair", Colors.orange, () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderListView(role: widget.role, statusFilter: const [1, 2])))),
-      const SizedBox(width: 10),
-      _statCard("Xong/Giao hôm nay", "$todayRepairDone", Colors.green, () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderListView(role: widget.role, statusFilter: const [3, 4], todayOnly: true)))),
-      const SizedBox(width: 10),
-      _statCard("Bán máy hôm nay", "$todaySaleCount", Colors.pink, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SaleListView(todayOnly: true)))),
-    ]);
+  Widget _buildWelcomeMessage() {
+    return FutureBuilder<Map<String, dynamic>>(
+      future: _getUserInfo(),
+      builder: (context, snapshot) {
+        final userInfo = snapshot.data ?? {};
+        final displayName = userInfo['displayName'] ?? 'Người dùng';
+        final role = _getRoleDisplayName(widget.role);
+        final shopName = userInfo['shopName'] ?? 'Đang tải...';
+
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(15),
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: Colors.blueAccent.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(25),
+                    ),
+                    child: const Icon(Icons.person, color: Colors.blueAccent, size: 30),
+                  ),
+                  const SizedBox(width: 15),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Chào $displayName!',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '$role thuộc shop $shopName',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<Map<String, dynamic>> _getUserInfo() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return {};
+
+    final userInfo = await UserService.getUserInfo(user.uid);
+    final shopId = await UserService.getCurrentShopId();
+
+    String shopName = 'Chưa xác định';
+    if (shopId != null) {
+      try {
+        final shopDoc = await FirebaseFirestore.instance.collection('shops').doc(shopId).get();
+        if (shopDoc.exists) {
+          shopName = shopDoc.data()?['name'] ?? 'Shop không tên';
+        }
+      } catch (e) {
+        // Ignore error
+      }
+    }
+
+    return {
+      ...userInfo,
+      'shopName': shopName,
+    };
+  }
+
+  String _getRoleDisplayName(String role) {
+    switch (role) {
+      case 'admin':
+        return 'Admin';
+      case 'owner':
+        return 'Chủ shop';
+      case 'manager':
+        return 'Quản lý';
+      case 'employee':
+        return 'Nhân viên';
+      default:
+        return 'Người dùng';
+    }
   }
 
   Widget _statCard(String label, String value, Color color, VoidCallback onTap) {
@@ -809,6 +885,14 @@ class _HomeViewState extends State<HomeView> {
               context,
               MaterialPageRoute(
                 builder: (_) => const SaleListView(todayOnly: true),
+              ),
+            );
+          }),
+          row(Icons.check_circle_outlined, Colors.green, "Xong/Giao hôm nay", "$todayRepairDone", () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => OrderListView(role: widget.role, statusFilter: const [3, 4], todayOnly: true),
               ),
             );
           }),
