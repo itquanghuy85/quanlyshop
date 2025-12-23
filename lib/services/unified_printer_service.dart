@@ -1,9 +1,11 @@
 import 'package:esc_pos_utils/esc_pos_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'bluetooth_printer_service.dart';
 import 'wifi_printer_service.dart';
 import '../models/repair_model.dart';
+import '../models/sale_order_model.dart';
 
 enum PrinterType { bluetooth, wifi, auto }
 
@@ -24,31 +26,103 @@ class UnifiedPrinterService {
     return str;
   }
 
+  static String _fmt(int n) => NumberFormat('#,###').format(n);
+
   static Future<bool> _sendToPrinter(
     List<int> bytes, {
     PrinterType? printerType, 
     String? wifiIp,
     dynamic bluetoothPrinter,
   }) async {
-    try {
-      if (printerType == PrinterType.wifi || (printerType == null && wifiIp != null)) {
-        await WifiPrinterService.instance.connect(ip: wifiIp ?? "192.168.1.100", port: 9100);
-        await WifiPrinterService.instance.printBytes(bytes);
-        return true;
+    if (bytes.isEmpty) return false;
+    final prefs = await SharedPreferences.getInstance();
+    
+    // Nếu yêu cầu WiFi hoặc có IP được truyền trực tiếp
+    if (printerType == PrinterType.wifi || wifiIp != null) {
+      final ip = wifiIp ?? prefs.getString('printer_ip') ?? "";
+      if (ip.isNotEmpty) {
+        try {
+          await WifiPrinterService.instance.connect(ip: ip, port: 9100);
+          await WifiPrinterService.instance.printBytes(bytes);
+          return true;
+        } catch (_) {}
       }
+    }
+
+    // Ưu tiên Bluetooth nếu là auto hoặc yêu cầu bluetooth
+    if (printerType == PrinterType.bluetooth || printerType == PrinterType.auto || printerType == null) {
       if (bluetoothPrinter != null) {
-        final mac = bluetoothPrinter.macAddress;
-        final ok = await BluetoothPrinterService.connect(mac);
+        final ok = await BluetoothPrinterService.connect(bluetoothPrinter.macAddress);
         if (ok) return await BluetoothPrinterService.printBytes(bytes);
       }
       final hasBt = await BluetoothPrinterService.ensureConnection();
       if (hasBt) return await BluetoothPrinterService.printBytes(bytes);
-      await WifiPrinterService.writeBytes(bytes);
-      return true;
-    } catch (_) { return false; }
+    }
+
+    // Fallback sang WiFi nếu auto/null mà BT thất bại
+    if (printerType == PrinterType.auto || printerType == null) {
+      final ip = prefs.getString('printer_ip') ?? "";
+      if (ip.isNotEmpty) {
+        try {
+          await WifiPrinterService.instance.connect(ip: ip, port: 9100);
+          await WifiPrinterService.instance.printBytes(bytes);
+          return true;
+        } catch (_) {}
+      }
+    }
+
+    return false;
   }
 
-  // --- PHIẾU TIẾP NHẬN SỬA CHỮA CHUYÊN NGHIỆP ---
+  static Future<bool> printProductQRLabel(Map<String, dynamic> product) async {
+    final prefs = await SharedPreferences.getInstance();
+    final String pSize = prefs.getString('paper_size') ?? "80mm";
+    final profile = await CapabilityProfile.load();
+    final generator = Generator(pSize == "80mm" ? PaperSize.mm80 : PaperSize.mm58, profile);
+    List<int> bytes = [];
+    bytes.addAll(generator.reset());
+
+    if (prefs.getBool('label_show_name') ?? true) {
+      bytes.addAll(generator.text(_removeDiacritics(product['name'] ?? ''), styles: const PosStyles(bold: true, align: PosAlign.center)));
+    }
+    if (prefs.getBool('label_show_imei') ?? true && product['imei'] != null) {
+      bytes.addAll(generator.text("IMEI: ${product['imei']}", styles: const PosStyles(align: PosAlign.center)));
+    }
+    if (prefs.getBool('label_show_price') ?? true) {
+      bytes.addAll(generator.text("GIA: ${_fmt(product['price'] ?? 0)} D", styles: const PosStyles(bold: true, align: PosAlign.center)));
+    }
+    if (prefs.getBool('label_show_qr') ?? true) {
+      bytes.addAll(generator.qrcode("inv:${product['firestoreId'] ?? product['id']}", align: PosAlign.center));
+    }
+    final String customText = prefs.getString('label_custom_text') ?? "";
+    if (customText.isNotEmpty) {
+      bytes.addAll(generator.text(_removeDiacritics(customText.toUpperCase()), styles: const PosStyles(align: PosAlign.center, fontType: PosFontType.fontB)));
+    }
+    bytes.addAll(generator.feed(2));
+    bytes.addAll(generator.cut());
+    return _sendToPrinter(bytes);
+  }
+
+  static Future<bool> printRepairReceipt(
+    Map<String, dynamic> data, 
+    PaperSize paper, {
+    PrinterType? printerType,
+    dynamic bluetoothPrinter,
+    String? wifiIp,
+  }) async {
+    final profile = await CapabilityProfile.load();
+    final generator = Generator(paper, profile);
+    List<int> bytes = [];
+    bytes.addAll(generator.reset());
+    bytes.addAll(generator.text(_removeDiacritics('PHIEU TIEP NHAN MAY'), styles: const PosStyles(align: PosAlign.center, bold: true)));
+    bytes.addAll(generator.text(_removeDiacritics('Khach hang: ${data['customerName']}')));
+    bytes.addAll(generator.text('SDT: ${data['customerPhone']}'));
+    bytes.addAll(generator.text(_removeDiacritics('Model: ${data['deviceModel']}')));
+    bytes.addAll(generator.qrcode("check:${data['receiptCode'] ?? 'N/A'}", align: PosAlign.center));
+    bytes.addAll(generator.cut());
+    return _sendToPrinter(bytes, printerType: printerType, bluetoothPrinter: bluetoothPrinter, wifiIp: wifiIp);
+  }
+
   static Future<bool> printRepairReceiptFromRepair(
     Repair repair, 
     Map<String, dynamic> shopInfo, {
@@ -56,97 +130,34 @@ class UnifiedPrinterService {
     dynamic bluetoothPrinter,
     String? wifiIp,
   }) async {
-    final profile = await CapabilityProfile.load();
-    final generator = Generator(PaperSize.mm80, profile);
-    List<int> bytes = [];
-    bytes.addAll(generator.reset());
-
-    bytes.addAll(generator.text(_removeDiacritics(shopInfo['shopName'] ?? 'SHOP NEW'), styles: const PosStyles(align: PosAlign.center, bold: true, height: PosTextSize.size2)));
-    bytes.addAll(generator.text(_removeDiacritics(shopInfo['shopAddr'] ?? 'Chuyen Smartphone & Laptop'), styles: const PosStyles(align: PosAlign.center)));
-    bytes.addAll(generator.text("Hotline: ${shopInfo['shopPhone'] ?? '0123.456.789'}", styles: const PosStyles(align: PosAlign.center, bold: true)));
-    bytes.addAll(generator.hr());
-
-    bytes.addAll(generator.text('PHIEU TIEP NHAN MAY', styles: const PosStyles(align: PosAlign.center, bold: true, height: PosTextSize.size2)));
-    bytes.addAll(generator.text("Ma don: ${repair.firestoreId ?? repair.createdAt}", styles: const PosStyles(align: PosAlign.center)));
-    bytes.addAll(generator.text("Ngay nhan: ${DateFormat('dd/MM/yyyy HH:mm').format(DateTime.fromMillisecondsSinceEpoch(repair.createdAt))}", styles: const PosStyles(align: PosAlign.center)));
-    bytes.addAll(generator.feed(1));
-
-    bytes.addAll(generator.text(_removeDiacritics("KHACH HANG: ${repair.customerName}"), styles: const PosStyles(bold: true)));
-    bytes.addAll(generator.text("SDT: ${repair.phone}"));
-    bytes.addAll(generator.feed(1));
-
-    bytes.addAll(generator.text(_removeDiacritics("MAY: ${repair.model}"), styles: const PosStyles(bold: true)));
-    if (repair.imei != null && repair.imei!.isNotEmpty) bytes.addAll(generator.text("IMEI/SN: ${repair.imei}"));
-    bytes.addAll(generator.text(_removeDiacritics("TINH TRANG: ${repair.issue}")));
-    
-    String subInfo = "";
-    if (repair.color != null) subInfo += "Mau: ${repair.color} | ";
-    if (repair.condition != null) subInfo += "Vo: ${repair.condition}";
-    if (subInfo.isNotEmpty) bytes.addAll(generator.text(_removeDiacritics(subInfo), styles: const PosStyles(fontType: PosFontType.fontB)));
-    
-    bytes.addAll(generator.text(_removeDiacritics("PHU KIEN: ${repair.accessories}")));
-    bytes.addAll(generator.feed(1));
-
-    final priceStr = NumberFormat('#,###').format(repair.price);
-    bytes.addAll(generator.text("GIA DU KIEN: $priceStr VND", styles: const PosStyles(bold: true, height: PosTextSize.size2)));
-    bytes.addAll(generator.text(_removeDiacritics("Hinh thuc: ${repair.paymentMethod}")));
-    bytes.addAll(generator.feed(1));
-
-    bytes.addAll(generator.text(_removeDiacritics("Quet ma de tra cuu don hang:"), styles: const PosStyles(align: PosAlign.center, fontType: PosFontType.fontB)));
-    // Đã sửa lỗi: Gỡ bỏ tham số size: QRSize.size4 gây lỗi
-    bytes.addAll(generator.qrcode("repair_check:${repair.firestoreId ?? repair.createdAt}"));
-    bytes.addAll(generator.feed(1));
-
-    bytes.addAll(generator.text(_removeDiacritics("- Quy khach vui long giu phieu de nhan may."), styles: const PosStyles(fontType: PosFontType.fontB)));
-    bytes.addAll(generator.text(_removeDiacritics("- Shop khong chiu trach nhiem ve du lieu trong may."), styles: const PosStyles(fontType: PosFontType.fontB)));
-    bytes.addAll(generator.feed(1));
-    
-    bytes.addAll(generator.row([
-      PosColumn(text: 'Khach hang', width: 6, styles: const PosStyles(align: PosAlign.center, bold: true)),
-      PosColumn(text: 'Nhan vien', width: 6, styles: const PosStyles(align: PosAlign.center, bold: true)),
-    ]));
-    bytes.addAll(generator.feed(3));
-
-    bytes.addAll(generator.text('CAM ON QUY KHACH!', styles: const PosStyles(align: PosAlign.center, bold: true)));
-    bytes.addAll(generator.feed(2));
-    bytes.addAll(generator.cut());
-
-    return _sendToPrinter(bytes, printerType: printerType, bluetoothPrinter: bluetoothPrinter, wifiIp: wifiIp);
+    final data = { 
+      'customerName': repair.customerName, 
+      'customerPhone': repair.phone, 
+      'deviceModel': repair.model,
+      'receiptCode': repair.firestoreId
+    };
+    return printRepairReceipt(data, PaperSize.mm80, printerType: printerType, bluetoothPrinter: bluetoothPrinter, wifiIp: wifiIp);
   }
 
-  static Future<bool> printProductQRLabel(Map<String, dynamic> product) async {
-    final profile = await CapabilityProfile.load();
-    final generator = Generator(PaperSize.mm80, profile);
-    List<int> bytes = [];
-    bytes.addAll(generator.reset());
-    bytes.addAll(generator.text(_removeDiacritics(product['name'] ?? 'SAN PHAM'), styles: const PosStyles(bold: true, align: PosAlign.center)));
-    // Đã sửa lỗi: Gỡ bỏ tham số size
-    bytes.addAll(generator.qrcode("check_inv:${product['firestoreId'] ?? product['id']}")); 
-    bytes.addAll(generator.cut());
-    return _sendToPrinter(bytes);
-  }
-
-  static Future<bool> printRepairReceipt(Map<String, dynamic> data, PaperSize paper, {PrinterType? printerType, dynamic bluetoothPrinter, String? wifiIp}) async {
-    return true; 
-  }
-
-  static Future<bool> printSaleReceipt(Map<String, dynamic> saleData, PaperSize paper, {PrinterType? printerType, dynamic bluetoothPrinter, String? wifiIp}) async {
+  static Future<bool> printSaleReceipt(
+    Map<String, dynamic> saleData, 
+    PaperSize paper, {
+    PrinterType? printerType,
+    dynamic bluetoothPrinter,
+    String? wifiIp,
+  }) async {
     final profile = await CapabilityProfile.load();
     final generator = Generator(paper, profile);
     List<int> bytes = [];
     bytes.addAll(generator.reset());
     bytes.addAll(generator.text(_removeDiacritics('HOA DON BAN HANG'), styles: const PosStyles(align: PosAlign.center, bold: true)));
+    bytes.addAll(generator.text(_removeDiacritics('Khach: ${saleData['customerName']}')));
+    bytes.addAll(generator.feed(2));
     bytes.addAll(generator.cut());
     return _sendToPrinter(bytes, printerType: printerType, bluetoothPrinter: bluetoothPrinter, wifiIp: wifiIp);
   }
 
   static Future<bool> printPhoneLabelToWifi(Map<String, dynamic> labelData, String ipAddress) async {
-    final profile = await CapabilityProfile.load();
-    final generator = Generator(PaperSize.mm80, profile);
-    List<int> bytes = [];
-    bytes.addAll(generator.reset());
-    bytes.addAll(generator.text(_removeDiacritics(labelData['name'] ?? 'TEM MAY'), styles: const PosStyles(bold: true)));
-    bytes.addAll(generator.cut());
-    return _sendToPrinter(bytes, wifiIp: ipAddress);
+    return printProductQRLabel(labelData);
   }
 }

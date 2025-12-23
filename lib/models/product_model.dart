@@ -2,7 +2,7 @@ class Product {
   int? id;
   String? firestoreId;
   String name;
-  String brand; // Trường bắt buộc
+  String brand;
   String? imei;
   int cost;
   int price;
@@ -16,9 +16,9 @@ class Product {
   String type;
   int quantity;
   String? color;
-  String? capacity; // Dung lượng (ví dụ: 64GB, 128GB, etc.)
-  int? kpkPrice; // Giá bán kèm phụ kiện
-  int? pkPrice; // Giá phụ kiện
+  String? capacity;
+  int? kpkPrice;
+  int? pkPrice;
   bool isSynced;
 
   Product({
@@ -46,9 +46,11 @@ class Product {
   });
 
   Map<String, dynamic> toMap() {
+    // TẠO ID DUY NHẤT: Tránh trùng lặp khi nhập liên tục
+    final String uniqueSuffix = imei != null && imei!.isNotEmpty ? imei! : DateTime.now().microsecondsSinceEpoch.toString();
     return {
       'id': id,
-      'firestoreId': firestoreId ?? "prod_${createdAt}_$name",
+      'firestoreId': firestoreId ?? "prod_${createdAt}_$uniqueSuffix",
       'name': name,
       'brand': brand,
       'imei': imei,
@@ -93,7 +95,7 @@ class Product {
       capacity: map['capacity'],
       kpkPrice: map['kpkPrice'],
       pkPrice: map['pkPrice'],
-      isSynced: map['isSynced'] == 1,
+      isSynced: map['isSynced'] == 1 || map['isSynced'] == true,
     );
   }
 }

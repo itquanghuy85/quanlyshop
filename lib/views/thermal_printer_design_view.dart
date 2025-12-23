@@ -1,873 +1,166 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:esc_pos_utils/esc_pos_utils.dart';
-import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
-import '../services/bluetooth_printer_service.dart';
-import 'bluetooth_printer_test_view.dart';
+import '../services/notification_service.dart';
 
 class ThermalPrinterDesignView extends StatefulWidget {
   const ThermalPrinterDesignView({super.key});
-
   @override
-  State<ThermalPrinterDesignView> createState() =>
-      _ThermalPrinterDesignViewState();
+  State<ThermalPrinterDesignView> createState() => _ThermalPrinterDesignViewState();
 }
 
-class _ThermalPrinterDesignViewState extends State<ThermalPrinterDesignView>
-    with SingleTickerProviderStateMixin {
+class _ThermalPrinterDesignViewState extends State<ThermalPrinterDesignView> with SingleTickerProviderStateMixin {
   late TabController _tabController;
-
-  // Cài đặt chung
-  BluetoothPrinterConfig? _selectedPrinter;
-  bool _isTesting = false;
-  bool _isScanning = false;
-  List<BluetoothInfo> _availablePrinters = [];
-
-  // Cài đặt mẫu tem
-  String _selectedSize = '3x4'; // 3x4, 4x6, 2x4
-  bool _showColor = true;
-  bool _showIMEI = true;
-  bool _showCondition = true;
-  bool _showPrice = true;
-  bool _showAccessories = true;
-  bool _showQR = false; // Thêm tùy chọn hiển thị QR code
-  String _fontSize = 'medium'; // small, medium, large
+  
+  String _selectedPaperSize = "80mm";
+  double _fontSize = 14.0;
+  bool _showLabelName = true;
+  bool _showLabelIMEI = true;
+  bool _showLabelPrice = true;
+  bool _showLabelQR = true;
+  bool _showLabelColor = true;
+  bool _showLabelSupplier = false;
+  final _labelCustomTextCtrl = TextEditingController();
+  
+  bool _showReceiptLogo = true;
+  bool _showReceiptPhone = true;
+  bool _showReceiptQR = true;
+  bool _showReceiptWarranty = true;
+  final _receiptNoteCtrl = TextEditingController();
+  
+  String _primaryPrinterIP = "";
+  String _backupPrinterIP = "";
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     _loadSettings();
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
   }
 
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
-    final savedPrinter = await BluetoothPrinterService.getSavedPrinter();
     setState(() {
-      _selectedPrinter = savedPrinter;
-      _selectedSize = prefs.getString('thermal_label_size') ?? '3x4';
-      _showColor = prefs.getBool('thermal_show_color') ?? true;
-      _showIMEI = prefs.getBool('thermal_show_imei') ?? true;
-      _showCondition = prefs.getBool('thermal_show_condition') ?? true;
-      _showPrice = prefs.getBool('thermal_show_price') ?? true;
-      _showAccessories = prefs.getBool('thermal_show_accessories') ?? true;
-      _showQR =
-          prefs.getBool('thermal_show_qr') ?? false; // Thêm load QR setting
-      _fontSize = prefs.getString('thermal_font_size') ?? 'medium';
+      _selectedPaperSize = prefs.getString('paper_size') ?? "80mm";
+      _fontSize = prefs.getDouble('label_font_size') ?? 14.0;
+      _showLabelName = prefs.getBool('label_show_name') ?? true;
+      _showLabelIMEI = prefs.getBool('label_show_imei') ?? true;
+      _showLabelPrice = prefs.getBool('label_show_price') ?? true;
+      _showLabelQR = prefs.getBool('label_show_qr') ?? true;
+      _showLabelColor = prefs.getBool('label_show_color') ?? true;
+      _showLabelSupplier = prefs.getBool('label_show_supplier') ?? false;
+      _labelCustomTextCtrl.text = prefs.getString('label_custom_text') ?? "";
+      _showReceiptLogo = prefs.getBool('receipt_show_logo') ?? true;
+      _showReceiptPhone = prefs.getBool('receipt_show_phone') ?? true;
+      _showReceiptQR = prefs.getBool('receipt_show_qr') ?? true;
+      _showReceiptWarranty = prefs.getBool('receipt_show_warranty') ?? true;
+      _receiptNoteCtrl.text = prefs.getString('receipt_note') ?? "Cảm ơn Quý khách - Hẹn gặp lại!";
+      _primaryPrinterIP = prefs.getString('printer_ip') ?? "";
+      _backupPrinterIP = prefs.getString('backup_printer_ip') ?? "";
     });
-
-    print('DEBUG: Settings loaded - showQR: $_showQR'); // Debug log
   }
 
   Future<void> _saveSettings() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('thermal_label_size', _selectedSize);
-    await prefs.setBool('thermal_show_color', _showColor);
-    await prefs.setBool('thermal_show_imei', _showIMEI);
-    await prefs.setBool('thermal_show_condition', _showCondition);
-    await prefs.setBool('thermal_show_price', _showPrice);
-    await prefs.setBool('thermal_show_accessories', _showAccessories);
-    await prefs.setBool('thermal_show_qr', _showQR); // Thêm save QR setting
-    await prefs.setString('thermal_font_size', _fontSize);
-
-    print('DEBUG: Settings saved - showQR: $_showQR'); // Debug log
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Đã lưu cài đặt máy in nhiệt!")),
-      );
-    }
-  }
-
-  Future<void> _scanBluetoothPrinters() async {
-    setState(() => _isScanning = true);
-
-    try {
-      // Yêu cầu quyền Bluetooth
-      final permissionsGranted =
-          await BluetoothPrinterService.requestBluetoothPermissions();
-      if (!permissionsGranted) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                "Không thể cấp quyền Bluetooth! Vui lòng cấp quyền trong cài đặt thiết bị.",
-              ),
-            ),
-          );
-        }
-        return;
-      }
-
-      // Kiểm tra Bluetooth có bật
-      final isEnabled = await BluetoothPrinterService.isBluetoothEnabled();
-      if (!isEnabled) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Vui lòng bật Bluetooth trước khi scan!"),
-            ),
-          );
-        }
-        return;
-      }
-
-      // Scan máy in Bluetooth
-      final printers = await BluetoothPrinterService.scanBluetoothPrinters();
-      setState(() {
-        _availablePrinters = printers;
-      });
-
-      if (printers.isEmpty && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              "Không tìm thấy máy in Bluetooth nào! Kiểm tra máy in có bật và trong phạm vi không.",
-            ),
-          ),
-        );
-      } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Tìm thấy ${printers.length} máy in Bluetooth"),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Lỗi scan máy in: $e")));
-      }
-    } finally {
-      setState(() => _isScanning = false);
-    }
-  }
-
-  Future<void> _selectPrinter(BluetoothInfo printer) async {
-    // Kiểm tra máy in đã được pair chưa
-    final pairedPrinters = await BluetoothPrinterService.getPairedPrinters();
-    final isPaired = pairedPrinters.any(
-      (p) => p.macAdress == printer.macAdress,
-    );
-
-    if (!isPaired) {
-      if (mounted) {
-        showDialog(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: const Text("MÁY IN CHƯA ĐƯỢC PAIR"),
-            content: Text(
-              "Máy in '${printer.name}' chưa được pair với thiết bị. Vui lòng:\n\n"
-              "1. Mở Cài đặt > Bluetooth\n"
-              "2. Bật Bluetooth nếu chưa bật\n"
-              "3. Tìm và pair với máy in '${printer.name}'\n"
-              "4. Quay lại app và thử lại",
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text("ĐÃ HIỂU"),
-              ),
-            ],
-          ),
-        );
-      }
-      return;
-    }
-
-    final config = BluetoothPrinterConfig(
-      name: printer.name,
-      macAddress: printer.macAdress,
-    );
-    await BluetoothPrinterService.savePrinter(config);
-    setState(() {
-      _selectedPrinter = config;
-    });
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Đã chọn máy in: ${printer.name}")),
-      );
-    }
-  }
-
-  Future<void> _testThermalPrint() async {
-    if (_selectedPrinter == null) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Vui lòng chọn máy in Bluetooth trước!"),
-          ),
-        );
-      }
-      return;
-    }
-
-    setState(() => _isTesting = true);
-
-    try {
-      // Kết nối đến máy in với thông tin chi tiết
-      final connectionResult = await BluetoothPrinterService.connectWithStatus(
-        _selectedPrinter!.macAddress,
-      );
-
-      if (!connectionResult['success']) {
-        final error = connectionResult['error'] ?? 'Unknown error';
-        if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text("Lỗi kết nối: $error")));
-        }
-        return;
-      }
-
-      // Tạo dữ liệu test
-      const PaperSize paper = PaperSize.mm58;
-      final profile = await CapabilityProfile.load();
-      final generator = Generator(paper, profile);
-
-      List<int> bytes = [];
-      bytes += generator.text(
-        'TEST KET NOI BLUETOOTH',
-        styles: const PosStyles(align: PosAlign.center, bold: true),
-      );
-      bytes += generator.text(
-        'Thoi gian: ${DateTime.now().toString()}',
-        styles: const PosStyles(align: PosAlign.center),
-      );
-      bytes += generator.feed(2);
-      bytes += generator.cut();
-
-      // In test
-      final success = await BluetoothPrinterService.printBytes(bytes);
-
-      if (mounted) {
-        if (success) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Đã in mẫu tem test thành công!")),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                "Lỗi in mẫu tem test! Máy in có thể không tương thích.",
-              ),
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Lỗi kết nối máy in: $e")));
-      }
-    } finally {
-      setState(() => _isTesting = false);
-    }
-  }
-
-  Widget _buildPrinterSettingsTab() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(25),
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                ),
-              ],
-            ),
-            child: Column(
-              children: [
-                const Icon(Icons.bluetooth, size: 60, color: Colors.blueAccent),
-                const SizedBox(height: 15),
-                const Text(
-                  "MÁY IN BLUETOOTH",
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                ),
-                const Text(
-                  "In tem thông tin máy, phụ kiện",
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 30),
-          const Text(
-            "MÁY IN BLUETOOTH",
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-              color: Colors.blueGrey,
-            ),
-          ),
-          const SizedBox(height: 10),
-
-          // Hiển thị máy in đã chọn
-          if (_selectedPrinter != null) ...[
-            Container(
-              padding: const EdgeInsets.all(15),
-              decoration: BoxDecoration(
-                color: Colors.green.shade50,
-                borderRadius: BorderRadius.circular(15),
-                border: Border.all(color: Colors.green.shade200),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.bluetooth_connected, color: Colors.green),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _selectedPrinter!.name,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        Text(
-                          _selectedPrinter!.macAddress,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => setState(() => _selectedPrinter = null),
-                    icon: const Icon(Icons.clear, color: Colors.red),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 15),
-          ],
-
-          // Nút scan máy in
-          SizedBox(
-            width: double.infinity,
-            height: 50,
-            child: ElevatedButton.icon(
-              onPressed: _isScanning ? null : _scanBluetoothPrinters,
-              icon: _isScanning
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 2,
-                      ),
-                    )
-                  : const Icon(Icons.bluetooth_searching),
-              label: Text(
-                _isScanning ? "ĐANG QUÉT..." : "QUÉT MÁY IN BLUETOOTH",
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blueAccent,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
-                ),
-              ),
-            ),
-          ),
-
-          // Danh sách máy in tìm được
-          if (_availablePrinters.isNotEmpty) ...[
-            const SizedBox(height: 20),
-            const Text(
-              "MÁY IN TÌM THẤY",
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-                color: Colors.blueGrey,
-              ),
-            ),
-            const SizedBox(height: 10),
-            Container(
-              constraints: const BoxConstraints(maxHeight: 200),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(15),
-                border: Border.all(color: Colors.grey.shade200),
-              ),
-              child: ListView.builder(
-                shrinkWrap: true,
-                itemCount: _availablePrinters.length,
-                itemBuilder: (context, index) {
-                  final printer = _availablePrinters[index];
-                  return ListTile(
-                    leading: const Icon(Icons.print, color: Colors.blue),
-                    title: Text(printer.name),
-                    subtitle: Text(printer.macAdress),
-                    onTap: () => _selectPrinter(printer),
-                  );
-                },
-              ),
-            ),
-          ],
-
-          const SizedBox(height: 25),
-          SizedBox(
-            width: double.infinity,
-            height: 50,
-            child: OutlinedButton.icon(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const BluetoothPrinterTestView(),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.bug_report),
-              label: const Text(
-                "KIỂM TRA KẾT NỐI (GỠ LỖI)",
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: Colors.orange),
-                foregroundColor: Colors.orange,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
-                ),
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 15),
-          SizedBox(
-            width: double.infinity,
-            height: 55,
-            child: ElevatedButton.icon(
-              onPressed: _isTesting ? null : _testThermalPrint,
-              icon: _isTesting
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 2,
-                      ),
-                    )
-                  : const Icon(Icons.print_rounded),
-              label: Text(
-                _isTesting ? "ĐANG IN THỬ..." : "IN MẪU TEM TEST",
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.redAccent,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
-                ),
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 30),
-          const Text(
-            "HƯỚNG DẪN KHẮC PHỤC",
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-              color: Colors.blueGrey,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Container(
-            padding: const EdgeInsets.all(15),
-            decoration: BoxDecoration(
-              color: Colors.amber.shade50,
-              borderRadius: BorderRadius.circular(15),
-              border: Border.all(color: Colors.amber.shade200),
-            ),
-            child: const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Nếu máy in không kết nối được:",
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                SizedBox(height: 8),
-                Text("1. Kiểm tra máy in đã bật và có giấy"),
-                Text("2. Vào Cài đặt > Bluetooth và pair máy in"),
-                Text("3. Đảm bảo máy in không được kết nối với thiết bị khác"),
-                Text("4. Thử khởi động lại máy in và điện thoại"),
-                Text("5. Kiểm tra pin máy in (nếu có)"),
-                SizedBox(height: 8),
-                Text(
-                  "Lưu ý: Một số máy in cần được pair trước khi sử dụng trong app",
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDesignSettingsTab() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            "THIẾT KẾ MẪU TEM",
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 20),
-
-          // Chọn size giấy
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(15),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  "KÍCH THƯỚC GIẤY",
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 15),
-                Row(
-                  children: [
-                    _buildSizeOption('2x4', '2x4 cm'),
-                    const SizedBox(width: 10),
-                    _buildSizeOption('3x4', '3x4 cm'),
-                    const SizedBox(width: 10),
-                    _buildSizeOption('4x6', '4x6 cm'),
-                  ],
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 20),
-
-          // Cài đặt hiển thị thông tin
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(15),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  "THÔNG TIN HIỂN THỊ",
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 15),
-                _buildInfoToggle(
-                  'Màu sắc máy',
-                  _showColor,
-                  (v) => setState(() => _showColor = v),
-                ),
-                _buildInfoToggle(
-                  'Số IMEI',
-                  _showIMEI,
-                  (v) => setState(() => _showIMEI = v),
-                ),
-                _buildInfoToggle(
-                  'Tình trạng máy',
-                  _showCondition,
-                  (v) => setState(() => _showCondition = v),
-                ),
-                _buildInfoToggle(
-                  'Giá bán',
-                  _showPrice,
-                  (v) => setState(() => _showPrice = v),
-                ),
-                _buildInfoToggle(
-                  'Có phụ kiện hay không',
-                  _showAccessories,
-                  (v) => setState(() => _showAccessories = v),
-                ),
-                _buildInfoToggle(
-                  'Mã QR',
-                  _showQR,
-                  (v) => setState(() => _showQR = v),
-                ), // Thêm toggle QR
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 20),
-
-          // Cài đặt font size
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(15),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  "CỠ CHỮ",
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 15),
-                Row(
-                  children: [
-                    _buildFontSizeOption('small', 'Nhỏ'),
-                    const SizedBox(width: 10),
-                    _buildFontSizeOption('medium', 'Trung bình'),
-                    const SizedBox(width: 10),
-                    _buildFontSizeOption('large', 'Lớn'),
-                  ],
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 30),
-
-          // Xem trước mẫu tem
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(15),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  "XEM TRƯỚC MẪU TEM",
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 15),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(15),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey.shade300),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'iPhone 14 Pro Max',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      if (_showColor) Text('Màu: Đen', style: _getFontStyle()),
-                      if (_showIMEI)
-                        Text('IMEI: 123456789012345', style: _getFontStyle()),
-                      if (_showCondition)
-                        Text('Tình trạng: 99%', style: _getFontStyle()),
-                      if (_showPrice)
-                        Text('Giá: 5.000.000 VND', style: _getFontStyle()),
-                      if (_showAccessories)
-                        Text('Phụ kiện: Có', style: _getFontStyle()),
-                      if (_showQR)
-                        Text(
-                          '[QR Code]',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontStyle: FontStyle.italic,
-                            color: Colors.blue,
-                          ),
-                        ), // Thêm preview QR
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 30),
-          SizedBox(
-            width: double.infinity,
-            height: 55,
-            child: ElevatedButton.icon(
-              onPressed: _saveSettings,
-              icon: const Icon(Icons.save_rounded),
-              label: const Text(
-                "LƯU CÀI ĐẶT",
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSizeOption(String size, String label) {
-    return Expanded(
-      child: InkWell(
-        onTap: () => setState(() => _selectedSize = size),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-          decoration: BoxDecoration(
-            color: _selectedSize == size
-                ? Colors.redAccent
-                : Colors.grey.shade100,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: _selectedSize == size
-                  ? Colors.redAccent
-                  : Colors.grey.shade300,
-            ),
-          ),
-          child: Text(
-            label,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: _selectedSize == size ? Colors.white : Colors.black,
-              fontWeight: FontWeight.bold,
-              fontSize: 12,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFontSizeOption(String size, String label) {
-    return Expanded(
-      child: InkWell(
-        onTap: () => setState(() => _fontSize = size),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-          decoration: BoxDecoration(
-            color: _fontSize == size ? Colors.blueAccent : Colors.grey.shade100,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: _fontSize == size
-                  ? Colors.blueAccent
-                  : Colors.grey.shade300,
-            ),
-          ),
-          child: Text(
-            label,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: _fontSize == size ? Colors.white : Colors.black,
-              fontWeight: FontWeight.bold,
-              fontSize: 12,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInfoToggle(String label, bool value, Function(bool) onChanged) {
-    return Row(
-      children: [
-        Expanded(child: Text(label)),
-        Switch(
-          value: value,
-          onChanged: onChanged,
-          activeColor: Colors.redAccent,
-        ),
-      ],
-    );
-  }
-
-  TextStyle _getFontStyle() {
-    double fontSize;
-    switch (_fontSize) {
-      case 'small':
-        fontSize = 12;
-        break;
-      case 'large':
-        fontSize = 16;
-        break;
-      default:
-        fontSize = 14;
-    }
-    return TextStyle(fontSize: fontSize, fontFamily: 'monospace');
+    await prefs.setString('paper_size', _selectedPaperSize);
+    await prefs.setDouble('label_font_size', _fontSize);
+    await prefs.setBool('label_show_name', _showLabelName);
+    await prefs.setBool('label_show_imei', _showLabelIMEI);
+    await prefs.setBool('label_show_price', _showLabelPrice);
+    await prefs.setBool('label_show_qr', _showLabelQR);
+    await prefs.setBool('label_show_color', _showLabelColor);
+    await prefs.setBool('label_show_supplier', _showLabelSupplier);
+    await prefs.setString('label_custom_text', _labelCustomTextCtrl.text);
+    await prefs.setBool('receipt_show_logo', _showReceiptLogo);
+    await prefs.setBool('receipt_show_phone', _showReceiptPhone);
+    await prefs.setBool('receipt_show_qr', _showReceiptQR);
+    await prefs.setBool('receipt_show_warranty', _showReceiptWarranty);
+    await prefs.setString('receipt_note', _receiptNoteCtrl.text);
+    await prefs.setString('backup_printer_ip', _backupPrinterIP);
+    NotificationService.showSnackBar("Đã lưu cài đặt!", color: Colors.green);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFF),
+      backgroundColor: const Color(0xFFF0F4F8),
       appBar: AppBar(
-        title: const Text(
-          "MÁY IN NHIỆT & TEM",
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
+        title: const Text("STUDIO THIẾT KẾ IN ẤN"),
         bottom: TabBar(
           controller: _tabController,
-          tabs: const [
-            Tab(text: "MÁY IN", icon: Icon(Icons.thermostat_rounded)),
-            Tab(
-              text: "THIẾT KẾ TEM",
-              icon: Icon(Icons.design_services_rounded),
-            ),
-          ],
+          isScrollable: true,
+          tabs: const [Tab(text: "MẪU TEM"), Tab(text: "MẪU HÓA ĐƠN"), Tab(text: "HỆ THỐNG IN")],
         ),
       ),
       body: TabBarView(
         controller: _tabController,
-        children: [_buildPrinterSettingsTab(), _buildDesignSettingsTab()],
+        children: [
+          _wrapScroll(_buildLabelTab()),
+          _wrapScroll(_buildReceiptTab()),
+          _wrapScroll(_buildBackupPrinterTab()),
+        ],
+      ),
+      bottomNavigationBar: Padding(
+        padding: const EdgeInsets.all(16),
+        child: ElevatedButton(onPressed: _saveSettings, child: const Text("LƯU & ÁP DỤNG")),
       ),
     );
   }
+
+  Widget _wrapScroll(Widget child) => SingleChildScrollView(child: child);
+
+  Widget _buildLabelTab() {
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        children: [
+          _buildPreviewCard("XEM TRƯỚC TEM", Column(children: [
+            if (_showLabelName) const Text("IPHONE 14 PRO MAX", style: TextStyle(fontWeight: FontWeight.bold)),
+            if (_showLabelPrice) const Text("GIÁ: 15.500.000 Đ", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+            if (_showLabelQR) const Icon(Icons.qr_code_2, size: 60),
+          ])),
+          const SizedBox(height: 20),
+          _configCard([
+            _checkItem("Tên sản phẩm", _showLabelName, (v) => setState(() => _showLabelName = v!)),
+            _checkItem("Số IMEI", _showLabelIMEI, (v) => setState(() => _showLabelIMEI = v!)),
+            _checkItem("Giá bán", _showLabelPrice, (v) => setState(() => _showLabelPrice = v!)),
+            _checkItem("Mã QR", _showLabelQR, (v) => setState(() => _showLabelQR = v!)),
+          ]),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReceiptTab() {
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        children: [
+          _configCard([
+            _checkItem("Hiện Logo Shop", _showReceiptLogo, (v) => setState(() => _showReceiptLogo = v!)),
+            _checkItem("Hiện SĐT Shop", _showReceiptPhone, (v) => setState(() => _showReceiptPhone = v!)),
+            _checkItem("Hiện QR Thanh toán", _showReceiptQR, (v) => setState(() => _showReceiptQR = v!)),
+          ]),
+          const SizedBox(height: 20),
+          TextField(controller: _receiptNoteCtrl, decoration: const InputDecoration(labelText: "Lời chúc cuối phiếu")),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBackupPrinterTab() {
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        children: [
+          TextField(onChanged: (v) => _primaryPrinterIP = v, decoration: const InputDecoration(labelText: "IP Máy in chính")),
+          const SizedBox(height: 15),
+          TextField(onChanged: (v) => _backupPrinterIP = v, decoration: const InputDecoration(labelText: "IP Máy in phụ")),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPreviewCard(String title, Widget content) => Container(width: double.infinity, padding: const EdgeInsets.all(15), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.grey.shade300)), child: content);
+  Widget _configCard(List<Widget> children) => Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15)), child: Column(children: children));
+  Widget _checkItem(String l, bool v, Function(bool?) o) => CheckboxListTile(title: Text(l), value: v, onChanged: o, dense: true, contentPadding: EdgeInsets.zero);
 }

@@ -4,31 +4,10 @@ import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../data/db_helper.dart';
 import '../services/user_service.dart';
-
-class CurrencyInputFormatter extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
-    if (newValue.text.isEmpty) {
-      return newValue;
-    }
-    // Allow only numbers
-    final regEx = RegExp(r'^\d+$');
-    if (!regEx.hasMatch(newValue.text)) {
-      return oldValue;
-    }
-    // Add .000
-    final number = int.tryParse(newValue.text) ?? 0;
-    final formatted = NumberFormat('#,###').format(number * 1000);
-    return TextEditingValue(
-      text: formatted,
-      selection: TextSelection.collapsed(offset: formatted.length),
-    );
-  }
-}
+import '../services/notification_service.dart';
 
 class ExpenseView extends StatefulWidget {
   const ExpenseView({super.key});
-
   @override
   State<ExpenseView> createState() => _ExpenseViewState();
 }
@@ -47,122 +26,99 @@ class _ExpenseViewState extends State<ExpenseView> {
   }
 
   Future<void> _loadRole() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
     final perms = await UserService.getCurrentUserPermissions();
     if (!mounted) return;
-    setState(() {
-      _isAdmin = perms['allowViewExpenses'] ?? false;
-    });
+    setState(() => _isAdmin = perms['allowViewExpenses'] ?? false);
   }
 
   Future<void> _refresh() async {
     setState(() => _isLoading = true);
     final data = await db.getAllExpenses();
-    setState(() {
-      _expenses = data;
-      _isLoading = false;
-    });
+    if (!mounted) return;
+    setState(() { _expenses = data; _isLoading = false; });
   }
 
-  void _confirmDeleteExpense(int id) {
-    if (!_isAdmin) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Chỉ tài khoản quản lý mới được xóa chi phí')));
-      return;
-    }
-    final passCtrl = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text("XÁC NHẬN XÓA CHI PHÍ"),
-        content: TextField(
-          controller: passCtrl,
-          obscureText: true,
-          decoration: const InputDecoration(hintText: "Nhập lại mật khẩu tài khoản quản lý"),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("HỦY")),
-          ElevatedButton(
-            onPressed: () async {
-              final user = FirebaseAuth.instance.currentUser;
-              if (user == null || user.email == null) {
-                if (!mounted) return;
-                Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Không xác định được tài khoản hiện tại')));
-                return;
-              }
-              try {
-                final cred = EmailAuthProvider.credential(email: user.email!, password: passCtrl.text);
-                await user.reauthenticateWithCredential(cred);
-                await db.deleteExpense(id);
-                if (!mounted) return;
-                Navigator.pop(ctx);
-                _refresh();
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ĐÃ XÓA CHI PHÍ')));
-              } catch (_) {
-                if (!mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Mật khẩu không đúng')));
-              }
-            },
-            child: const Text("XÓA"),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _addExpense() {
+  void _showAddExpenseDialog() {
     final titleC = TextEditingController();
     final amountC = TextEditingController();
     final noteC = TextEditingController();
-    String category = "KHÁC";
+    final titleF = FocusNode();
+    final amountF = FocusNode();
+    final noteF = FocusNode();
     String payMethod = "TIỀN MẶT";
 
     showDialog(
       context: context,
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (ctx, setStateSB) => AlertDialog(
-            title: const Text("THÊM CHI PHÍ MỚI", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            content: Column(
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModalState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text("THÊM CHI TIÊU MỚI", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.redAccent)),
+          content: SingleChildScrollView(
+            child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextField(controller: titleC, decoration: const InputDecoration(labelText: "Nội dung chi (VD: Tiền điện)")),
-                TextField(controller: amountC, keyboardType: TextInputType.number, inputFormatters: [CurrencyInputFormatter()], decoration: const InputDecoration(labelText: "Số tiền (VNĐ)", suffixText: " đ")),
-                TextField(controller: noteC, decoration: const InputDecoration(labelText: "Ghi chú")),
+                _input(titleC, "Nội dung chi (VD: Linh kiện)", Icons.shopping_basket, f: titleF, next: amountF, caps: true),
+                _input(amountC, "Số tiền", Icons.money, type: TextInputType.number, f: amountF, next: noteF, suffix: "k", hint: "Ví dụ: 50 = 50.000"),
+                _input(noteC, "Ghi chú thêm", Icons.edit_note, f: noteF),
                 const SizedBox(height: 10),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Wrap(
-                    spacing: 8,
-                    children: [
-                      _payChip("TIỀN MẶT", payMethod, (v) => setStateSB(() => payMethod = v)),
-                      _payChip("CHUYỂN KHOẢN", payMethod, (v) => setStateSB(() => payMethod = v)),
-                      _payChip("CÔNG NỢ", payMethod, (v) => setStateSB(() => payMethod = v)),
-                    ],
-                  ),
+                const Align(alignment: Alignment.centerLeft, child: Text("PHƯƠNG THỨC THANH TOÁN", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey))),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  children: ["TIỀN MẶT", "CHUYỂN KHOẢN", "CÔNG NỢ"].map((e) => ChoiceChip(
+                    label: Text(e, style: const TextStyle(fontSize: 11)),
+                    selected: payMethod == e,
+                    onSelected: (v) => setModalState(() => payMethod = e),
+                  )).toList(),
                 ),
               ],
             ),
-            actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("HỦY")),
-              ElevatedButton(onPressed: () async {
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("HỦY")),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+              onPressed: () async {
                 if (titleC.text.isEmpty || amountC.text.isEmpty) return;
+                
+                // Quy ước K: Nếu nhập dưới 100.000 thì nhân với 1000
+                int amount = int.tryParse(amountC.text.replaceAll('.', '')) ?? 0;
+                if (amount > 0 && amount < 100000) amount *= 1000;
+
                 await db.insertExpense({
                   'title': titleC.text.toUpperCase(),
-                  'amount': NumberFormat().parse(amountC.text).toInt(),
-                  'category': category,
+                  'amount': amount,
+                  'category': 'KHÁC',
                   'date': DateTime.now().millisecondsSinceEpoch,
                   'note': noteC.text,
                   'paymentMethod': payMethod,
                 });
                 Navigator.pop(ctx);
                 _refresh();
-              }, child: const Text("LƯU")),
-            ],
-          ),
-        );
-      },
+                NotificationService.showSnackBar("Đã lưu chi phí mới", color: Colors.green);
+              }, 
+              child: const Text("LƯU CHI PHÍ", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _input(TextEditingController c, String l, IconData i, {FocusNode? f, FocusNode? next, TextInputType type = TextInputType.text, String? suffix, String? hint, bool caps = false}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: TextField(
+        controller: c, focusNode: f, keyboardType: type,
+        textCapitalization: caps ? TextCapitalization.characters : TextCapitalization.none,
+        onSubmitted: (_) { if (next != null) FocusScope.of(context).requestFocus(next); },
+        decoration: InputDecoration(
+          labelText: l, prefixIcon: Icon(i, size: 20), suffixText: suffix, hintText: hint,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          filled: true, fillColor: Colors.grey.shade50,
+        ),
+      ),
     );
   }
 
@@ -172,61 +128,57 @@ class _ExpenseViewState extends State<ExpenseView> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFF),
-      appBar: AppBar(title: const Text("CHI PHÍ CỬA HÀNG", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
+      appBar: AppBar(
+        title: const Text("DANH SÁCH CHI TIÊU", style: TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.white, elevation: 0,
+      ),
       body: Column(
         children: [
-          Container(
-            padding: const EdgeInsets.all(20),
-            color: Colors.red.withOpacity(0.05),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text("TỔNG CHI THÁNG NÀY:", style: TextStyle(fontWeight: FontWeight.bold)),
-                Text("${NumberFormat('#,###').format(total)} đ", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.red)),
-              ],
-            ),
-          ),
+          _summaryHeader(total),
           Expanded(
-            child: _isLoading 
-              ? const Center(child: CircularProgressIndicator())
-              : ListView.builder(
-                  padding: const EdgeInsets.all(15),
-                  itemCount: _expenses.length,
-                  itemBuilder: (ctx, i) {
-                    final e = _expenses[i];
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 10),
-                      child: ListTile(
-                        title: Text(e['title'], style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text(
-                          "${DateFormat('dd/MM/yyyy').format(DateTime.fromMillisecondsSinceEpoch(e['date']))} | ${e['paymentMethod'] ?? 'TIỀN MẶT'}",
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                        trailing: Text("- ${NumberFormat('#,###').format(e['amount'])} đ", style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-                        onLongPress: () => _confirmDeleteExpense(e['id']),
-                      ),
-                    );
-                  },
-                ),
+            child: _isLoading ? const Center(child: CircularProgressIndicator()) : ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: _expenses.length,
+              itemBuilder: (ctx, i) => _expenseCard(_expenses[i]),
+            ),
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _addExpense,
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _showAddExpenseDialog,
+        label: const Text("THÊM CHI PHÍ"),
+        icon: const Icon(Icons.add),
         backgroundColor: Colors.redAccent,
-        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }
-}
 
-Widget _payChip(String label, String current, ValueChanged<String> onSelect) {
-  final isSelected = current == label;
-  return ChoiceChip(
-    label: Text(label, style: TextStyle(color: isSelected ? Colors.white : Colors.black87, fontWeight: FontWeight.bold)),
-    selected: isSelected,
-    selectedColor: Colors.blueAccent,
-    backgroundColor: Colors.grey.shade200,
-    onSelected: (_) => onSelect(label),
-  );
+  Widget _summaryHeader(int total) {
+    return Container(
+      width: double.infinity, margin: const EdgeInsets.all(16), padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(colors: [Color(0xFFFF5252), Color(0xFFFF8A80)]),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: Colors.red.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 5))],
+      ),
+      child: Column(children: [
+        const Text("TỔNG CHI TIÊU HÔM NAY", style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        Text("${NumberFormat('#,###').format(total)} đ", style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold)),
+      ]),
+    );
+  }
+
+  Widget _expenseCard(Map<String, dynamic> e) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      child: ListTile(
+        leading: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.red.withOpacity(0.1), borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.outbox_rounded, color: Colors.redAccent)),
+        title: Text(e['title'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+        subtitle: Text("${DateFormat('HH:mm').format(DateTime.fromMillisecondsSinceEpoch(e['date']))} | ${e['paymentMethod'] ?? 'TIỀN MẶT'}", style: const TextStyle(fontSize: 11)),
+        trailing: Text("-${NumberFormat('#,###').format(e['amount'])}", style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 14)),
+      ),
+    );
+  }
 }

@@ -3,13 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../l10n/app_localizations.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 import '../data/db_helper.dart';
 import '../models/repair_model.dart';
-import 'customer_history_view.dart';
 import '../services/notification_service.dart';
 import '../services/firestore_service.dart';
-import '../services/user_service.dart';
 import '../services/unified_printer_service.dart';
 
 class CreateRepairOrderView extends StatefulWidget {
@@ -82,15 +80,14 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
     }
   }
 
-  // LOGIC XỬ LÝ TIỀN TỆ QUY ƯỚC "K"
-  int _parseKValue(String text) {
+  // HÀM PARSE TIỀN TỆ CỰC KỲ CHẮC CHẮN
+  int _parseFinalPrice(String text) {
     if (text.isEmpty) return 0;
-    final clean = text.replaceAll(RegExp(r'[^\d]'), '');
+    // Làm sạch chuỗi, chỉ giữ lại số
+    final String clean = text.replaceAll(RegExp(r'[^\d]'), '');
     int value = int.tryParse(clean) ?? 0;
-    // Nếu nhập dưới 100.000 thì mặc định hiểu là hàng nghìn (quy ước K)
-    if (value > 0 && value < 100000) {
-      return value * 1000;
-    }
+    // Quy ước K: Nếu gõ số nhỏ (ví dụ 550) thì tự hiểu là hàng nghìn
+    if (value > 0 && value < 100000) return value * 1000;
     return value;
   }
 
@@ -108,14 +105,14 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
 
       final r = Repair(
         firestoreId: uniqueId,
-        customerName: nameCtrl.text.toUpperCase(),
-        phone: phoneCtrl.text,
-        model: modelCtrl.text.toUpperCase(),
-        issue: issueCtrl.text.toUpperCase(),
-        accessories: "${accCtrl.text} | MK: ${passCtrl.text}".toUpperCase(),
-        address: addressCtrl.text.toUpperCase(),
+        customerName: nameCtrl.text.trim().toUpperCase(),
+        phone: phoneCtrl.text.trim(),
+        model: modelCtrl.text.trim().toUpperCase(),
+        issue: issueCtrl.text.trim().toUpperCase(),
+        accessories: "${accCtrl.text} | MK: ${passCtrl.text}".trim().toUpperCase(),
+        address: addressCtrl.text.trim().toUpperCase(),
         paymentMethod: _paymentMethod,
-        price: _parseKValue(priceCtrl.text), // Chuyển đổi K thành tiền thật khi lưu
+        price: _parseFinalPrice(priceCtrl.text),
         createdAt: now,
         imagePath: _images.map((e) => e.path).join(','),
         createdBy: FirebaseAuth.instance.currentUser?.email?.split('@').first.toUpperCase() ?? "NV",
@@ -125,10 +122,10 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
       await FirestoreService.addRepair(r);
       return r;
     } catch (e) {
-      NotificationService.showSnackBar("Lỗi: $e", color: Colors.red);
+      NotificationService.showSnackBar("Lỗi lưu dữ liệu: $e", color: Colors.red);
       return null;
     } finally {
-      setState(() => _saving = false);
+      if (mounted) setState(() => _saving = false);
     }
   }
 
@@ -148,21 +145,22 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFF),
       appBar: AppBar(
-        title: const Text("TIẾP NHẬN MÁY", style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text("TIẾP NHẬN MÁY", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        backgroundColor: Colors.white, foregroundColor: Colors.black, elevation: 0,
         actions: [IconButton(onPressed: _saveAndPrint, icon: const Icon(Icons.print, color: Colors.blueAccent))],
       ),
       body: _saving ? const Center(child: CircularProgressIndicator()) : SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           children: [
             _sectionTitle("1. KHÁCH HÀNG"),
-            _input(phoneCtrl, "SỐ ĐIỆN THOẠI *", Icons.phone, type: TextInputType.phone, f: phoneF, next: nameF),
-            _input(nameCtrl, "TÊN KHÁCH HÀNG", Icons.person, caps: true, f: nameF, next: modelF),
+            _input(phoneCtrl, "SỐ ĐIỆN THOẠI *", Icons.phone, type: TextInputType.phone, f: phoneF, next: nameF, action: TextInputAction.next),
+            _input(nameCtrl, "TÊN KHÁCH HÀNG", Icons.person, caps: true, f: nameF, next: modelF, action: TextInputAction.next),
             
             const SizedBox(height: 20),
             _sectionTitle("2. THÔNG TIN MÁY"),
             _quick(brands, modelCtrl, issueF),
-            _input(modelCtrl, "MODEL MÁY *", Icons.phone_android, caps: true, f: modelF, next: issueF),
+            _input(modelCtrl, "MODEL MÁY *", Icons.phone_android, caps: true, f: modelF, next: issueF, action: TextInputAction.next),
             
             if (_recentDevices.isNotEmpty) ...[
               const SizedBox(height: 4),
@@ -171,23 +169,15 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
 
             _sectionTitle("3. TÌNH TRẠNG & GIÁ"),
             _quick(commonIssues, issueCtrl, priceF),
-            _input(issueCtrl, "LỖI MÁY *", Icons.build, caps: true, f: issueF, next: priceF),
-            
-            // Ô NHẬP GIÁ VỚI QUY ƯỚC K
-            _input(
-              priceCtrl, "GIÁ DỰ KIẾN", Icons.monetization_on, 
-              type: TextInputType.number, 
-              f: priceF, next: passF,
-              suffix: "k", // Hiện chữ k đằng sau để nhắc nhở
-              hint: "Ví dụ: 500 = 500.000"
-            ),
+            _input(issueCtrl, "LỖI MÁY *", Icons.build, caps: true, f: issueF, next: priceF, action: TextInputAction.next),
+            _input(priceCtrl, "GIÁ DỰ KIẾN", Icons.monetization_on, type: TextInputType.number, f: priceF, next: passF, suffix: "k", action: TextInputAction.next),
             
             ExpansionTile(
               title: const Text("THÔNG TIN THÊM", style: TextStyle(fontSize: 12, color: Colors.blueGrey)),
               children: [
-                _input(passCtrl, "MẬT KHẨU MÀN HÌNH", Icons.lock, f: passF, next: appearanceF),
-                _input(appearanceCtrl, "NGOẠI QUAN", Icons.remove_red_eye, f: appearanceF, next: accF),
-                _input(accCtrl, "PHỤ KIỆN", Icons.headphones, f: accF),
+                _input(passCtrl, "MẬT KHẨU MÀN HÌNH", Icons.lock, f: passF, next: appearanceF, action: TextInputAction.next),
+                _input(appearanceCtrl, "NGOẠI QUAN", Icons.remove_red_eye, f: appearanceF, next: accF, action: TextInputAction.next),
+                _input(accCtrl, "PHỤ KIỆN", Icons.headphones, f: accF, action: TextInputAction.done),
               ],
             ),
             
@@ -196,9 +186,9 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
             
             const SizedBox(height: 30),
             Row(children: [
-              Expanded(child: OutlinedButton(onPressed: _saving ? null : () async { final ok = await _onlySave(); if (ok != null && mounted) Navigator.pop(context, true); }, style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))), child: const Text("CHỈ LƯU"))),
+              Expanded(child: OutlinedButton(onPressed: _saving ? null : () async { final ok = await _onlySave(); if (ok != null && mounted) Navigator.pop(context, true); }, style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))), child: const Text("CHỈ LƯU", style: TextStyle(fontWeight: FontWeight.bold)))),
               const SizedBox(width: 12),
-              Expanded(flex: 2, child: ElevatedButton.icon(onPressed: _saving ? null : _saveAndPrint, icon: const Icon(Icons.print, color: Colors.white), label: const Text("LƯU & IN PHIẾU", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))))),
+              Expanded(flex: 2, child: ElevatedButton.icon(onPressed: _saving ? null : _saveAndPrint, icon: const Icon(Icons.print, color: Colors.white), label: const Text("LƯU & IN PHIẾU", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2962FF), elevation: 4, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))))),
             ]),
           ],
         ),
@@ -208,17 +198,18 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
 
   Widget _sectionTitle(String title) => Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Align(alignment: Alignment.centerLeft, child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey, fontSize: 12))));
 
-  Widget _input(TextEditingController c, String l, IconData i, {bool caps = false, TextInputType type = TextInputType.text, FocusNode? f, FocusNode? next, String? suffix, String? hint}) {
+  Widget _input(TextEditingController c, String l, IconData i, {bool caps = false, TextInputType type = TextInputType.text, FocusNode? f, FocusNode? next, String? suffix, TextInputAction? action}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: TextField(
         controller: c, focusNode: f, keyboardType: type,
+        textInputAction: action, // QUYẾT ĐỊNH HÀNH ĐỘNG CỦA BÀN PHÍM
         textCapitalization: caps ? TextCapitalization.characters : TextCapitalization.none,
         onSubmitted: (_) { if (next != null) FocusScope.of(context).requestFocus(next); },
+        style: const TextStyle(fontSize: 15),
         decoration: InputDecoration(
-          labelText: l, hintText: hint, prefixIcon: Icon(i, size: 20, color: Colors.blueAccent),
+          labelText: l, prefixIcon: Icon(i, size: 20, color: const Color(0xFF2962FF)),
           suffixText: suffix,
-          suffixStyle: const TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           filled: true, fillColor: Colors.white,
         ),
@@ -250,11 +241,11 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(children: [
-        ..._images.map((f) => Container(margin: const EdgeInsets.only(right: 10), width: 70, height: 70, decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.grey.shade300)), child: ClipRRect(borderRadius: BorderRadius.circular(10), child: Image.file(f, fit: BoxFit.cover)))),
+        ..._images.map((f) => Container(margin: const EdgeInsets.only(right: 10), width: 75, height: 75, decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade300)), child: ClipRRect(borderRadius: BorderRadius.circular(12), child: Image.file(f, fit: BoxFit.cover)))),
         GestureDetector(onTap: () async {
           final f = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 40);
           if (f != null) setState(() => _images.add(File(f.path)));
-        }, child: Container(width: 70, height: 70, decoration: BoxDecoration(color: Colors.blue.shade50, borderRadius: BorderRadius.circular(10)), child: const Icon(Icons.add_a_photo, color: Colors.blueAccent))),
+        }, child: Container(width: 75, height: 75, decoration: BoxDecoration(color: const Color(0xFF2962FF).withOpacity(0.05), borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.add_a_photo, color: Color(0xFF2962FF)))),
       ]),
     );
   }

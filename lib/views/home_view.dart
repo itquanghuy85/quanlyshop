@@ -161,18 +161,106 @@ class _HomeViewState extends State<HomeView> {
     Navigator.push(context, MaterialPageRoute(builder: (_) => CustomerHistoryView(phone: phone, name: phone)));
   }
 
+  Future<bool> _onWillPop() async {
+    return await showDialog(
+      context: context,
+      builder: (context) => BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+        child: AlertDialog(
+          backgroundColor: Colors.white.withOpacity(0.9),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          contentPadding: EdgeInsets.zero,
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                height: 120, width: double.infinity,
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(colors: [Color(0xFF2962FF), Color(0xFF00B0FF)]),
+                  borderRadius: BorderRadius.only(topLeft: Radius.circular(28), topRight: Radius.circular(28)),
+                ),
+                child: const Icon(Icons.logout_rounded, size: 50, color: Colors.white),
+              ),
+              const SizedBox(height: 24),
+              const Text("Nghỉ tay một chút nhé?", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+              const Padding(
+                padding: EdgeInsets.all(20),
+                child: Text("Bạn có chắc muốn đóng ứng dụng không?", textAlign: TextAlign.center, style: TextStyle(color: Colors.blueGrey)),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                child: Row(children: [
+                  Expanded(child: OutlinedButton(onPressed: () => Navigator.pop(context, false), child: const Text("HỦY"))),
+                  const SizedBox(width: 16),
+                  Expanded(child: ElevatedButton(onPressed: () => SystemNavigator.pop(), style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent), child: const Text("THOÁT", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)))),
+                ]),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ) ?? false;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF8FAFF),
+        appBar: AppBar(
+          backgroundColor: Colors.white, elevation: 0,
+          title: Row(children: [
+            const Icon(Icons.store_rounded, color: Color(0xFF2962FF), size: 22),
+            const SizedBox(width: 8),
+            Expanded(child: Text(hasFullAccess ? "QUẢN TRỊ CỬA HÀNG" : "NHÂN VIÊN", style: const TextStyle(color: Colors.black, fontSize: 15, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis)),
+          ]),
+          actions: [
+            IconButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => QrScanView(role: widget.role))), icon: const Icon(Icons.qr_code_scanner_rounded, color: Color(0xFF2962FF))),
+            IconButton(onPressed: _loadStats, icon: const Icon(Icons.refresh_rounded, color: Colors.blue)),
+            IconButton(onPressed: () => _syncNow(), icon: _isSyncing ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.sync, color: Colors.green)),
+            IconButton(onPressed: () => FirebaseAuth.instance.signOut(), icon: const Icon(Icons.logout_rounded, color: Colors.redAccent)),
+          ],
+        ),
+        body: SingleChildScrollView(padding: const EdgeInsets.all(20), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          if (_shopLocked) Container(padding: const EdgeInsets.all(12), margin: const EdgeInsets.only(bottom: 12), decoration: BoxDecoration(color: Colors.red.shade50, border: Border.all(color: Colors.redAccent), borderRadius: BorderRadius.circular(10)), child: const Text("CỬA HÀNG BỊ KHÓA", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold))),
+          TextField(controller: _phoneSearchCtrl, decoration: InputDecoration(hintText: "Tìm khách theo SĐT", prefixIcon: const Icon(Icons.search), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), filled: true, fillColor: Colors.white), onSubmitted: (_) => _openCustomerHistoryQuick()),
+          const SizedBox(height: 20),
+          const PerpetualCalendar(),
+          const SizedBox(height: 25),
+          _buildTodaySummary(),
+          const SizedBox(height: 25),
+          _buildGridMenu(),
+          const SizedBox(height: 50),
+        ])),
+      ),
+    );
+  }
+
+  Widget _buildTodaySummary() {
+    String _fmt(int v) => NumberFormat('#,###').format(v);
+    return Container(width: double.infinity, padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8)]), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const Text("VIỆC HÔM NAY", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+      const SizedBox(height: 10),
+      _summaryRow(Icons.build_circle_outlined, Colors.orange, "Máy nhận mới", "$todayNewRepairs", () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderListView(role: widget.role, todayOnly: true)))),
+      _summaryRow(Icons.shopping_bag_outlined, Colors.pink, "Đơn bán mới", "$todaySaleCount", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SaleListView(todayOnly: true)))),
+      _summaryRow(Icons.check_circle_outlined, Colors.green, "Đã xong/giao", "$todayRepairDone", () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderListView(role: widget.role, statusFilter: const [3, 4], todayOnly: true)))),
+      _summaryRow(Icons.money_off_rounded, Colors.redAccent, "Chi phí", "${_fmt(todayExpense)} đ", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ExpenseView()))),
+      _summaryRow(Icons.receipt_long_rounded, Colors.deepPurple, "Công nợ", "${_fmt(totalDebtRemain)} đ", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DebtView()))),
+    ]));
+  }
+
+  Widget _summaryRow(IconData icon, Color color, String label, String value, VoidCallback onTap) {
+    return InkWell(onTap: onTap, child: Padding(padding: const EdgeInsets.symmetric(vertical: 6), child: Row(children: [Icon(icon, size: 16, color: color), const SizedBox(width: 10), Expanded(child: Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey))), Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)), const Icon(Icons.chevron_right, size: 14, color: Colors.grey)])));
+  }
+
   Widget _buildGridMenu() {
     final l10n = AppLocalizations.of(context)!;
     final perms = _permissions;
     final tiles = <Widget>[];
-
     void addTile(String permKey, String title, IconData icon, List<Color> colors, VoidCallback onTap) {
-      if (hasFullAccess || (perms[permKey] ?? true)) {
-        tiles.add(_menuTile(title, icon, colors, onTap));
-      }
+      if (hasFullAccess || (perms[permKey] ?? true)) { tiles.add(_menuTile(title, icon, colors, onTap)); }
     }
-
-    // THỨ TỰ MENU CHÍNH
     addTile('allowViewSales', l10n.sales, Icons.shopping_cart_checkout_rounded, [const Color(0xFFFF4081), const Color(0xFFFF80AB)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SaleListView())));
     addTile('allowViewRepairs', l10n.repair, Icons.build_circle_rounded, [const Color(0xFF2979FF), const Color(0xFF448AFF)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderListView(role: widget.role))));
     addTile('allowViewChat', l10n.chat, Icons.chat_bubble_rounded, [const Color(0xFF7C4DFF), const Color(0xFFB388FF)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChatView())));
@@ -183,7 +271,6 @@ class _HomeViewState extends State<HomeView> {
     addTile('allowViewRevenue', l10n.revenueReport, Icons.analytics_rounded, [const Color(0xFF3D5AFE), const Color(0xFF8C9EFF)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RevenueReportView())));
     addTile('allowViewPrinter', l10n.printer, Icons.print_rounded, [const Color(0xFF607D8B), const Color(0xFF90A4AE)], _showPrinterMenu);
     addTile('allowViewSettings', l10n.settings, Icons.settings_rounded, [const Color(0xFF263238), const Color(0xFF455A64)], _openSettingsCenter);
-
     return GridView.count(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), crossAxisCount: 2, mainAxisSpacing: 15, crossAxisSpacing: 15, childAspectRatio: 1.3, children: tiles);
   }
 
@@ -203,47 +290,6 @@ class _HomeViewState extends State<HomeView> {
       if (hasFullAccess) ListTile(leading: const Icon(Icons.group_rounded, color: Colors.indigo), title: const Text("QUẢN LÝ NHÂN VIÊN"), onTap: () { Navigator.pop(ctx); Navigator.push(context, MaterialPageRoute(builder: (_) => const StaffListView())); }),
       if (_isSuperAdmin) ListTile(leading: const Icon(Icons.admin_panel_settings_rounded, color: Colors.deepPurple), title: const Text("TRUNG TÂM SUPER ADMIN"), onTap: () { Navigator.pop(ctx); Navigator.push(context, MaterialPageRoute(builder: (_) => const admin_view.SuperAdminView())); }),
     ]))));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFF),
-      appBar: AppBar(backgroundColor: Colors.white, elevation: 0, title: Row(children: [const Icon(Icons.store_rounded, color: Colors.blueAccent), const SizedBox(width: 10), Text(hasFullAccess ? "QUẢN TRỊ CỬA HÀNG" : "NHÂN VIÊN", style: const TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold))]), actions: [
-        IconButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => QrScanView(role: widget.role))), icon: const Icon(Icons.qr_code_scanner_rounded, color: Colors.blueAccent)),
-        IconButton(onPressed: _loadStats, icon: const Icon(Icons.refresh_rounded, color: Colors.blue)),
-        IconButton(onPressed: () => _syncNow(), icon: _isSyncing ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.sync, color: Colors.green)),
-        IconButton(onPressed: () => FirebaseAuth.instance.signOut(), icon: const Icon(Icons.logout_rounded, color: Colors.redAccent)),
-      ]),
-      body: SingleChildScrollView(padding: const EdgeInsets.all(20), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        if (_shopLocked) Container(padding: const EdgeInsets.all(12), margin: const EdgeInsets.only(bottom: 12), decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.redAccent)), child: const Text("CỬA HÀNG ĐANG BỊ KHÓA TẠM THỜI", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold))),
-        TextField(controller: _phoneSearchCtrl, keyboardType: TextInputType.phone, decoration: InputDecoration(hintText: "Tìm nhanh khách theo SĐT", prefixIcon: const Icon(Icons.search_rounded), suffixIcon: IconButton(icon: const Icon(Icons.arrow_forward_rounded), onPressed: _openCustomerHistoryQuick), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), filled: true, fillColor: Colors.white), onSubmitted: (_) => _openCustomerHistoryQuick()),
-        const SizedBox(height: 20),
-        const PerpetualCalendar(),
-        const SizedBox(height: 25),
-        _buildTodaySummary(),
-        const SizedBox(height: 25),
-        _buildGridMenu(),
-        const SizedBox(height: 50),
-      ])),
-    );
-  }
-
-  Widget _buildTodaySummary() {
-    String _fmt(int v) => NumberFormat('#,###').format(v);
-    return Container(width: double.infinity, padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8)]), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text("VIỆC HÔM NAY", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
-      const SizedBox(height: 10),
-      _summaryRow(Icons.build_circle_outlined, Colors.orange, "Máy nhận mới", "$todayNewRepairs"),
-      _summaryRow(Icons.shopping_bag_outlined, Colors.pink, "Đơn bán mới", "$todaySaleCount"),
-      _summaryRow(Icons.check_circle_outlined, Colors.green, "Đã xong/giao", "$todayRepairDone"),
-      _summaryRow(Icons.money_off_rounded, Colors.redAccent, "Chi phí", "${_fmt(todayExpense)} đ"),
-      _summaryRow(Icons.receipt_long_rounded, Colors.deepPurple, "Công nợ", "${_fmt(totalDebtRemain)} đ"),
-    ]));
-  }
-
-  Widget _summaryRow(IconData icon, Color color, String label, String value) {
-    return Padding(padding: const EdgeInsets.symmetric(vertical: 4), child: Row(children: [Icon(icon, size: 16, color: color), const SizedBox(width: 10), Expanded(child: Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey))), Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13))]));
   }
 
   Widget _menuTile(String title, IconData icon, List<Color> colors, VoidCallback onTap) {
