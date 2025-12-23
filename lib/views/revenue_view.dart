@@ -1,25 +1,14 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
-import '../l10n/app_localizations.dart';
 import '../data/db_helper.dart';
 import '../models/repair_model.dart';
 import '../models/sale_order_model.dart';
-import '../models/product_model.dart';
-import 'supplier_view.dart';
-import 'expense_view.dart';
-import 'debt_view.dart';
-import 'audit_log_view.dart';
-import 'staff_performance_view.dart';
-import 'attendance_view.dart';
-import 'payroll_view.dart';
-import '../services/user_service.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import '../services/audit_service.dart';
+import '../services/notification_service.dart';
 
 class RevenueView extends StatefulWidget {
   const RevenueView({super.key});
-
   @override
   State<RevenueView> createState() => _RevenueViewState();
 }
@@ -30,793 +19,205 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
   
   List<Repair> _repairs = [];
   List<SaleOrder> _sales = [];
-  List<Product> _products = [];
   List<Map<String, dynamic>> _expenses = [];
+  List<Map<String, dynamic>> _closings = [];
   bool _isLoading = true;
-  bool _isAdmin = false;
+  String _selectedPeriod = 'Tháng này';
 
-  // Chốt quỹ ngày
-  final cashStartCtrl = TextEditingController(text: "0");
-  final bankStartCtrl = TextEditingController(text: "0");
-  final cashEndCtrl = TextEditingController(text: "0");
-  final bankEndCtrl = TextEditingController(text: "0");
-  final noteCtrl = TextEditingController();
-  bool _savingClosing = false;
-  final String _closingDateKey = DateFormat('yyyy-MM-dd').format(DateTime.now());
-
-  final List<String> _periods = ['Hôm nay', 'Tuần này', 'Tháng này', 'Năm nay', 'Tất cả'];
-  String _selectedPeriod = 'Hôm nay';
-
-  AppLocalizations get l10n => AppLocalizations.of(context)!;
+  final cashEndCtrl = TextEditingController();
+  final bankEndCtrl = TextEditingController();
+  final closingNoteCtrl = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 10, vsync: this);
-    _loadData();
-    _loadRole();
+    _tabController = TabController(length: 5, vsync: this);
+    _loadAllData();
   }
 
-  @override
-  void dispose() {
-    _tabController.dispose();
-    cashStartCtrl.dispose();
-    bankStartCtrl.dispose();
-    cashEndCtrl.dispose();
-    bankEndCtrl.dispose();
-    noteCtrl.dispose();
-    super.dispose();
-  }
-
-  Future<void> _loadRole() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
-    final perms = await UserService.getCurrentUserPermissions();
-    if (!mounted) return;
-    setState(() => _isAdmin = perms['allowViewRevenue'] ?? false);
-  }
-
-  Future<void> _openExpenseView() async {
-    final perms = await UserService.getCurrentUserPermissions();
-    final canView = perms['allowViewExpenses'] ?? false;
-    if (!canView) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Tài khoản này không được phép xem màn CHI PHÍ. Liên hệ chủ shop để phân quyền.")),
-      );
-      return;
-    }
-    if (!mounted) return;
-    Navigator.push(context, MaterialPageRoute(builder: (_) => const ExpenseView()));
-  }
-
-  Future<void> _openAuditLogView() async {
-    if (!_isAdmin) return;
-    if (!mounted) return;
-    Navigator.push(context, MaterialPageRoute(builder: (_) => const AuditLogView()));
-  }
-
-  Future<void> _openStaffPerformance() async {
-    if (!mounted) return;
-    Navigator.push(context, MaterialPageRoute(builder: (_) => const StaffPerformanceView()));
-  }
-
-  Future<void> _openAttendance() async {
-    if (!mounted) return;
-    Navigator.push(context, MaterialPageRoute(builder: (_) => const AttendanceView()));
-  }
-
-  Future<void> _openPayroll() async {
-    if (!mounted) return;
-    Navigator.push(context, MaterialPageRoute(builder: (_) => const PayrollView()));
-  }
-
-  Future<void> _openDebtView() async {
-    final perms = await UserService.getCurrentUserPermissions();
-    final canView = perms['allowViewDebts'] ?? false;
-    if (!canView) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Tài khoản này không được phép xem SỔ CÔNG NỢ. Liên hệ chủ shop để phân quyền.")),
-      );
-      return;
-    }
-    if (!mounted) return;
-    Navigator.push(context, MaterialPageRoute(builder: (_) => const DebtView()));
-  }
-
-  Future<void> _loadData() async {
+  Future<void> _loadAllData() async {
+    setState(() => _isLoading = true);
     final repairs = await db.getAllRepairs();
     final sales = await db.getAllSales();
     final expenses = await db.getAllExpenses();
-    final products = await db.getAllProducts();
+    final closings = await db.getInventoryChecks(); // Tạm dùng bảng này
+    if (!mounted) return;
     setState(() {
-      _repairs = repairs;
-      _sales = sales;
-      _expenses = expenses;
-      _products = products;
+      _repairs = repairs; _sales = sales; _expenses = expenses; _closings = closings;
       _isLoading = false;
     });
-    _loadClosing();
   }
 
-  bool _isSameDay(int millis, DateTime day) {
-    final d = DateTime.fromMillisecondsSinceEpoch(millis);
-    return d.year == day.year && d.month == day.month && d.day == day.day;
-  }
-
-  Map<String, int> _computeTodayFlows() {
+  bool _inRange(int ms) {
+    final dt = DateTime.fromMillisecondsSinceEpoch(ms);
     final now = DateTime.now();
-    final todaySales = _sales.where((s) => _isSameDay(s.soldAt, now)).toList();
-    final todayRepairs = _repairs.where((r) => _isSameDay(r.createdAt, now)).toList();
-    final todayExpenses = _expenses.where((e) => _isSameDay(e['date'] as int, now)).toList();
-    final todaySettlements = _sales.where((s) => s.settlementReceivedAt != null && _isSameDay(s.settlementReceivedAt!, now)).toList();
-
-    int cashIn = 0, bankIn = 0, cashOut = 0, bankOut = 0;
-
-    for (var s in todaySales) {
-      final method = (s.paymentMethod).toUpperCase();
-      if (method == 'CHUYỂN KHOẢN') {
-        bankIn += s.totalPrice;
-      } else if (method == 'CÔNG NỢ') {
-        // bỏ qua công nợ trong tính quỹ
-      } else if (method == 'TRẢ GÓP (NH)') {
-        // chỉ tính phần khách trả trước
-        cashIn += s.downPayment;
-      } else {
-        cashIn += s.totalPrice;
-      }
-    }
-
-    for (var r in todayRepairs) {
-      final method = (r.paymentMethod).toUpperCase();
-      if (method == 'CHUYỂN KHOẢN') bankIn += r.price;
-      else if (method == 'CÔNG NỢ' || method == 'TRẢ GÓP (NH)') {
-      } else {
-        cashIn += r.price;
-      }
-    }
-
-    for (var e in todayExpenses) {
-      final method = (e['paymentMethod'] ?? 'TIỀN MẶT').toString().toUpperCase();
-      if (method == 'CHUYỂN KHOẢN') bankOut += (e['amount'] as int);
-      else if (method == 'CÔNG NỢ') {
-      } else {
-        cashOut += (e['amount'] as int);
-      }
-    }
-
-    for (var s in todaySettlements) {
-      final received = s.settlementAmount > 0 ? s.settlementAmount : s.loanAmount;
-      bankIn += received;
-      if (s.settlementFee > 0) {
-        bankOut += s.settlementFee;
-      }
-    }
-
-    return {
-      'cashIn': cashIn,
-      'bankIn': bankIn,
-      'cashOut': cashOut,
-      'bankOut': bankOut,
-    };
+    if (_selectedPeriod == 'Hôm nay') return dt.day == now.day && dt.month == now.month && dt.year == now.year;
+    if (_selectedPeriod == 'Tháng này') return dt.month == now.month && dt.year == now.year;
+    return true;
   }
-
-  Future<void> _loadClosing() async {
-    final exist = await db.getClosingByDate(_closingDateKey);
-    if (exist != null) {
-      cashStartCtrl.text = ((exist['cashStart'] ?? 0) / 1000).toStringAsFixed(0);
-      bankStartCtrl.text = ((exist['bankStart'] ?? 0) / 1000).toStringAsFixed(0);
-      cashEndCtrl.text = ((exist['cashEnd'] ?? 0) / 1000).toStringAsFixed(0);
-      bankEndCtrl.text = ((exist['bankEnd'] ?? 0) / 1000).toStringAsFixed(0);
-      noteCtrl.text = exist['note'] ?? '';
-    }
-  }
-
-  Future<void> _saveClosing() async {
-    setState(() => _savingClosing = true);
-    final flows = _computeTodayFlows();
-    final closing = {
-      'dateKey': _closingDateKey,
-      'cashStart': (int.tryParse(cashStartCtrl.text) ?? 0) * 1000,
-      'bankStart': (int.tryParse(bankStartCtrl.text) ?? 0) * 1000,
-      'cashEnd': (int.tryParse(cashEndCtrl.text) ?? 0) * 1000,
-      'bankEnd': (int.tryParse(bankEndCtrl.text) ?? 0) * 1000,
-      'expectedCashDelta': flows['cashIn']! - flows['cashOut']!,
-      'expectedBankDelta': flows['bankIn']! - flows['bankOut']!,
-      'note': noteCtrl.text,
-      'createdAt': DateTime.now().millisecondsSinceEpoch,
-    };
-    await db.upsertClosing(closing);
-    if (mounted) {
-      setState(() => _savingClosing = false);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.cashClosingSaved)));
-    }
-    AuditService.logAction(
-      action: 'CLOSE_CASH',
-      entityType: 'cash_closing',
-      entityId: _closingDateKey,
-      summary: "Chốt quỹ ngày $_closingDateKey",
-      payload: {'cashEnd': closing['cashEnd'], 'bankEnd': closing['bankEnd']},
-    );
-  }
-
-  DateTime _startOfWeek(DateTime d) => d.subtract(Duration(days: d.weekday - 1));
-
-  bool _inSelectedRange(int millis) {
-    final dt = DateTime.fromMillisecondsSinceEpoch(millis);
-    final now = DateTime.now();
-    switch (_selectedPeriod) {
-      case 'Hôm nay':
-        return dt.year == now.year && dt.month == now.month && dt.day == now.day;
-      case 'Tuần này':
-        final start = _startOfWeek(now);
-        final end = start.add(const Duration(days: 7));
-        return dt.isAfter(start.subtract(const Duration(milliseconds: 1))) && dt.isBefore(end);
-      case 'Tháng này':
-        return dt.year == now.year && dt.month == now.month;
-      case 'Năm nay':
-        return dt.year == now.year;
-      default:
-        return true;
-    }
-  }
-
-  List<Repair> get _filteredRepairs => _repairs.where((r) => r.status >= 3 && _inSelectedRange(r.deliveredAt ?? r.finishedAt ?? r.createdAt)).toList();
-  List<SaleOrder> get _filteredSales => _sales.where((s) => _inSelectedRange(s.soldAt)).toList();
-  List<Map<String, dynamic>> get _filteredExpenses => _expenses.where((e) => _inSelectedRange(e['date'] as int)).toList();
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: const Color(0xFFF8FAFF),
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        title: Text(l10n.financeCenter, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(70),
-          child: Container(
-            margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.grey.withOpacity(0.05),
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: TabBar(
-              controller: _tabController,
-              isScrollable: true,
-              labelColor: Colors.deepOrange,
-              unselectedLabelColor: Colors.blueGrey,
-              indicator: BoxDecoration(
-                color: Colors.deepOrange.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(18),
-              ),
-              labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-              unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal, fontSize: 12),
-              tabs: [
-                Tab(
-                  icon: Icon(Icons.dashboard_customize_rounded, size: 30, shadows: [Shadow(color: Colors.orange, blurRadius: 2)]),
-                  text: l10n.dashboard,
-                ),
-                Tab(
-                  icon: Icon(Icons.shopping_cart_checkout_rounded, size: 30, shadows: [Shadow(color: Colors.pink, blurRadius: 2)]),
-                  text: l10n.sales,
-                ),
-                Tab(
-                  icon: Icon(Icons.build_circle_rounded, size: 30, shadows: [Shadow(color: Colors.blue, blurRadius: 2)]),
-                  text: l10n.repairs,
-                ),
-                Tab(
-                  icon: Icon(Icons.money_off_csred_rounded, size: 30, shadows: [Shadow(color: Colors.redAccent, blurRadius: 2)]),
-                  text: l10n.expenses,
-                ),
-                Tab(
-                  icon: Icon(Icons.business_rounded, size: 30, shadows: [Shadow(color: Colors.teal, blurRadius: 2)]),
-                  text: l10n.suppliers,
-                ),
-                Tab(
-                  icon: Icon(Icons.history_rounded, size: 30, shadows: [Shadow(color: Colors.deepPurple, blurRadius: 2)]),
-                  text: l10n.auditLog,
-                ),
-                Tab(
-                  icon: Icon(Icons.group_rounded, size: 30, shadows: [Shadow(color: Colors.green, blurRadius: 2)]),
-                  text: l10n.staff,
-                ),
-                Tab(
-                  icon: Icon(Icons.fingerprint_rounded, size: 30, shadows: [Shadow(color: Colors.indigo, blurRadius: 2)]),
-                  text: l10n.attendance,
-                ),
-                Tab(
-                  icon: Icon(Icons.payments_rounded, size: 30, shadows: [Shadow(color: Colors.brown, blurRadius: 2)]),
-                  text: l10n.payroll,
-                ),
-                Tab(
-                  icon: Icon(Icons.receipt_long_rounded, size: 30, shadows: [Shadow(color: Colors.deepPurple, blurRadius: 2)]),
-                  text: l10n.debts,
-                ),
-              ],
-            ),
+        title: const Text("QUẢN LÝ TÀI CHÍNH", style: TextStyle(fontWeight: FontWeight.bold)),
+        actions: [
+          DropdownButton<String>(
+            value: _selectedPeriod,
+            underline: const SizedBox(),
+            items: ['Hôm nay', 'Tháng này', 'Tất cả'].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+            onChanged: (v) { if(v!=null) setState(() => _selectedPeriod = v); },
           ),
+          IconButton(onPressed: _loadAllData, icon: const Icon(Icons.refresh, color: Color(0xFF2962FF))),
+        ],
+        bottom: TabBar(
+          controller: _tabController,
+          isScrollable: true,
+          labelColor: const Color(0xFF2962FF),
+          indicatorColor: const Color(0xFF2962FF),
+          tabs: const [Tab(text: "TỔNG QUAN"), Tab(text: "CHỐT QUỸ"), Tab(text: "BÁN HÀNG"), Tab(text: "SỬA CHỮA"), Tab(text: "CHI TIÊU")],
         ),
       ),
-      body: _isLoading 
-        ? const Center(child: CircularProgressIndicator())
-        : Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(15),
-                child: Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: [
-                    // Removed all quick action buttons
-                  ],
-                ),
-              ),
-              Expanded(
-                child: TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _buildDashboard(),
-                    _buildSalesReport(),
-                    _buildRepairReport(),
-                    _buildExpenseDebtTab(),
-                    _buildSupplierTab(),
-                    _buildAuditLogTab(),
-                    _buildStaffPerformanceTab(),
-                    _buildAttendanceTab(),
-                    _buildPayrollTab(),
-                    _buildDebtTab(),
-                  ],
-                ),
-              ),
-            ],
-          ),
+      body: _isLoading ? const Center(child: CircularProgressIndicator()) : TabBarView(
+        controller: _tabController,
+        children: [
+          _buildOverview(),
+          _buildCashClosingTab(),
+          _buildSaleDetail(),
+          _buildRepairDetail(),
+          _buildExpenseDetail(),
+        ],
+      ),
     );
   }
 
-  // --- DASHBOARD VỚI BIỂU ĐỒ ---
-  Widget _buildDashboard() {
-    final saleList = _filteredSales;
-    final repairList = _filteredRepairs;
-    final expenseList = _filteredExpenses;
+  Widget _buildOverview() {
+    final fSales = _sales.where((s) => _inRange(s.soldAt)).toList();
+    final fRepairs = _repairs.where((r) => r.status >= 3 && _inRange(r.deliveredAt ?? r.createdAt)).toList();
+    final fExpenses = _expenses.where((e) => _inRange(e['date'] as int)).toList();
 
-    int totalSaleRev = saleList.fold(0, (sum, s) => sum + s.totalPrice);
-    int totalRepairRev = repairList.fold(0, (sum, r) => sum + r.price);
-    int totalExpense = expenseList.fold(0, (sum, e) => sum + (e['amount'] as int));
+    int totalIn = fSales.fold(0, (sum, s) => sum + s.totalPrice) + fRepairs.fold(0, (sum, r) => sum + r.price);
+    int totalOut = fExpenses.fold(0, (sum, e) => sum + (e['amount'] as int));
     
-    int profitS = saleList.fold(0, (sum, s) => sum + (s.totalPrice - s.totalCost));
-    int profitR = repairList.fold(0, (sum, r) => sum + (r.price - r.cost));
-    int netProfit = profitS + profitR - totalExpense;
+    // SỬA LỖI: Sử dụng .toInt() để đảm bảo kiểu dữ liệu là int
+    int profit = (totalIn - totalOut - 
+                 fSales.fold(0, (sum, s) => sum + s.totalCost) - 
+                 fRepairs.fold(0, (sum, r) => sum + r.cost)).toInt();
 
     return ListView(
-      padding: const EdgeInsets.all(15),
+      padding: const EdgeInsets.all(16),
       children: [
-        _periodPicker(),
-        const SizedBox(height: 14),
-        _reportCard(l10n.netProfitAfterExpenses, "${NumberFormat('#,###').format(netProfit)} Đ", Colors.indigo, Icons.auto_graph_rounded),
-        const SizedBox(height: 20),
-        _inventorySnapshot(),
-        const SizedBox(height: 20),
-        _closingCard(),
-        const SizedBox(height: 20),
-        
-        // BIỂU ĐỒ TRÒN PHÂN BỔ DOANH THU
+        Row(children: [_miniCard("TỔNG THU", totalIn, Colors.green), const SizedBox(width: 12), _miniCard("TỔNG CHI", totalOut, Colors.redAccent)]),
+        const SizedBox(height: 16),
+        _mainProfitCard(profit),
+        const SizedBox(height: 24),
         Container(
-          height: 220,
-          padding: const EdgeInsets.all(15),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
-          child: Column(
-            children: [
-              Text(l10n.revenueDistribution, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey)),
-              const SizedBox(height: 10),
-              Expanded(
-                child: PieChart(
-                  PieChartData(
-                    sections: [
-                      PieChartSectionData(value: totalSaleRev.toDouble(), title: 'BÁN', color: Colors.pink, radius: 50, titleStyle: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
-                      PieChartSectionData(value: totalRepairRev.toDouble(), title: 'SỬA', color: Colors.blue, radius: 50, titleStyle: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
-                      if (totalExpense > 0)
-                        PieChartSectionData(value: totalExpense.toDouble(), title: 'CHI', color: Colors.redAccent, radius: 50, titleStyle: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
-                    ],
-                    centerSpaceRadius: 40,
-                  ),
-                ),
-              ),
-            ],
-          ),
+          height: 220, padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(25)),
+          child: PieChart(PieChartData(sections: [
+            PieChartSectionData(value: fSales.length.toDouble(), title: "Bán", color: Colors.pinkAccent, radius: 50),
+            PieChartSectionData(value: fRepairs.length.toDouble(), title: "Sửa", color: Colors.blueAccent, radius: 50)
+          ])),
         ),
-        
-        const SizedBox(height: 20),
-        _summaryRow("Lãi Bán máy", profitS, Colors.pink),
-        _summaryRow("Lãi Sửa chữa", profitR, Colors.blue),
-        _summaryRow("Tổng Chi phí", totalExpense, Colors.redAccent),
-        const Divider(),
-        _summaryRow("TỔNG LỢI NHUẬN", netProfit, Colors.indigo, isBold: true),
       ],
     );
   }
 
-  Widget _periodPicker() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.blueAccent.withOpacity(0.15))),
-      child: Row(
-        children: [
-          const Icon(Icons.schedule_rounded, color: Colors.blueAccent),
-          const SizedBox(width: 10),
-          Text(l10n.timePeriod, style: const TextStyle(fontWeight: FontWeight.bold)),
-          const Spacer(),
-          DropdownButton<String>(
-            value: _selectedPeriod,
-            underline: const SizedBox(),
-            items: _periods.map((p) => DropdownMenuItem(value: p, child: Text(p))).toList(),
-            onChanged: (v) => setState(() => _selectedPeriod = v!),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget _buildCashClosingTab() {
+    final todaySales = _sales.where((s) => _inRange(s.soldAt)).toList();
+    final todayRepairs = _repairs.where((r) => r.status >= 3 && _inRange(r.deliveredAt ?? r.createdAt)).toList();
+    final todayExpenses = _expenses.where((e) => _inRange(e['date'] as int)).toList();
 
-  Widget _quickActionButton(String title, IconData icon, Color color, VoidCallback onTap) {
-    return Expanded(child: InkWell(onTap: onTap, child: Container(padding: const EdgeInsets.symmetric(vertical: 12), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: color.withOpacity(0.2))), child: Column(children: [Icon(icon, color: color, size: 22), const SizedBox(height: 5), Text(title, style: TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.bold))]))));
-  }
-
-  Widget _reportCard(String title, String value, Color color, IconData icon) {
-    return Container(padding: const EdgeInsets.all(20), decoration: BoxDecoration(gradient: LinearGradient(colors: [color, color.withOpacity(0.8)]), borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: color.withOpacity(0.3), blurRadius: 10)]), child: Column(children: [Icon(icon, color: Colors.white, size: 30), const SizedBox(height: 10), Text(title, style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold)), Text(value, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold))]));
-  }
-
-  Widget _inventorySnapshot() {
-    final inStock = _products.where((p) => p.status == 1 && (p.quantity) > 0).toList();
-    final totalQty = inStock.fold<int>(0, (sum, p) => sum + (p.quantity));
-    final totalValue = inStock.fold<int>(0, (sum, p) => sum + (p.price * (p.quantity)));
-    final topItems = inStock.take(5).toList();
-
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8)],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text("KIỂM KÊ HÀNG NGÀY", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.blueGrey)),
-              Text("${NumberFormat('#,###').format(totalQty)} món", style: const TextStyle(fontWeight: FontWeight.bold)),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text("Giá trị tồn: ${NumberFormat('#,###').format(totalValue)} đ", style: const TextStyle(fontSize: 12, color: Colors.black87)),
-          const Divider(height: 16),
-          if (topItems.isEmpty)
-            const Text("Chưa có hàng tồn", style: TextStyle(color: Colors.grey))
-          else
-            Column(
-              children: topItems.map((p) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: Row(
-                    children: [
-                      Expanded(child: Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold))),
-                      Text("SL: ${p.quantity}", style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                      const SizedBox(width: 10),
-                      Text(NumberFormat('#,###').format(p.price * p.quantity), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                    ],
-                  ),
-                );
-              }).toList(),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _closingCard() {
-    final flows = _computeTodayFlows();
-    final cashStart = (int.tryParse(cashStartCtrl.text) ?? 0) * 1000;
-    final bankStart = (int.tryParse(bankStartCtrl.text) ?? 0) * 1000;
-    final expectedCashEnd = cashStart + flows['cashIn']! - flows['cashOut']!;
-    final expectedBankEnd = bankStart + flows['bankIn']! - flows['bankOut']!;
-    final actualCashEnd = (int.tryParse(cashEndCtrl.text) ?? 0) * 1000;
-    final actualBankEnd = (int.tryParse(bankEndCtrl.text) ?? 0) * 1000;
-    final cashDiff = actualCashEnd - expectedCashEnd;
-    final bankDiff = actualBankEnd - expectedBankEnd;
-
-    Widget row(String label, int value, {Color color = Colors.black87}) {
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [Text(label, style: TextStyle(color: color, fontWeight: FontWeight.bold)), Text(NumberFormat('#,###').format(value))],
-      );
+    int cashIn = 0, bankIn = 0, cashOut = 0, bankOut = 0;
+    for (var s in todaySales) {
+      if (s.paymentMethod == 'CHUYỂN KHOẢN') bankIn += s.totalPrice;
+      else cashIn += s.totalPrice;
+    }
+    for (var r in todayRepairs) {
+      if (r.paymentMethod == 'CHUYỂN KHOẢN') bankIn += r.price;
+      else cashIn += r.price;
+    }
+    for (var e in todayExpenses) {
+      final method = (e['paymentMethod'] ?? 'TIỀN MẶT').toString().toUpperCase();
+      if (method == 'CHUYỂN KHOẢN') bankOut += (e['amount'] as int);
+      else cashOut += (e['amount'] as int);
     }
 
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10)],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: const [
-              Icon(Icons.savings_rounded, color: Colors.teal),
-              SizedBox(width: 8),
-              Text("CHỐT QUỸ TRONG NGÀY", style: TextStyle(fontWeight: FontWeight.bold)),
-            ],
-          ),
-          const SizedBox(height: 8),
-          const Text("Điền số dư đầu ngày, nhập số đếm cuối ngày để so khớp chênh lệch."),
-          const Divider(height: 18),
-          // Đầu ngày - Tiền mặt và Ngân hàng trên 1 hàng
-          Row(
+    int expectedCash = cashIn - cashOut;
+    int expectedBank = bankIn - bankOut;
+
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Row(children: [_balanceCard("TIỀN MẶT", expectedCash, Colors.orange), const SizedBox(width: 12), _balanceCard("NGÂN HÀNG", expectedBank, Colors.blue)]),
+        const SizedBox(height: 24),
+        Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(25), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 15)]),
+          child: Column(
             children: [
-              Expanded(
-                child: TextField(
-                  controller: cashStartCtrl,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    labelText: "Đầu ngày - Tiền mặt (x 1K)",
-                    border: const OutlineInputBorder(),
-                    filled: true,
-                    fillColor: Colors.blue.withOpacity(0.05),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                  ),
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                  onEditingComplete: () {
-                    final text = cashStartCtrl.text;
-                    if (text.isNotEmpty && !text.endsWith('000')) {
-                      cashStartCtrl.text = text + '000';
-                    }
-                  },
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: TextField(
-                  controller: bankStartCtrl,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    labelText: "Đầu ngày - Ngân hàng (x 1K)",
-                    border: const OutlineInputBorder(),
-                    filled: true,
-                    fillColor: Colors.blue.withOpacity(0.05),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                  ),
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                  onEditingComplete: () {
-                    final text = bankStartCtrl.text;
-                    if (text.isNotEmpty && !text.endsWith('000')) {
-                      bankStartCtrl.text = text + '000';
-                    }
-                  },
-                ),
+              const Text("ĐỐI SOÁT THỰC TẾ", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              const SizedBox(height: 20),
+              _closingField(cashEndCtrl, "Tiền mặt đếm được", Icons.payments, Colors.orange),
+              _closingField(bankEndCtrl, "Số dư ngân hàng", Icons.account_balance, Colors.blue),
+              _closingField(closingNoteCtrl, "Ghi chú", Icons.edit_note, Colors.grey, isText: true),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(onPressed: _saveClosing, style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2962FF), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))), child: const Text("XÁC NHẬN CHỐT QUỸ", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
               ),
             ],
-          ),
-          const SizedBox(height: 12),
-          // Cuối ngày - Tiền mặt và Ngân hàng trên 1 hàng
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: cashEndCtrl,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    labelText: "Cuối ngày - Tiền mặt (x 1K)",
-                    border: const OutlineInputBorder(),
-                    filled: true,
-                    fillColor: Colors.green.withOpacity(0.05),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                  ),
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                  onEditingComplete: () {
-                    final text = cashEndCtrl.text;
-                    if (text.isNotEmpty && !text.endsWith('000')) {
-                      cashEndCtrl.text = text + '000';
-                    }
-                  },
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: TextField(
-                  controller: bankEndCtrl,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    labelText: "Cuối ngày - Ngân hàng (x 1K)",
-                    border: const OutlineInputBorder(),
-                    filled: true,
-                    fillColor: Colors.green.withOpacity(0.05),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                  ),
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                  onEditingComplete: () {
-                    final text = bankEndCtrl.text;
-                    if (text.isNotEmpty && !text.endsWith('000')) {
-                      bankEndCtrl.text = text + '000';
-                    }
-                  },
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.teal.withOpacity(0.03),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.teal.withOpacity(0.2)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(l10n.todayCashFlow, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.teal)),
-                const SizedBox(height: 6),
-                row("Thu tiền mặt", flows['cashIn']!),
-                row("Thu ngân hàng", flows['bankIn']!),
-                row("Chi tiền mặt", -flows['cashOut']!, color: Colors.redAccent),
-                row("Chi ngân hàng", -flows['bankOut']!, color: Colors.redAccent),
-                const Divider(),
-                row("Dự kiến cuối ngày (TM)", expectedCashEnd, color: Colors.blueGrey),
-                row("Dự kiến cuối ngày (NH)", expectedBankEnd, color: Colors.blueGrey),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.orange.withOpacity(0.04),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.orange.withOpacity(0.2)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text("CHÊNH LỆCH", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange)),
-                const SizedBox(height: 6),
-                row("Tiền mặt thực tế", actualCashEnd, color: Colors.black),
-                row("Ngân hàng thực tế", actualBankEnd, color: Colors.black),
-                row("Chênh TM", cashDiff, color: cashDiff == 0 ? Colors.green : Colors.red),
-                row("Chênh NH", bankDiff, color: bankDiff == 0 ? Colors.green : Colors.red),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-          TextField(
-            controller: noteCtrl,
-            decoration: const InputDecoration(labelText: "Ghi chú", border: OutlineInputBorder()),
-            maxLines: 2,
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: _savingClosing ? null : _saveClosing,
-              icon: _savingClosing ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Icons.check_circle_outline),
-              label: Text(l10n.saveCashClosing),
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _summaryRow(String label, int value, Color color, {bool isBold = false}) {
-    return Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(label, style: TextStyle(fontSize: 13, fontWeight: isBold ? FontWeight.bold : FontWeight.normal, color: Colors.grey[700])), Text("${NumberFormat('#,###').format(value)} đ", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: color))]));
-  }
-
-  // --- CÁC TAB KHÁC GIỮ NGUYÊN LOGIC NHƯNG TỐI ƯU GIAO DIỆN ---
-  Widget _buildStaffReport() {
-    Map<String, Map<String, dynamic>> staffData = {};
-    for (var s in _sales) {
-      String name = s.sellerName.toUpperCase();
-      staffData[name] = staffData[name] ?? {'count': 0, 'total': 0};
-      staffData[name]!['count'] += 1;
-      staffData[name]!['total'] += s.totalPrice;
-    }
-    List<String> staffNames = staffData.keys.toList();
-    return staffNames.isEmpty ? const Center(child: Text("Chưa có dữ liệu")) : ListView.builder(padding: const EdgeInsets.all(15), itemCount: staffNames.length, itemBuilder: (ctx, i) => Card(margin: const EdgeInsets.only(bottom: 10), child: ListTile(leading: CircleAvatar(child: Text(staffNames[i][0])), title: Text(staffNames[i], style: const TextStyle(fontWeight: FontWeight.bold)), subtitle: Text("Đã bán: ${staffData[staffNames[i]]!['count']} đơn"), trailing: Text("${NumberFormat('#,###').format(staffData[staffNames[i]]!['total'])} đ", style: const TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold)))));
-  }
-
-  Widget _buildSalesReport() {
-    return Container(
-      color: Colors.orange.shade50,
-      child: ListView.builder(
-        padding: const EdgeInsets.all(15),
-        itemCount: _sales.length,
-        itemBuilder: (context, index) => Card(
-          margin: const EdgeInsets.only(bottom: 10),
-          child: ListTile(
-            title: Text(_sales[index].productNames, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-            subtitle: Text("Ngày: ${DateFormat('dd/MM').format(DateTime.fromMillisecondsSinceEpoch(_sales[index].soldAt))}"),
-            trailing: Text("${NumberFormat('#,###').format(_sales[index].totalPrice)} Đ", style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
           ),
         ),
-      ),
+      ],
     );
   }
 
-  Widget _buildRepairReport() {
-    final done = _repairs.where((r) => r.status >= 3).toList();
-    return ListView.builder(padding: const EdgeInsets.all(15), itemCount: done.length, itemBuilder: (context, index) => Card(margin: const EdgeInsets.only(bottom: 10), child: ListTile(title: Text(done[index].model, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)), subtitle: Text("Khách: ${done[index].customerName}"), trailing: Text("${NumberFormat('#,###').format(done[index].price)} Đ", style: const TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold)))));
+  Widget _balanceCard(String label, int value, Color color) {
+    return Expanded(child: Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(20), border: Border.all(color: color.withOpacity(0.2))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(label, style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.bold)), Text("${NumberFormat('#,###').format(value)} đ", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: color))])));
   }
 
-  Widget _buildImportReport() {
-    Map<String, int> supplierTotals = {};
-    for (var r in _repairs) { if (r.status >= 3) supplierTotals['SỬA CHỮA'] = (supplierTotals['SỬA CHỮA'] ?? 0) + r.cost; }
-    for (var s in _sales) { supplierTotals['NHẬP MÁY'] = (supplierTotals['NHẬP MÁY'] ?? 0) + s.totalCost; }
-    List<String> keys = supplierTotals.keys.toList();
-    return ListView.builder(padding: const EdgeInsets.all(15), itemCount: keys.length, itemBuilder: (ctx, i) => Card(margin: const EdgeInsets.only(bottom: 10), child: ListTile(title: Text(keys[i], style: const TextStyle(fontWeight: FontWeight.bold)), trailing: Text("${NumberFormat('#,###').format(supplierTotals[keys[i]])} đ", style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)))));
+  Widget _closingField(TextEditingController c, String label, IconData icon, Color color, {bool isText = false}) {
+    return Padding(padding: const EdgeInsets.only(bottom: 16), child: TextField(controller: c, keyboardType: isText ? TextInputType.text : TextInputType.number, decoration: InputDecoration(labelText: label, prefixIcon: Icon(icon, color: color), border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)), filled: true, fillColor: const Color(0xFFF8FAFF))));
   }
 
-  Future<void> _confirmWipeLocal() async {
-    if (!_isAdmin) return;
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text("XÓA TOÀN BỘ DỮ LIỆU LOCAL?"),
-        content: const Text("Thao tác này chỉ xóa dữ liệu trong máy (SQLite) để reset test. Không ảnh hưởng dữ liệu trên cloud."),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("HỦY")),
-          ElevatedButton(onPressed: () => Navigator.pop(context, true), style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent), child: const Text("XÓA")),
-        ],
-      ),
-    );
-
-    if (ok != true) return;
-    await db.clearAllData();
-    await _loadData();
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("ĐÃ XÓA TOÀN BỘ DỮ LIỆU LOCAL (SQLite)")),
-    );
+  Widget _miniCard(String label, int value, Color color) {
+    return Expanded(child: Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), border: Border.all(color: color.withOpacity(0.2))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey)), Text(NumberFormat('#,###').format(value), style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: color))])));
   }
 
-  Widget _buildExpenseDebtTab() {
-    return ExpenseView();
+  Widget _mainProfitCard(int profit) {
+    return Container(width: double.infinity, padding: const EdgeInsets.all(24), decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF2962FF), Color(0xFF00B0FF)]), borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.blue.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 5))]), child: Column(children: [const Text("LỢI NHUẬN RÒNG DỰ KIẾN", style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold)), const SizedBox(height: 8), Text("${NumberFormat('#,###').format(profit)} VND", style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold))]));
   }
 
-  Widget _buildSupplierTab() {
-    return const SupplierView();
+  Future<void> _saveClosing() async {
+    final cash = int.tryParse(cashEndCtrl.text.replaceAll('.', '')) ?? 0;
+    final bank = int.tryParse(bankEndCtrl.text.replaceAll('.', '')) ?? 0;
+    final closing = {
+      'dateKey': DateFormat('yyyy-MM-dd').format(DateTime.now()),
+      'cashEnd': cash < 10000 ? cash * 1000 : cash,
+      'bankEnd': bank < 10000 ? bank * 1000 : bank,
+      'note': closingNoteCtrl.text,
+      'createdAt': DateTime.now().millisecondsSinceEpoch,
+    };
+    await db.upsertClosing(closing);
+    NotificationService.showSnackBar("Đã chốt quỹ thành công!", color: Colors.green);
+    _loadAllData();
+    cashEndCtrl.clear(); bankEndCtrl.clear(); closingNoteCtrl.clear();
   }
 
-  Widget _buildAuditLogTab() {
-    if (!_isAdmin) return const Center(child: Text("Không có quyền truy cập"));
-    return const AuditLogView();
+  Widget _buildSaleDetail() {
+    final list = _sales.where((s) => _inRange(s.soldAt)).toList();
+    return ListView.builder(padding: const EdgeInsets.all(16), itemCount: list.length, itemBuilder: (ctx, i) => Card(margin: const EdgeInsets.only(bottom: 12), child: ListTile(title: Text(list[i].productNames, style: const TextStyle(fontWeight: FontWeight.bold)), subtitle: Text("Ngày: ${DateFormat('dd/MM').format(DateTime.fromMillisecondsSinceEpoch(list[i].soldAt))}"), trailing: Text("+${NumberFormat('#,###').format(list[i].totalPrice)}", style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)))));
   }
 
-  Widget _buildStaffPerformanceTab() {
-    return const StaffPerformanceView();
+  Widget _buildRepairDetail() {
+    final list = _repairs.where((r) => r.status >= 3 && _inRange(r.deliveredAt ?? r.createdAt)).toList();
+    return ListView.builder(padding: const EdgeInsets.all(16), itemCount: list.length, itemBuilder: (ctx, i) => Card(margin: const EdgeInsets.only(bottom: 12), child: ListTile(title: Text(list[i].model, style: const TextStyle(fontWeight: FontWeight.bold)), subtitle: Text(list[i].customerName), trailing: Text("+${NumberFormat('#,###').format(list[i].price)}", style: const TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold)))));
   }
 
-  Widget _buildAttendanceTab() {
-    return const AttendanceView();
-  }
-
-  Widget _buildPayrollTab() {
-    return const PayrollView();
-  }
-
-  Widget _buildDebtTab() {
-    return const DebtView();
+  Widget _buildExpenseDetail() {
+    final list = _expenses.where((e) => _inRange(e['date'] as int)).toList();
+    return ListView.builder(padding: const EdgeInsets.all(16), itemCount: list.length, itemBuilder: (ctx, i) => Card(margin: const EdgeInsets.only(bottom: 12), child: ListTile(title: Text(list[i]['title'] ?? 'Chi phí', style: const TextStyle(fontWeight: FontWeight.bold)), subtitle: Text(list[i]['category'] ?? 'Khác'), trailing: Text("-${NumberFormat('#,###').format(list[i]['amount'])}", style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)))));
   }
 }
-
-

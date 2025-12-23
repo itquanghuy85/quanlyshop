@@ -35,7 +35,6 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
   final passCtrl = TextEditingController();
   final priceCtrl = TextEditingController();
 
-  // Hệ thống FocusNode để tự động nhảy dòng
   final phoneF = FocusNode();
   final nameF = FocusNode();
   final modelF = FocusNode();
@@ -83,6 +82,18 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
     }
   }
 
+  // LOGIC XỬ LÝ TIỀN TỆ QUY ƯỚC "K"
+  int _parseKValue(String text) {
+    if (text.isEmpty) return 0;
+    final clean = text.replaceAll(RegExp(r'[^\d]'), '');
+    int value = int.tryParse(clean) ?? 0;
+    // Nếu nhập dưới 100.000 thì mặc định hiểu là hàng nghìn (quy ước K)
+    if (value > 0 && value < 100000) {
+      return value * 1000;
+    }
+    return value;
+  }
+
   Future<Repair?> _onlySave() async {
     if (_saving) return null;
     if (phoneCtrl.text.isEmpty || modelCtrl.text.isEmpty) {
@@ -93,7 +104,6 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
     setState(() => _saving = true);
     try {
       final now = DateTime.now().millisecondsSinceEpoch;
-      final price = int.tryParse(priceCtrl.text.replaceAll('.', '')) ?? 0;
       final String uniqueId = "${now}_${phoneCtrl.text}";
 
       final r = Repair(
@@ -105,15 +115,14 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
         accessories: "${accCtrl.text} | MK: ${passCtrl.text}".toUpperCase(),
         address: addressCtrl.text.toUpperCase(),
         paymentMethod: _paymentMethod,
-        price: price,
+        price: _parseKValue(priceCtrl.text), // Chuyển đổi K thành tiền thật khi lưu
         createdAt: now,
         imagePath: _images.map((e) => e.path).join(','),
         createdBy: FirebaseAuth.instance.currentUser?.email?.split('@').first.toUpperCase() ?? "NV",
       );
 
       await db.upsertRepair(r);
-      final docId = await FirestoreService.addRepair(r);
-      if (docId != null) { r.isSynced = true; await db.upsertRepair(r); }
+      await FirestoreService.addRepair(r);
       return r;
     } catch (e) {
       NotificationService.showSnackBar("Lỗi: $e", color: Colors.red);
@@ -139,7 +148,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFF),
       appBar: AppBar(
-        title: const Text("TIẾP NHẬN SIÊU TỐC", style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text("TIẾP NHẬN MÁY", style: TextStyle(fontWeight: FontWeight.bold)),
         actions: [IconButton(onPressed: _saveAndPrint, icon: const Icon(Icons.print, color: Colors.blueAccent))],
       ),
       body: _saving ? const Center(child: CircularProgressIndicator()) : SingleChildScrollView(
@@ -163,7 +172,15 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
             _sectionTitle("3. TÌNH TRẠNG & GIÁ"),
             _quick(commonIssues, issueCtrl, priceF),
             _input(issueCtrl, "LỖI MÁY *", Icons.build, caps: true, f: issueF, next: priceF),
-            _input(priceCtrl, "GIÁ DỰ KIẾN (VNĐ)", Icons.monetization_on, type: TextInputType.number, formatters: [CurrencyInputFormatter()], f: priceF, next: passF),
+            
+            // Ô NHẬP GIÁ VỚI QUY ƯỚC K
+            _input(
+              priceCtrl, "GIÁ DỰ KIẾN", Icons.monetization_on, 
+              type: TextInputType.number, 
+              f: priceF, next: passF,
+              suffix: "k", // Hiện chữ k đằng sau để nhắc nhở
+              hint: "Ví dụ: 500 = 500.000"
+            ),
             
             ExpansionTile(
               title: const Text("THÔNG TIN THÊM", style: TextStyle(fontSize: 12, color: Colors.blueGrey)),
@@ -191,16 +208,17 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
 
   Widget _sectionTitle(String title) => Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Align(alignment: Alignment.centerLeft, child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey, fontSize: 12))));
 
-  Widget _input(TextEditingController c, String l, IconData i, {bool caps = false, TextInputType type = TextInputType.text, FocusNode? f, FocusNode? next, List<TextInputFormatter>? formatters}) {
+  Widget _input(TextEditingController c, String l, IconData i, {bool caps = false, TextInputType type = TextInputType.text, FocusNode? f, FocusNode? next, String? suffix, String? hint}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: TextField(
         controller: c, focusNode: f, keyboardType: type,
         textCapitalization: caps ? TextCapitalization.characters : TextCapitalization.none,
-        inputFormatters: formatters,
         onSubmitted: (_) { if (next != null) FocusScope.of(context).requestFocus(next); },
         decoration: InputDecoration(
-          labelText: l, prefixIcon: Icon(i, size: 20, color: Colors.blueAccent),
+          labelText: l, hintText: hint, prefixIcon: Icon(i, size: 20, color: Colors.blueAccent),
+          suffixText: suffix,
+          suffixStyle: const TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           filled: true, fillColor: Colors.white,
         ),
@@ -239,29 +257,5 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
         }, child: Container(width: 70, height: 70, decoration: BoxDecoration(color: Colors.blue.shade50, borderRadius: BorderRadius.circular(10)), child: const Icon(Icons.add_a_photo, color: Colors.blueAccent))),
       ]),
     );
-  }
-}
-
-class CurrencyInputFormatter extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
-    if (newValue.text.isEmpty) return newValue;
-    final String cleanedText = newValue.text.replaceAll(RegExp(r'[^\d]'), '');
-    if (cleanedText.isEmpty) return const TextEditingValue(text: '', selection: TextSelection.collapsed(offset: 0));
-    final number = int.tryParse(cleanedText) ?? 0;
-    // Tự động thêm .000 nếu người dùng nhập số nhỏ (ví dụ gõ 500 -> 500.000)
-    int finalNumber = number;
-    if (number > 0 && number < 10000) finalNumber = number * 1000;
-    final formatted = _formatCurrency(finalNumber);
-    return TextEditingValue(text: formatted, selection: TextSelection.collapsed(offset: formatted.length));
-  }
-  String _formatCurrency(int number) {
-    final String numberStr = number.toString();
-    final StringBuffer buffer = StringBuffer();
-    for (int i = numberStr.length - 1, count = 0; i >= 0; i--, count++) {
-      buffer.write(numberStr[i]);
-      if ((count + 1) % 3 == 0 && i > 0) buffer.write('.');
-    }
-    return buffer.toString().split('').reversed.join('');
   }
 }

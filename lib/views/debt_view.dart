@@ -3,10 +3,10 @@ import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../data/db_helper.dart';
 import '../services/user_service.dart';
+import '../services/notification_service.dart';
 
 class DebtView extends StatefulWidget {
   const DebtView({super.key});
-
   @override
   State<DebtView> createState() => _DebtViewState();
 }
@@ -18,11 +18,6 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
   bool _isLoading = true;
   bool _isAdmin = false;
 
-  // Theme colors cho màn hình quản lý nợ
-  final Color _primaryColor = Colors.red; // Màu đỏ cho debt management
-  final Color _accentColor = Colors.red.shade600;
-  final Color _backgroundColor = const Color(0xFFF8FAFF);
-
   @override
   void initState() {
     super.initState();
@@ -32,25 +27,19 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
   }
 
   Future<void> _loadRole() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
-    final role = await UserService.getUserRole(uid);
+    final perms = await UserService.getCurrentUserPermissions();
     if (!mounted) return;
-    setState(() {
-      _isAdmin = role == 'admin';
-    });
+    setState(() => _isAdmin = perms['allowViewDebts'] ?? false);
   }
 
   Future<void> _refresh() async {
     setState(() => _isLoading = true);
     final data = await db.getAllDebts();
-    setState(() {
-      _debts = data;
-      _isLoading = false;
-    });
+    if (!mounted) return;
+    setState(() { _debts = data; _isLoading = false; });
   }
 
-  void _addDebt() {
+  void _showAddDebtDialog() {
     final nameC = TextEditingController();
     final phoneC = TextEditingController();
     final amountC = TextEditingController();
@@ -60,43 +49,50 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text("TẠO KHOẢN NỢ MỚI"),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text("TẠO SỔ NỢ MỚI", style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2962FF))),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               DropdownButtonFormField<String>(
                 value: type,
-                items: const [
-                  DropdownMenuItem(value: 'CUSTOMER', child: Text("KHÁCH NỢ SHOP")),
-                  DropdownMenuItem(value: 'SUPPLIER', child: Text("SHOP NỢ NCC")),
-                ],
+                decoration: const InputDecoration(labelText: "Loại đối tượng"),
+                items: const [DropdownMenuItem(value: 'CUSTOMER', child: Text("KHÁCH NỢ SHOP")), DropdownMenuItem(value: 'SUPPLIER', child: Text("SHOP NỢ NCC"))],
                 onChanged: (v) => type = v!,
               ),
-              TextField(controller: nameC, decoration: const InputDecoration(labelText: "Họ và tên"), textCapitalization: TextCapitalization.characters),
-              TextField(controller: phoneC, decoration: const InputDecoration(labelText: "Số điện thoại"), keyboardType: TextInputType.phone),
-              TextField(controller: amountC, decoration: const InputDecoration(labelText: "Tổng số tiền nợ", suffixText: ".000 đ"), keyboardType: TextInputType.number),
-              TextField(controller: noteC, decoration: const InputDecoration(labelText: "Lý do nợ")),
+              const SizedBox(height: 12),
+              _input(nameC, "Họ tên", Icons.person, caps: true),
+              _input(phoneC, "Số điện thoại", Icons.phone, type: TextInputType.phone),
+              _input(amountC, "Số tiền nợ (VNĐ)", Icons.money, type: TextInputType.number, isMoney: true),
+              _input(noteC, "Lý do / Ghi chú", Icons.note),
             ],
           ),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("HỦY")),
-          ElevatedButton(onPressed: () async {
-            if (nameC.text.isEmpty || amountC.text.isEmpty) return;
-            await db.insertDebt({
-              'personName': nameC.text.toUpperCase(),
-              'phone': phoneC.text,
-              'totalAmount': (int.tryParse(amountC.text) ?? 0) * 1000,
-              'type': type,
-              'status': 'NỢ',
-              'createdAt': DateTime.now().millisecondsSinceEpoch,
-              'note': noteC.text,
-            });
-            if (!mounted) return;
-            Navigator.pop(ctx);
-            _refresh();
-          }, child: const Text("LƯU SỔ")),
+          ElevatedButton(
+            onPressed: () async {
+              if (nameC.text.isEmpty || amountC.text.isEmpty) return;
+              int amount = int.tryParse(amountC.text.replaceAll('.', '')) ?? 0;
+              if (amount < 10000) amount *= 1000;
+
+              await db.insertDebt({
+                'personName': nameC.text.toUpperCase(),
+                'phone': phoneC.text,
+                'totalAmount': amount,
+                'paidAmount': 0,
+                'type': type,
+                'status': 'NỢ',
+                'createdAt': DateTime.now().millisecondsSinceEpoch,
+                'note': noteC.text,
+              });
+              Navigator.pop(ctx);
+              _refresh();
+              NotificationService.showSnackBar("Đã thêm vào sổ nợ", color: Colors.green);
+            },
+            child: const Text("LƯU SỔ"),
+          ),
         ],
       ),
     );
@@ -108,14 +104,15 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text("CẬP NHẬT TRẢ NỢ"),
-        content: TextField(controller: payC, decoration: const InputDecoration(labelText: "Số tiền trả thêm", suffixText: ".000 đ"), keyboardType: TextInputType.number, autofocus: true),
+        content: TextField(controller: payC, keyboardType: TextInputType.number, autofocus: true, decoration: const InputDecoration(labelText: "Nhập số tiền trả thêm", suffixText: ".000 đ")),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("HỦY")),
           ElevatedButton(onPressed: () async {
-            await db.updateDebtPaid(debt['id'], (int.tryParse(payC.text) ?? 0) * 1000);
-            if (!mounted) return;
+            int pay = (int.tryParse(payC.text) ?? 0) * 1000;
+            await db.updateDebtPaid(debt['id'], pay);
             Navigator.pop(ctx);
             _refresh();
+            NotificationService.showSnackBar("Đã cập nhật tiền nợ", color: Colors.blue);
           }, child: const Text("XÁC NHẬN")),
         ],
       ),
@@ -125,127 +122,110 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _backgroundColor,
+      backgroundColor: const Color(0xFFF8FAFF),
       appBar: AppBar(
-        backgroundColor: _primaryColor,
-        foregroundColor: Colors.white,
-        elevation: 2,
-        title: const Text("SỔ CÔNG NỢ", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        title: const Text("QUẢN LÝ CÔNG NỢ", style: TextStyle(fontWeight: FontWeight.bold)),
         bottom: TabBar(
           controller: _tabController,
+          labelColor: const Color(0xFF2962FF),
+          indicatorColor: const Color(0xFF2962FF),
           tabs: const [Tab(text: "KHÁCH NỢ"), Tab(text: "NỢ NCC")],
         ),
       ),
-      body: TabBarView(
+      body: _isLoading ? const Center(child: CircularProgressIndicator()) : TabBarView(
         controller: _tabController,
-        children: [
-          _buildDebtList('CUSTOMER'),
-          _buildDebtList('SUPPLIER'),
-        ],
+        children: [_buildDebtList('CUSTOMER'), _buildDebtList('SUPPLIER')],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _addDebt,
-        backgroundColor: _accentColor,
-        child: const Icon(Icons.note_add_rounded, color: Colors.white),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _showAddDebtDialog,
+        label: const Text("THÊM NỢ"),
+        icon: const Icon(Icons.add_card),
+        backgroundColor: const Color(0xFF2962FF),
       ),
     );
   }
 
   Widget _buildDebtList(String type) {
     final list = _debts.where((d) => d['type'] == type).toList();
-    if (_isLoading) return const Center(child: CircularProgressIndicator());
-    if (list.isEmpty) return const Center(child: Text("Không có dữ liệu nợ"));
+    if (list.isEmpty) return const Center(child: Text("Không có dữ liệu công nợ"));
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(15),
-      itemCount: list.length,
-      itemBuilder: (ctx, i) {
-        final d = list[i];
-        final remaining = d['totalAmount'] - d['paidAmount'];
-        final isPaid = d['status'] == 'ĐÃ TRẢ';
+    int total = list.fold(0, (sum, d) => sum + (d['totalAmount'] as int) - (d['paidAmount'] as int? ?? 0));
 
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-          child: ListTile(
-            title: Text(d['personName'], style: const TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text("Tổng nợ: ${NumberFormat('#,###').format(d['totalAmount'])} đ"),
-                Text("Đã trả: ${NumberFormat('#,###').format(d['paidAmount'])} đ", style: const TextStyle(color: Colors.green, fontSize: 11)),
-                if (remaining > 0) Text("CÒN LẠI: ${NumberFormat('#,###').format(remaining)} đ", style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 12)),
-              ],
-            ),
-            trailing: isPaid 
-              ? const Icon(Icons.check_circle, color: Colors.green)
-              : ElevatedButton(
-                  onPressed: () => _payDebt(d),
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 10)),
-                  child: const Text("TRẢ NỢ", style: TextStyle(fontSize: 10)),
-                ),
-            onLongPress: () async {
-              _confirmDeleteDebt(d);
-            },
+    return Column(
+      children: [
+        _summaryHeader(type == 'CUSTOMER' ? "TỔNG KHÁCH ĐANG NỢ" : "TỔNG SHOP ĐANG NỢ", total, type == 'CUSTOMER' ? Colors.redAccent : Colors.blueAccent),
+        Expanded(
+          child: ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: list.length,
+            itemBuilder: (ctx, i) => _debtCard(list[i]),
           ),
-        );
-      },
+        ),
+      ],
     );
   }
 
-  void _confirmDeleteDebt(Map<String, dynamic> d) {
-    if (!_isAdmin) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Chỉ tài khoản quản lý mới được xóa sổ nợ')));
-      return;
-    }
-    final passC = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text("XÓA KHOẢN NỢ"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
+  Widget _summaryHeader(String label, int amount, Color color) {
+    return Container(
+      width: double.infinity, margin: const EdgeInsets.all(16), padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(20), border: Border.all(color: color.withOpacity(0.3))),
+      child: Column(children: [Text(label, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 12)), const SizedBox(height: 4), Text("${NumberFormat('#,###').format(amount)} đ", style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 24))]),
+    );
+  }
+
+  Widget _debtCard(Map<String, dynamic> d) {
+    final int total = d['totalAmount'];
+    final int paid = d['paidAmount'] ?? 0;
+    final int remain = total - paid;
+    final double progress = total > 0 ? paid / total : 0;
+    final bool isPaid = d['status'] == 'ĐÃ TRẢ' || remain <= 0;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("Bạn muốn xóa nợ của ${d['personName']}?"),
-            const SizedBox(height: 15),
-            TextField(
-              controller: passC,
-              obscureText: true,
-              decoration: const InputDecoration(
-                hintText: "Nhập lại mật khẩu tài khoản quản lý",
-                border: OutlineInputBorder(),
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(d['personName'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(color: isPaid ? Colors.green.shade50 : Colors.red.shade50, borderRadius: BorderRadius.circular(10)),
+                  child: Text(isPaid ? "ĐÃ TRẢ" : "CÒN NỢ", style: TextStyle(color: isPaid ? Colors.green : Colors.red, fontWeight: FontWeight.bold, fontSize: 10)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text("Lý do: ${d['note'] ?? 'Không có ghi chú'}", style: const TextStyle(color: Colors.blueGrey, fontSize: 12)),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text("Đã trả: ${NumberFormat('#,###').format(paid)}", style: const TextStyle(fontSize: 12, color: Colors.green, fontWeight: FontWeight.bold)),
+                Text("Còn lại: ${NumberFormat('#,###').format(remain)}", style: const TextStyle(fontSize: 12, color: Colors.red, fontWeight: FontWeight.bold)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            ClipRRect(borderRadius: BorderRadius.circular(10), child: LinearProgressIndicator(value: progress, minHeight: 8, backgroundColor: Colors.grey.shade200, color: Colors.green)),
+            if (!isPaid) Padding(
+              padding: const EdgeInsets.only(top: 16),
+              child: SizedBox(width: double.infinity, child: ElevatedButton(onPressed: () => _payDebt(d), style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), child: const Text("CẬP NHẬT TRẢ TIỀN", style: TextStyle(fontWeight: FontWeight.bold)))),
             ),
           ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("HỦY")),
-          ElevatedButton(
-            onPressed: () async {
-              final user = FirebaseAuth.instance.currentUser;
-              if (user == null || user.email == null) {
-                if (!mounted) return;
-                Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Không xác định được tài khoản hiện tại')));
-                return;
-              }
-              try {
-                final cred = EmailAuthProvider.credential(email: user.email!, password: passC.text);
-                await user.reauthenticateWithCredential(cred);
-                await db.deleteDebt(d['id']);
-                if (!mounted) return;
-                Navigator.pop(ctx);
-                _refresh();
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ĐÃ XÓA SỔ NỢ')));
-              } catch (_) {
-                if (!mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Mật khẩu không đúng')));
-              }
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text("XÓA NGAY"),
-          )
-        ],
+      ),
+    );
+  }
+
+  Widget _input(TextEditingController c, String l, IconData i, {bool caps = false, TextInputType type = TextInputType.text, bool isMoney = false}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: TextField(
+        controller: c, keyboardType: type, textCapitalization: caps ? TextCapitalization.characters : TextCapitalization.none,
+        decoration: InputDecoration(labelText: l, prefixIcon: Icon(i, size: 20), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
       ),
     );
   }

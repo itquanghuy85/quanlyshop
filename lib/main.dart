@@ -18,7 +18,6 @@ Future<void> main() async {
   await runZonedGuarded<Future<void>>(() async {
     WidgetsFlutterBinding.ensureInitialized();
     
-    // SỬA LỖI: Khởi tạo tất cả các locale được hỗ trợ thay vì chỉ vi_VN
     await Future.wait([
       initializeDateFormatting('vi_VN', null),
       initializeDateFormatting('en_US', null),
@@ -60,7 +59,6 @@ class _MyAppState extends State<MyApp> {
         _locale = Locale(languageCode);
       });
     } else {
-      // Mặc định là tiếng Việt nếu chưa lưu
       _locale = const Locale('vi');
     }
   }
@@ -69,7 +67,6 @@ class _MyAppState extends State<MyApp> {
     setState(() {
       _locale = locale;
     });
-    // Lưu vào SharedPreferences để lần sau mở app vẫn giữ ngôn ngữ này
     SharedPreferences.getInstance().then((p) => p.setString('app_language', locale.languageCode));
   }
 
@@ -79,10 +76,7 @@ class _MyAppState extends State<MyApp> {
       title: 'Quan Ly Shop',
       debugShowCheckedModeBanner: false,
       scaffoldMessengerKey: NotificationService.messengerKey,
-      
-      // QUAN TRỌNG: Gán locale hiện tại cho MaterialApp
       locale: _locale,
-      
       theme: ThemeData(
         useMaterial3: true,
         fontFamily: 'Roboto', 
@@ -100,7 +94,8 @@ class _MyAppState extends State<MyApp> {
           centerTitle: true,
           titleTextStyle: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),
         ),
-        cardTheme: const CardThemeData(
+        // SỬA LỖI: Gỡ bỏ const ở đây
+        cardTheme: CardThemeData(
           elevation: 2,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           color: Colors.white,
@@ -115,20 +110,16 @@ class _MyAppState extends State<MyApp> {
           labelStyle: const TextStyle(color: Colors.blueGrey, fontSize: 14),
         ),
       ),
-      
       supportedLocales: const [
         Locale('vi', ''),
         Locale('en', ''),
       ],
-      
       localizationsDelegates: const [
         AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      
-      // Đảm bảo app hiển thị đúng ngôn ngữ ngay cả khi chưa load xong SharedPreferences
       localeResolutionCallback: (locale, supportedLocales) {
         for (var supportedLocale in supportedLocales) {
           if (supportedLocale.languageCode == locale?.languageCode) {
@@ -137,7 +128,6 @@ class _MyAppState extends State<MyApp> {
         }
         return supportedLocales.first;
       },
-      
       home: AuthGate(setLocale: setLocale),
     );
   }
@@ -185,7 +175,6 @@ class _AuthGateState extends State<AuthGate> {
             }
             
             if (roleSnap.hasError || !roleSnap.hasData) {
-              // Tránh logout loop nếu có lỗi role
               return HomeView(role: 'user', setLocale: widget.setLocale);
             }
             
