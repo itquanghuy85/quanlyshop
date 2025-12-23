@@ -16,6 +16,9 @@ import '../data/db_helper.dart';
 import '../services/firestore_service.dart';
 import '../services/user_service.dart';
 import '../services/audit_service.dart';
+import '../services/unified_printer_service.dart';
+import '../services/bluetooth_printer_service.dart';
+import '../widgets/printer_selection_dialog.dart';
 
 class SaleDetailView extends StatefulWidget {
   final SaleOrder sale;
@@ -123,54 +126,55 @@ class _SaleDetailViewState extends State<SaleDetailView> {
   }
 
   Future<void> _printWifi() async {
-    final prefs = await SharedPreferences.getInstance();
-    final ip = prefs.getString('printer_ip')?.trim();
-    if (ip == null || ip.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("CHƯA CÀI ĐẶT IP MÁY IN!")));
-      return;
-    }
+    // Show printer selection dialog
+    final printerConfig = await showPrinterSelectionDialog(context);
+    if (printerConfig == null) return; // User cancelled
+
+    // Extract printer configuration
+    final printerType = printerConfig['type'] as PrinterType?;
+    final bluetoothPrinter = printerConfig['bluetoothPrinter'] as BluetoothPrinterConfig?;
+    final wifiIp = printerConfig['wifiIp'] as String?;
+
     try {
-      const PaperSize paper = PaperSize.mm58;
-      final profile = await CapabilityProfile.load();
-      final printer = NetworkPrinter(paper, profile);
+      final saleData = {
+        'customerName': s.customerName,
+        'customerPhone': s.phone,
+        'customerAddress': s.address,
+        'productNames': s.productNames,
+        'productImeis': s.productImeis,
+        'warranty': s.warranty ?? 'KO BH',
+        'sellerName': s.sellerName,
+        'soldAt': s.soldAt,
+        'totalPrice': s.totalPrice,
+        'firestoreId': s.firestoreId ?? s.id.toString(),
+        'shopName': _shopName,
+        'shopAddr': _shopAddr,
+        'shopPhone': _shopPhone,
+      };
 
-      final PosPrintResult res = await printer.connect(ip, port: 9100);
-      if (res == PosPrintResult.success) {
-        printer.text(_toNoSign(_shopName), styles: const PosStyles(align: PosAlign.center, bold: true));
-        printer.text(_toNoSign(_shopAddr), styles: const PosStyles(align: PosAlign.center));
-        printer.text("SDT: ${_toNoSign(_shopPhone)}", styles: const PosStyles(align: PosAlign.center));
-        printer.hr();
-        printer.text("HOA DON BAN LE", styles: const PosStyles(align: PosAlign.center, bold: true));
-        printer.text("Khach: ${_toNoSign(s.customerName)}");
-        printer.text("Sdt: ${_toNoSign(s.phone)}");
-        printer.text("Dia chi: ${_toNoSign(s.address)}");
-        printer.text("Hang: ${_toNoSign(s.productNames)}");
-        printer.text("IMEI: ${_toNoSign(s.productImeis)}");
-        printer.text("BH: ${_toNoSign((s.warranty ?? 'KO BH'))}");
-        printer.text("Nhan vien: ${_toNoSign(s.sellerName)}");
-        printer.text("Thoi gian: ${_fmtDate(s.soldAt)}");
-        printer.hr();
-        printer.text("TONG: ${NumberFormat('#,###').format(s.totalPrice)} VND", styles: const PosStyles(bold: true));
-        printer.qrcode(s.firestoreId ?? s.id.toString(), size: QRSize.Size4, cor: QRCorrection.L);
-        printer.feed(3);
-        printer.cut();
-        printer.disconnect();
+      final success = await UnifiedPrinterService.printSaleReceipt(
+        saleData,
+        PaperSize.mm58,
+        printerType: printerType,
+        bluetoothPrinter: bluetoothPrinter,
+        wifiIp: wifiIp,
+      );
 
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ĐÃ GỬI LỆNH IN HÓA ĐƠN TỚI MÁY IN")));
-        }
-      } else {
-        printer.disconnect();
-        if (mounted) {
+      if (mounted) {
+        if (success) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("IN HÓA ĐƠN THẤT BẠI: ${res.msg}. Vui lòng kiểm tra lại IP và kết nối mạng.")),
+            const SnackBar(content: Text('Đã in hóa đơn thành công!')),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('In thất bại! Vui lòng kiểm tra cài đặt máy in.')),
           );
         }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("LỖI KHI IN HÓA ĐƠN: $e")),
+          SnackBar(content: Text('Lỗi khi in: $e')),
         );
       }
     }

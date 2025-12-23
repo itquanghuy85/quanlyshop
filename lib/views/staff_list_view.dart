@@ -9,6 +9,7 @@ import 'package:intl/intl.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../services/user_service.dart';
 import '../data/db_helper.dart';
+import '../services/storage_service.dart';
 import '../models/repair_model.dart';
 import '../models/sale_order_model.dart';
 import 'repair_detail_view.dart';
@@ -119,8 +120,9 @@ class _StaffListViewState extends State<StaffListView> {
   bool get _canManageStaff => _isSuperAdmin || _currentRole == 'admin' || _currentRole == 'owner';
 
   Future<void> _generateInviteCode() async {
+    final messenger = ScaffoldMessenger.of(context);
     if (_currentShopId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(content: Text('Không tìm thấy thông tin shop')),
       );
       return;
@@ -130,15 +132,15 @@ class _StaffListViewState extends State<StaffListView> {
     try {
       final code = await UserService.createInviteCode(_currentShopId!);
       setState(() => _currentInviteCode = code);
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(content: Text('Đã tạo mã mời mới!')),
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(content: Text('Lỗi tạo mã mời: $e')),
       );
     } finally {
-      setState(() => _generatingInvite = false);
+      if (mounted) setState(() => _generatingInvite = false);
     }
   }
 
@@ -198,8 +200,9 @@ class _StaffListViewState extends State<StaffListView> {
                       IconButton(
                         icon: const Icon(Icons.copy, color: Colors.blue),
                         onPressed: () async {
+                          final messenger = ScaffoldMessenger.of(context);
                           await Clipboard.setData(ClipboardData(text: _currentInviteCode!));
-                          ScaffoldMessenger.of(context).showSnackBar(
+                          messenger.showSnackBar(
                             const SnackBar(content: Text('Đã sao chép mã mời vào clipboard')),
                           );
                         },
@@ -275,6 +278,9 @@ class _StaffListViewState extends State<StaffListView> {
                 errorText = null;
               });
 
+              final messenger = ScaffoldMessenger.of(context);
+              final navigator = Navigator.of(ctx);
+
               try {
                 final callable = FirebaseFunctions.instance.httpsCallable('createStaffAccount');
                 final payload = {
@@ -294,8 +300,8 @@ class _StaffListViewState extends State<StaffListView> {
                 final createdShop =
                     resultData is Map && resultData['shopId'] != null ? resultData['shopId'] : (_currentShopId ?? '');
                 if (!mounted) return;
-                Navigator.of(ctx).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
+                navigator.pop();
+                messenger.showSnackBar(
                   SnackBar(content: Text('Đã tạo tài khoản nhân viên cho ${displayName.toUpperCase()} (shop: $createdShop)')),
                 );
               } on FirebaseFunctionsException catch (e) {
@@ -634,16 +640,31 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter> with SingleT
   }
 
   Future<void> _saveStaffInfo() async {
+    final messenger = ScaffoldMessenger.of(context);
     try {
+      // Upload photo if it's a local file
+      String? photoUrl = _photoPath;
+      if (_photoPath != null && !_photoPath!.startsWith('http')) {
+        print('Uploading photo: $_photoPath');
+        photoUrl = await StorageService.uploadImage(_photoPath!, 'user_photos');
+        if (photoUrl == null) {
+          messenger.showSnackBar(const SnackBar(content: Text("Lỗi khi upload ảnh - kiểm tra kết nối internet")));
+          return;
+        }
+        print('Photo uploaded successfully: $photoUrl');
+      }
+
+      print('Updating user info for ${widget.uid}');
       await UserService.updateUserInfo(
         uid: widget.uid,
         name: nameCtrl.text,
         phone: phoneCtrl.text,
         address: addressCtrl.text,
         role: _selectedRole,
-        photoUrl: _photoPath,
+        photoUrl: photoUrl,
       );
 
+      print('Updating user permissions for ${widget.uid}');
       // Lưu cấu hình phân quyền hiển thị nội dung
       await UserService.updateUserPermissions(
         uid: widget.uid,
@@ -662,9 +683,10 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter> with SingleT
       );
 
       setState(() => _isEditing = false);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ĐÃ CẬP NHẬT HỒ SƠ NHÂN VIÊN!")));
+      messenger.showSnackBar(const SnackBar(content: Text("ĐÃ CẬP NHẬT HỒ SƠ NHÂN VIÊN!")));
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Lỗi khi cập nhật: $e")));
+      print('Error saving staff info: $e');
+      messenger.showSnackBar(SnackBar(content: Text("Lỗi khi cập nhật: $e")));
     }
   }
 
@@ -673,15 +695,16 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter> with SingleT
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Không xác định được cửa hàng hiện tại")));
       return;
     }
+    final messenger = ScaffoldMessenger.of(context);
     setState(() => _assigningShop = true);
     try {
       await UserService.assignUserToCurrentShop(widget.uid);
       setState(() {
         _staffShopId = _currentUserShopId;
       });
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ĐÃ GÁN NHÂN VIÊN VÀO CỬA HÀNG CỦA BẠN")));
+      messenger.showSnackBar(const SnackBar(content: Text("ĐÃ GÁN NHÂN VIÊN VÀO CỬA HÀNG CỦA BẠN")));
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Lỗi khi gán cửa hàng: $e")));
+      messenger.showSnackBar(SnackBar(content: Text("Lỗi khi gán cửa hàng: $e")));
     } finally {
       if (mounted) setState(() => _assigningShop = false);
     }
@@ -948,12 +971,28 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter> with SingleT
       child: TextField(
         controller: ctrl,
         keyboardType: type,
-        style: const TextStyle(fontSize: 14),
+        style: const TextStyle(fontSize: 14, color: Colors.black),
         decoration: InputDecoration(
           labelText: label,
-          prefixIcon: Icon(icon, size: 18),
-          border: const OutlineInputBorder(),
+          prefixIcon: Icon(icon, size: 18, color: Colors.blueAccent),
+          border: const OutlineInputBorder(
+            borderSide: BorderSide(color: Colors.blueAccent, width: 1),
+          ),
+          enabledBorder: const OutlineInputBorder(
+            borderSide: BorderSide(color: Colors.blueAccent, width: 1),
+          ),
+          focusedBorder: const OutlineInputBorder(
+            borderSide: BorderSide(color: Colors.blueAccent, width: 2),
+          ),
+          errorBorder: const OutlineInputBorder(
+            borderSide: BorderSide(color: Colors.red, width: 1),
+          ),
+          focusedErrorBorder: const OutlineInputBorder(
+            borderSide: BorderSide(color: Colors.red, width: 2),
+          ),
           contentPadding: const EdgeInsets.all(10),
+          fillColor: Colors.white,
+          filled: true,
         ),
       ),
     );

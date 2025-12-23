@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 
 class UserService {
     // Validate input fields
@@ -9,8 +10,10 @@ class UserService {
     }
 
     static String? validatePhone(String phone) {
-      final phoneReg = RegExp(r'^(0[0-9]{9,10})$');
-      if (!phoneReg.hasMatch(phone)) return 'Số điện thoại không hợp lệ';
+      final cleaned = phone.replaceAll(RegExp(r'[^\d]'), '');
+      if (cleaned.length < 9 || cleaned.length > 12) {
+        return 'Số điện thoại phải có 9-12 chữ số';
+      }
       return null;
     }
 
@@ -21,6 +24,11 @@ class UserService {
 
   static final _db = FirebaseFirestore.instance;
   static String? _cachedShopId;
+
+  // Method để cập nhật cache shopId từ bên ngoài (dùng cho sync)
+  static void updateCachedShopId(String? shopId) {
+    _cachedShopId = shopId;
+  }
 
   static bool _isSuperAdmin(User? user) {
     return user?.email == 'admin@huluca.com';
@@ -34,7 +42,6 @@ class UserService {
     final isOwner = role == 'owner';
     final isManager = role == 'manager';
     final isEmployee = role == 'employee';
-    final isTechnician = role == 'technician';
     final isAdmin = role == 'admin'; // Thêm case cho admin
     
     return {
@@ -62,19 +69,31 @@ class UserService {
   }
 
   static Future<String?> getCurrentShopId() async {
-    if (_cachedShopId != null) return _cachedShopId;
+    if (_cachedShopId != null) {
+      debugPrint("getCurrentShopId: trả về cache $_cachedShopId");
+      return _cachedShopId;
+    }
 
     final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser == null) return null;
-    if (_isSuperAdmin(currentUser)) return null; // Super admin không bị khóa bởi shopId
+    if (currentUser == null) {
+      debugPrint("getCurrentShopId: không có currentUser");
+      return null;
+    }
+    if (_isSuperAdmin(currentUser)) {
+      debugPrint("getCurrentShopId: super admin, trả về null");
+      return null; // Super admin không bị khóa bởi shopId
+    }
 
     try {
+      debugPrint("getCurrentShopId: lấy dữ liệu user ${currentUser.uid}");
       final doc = await _db.collection('users').doc(currentUser.uid).get();
       final data = doc.data();
       final shopId = data != null ? data['shopId'] as String? : null;
       _cachedShopId = shopId;
+      debugPrint("getCurrentShopId: shopId = $shopId");
       return shopId;
-    } catch (_) {
+    } catch (e) {
+      debugPrint("getCurrentShopId: lỗi $e");
       return null;
     }
   }
@@ -83,17 +102,19 @@ class UserService {
   static Future<String> getUserRole(String uid) async {
     // CAO KIẾN: Nhận diện Admin tối cao qua Email
     final currentUser = FirebaseAuth.instance.currentUser;
+    debugPrint("getUserRole: currentUser email = ${currentUser?.email}");
     if (currentUser?.email == 'admin@huluca.com') {
+      debugPrint("getUserRole: returning admin for super admin");
       return 'admin'; // Luôn là Admin nếu dùng email này
     }
 
     try {
       final doc = await _db.collection('users').doc(uid).get();
-      if (doc.exists) {
-        return doc.data()?['role'] ?? 'user';
-      }
-      return 'user';
+      final role = doc.data()?['role'] ?? 'user';
+      debugPrint("getUserRole: role from firestore = $role");
+      return role;
     } catch (e) {
+      debugPrint("getUserRole: error $e, returning user");
       return 'user';
     }
   }
@@ -170,7 +191,7 @@ class UserService {
     String? shopId = data['shopId'];
 
     // Nếu chưa có shopId và không phải super admin => tạo 1 shop trùng với uid
-    if (!isSuperAdmin && (shopId == null || (shopId is String && shopId.trim().isEmpty))) {
+    if (!isSuperAdmin && (shopId == null || shopId.trim().isEmpty)) {
       shopId = uid;
       await _db.collection('shops').doc(shopId).set({
         'ownerUid': uid,

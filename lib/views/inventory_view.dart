@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../l10n/app_localizations.dart';
 import '../data/db_helper.dart';
 import '../models/product_model.dart';
 import 'supplier_view.dart';
@@ -40,6 +41,8 @@ class _InventoryViewState extends State<InventoryView> {
   final Color _accentColor = Colors.green.shade600;
   final Color _backgroundColor = const Color(0xFFF8FAFF);
 
+  AppLocalizations get l10n => AppLocalizations.of(context)!;
+
   @override
   void initState() {
     super.initState();
@@ -72,7 +75,7 @@ class _InventoryViewState extends State<InventoryView> {
   Future<void> _confirmDeleteProduct(Product p) async {
     if (!_isAdmin) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Chỉ tài khoản QUẢN LÝ mới được xóa hàng khỏi kho')), 
+        SnackBar(content: Text(l10n.onlyAdminCanDelete)), 
       );
       return;
     }
@@ -80,11 +83,11 @@ class _InventoryViewState extends State<InventoryView> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text("XÓA SẢN PHẨM KHỎI KHO"),
-        content: Text("Bạn chắc chắn muốn xóa \"${p.name}\" khỏi danh sách kho? Hành động này không ảnh hưởng đến các đơn đã bán."),
+        title: Text(l10n.deleteProductFromInventory),
+        content: Text(l10n.confirmDeleteProduct(p.name)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("HỦY")),
-          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text("XÓA")),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel)),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: Text(l10n.delete)),
         ],
       ),
     );
@@ -97,7 +100,7 @@ class _InventoryViewState extends State<InventoryView> {
       await db.deleteProduct(p.id!);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('ĐÃ XÓA SẢN PHẨM KHỎI KHO')), 
+        SnackBar(content: Text(l10n.productDeletedFromInventory)), 
       );
       _refresh();
     }
@@ -115,11 +118,11 @@ class _InventoryViewState extends State<InventoryView> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text("XÓA NHIỀU SẢN PHẨM"),
-        content: Text("Bạn chắc chắn muốn xóa ${_selectedIds.length} sản phẩm đã chọn khỏi kho?"),
+        title: Text(l10n.deleteMultipleProducts),
+        content: Text(l10n.confirmDeleteMultipleProducts(_selectedIds.length)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("HỦY")),
-          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text("XÓA")),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel)),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: Text(l10n.delete)),
         ],
       ),
     );
@@ -132,7 +135,7 @@ class _InventoryViewState extends State<InventoryView> {
       _selectedIds.clear();
       _selectionMode = false;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('ĐÃ XÓA CÁC SẢN PHẨM ĐÃ CHỌN')), 
+        SnackBar(content: Text(l10n.multipleProductsDeleted(_selectedIds.length))), 
       );
       _refresh();
     }
@@ -185,34 +188,34 @@ class _InventoryViewState extends State<InventoryView> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setModalState) => AlertDialog(
-          title: const Text("NHẬP HÀNG VÀO KHO"),
+          title: Text(l10n.addProductToInventory),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 DropdownButtonFormField<String>(
                   value: type,
-                  items: const [
-                    DropdownMenuItem(value: "PHONE", child: Text("ĐIỆN THOẠI")),
-                    DropdownMenuItem(value: "ACCESSORY", child: Text("PHỤ KIỆN")),
+                  items: [
+                    DropdownMenuItem(value: "PHONE", child: Text(l10n.phone)),
+                    DropdownMenuItem(value: "ACCESSORY", child: Text(l10n.accessory)),
                   ],
                   onChanged: (v) => setModalState(() => type = v!),
-                  decoration: const InputDecoration(labelText: "Loại hàng"),
+                  decoration: InputDecoration(labelText: l10n.productType),
                 ),
-                TextField(controller: nameC, decoration: const InputDecoration(labelText: "Tên máy/Linh kiện"), textCapitalization: TextCapitalization.characters),
-                TextField(controller: imeiC, decoration: const InputDecoration(labelText: "Số IMEI (Nếu có)"), textCapitalization: TextCapitalization.characters),
+                TextField(controller: nameC, decoration: InputDecoration(labelText: l10n.productName), textCapitalization: TextCapitalization.characters),
+                TextField(controller: imeiC, decoration: InputDecoration(labelText: l10n.imeiOptional), textCapitalization: TextCapitalization.characters),
                 Row(children: [
-                  Expanded(child: TextField(controller: costC, decoration: const InputDecoration(labelText: "Giá vốn", suffixText: ".000"), keyboardType: TextInputType.number)),
+                  Expanded(child: TextField(controller: costC, decoration: InputDecoration(labelText: l10n.costPrice, suffixText: ".000"), keyboardType: TextInputType.number)),
                   const SizedBox(width: 10),
-                  Expanded(child: TextField(controller: kpkPriceC, decoration: const InputDecoration(labelText: "Giá KPK", suffixText: ".000"), keyboardType: TextInputType.number)),
+                  Expanded(child: TextField(controller: kpkPriceC, decoration: InputDecoration(labelText: l10n.kpkPrice, suffixText: ".000"), keyboardType: TextInputType.number)),
                 ]),
-                TextField(controller: pkPriceC, decoration: const InputDecoration(labelText: "Giá PK", suffixText: ".000"), keyboardType: TextInputType.number),
-                TextField(controller: capacityC, decoration: const InputDecoration(labelText: "Dung lượng (ví dụ: 64GB, 128GB)"), textCapitalization: TextCapitalization.characters),
-                TextField(controller: qtyC, decoration: const InputDecoration(labelText: "Số lượng"), keyboardType: TextInputType.number),
+                TextField(controller: pkPriceC, decoration: InputDecoration(labelText: l10n.pkPrice, suffixText: ".000"), keyboardType: TextInputType.number),
+                TextField(controller: capacityC, decoration: InputDecoration(labelText: l10n.capacityExample), textCapitalization: TextCapitalization.characters),
+                TextField(controller: qtyC, decoration: InputDecoration(labelText: l10n.quantity), keyboardType: TextInputType.number),
                 const SizedBox(height: 10),
                 DropdownButtonFormField<String>(
                   value: supplier,
-                  decoration: const InputDecoration(labelText: "Nhà cung cấp (bắt buộc)"),
+                  decoration: InputDecoration(labelText: l10n.supplierRequired),
                   items: _suppliers.map((s) => DropdownMenuItem(value: s['name'] as String, child: Text(s['name']))).toList(),
                   onChanged: (v) => setModalState(() => supplier = v),
                 ),
@@ -226,17 +229,17 @@ class _InventoryViewState extends State<InventoryView> {
                       }
                     },
                     icon: const Icon(Icons.add_business, size: 18),
-                    label: const Text("Thêm NCC nhanh"),
+                    label: Text(l10n.addSupplierQuickly),
                   ),
                 ),
               ],
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("HỦY")),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text(l10n.cancel)),
             ElevatedButton(onPressed: () async {
               if (nameC.text.isEmpty || supplier == null) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("VUI LÒNG NHẬP TÊN HÀNG VÀ CHỌN NHÀ CUNG CẤP")));
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.enterProductNameAndSupplier)));
                 return;
               }
               final qty = int.tryParse(qtyC.text) ?? 1;
@@ -281,20 +284,20 @@ class _InventoryViewState extends State<InventoryView> {
     return showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text("THÊM NHÀ CUNG CẤP"),
+        title: Text(l10n.addSupplier),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(controller: nameC, decoration: const InputDecoration(labelText: "Tên NCC"), textCapitalization: TextCapitalization.characters),
-              TextField(controller: contactC, decoration: const InputDecoration(labelText: "Người bán"), textCapitalization: TextCapitalization.characters),
-              TextField(controller: phoneC, decoration: const InputDecoration(labelText: "SĐT"), keyboardType: TextInputType.phone),
-              TextField(controller: addressC, decoration: const InputDecoration(labelText: "Địa chỉ"), textCapitalization: TextCapitalization.characters),
+              TextField(controller: nameC, decoration: InputDecoration(labelText: l10n.supplierName), textCapitalization: TextCapitalization.characters),
+              TextField(controller: contactC, decoration: InputDecoration(labelText: l10n.contactPerson), textCapitalization: TextCapitalization.characters),
+              TextField(controller: phoneC, decoration: InputDecoration(labelText: l10n.phone), keyboardType: TextInputType.phone),
+              TextField(controller: addressC, decoration: InputDecoration(labelText: l10n.address), textCapitalization: TextCapitalization.characters),
             ],
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("HỦY")),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(l10n.cancel)),
           ElevatedButton(
             onPressed: () async {
               if (nameC.text.isEmpty) return;
@@ -311,7 +314,7 @@ class _InventoryViewState extends State<InventoryView> {
               setState(() => _suppliers = list);
               Navigator.pop(ctx, supplierName);
             },
-            child: const Text("LƯU"),
+            child: Text(l10n.save),
           ),
         ],
       ),
@@ -370,7 +373,7 @@ class _InventoryViewState extends State<InventoryView> {
       print('DEBUG: No printers found, showing snackbar');
       if (!mounted) return null;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Không tìm thấy máy in nào. Vui lòng kết nối máy in trước.')),
+        SnackBar(content: Text(l10n.noPrintersFound)),
       );
       return null;
     }
@@ -378,7 +381,7 @@ class _InventoryViewState extends State<InventoryView> {
     return showDialog<PrinterOption>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('CHỌN MÁY IN'),
+        title: Text(l10n.selectPrinter),
         content: SizedBox(
           width: double.maxFinite,
           child: ListView.builder(
@@ -402,7 +405,7 @@ class _InventoryViewState extends State<InventoryView> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('HỦY'),
+            child: Text(l10n.cancel),
           ),
         ],
       ),
@@ -416,30 +419,30 @@ class _InventoryViewState extends State<InventoryView> {
       final confirm = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text("IN TEM ĐIỆN THOẠI"),
+          title: Text(l10n.printPhoneLabel),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text("Tên: ${product.name.toUpperCase()}"),
-              Text("IMEI: ${product.imei?.toUpperCase() ?? 'N/A'}"),
-              Text("Màu: ${product.color?.toUpperCase() ?? 'N/A'}"),
-              Text("Giá: ${NumberFormat('#,###').format(product.price)} đ"),
-              Text("Tình trạng: ${product.condition.toUpperCase()}"),
+              Text("${l10n.name}: ${product.name.toUpperCase()}"),
+              Text("${l10n.imei}: ${product.imei?.toUpperCase() ?? 'N/A'}"),
+              Text("${l10n.color}: ${product.color?.toUpperCase() ?? 'N/A'}"),
+              Text("${l10n.price}: ${NumberFormat('#,###').format(product.price)} đ"),
+              Text("${l10n.condition}: ${product.condition.toUpperCase()}"),
               if (product.description.isNotEmpty)
-                Text("Phụ kiện: ${product.description.toUpperCase()}"),
+                Text("${l10n.accessories}: ${product.description.toUpperCase()}"),
               const SizedBox(height: 10),
-              const Text("Bạn có muốn in tem cho điện thoại này?"),
+              Text(l10n.confirmPrintLabel),
             ],
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text("HỦY"),
+              child: Text(l10n.cancel),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text("IN TEM"),
+              child: Text(l10n.printLabel),
             ),
           ],
         ),
@@ -476,27 +479,28 @@ class _InventoryViewState extends State<InventoryView> {
       
       if (printSuccess) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("ĐÃ IN TEM THÀNH CÔNG")),
+          SnackBar(content: Text(l10n.labelPrintedSuccessfully)),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("IN TEM THẤT BẠI - KIỂM TRA MÁY IN")),
+          SnackBar(content: Text(l10n.labelPrintFailed)),
         );
       }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("LỖI KHI IN TEM: $e")),
+        SnackBar(content: Text(l10n.labelPrintError(e))),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: _backgroundColor,
       appBar: AppBar(
-        title: const Text("KHO HÀNG", style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(l10n.inventory, style: const TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: _primaryColor,
         foregroundColor: Colors.white,
         elevation: 2,
@@ -508,7 +512,7 @@ class _InventoryViewState extends State<InventoryView> {
               if (!canView) {
                 if (!mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Tài khoản này không được phép xem danh sách NHÀ PHÂN PHỐI. Liên hệ chủ shop để phân quyền.")),
+                  SnackBar(content: Text(l10n.noPermissionSuppliers)),
                 );
                 return;
               }
@@ -530,17 +534,17 @@ class _InventoryViewState extends State<InventoryView> {
                   color: Colors.blue.withOpacity(0.06),
                   child: Row(
                     children: [
-                      Text("Đã chọn: ${_selectedIds.length}", style: const TextStyle(fontWeight: FontWeight.bold)),
+                      Text(l10n.selectedCount(_selectedIds.length), style: const TextStyle(fontWeight: FontWeight.bold)),
                       const SizedBox(width: 10),
                       TextButton.icon(
                         onPressed: _selectAll,
                         icon: const Icon(Icons.select_all, size: 18),
-                        label: const Text("Chọn tất cả"),
+                        label: Text(l10n.selectAll),
                       ),
                       const Spacer(),
                       IconButton(
                         icon: const Icon(Icons.clear),
-                        tooltip: "Bỏ chọn",
+                        tooltip: l10n.clearSelection,
                         onPressed: _clearSelection,
                       ),
                     ],
@@ -566,7 +570,7 @@ class _InventoryViewState extends State<InventoryView> {
                               )
                             : CircleAvatar(child: Icon(p.type == 'PHONE' ? Icons.phone_android : Icons.headset)),
                         title: Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text("NCC: ${p.supplier ?? '---'}\nIMEI: ${p.imei ?? 'N/A'} | SL: ${p.quantity}"),
+                        subtitle: Text("${l10n.supplierShort}: ${p.supplier ?? '---'}\n${l10n.imei}: ${p.imei ?? 'N/A'} | ${l10n.quantityShort}: ${p.quantity}"),
                         trailing: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           crossAxisAlignment: CrossAxisAlignment.end,
@@ -582,14 +586,14 @@ class _InventoryViewState extends State<InventoryView> {
                                   if (p.type == 'PHONE')
                                     IconButton(
                                       icon: const Icon(Icons.label_outline, size: 16, color: Colors.blue),
-                                      tooltip: "In tem điện thoại",
+                                      tooltip: l10n.printPhoneLabel,
                                       padding: EdgeInsets.zero,
                                       constraints: const BoxConstraints(),
                                       onPressed: () => _printPhoneLabel(p),
                                     ),
                                   IconButton(
                                     icon: const Icon(Icons.delete_outline, size: 16, color: Colors.grey),
-                                    tooltip: "Xóa khỏi kho",
+                                    tooltip: l10n.deleteFromInventory,
                                     padding: EdgeInsets.zero,
                                     constraints: const BoxConstraints(),
                                     onPressed: () => _confirmDeleteProduct(p),
@@ -615,12 +619,12 @@ class _InventoryViewState extends State<InventoryView> {
                 onPressed: _confirmDeleteSelected,
                 backgroundColor: Colors.redAccent,
                 icon: const Icon(Icons.delete_sweep_rounded),
-                label: const Text("Xóa đã chọn"),
+                label: Text(l10n.deleteSelected),
               ),
             ),
           FloatingActionButton.extended(
             onPressed: _showAddProductDialog,
-            label: const Text("NHẬP HÀNG MỚI"),
+            label: Text(l10n.addNewProduct),
             icon: const Icon(Icons.add),
             backgroundColor: Colors.blueAccent,
           ),

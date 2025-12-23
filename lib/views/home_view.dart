@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../l10n/app_localizations.dart';
 import 'customer_history_view.dart';
 import 'order_list_view.dart';
 import 'revenue_view.dart';
@@ -50,6 +51,7 @@ class _HomeViewState extends State<HomeView> {
   int totalDebtRemain = 0;
   bool _isSyncing = false;
   Timer? _autoSyncTimer;
+  Timer? _debounceTimer;
   bool _shopLocked = false;
   final TextEditingController _phoneSearchCtrl = TextEditingController();
   Map<String, bool> _permissions = {};
@@ -62,10 +64,9 @@ class _HomeViewState extends State<HomeView> {
   @override
   void initState() {
     super.initState();
+    debugPrint("HomeView initState called");
     _initialSetup();
-    SyncService.initRealTimeSync(() {
-      if (mounted) _loadStats();
-    });
+    SyncService.initRealTimeSync(_debouncedLoadStats);
 
     // Tự động đồng bộ định kỳ (30 giây) để hạn chế phải bấm tay
     _autoSyncTimer = Timer.periodic(const Duration(seconds: 30), (_) {
@@ -76,6 +77,7 @@ class _HomeViewState extends State<HomeView> {
   @override
   void dispose() {
     _autoSyncTimer?.cancel();
+    _debounceTimer?.cancel();
     _phoneSearchCtrl.dispose();
     super.dispose();
   }
@@ -95,11 +97,26 @@ class _HomeViewState extends State<HomeView> {
   }
 
   Future<void> _syncNow({bool silent = false}) async {
-    if (_isSyncing) return;
+    if (_isSyncing) {
+      // Nếu đang sync và đây là manual sync (không silent), cho phép hủy
+      if (!silent) {
+        setState(() => _isSyncing = false);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ĐÃ HỦY ĐỒNG BỘ")));
+        }
+      }
+      return;
+    }
     setState(() => _isSyncing = true);
     try {
-      await SyncService.syncAllToCloud();
-      await SyncService.downloadAllFromCloud();
+      // Thêm timeout để tránh sync bị treo
+      await Future.wait([
+        SyncService.syncAllToCloud(),
+        SyncService.downloadAllFromCloud(),
+      ]).timeout(const Duration(seconds: 120), onTimeout: () {
+        throw TimeoutException('Đồng bộ quá thời gian cho phép (120 giây)');
+      });
+      
       await _loadStats();
       if (mounted && !silent) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ĐÃ ĐỒNG BỘ DỮ LIỆU")));
@@ -109,10 +126,18 @@ class _HomeViewState extends State<HomeView> {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("LỖI ĐỒNG BỘ: $e")));
       } else {
         // Silent khi auto-sync gặp lỗi để tránh spam người dùng
+        debugPrint("Auto sync error: $e");
       }
     } finally {
       if (mounted) setState(() => _isSyncing = false);
     }
+  }
+
+  void _debouncedLoadStats() {
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 100), () {
+      if (mounted) _loadStats();
+    });
   }
 
   Future<void> _loadStats() async {
@@ -242,72 +267,84 @@ class _HomeViewState extends State<HomeView> {
   }
 
   Future<void> _openRevenueView() async {
-    final ok = await _ensurePermission('allowViewRevenue', "Tài khoản này không được phép xem màn DOANH THU. Liên hệ chủ shop để phân quyền.");
+    final l10n = AppLocalizations.of(context)!;
+    final ok = await _ensurePermission('allowViewRevenue', l10n.noPermissionRevenue);
     if (!ok || !mounted) return;
     Navigator.push(context, MaterialPageRoute(builder: (_) => const RevenueView()));
   }
 
   Future<void> _openRevenueReportView() async {
-    final ok = await _ensurePermission('allowViewRevenue', "Tài khoản này không được phép xem màn BÁO CÁO DOANH THU. Liên hệ chủ shop để phân quyền.");
+    final l10n = AppLocalizations.of(context)!;
+    final ok = await _ensurePermission('allowViewRevenue', l10n.noPermissionRevenueReport);
     if (!ok || !mounted) return;
     Navigator.push(context, MaterialPageRoute(builder: (_) => const RevenueReportView()));
   }
 
   Future<void> _openSaleList() async {
-    final ok = await _ensurePermission('allowViewSales', "Tài khoản này không được phép vào mục BÁN HÀNG. Liên hệ chủ shop để phân quyền.");
+    final l10n = AppLocalizations.of(context)!;
+    final ok = await _ensurePermission('allowViewSales', l10n.noPermissionSales);
     if (!ok || !mounted) return;
     Navigator.push(context, MaterialPageRoute(builder: (_) => const SaleListView()));
   }
 
   Future<void> _openOrderList() async {
-    final ok = await _ensurePermission('allowViewRepairs', "Tài khoản này không được phép vào mục SỬA CHỮA. Liên hệ chủ shop để phân quyền.");
+    final l10n = AppLocalizations.of(context)!;
+    final ok = await _ensurePermission('allowViewRepairs', l10n.noPermissionRepair);
     if (!ok || !mounted) return;
     Navigator.push(context, MaterialPageRoute(builder: (_) => OrderListView(role: widget.role)));
   }
 
   Future<void> _openInventory() async {
-    final ok = await _ensurePermission('allowViewInventory', "Tài khoản này không được phép vào mục KHO MÁY. Liên hệ chủ shop để phân quyền.");
+    final l10n = AppLocalizations.of(context)!;
+    final ok = await _ensurePermission('allowViewInventory', l10n.noPermissionInventory);
     if (!ok || !mounted) return;
     Navigator.push(context, MaterialPageRoute(builder: (_) => const InventoryView()));
   }
 
   Future<void> _openCustomers() async {
-    final ok = await _ensurePermission('allowViewCustomers', "Tài khoản này không được phép xem HỆ THỐNG KHÁCH HÀNG. Liên hệ chủ shop để phân quyền.");
+    final l10n = AppLocalizations.of(context)!;
+    final ok = await _ensurePermission('allowViewCustomers', l10n.noPermissionCustomers);
     if (!ok || !mounted) return;
     Navigator.push(context, MaterialPageRoute(builder: (_) => CustomerListView(role: widget.role)));
   }
 
   Future<void> _openWarranty() async {
-    final ok = await _ensurePermission('allowViewWarranty', "Tài khoản này không được phép vào mục BẢO HÀNH. Liên hệ chủ shop để phân quyền.");
+    final l10n = AppLocalizations.of(context)!;
+    final ok = await _ensurePermission('allowViewWarranty', l10n.noPermissionWarranty);
     if (!ok || !mounted) return;
     Navigator.push(context, MaterialPageRoute(builder: (_) => const WarrantyView()));
   }
 
   Future<void> _openChat() async {
-    final ok = await _ensurePermission('allowViewChat', "Tài khoản này không được phép sử dụng CHAT nội bộ. Liên hệ chủ shop để phân quyền.");
+    final l10n = AppLocalizations.of(context)!;
+    final ok = await _ensurePermission('allowViewChat', l10n.noPermissionChat);
     if (!ok || !mounted) return;
     Navigator.push(context, MaterialPageRoute(builder: (_) => const ChatView()));
   }
 
   Future<void> _openPrinterSettings() async {
-    final ok = await _ensurePermission('allowViewPrinter', "Tài khoản này không được phép cấu hình MÁY IN. Liên hệ chủ shop để phân quyền.");
+    final l10n = AppLocalizations.of(context)!;
+    final ok = await _ensurePermission('allowViewPrinter', l10n.noPermissionPrinter);
     if (!ok || !mounted) return;
     Navigator.push(context, MaterialPageRoute(builder: (_) => const PrinterSettingView()));
   }
 
   Future<void> _openThermalPrinterDesign() async {
-    final ok = await _ensurePermission('allowViewPrinter', "Tài khoản này không được phép cấu hình MÁY IN. Liên hệ chủ shop để phân quyền.");
+    final l10n = AppLocalizations.of(context)!;
+    final ok = await _ensurePermission('allowViewPrinter', l10n.noPermissionPrinter);
     if (!ok || !mounted) return;
     Navigator.push(context, MaterialPageRoute(builder: (_) => const ThermalPrinterDesignView()));
   }
 
   Future<void> _openRepairReceipt() async {
-    final ok = await _ensurePermission('allowViewRepairs', "Tài khoản này không được phép tạo phiếu tiếp nhận. Liên hệ chủ shop để phân quyền.");
+    final l10n = AppLocalizations.of(context)!;
+    final ok = await _ensurePermission('allowViewRepairs', l10n.noPermissionCreateRepair);
     if (!ok || !mounted) return;
     Navigator.push(context, MaterialPageRoute(builder: (_) => const RepairReceiptView()));
   }
 
   void _showPrinterMenu() {
+    final l10n = AppLocalizations.of(context)!;
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
@@ -321,8 +358,8 @@ class _HomeViewState extends State<HomeView> {
               const SizedBox(height: 12),
               ListTile(
                 leading: const Icon(Icons.inventory_2_rounded, color: Colors.orange),
-                title: const Text("KIỂM KHO", style: TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: const Text("Kiểm tra tồn kho điện thoại & phụ kiện"),
+                title: Text(l10n.inventoryCheck, style: const TextStyle(fontWeight: FontWeight.bold)),
+                subtitle: Text(l10n.checkInventoryDesc),
                 onTap: () {
                   Navigator.pop(ctx);
                   Navigator.push(context, MaterialPageRoute(builder: (_) => const InventoryCheckView()));
@@ -330,8 +367,8 @@ class _HomeViewState extends State<HomeView> {
               ),
               ListTile(
                 leading: const Icon(Icons.receipt_long_rounded, color: Colors.blueAccent),
-                title: const Text("MÁY IN HÓA ĐƠN", style: TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: const Text("In hóa đơn, biên lai"),
+                title: Text(l10n.receiptPrinter, style: const TextStyle(fontWeight: FontWeight.bold)),
+                subtitle: Text(l10n.printReceiptsDesc),
                 onTap: () {
                   Navigator.pop(ctx);
                   _openPrinterSettings();
@@ -339,8 +376,8 @@ class _HomeViewState extends State<HomeView> {
               ),
               ListTile(
                 leading: const Icon(Icons.assignment_rounded, color: Colors.green),
-                title: const Text("PHIẾU TIẾP NHẬN", style: TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: const Text("Tạo phiếu nhận máy sửa chữa"),
+                title: Text(l10n.repairReceipt, style: const TextStyle(fontWeight: FontWeight.bold)),
+                subtitle: Text(l10n.createRepairReceiptDesc),
                 onTap: () {
                   Navigator.pop(ctx);
                   _openRepairReceipt();
@@ -348,8 +385,8 @@ class _HomeViewState extends State<HomeView> {
               ),
               ListTile(
                 leading: const Icon(Icons.thermostat_rounded, color: Colors.redAccent),
-                title: const Text("MÁY IN NHIỆT", style: TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: const Text("In tem thông tin máy"),
+                title: Text(l10n.thermalPrinter, style: const TextStyle(fontWeight: FontWeight.bold)),
+                subtitle: Text(l10n.printLabelsDesc),
                 onTap: () {
                   Navigator.pop(ctx);
                   _openThermalPrinterDesign();
@@ -439,6 +476,7 @@ class _HomeViewState extends State<HomeView> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return WillPopScope(
       onWillPop: _onWillPop,
       child: Scaffold(
@@ -452,7 +490,7 @@ class _HomeViewState extends State<HomeView> {
               const SizedBox(width: 10),
               Flexible(
                 child: Text(
-                  isAdmin ? "QUẢN LÝ SHOP" : "NHÂN VIÊN",
+                  isAdmin ? l10n.shopManagement : l10n.employee,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold),
                 ),
@@ -557,31 +595,33 @@ class _HomeViewState extends State<HomeView> {
                           if (!mounted) return;
                           showDialog(
                             context: context,
-                            builder: (ctx) => AlertDialog(
-                              title: const Text('THÔNG TIN TÀI KHOAN'),
-                              content: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('Email: ${user?.email ?? 'N/A'}'),
-                                  Text('Super Admin: ${_isSuperAdmin ? 'Có' : 'Không'}'),
-                                  Text('Admin: ${perms['allowViewInventory'] == true ? 'Có' : 'Không'}'),
-                                  Text('Quyền xem kho: ${perms['allowViewInventory'] == true ? 'Có' : 'Không'}'),
-                                  const SizedBox(height: 10),
-                                  const Text('Quyền khác:', style: TextStyle(fontWeight: FontWeight.bold)),
-                                  Text('• Bán hàng: ${perms['allowViewSales'] == true ? 'Có' : 'Không'}'),
-                                  Text('• Sửa chữa: ${perms['allowViewRepairs'] == true ? 'Có' : 'Không'}'),
-                                  Text('• Máy in: ${perms['allowViewPrinter'] == true ? 'Có' : 'Không'}'),
-                                ],
-                              ),
-                              actions: [
-                                TextButton(
+                            builder: (ctx) {
+                              final l10n = AppLocalizations.of(ctx)!;
+                              return AlertDialog(
+                                title: Text(l10n.accountInfo),
+                                content: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('${l10n.email}: ${user?.email ?? 'N/A'}'),
+                                    Text('${l10n.superAdmin}: ${_isSuperAdmin ? l10n.allowed : l10n.notAllowed}'),
+                                    Text('${l10n.admin}: ${perms['allowViewInventory'] == true ? l10n.allowed : l10n.notAllowed}'),
+                                    Text('${l10n.viewInventoryPermission}: ${perms['allowViewInventory'] == true ? l10n.allowed : l10n.notAllowed}'),
+                                    const SizedBox(height: 10),
+                                    Text(l10n.otherPermissions, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                    Text('• ${l10n.salesPermission}: ${perms['allowViewSales'] == true ? l10n.allowed : l10n.notAllowed}'),
+                                    Text('• ${l10n.repairPermission}: ${perms['allowViewRepairs'] == true ? l10n.allowed : l10n.notAllowed}'),
+                                    Text('• ${l10n.printerPermission}: ${perms['allowViewPrinter'] == true ? l10n.allowed : l10n.notAllowed}'),
+                                  ],
+                                ),
+                                actions: [
+                                  TextButton(
                                   onPressed: () => Navigator.pop(ctx),
-                                  child: const Text('ĐÓNG'),
+                                  child: Text(l10n.close),
                                 ),
                               ],
-                            ),
-                          );
+                            );
+                          });
                         },
                       ),
                     ],
@@ -591,7 +631,7 @@ class _HomeViewState extends State<HomeView> {
             );
           },
           child: const Icon(Icons.menu),
-          tooltip: 'Menu nhanh',
+          tooltip: l10n.quickMenu,
         ),
       ),
     );
@@ -683,6 +723,7 @@ class _HomeViewState extends State<HomeView> {
   }
 
   Widget _buildGridMenu() {
+    final l10n = AppLocalizations.of(context)!;
     final tiles = <Widget>[];
 
     void addTile(bool canView, String title, IconData icon, List<Color> colors, VoidCallback onTap) {
@@ -693,16 +734,16 @@ class _HomeViewState extends State<HomeView> {
     final perms = _permissions;
 
     // Thứ tự mong muốn: Bán hàng -> Sửa chữa -> Chat -> Khách hàng -> Bảo hành -> Kho -> Nhà phân phối -> Doanh thu -> (công cụ phụ) -> Cài đặt
-    addTile(perms['allowViewSales'] ?? true, "BÁN HÀNG", Icons.shopping_cart_checkout_rounded, [Colors.pink, Colors.redAccent], _openSaleList);
-    addTile(perms['allowViewRepairs'] ?? true, "SỬA CHỮA", Icons.build_circle_rounded, [Colors.blue, Colors.lightBlue], _openOrderList);
-    addTile(perms['allowViewChat'] ?? true, "CHAT", Icons.chat_bubble_rounded, [Colors.deepPurple, Colors.purpleAccent], _openChat);
-    addTile(perms['allowViewCustomers'] ?? true, "KHÁCH HÀNG", Icons.people_alt_rounded, [Colors.cyan, Colors.teal], _openCustomers);
-    addTile(perms['allowViewWarranty'] ?? true, "BẢO HÀNH", Icons.verified_user_rounded, [Colors.green, Colors.teal], _openWarranty);
-    addTile(perms['allowViewInventory'] ?? true, "KHO", Icons.inventory_2_rounded, [Colors.orange, Colors.amber], _openInventory);
-    addTile(perms['allowViewRevenue'] ?? true, "DOANH THU", Icons.leaderboard_rounded, [Colors.indigo, Colors.deepPurple], _openRevenueView);
-    addTile(perms['allowViewRevenue'] ?? true, "BÁO CÁO DT", Icons.analytics_rounded, [Colors.indigoAccent, Colors.blueAccent], _openRevenueReportView);
-    addTile(perms['allowViewPrinter'] ?? true, "MÁY IN", Icons.print_rounded, [Colors.blueGrey, Colors.grey], _showPrinterMenu);
-    addTile(perms['allowViewSettings'] ?? (isAdmin || _isSuperAdmin), "CÀI ĐẶT", Icons.settings_rounded, [Colors.blueGrey, Colors.black87], _openSettingsCenter);
+    addTile(perms['allowViewSales'] ?? true, l10n.sales, Icons.shopping_cart_checkout_rounded, [Colors.pink, Colors.redAccent], _openSaleList);
+    addTile(perms['allowViewRepairs'] ?? true, l10n.repair, Icons.build_circle_rounded, [Colors.blue, Colors.lightBlue], _openOrderList);
+    addTile(perms['allowViewChat'] ?? true, l10n.chat, Icons.chat_bubble_rounded, [Colors.deepPurple, Colors.purpleAccent], _openChat);
+    addTile(perms['allowViewCustomers'] ?? true, l10n.customers, Icons.people_alt_rounded, [Colors.cyan, Colors.teal], _openCustomers);
+    addTile(perms['allowViewWarranty'] ?? true, l10n.warranty, Icons.verified_user_rounded, [Colors.green, Colors.teal], _openWarranty);
+    addTile(perms['allowViewInventory'] ?? true, l10n.inventory, Icons.inventory_2_rounded, [Colors.orange, Colors.amber], _openInventory);
+    addTile(perms['allowViewRevenue'] ?? true, l10n.revenue, Icons.leaderboard_rounded, [Colors.indigo, Colors.deepPurple], _openRevenueView);
+    addTile(perms['allowViewRevenue'] ?? true, l10n.revenueReport, Icons.analytics_rounded, [Colors.indigoAccent, Colors.blueAccent], _openRevenueReportView);
+    addTile(perms['allowViewPrinter'] ?? true, l10n.printer, Icons.print_rounded, [Colors.blueGrey, Colors.grey], _showPrinterMenu);
+    addTile(perms['allowViewSettings'] ?? (isAdmin || _isSuperAdmin), l10n.settings, Icons.settings_rounded, [Colors.blueGrey, Colors.black87], _openSettingsCenter);
 
     print('DEBUG: Total tiles created: ${tiles.length}');
     // for (var i = 0; i < tiles.length; i++) {

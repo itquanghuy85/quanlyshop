@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/user_service.dart';
+import '../l10n/app_localizations.dart';
 import 'register_view.dart';
 
 class LoginView extends StatefulWidget {
@@ -65,7 +66,7 @@ class _LoginViewState extends State<LoginView> {
       }
       await _saveAccount();
     } on FirebaseAuthException catch (e) {
-      if (mounted) setState(() => _error = "Sai tài khoản hoặc mật khẩu");
+      if (mounted) setState(() => _error = AppLocalizations.of(context)!.loginError);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -74,6 +75,7 @@ class _LoginViewState extends State<LoginView> {
   Locale _selectedLocale = const Locale('vi');
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: Colors.white,
       body: Center(
@@ -84,32 +86,80 @@ class _LoginViewState extends State<LoginView> {
             children: [
               const Icon(Icons.storefront_rounded, size: 80, color: Colors.blueAccent),
               const SizedBox(height: 10),
-              const Text("QUẢN LÝ CỬA HÀNG", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.blueAccent)),
+              Text(localizations.shopManagement, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.blueAccent)),
               const SizedBox(height: 20),
               // Language switcher
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  DropdownButton<Locale>(
-                    value: _selectedLocale,
-                    items: const [
-                      DropdownMenuItem(value: Locale('vi'), child: Text('Tiếng Việt')),
-                      DropdownMenuItem(value: Locale('en'), child: Text('English')),
-                    ],
-                    onChanged: (locale) {
-                      if (locale != null) {
-                        setState(() => _selectedLocale = locale);
-                        widget.setLocale?.call(locale);
-                      }
-                    },
-                  ),
-                ],
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.blue.shade200, width: 1.5),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.language, color: Colors.blue.shade700, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      localizations.selectLanguage,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.blue.shade700,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Container(
+                      height: 24,
+                      width: 1,
+                      color: Colors.blue.shade300,
+                    ),
+                    const SizedBox(width: 12),
+                    DropdownButton<Locale>(
+                      value: _selectedLocale,
+                      underline: const SizedBox(),
+                      icon: Icon(Icons.arrow_drop_down, color: Colors.blue.shade700),
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.blue.shade700,
+                      ),
+                      items: [
+                        DropdownMenuItem(
+                          value: const Locale('vi'),
+                          child: Row(
+                            children: [
+                              Text('🇻🇳 ', style: TextStyle(fontSize: 16)),
+                              Text(localizations.vietnamese),
+                            ],
+                          ),
+                        ),
+                        DropdownMenuItem(
+                          value: const Locale('en'),
+                          child: Row(
+                            children: [
+                              Text('🇺🇸 ', style: TextStyle(fontSize: 16)),
+                              Text(localizations.english),
+                            ],
+                          ),
+                        ),
+                      ],
+                      onChanged: (locale) {
+                        if (locale != null) {
+                          setState(() => _selectedLocale = locale);
+                          widget.setLocale?.call(locale);
+                        }
+                      },
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 20),
               TextField(
                 controller: _emailC,
                 decoration: InputDecoration(
-                  labelText: 'Email',
+                  labelText: localizations.email,
                   prefixIcon: const Icon(Icons.email_outlined),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   helperText: 'Ví dụ: ten@domain.com hoặc ten@gmail.com',
@@ -121,7 +171,7 @@ class _LoginViewState extends State<LoginView> {
                 controller: _passC,
                 obscureText: true,
                 decoration: InputDecoration(
-                  labelText: 'Mật khẩu',
+                  labelText: localizations.password,
                   prefixIcon: const Icon(Icons.lock_outline),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 ),
@@ -132,7 +182,7 @@ class _LoginViewState extends State<LoginView> {
                     value: _rememberMe,
                     onChanged: (v) => setState(() => _rememberMe = v ?? false),
                   ),
-                  const Text("Lưu tài khoản"),
+                  Text(localizations.rememberMe),
                 ],
               ),
               if (_error != null)
@@ -153,16 +203,18 @@ class _LoginViewState extends State<LoginView> {
                   ),
                   child: _loading
                       ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text('ĐĂNG NHẬP', style: TextStyle(fontWeight: FontWeight.bold)),
+                      : Text(localizations.signIn.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.bold)),
                 ),
               ),              const SizedBox(height: 15),
               TextButton(
                 onPressed: () async {
                   final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => const RegisterView()));
                   if (result == true && mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Đăng ký thành công! Vui lòng đăng nhập.')),
-                    );
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Đăng ký thành công! Vui lòng đăng nhập.')),
+                      );
+                    }
                   }
                 },
                 child: const Text('Chưa có tài khoản? Đăng ký ngay', style: TextStyle(color: Colors.blueAccent)),

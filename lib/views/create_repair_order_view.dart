@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../l10n/app_localizations.dart';
 import '../data/db_helper.dart';
 import '../models/repair_model.dart';
 import 'customer_history_view.dart';
@@ -42,6 +43,8 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
 
   final List<String> brands = ["IPHONE", "SAMSUNG", "OPPO", "REDMI", "VIVO"];
   final List<String> issues = ["NGUỒN", "MÀN HÌNH", "PIN", "ÉP KÍNH", "SẠC", "MẤT SÓNG", "LOA", "MIC", "CAMERA"];
+
+  AppLocalizations get l10n => AppLocalizations.of(context)!;
 
   @override
   void initState() {
@@ -86,11 +89,12 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
   }
 
   Future<void> _save() async {
+    final l10n = AppLocalizations.of(context)!;
     // Validate required fields
     final phoneError = UserService.validatePhone(phoneCtrl.text);
     final nameError = UserService.validateName(nameCtrl.text);
-    final modelError = modelCtrl.text.trim().isEmpty ? 'Mô hình máy không được để trống' : null;
-    final issueError = issueCtrl.text.trim().isEmpty ? 'Lỗi máy không được để trống' : null;
+    final modelError = modelCtrl.text.trim().isEmpty ? l10n.modelRequired : null;
+    final issueError = issueCtrl.text.trim().isEmpty ? l10n.issueRequired : null;
 
     if (phoneError != null || nameError != null || modelError != null || issueError != null) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -103,8 +107,8 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
     // Validate price
     final price = _parseCurrency(priceCtrl.text);
     if (price < 0) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text("GIÁ TIẾP NHẬN PHẢI LỚN HƠN HOẶC BẰNG 0!"),
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(l10n.priceMustBePositive),
         backgroundColor: Colors.red,
       ));
       return;
@@ -150,12 +154,62 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
       );
       
       if (!mounted) return;
-      Navigator.pop(context, true);
+      
+      // Hỏi người dùng có muốn tạo đơn mới không
+      final createNew = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false, // Không cho phép dismiss bằng cách tap outside
+        builder: (ctx) => AlertDialog(
+          title: Text(l10n.orderCreatedSuccessfully),
+          content: Text(l10n.createNewOrderQuestion),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(l10n.back),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blueAccent,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text("TẠO ĐƠN MỚI"),
+            ),
+          ],
+        ),
+      );
+      
+      if (createNew == true) {
+        // Reset form để tạo đơn mới
+        if (mounted) {
+          setState(() {
+            _images.clear();
+            phoneCtrl.clear();
+            nameCtrl.clear();
+            addressCtrl.clear();
+            modelCtrl.clear();
+            issueCtrl.clear();
+            appearanceCtrl.clear();
+            accCtrl.clear();
+            passCtrl.clear();
+            priceCtrl.clear();
+            _paymentMethod = "TIỀN MẶT";
+            _saving = false;
+          });
+          // Focus lại vào trường phone để nhập khách hàng mới
+          FocusScope.of(context).requestFocus(FocusNode());
+        }
+        return; // Không pop, ở lại màn hình này
+      }
+      
+      if (mounted) {
+        Navigator.pop(context, true);
+      }
     } catch (e) {
       if (mounted) {
         setState(() => _saving = false);
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text("LỖI KHI LƯU ĐƠN: $e"),
+          content: Text(l10n.saveOrderError(e)),
           backgroundColor: Colors.red,
         ));
       }
@@ -164,10 +218,11 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFF), // Đồng bộ với theme chính
       appBar: AppBar(
-        title: const Text("TIẾP NHẬN MÁY MỚI", style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(l10n.createRepairOrder, style: const TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Colors.blueAccent, // Màu chính cho đơn sửa chữa
         foregroundColor: Colors.white,
         elevation: 2,
@@ -190,13 +245,13 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
                 children: [
             ValidatedTextField(
               controller: nameCtrl,
-              label: "TÊN KHÁCH HÀNG",
+              label: l10n.customerName,
               icon: Icons.person,
               inputFormatters: [TextInputFormatter.withFunction((oldValue, newValue) => TextEditingValue(text: newValue.text.toUpperCase(), selection: newValue.selection))],
             ),
             ValidatedTextField(
               controller: phoneCtrl,
-              label: "SỐ ĐIỆN THOẠI",
+              label: l10n.phoneNumber,
               icon: Icons.phone,
               keyboardType: TextInputType.phone,
               required: true,
@@ -204,7 +259,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
             ),
             ValidatedTextField(
               controller: addressCtrl,
-              label: "ĐỊA CHỈ KHÁCH HÀNG",
+              label: l10n.customerAddress,
               icon: Icons.location_on,
               inputFormatters: [TextInputFormatter.withFunction((oldValue, newValue) => TextEditingValue(text: newValue.text.toUpperCase(), selection: newValue.selection))],
             ),
@@ -213,7 +268,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
               child: TextButton.icon(
                 onPressed: _addCustomerToContactsFromRepair,
                 icon: const Icon(Icons.person_add_alt_1, size: 18),
-                label: const Text("THÊM VÀO DANH BẠ", style: TextStyle(fontSize: 12)),
+                label: Text(l10n.addToContacts, style: const TextStyle(fontSize: 12)),
               ),
             ),
             Align(
@@ -223,7 +278,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
                   final phone = phoneCtrl.text.trim();
                   if (phone.isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("VUI LÒNG NHẬP SỐ ĐIỆN THOẠI TRƯỚC")),
+                      SnackBar(content: Text(l10n.enterPhoneFirst)),
                     );
                     return;
                   }
@@ -236,38 +291,38 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
                   );
                 },
                 icon: const Icon(Icons.history, size: 18),
-                label: const Text("XEM LỊCH SỬ KHÁCH NÀY", style: TextStyle(fontSize: 12)),
+                label: Text(l10n.viewCustomerHistory, style: const TextStyle(fontSize: 12)),
               ),
             ),
             const Divider(height: 30),
             _quick(brands, modelCtrl, _modelFocus),
-            _input(modelCtrl, "MODEL MÁY *", Icons.phone_android, caps: true, requiredField: true, focusNode: _modelFocus),
+            _input(modelCtrl, l10n.deviceModel, Icons.phone_android, caps: true, requiredField: true, focusNode: _modelFocus),
             _quick(issues, issueCtrl, _issueFocus),
-            _input(issueCtrl, "LỖI MÁY *", Icons.build, caps: true, requiredField: true, focusNode: _issueFocus),
+            _input(issueCtrl, l10n.deviceIssue, Icons.build, caps: true, requiredField: true, focusNode: _issueFocus),
             ValidatedTextField(
               controller: appearanceCtrl,
-              label: "TÌNH TRẠNG NGOẠI QUAN",
-              hint: "Ví dụ: TRẦY, BỂ, VÊNH...",
+              label: l10n.appearanceCondition,
+              hint: l10n.appearanceHint,
               inputFormatters: [TextInputFormatter.withFunction((oldValue, newValue) => TextEditingValue(text: newValue.text.toUpperCase(), selection: newValue.selection))],
             ),
             ValidatedTextField(
               controller: accCtrl,
-              label: "PHỤ KIỆN ĐI KÈM",
-              hint: "Ví dụ: SẠC, TAI NGHE...",
+              label: l10n.accessoriesIncluded,
+              hint: l10n.accessoriesHint,
               inputFormatters: [TextInputFormatter.withFunction((oldValue, newValue) => TextEditingValue(text: newValue.text.toUpperCase(), selection: newValue.selection))],
             ),
             ValidatedTextField(
               controller: passCtrl,
-              label: "MẬT KHẨU MÀN HÌNH",
-              hint: "Nhập mật khẩu nếu có",
+              label: l10n.screenPassword,
+              hint: l10n.passwordHint,
             ),
             ValidatedTextField(
               controller: priceCtrl,
-              label: "GIÁ DỰ KIẾN",
+              label: l10n.estimatedPrice,
               icon: Icons.monetization_on,
               keyboardType: TextInputType.number,
               inputFormatters: [CurrencyInputFormatter()],
-              hint: "Nhập giá dự kiến",
+              hint: l10n.priceHint,
             ),
             Align(
               alignment: Alignment.centerLeft,
@@ -276,15 +331,16 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text("HÌNH THỨC THANH TOÁN", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.blueAccent)),
+                    Text(l10n.paymentMethod, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.blueAccent)),
                     const SizedBox(height: 6),
                     Wrap(
                       spacing: 8,
                       children: [
-                        _payChip("TIỀN MẶT"),
-                        _payChip("CHUYỂN KHOẢN"),
-                        _payChip("CÔNG NỢ"),
-                        _payChip("TRẢ GÓP (NH)"),
+                        _payChip(l10n.cash),
+                        _payChip(l10n.transfer),
+                        _payChip(l10n.debt),
+                        _payChip(l10n.installment),
+                        _payChip(l10n.t86),
                       ],
                     ),
                   ],
@@ -304,7 +360,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 icon: const Icon(Icons.check_circle_outline, color: Colors.white),
-                label: const Text("LƯU ĐƠN TIẾP NHẬN", style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+                label: Text(l10n.saveRepairOrder, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
               ),
             ),
             const SizedBox(height: 40),

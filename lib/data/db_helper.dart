@@ -25,7 +25,7 @@ class DBHelper {
     String path = join(await getDatabasesPath(), 'repair_shop_v22.db'); 
     return await openDatabase(
       path,
-      version: 16,
+      version: 17,
       onCreate: (db, version) async {
         // ... (Cấu hình CREATE TABLE giữ nguyên như bản gốc để không mất dữ liệu)
         await db.execute('CREATE TABLE IF NOT EXISTS repairs(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, customerName TEXT, phone TEXT, model TEXT, issue TEXT, accessories TEXT, address TEXT, imagePath TEXT, deliveredImage TEXT, warranty TEXT, partsUsed TEXT, status INTEGER, price INTEGER, cost INTEGER, paymentMethod TEXT, createdAt INTEGER, startedAt INTEGER, finishedAt INTEGER, deliveredAt INTEGER, createdBy TEXT, repairedBy TEXT, deliveredBy TEXT, lastCaredAt INTEGER, isSynced INTEGER DEFAULT 0, deleted INTEGER DEFAULT 0, color TEXT, imei TEXT, condition TEXT)');
@@ -58,6 +58,12 @@ class DBHelper {
           await db.execute('ALTER TABLE products ADD COLUMN kpkPrice INTEGER');
           await db.execute('ALTER TABLE products ADD COLUMN pkPrice INTEGER');
         }
+        if (oldVersion < 17) {
+          // Dọn dẹp các bản ghi trùng firestoreId
+          await cleanupDuplicateRepairs();
+          await cleanupDuplicateProducts();
+          await cleanupDuplicateSales();
+        }
       },
     );
   }
@@ -72,14 +78,102 @@ class DBHelper {
       if (existing.isNotEmpty) {
         await txn.update(table, data, where: 'id = ?', whereArgs: [existing.first['id']]);
       } else {
+        // Kiểm tra và xóa các record trùng firestoreId trước khi insert
+        await txn.delete(table, where: 'firestoreId = ?', whereArgs: [firestoreId]);
         await txn.insert(table, data);
       }
     });
   }
 
-  Future<void> upsertRepair(Repair r) async => _upsert('repairs', r.toMap(), r.firestoreId ?? "rep_${r.createdAt}");
-  Future<void> upsertProduct(Product p) async => _upsert('products', p.toMap(), p.firestoreId ?? "prod_${p.createdAt}");
-  Future<void> upsertSale(SaleOrder s) async => _upsert('sales', s.toMap(), s.firestoreId ?? "sale_${s.soldAt}");
+  Future<void> cleanupDuplicateRepairs() async {
+    final db = await database;
+    await db.transaction((txn) async {
+      // Tìm các firestoreId bị trùng
+      final duplicates = await txn.rawQuery('''
+        SELECT firestoreId, COUNT(*) as count
+        FROM repairs 
+        WHERE firestoreId IS NOT NULL 
+        GROUP BY firestoreId 
+        HAVING COUNT(*) > 1
+      ''');
+
+      for (var dup in duplicates) {
+        final firestoreId = dup['firestoreId'];
+        // Giữ lại record có id nhỏ nhất, xóa các record khác
+        final records = await txn.query('repairs', 
+          where: 'firestoreId = ?', 
+          whereArgs: [firestoreId],
+          orderBy: 'id ASC'
+        );
+        
+        if (records.length > 1) {
+          // Xóa tất cả trừ record đầu tiên
+          for (int i = 1; i < records.length; i++) {
+            await txn.delete('repairs', where: 'id = ?', whereArgs: [records[i]['id']]);
+          }
+        }
+      }
+    });
+  }
+
+  Future<void> cleanupDuplicateProducts() async {
+    final db = await database;
+    await db.transaction((txn) async {
+      final duplicates = await txn.rawQuery('''
+        SELECT firestoreId, COUNT(*) as count
+        FROM products 
+        WHERE firestoreId IS NOT NULL 
+        GROUP BY firestoreId 
+        HAVING COUNT(*) > 1
+      ''');
+
+      for (var dup in duplicates) {
+        final firestoreId = dup['firestoreId'];
+        final records = await txn.query('products', 
+          where: 'firestoreId = ?', 
+          whereArgs: [firestoreId],
+          orderBy: 'id ASC'
+        );
+        
+        if (records.length > 1) {
+          for (int i = 1; i < records.length; i++) {
+            await txn.delete('products', where: 'id = ?', whereArgs: [records[i]['id']]);
+          }
+        }
+      }
+    });
+  }
+
+  Future<void> cleanupDuplicateSales() async {
+    final db = await database;
+    await db.transaction((txn) async {
+      final duplicates = await txn.rawQuery('''
+        SELECT firestoreId, COUNT(*) as count
+        FROM sales 
+        WHERE firestoreId IS NOT NULL 
+        GROUP BY firestoreId 
+        HAVING COUNT(*) > 1
+      ''');
+
+      for (var dup in duplicates) {
+        final firestoreId = dup['firestoreId'];
+        final records = await txn.query('sales', 
+          where: 'firestoreId = ?', 
+          whereArgs: [firestoreId],
+          orderBy: 'id ASC'
+        );
+        
+        if (records.length > 1) {
+          for (int i = 1; i < records.length; i++) {
+            await txn.delete('sales', where: 'id = ?', whereArgs: [records[i]['id']]);
+          }
+        }
+      }
+    });
+  }
+  Future<void> upsertRepair(Repair r) async => _upsert('repairs', r.toMap(), r.firestoreId ?? "repair_${r.createdAt}_${r.phone}_${r.id ?? 0}");
+  Future<void> upsertProduct(Product p) async => _upsert('products', p.toMap(), p.firestoreId ?? "product_${p.createdAt}_${p.imei ?? 'noimei'}_${p.id ?? 0}");
+  Future<void> upsertSale(SaleOrder s) async => _upsert('sales', s.toMap(), s.firestoreId ?? "sale_${s.soldAt}_${s.phone}_${s.id ?? 0}");
   Future<void> upsertExpense(Expense e) async => _upsert('expenses', e.toMap(), e.firestoreId ?? "exp_${e.date}");
   Future<void> upsertDebt(Debt d) async => _upsert('debts', d.toMap(), d.firestoreId ?? "debt_${d.createdAt}");
 
@@ -182,8 +276,14 @@ class DBHelper {
   Future<List<Map<String, dynamic>>> getCustomersWithoutShop() async => (await database).query('customers', where: 'shopId IS NULL OR shopId = ?', whereArgs: [''], orderBy: 'name ASC');
   Future<Map<String, dynamic>?> getCustomerByPhone(String phone) async { final res = await (await database).query('customers', where: 'phone = ?', whereArgs: [phone], limit: 1); return res.isNotEmpty ? res.first : null; }
   Future<int> insertCustomer(Map<String, dynamic> c) async => (await database).insert('customers', c, conflictAlgorithm: ConflictAlgorithm.ignore);
-  Future<int> updateRepair(Repair r) async => (await database).update('repairs', r.toMap(), where: 'id = ?', whereArgs: [r.id]);
-  Future<int> updateProduct(Product p) async => (await database).update('products', p.toMap(), where: 'id = ?', whereArgs: [p.id]);
+  Future<int> updateRepair(Repair r) async {
+    final data = r.toMap()..removeWhere((key, value) => value == null);
+    return (await database).update('repairs', data, where: 'id = ?', whereArgs: [r.id]);
+  }
+  Future<int> updateProduct(Product p) async {
+    final data = p.toMap()..removeWhere((key, value) => value == null);
+    return (await database).update('products', data, where: 'id = ?', whereArgs: [p.id]);
+  }
   Future<int> deleteRepairByFirestoreId(String firestoreId) async => (await database).delete('repairs', where: 'firestoreId = ?', whereArgs: [firestoreId]);
   Future<int> deleteSaleByFirestoreId(String firestoreId) async => (await database).delete('sales', where: 'firestoreId = ?', whereArgs: [firestoreId]);
   Future<int> deleteProductByFirestoreId(String firestoreId) async => (await database).delete('products', where: 'firestoreId = ?', whereArgs: [firestoreId]);
@@ -220,6 +320,7 @@ class DBHelper {
   }
 
   Future<int> insertExpense(Map<String, dynamic> e) async => (await database).insert('expenses', e);
+
   Future<int> deleteExpense(int id) async => (await database).delete('expenses', where: 'id = ?', whereArgs: [id]);
   Future<List<Map<String, dynamic>>> getAllExpenses() async => (await database).query('expenses', orderBy: 'date DESC');
 

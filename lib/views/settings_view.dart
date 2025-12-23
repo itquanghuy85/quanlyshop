@@ -6,12 +6,13 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/user_service.dart';
+import '../l10n/app_localizations.dart';
 import 'invoice_template_view.dart';
 
 class SettingsView extends StatefulWidget {
   final void Function(Locale)? setLocale;
 
-  SettingsView({Key? key, this.setLocale}) : super(key: key);
+  const SettingsView({super.key, this.setLocale});
 
   @override
   State<SettingsView> createState() => _SettingsViewState();
@@ -55,7 +56,7 @@ class _SettingsViewState extends State<SettingsView> {
     if (_logoPath != null) await prefs.setString('shop_logo', _logoPath!);
     
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ĐÃ LƯU THÔNG TIN CỬA HÀNG!")));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.shopInfoSaved)));
     }
   }
 
@@ -66,9 +67,10 @@ class _SettingsViewState extends State<SettingsView> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFF),
-      appBar: AppBar(title: const Text("CÀI ĐẶT HỆ THỐNG", style: TextStyle(fontWeight: FontWeight.bold))),
+      appBar: AppBar(title: Text(l10n.settingsTitle, style: const TextStyle(fontWeight: FontWeight.bold))),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
@@ -77,13 +79,13 @@ class _SettingsViewState extends State<SettingsView> {
             children: [
               const Icon(Icons.language, color: Colors.blueAccent),
               const SizedBox(width: 10),
-              const Text("Ngôn ngữ:", style: TextStyle(fontWeight: FontWeight.w600)),
+              Text(l10n.languageLabel, style: const TextStyle(fontWeight: FontWeight.w600)),
               const SizedBox(width: 10),
               DropdownButton<Locale>(
                 value: _selectedLocale,
-                items: const [
-                  DropdownMenuItem(value: Locale('vi'), child: Text('Tiếng Việt')),
-                  DropdownMenuItem(value: Locale('en'), child: Text('English')),
+                items: [
+                DropdownMenuItem(value: const Locale('vi'), child: Text(AppLocalizations.of(context)!.vietnamese)),
+                DropdownMenuItem(value: const Locale('en'), child: Text(AppLocalizations.of(context)!.english)),
                 ],
                 onChanged: (locale) {
                   if (locale != null) {
@@ -95,7 +97,7 @@ class _SettingsViewState extends State<SettingsView> {
             ],
           ),
           const SizedBox(height: 20),
-          _sectionTitle("THÔNG TIN THƯƠNG HIỆU"),
+          _sectionTitle(l10n.brandInfoSection),
           const SizedBox(height: 15),
           Center(
             child: GestureDetector(
@@ -109,31 +111,31 @@ class _SettingsViewState extends State<SettingsView> {
             ),
           ),
           const SizedBox(height: 20),
-          _input(nameCtrl, "Tên cửa hàng (IN HOA)", Icons.storefront),
-          _input(phoneCtrl, "Số điện thoại liên hệ", Icons.phone, type: TextInputType.phone),
-          _input(addressCtrl, "Địa chỉ shop", Icons.location_on),
+          _input(nameCtrl, l10n.shopNameLabel, Icons.storefront),
+          _input(phoneCtrl, l10n.shopPhoneLabel, Icons.phone, type: TextInputType.phone),
+          _input(addressCtrl, l10n.shopAddressLabel, Icons.location_on),
           
           const SizedBox(height: 30),
-          _sectionTitle("CẤU HÌNH HÓA ĐƠN"),
+          _sectionTitle(l10n.invoiceConfigSection),
           const SizedBox(height: 10),
-          _input(footerCtrl, "Lời chào chân trang", Icons.chat_bubble_outline),
+          _input(footerCtrl, l10n.invoiceFooterLabel, Icons.chat_bubble_outline),
           
           const SizedBox(height: 20),
-          _menuTile("Tạo mẫu hóa đơn", Icons.receipt_long, Colors.green, () {
+          _menuTile(l10n.createInvoiceTemplate, Icons.receipt_long, Colors.green, () {
             Navigator.push(context, MaterialPageRoute(builder: (_) => const InvoiceTemplateView()));
           }),
-          _menuTile("Nhập mã mời tham gia shop", Icons.group_add, Colors.orange, _joinShopDialog),
-          _menuTile("Quản lý cleanup: Xóa lịch sửa cũ (tùy chọn)", Icons.cleaning_services_rounded, Colors.purple, _openCleanupDialog),
+          _menuTile(l10n.joinShopCode, Icons.group_add, Colors.orange, _joinShopDialog),
+          _menuTile(l10n.cleanupManagement, Icons.cleaning_services_rounded, Colors.purple, _openCleanupDialog),
 
           const SizedBox(height: 30),
-          _sectionTitle("GIỚI THIỆU"),
+          _sectionTitle(l10n.aboutSection),
           const SizedBox(height: 15),
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(15),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 2))],
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05 * 255), blurRadius: 10, offset: const Offset(0, 2))],
             ),
             child: Column(
               children: [
@@ -146,7 +148,7 @@ class _SettingsViewState extends State<SettingsView> {
                       decoration: BoxDecoration(
                         color: Colors.blueAccent,
                         borderRadius: BorderRadius.circular(15),
-                        boxShadow: [BoxShadow(color: Colors.blueAccent.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4))],
+                        boxShadow: [BoxShadow(color: Colors.blueAccent.withValues(alpha: 0.3 * 255), blurRadius: 8, offset: const Offset(0, 4))],
                       ),
                       child: const Icon(Icons.phone_android, color: Colors.white, size: 30),
                     ),
@@ -155,8 +157,8 @@ class _SettingsViewState extends State<SettingsView> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text("Shop Manager", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blueAccent.shade700)),
-                          Text("Quản lý cửa hàng sửa chữa điện thoại", style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                          Text(l10n.appName, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blueAccent.shade700)),
+                          Text(l10n.appDescription, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
                         ],
                       ),
                     ),
@@ -167,14 +169,14 @@ class _SettingsViewState extends State<SettingsView> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.blueAccent.withOpacity(0.1),
+                    color: Colors.blueAccent.withValues(alpha: 0.1 * 255),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Row(
                     children: [
                       Icon(Icons.info_outline, color: Colors.blueAccent.shade700, size: 20),
                       const SizedBox(width: 10),
-                      Text("Phiên bản: 2.1.0", style: TextStyle(fontWeight: FontWeight.w500, color: Colors.blueAccent.shade700)),
+                      Text("${l10n.version}: ${l10n.versionNumber}", style: TextStyle(fontWeight: FontWeight.w500, color: Colors.blueAccent.shade700)),
                     ],
                   ),
                 ),
@@ -183,7 +185,7 @@ class _SettingsViewState extends State<SettingsView> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.green.withOpacity(0.1),
+                    color: Colors.green.withValues(alpha: 0.1 * 255),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Column(
@@ -193,13 +195,13 @@ class _SettingsViewState extends State<SettingsView> {
                         children: [
                           Icon(Icons.contact_support, color: Colors.green.shade700, size: 20),
                           const SizedBox(width: 10),
-                          Text("Liên hệ hỗ trợ", style: TextStyle(fontWeight: FontWeight.w500, color: Colors.green.shade700)),
+                          Text(l10n.contactSupport, style: TextStyle(fontWeight: FontWeight.w500, color: Colors.green.shade700)),
                         ],
                       ),
                       const SizedBox(height: 8),
-                      Text("👨‍💻 Nhà phát triển: Quang Huy", style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
-                      Text("📱 SĐT/Zalo: 0964 095 979", style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
-                      Text("💬 Hỗ trợ kỹ thuật & phát triển app", style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+                      Text("👨‍💻 ${l10n.developerName}", style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+                      Text(l10n.contactPhone, style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+                      Text(l10n.technicalSupport, style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
                     ],
                   ),
                 ),
@@ -208,7 +210,7 @@ class _SettingsViewState extends State<SettingsView> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.purple.withOpacity(0.1),
+                    color: Colors.purple.withValues(alpha: 0.1 * 255),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Column(
@@ -218,14 +220,14 @@ class _SettingsViewState extends State<SettingsView> {
                         children: [
                           Icon(Icons.code, color: Colors.purple.shade700, size: 20),
                           const SizedBox(width: 10),
-                          Text("Người phát triển", style: TextStyle(fontWeight: FontWeight.w500, color: Colors.purple.shade700)),
+                          Text(l10n.developer, style: TextStyle(fontWeight: FontWeight.w500, color: Colors.purple.shade700)),
                         ],
                       ),
                       const SizedBox(height: 8),
-                      Text("👨‍💻 Quang Huy", style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
-                      Text("🚀 Chuyên gia phát triển ứng dụng mobile", style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
-                      Text("📱 SĐT/Zalo: 0964 095 979", style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
-                      Text("💡 Phát triển giải pháp quản lý kinh doanh", style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+                      Text("👨‍💻 ${l10n.developerName}", style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+                      Text("🚀 ${l10n.developerRole}", style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+                      Text(l10n.contactPhone, style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+                      Text("💡 ${l10n.businessSolutions}", style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
                     ],
                   ),
                 ),
@@ -239,7 +241,7 @@ class _SettingsViewState extends State<SettingsView> {
             child: ElevatedButton.icon(
               onPressed: _saveSettings,
               icon: const Icon(Icons.save_rounded),
-              label: const Text("LƯU TOÀN BỘ CÀI ĐẶT", style: TextStyle(fontWeight: FontWeight.bold)),
+              label: Text(l10n.saveAllSettings, style: const TextStyle(fontWeight: FontWeight.bold)),
               style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
             ),
           ),
@@ -282,13 +284,13 @@ class _SettingsViewState extends State<SettingsView> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Nhập mã mời'),
+        title: Text(AppLocalizations.of(context)!.enterInviteCode),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: codeCtrl,
-              decoration: const InputDecoration(labelText: 'Mã mời (8 ký tự)'),
+              decoration: InputDecoration(labelText: AppLocalizations.of(context)!.inviteCode8Chars),
               textCapitalization: TextCapitalization.characters,
             ),
             const SizedBox(height: 10),
@@ -303,39 +305,43 @@ class _SettingsViewState extends State<SettingsView> {
                 }
               },
               icon: const Icon(Icons.qr_code_scanner),
-              label: const Text('Quét QR'),
+              label: Text(AppLocalizations.of(context)!.scanQR),
             ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('HỦY'),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
           ElevatedButton(
             onPressed: () async {
+              final l10n = AppLocalizations.of(context)!;
               final code = codeCtrl.text.trim().toUpperCase();
               if (code.length != 8) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Mã phải 8 ký tự')),
+                  SnackBar(content: Text(l10n.codeMustBe8Chars)),
                 );
                 return;
               }
               final currentUser = FirebaseAuth.instance.currentUser;
               if (currentUser == null) return;
               final success = await UserService.useInviteCode(code, currentUser.uid);
+              if (!mounted) return;
               if (success) {
+                if (!mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Đã tham gia shop thành công!')),
+                  SnackBar(content: Text(l10n.joinedShopSuccessfully)),
                 );
                 Navigator.pop(context);
               } else {
+                if (!mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Mã không hợp lệ hoặc đã hết hạn')),
+                  SnackBar(content: Text(l10n.invalidOrExpiredCode)),
                 );
               }
             },
-            child: const Text('THAM GIA'),
+            child: Text(AppLocalizations.of(context)!.join),
           ),
         ],
       ),
@@ -365,17 +371,21 @@ class _SettingsViewState extends State<SettingsView> {
       'enabled': enabled,
       'repairRetentionDays': days,
     }, SetOptions(merge: true));
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
     setState(() {
       _cleanupEnabled = enabled;
       _cleanupDays = days;
     });
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã lưu cấu hình cleanup')));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.cleanupConfigSaved)));
   }
 
   void _openCleanupDialog() async {
     final perms = await UserService.getCurrentUserPermissions();
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
     if (!(perms['allowViewSettings'] ?? false)) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Tài khoản không có quyền cấu hình')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.noPermissionToConfigure)));
       return;
     }
 
@@ -385,13 +395,13 @@ class _SettingsViewState extends State<SettingsView> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Cấu hình Cleanup (opt-in)'),
+        title: Text(l10n.cleanupConfigOptIn),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Row(
               children: [
-                const Text('Bật cleanup'),
+                Text(l10n.enableCleanup),
                 const Spacer(),
                 Switch(
                   value: tempEnabled,
@@ -403,19 +413,19 @@ class _SettingsViewState extends State<SettingsView> {
             TextField(
               controller: daysCtrl,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Số ngày (xóa sau N ngày)'),
+              decoration: InputDecoration(labelText: l10n.daysToDeleteAfter),
             ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('HỦY')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(l10n.cancel)),
           ElevatedButton(
             onPressed: () async {
               final d = int.tryParse(daysCtrl.text) ?? 30;
               await _saveCleanupConfig(tempEnabled, d);
               Navigator.pop(ctx);
             },
-            child: const Text('LƯU'),
+            child: Text(l10n.save),
           ),
         ],
       ),
@@ -436,7 +446,7 @@ class _QRScanViewState extends State<_QRScanView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Quét mã QR')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context)!.scanQRCode)),
       body: MobileScanner(
         controller: controller,
         onDetect: (capture) {

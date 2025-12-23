@@ -9,8 +9,8 @@ class FirestoreService {
   static Future<String?> addRepair(Repair r) async {
     try {
       final shopId = await UserService.getCurrentShopId();
-      // Nếu chưa có firestoreId, hãy để Firestore tự tạo hoặc dùng fallback an toàn
-      final String docId = r.firestoreId ?? "${r.createdAt}_${r.phone}";
+      // Sử dụng format firestoreId nhất quán
+      final String docId = r.firestoreId ?? "repair_${r.createdAt}_${r.phone}_${r.id ?? 0}";
       final docRef = _db.collection('repairs').doc(docId);
       
       Map<String, dynamic> data = r.toMap();
@@ -28,7 +28,7 @@ class FirestoreService {
   static Future<String?> addProduct(Product p) async {
     try {
       final shopId = await UserService.getCurrentShopId();
-      final String docId = p.firestoreId ?? "prod_${p.createdAt}";
+      final String docId = p.firestoreId ?? "product_${p.createdAt}_${p.imei ?? 'noimei'}_${p.id ?? 0}";
       final docRef = _db.collection('products').doc(docId);
       
       Map<String, dynamic> data = p.toMap();

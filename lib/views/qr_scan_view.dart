@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import '../data/db_helper.dart';
 import '../models/repair_model.dart';
 import '../models/sale_order_model.dart';
+import '../services/user_service.dart';
 import 'repair_detail_view.dart';
 import 'sale_detail_view.dart';
 
@@ -39,6 +41,13 @@ class _QrScanViewState extends State<QrScanView> {
       // Kiểm tra xem có phải là QR từ tem điện thoại không
       if (key.startsWith('{') && key.contains('phone_label')) {
         await _handlePhoneLabelQR(key);
+        if (mounted) setState(() => _handling = false);
+        return;
+      }
+
+      // Kiểm tra xem có phải là QR mã mời không
+      if (key.startsWith('{') && key.contains('invite_code')) {
+        await _handleInviteCodeQR(key);
         if (mounted) setState(() => _handling = false);
         return;
       }
@@ -197,6 +206,109 @@ class _QrScanViewState extends State<QrScanView> {
       }
 
       return data;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  Future<void> _handleInviteCodeQR(String qrData) async {
+    try {
+      // Parse JSON data từ QR mã mời
+      final data = _parseInviteCodeData(qrData);
+      if (data == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Dữ liệu QR mã mời không hợp lệ')),
+          );
+        }
+        return;
+      }
+
+      final code = data['code'];
+      final shopName = data['shopName'];
+
+      // Hiển thị dialog xác nhận tham gia shop
+      final join = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('THAM GIA SHOP'),
+          content: Text('Bạn có muốn tham gia shop "$shopName" không?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('HỦY'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('THAM GIA'),
+            ),
+          ],
+        ),
+      );
+
+      if (join != true) return;
+
+      // Sử dụng mã mời
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Cần đăng nhập để tham gia shop')),
+          );
+        }
+        return;
+      }
+
+      final success = await UserService.useInviteCode(code, user.uid);
+      if (success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Đã tham gia shop "$shopName" thành công!')),
+        );
+        // Có thể navigate về home hoặc refresh app state
+        Navigator.of(context).pop(); // Đóng scanner
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Mã mời không hợp lệ hoặc đã được sử dụng')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi xử lý mã mời: $e')),
+        );
+      }
+    }
+  }
+
+  Map<String, dynamic>? _parseInviteCodeData(String qrData) {
+    try {
+      // Parse JSON từ QR
+      final jsonStart = qrData.indexOf('{');
+      final jsonEnd = qrData.lastIndexOf('}') + 1;
+      if (jsonStart == -1 || jsonEnd == -1) return null;
+
+      final jsonStr = qrData.substring(jsonStart, jsonEnd);
+      // Simple JSON parsing cho invite code
+      final Map<String, dynamic> data = {};
+
+      // Extract type
+      if (!jsonStr.contains('invite_code')) return null;
+
+      // Extract code
+      final codeMatch = RegExp(r'"code"\s*:\s*"([^"]+)"').firstMatch(jsonStr);
+      if (codeMatch != null) {
+        data['code'] = codeMatch.group(1);
+      }
+
+      // Extract shopName
+      final shopMatch = RegExp(r'"shopName"\s*:\s*"([^"]+)"').firstMatch(jsonStr);
+      if (shopMatch != null) {
+        data['shopName'] = shopMatch.group(1);
+      }
+
+      return data['code'] != null && data['shopName'] != null ? data : null;
     } catch (e) {
       return null;
     }

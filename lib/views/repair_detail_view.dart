@@ -17,8 +17,13 @@ import 'package:qr_flutter/qr_flutter.dart';
 import '../models/repair_model.dart';
 import '../data/db_helper.dart';
 import '../services/storage_service.dart';
-import '../services/firestore_service.dart';import '../services/thermal_printer_service.dart';import '../services/user_service.dart';
+import '../services/firestore_service.dart';
+import '../services/thermal_printer_service.dart';
+import '../services/user_service.dart';
 import '../services/audit_service.dart';
+import '../services/bluetooth_printer_service.dart';
+import '../services/unified_printer_service.dart';
+import '../widgets/printer_selection_dialog.dart';
 
 class RepairDetailView extends StatefulWidget {
   final Repair repair;
@@ -177,14 +182,6 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     return "MỚI NHẬN";
   }
 
-  Color _getStatusColor(int s) {
-    if (s == 1) return Colors.blue;
-    if (s == 2) return Colors.orange;
-    if (s == 3) return Colors.green;
-    if (s == 4) return Colors.grey;
-    return Colors.blue;
-  }
-
   Future<void> _saveAll() async {
     setState(() => _isSaving = true);
     if (_receiveImages.isNotEmpty) {
@@ -238,11 +235,44 @@ class _RepairDetailViewState extends State<RepairDetailView> {
             ),
           if (!_managerUnlocked)
             IconButton(onPressed: _unlockManager, icon: const Icon(Icons.edit, color: Colors.white)),
+          IconButton(onPressed: _callCustomer, icon: const Icon(Icons.call, color: Colors.white)),
           IconButton(onPressed: _sendSmsToCustomer, icon: const Icon(Icons.sms_outlined, color: Colors.white)),
           IconButton(onPressed: _sendToChat, icon: const Icon(Icons.chat_bubble_outline_rounded, color: Colors.white)),
-          IconButton(onPressed: _printWifi, icon: const Icon(Icons.print_rounded, color: Colors.white)),
-          IconButton(onPressed: _printThermalLabel, icon: const Icon(Icons.thermostat_rounded, color: Colors.white)),
-          IconButton(onPressed: _shareRepair, icon: const Icon(Icons.share_rounded, color: Colors.white)),
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              switch (value) {
+                case 'print':
+                  _printWifi();
+                  break;
+                case 'share':
+                  _shareRepair();
+                  break;
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem<String>(
+                value: 'print',
+                child: Row(
+                  children: [
+                    Icon(Icons.print_rounded),
+                    SizedBox(width: 8),
+                    Text('In WiFi'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem<String>(
+                value: 'share',
+                child: Row(
+                  children: [
+                    Icon(Icons.share_rounded),
+                    SizedBox(width: 8),
+                    Text('Chia sẻ'),
+                  ],
+                ),
+              ),
+            ],
+            icon: const Icon(Icons.more_vert, color: Colors.white),
+          ),
           IconButton(onPressed: _saveAll, icon: const Icon(Icons.check_circle, color: Colors.white, size: 28)),
           if (_managerUnlocked)
             IconButton(onPressed: _deleteRepair, icon: const Icon(Icons.delete_forever, color: Colors.white)),
@@ -322,108 +352,91 @@ class _RepairDetailViewState extends State<RepairDetailView> {
   Widget _input(TextEditingController c, String h, IconData i, {bool caps = false, TextInputType type = TextInputType.text, String? suffix, bool readOnly = false}) => TextField(controller: c, keyboardType: type, textCapitalization: caps ? TextCapitalization.characters : TextCapitalization.none, readOnly: readOnly, decoration: InputDecoration(labelText: h, prefixIcon: Icon(i, size: 18), suffixText: suffix, border: const OutlineInputBorder()));
   Widget _imageGrid(List<String> cloud, List<File> local, bool isDel) => SizedBox(height: 80, child: ListView(scrollDirection: Axis.horizontal, children: [...cloud.map((url) => GestureDetector(onTap: () => _openGallery(cloud, cloud.indexOf(url)), child: Container(margin: const EdgeInsets.only(right: 8), width: 80, decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.blueAccent)), child: ClipRRect(borderRadius: BorderRadius.circular(6), child: Image.network(url, fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.broken_image)))))), ...local.map((f) => Container(margin: const EdgeInsets.only(right: 8), width: 80, decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.orange)), child: ClipRRect(borderRadius: BorderRadius.circular(6), child: Image.file(f, fit: BoxFit.cover)))), GestureDetector(onTap: () async { final f = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 50); if (f != null) setState(() { if (isDel) _deliveryImages.add(File(f.path)); else _receiveImages.add(File(f.path)); }); }, child: Container(width: 80, decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(8)), child: const Icon(Icons.add_a_photo, color: Colors.grey)))]));
 
-  String _fmtDate(int ms) => DateFormat('HH:mm dd/MM/yyyy').format(DateTime.fromMillisecondsSinceEpoch(ms));
-
-  String _toNoSign(String str) {
-    var withDia = 'àáâãèéêìíòóôõùúýỳỹỷỵửữừứựửữừứựàáâãèéêìíòóôõùúýỳỹỷỵửữừứựửữừứự';
-    var withoutDia = 'aaaaeeeeiioooouuyyyyyuuuuuuuuuuuaaaaeeeeiioooouuyyyyyuuuuuuuuuuu';
-    for (int i = 0; i < withDia.length; i++) {
-      str = str.replaceAll(withDia[i], withoutDia[i]);
-    }
-    return str.toUpperCase();
-  }
-
   Future<void> _printWifi() async {
-    final prefs = await SharedPreferences.getInstance();
-    final ip = prefs.getString('printer_ip')?.trim();
-    if (ip == null || ip.isEmpty) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("CHƯA CÀI ĐẶT IP MÁY IN!")));
-      }
-      return;
-    }
+    // Show printer selection dialog
+    final printerConfig = await showPrinterSelectionDialog(context);
+    if (printerConfig == null) return; // User cancelled
 
-    final shopName = prefs.getString('shop_name') ?? 'TEN SHOP';
-    final shopAddr = prefs.getString('shop_address') ?? 'DIA CHI';
-    final shopPhone = prefs.getString('shop_phone') ?? 'SDT';
+    final prefs = await SharedPreferences.getInstance();
+    final shopInfo = {
+      'shopName': prefs.getString('shop_name') ?? 'TEN SHOP',
+      'shopAddr': prefs.getString('shop_address') ?? 'DIA CHI',
+      'shopPhone': prefs.getString('shop_phone') ?? 'SDT',
+    };
+
+    // Extract printer configuration
+    final printerType = printerConfig['type'] as PrinterType?;
+    final bluetoothPrinter = printerConfig['bluetoothPrinter'] as BluetoothPrinterConfig?;
+    final wifiIp = printerConfig['wifiIp'] as String?;
 
     try {
-      const PaperSize paper = PaperSize.mm58;
-      final profile = await CapabilityProfile.load();
-      final printer = NetworkPrinter(paper, profile);
+      final success = await UnifiedPrinterService.printRepairReceiptFromRepair(
+        r,
+        shopInfo,
+        printerType: printerType,
+        bluetoothPrinter: bluetoothPrinter,
+        wifiIp: wifiIp,
+      );
 
-      final PosPrintResult res = await printer.connect(ip, port: 9100);
-      if (res == PosPrintResult.success) {
-        // HEADER SHOP
-        printer.text(_toNoSign(shopName), styles: const PosStyles(align: PosAlign.center, bold: true));
-        printer.text(_toNoSign(shopAddr), styles: const PosStyles(align: PosAlign.center));
-        printer.text('SDT: ${_toNoSign(shopPhone)}', styles: const PosStyles(align: PosAlign.center));
-        printer.hr();
-
-        // TIEU DE PHIEU
-        printer.text('PHIEU NHAN SUA CHUA', styles: const PosStyles(align: PosAlign.center, bold: true));
-        printer.hr();
-
-        // THONG TIN KHACH
-        printer.text('KHACH HANG : ${_toNoSign(r.customerName)}');
-        printer.text('SDT        : ${_toNoSign(r.phone)}');
-
-        // THONG TIN MAY
-        printer.text('MAY        : ${_toNoSign(r.model)}');
-        printer.text('LOI        : ${_toNoSign(r.issue)}');
-        printer.text('BAO HANH   : ${_toNoSign(_normalizeWarranty(_selectedWarranty))}');
-
-        // TRANG THAI & NHAN VIEN
-        printer.text('TRANG THAI : ${_toNoSign(_getStatusLabel(r.status))}');
-        final staff = (r.deliveredBy ?? r.repairedBy ?? r.createdBy ?? '---').toUpperCase();
-        printer.text('NHAN VIEN  : ${_toNoSign(staff)}');
-        final timeMs = r.deliveredAt ?? r.finishedAt ?? r.createdAt;
-        printer.text('THOI GIAN  : ${_fmtDate(timeMs)}');
-
-        printer.hr();
-        printer.text('TIEN SUA   : ${NumberFormat('#,###').format(r.price)} VND', styles: const PosStyles(bold: true));
-        printer.hr();
-
-        // MA QR DE DOI CHIEU DON
-        printer.text('QUET QR DE XEM CHI TIET DON', styles: const PosStyles(align: PosAlign.center));
-        printer.qrcode(r.firestoreId ?? r.id?.toString() ?? 'REPAIR', size: QRSize.Size4, cor: QRCorrection.L);
-
-        printer.feed(2);
-        printer.text('CAM ON QUY KHACH DA TIN TUONG!', styles: const PosStyles(align: PosAlign.center));
-        printer.feed(2);
-        printer.cut();
-        printer.disconnect();
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ĐÃ GỬI LỆNH IN PHIẾU SỬA TỚI MÁY IN')));
-        }
-      } else {
-        printer.disconnect();
-        if (mounted) {
+      if (mounted) {
+        if (success) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('IN PHIẾU SỬA THẤT BẠI: ${res.msg}. Vui lòng kiểm tra lại IP và kết nối mạng.')),
+            const SnackBar(content: Text('Đã in phiếu sửa chữa thành công!')),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('In thất bại! Vui lòng kiểm tra cài đặt máy in.')),
           );
         }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('LỖI KHI IN PHIẾU SỬA: $e')),
+          SnackBar(content: Text('Lỗi khi in: $e')),
         );
       }
     }
   }
 
   Future<void> _printThermalLabel() async {
+    // Show printer selection dialog
+    final printerConfig = await showPrinterSelectionDialog(context);
+    if (printerConfig == null) return; // User cancelled
+
+    // Extract printer configuration
+    final printerType = printerConfig['type'] as PrinterType?;
+    final bluetoothPrinter = printerConfig['bluetoothPrinter'] as BluetoothPrinterConfig?;
+    final wifiIp = printerConfig['wifiIp'] as String?;
+
     try {
-      final success = await ThermalPrinterService.printDeviceLabel(
-        deviceName: r.model,
-        color: r.color,
-        imei: r.imei,
-        condition: r.condition,
-        price: r.price != null ? '${NumberFormat('#,###').format(r.price)} VND' : null,
-        accessories: r.accessories,
-      );
+      // For thermal labels, we primarily use Bluetooth printers
+      // But we can extend this to support other types in the future
+      bool success = false;
+
+      if (printerType == PrinterType.bluetooth && bluetoothPrinter != null) {
+        // Use specific Bluetooth printer
+        final connected = await BluetoothPrinterService.connect(bluetoothPrinter.macAddress);
+        if (connected) {
+          success = await ThermalPrinterService.printDeviceLabel(
+            deviceName: r.model,
+            color: r.color,
+            imei: r.imei,
+            condition: r.condition,
+            price: r.price != null ? '${NumberFormat('#,###').format(r.price)} VND' : null,
+            accessories: r.accessories,
+          );
+        }
+      } else {
+        // Use default/saved printer
+        success = await ThermalPrinterService.printDeviceLabel(
+          deviceName: r.model,
+          color: r.color,
+          imei: r.imei,
+          condition: r.condition,
+          price: r.price != null ? '${NumberFormat('#,###').format(r.price)} VND' : null,
+          accessories: r.accessories,
+        );
+      }
 
       if (mounted) {
         if (success) {
@@ -507,6 +520,35 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("LỖI KHI GỬI TIN NHẮN, nhưng nội dung đã được copy sẵn.")),
+      );
+    }
+  }
+
+  Future<void> _callCustomer() async {
+    final phone = r.phone.trim();
+    if (phone.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("KHÔNG CÓ SỐ ĐIỆN THOẠI KHÁCH")),
+      );
+      return;
+    }
+
+    final uri = Uri(scheme: 'tel', path: phone);
+
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri);
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("KHÔNG THỂ GỌI ĐƯỢC SỐ NÀY")),
+        );
+      }
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("LỖI KHI GỌI")),
       );
     }
   }

@@ -6,6 +6,7 @@ import '../services/bluetooth_printer_service.dart';
 import '../services/unified_printer_service.dart';
 import '../models/repair_model.dart';
 import '../widgets/validated_text_field.dart';
+import '../widgets/printer_selection_dialog.dart';
 
 class RepairReceiptView extends StatefulWidget {
   const RepairReceiptView({super.key});
@@ -93,6 +94,10 @@ class _RepairReceiptViewState extends State<RepairReceiptView> {
   }
 
   Future<void> _printReceipt(Repair repair, String docId) async {
+    // Show printer selection dialog
+    final printerConfig = await showPrinterSelectionDialog(context);
+    if (printerConfig == null) return; // User cancelled
+
     final receiptData = {
       'receiptCode': _receiptCode,
       'docId': docId,
@@ -106,7 +111,18 @@ class _RepairReceiptViewState extends State<RepairReceiptView> {
       'receivedDate': DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now()),
     };
 
-    await UnifiedPrinterService.printRepairReceipt(receiptData, PaperSize.mm80);
+    // Extract printer configuration
+    final printerType = printerConfig['type'] as PrinterType?;
+    final bluetoothPrinter = printerConfig['bluetoothPrinter'] as BluetoothPrinterConfig?;
+    final wifiIp = printerConfig['wifiIp'] as String?;
+
+    await UnifiedPrinterService.printRepairReceipt(
+      receiptData,
+      PaperSize.mm80,
+      printerType: printerType,
+      bluetoothPrinter: bluetoothPrinter,
+      wifiIp: wifiIp,
+    );
   }
 
   @override

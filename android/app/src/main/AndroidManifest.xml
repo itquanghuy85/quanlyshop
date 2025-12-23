@@ -24,6 +24,14 @@
             android:name="flutterEmbedding"
             android:value="2" />
     </application>
+    <!-- Quyền truy cập internet -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Quyền truy cập camera -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Quyền truy cập storage -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
     <!-- Quyền truy cập thông báo -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <!-- Quyền truy cập Bluetooth -->
@@ -37,4 +45,7 @@
     <!-- Yêu cầu Bluetooth -->
     <uses-feature android:name="android.hardware.bluetooth" android:required="false" />
     <uses-feature android:name="android.hardware.bluetooth_le" android:required="false" />
+    <!-- Camera feature -->
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
 </manifest>

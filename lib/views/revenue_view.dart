@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
+import '../l10n/app_localizations.dart';
 import '../data/db_helper.dart';
 import '../models/repair_model.dart';
 import '../models/sale_order_model.dart';
@@ -45,6 +46,8 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
 
   final List<String> _periods = ['Hôm nay', 'Tuần này', 'Tháng này', 'Năm nay', 'Tất cả'];
   String _selectedPeriod = 'Hôm nay';
+
+  AppLocalizations get l10n => AppLocalizations.of(context)!;
 
   @override
   void initState() {
@@ -227,7 +230,7 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
     await db.upsertClosing(closing);
     if (mounted) {
       setState(() => _savingClosing = false);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ĐÃ LƯU CHỐT QUỸ HÔM NAY")));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.cashClosingSaved)));
     }
     AuditService.logAction(
       action: 'CLOSE_CASH',
@@ -265,11 +268,12 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         backgroundColor: Colors.white,
-        title: const Text("TRUNG TÂM TÀI CHÍNH", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        title: Text(l10n.financeCenter, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(70),
           child: Container(
@@ -297,46 +301,46 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
               ),
               labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
               unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal, fontSize: 12),
-              tabs: const [
+              tabs: [
                 Tab(
                   icon: Icon(Icons.dashboard_customize_rounded, size: 30, shadows: [Shadow(color: Colors.orange, blurRadius: 2)]),
-                  text: "DASHBOARD",
+                  text: l10n.dashboard,
                 ),
                 Tab(
                   icon: Icon(Icons.shopping_cart_checkout_rounded, size: 30, shadows: [Shadow(color: Colors.pink, blurRadius: 2)]),
-                  text: "BÁN HÀNG",
+                  text: l10n.sales,
                 ),
                 Tab(
                   icon: Icon(Icons.build_circle_rounded, size: 30, shadows: [Shadow(color: Colors.blue, blurRadius: 2)]),
-                  text: "SỬA CHỮA",
+                  text: l10n.repairs,
                 ),
                 Tab(
                   icon: Icon(Icons.money_off_csred_rounded, size: 30, shadows: [Shadow(color: Colors.redAccent, blurRadius: 2)]),
-                  text: "CHI PHÍ",
+                  text: l10n.expenses,
                 ),
                 Tab(
                   icon: Icon(Icons.business_rounded, size: 30, shadows: [Shadow(color: Colors.teal, blurRadius: 2)]),
-                  text: "NHÀ CC",
+                  text: l10n.suppliers,
                 ),
                 Tab(
                   icon: Icon(Icons.history_rounded, size: 30, shadows: [Shadow(color: Colors.deepPurple, blurRadius: 2)]),
-                  text: "NHẬT KÝ",
+                  text: l10n.auditLog,
                 ),
                 Tab(
                   icon: Icon(Icons.group_rounded, size: 30, shadows: [Shadow(color: Colors.green, blurRadius: 2)]),
-                  text: "NHÂN VIÊN",
+                  text: l10n.staff,
                 ),
                 Tab(
                   icon: Icon(Icons.fingerprint_rounded, size: 30, shadows: [Shadow(color: Colors.indigo, blurRadius: 2)]),
-                  text: "CHẤM CÔNG",
+                  text: l10n.attendance,
                 ),
                 Tab(
                   icon: Icon(Icons.payments_rounded, size: 30, shadows: [Shadow(color: Colors.brown, blurRadius: 2)]),
-                  text: "LƯƠNG",
+                  text: l10n.payroll,
                 ),
                 Tab(
                   icon: Icon(Icons.receipt_long_rounded, size: 30, shadows: [Shadow(color: Colors.deepPurple, blurRadius: 2)]),
-                  text: "CÔNG NỢ",
+                  text: l10n.debts,
                 ),
               ],
             ),
@@ -398,7 +402,7 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
       children: [
         _periodPicker(),
         const SizedBox(height: 14),
-        _reportCard("LỢI NHUẬN RÒNG (ĐÃ TRỪ CHI PHÍ)", "${NumberFormat('#,###').format(netProfit)} Đ", Colors.indigo, Icons.auto_graph_rounded),
+        _reportCard(l10n.netProfitAfterExpenses, "${NumberFormat('#,###').format(netProfit)} Đ", Colors.indigo, Icons.auto_graph_rounded),
         const SizedBox(height: 20),
         _inventorySnapshot(),
         const SizedBox(height: 20),
@@ -412,7 +416,7 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
           decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
           child: Column(
             children: [
-              const Text("PHÂN BỔ DOANH THU", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey)),
+              Text(l10n.revenueDistribution, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey)),
               const SizedBox(height: 10),
               Expanded(
                 child: PieChart(
@@ -449,7 +453,7 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
         children: [
           const Icon(Icons.schedule_rounded, color: Colors.blueAccent),
           const SizedBox(width: 10),
-          const Text("Khoảng thời gian", style: TextStyle(fontWeight: FontWeight.bold)),
+          Text(l10n.timePeriod, style: const TextStyle(fontWeight: FontWeight.bold)),
           const Spacer(),
           DropdownButton<String>(
             value: _selectedPeriod,
@@ -661,7 +665,7 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text("DÒNG TIỀN HÔM NAY", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.teal)),
+                Text(l10n.todayCashFlow, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.teal)),
                 const SizedBox(height: 6),
                 row("Thu tiền mặt", flows['cashIn']!),
                 row("Thu ngân hàng", flows['bankIn']!),
@@ -705,7 +709,7 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
             child: ElevatedButton.icon(
               onPressed: _savingClosing ? null : _saveClosing,
               icon: _savingClosing ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Icons.check_circle_outline),
-              label: const Text("LƯU CHỐT QUỸ HÔM NAY"),
+              label: Text(l10n.saveCashClosing),
               style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
             ),
           ),
