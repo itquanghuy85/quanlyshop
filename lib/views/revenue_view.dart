@@ -40,7 +40,7 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
     final repairs = await db.getAllRepairs();
     final sales = await db.getAllSales();
     final expenses = await db.getAllExpenses();
-    final closings = await db.getInventoryChecks(); // Tạm dùng bảng này
+    final closings = await db.getInventoryChecks(); 
     if (!mounted) return;
     setState(() {
       _repairs = repairs; _sales = sales; _expenses = expenses; _closings = closings;
@@ -48,7 +48,6 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
     });
   }
 
-  // KHÔI PHỤC HÀM _inRange ĐỂ XÓA LỖI BUILD
   bool _inRange(int ms) {
     final dt = DateTime.fromMillisecondsSinceEpoch(ms);
     final now = DateTime.now();
@@ -170,9 +169,15 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
     final fSales = _sales.where((s) => _inRange(s.soldAt)).toList();
     final fRepairs = _repairs.where((r) => r.status >= 3 && _inRange(r.deliveredAt ?? r.createdAt)).toList();
     final fExpenses = _expenses.where((e) => _inRange(e['date'] as int)).toList();
+    
     int totalIn = fSales.fold(0, (sum, s) => sum + s.totalPrice) + fRepairs.fold(0, (sum, r) => sum + r.price);
     int totalOut = fExpenses.fold(0, (sum, e) => sum + (e['amount'] as int));
-    int profit = (totalIn - totalOut - fSales.fold(0, (sum, s) => sum + s.totalCost) - fRepairs.fold(0, (sum, r) => sum + r.cost)).toInt();
+    
+    // ĐÃ ÉP KIỂU TOINT TRIỆT ĐỂ Ở ĐÂY ĐỂ XÓA LỖI BUILD
+    int totalCostS = fSales.fold(0, (sum, s) => (sum + s.totalCost).toInt());
+    int totalCostR = fRepairs.fold(0, (sum, r) => (sum + r.cost).toInt());
+    int profit = (totalIn - totalOut - totalCostS - totalCostR);
+
     return ListView(padding: const EdgeInsets.all(16), children: [Row(children: [_miniCard("TỔNG THU", totalIn, Colors.green), const SizedBox(width: 12), _miniCard("TỔNG CHI", totalOut, Colors.redAccent)]), const SizedBox(height: 16), _mainProfitCard(profit), const SizedBox(height: 20), Container(height: 200, padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)), child: PieChart(PieChartData(sections: [PieChartSectionData(value: fSales.length.toDouble() == 0 ? 1 : fSales.length.toDouble(), title: "Bán", color: Colors.pinkAccent, radius: 40), PieChartSectionData(value: fRepairs.length.toDouble() == 0 ? 1 : fRepairs.length.toDouble(), title: "Sửa", color: Colors.blueAccent, radius: 40)])))]);
   }
 
