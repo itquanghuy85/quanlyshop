@@ -39,72 +39,13 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
     setState(() { _debts = data; _isLoading = false; });
   }
 
-  void _showAddDebtDialog() {
-    final nameC = TextEditingController();
-    final phoneC = TextEditingController();
-    final amountC = TextEditingController();
-    final noteC = TextEditingController();
-    String type = 'CUSTOMER';
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text("TẠO SỔ NỢ MỚI", style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2962FF))),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              DropdownButtonFormField<String>(
-                value: type,
-                decoration: const InputDecoration(labelText: "Loại đối tượng"),
-                items: const [DropdownMenuItem(value: 'CUSTOMER', child: Text("KHÁCH NỢ SHOP")), DropdownMenuItem(value: 'SUPPLIER', child: Text("SHOP NỢ NCC"))],
-                onChanged: (v) => type = v!,
-              ),
-              const SizedBox(height: 12),
-              _input(nameC, "Họ tên", Icons.person, caps: true),
-              _input(phoneC, "Số điện thoại", Icons.phone, type: TextInputType.phone),
-              _input(amountC, "Số tiền nợ (VNĐ)", Icons.money, type: TextInputType.number, isMoney: true),
-              _input(noteC, "Lý do / Ghi chú", Icons.note),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("HỦY")),
-          ElevatedButton(
-            onPressed: () async {
-              if (nameC.text.isEmpty || amountC.text.isEmpty) return;
-              int amount = int.tryParse(amountC.text.replaceAll('.', '')) ?? 0;
-              if (amount < 10000) amount *= 1000;
-
-              await db.insertDebt({
-                'personName': nameC.text.toUpperCase(),
-                'phone': phoneC.text,
-                'totalAmount': amount,
-                'paidAmount': 0,
-                'type': type,
-                'status': 'NỢ',
-                'createdAt': DateTime.now().millisecondsSinceEpoch,
-                'note': noteC.text,
-              });
-              Navigator.pop(ctx);
-              _refresh();
-              NotificationService.showSnackBar("Đã thêm vào sổ nợ", color: Colors.green);
-            },
-            child: const Text("LƯU SỔ"),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _payDebt(Map<String, dynamic> debt) {
     final payC = TextEditingController();
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text("CẬP NHẬT TRẢ NỢ"),
-        content: TextField(controller: payC, keyboardType: TextInputType.number, autofocus: true, decoration: const InputDecoration(labelText: "Nhập số tiền trả thêm", suffixText: ".000 đ")),
+        content: TextField(controller: payC, keyboardType: TextInputType.number, autofocus: true, decoration: const InputDecoration(labelText: "Số tiền khách trả thêm (k)", suffixText: "k")),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("HỦY")),
           ElevatedButton(onPressed: () async {
@@ -122,38 +63,33 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFF),
+      backgroundColor: const Color(0xFFF0F4F8),
       appBar: AppBar(
-        title: const Text("QUẢN LÝ CÔNG NỢ", style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text("QUẢN LÝ CÔNG NỢ", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
         bottom: TabBar(
           controller: _tabController,
           labelColor: const Color(0xFF2962FF),
           indicatorColor: const Color(0xFF2962FF),
-          tabs: const [Tab(text: "KHÁCH NỢ"), Tab(text: "NỢ NCC")],
+          tabs: const [Tab(text: "KHÁCH NỢ"), Tab(text: "SHOP NỢ NCC")],
         ),
       ),
       body: _isLoading ? const Center(child: CircularProgressIndicator()) : TabBarView(
         controller: _tabController,
-        children: [_buildDebtList('CUSTOMER'), _buildDebtList('SUPPLIER')],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showAddDebtDialog,
-        label: const Text("THÊM NỢ"),
-        icon: const Icon(Icons.add_card),
-        backgroundColor: const Color(0xFF2962FF),
+        children: [_buildDebtList('CUSTOMER_OWES'), _buildDebtList('SHOP_OWES')],
       ),
     );
   }
 
   Widget _buildDebtList(String type) {
+    // LỌC DỮ LIỆU THEO CHUẨN MỚI
     final list = _debts.where((d) => d['type'] == type).toList();
-    if (list.isEmpty) return const Center(child: Text("Không có dữ liệu công nợ"));
+    if (list.isEmpty) return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.receipt_long_outlined, size: 80, color: Colors.grey[300]), const SizedBox(height: 10), const Text("Hiện tại không có khoản nợ nào", style: TextStyle(color: Colors.grey))]));
 
     int total = list.fold(0, (sum, d) => sum + (d['totalAmount'] as int) - (d['paidAmount'] as int? ?? 0));
 
     return Column(
       children: [
-        _summaryHeader(type == 'CUSTOMER' ? "TỔNG KHÁCH ĐANG NỢ" : "TỔNG SHOP ĐANG NỢ", total, type == 'CUSTOMER' ? Colors.redAccent : Colors.blueAccent),
+        _summaryHeader(type == 'CUSTOMER_OWES' ? "TỔNG KHÁCH ĐANG NỢ" : "TỔNG SHOP ĐANG NỢ NCC", total, type == 'CUSTOMER_OWES' ? Colors.redAccent : Colors.blueAccent),
         Expanded(
           child: ListView.builder(
             padding: const EdgeInsets.all(16),
@@ -169,7 +105,7 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
     return Container(
       width: double.infinity, margin: const EdgeInsets.all(16), padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(20), border: Border.all(color: color.withOpacity(0.3))),
-      child: Column(children: [Text(label, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 12)), const SizedBox(height: 4), Text("${NumberFormat('#,###').format(amount)} đ", style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 24))]),
+      child: Column(children: [Text(label, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 11)), const SizedBox(height: 4), Text("${NumberFormat('#,###').format(amount)} đ", style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 24))]),
     );
   }
 
@@ -177,55 +113,41 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
     final int total = d['totalAmount'];
     final int paid = d['paidAmount'] ?? 0;
     final int remain = total - paid;
-    final double progress = total > 0 ? paid / total : 0;
-    final bool isPaid = d['status'] == 'ĐÃ TRẢ' || remain <= 0;
+    final bool isPaid = remain <= 0;
+    final date = DateFormat('dd/MM/yyyy').format(DateTime.fromMillisecondsSinceEpoch(d['createdAt']));
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10)]),
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(15),
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(child: Text(d['personName'].toString().toUpperCase(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14))),
+            Text(date, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+          ],
+        ),
+        subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (d['phone'] != null) Text("SĐT: ${d['phone']}", style: const TextStyle(fontSize: 11, color: Colors.blueGrey)),
+            Text("Nội dung: ${d['note'] ?? ''}", style: const TextStyle(fontSize: 11)),
+            const SizedBox(height: 10),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(d['personName'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(color: isPaid ? Colors.green.shade50 : Colors.red.shade50, borderRadius: BorderRadius.circular(10)),
-                  child: Text(isPaid ? "ĐÃ TRẢ" : "CÒN NỢ", style: TextStyle(color: isPaid ? Colors.green : Colors.red, fontWeight: FontWeight.bold, fontSize: 10)),
-                ),
+                Text("Đã trả: ${NumberFormat('#,###').format(paid)}", style: const TextStyle(fontSize: 11, color: Colors.green, fontWeight: FontWeight.bold)),
+                Text("Còn nợ: ${NumberFormat('#,###').format(remain)}", style: const TextStyle(fontSize: 12, color: Colors.red, fontWeight: FontWeight.bold)),
               ],
-            ),
-            const SizedBox(height: 8),
-            Text("Lý do: ${d['note'] ?? 'Không có ghi chú'}", style: const TextStyle(color: Colors.blueGrey, fontSize: 12)),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text("Đã trả: ${NumberFormat('#,###').format(paid)}", style: const TextStyle(fontSize: 12, color: Colors.green, fontWeight: FontWeight.bold)),
-                Text("Còn lại: ${NumberFormat('#,###').format(remain)}", style: const TextStyle(fontSize: 12, color: Colors.red, fontWeight: FontWeight.bold)),
-              ],
-            ),
-            const SizedBox(height: 8),
-            ClipRRect(borderRadius: BorderRadius.circular(10), child: LinearProgressIndicator(value: progress, minHeight: 8, backgroundColor: Colors.grey.shade200, color: Colors.green)),
-            if (!isPaid) Padding(
-              padding: const EdgeInsets.only(top: 16),
-              child: SizedBox(width: double.infinity, child: ElevatedButton(onPressed: () => _payDebt(d), style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), child: const Text("CẬP NHẬT TRẢ TIỀN", style: TextStyle(fontWeight: FontWeight.bold)))),
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _input(TextEditingController c, String l, IconData i, {bool caps = false, TextInputType type = TextInputType.text, bool isMoney = false}) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: TextField(
-        controller: c, keyboardType: type, textCapitalization: caps ? TextCapitalization.characters : TextCapitalization.none,
-        decoration: InputDecoration(labelText: l, prefixIcon: Icon(i, size: 20), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+        trailing: isPaid ? const Icon(Icons.check_circle, color: Colors.green) : ElevatedButton(
+          onPressed: () => _payDebt(d),
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, padding: const EdgeInsets.symmetric(horizontal: 10), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+          child: const Text("TRẢ NỢ", style: TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold)),
+        ),
       ),
     );
   }

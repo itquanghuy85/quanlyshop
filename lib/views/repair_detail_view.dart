@@ -39,49 +39,66 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     });
   }
 
-  // HÀM CHUYỂN TRẠNG THÁI & THÊM BẢO HÀNH
+  // HÀM CHUYỂN TRẠNG THÁI & GHI NỢ TỰ ĐỘNG
   Future<void> _updateStatus(int newStatus) async {
-    if (newStatus == 4) { // Trạng thái ĐÃ GIAO KHÁCH
+    if (newStatus == 4) { // GIAO MÁY
+      String payMethod = "TIỀN MẶT";
       final warrantyC = TextEditingController(text: r.warranty.isEmpty ? "1 THÁNG" : r.warranty);
+      
       final confirm = await showDialog<bool>(
         context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text("XÁC NHẬN GIAO MÁY"),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text("Vui lòng xác nhận thời gian bảo hành cho khách:"),
-              const SizedBox(height: 10),
-              TextField(controller: warrantyC, decoration: const InputDecoration(labelText: "Thời gian bảo hành", border: OutlineInputBorder())),
+        builder: (ctx) => StatefulBuilder(
+          builder: (ctx, setS) => AlertDialog(
+            title: const Text("XÁC NHẬN GIAO MÁY & THANH TOÁN"),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(controller: warrantyC, decoration: const InputDecoration(labelText: "Bảo hành cho khách")),
+                const SizedBox(height: 15),
+                const Text("Hình thức thanh toán:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                const SizedBox(height: 8),
+                Wrap(spacing: 8, children: ["TIỀN MẶT", "CHUYỂN KHOẢN", "CÔNG NỢ"].map((m) => ChoiceChip(
+                  label: Text(m), selected: payMethod == m, 
+                  onSelected: (v) => setS(() => payMethod = m),
+                )).toList()),
+              ],
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("HỦY")),
+              ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text("HOÀN TẤT")),
             ],
           ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("HỦY")),
-            ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text("GIAO MÁY")),
-          ],
         ),
       );
+
       if (confirm != true) return;
       r.warranty = warrantyC.text.toUpperCase();
+      r.paymentMethod = payMethod;
       r.deliveredAt = DateTime.now().millisecondsSinceEpoch;
+
+      // NẾU LÀ CÔNG NỢ => GHI VÀO SỔ NỢ
+      if (payMethod == "CÔNG NỢ") {
+        await db.insertDebt({
+          'personName': r.customerName,
+          'phone': r.phone,
+          'totalAmount': r.price,
+          'paidAmount': 0,
+          'type': "CUSTOMER_OWES",
+          'status': "unpaid",
+          'createdAt': DateTime.now().millisecondsSinceEpoch,
+          'note': "Nợ tiền sửa máy: ${r.model}",
+        });
+      }
     }
 
-    if (newStatus == 3) { // Trạng thái ĐÃ XONG (Chờ khách lấy)
-      r.finishedAt = DateTime.now().millisecondsSinceEpoch;
-    }
+    if (newStatus == 3) r.finishedAt = DateTime.now().millisecondsSinceEpoch;
 
-    setState(() {
-      r.status = newStatus;
-      _isUpdating = true;
-    });
-
+    setState(() { r.status = newStatus; _isUpdating = true; });
     try {
       await db.upsertRepair(r);
       await FirestoreService.upsertRepair(r);
-      NotificationService.showSnackBar("ĐÃ CẬP NHẬT TRẠNG THÁI: ${_getStatusText(newStatus)}", color: Colors.green);
-    } catch (e) {
-      NotificationService.showSnackBar("Lỗi: $e", color: Colors.red);
-    }
+      NotificationService.showSnackBar("ĐÃ CẬP NHẬT: ${_getStatusText(newStatus)}", color: Colors.green);
+    } catch (_) {}
     setState(() => _isUpdating = false);
   }
 
@@ -150,7 +167,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
           children: [
             _buildStatusCard(),
             const SizedBox(height: 15),
-            _buildActionButtons(), // CÁC NÚT CHUYỂN TRẠNG THÁI
+            _buildActionButtons(),
             const SizedBox(height: 20),
             _buildFinancialSummary(),
             const SizedBox(height: 20),
@@ -178,7 +195,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
   }
 
   Widget _buildActionButtons() {
-    if (r.status == 4) return const SizedBox(); // Đã giao thì không hiện nút nữa
+    if (r.status == 4) return const SizedBox();
     return Row(
       children: [
         if (r.status < 3) Expanded(child: ElevatedButton(onPressed: () => _updateStatus(3), style: ElevatedButton.styleFrom(backgroundColor: Colors.green), child: const Text("ĐÃ XONG", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)))),

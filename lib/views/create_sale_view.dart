@@ -101,7 +101,12 @@ class _CreateSaleViewState extends State<CreateSaleView> {
     try {
       final now = DateTime.now().millisecondsSinceEpoch;
       final String uniqueId = "sale_${now}_${phoneCtrl.text}";
-      String seller = FirebaseAuth.instance.currentUser?.email?.split('@').first.toUpperCase() ?? "NHÂN VIÊN";
+      String seller = FirebaseAuth.instance.currentUser?.email?.split('@').first.toUpperCase() ?? "NV";
+
+      int totalPrice = _parseCurrency(priceCtrl.text);
+      int paidAmount = _parseCurrency(downPaymentCtrl.text);
+      if (paidAmount > 0 && paidAmount < 100000) paidAmount *= 1000;
+      if (_paymentMethod != "CÔNG NỢ" && paidAmount == 0) paidAmount = totalPrice; // Nếu không phải công nợ thì mặc định thu đủ
 
       final sale = SaleOrder(
         firestoreId: uniqueId,
@@ -110,32 +115,46 @@ class _CreateSaleViewState extends State<CreateSaleView> {
         address: addressCtrl.text.trim().toUpperCase(),
         productNames: _selectedItems.map((e) => (e['product'] as Product).name).join(', '),
         productImeis: _selectedItems.map((e) => (e['product'] as Product).imei ?? "PK").join(', '),
-        totalPrice: _parseCurrency(priceCtrl.text),
+        totalPrice: totalPrice,
         totalCost: _selectedItems.fold(0, (sum, item) => sum + (item['product'] as Product).cost),
         paymentMethod: _paymentMethod,
         sellerName: seller,
         soldAt: now,
         isInstallment: _isInstallment,
-        downPayment: _parseCurrency(downPaymentCtrl.text) < 100000 ? _parseCurrency(downPaymentCtrl.text) * 1000 : _parseCurrency(downPaymentCtrl.text),
-        loanAmount: _parseCurrency(loanAmountCtrl.text),
+        downPayment: paidAmount,
+        loanAmount: _isInstallment ? _parseCurrency(loanAmountCtrl.text) : 0,
         bankName: bankCtrl.text.toUpperCase(),
         notes: noteCtrl.text,
         warranty: _saleWarranty,
       );
 
+      // 1. GHI VÀO SỔ CÔNG NỢ NẾU KHÁCH CHƯA TRẢ ĐỦ
+      if (_paymentMethod == "CÔNG NỢ" || paidAmount < totalPrice) {
+        await db.insertDebt({
+          'personName': nameCtrl.text.trim().toUpperCase(),
+          'phone': phoneCtrl.text.trim(),
+          'totalAmount': totalPrice,
+          'paidAmount': paidAmount,
+          'type': "CUSTOMER_OWES",
+          'status': paidAmount >= totalPrice ? "paid" : "unpaid",
+          'createdAt': now,
+          'note': "Nợ mua máy: ${sale.productNames}",
+        });
+      }
+
+      // 2. TRỪ KHO
       for (var item in _selectedItems) {
         final p = item['product'] as Product;
         await db.updateProductStatus(p.id!, 0); 
         await db.deductProductQuantity(p.id!, 1);
-        p.status = 0;
-        p.quantity = 0;
+        p.status = 0; p.quantity = 0;
         await FirestoreService.updateProductCloud(p);
       }
 
       await db.upsertSale(sale); 
       await FirestoreService.addSale(sale);
 
-      NotificationService.showSnackBar("ĐÃ BÁN HÀNG & TRỪ KHO THÀNH CÔNG!", color: Colors.green);
+      NotificationService.showSnackBar("ĐÃ BÁN HÀNG & CẬP NHẬT CÔNG NỢ!", color: Colors.green);
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       setState(() => _isSaving = false);
@@ -147,7 +166,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFF),
-      appBar: AppBar(title: const Text("TẠO ĐƠN BÁN HÀNG", style: TextStyle(fontWeight: FontWeight.bold)), backgroundColor: Colors.pinkAccent, foregroundColor: Colors.white),
+      appBar: AppBar(title: const Text("TẠO ĐƠN BÁN HÀNG", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)), backgroundColor: Colors.pinkAccent, foregroundColor: Colors.white),
       body: _isLoading ? const Center(child: CircularProgressIndicator()) : SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -163,10 +182,10 @@ class _CreateSaleViewState extends State<CreateSaleView> {
             _buildCustomerSuggestions(),
             ValidatedTextField(controller: phoneCtrl, label: "SỐ ĐIỆN THOẠI", icon: Icons.phone, keyboardType: TextInputType.phone),
             const SizedBox(height: 20),
-            _sectionTitle("3. THANH TOÁN & TRẢ GÓP"),
+            _sectionTitle("3. THANH TOÁN & GHI NỢ"),
             _buildPaymentSection(),
             const SizedBox(height: 30),
-            SizedBox(width: double.infinity, height: 55, child: ElevatedButton(onPressed: _isSaving ? null : _processSale, style: ElevatedButton.styleFrom(backgroundColor: Colors.green), child: _isSaving ? const CircularProgressIndicator(color: Colors.white) : const Text("HOÀN TẤT & TRỪ KHO", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)))),
+            SizedBox(width: double.infinity, height: 55, child: ElevatedButton(onPressed: _isSaving ? null : _processSale, style: ElevatedButton.styleFrom(backgroundColor: Colors.green, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))), child: _isSaving ? const CircularProgressIndicator(color: Colors.white) : const Text("HOÀN TẤT & CẬP NHẬT SỔ NỢ", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)))),
           ],
         ),
       ),
@@ -181,16 +200,14 @@ class _CreateSaleViewState extends State<CreateSaleView> {
         children: [
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text("TỔNG TIỀN:", style: TextStyle(fontWeight: FontWeight.bold)), Text("${priceCtrl.text} Đ", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.red))]),
           const SizedBox(height: 15),
-          Wrap(spacing: 8, children: ["TIỀN MẶT", "CHUYỂN KHOẢN", "CÔNG NỢ", "TRẢ GÓP (NH)"].map((e) => ChoiceChip(label: Text(e), selected: _paymentMethod == e, onSelected: (v) => setState(() { _paymentMethod = e; _isInstallment = (e == "TRẢ GÓP (NH)"); }))).toList()),
+          Wrap(spacing: 8, children: ["TIỀN MẶT", "CHUYỂN KHOẢN", "CÔNG NỢ", "TRẢ GÓP (NH)"].map((e) => ChoiceChip(label: Text(e, style: const TextStyle(fontSize: 11)), selected: _paymentMethod == e, onSelected: (v) => setState(() { _paymentMethod = e; _isInstallment = (e == "TRẢ GÓP (NH)"); }))).toList()),
+          const Divider(height: 30),
+          _moneyInput(downPaymentCtrl, _paymentMethod == "CÔNG NỢ" ? "KHÁCH TRẢ TRƯỚC (k)" : "SỐ TIỀN THU THỰC TẾ (k)", Colors.orange),
           if (_isInstallment) ...[
-            const Divider(height: 30),
-            _moneyInput(downPaymentCtrl, "KHÁCH TRẢ TRƯỚC (k)", Colors.orange),
             const SizedBox(height: 10),
             _moneyInput(loanAmountCtrl, "NGÂN HÀNG CHO VAY", Colors.blueGrey, enabled: false),
             const SizedBox(height: 10),
-            TextField(controller: bankCtrl, decoration: const InputDecoration(labelText: "TÊN NGÂN HÀNG / CÔNG TY TC", border: OutlineInputBorder(), prefixIcon: Icon(Icons.account_balance))),
-            const SizedBox(height: 8),
-            Wrap(spacing: 8, children: ["FE", "HOME", "MIRAE", "HD", "F83", "T86"].map((b) => ActionChip(label: Text(b), onPressed: () => setState(() => bankCtrl.text = b))).toList()),
+            TextField(controller: bankCtrl, decoration: const InputDecoration(labelText: "TÊN CÔNG TY TÀI CHÍNH", border: OutlineInputBorder(), prefixIcon: Icon(Icons.account_balance))),
           ],
           const Divider(height: 30),
           DropdownButtonFormField<String>(value: _saleWarranty, decoration: const InputDecoration(labelText: "CHỌN THỜI GIAN BẢO HÀNH"), items: ["KO BH", "1 THÁNG", "3 THÁNG", "6 THÁNG", "12 THÁNG"].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(), onChanged: (v) => setState(() => _saleWarranty = v ?? "KO BH"))
@@ -200,7 +217,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
   }
 
   Widget _moneyInput(TextEditingController ctrl, String label, Color color, {bool enabled = true}) {
-    return TextField(controller: ctrl, enabled: enabled, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: label, border: OutlineInputBorder(), prefixIcon: Icon(Icons.money, color: color), filled: !enabled, fillColor: enabled ? null : Colors.grey.shade50), onChanged: (_) => _calculateInstallment());
+    return TextField(controller: ctrl, enabled: enabled, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: label, border: OutlineInputBorder(), prefixIcon: Icon(Icons.money, color: color), filled: !enabled, fillColor: enabled ? null : Colors.grey.shade50, suffixText: "k"), onChanged: (_) => _calculateInstallment());
   }
 
   Widget _sectionTitle(String t) => Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(t, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey, fontSize: 12)));
@@ -211,36 +228,13 @@ class _CreateSaleViewState extends State<CreateSaleView> {
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10)]),
       child: ListView.builder(shrinkWrap: true, itemCount: _filteredInStock.length, itemBuilder: (ctx, i) {
         final p = _filteredInStock[i];
-        return ListTile(
-          title: Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold)), 
-          subtitle: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text("IMEI: ${p.imei ?? 'PK'}"),
-              Text("${p.capacity ?? ''} - Tồn: ${p.quantity}", style: const TextStyle(color: Colors.blueGrey, fontSize: 12)),
-              Text("Giá: ${NumberFormat('#,###').format(p.price)}", style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-            ],
-          ),
-          isThreeLine: true,
-          trailing: const Icon(Icons.add_circle, color: Colors.green, size: 30), 
-          onTap: () => _addItem(p)
-        );
+        return ListTile(title: Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold)), subtitle: Text("IMEI: ${p.imei ?? 'PK'} - Giá: ${NumberFormat('#,###').format(p.price)}"), trailing: const Icon(Icons.add_circle, color: Colors.green), onTap: () => _addItem(p));
       }),
     );
   }
 
   Widget _buildSelectedItemsList() {
-    return Column(children: _selectedItems.map((item) {
-      final p = item['product'] as Product;
-      return Card(
-        margin: const EdgeInsets.symmetric(vertical: 4),
-        child: ListTile(
-          title: Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold)), 
-          subtitle: Text("IMEI: ${p.imei ?? 'PK'}\nGiá bán: ${NumberFormat('#,###').format(item['sellPrice'])}"), 
-          trailing: IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () { setState(() { _selectedItems.remove(item); _calculateTotal(); }); }),
-        )
-      );
-    }).toList());
+    return Column(children: _selectedItems.map((item) => Card(margin: const EdgeInsets.symmetric(vertical: 4), child: ListTile(title: Text((item['product'] as Product).name), subtitle: Text("Giá bán: ${NumberFormat('#,###').format(item['sellPrice'])}"), trailing: IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () { setState(() { _selectedItems.remove(item); _calculateTotal(); }); })))).toList());
   }
 
   Widget _buildCustomerSuggestions() {

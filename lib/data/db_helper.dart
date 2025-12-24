@@ -36,6 +36,16 @@ class DBHelper {
         await db.execute('CREATE TABLE IF NOT EXISTS payroll_locks(id INTEGER PRIMARY KEY AUTOINCREMENT, monthKey TEXT UNIQUE, locked INTEGER DEFAULT 1, lockedBy TEXT, note TEXT, lockedAt INTEGER)');
         await db.execute('CREATE TABLE IF NOT EXISTS cash_closings(id INTEGER PRIMARY KEY AUTOINCREMENT, dateKey TEXT UNIQUE, cashStart INTEGER DEFAULT 0, bankStart INTEGER DEFAULT 0, cashEnd INTEGER DEFAULT 0, bankEnd INTEGER DEFAULT 0, expectedCashDelta INTEGER DEFAULT 0, expectedBankDelta INTEGER DEFAULT 0, note TEXT, createdAt INTEGER)');
         await db.execute('CREATE TABLE IF NOT EXISTS inventory_checks(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, type TEXT, checkDate INTEGER, itemsJson TEXT, status TEXT, createdBy TEXT, isSynced INTEGER DEFAULT 0, isCompleted INTEGER DEFAULT 0)');
+        
+        // --- TẠO NHÀ CUNG CẤP MẶC ĐỊNH NGAY KHI TẠO DB ---
+        await db.insert('suppliers', {
+          'name': 'KHO TỔNG',
+          'contactPerson': 'QUANG HUY',
+          'phone': '0964095979',
+          'address': 'HÀ NỘI',
+          'items': 'ĐIỆN THOẠI, PHỤ KIỆN',
+          'createdAt': DateTime.now().millisecondsSinceEpoch,
+        });
       },
       onUpgrade: (db, oldV, newV) async {
         if (oldV < 14) {
@@ -118,7 +128,23 @@ class DBHelper {
 
   // SUPPLIERS
   Future<int> insertSupplier(Map<String, dynamic> map) async => (await database).insert('suppliers', map);
-  Future<List<Map<String, dynamic>>> getSuppliers() async => (await database).query('suppliers', orderBy: 'name ASC');
+  Future<List<Map<String, dynamic>>> getSuppliers() async {
+    final db = await database;
+    final res = await db.query('suppliers', orderBy: 'name ASC');
+    // NẾU TRỐNG THÌ TẠO MẶC ĐỊNH NGAY LẬP TỨC
+    if (res.isEmpty) {
+      await db.insert('suppliers', {
+        'name': 'KHO TỔNG',
+        'contactPerson': 'QUANG HUY',
+        'phone': '0964095979',
+        'address': 'HÀ NỘI',
+        'items': 'ĐIỆN THOẠI, PHỤ KIỆN',
+        'createdAt': DateTime.now().millisecondsSinceEpoch,
+      });
+      return await db.query('suppliers', orderBy: 'name ASC');
+    }
+    return res;
+  }
   Future<int> deleteSupplier(int id) async => (await database).delete('suppliers', where: 'id = ?', whereArgs: [id]);
 
   // FINANCE

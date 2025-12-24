@@ -114,6 +114,12 @@ class UnifiedPrinterService {
     bytes.addAll(generator.text(_removeDiacritics("MAY: ${r.model}")));
     bytes.addAll(generator.text(_removeDiacritics("LOI: ${r.issue}")));
     bytes.addAll(generator.text("GIA: ${_fmt(r.price)} VND", styles: const PosStyles(bold: true)));
+    
+    // HIỂN THỊ TRẠNG THÁI THANH TOÁN TRÊN PHIẾU
+    if (r.paymentMethod == "CÔNG NỢ") {
+      bytes.addAll(generator.text("THANH TOAN: CONG NO", styles: const PosStyles(bold: true)));
+    }
+
     bytes.addAll(generator.text("BH: ${r.warranty}", styles: const PosStyles(bold: true)));
     
     if (prefs.getBool('receipt_show_qr') ?? true) {
@@ -151,7 +157,13 @@ class UnifiedPrinterService {
     bytes.addAll(generator.text("IMEI: ${s.productImeis}"));
     bytes.addAll(generator.text("BAO HANH: ${s.warranty}"));
     bytes.addAll(generator.feed(1));
+    
+    // HIỂN THỊ CHI TIẾT THANH TOÁN & NỢ TRÊN HÓA ĐƠN
     bytes.addAll(generator.text("TONG CONG: ${_fmt(s.totalPrice)} VND", styles: PosStyles(bold: true, height: headerSize)));
+    if (s.paymentMethod == "CÔNG NỢ" || s.downPayment < s.totalPrice) {
+      bytes.addAll(generator.text("DA TRA: ${_fmt(s.downPayment)} VND"));
+      bytes.addAll(generator.text("CON THIEU: ${_fmt(s.totalPrice - s.downPayment)} VND", styles: const PosStyles(bold: true)));
+    }
     
     if (prefs.getBool('receipt_show_qr') ?? true) {
       bytes.addAll(generator.qrcode("sale:${s.firestoreId ?? s.soldAt}", align: PosAlign.center));

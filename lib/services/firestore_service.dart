@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/repair_model.dart';
 import '../models/product_model.dart';
 import '../models/sale_order_model.dart';
+import '../models/debt_model.dart';
+import '../models/expense_model.dart';
 import 'user_service.dart';
 import 'notification_service.dart';
 
@@ -35,7 +37,6 @@ class FirestoreService {
       Map<String, dynamic> data = r.toMap();
       data['shopId'] = shopId;
       data['firestoreId'] = docRef.id;
-      data.remove('id');
       await docRef.set(data, SetOptions(merge: true));
       _notifyAll("🔧 MÁY NHẬN MỚI", "${r.createdBy} nhận ${r.model} của khách ${r.customerName}", type: 'repair', id: docRef.id, summary: "${r.customerName} - ${r.model}");
       return docRef.id;
@@ -60,7 +61,6 @@ class FirestoreService {
       Map<String, dynamic> data = s.toMap();
       data['shopId'] = shopId;
       data['firestoreId'] = docRef.id;
-      data.remove('id');
       await docRef.set(data, SetOptions(merge: true));
       _notifyAll("🎉 BÁN HÀNG THÀNH CÔNG", "${s.sellerName} vừa bán ${s.productNames} cho ${s.customerName}", type: 'sale', id: docRef.id, summary: "${s.customerName} - ${s.productNames}");
       return docRef.id;
@@ -80,7 +80,6 @@ class FirestoreService {
       Map<String, dynamic> data = p.toMap();
       data['shopId'] = shopId;
       data['firestoreId'] = docRef.id;
-      data.remove('id');
       await docRef.set(data, SetOptions(merge: true));
       return docRef.id;
     } catch (e) { return null; }
@@ -95,8 +94,29 @@ class FirestoreService {
     await _db.collection('products').doc(firestoreId).update({'status': 0});
   }
 
-  // --- HỆ THỐNG CHAT (KHÔI PHỤC) ---
-  static Future<void> sendChat({required String message, required String senderId, required String senderName, String? linkedType, String? linkedKey, String? linkedSummary}) async {
+  // --- QUẢN LÝ CÔNG NỢ & CHI PHÍ ---
+  static Future<void> addDebtCloud(Map<String, dynamic> debtData) async {
+    try {
+      final shopId = await UserService.getCurrentShopId();
+      final String docId = debtData['firestoreId'] ?? "debt_${debtData['createdAt']}_${debtData['phone'] ?? 'ncc'}";
+      debtData['shopId'] = shopId;
+      debtData['firestoreId'] = docId;
+      await _db.collection('debts').doc(docId).set(debtData, SetOptions(merge: true));
+    } catch (_) {}
+  }
+
+  static Future<void> addExpenseCloud(Map<String, dynamic> expData) async {
+    try {
+      final shopId = await UserService.getCurrentShopId();
+      final String docId = "exp_${expData['date']}_${expData['title'].hashCode}";
+      expData['shopId'] = shopId;
+      expData['firestoreId'] = docId;
+      await _db.collection('expenses').doc(docId).set(expData, SetOptions(merge: true));
+    } catch (_) {}
+  }
+
+  // --- CHAT NỘI BỘ ---
+  static Future<void> sendChat({required String message, required String senderId, required String senderName}) async {
     try {
       final shopId = await UserService.getCurrentShopId();
       await _db.collection('chats').add({
@@ -104,9 +124,6 @@ class FirestoreService {
         'message': message,
         'senderId': senderId,
         'senderName': senderName,
-        'linkedType': linkedType,
-        'linkedKey': linkedKey,
-        'linkedSummary': linkedSummary,
         'createdAt': FieldValue.serverTimestamp(),
       });
     } catch (_) {}
@@ -136,23 +153,22 @@ class FirestoreService {
     } catch (_) {}
   }
 
-  // --- NHÀ CUNG CẤP & KHÁCH HÀNG ---
+  // --- KHÁCH HÀNG & NHÀ CUNG CẤP ---
+  static Future<void> deleteCustomer(String firestoreId) async {
+    try { await _db.collection('customers').doc(firestoreId).delete(); } catch (_) {}
+  }
+
   static Future<void> upsertSupplier(Map<String, dynamic> s) async {
     try {
       final shopId = await UserService.getCurrentShopId();
       final docId = "${shopId}_${s['name']}";
       Map<String, dynamic> data = Map<String, dynamic>.from(s);
       data['shopId'] = shopId;
-      data.remove('id');
       await _db.collection('suppliers').doc(docId).set(data, SetOptions(merge: true));
     } catch (_) {}
   }
 
   static Future<void> deleteSupplier(String firestoreId) async {
     try { await _db.collection('suppliers').doc(firestoreId).delete(); } catch (_) {}
-  }
-
-  static Future<void> deleteCustomer(String firestoreId) async {
-    try { await _db.collection('customers').doc(firestoreId).delete(); } catch (_) {}
   }
 }
