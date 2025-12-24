@@ -24,6 +24,8 @@ import 'inventory_check_view.dart';
 import 'super_admin_view.dart' as admin_view;
 import 'staff_list_view.dart';
 import 'qr_scan_view.dart';
+import 'attendance_view.dart';
+import 'staff_performance_view.dart';
 import '../data/db_helper.dart';
 import '../widgets/perpetual_calendar.dart';
 import '../services/sync_service.dart';
@@ -262,9 +264,19 @@ class _HomeViewState extends State<HomeView> {
     addTile('allowViewSales', l10n.sales, Icons.shopping_cart_checkout_rounded, [const Color(0xFFFF4081), const Color(0xFFFF80AB)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SaleListView())));
     addTile('allowViewRepairs', l10n.repair, Icons.build_circle_rounded, [const Color(0xFF2979FF), const Color(0xFF448AFF)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderListView(role: widget.role))));
     addTile('allowViewChat', l10n.chat, Icons.chat_bubble_rounded, [const Color(0xFF7C4DFF), const Color(0xFFB388FF)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChatView())));
+    
+    // THÊM NÚT CHẤM CÔNG
+    addTile('allowViewChat', "CHẤM CÔNG", Icons.fingerprint_rounded, [const Color(0xFF00C853), const Color(0xFF64DD17)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AttendanceView())));
+
     addTile('allowViewInventory', "KIỂM KHO QR", Icons.qr_code_scanner_rounded, [const Color(0xFFFFAB00), const Color(0xFFFFD740)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const InventoryCheckView())));
     addTile('allowViewInventory', l10n.inventory, Icons.inventory_2_rounded, [const Color(0xFFFF6D00), const Color(0xFFFFAB40)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const InventoryView())));
     addTile('allowViewCustomers', l10n.customers, Icons.people_alt_rounded, [const Color(0xFF00BFA5), const Color(0xFF64FFDA)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => CustomerListView(role: widget.role))));
+    
+    // THÊM NÚT DOANH SỐ & LƯƠNG (CHỈ CHO CHỦ SHOP/QUẢN LÝ)
+    if (hasFullAccess) {
+      addTile('allowViewRevenue', "DS & LƯƠNG", Icons.assessment_rounded, [const Color(0xFF6200EA), const Color(0xFF7C4DFF)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StaffPerformanceView())));
+    }
+
     addTile('allowViewRevenue', l10n.revenue, Icons.leaderboard_rounded, [const Color(0xFF304FFE), const Color(0xFF536DFE)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RevenueView())));
     addTile('allowViewRevenue', l10n.revenueReport, Icons.analytics_rounded, [const Color(0xFF3D5AFE), const Color(0xFF8C9EFF)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RevenueReportView())));
     

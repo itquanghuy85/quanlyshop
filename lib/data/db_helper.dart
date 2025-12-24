@@ -133,6 +133,30 @@ class DBHelper {
   Future<int> deleteDebtByFirestoreId(String fId) async => (await database).delete('debts', where: 'firestoreId = ?', whereArgs: [fId]);
   Future<int> updateDebtPaid(int id, int pay) async => await (await database).rawUpdate('UPDATE debts SET paidAmount = paidAmount + ?, status = CASE WHEN (paidAmount + ?) >= totalAmount THEN "paid" ELSE "unpaid" END WHERE id = ?', [pay, pay, id]);
 
+  // ATTENDANCE (CHẤM CÔNG)
+  Future<void> upsertAttendance(Map<String, dynamic> map) async {
+    final db = await database;
+    final dateKey = map['dateKey'];
+    final userId = map['userId'];
+    final List<Map<String, dynamic>> existing = await db.query('attendance', where: 'dateKey = ? AND userId = ?', whereArgs: [dateKey, userId], limit: 1);
+    if (existing.isNotEmpty) {
+      await db.update('attendance', map, where: 'id = ?', whereArgs: [existing.first['id']]);
+    } else {
+      await db.insert('attendance', map);
+    }
+  }
+
+  Future<Map<String, dynamic>?> getAttendance(String dateKey, String userId) async {
+    final db = await database;
+    final res = await db.query('attendance', where: 'dateKey = ? AND userId = ?', whereArgs: [dateKey, userId], limit: 1);
+    return res.isNotEmpty ? res.first : null;
+  }
+
+  Future<List<Map<String, dynamic>>> getAttendanceRange(DateTime start, DateTime end) async {
+    final db = await database;
+    return await db.query('attendance', orderBy: 'createdAt DESC');
+  }
+
   // CLOSINGS
   Future<void> upsertClosing(Map<String, dynamic> map) async {
     final db = await database;
@@ -186,7 +210,6 @@ class DBHelper {
   // SYSTEM
   Future<void> cleanDuplicateData() async {
     final db = await database;
-    // Simple implementation to clean duplicates based on firestoreId
     await db.execute('DELETE FROM repairs WHERE id NOT IN (SELECT MIN(id) FROM repairs GROUP BY firestoreId)');
     await db.execute('DELETE FROM products WHERE id NOT IN (SELECT MIN(id) FROM products GROUP BY firestoreId)');
     await db.execute('DELETE FROM sales WHERE id NOT IN (SELECT MIN(id) FROM sales GROUP BY firestoreId)');

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../data/db_helper.dart';
-import '../models/sale_order_model.dart';
 import '../models/repair_model.dart';
+import '../models/sale_order_model.dart';
 
 class StaffPerformanceView extends StatefulWidget {
   const StaffPerformanceView({super.key});
@@ -12,142 +12,170 @@ class StaffPerformanceView extends StatefulWidget {
 
 class _StaffPerformanceViewState extends State<StaffPerformanceView> {
   final db = DBHelper();
-  bool _isLoading = true;
-  List<StaffStat> _staffStats = [];
+  bool _loading = true;
+  List<Map<String, dynamic>> _reports = [];
+  DateTime _selectedMonth = DateTime.now();
 
   @override
   void initState() {
     super.initState();
-    _loadStats();
+    _loadReport();
   }
 
-  Future<void> _loadStats() async {
-    final sales = await db.getAllSales();
+  Future<void> _loadReport() async {
+    setState(() => _loading = true);
     final repairs = await db.getAllRepairs();
-    
-    Map<String, StaffStat> statsMap = {};
+    final sales = await db.getAllSales();
+    final users = await db.getCustomerSuggestions(); // Tạm dùng để lấy danh sách tên người dùng từ lịch sử
 
-    for (var s in sales) {
-      final name = s.sellerName.toUpperCase();
-      statsMap[name] = statsMap[name] ?? StaffStat(name: name);
-      statsMap[name]!.saleCount++;
-      statsMap[name]!.totalRevenue += s.totalPrice;
+    // Lấy danh sách tên nhân viên duy nhất từ các đơn hàng
+    Set<String> staffNames = {};
+    for (var r in repairs) if (r.createdBy != null) staffNames.add(r.createdBy!.toUpperCase());
+    for (var s in sales) staffNames.add(s.sellerName.toUpperCase());
+
+    List<Map<String, dynamic>> results = [];
+    final firstDay = DateTime(_selectedMonth.year, _selectedMonth.month, 1);
+    final lastDay = DateTime(_selectedMonth.year, _selectedMonth.month + 1, 0);
+
+    for (var name in staffNames) {
+      if (name.isEmpty || name == "SYSTEM") continue;
+
+      // Doanh số sửa chữa
+      final staffRepairs = repairs.where((r) => 
+        r.createdBy?.toUpperCase() == name && 
+        r.createdAt >= firstDay.millisecondsSinceEpoch && 
+        r.createdAt <= lastDay.millisecondsSinceEpoch).toList();
+      
+      int repairRevenue = staffRepairs.fold(0, (sum, r) => sum + r.price);
+      int repairProfit = staffRepairs.fold(0, (sum, r) => sum + (r.price - r.cost));
+
+      // Doanh số bán hàng
+      final staffSales = sales.where((s) => 
+        s.sellerName.toUpperCase() == name && 
+        s.soldAt >= firstDay.millisecondsSinceEpoch && 
+        s.soldAt <= lastDay.millisecondsSinceEpoch).toList();
+      
+      int saleRevenue = staffSales.fold(0, (sum, s) => sum + s.totalPrice);
+      int saleProfit = staffSales.fold(0, (sum, s) => sum + (s.totalPrice - s.totalCost));
+
+      // Tính lương dự kiến (Ví dụ: 5% doanh số bán + 10% lợi nhuận sửa)
+      double estimatedSalary = (saleRevenue * 0.01) + (repairProfit * 0.1); 
+
+      results.add({
+        'name': name,
+        'repairCount': staffRepairs.length,
+        'repairRev': repairRevenue,
+        'saleCount': staffSales.length,
+        'saleRev': saleRevenue,
+        'totalProfit': repairProfit + saleProfit,
+        'salary': estimatedSalary,
+      });
     }
 
-    for (var r in repairs) {
-      if (r.status >= 3) {
-        final name = (r.repairedBy ?? r.createdBy ?? "NV").toUpperCase();
-        statsMap[name] = statsMap[name] ?? StaffStat(name: name);
-        statsMap[name]!.repairCount++;
-        statsMap[name]!.totalRevenue += r.price;
-      }
-    }
-
-    List<StaffStat> list = statsMap.values.toList();
-    list.sort((a, b) => b.totalRevenue.compareTo(a.totalRevenue));
-
-    if (mounted) setState(() { _staffStats = list; _isLoading = false; });
+    setState(() {
+      _reports = results;
+      _loading = false;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFF),
+      backgroundColor: const Color(0xFFF0F4F8),
       appBar: AppBar(
-        title: const Text("BẢNG VÀNG DOANH SỐ", style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.white, elevation: 0,
+        title: const Text("DOANH SỐ & LƯƠNG NHÂN VIÊN", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+        actions: [
+          IconButton(onPressed: () => _selectMonth(context), icon: const Icon(Icons.calendar_month, color: Colors.blue)),
+        ],
       ),
-      body: _isLoading ? const Center(child: CircularProgressIndicator()) : ListView(
-        padding: const EdgeInsets.all(20),
+      body: _loading ? const Center(child: CircularProgressIndicator()) : Column(
         children: [
-          if (_staffStats.isNotEmpty) _buildTopThree(),
-          const SizedBox(height: 30),
-          const Text("CHI TIẾT HIỆU SUẤT", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey, fontSize: 13)),
-          const SizedBox(height: 15),
-          ..._staffStats.map((s) => _buildStaffCard(s)).toList(),
+          _buildSummaryHeader(),
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: _reports.length,
+              itemBuilder: (ctx, i) => _buildStaffCard(_reports[i]),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildTopThree() {
+  Widget _buildSummaryHeader() {
     return Container(
-      height: 200,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        crossAxisAlignment: CrossAxisAlignment.end,
+      width: double.infinity, padding: const EdgeInsets.all(20), color: Colors.white,
+      child: Column(
         children: [
-          if (_staffStats.length > 1) _topPodium(_staffStats[1], "🥈", 140, Colors.grey.shade400),
-          _topPodium(_staffStats[0], "👑", 170, const Color(0xFFFFD700)),
-          if (_staffStats.length > 2) _topPodium(_staffStats[2], "🥉", 120, Colors.orange.shade300),
+          Text("THÁNG ${DateFormat('MM / yyyy').format(_selectedMonth)}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFF2962FF))),
+          const SizedBox(height: 5),
+          Text("Tổng nhân viên hoạt động: ${_reports.length}", style: const TextStyle(color: Colors.grey, fontSize: 12)),
         ],
       ),
     );
   }
 
-  Widget _topPodium(StaffStat s, String icon, double height, Color color) {
+  Widget _buildStaffCard(Map<String, dynamic> data) {
+    final fmt = NumberFormat('#,###');
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10)]),
+      child: Column(
+        children: [
+          ListTile(
+            leading: CircleAvatar(backgroundColor: Colors.blue.shade50, child: Text(data['name'][0], style: const TextStyle(fontWeight: FontWeight.bold))),
+            title: Text(data['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
+            trailing: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                const Text("THU NHẬP", style: TextStyle(fontSize: 9, color: Colors.grey, fontWeight: FontWeight.bold)),
+                Text("${fmt.format(data['salary'])} đ", style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 16)),
+              ],
+            ),
+          ),
+          const Divider(indent: 20, endIndent: 20),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _miniStat("SỬA MÁY", "${data['repairCount']} đơn", fmt.format(data['repairRev'])),
+                _miniStat("BÁN HÀNG", "${data['saleCount']} đơn", fmt.format(data['saleRev'])),
+                _miniStat("LỢI NHUẬN", "Mang về", fmt.format(data['totalProfit'])),
+              ],
+            ),
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget _miniStat(String label, String sub, String val) {
     return Column(
-      mainAxisAlignment: MainAxisAlignment.end,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(icon, style: const TextStyle(fontSize: 24)),
+        Text(label, style: const TextStyle(fontSize: 9, color: Colors.blueGrey, fontWeight: FontWeight.bold)),
+        Text(sub, style: const TextStyle(fontSize: 10, color: Colors.grey)),
         const SizedBox(height: 4),
-        Container(
-          width: 80, height: height,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [color, color.withOpacity(0.6)]),
-            borderRadius: const BorderRadius.only(topLeft: Radius.circular(15), topRight: Radius.circular(15)),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(s.name.split(' ').last, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
-              Text("${NumberFormat('#,###').format(s.totalRevenue / 1000)}k", style: const TextStyle(color: Colors.white, fontSize: 10)),
-            ],
-          ),
-        ),
+        Text(val, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
       ],
     );
   }
 
-  Widget _buildStaffCard(StaffStat s) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                CircleAvatar(backgroundColor: const Color(0xFF2962FF).withOpacity(0.1), child: Text(s.name[0], style: const TextStyle(color: Color(0xFF2962FF), fontWeight: FontWeight.bold))),
-                const SizedBox(width: 15),
-                Expanded(child: Text(s.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15))),
-                Text("${NumberFormat('#,###').format(s.totalRevenue)} Đ", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
-              ],
-            ),
-            const SizedBox(height: 15),
-            Row(
-              children: [
-                _miniInfo("BÁN MÁY", s.saleCount, Colors.pink),
-                _miniInfo("SỬA CHỮA", s.repairCount, Colors.blue),
-              ],
-            ),
-            const SizedBox(height: 15),
-            ClipRRect(borderRadius: BorderRadius.circular(10), child: LinearProgressIndicator(value: 0.7, minHeight: 6, backgroundColor: Colors.grey.shade100, color: const Color(0xFF2962FF))),
-          ],
-        ),
-      ),
+  Future<void> _selectMonth(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedMonth,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2101),
     );
+    if (picked != null && picked != _selectedMonth) {
+      setState(() {
+        _selectedMonth = picked;
+        _loadReport();
+      });
+    }
   }
-
-  Widget _miniInfo(String label, int value, Color color) {
-    return Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey)), Text("$value đơn", style: TextStyle(fontWeight: FontWeight.bold, color: color, fontSize: 14))]));
-  }
-}
-
-class StaffStat {
-  final String name;
-  int saleCount = 0;
-  int repairCount = 0;
-  int totalRevenue = 0;
-  StaffStat({required this.name});
 }
