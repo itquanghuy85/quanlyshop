@@ -133,7 +133,7 @@ class DBHelper {
   Future<int> deleteDebtByFirestoreId(String fId) async => (await database).delete('debts', where: 'firestoreId = ?', whereArgs: [fId]);
   Future<int> updateDebtPaid(int id, int pay) async => await (await database).rawUpdate('UPDATE debts SET paidAmount = paidAmount + ?, status = CASE WHEN (paidAmount + ?) >= totalAmount THEN "paid" ELSE "unpaid" END WHERE id = ?', [pay, pay, id]);
 
-  // ATTENDANCE (CHẤM CÔNG)
+  // ATTENDANCE
   Future<void> upsertAttendance(Map<String, dynamic> map) async {
     final db = await database;
     final dateKey = map['dateKey'];
@@ -155,6 +155,11 @@ class DBHelper {
   Future<List<Map<String, dynamic>>> getAttendanceRange(DateTime start, DateTime end) async {
     final db = await database;
     return await db.query('attendance', orderBy: 'createdAt DESC');
+  }
+
+  Future<List<Map<String, dynamic>>> getAttendanceByUser(String userId) async {
+    final db = await database;
+    return await db.query('attendance', where: 'userId = ?', whereArgs: [userId], orderBy: 'createdAt DESC');
   }
 
   // CLOSINGS

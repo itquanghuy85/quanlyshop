@@ -185,7 +185,7 @@ class _StaffListViewState extends State<StaffListView> {
                   final callable = FirebaseFunctions.instanceFor(region: 'asia-southeast1').httpsCallable('createStaffAccount');
                   await callable.call({
                     'email': emailC.text.trim(),
-                    'password': '12345678',
+                    'password': '12345678', // Mặc định
                     'displayName': nameC.text.trim(),
                     'phone': phoneC.text.trim(),
                     'role': role,
@@ -230,7 +230,7 @@ class _StaffListViewState extends State<StaffListView> {
                   leading: CircleAvatar(backgroundImage: _safeImageProvider(userData['photoUrl'])),
                   title: Text(displayName, style: const TextStyle(fontWeight: FontWeight.bold)),
                   subtitle: Text("Vai trò: $role\nSĐT: ${userData['phone'] ?? ''}"),
-                  trailing: const Icon(Icons.edit_note, color: Colors.blue),
+                  trailing: const Icon(Icons.history_edu_rounded, color: Colors.blue),
                   onTap: () => _showStaffActivityCenter(uid, displayName, userData['email'] ?? "", role, userData),
                 ),
               );
@@ -272,10 +272,14 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter> with SingleT
   bool _vParts = true; bool _vSup = true; bool _vCust = true; bool _vWar = true;
   bool _vChat = true; bool _vPrint = true; bool _vExp = false; bool _vDebts = false;
 
+  // Lịch sử chấm công
+  List<Map<String, dynamic>> _attendanceHistory = [];
+  bool _loadingAttendance = true;
+
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     nameCtrl.text = widget.fullData['displayName'] ?? widget.name;
     phoneCtrl.text = widget.fullData['phone'] ?? "";
     addressCtrl.text = widget.fullData['address'] ?? "";
@@ -295,30 +299,20 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter> with SingleT
     _vPrint = widget.fullData['allowViewPrinter'] ?? true;
     _vExp = widget.fullData['allowViewExpenses'] ?? false;
     _vDebts = widget.fullData['allowViewDebts'] ?? false;
+
+    _loadAttendance();
+  }
+
+  Future<void> _loadAttendance() async {
+    final list = await db.getAttendanceByUser(widget.uid);
+    if (mounted) setState(() { _attendanceHistory = list; _loadingAttendance = false; });
   }
 
   Future<void> _save() async {
     setState(() => _isSaving = true);
     try {
       await UserService.updateUserInfo(uid: widget.uid, name: nameCtrl.text, phone: phoneCtrl.text, address: addressCtrl.text, role: _selectedRole);
-      
-      // SỬA LỖI BUILD: Cung cấp đầy đủ các tham số bắt buộc cho updateUserPermissions
-      await UserService.updateUserPermissions(
-        uid: widget.uid, 
-        allowViewSales: _vSales, 
-        allowViewRepairs: _vRepairs, 
-        allowViewInventory: _vInv, 
-        allowViewParts: _vParts,
-        allowViewSuppliers: _vSup,
-        allowViewCustomers: _vCust,
-        allowViewWarranty: _vWar,
-        allowViewChat: _vChat,
-        allowViewPrinter: _vPrint,
-        allowViewRevenue: _vRev,
-        allowViewExpenses: _vExp,
-        allowViewDebts: _vDebts,
-      );
-      
+      await UserService.updateUserPermissions(uid: widget.uid, allowViewSales: _vSales, allowViewRepairs: _vRepairs, allowViewInventory: _vInv, allowViewParts: _vParts, allowViewSuppliers: _vSup, allowViewCustomers: _vCust, allowViewWarranty: _vWar, allowViewChat: _vChat, allowViewPrinter: _vPrint, allowViewRevenue: _vRev, allowViewExpenses: _vExp, allowViewDebts: _vDebts);
       if (mounted) Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ĐÃ CẬP NHẬT NHÂN VIÊN")));
     } catch (e) {
@@ -330,7 +324,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter> with SingleT
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: MediaQuery.of(context).size.height * 0.9,
+      height: MediaQuery.of(context).size.height * 0.95,
       decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
       child: Column(
         children: [
@@ -343,57 +337,103 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter> with SingleT
                 const CircleAvatar(radius: 25, child: Icon(Icons.person)),
                 const SizedBox(width: 15),
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(widget.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)), Text(widget.email, style: const TextStyle(fontSize: 11, color: Colors.grey))])),
-                ElevatedButton(onPressed: _isSaving ? null : _save, style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent), child: _isSaving ? const SizedBox(width: 15, height: 15, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Text("LƯU LẠI", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)))
+                ElevatedButton(onPressed: _isSaving ? null : _save, style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent), child: const Text("LƯU", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)))
               ],
             ),
           ),
+          TabBar(
+            controller: _tabController,
+            labelColor: Colors.blue, unselectedLabelColor: Colors.grey,
+            labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+            tabs: const [Tab(text: "THÔNG TIN"), Tab(text: "PHÂN QUYỀN"), Tab(text: "LỊCH CHẤM CÔNG")],
+          ),
           Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Column(
-                children: [
-                  _input(nameCtrl, "Họ và tên", Icons.person_outline),
-                  _input(phoneCtrl, "Số điện thoại", Icons.phone_android, type: TextInputType.phone),
-                  _input(addressCtrl, "Địa chỉ", Icons.map_outlined),
-                  const SizedBox(height: 15),
-                  const Align(alignment: Alignment.centerLeft, child: Text("VAI TRÒ & QUYỀN HẠN", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.blueGrey))),
-                  const SizedBox(height: 10),
-                  DropdownButtonFormField<String>(
-                    value: _selectedRole,
-                    decoration: const InputDecoration(labelText: "Vai trò hệ thống", border: OutlineInputBorder()),
-                    items: const [
-                      DropdownMenuItem(value: 'owner', child: Text("CHỦ SHOP")),
-                      DropdownMenuItem(value: 'manager', child: Text("QUẢN LÝ")),
-                      DropdownMenuItem(value: 'employee', child: Text("NHÂN VIÊN")),
-                      DropdownMenuItem(value: 'technician', child: Text("KỸ THUẬT")),
-                      DropdownMenuItem(value: 'user', child: Text("TÀI KHOẢN CŨ (User)")),
-                      DropdownMenuItem(value: 'admin', child: Text("QUẢN TRỊ (Admin)")),
-                    ],
-                    onChanged: (v) => setState(() => _selectedRole = v!),
-                  ),
-                  const SizedBox(height: 15),
-                  const Align(alignment: Alignment.centerLeft, child: Text("PHÂN QUYỀN NỘI DUNG", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.orange))),
-                  _switch("Xem Bán hàng", _vSales, (v) => setState(() => _vSales = v)),
-                  _switch("Xem Sửa chữa", _vRepairs, (v) => setState(() => _vRepairs = v)),
-                  _switch("Xem Kho hàng", _vInv, (v) => setState(() => _vInv = v)),
-                  _switch("Xem Linh kiện", _vParts, (v) => setState(() => _vParts = v)),
-                  _switch("Xem Nhà cung cấp", _vSup, (v) => setState(() => _vSup = v)),
-                  _switch("Xem Khách hàng", _vCust, (v) => setState(() => _vCust = v)),
-                  _switch("Xem Bảo hành", _vWar, (v) => setState(() => _vWar = v)),
-                  _switch("Dùng Chat nội bộ", _vChat, (v) => setState(() => _vChat = v)),
-                  _switch("Dùng Máy in", _vPrint, (v) => setState(() => _vPrint = v)),
-                  const Divider(),
-                  const Align(alignment: Alignment.centerLeft, child: Text("DỮ LIỆU NHẠY CẢM", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.red))),
-                  _switch("Xem Doanh thu / Lời lỗ", _vRev, (v) => setState(() => _vRev = v)),
-                  _switch("Xem & Quản lý Chi phí", _vExp, (v) => setState(() => _vExp = v)),
-                  _switch("Xem & Quản lý Công nợ", _vDebts, (v) => setState(() => _vDebts = v)),
-                  const SizedBox(height: 20),
-                ],
-              ),
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildInfoTab(),
+                _buildPermTab(),
+                _buildAttendanceTab(),
+              ],
             ),
           )
         ],
       ),
+    );
+  }
+
+  Widget _buildInfoTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        children: [
+          _input(nameCtrl, "Họ và tên", Icons.person_outline),
+          _input(phoneCtrl, "Số điện thoại", Icons.phone_android, type: TextInputType.phone),
+          _input(addressCtrl, "Địa chỉ", Icons.map_outlined),
+          const SizedBox(height: 10),
+          DropdownButtonFormField<String>(
+            value: _selectedRole,
+            decoration: const InputDecoration(labelText: "Vai trò hệ thống", border: OutlineInputBorder()),
+            items: const [
+              DropdownMenuItem(value: 'owner', child: Text("CHỦ SHOP")),
+              DropdownMenuItem(value: 'manager', child: Text("QUẢN LÝ")),
+              DropdownMenuItem(value: 'employee', child: Text("NHÂN VIÊN")),
+              DropdownMenuItem(value: 'technician', child: Text("KỸ THUẬT")),
+              DropdownMenuItem(value: 'user', child: Text("TÀI KHOẢN CŨ (User)")),
+              DropdownMenuItem(value: 'admin', child: Text("QUẢN TRỊ (Admin)")),
+            ],
+            onChanged: (v) => setState(() => _selectedRole = v!),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPermTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        children: [
+          const Align(alignment: Alignment.centerLeft, child: Text("PHÂN QUYỀN NỘI DUNG", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.orange))),
+          _switch("Xem Bán hàng", _vSales, (v) => setState(() => _vSales = v)),
+          _switch("Xem Sửa chữa", _vRepairs, (v) => setState(() => _vRepairs = v)),
+          _switch("Xem Kho hàng", _vInv, (v) => setState(() => _vInv = v)),
+          _switch("Xem Linh kiện", _vParts, (v) => setState(() => _vParts = v)),
+          _switch("Xem Nhà cung cấp", _vSup, (v) => setState(() => _vSup = v)),
+          _switch("Xem Khách hàng", _vCust, (v) => setState(() => _vCust = v)),
+          _switch("Xem Bảo hành", _vWar, (v) => setState(() => _vWar = v)),
+          _switch("Dùng Chat nội bộ", _vChat, (v) => setState(() => _vChat = v)),
+          _switch("Dùng Máy in", _vPrint, (v) => setState(() => _vPrint = v)),
+          const Divider(),
+          const Align(alignment: Alignment.centerLeft, child: Text("DỮ LIỆU NHẠY CẢM", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.red))),
+          _switch("Xem Doanh thu / Lời lỗ", _vRev, (v) => setState(() => _vRev = v)),
+          _switch("Xem & Quản lý Chi phí", _vExp, (v) => setState(() => _vExp = v)),
+          _switch("Xem & Quản lý Công nợ", _vDebts, (v) => setState(() => _vDebts = v)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAttendanceTab() {
+    if (_loadingAttendance) return const Center(child: CircularProgressIndicator());
+    if (_attendanceHistory.isEmpty) return const Center(child: Text("Chưa có lịch sử chấm công", style: TextStyle(color: Colors.grey)));
+    return ListView.builder(
+      padding: const EdgeInsets.all(15),
+      itemCount: _attendanceHistory.length,
+      itemBuilder: (ctx, i) {
+        final a = _attendanceHistory[i];
+        final checkIn = DateFormat('HH:mm').format(DateTime.fromMillisecondsSinceEpoch(a['checkInAt']));
+        final checkOut = a['checkOutAt'] != null ? DateFormat('HH:mm').format(DateTime.fromMillisecondsSinceEpoch(a['checkOutAt'])) : "--:--";
+        return Card(
+          margin: const EdgeInsets.only(bottom: 10),
+          child: ListTile(
+            leading: const Icon(Icons.event_available, color: Colors.green),
+            title: Text(a['dateKey'], style: const TextStyle(fontWeight: FontWeight.bold)),
+            subtitle: Text("Vào: $checkIn - Ra: $checkOut"),
+            trailing: Container(padding: const EdgeInsets.all(5), decoration: BoxDecoration(color: Colors.blue.shade50, borderRadius: BorderRadius.circular(5)), child: const Text("HỢP LỆ", style: TextStyle(fontSize: 10, color: Colors.blue, fontWeight: FontWeight.bold))),
+          ),
+        );
+      },
     );
   }
 

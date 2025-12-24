@@ -43,6 +43,7 @@ class UnifiedPrinterService {
     return false;
   }
 
+  // --- 1. IN TEM KHO (3x4) ---
   static Future<bool> printProductQRLabel(Map<String, dynamic> product) async {
     final prefs = await SharedPreferences.getInstance();
     final pSize = (prefs.getString('paper_size') ?? "80mm") == "80mm" ? PaperSize.mm80 : PaperSize.mm58;
@@ -53,71 +54,32 @@ class UnifiedPrinterService {
     List<int> bytes = [];
     bytes.addAll(generator.reset());
 
-    // Cấu hình size chữ dựa trên Slider
-    PosTextSize mainSize = PosTextSize.size1;
-    PosTextSize subSize = PosTextSize.size1;
+    PosTextSize mainSize = fontScale >= 2.0 ? PosTextSize.size2 : PosTextSize.size1;
+    PosTextSize subSize = fontScale >= 3.0 ? PosTextSize.size2 : PosTextSize.size1;
 
-    if (fontScale >= 2.0) {
-      mainSize = PosTextSize.size2;
-    }
-    if (fontScale >= 3.0) {
-      subSize = PosTextSize.size2;
-    }
-
-    // 1. TÊN MÁY
     if (prefs.getBool('label_show_name') ?? true) {
-      bytes.addAll(generator.text(
-        _removeDiacritics(product['name'] ?? ''), 
-        styles: PosStyles(bold: true, align: PosAlign.center, height: mainSize, width: mainSize)
-      ));
+      bytes.addAll(generator.text(_removeDiacritics(product['name'] ?? ''), styles: PosStyles(bold: true, align: PosAlign.center, height: mainSize, width: mainSize)));
     }
     
-    // 2. CHI TIẾT GỘP
     String detail = "${product['capacity'] ?? ''} ${product['color'] ?? ''} ${product['condition'] ?? ''}".trim();
     if (detail.isNotEmpty && (prefs.getBool('label_show_detail') ?? true)) {
-      bytes.addAll(generator.text(
-        _removeDiacritics(detail), 
-        styles: PosStyles(align: PosAlign.center, bold: true, height: subSize)
-      ));
+      bytes.addAll(generator.text(_removeDiacritics(detail), styles: PosStyles(align: PosAlign.center, bold: true, height: subSize)));
     }
 
-    // 3. GIÁ KPK
     if (prefs.getBool('label_show_price_kpk') ?? true) {
-      bytes.addAll(generator.text(
-        "GIA KPK: ${_fmt(product['kpkPrice'] ?? 0)}", 
-        styles: PosStyles(bold: true, align: PosAlign.center, height: mainSize)
-      ));
+      bytes.addAll(generator.text("GIA KPK: ${_fmt(product['kpkPrice'] ?? 0)}", styles: PosStyles(bold: true, align: PosAlign.center, height: mainSize)));
     }
 
-    // 4. GIÁ CPK
     if (prefs.getBool('label_show_price_cpk') ?? true) {
-      bytes.addAll(generator.text(
-        "GIA CPK: ${_fmt(product['price'] ?? 0)}", 
-        styles: const PosStyles(bold: true, align: PosAlign.center)
-      ));
+      bytes.addAll(generator.text("GIA CPK: ${_fmt(product['price'] ?? 0)}", styles: PosStyles(bold: true, align: PosAlign.center, height: subSize)));
     }
 
-    // 5. QR CODE
     if (prefs.getBool('label_show_qr') ?? true) {
-      bytes.addAll(generator.qrcode(
-        (product['imei'] ?? product['id']).toString(), 
-        align: PosAlign.center,
-        size: fontScale >= 2.0 ? QRSize.Size4 : QRSize.Size3
-      ));
+      bytes.addAll(generator.qrcode((product['imei'] ?? product['id']).toString(), align: PosAlign.center, size: fontScale >= 2.0 ? QRSize.Size4 : QRSize.Size3));
     }
 
-    // 6. IMEI
     if (prefs.getBool('label_show_imei') ?? true && product['imei'] != null) {
-      bytes.addAll(generator.text(
-        "IMEI: ${product['imei']}", 
-        styles: const PosStyles(align: PosAlign.center, bold: true, fontType: PosFontType.fontB)
-      ));
-    }
-
-    // 7. TÙY BIẾN
-    String custom = prefs.getString('label_custom_text') ?? "";
-    if (custom.isNotEmpty) {
-      bytes.addAll(generator.text(_removeDiacritics(custom), styles: const PosStyles(align: PosAlign.center, fontType: PosFontType.fontB)));
+      bytes.addAll(generator.text("IMEI: ${product['imei']}", styles: const PosStyles(align: PosAlign.center, bold: true, fontType: PosFontType.fontB)));
     }
 
     bytes.addAll(generator.feed(2));
@@ -125,35 +87,80 @@ class UnifiedPrinterService {
     return _sendToPrinter(bytes);
   }
 
-  // Giữ lại các hàm khác để không lỗi build
+  // --- 2. IN PHIẾU SỬA CHỮA ---
   static Future<bool> printRepairReceiptFromRepair(Repair r, Map<String, dynamic> shop) async {
     final prefs = await SharedPreferences.getInstance();
     final pSize = (prefs.getString('paper_size') ?? "80mm") == "80mm" ? PaperSize.mm80 : PaperSize.mm58;
+    final fontScale = prefs.getDouble('label_font_scale') ?? 1.0;
     final profile = await CapabilityProfile.load();
     final generator = Generator(pSize, profile);
     List<int> bytes = [];
     bytes.addAll(generator.reset());
-    bytes.addAll(generator.text(_removeDiacritics(shop['shopName'] ?? 'SHOP NEW'), styles: const PosStyles(align: PosAlign.center, bold: true, height: PosTextSize.size2)));
+
+    PosTextSize headerSize = fontScale >= 2.0 ? PosTextSize.size2 : PosTextSize.size1;
+
+    if (prefs.getBool('receipt_show_logo') ?? true) {
+      bytes.addAll(generator.text(_removeDiacritics(shop['shopName'] ?? 'SHOP NEW'), styles: PosStyles(align: PosAlign.center, bold: true, height: headerSize)));
+    }
     bytes.addAll(generator.text(_removeDiacritics(shop['shopAddr'] ?? ''), styles: const PosStyles(align: PosAlign.center)));
+    if (prefs.getBool('receipt_show_phone') ?? true) {
+      bytes.addAll(generator.text("HOTLINE: ${shop['shopPhone'] ?? ''}", styles: const PosStyles(align: PosAlign.center, bold: true)));
+    }
     bytes.addAll(generator.hr());
+    bytes.addAll(generator.text('PHIEU TIEP NHAN', styles: PosStyles(align: PosAlign.center, bold: true, height: headerSize)));
+    bytes.addAll(generator.feed(1));
     bytes.addAll(generator.text(_removeDiacritics("KHACH: ${r.customerName}")));
-    bytes.addAll(generator.text("MAY: ${r.model}"));
-    bytes.addAll(generator.text("GIA: ${_fmt(r.price)} D", styles: const PosStyles(bold: true)));
+    bytes.addAll(generator.text("SDT: ${r.phone}"));
+    bytes.addAll(generator.text(_removeDiacritics("MAY: ${r.model}")));
+    bytes.addAll(generator.text(_removeDiacritics("LOI: ${r.issue}")));
+    bytes.addAll(generator.text("GIA: ${_fmt(r.price)} VND", styles: const PosStyles(bold: true)));
+    bytes.addAll(generator.text("BH: ${r.warranty}", styles: const PosStyles(bold: true)));
+    
+    if (prefs.getBool('receipt_show_qr') ?? true) {
+      bytes.addAll(generator.qrcode("check:${r.firestoreId ?? r.createdAt}", align: PosAlign.center));
+    }
     bytes.addAll(generator.feed(2));
     bytes.addAll(generator.cut());
     return _sendToPrinter(bytes);
   }
 
+  // --- 3. IN HÓA ĐƠN BÁN HÀNG ---
   static Future<bool> printSaleReceiptFromOrder(SaleOrder s, Map<String, dynamic> shop) async {
     final prefs = await SharedPreferences.getInstance();
     final pSize = (prefs.getString('paper_size') ?? "80mm") == "80mm" ? PaperSize.mm80 : PaperSize.mm58;
+    final fontScale = prefs.getDouble('label_font_scale') ?? 1.0;
     final profile = await CapabilityProfile.load();
     final generator = Generator(pSize, profile);
     List<int> bytes = [];
     bytes.addAll(generator.reset());
-    bytes.addAll(generator.text(_removeDiacritics('HOA DON BAN HANG'), styles: const PosStyles(align: PosAlign.center, bold: true)));
-    bytes.addAll(generator.text(_removeDiacritics("SP: ${s.productNames}")));
-    bytes.addAll(generator.text("TONG: ${_fmt(s.totalPrice)} D", styles: const PosStyles(bold: true)));
+
+    PosTextSize headerSize = fontScale >= 2.0 ? PosTextSize.size2 : PosTextSize.size1;
+
+    // Thông tin Shop
+    bytes.addAll(generator.text(_removeDiacritics(shop['shopName'] ?? 'SHOP NEW'), styles: PosStyles(align: PosAlign.center, bold: true, height: headerSize)));
+    bytes.addAll(generator.text(_removeDiacritics(shop['shopAddr'] ?? ''), styles: const PosStyles(align: PosAlign.center)));
+    bytes.addAll(generator.text("SDT: ${shop['shopPhone'] ?? ''}", styles: const PosStyles(align: PosAlign.center, bold: true)));
+    bytes.addAll(generator.hr());
+    
+    bytes.addAll(generator.text('HOA DON BAN HANG', styles: PosStyles(align: PosAlign.center, bold: true, height: headerSize)));
+    bytes.addAll(generator.feed(1));
+    bytes.addAll(generator.text(_removeDiacritics("KHACH HANG: ${s.customerName}")));
+    bytes.addAll(generator.text("DIEN THOAI: ${s.phone}"));
+    bytes.addAll(generator.hr());
+    bytes.addAll(generator.text(_removeDiacritics("SAN PHAM: ${s.productNames}")));
+    bytes.addAll(generator.text("IMEI: ${s.productImeis}"));
+    bytes.addAll(generator.text("BAO HANH: ${s.warranty}"));
+    bytes.addAll(generator.feed(1));
+    bytes.addAll(generator.text("TONG CONG: ${_fmt(s.totalPrice)} VND", styles: PosStyles(bold: true, height: headerSize)));
+    
+    if (prefs.getBool('receipt_show_qr') ?? true) {
+      bytes.addAll(generator.qrcode("sale:${s.firestoreId ?? s.soldAt}", align: PosAlign.center));
+    }
+    
+    String note = prefs.getString('receipt_note') ?? "CAM ON QUY KHACH!";
+    bytes.addAll(generator.feed(1));
+    bytes.addAll(generator.text(_removeDiacritics(note), styles: const PosStyles(align: PosAlign.center, fontType: PosFontType.fontB)));
+
     bytes.addAll(generator.feed(2));
     bytes.addAll(generator.cut());
     return _sendToPrinter(bytes);
