@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../services/user_service.dart';
 import '../services/firestore_service.dart';
 import '../l10n/app_localizations.dart';
@@ -129,19 +130,26 @@ class _SettingsViewState extends State<SettingsView> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFF),
-      appBar: AppBar(title: Text(l10n.settingsTitle, style: const TextStyle(fontWeight: FontWeight.bold))),
+      backgroundColor: const Color(0xFFF0F4F8),
+      appBar: AppBar(
+        title: Text(l10n.settingsTitle, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        elevation: 0, backgroundColor: Colors.white, foregroundColor: Colors.black,
+      ),
       body: ListView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         children: [
-          Row(
-            children: [
-              const Icon(Icons.language, color: Colors.blueAccent),
-              const SizedBox(width: 10),
-              Text(l10n.languageLabel, style: const TextStyle(fontWeight: FontWeight.w600)),
-              const SizedBox(width: 10),
-              DropdownButton<Locale>(
-                value: _selectedLocale,
+          _buildDeveloperCard(), // THÊM CARD NHÀ PHÁT TRIỂN LÊN ĐẦU
+          const SizedBox(height: 25),
+          
+          _sectionTitle(l10n.languageLabel.toUpperCase()),
+          const SizedBox(height: 10),
+          Container(
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15)),
+            child: ListTile(
+              leading: const Icon(Icons.language, color: Colors.blueAccent),
+              title: Text(l10n.languageLabel),
+              trailing: DropdownButton<Locale>(
+                value: _selectedLocale, underline: const SizedBox(),
                 items: [
                   DropdownMenuItem(value: const Locale('vi'), child: Text(l10n.vietnamese)),
                   DropdownMenuItem(value: const Locale('en'), child: Text(l10n.english)),
@@ -153,19 +161,24 @@ class _SettingsViewState extends State<SettingsView> {
                   }
                 },
               ),
-            ],
+            ),
           ),
-          const SizedBox(height: 20),
-          _sectionTitle(l10n.brandInfoSection),
+          
+          const SizedBox(height: 25),
+          _sectionTitle(l10n.brandInfoSection.toUpperCase()),
           const SizedBox(height: 15),
           Center(
             child: GestureDetector(
               onTap: _pickLogo,
-              child: CircleAvatar(
-                radius: 50,
-                backgroundColor: Colors.white,
-                backgroundImage: _logoPath != null && File(_logoPath!).existsSync() ? FileImage(File(_logoPath!)) : null,
-                child: _logoPath == null ? const Icon(Icons.add_a_photo, size: 30, color: Colors.grey) : null,
+              child: Stack(
+                children: [
+                  CircleAvatar(
+                    radius: 55, backgroundColor: Colors.white,
+                    backgroundImage: _logoPath != null && File(_logoPath!).existsSync() ? FileImage(File(_logoPath!)) : null,
+                    child: _logoPath == null ? const Icon(Icons.store, size: 40, color: Colors.grey) : null,
+                  ),
+                  Positioned(bottom: 0, right: 0, child: Container(padding: const EdgeInsets.all(8), decoration: const BoxDecoration(color: Colors.blueAccent, shape: BoxShape.circle), child: const Icon(Icons.camera_alt, color: Colors.white, size: 16)))
+                ],
               ),
             ),
           ),
@@ -174,47 +187,83 @@ class _SettingsViewState extends State<SettingsView> {
           _input(phoneCtrl, l10n.shopPhoneLabel, Icons.phone, type: TextInputType.phone),
           _input(addressCtrl, l10n.shopAddressLabel, Icons.location_on),
           
-          const SizedBox(height: 30),
-          _sectionTitle('Thông tin chủ cửa hàng'),
-          const SizedBox(height: 15),
-          _input(ownerNameCtrl, 'Tên chủ cửa hàng', Icons.person),
-          _input(ownerPhoneCtrl, 'Số điện thoại', Icons.phone_android, type: TextInputType.phone),
-          
-          const SizedBox(height: 20),
-          ElevatedButton.icon(
-            onPressed: _saveSettings,
-            icon: const Icon(Icons.save),
-            label: const Text('Lưu thông tin cửa hàng'),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-          ),
-          
-          const SizedBox(height: 30),
-          _sectionTitle(l10n.invoiceConfigSection),
+          const SizedBox(height: 25),
+          _sectionTitle("THÔNG TIN CHỦ CỬA HÀNG"),
           const SizedBox(height: 10),
-          _input(footerCtrl, l10n.invoiceFooterLabel, Icons.chat_bubble_outline),
+          _input(ownerNameCtrl, 'Tên chủ cửa hàng', Icons.person_outline),
+          _input(ownerPhoneCtrl, 'Số điện thoại cá nhân', Icons.phone_iphone, type: TextInputType.phone),
+          
+          const SizedBox(height: 25),
+          _sectionTitle(l10n.invoiceConfigSection.toUpperCase()),
+          const SizedBox(height: 10),
+          _input(footerCtrl, l10n.invoiceFooterLabel, Icons.auto_awesome),
           
           const SizedBox(height: 20),
-          // ĐÃ XÓA DÒNG TẠO MẪU HÓA ĐƠN THEO YÊU CẦU
           _menuTile(l10n.joinShopCode, Icons.group_add, Colors.orange, _joinShopDialog),
           _menuTile(l10n.cleanupManagement, Icons.cleaning_services_rounded, Colors.purple, _openCleanupDialog),
           if (_userRole == 'owner')
-            _menuTile('Quản lý nhân viên', Icons.group_rounded, Colors.indigo, () {
+            _menuTile('Quản lý nhân viên', Icons.people_alt, Colors.indigo, () {
               Navigator.push(context, MaterialPageRoute(builder: (_) => const StaffListView()));
             }),
 
-          const SizedBox(height: 30),
-          _sectionTitle(l10n.aboutSection),
-          const SizedBox(height: 15),
-          _buildAboutCard(l10n),
-
           const SizedBox(height: 40),
           SizedBox(
-            height: 55,
+            height: 60,
             child: ElevatedButton.icon(
               onPressed: _saveSettings,
-              icon: const Icon(Icons.save_rounded),
-              label: Text(l10n.saveAllSettings, style: const TextStyle(fontWeight: FontWeight.bold)),
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
+              icon: const Icon(Icons.cloud_upload_rounded),
+              label: const Text('LƯU VÀ CẬP NHẬT HỆ THỐNG', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2962FF), foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)), elevation: 4),
+            ),
+          ),
+          const SizedBox(height: 50),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDeveloperCard() {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(colors: [Color(0xFF2962FF), Color(0xFF00B0FF)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+        borderRadius: BorderRadius.circular(25),
+        boxShadow: [BoxShadow(color: Colors.blue.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8))],
+      ),
+      child: Stack(
+        children: [
+          Positioned(right: -20, top: -20, child: Icon(Icons.code, size: 100, color: Colors.white.withOpacity(0.1))),
+          Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  children: [
+                    Icon(Icons.verified, color: Colors.white, size: 20),
+                    SizedBox(width: 8),
+                    Text("NHÀ PHÁT TRIỂN CHÍNH", style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                const Text("QUANG HUY", style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+                const SizedBox(height: 8),
+                const Text("Expert Flutter Developer & UI/UX Designer", style: TextStyle(color: Colors.white70, fontSize: 13, fontStyle: FontStyle.italic)),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    _devContactButton(Icons.phone, "GỌI NGAY", () => _launchURL("tel:0964095979")),
+                    const SizedBox(width: 12),
+                    _devContactButton(Icons.chat, "ZALO", () => _launchURL("https://zalo.me/0964095979")),
+                  ],
+                ),
+                const SizedBox(height: 15),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(10)),
+                  child: const Text("Tư vấn phần mềm chuyên nghiệp cho Shop & Store", style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w500)),
+                )
+              ],
             ),
           ),
         ],
@@ -222,33 +271,43 @@ class _SettingsViewState extends State<SettingsView> {
     );
   }
 
-  Widget _buildAboutCard(AppLocalizations l10n) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)]),
-      child: Column(children: [
-        Row(children: [
-          Container(width: 50, height: 50, decoration: BoxDecoration(color: Colors.blueAccent, borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.phone_android, color: Colors.white)),
-          const SizedBox(width: 15),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(l10n.appName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)), Text(l10n.appDescription, style: const TextStyle(fontSize: 11, color: Colors.grey))])),
-        ]),
-        const Divider(height: 30),
-        _aboutRow(Icons.info_outline, "${l10n.version}: ${l10n.versionNumber}"),
-        _aboutRow(Icons.contact_support, l10n.contactSupport),
-      ]),
+  Widget _devContactButton(IconData icon, String label, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+        child: Row(
+          children: [
+            Icon(icon, size: 16, color: const Color(0xFF2962FF)),
+            const SizedBox(width: 8),
+            Text(label, style: const TextStyle(color: Color(0xFF2962FF), fontWeight: FontWeight.bold, fontSize: 12)),
+          ],
+        ),
+      ),
     );
+  }
+
+  Future<void> _launchURL(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    }
   }
 
   Widget _aboutRow(IconData i, String t) => Padding(padding: const EdgeInsets.symmetric(vertical: 5), child: Row(children: [Icon(i, size: 18, color: Colors.blueAccent), const SizedBox(width: 10), Text(t, style: const TextStyle(fontSize: 13))]));
 
-  Widget _sectionTitle(String title) => Text(title, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blueGrey));
+  Widget _sectionTitle(String title) => Padding(padding: const EdgeInsets.only(left: 4, bottom: 8), child: Text(title, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.blueGrey, letterSpacing: 1)));
   
   Widget _input(TextEditingController ctrl, String label, IconData icon, {TextInputType type = TextInputType.text}) {
-    return Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: TextField(controller: ctrl, keyboardType: type, decoration: InputDecoration(labelText: label, prefixIcon: Icon(icon, size: 20), filled: true, fillColor: Colors.white, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none))));
+    return Padding(padding: const EdgeInsets.symmetric(vertical: 6), child: TextField(controller: ctrl, keyboardType: type, decoration: InputDecoration(labelText: label, prefixIcon: Icon(icon, size: 20, color: Colors.blueGrey), filled: true, fillColor: Colors.white, contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20), border: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: BorderSide.none), enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: BorderSide.none), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: const BorderSide(color: Colors.blueAccent, width: 1)))));
   }
 
   Widget _menuTile(String title, IconData icon, Color color, VoidCallback onTap) {
-    return ListTile(tileColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)), leading: Icon(icon, color: color), title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)), trailing: const Icon(Icons.chevron_right), onTap: onTap);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: ListTile(tileColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)), leading: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)), child: Icon(icon, color: color, size: 20)), title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)), trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey), onTap: onTap),
+    );
   }
 
   void _joinShopDialog() {

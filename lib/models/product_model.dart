@@ -46,11 +46,9 @@ class Product {
   });
 
   Map<String, dynamic> toMap() {
-    // TẠO ID DUY NHẤT: Tránh trùng lặp khi nhập liên tục
-    final String uniqueSuffix = imei != null && imei!.isNotEmpty ? imei! : DateTime.now().microsecondsSinceEpoch.toString();
     return {
       'id': id,
-      'firestoreId': firestoreId ?? "prod_${createdAt}_$uniqueSuffix",
+      'firestoreId': firestoreId, // Sử dụng ID đã được gán cố định
       'name': name,
       'brand': brand,
       'imei': imei,

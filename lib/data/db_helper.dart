@@ -66,29 +66,26 @@ class DBHelper {
   Future<int> insertRepair(Repair r) async { await upsertRepair(r); return 1; }
   Future<int> updateRepair(Repair r) async => (await database).update('repairs', r.toMap(), where: 'id = ?', whereArgs: [r.id]);
   Future<int> deleteRepair(int id) async => (await database).delete('repairs', where: 'id = ?', whereArgs: [id]);
+  Future<int> deleteRepairByFirestoreId(String fId) async => (await database).delete('repairs', where: 'firestoreId = ?', whereArgs: [fId]);
   Future<List<Repair>> getAllRepairs() async {
     final maps = await (await database).query('repairs', orderBy: 'createdAt DESC');
     return List.generate(maps.length, (i) => Repair.fromMap(maps[i]));
-  }
-  Future<List<Repair>> getRepairsPaged(int limit, int offset) async {
-    final maps = await (await database).query('repairs', orderBy: 'createdAt DESC', limit: limit, offset: offset);
-    return List.generate(maps.length, (i) => Repair.fromMap(maps[i]));
-  }
-  Future<Repair?> getRepairByFirestoreId(String firestoreId) async {
-    final res = await (await database).query('repairs', where: 'firestoreId = ?', whereArgs: [firestoreId], limit: 1);
-    return res.isNotEmpty ? Repair.fromMap(res.first) : null;
   }
   Future<Repair?> getRepairById(int id) async {
     final res = await (await database).query('repairs', where: 'id = ?', whereArgs: [id], limit: 1);
     return res.isNotEmpty ? Repair.fromMap(res.first) : null;
   }
-  Future<int> deleteRepairByFirestoreId(String fId) async => (await database).delete('repairs', where: 'firestoreId = ?', whereArgs: [fId]);
+  Future<Repair?> getRepairByFirestoreId(String firestoreId) async {
+    final res = await (await database).query('repairs', where: 'firestoreId = ?', whereArgs: [firestoreId], limit: 1);
+    return res.isNotEmpty ? Repair.fromMap(res.first) : null;
+  }
 
   // SALES
   Future<void> upsertSale(SaleOrder s) async => _upsert('sales', s.toMap(), s.firestoreId ?? "sale_${s.soldAt}");
   Future<int> insertSale(SaleOrder s) async { await upsertSale(s); return 1; }
   Future<int> updateSale(SaleOrder s) async => (await database).update('sales', s.toMap(), where: 'id = ?', whereArgs: [s.id]);
   Future<int> deleteSale(int id) async => (await database).delete('sales', where: 'id = ?', whereArgs: [id]);
+  Future<int> deleteSaleByFirestoreId(String fId) async => (await database).delete('sales', where: 'firestoreId = ?', whereArgs: [fId]);
   Future<List<SaleOrder>> getAllSales() async {
     final maps = await (await database).query('sales', orderBy: 'soldAt DESC');
     return List.generate(maps.length, (i) => SaleOrder.fromMap(maps[i]));
@@ -97,13 +94,13 @@ class DBHelper {
     final res = await (await database).query('sales', where: 'firestoreId = ?', whereArgs: [firestoreId], limit: 1);
     return res.isNotEmpty ? SaleOrder.fromMap(res.first) : null;
   }
-  Future<int> deleteSaleByFirestoreId(String fId) async => (await database).delete('sales', where: 'firestoreId = ?', whereArgs: [fId]);
 
   // PRODUCTS
   Future<void> upsertProduct(Product p) async => _upsert('products', p.toMap(), p.firestoreId ?? "prod_${p.createdAt}");
   Future<int> insertProduct(Product p) async { await upsertProduct(p); return 1; }
   Future<int> updateProduct(Product p) async => (await database).update('products', p.toMap(), where: 'id = ?', whereArgs: [p.id]);
   Future<int> deleteProduct(int id) async => (await database).delete('products', where: 'id = ?', whereArgs: [id]);
+  Future<int> deleteProductByFirestoreId(String fId) async => (await database).delete('products', where: 'firestoreId = ?', whereArgs: [fId]);
   Future<List<Product>> getInStockProducts() async {
     final maps = await (await database).query('products', where: 'status = 1 AND quantity > 0');
     return List.generate(maps.length, (i) => Product.fromMap(maps[i]));
@@ -118,100 +115,34 @@ class DBHelper {
     await db.rawUpdate('UPDATE products SET quantity = quantity - ? WHERE id = ?', [amount, id]);
     await db.rawUpdate('UPDATE products SET status = 0 WHERE id = ? AND quantity <= 0', [id]);
   }
-  Future<int> deleteProductByFirestoreId(String fId) async => (await database).delete('products', where: 'firestoreId = ?', whereArgs: [fId]);
 
-  // ATTENDANCE
-  Future<int> upsertAttendance(Map<String, dynamic> data) async {
-    final db = await database;
-    return await db.transaction((txn) async {
-      final existing = await txn.query('attendance', where: 'dateKey = ? AND userId = ?', whereArgs: [data['dateKey'], data['userId']], limit: 1);
-      if (existing.isNotEmpty) {
-        if ((existing.first['locked'] ?? 0) == 1) return 0;
-        return await txn.update('attendance', data, where: 'id = ?', whereArgs: [existing.first['id']]);
-      }
-      return await txn.insert('attendance', data);
-    });
-  }
-  Future<Map<String, dynamic>?> getAttendance(String dateKey, String userId) async {
-    final res = await (await database).query('attendance', where: 'dateKey = ? AND userId = ?', whereArgs: [dateKey, userId], limit: 1);
-    return res.isNotEmpty ? res.first : null;
-  }
-  Future<List<Map<String, dynamic>>> getAttendanceRange(DateTime from, DateTime to, {String? userId}) async {
-    final fromK = DateFormat('yyyy-MM-dd').format(from);
-    final toK = DateFormat('yyyy-MM-dd').format(to);
-    String w = 'dateKey BETWEEN ? AND ?'; List<Object> a = [fromK, toK];
-    if (userId != null) { w += ' AND userId = ?'; a.add(userId); }
-    return await (await database).query('attendance', where: w, whereArgs: a, orderBy: 'dateKey DESC');
-  }
-  Future<List<Map<String, dynamic>>> getPendingAttendance({int daysBack = 14}) async {
-    final f = DateFormat('yyyy-MM-dd').format(DateTime.now().subtract(Duration(days: daysBack)));
-    return await (await database).query('attendance', where: 'dateKey >= ? AND (status IS NULL OR status != ?)', whereArgs: [f, 'approved'], orderBy: 'dateKey DESC');
-  }
-  Future<int> approveAttendance(int id, {required String approver}) async => await (await database).update('attendance', {'status': 'approved', 'approvedBy': approver, 'approvedAt': DateTime.now().millisecondsSinceEpoch}, where: 'id = ?', whereArgs: [id]);
-  Future<int> rejectAttendance(int id, {required String approver, String? reason}) async => await (await database).update('attendance', {'status': 'rejected', 'approvedBy': approver, 'approvedAt': DateTime.now().millisecondsSinceEpoch, 'rejectReason': reason}, where: 'id = ?', whereArgs: [id]);
-  Future<bool> isPayrollMonthLocked(String m) async => (await (await database).query('payroll_locks', where: 'monthKey = ? AND locked = 1', whereArgs: [m], limit: 1)).isNotEmpty;
-  Future<void> setPayrollMonthLock(String m, {required bool locked, required String lockedBy, String? note}) async {
-    final db = await database;
-    await db.transaction((txn) async {
-      await txn.insert('payroll_locks', {'monthKey': m, 'locked': locked ? 1 : 0, 'lockedBy': lockedBy, 'note': note, 'lockedAt': DateTime.now().millisecondsSinceEpoch}, conflictAlgorithm: ConflictAlgorithm.replace);
-      await txn.rawUpdate('UPDATE attendance SET locked = ? WHERE dateKey LIKE ?', [locked ? 1 : 0, '$m%']);
-    });
-  }
+  // SUPPLIERS
+  Future<int> insertSupplier(Map<String, dynamic> map) async => (await database).insert('suppliers', map);
+  Future<List<Map<String, dynamic>>> getSuppliers() async => (await database).query('suppliers', orderBy: 'name ASC');
+  Future<int> deleteSupplier(int id) async => (await database).delete('suppliers', where: 'id = ?', whereArgs: [id]);
 
   // FINANCE
-  Future<int> insertExpense(Map<String, dynamic> e) async => (await database).insert('expenses', e);
   Future<void> upsertExpense(Expense e) async => _upsert('expenses', e.toMap(), e.firestoreId ?? "exp_${e.date}");
+  Future<int> insertExpense(Map<String, dynamic> e) async => (await database).insert('expenses', e);
   Future<List<Map<String, dynamic>>> getAllExpenses() async => (await database).query('expenses', orderBy: 'date DESC');
-  Future<int> deleteExpense(int id) async => (await database).delete('expenses', where: 'id = ?', whereArgs: [id]);
   Future<int> deleteExpenseByFirestoreId(String fId) async => (await database).delete('expenses', where: 'firestoreId = ?', whereArgs: [fId]);
-  
-  Future<int> insertDebt(Map<String, dynamic> d) async => (await database).insert('debts', d);
+
   Future<void> upsertDebt(Debt d) async => _upsert('debts', d.toMap(), d.firestoreId ?? "debt_${d.createdAt}");
+  Future<int> insertDebt(Map<String, dynamic> d) async => (await database).insert('debts', d);
   Future<List<Map<String, dynamic>>> getAllDebts() async => (await database).query('debts', orderBy: 'status ASC, createdAt DESC');
-  Future<int> deleteDebt(int id) async => (await database).delete('debts', where: 'id = ?', whereArgs: [id]);
   Future<int> deleteDebtByFirestoreId(String fId) async => (await database).delete('debts', where: 'firestoreId = ?', whereArgs: [fId]);
-  Future<int> updateDebtPaid(int id, int paid) async {
-    final db = await database;
-    return await db.transaction((txn) async {
-      final List<Map<String, dynamic>> res = await txn.query('debts', where: 'id = ?', whereArgs: [id]);
-      if (res.isEmpty) return 0;
-      final current = res.first['paidAmount'] as int; final total = res.first['totalAmount'] as int;
-      int n = current + paid; if (n > total) n = total;
-      return await txn.update('debts', {'paidAmount': n, 'status': n >= total ? "ĐÃ TRẢ" : "NỢ"}, where: 'id = ?', whereArgs: [id]);
-    });
-  }
+  Future<int> updateDebtPaid(int id, int pay) async => await (await database).rawUpdate('UPDATE debts SET paidAmount = paidAmount + ?, status = CASE WHEN (paidAmount + ?) >= totalAmount THEN "paid" ELSE "unpaid" END WHERE id = ?', [pay, pay, id]);
 
   // CLOSINGS
-  Future<Map<String, dynamic>?> getClosingByDate(String dateKey) async {
-    final res = await (await database).query('cash_closings', where: 'dateKey = ?', whereArgs: [dateKey], limit: 1);
-    return res.isNotEmpty ? res.first : null;
-  }
-  Future<int> upsertClosing(Map<String, dynamic> closing) async => await (await database).insert('cash_closings', closing, conflictAlgorithm: ConflictAlgorithm.replace);
-
-  // SUPPLIERS & CUSTOMERS
-  Future<List<Map<String, dynamic>>> getSuppliers() async => (await database).query('suppliers', orderBy: 'name ASC');
-  Future<int> insertSupplier(Map<String, dynamic> s) async => (await database).insert('suppliers', s, conflictAlgorithm: ConflictAlgorithm.ignore);
-  Future<int> deleteSupplier(int id) async => (await database).delete('suppliers', where: 'id = ?', whereArgs: [id]);
-  Future<int> deleteSupplierByFirestoreId(String fId) async => (await database).delete('suppliers', where: 'firestoreId = ?', whereArgs: [fId]);
-  Future<void> incrementSupplierStats(String name, int amount) async {
+  Future<void> upsertClosing(Map<String, dynamic> map) async {
     final db = await database;
-    await db.rawUpdate('UPDATE suppliers SET importCount = importCount + 1, totalAmount = totalAmount + ? WHERE name = ?', [amount, name]);
-  }
-
-  Future<List<Map<String, dynamic>>> getCustomerSuggestions() async => (await database).rawQuery('SELECT DISTINCT customerName, phone, address FROM (SELECT customerName, phone, address FROM repairs UNION SELECT customerName, phone, address FROM sales UNION SELECT name as customerName, phone, address FROM customers) ORDER BY customerName ASC');
-  Future<List<Map<String, dynamic>>> getUniqueCustomersAll() async => (await database).rawQuery('SELECT phone, customerName, address FROM (SELECT phone, customerName, address FROM repairs UNION SELECT phone, customerName, address FROM sales UNION SELECT phone, name as customerName, address FROM customers) as t WHERE phone IS NOT NULL AND phone != "" GROUP BY phone ORDER BY customerName ASC');
-  Future<List<Map<String, dynamic>>> getCustomersWithoutShop() async => (await database).query('customers', where: 'shopId IS NULL OR shopId = ""');
-  Future<Map<String, dynamic>?> getCustomerByPhone(String phone) async { final res = await (await database).query('customers', where: 'phone = ?', whereArgs: [phone], limit: 1); return res.isNotEmpty ? res.first : null; }
-  Future<int> insertCustomer(Map<String, dynamic> c) async => (await database).insert('customers', c, conflictAlgorithm: ConflictAlgorithm.ignore);
-  Future<int> deleteCustomerByPhone(String phone) async => (await database).delete('customers', where: 'phone = ?', whereArgs: [phone]);
-  Future<int> deleteCustomerByFirestoreId(String fId) async => (await database).delete('customers', where: 'firestoreId = ?', whereArgs: [fId]);
-  Future<void> deleteCustomerData(String name, String phone) async {
-    final db = await database;
-    await db.transaction((txn) async {
-      await txn.delete('repairs', where: 'customerName = ? AND phone = ?', whereArgs: [name, phone]);
-      await txn.delete('sales', where: 'customerName = ? AND phone = ?', whereArgs: [name, phone]);
-      await txn.delete('customers', where: 'name = ? AND phone = ?', whereArgs: [name, phone]);
-    });
+    final dateKey = map['dateKey'];
+    final List<Map<String, dynamic>> existing = await db.query('cash_closings', where: 'dateKey = ?', whereArgs: [dateKey], limit: 1);
+    if (existing.isNotEmpty) {
+      await db.update('cash_closings', map, where: 'id = ?', whereArgs: [existing.first['id']]);
+    } else {
+      await db.insert('cash_closings', map);
+    }
   }
 
   // INVENTORY CHECKS
@@ -238,12 +169,29 @@ class DBHelper {
     return await db.update('inventory_checks', map, where: 'id = ?', whereArgs: [map['id']]);
   }
 
-  // SYSTEM UTILS
+  // OTHERS
+  Future<List<Map<String, dynamic>>> getCustomerSuggestions() async => (await database).rawQuery('SELECT DISTINCT customerName, phone, address FROM (SELECT customerName, phone, address FROM repairs UNION SELECT customerName, phone, address FROM sales UNION SELECT name as customerName, phone, address FROM customers) ORDER BY customerName ASC');
+  Future<List<Map<String, dynamic>>> getUniqueCustomersAll() async => (await database).rawQuery('SELECT phone, customerName, address FROM (SELECT phone, customerName, address FROM repairs UNION SELECT phone, customerName, address FROM sales UNION SELECT phone, name as customerName, address FROM customers) as t WHERE phone IS NOT NULL AND phone != "" GROUP BY phone ORDER BY customerName ASC');
+  Future<List<Map<String, dynamic>>> getCustomersWithoutShop() async => (await database).query('customers', where: 'shopId IS NULL OR shopId = ""');
+  Future<void> deleteCustomerData(String name, String phone) async {
+    final db = await database;
+    await db.transaction((txn) async {
+      await txn.delete('repairs', where: 'customerName = ? AND phone = ?', whereArgs: [name, phone]);
+      await txn.delete('sales', where: 'customerName = ? AND phone = ?', whereArgs: [name, phone]);
+      await txn.delete('customers', where: 'name = ? AND phone = ?', whereArgs: [name, phone]);
+    });
+  }
+  Future<int> deleteCustomerByPhone(String phone) async => (await database).delete('customers', where: 'phone = ?', whereArgs: [phone]);
+
+  // SYSTEM
   Future<void> cleanDuplicateData() async {
     final db = await database;
-    await db.execute('DELETE FROM repairs WHERE id NOT IN (SELECT MAX(id) FROM repairs GROUP BY firestoreId)');
-    await db.execute('DELETE FROM sales WHERE id NOT IN (SELECT MAX(id) FROM sales GROUP BY firestoreId)');
+    // Simple implementation to clean duplicates based on firestoreId
+    await db.execute('DELETE FROM repairs WHERE id NOT IN (SELECT MIN(id) FROM repairs GROUP BY firestoreId)');
+    await db.execute('DELETE FROM products WHERE id NOT IN (SELECT MIN(id) FROM products GROUP BY firestoreId)');
+    await db.execute('DELETE FROM sales WHERE id NOT IN (SELECT MIN(id) FROM sales GROUP BY firestoreId)');
   }
+
   Future<void> clearAllData() async {
     final db = await database;
     await db.transaction((txn) async {

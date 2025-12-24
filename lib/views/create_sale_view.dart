@@ -57,7 +57,6 @@ class _CreateSaleViewState extends State<CreateSaleView> {
   }
 
   Future<void> _loadData() async {
-    // CHỈ LẤY NHỮNG MÁY THỰC SỰ CÒN TRONG KHO (STATUS = 1)
     final prods = await db.getInStockProducts();
     final suggests = await db.getCustomerSuggestions();
     if (!mounted) return;
@@ -124,20 +123,15 @@ class _CreateSaleViewState extends State<CreateSaleView> {
         warranty: _saleWarranty,
       );
 
-      // --- BƯỚC QUAN TRỌNG NHẤT: TRỪ KHO ĐỒNG BỘ ---
       for (var item in _selectedItems) {
         final p = item['product'] as Product;
-        // 1. Cập nhật Local (status = 0 để biến mất khỏi kho)
         await db.updateProductStatus(p.id!, 0); 
         await db.deductProductQuantity(p.id!, 1);
-        
-        // 2. Cập nhật Cloud (Đánh dấu Đã bán để các máy khác không tải về làm máy hồi sinh)
         p.status = 0;
         p.quantity = 0;
         await FirestoreService.updateProductCloud(p);
       }
 
-      // Lưu đơn bán
       await db.upsertSale(sale); 
       await FirestoreService.addSale(sale);
 
@@ -160,7 +154,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _sectionTitle("1. CHỌN SẢN PHẨM TRONG KHO"),
-            DebouncedSearchField(controller: searchProdCtrl, hint: "Tìm máy hoặc IMEI...", onSearch: (v) => setState(() => _filteredInStock = _allInStock.where((p) => p.name.contains(v.toUpperCase())).toList())),
+            DebouncedSearchField(controller: searchProdCtrl, hint: "Tìm máy hoặc IMEI...", onSearch: (v) => setState(() => _filteredInStock = _allInStock.where((p) => p.name.contains(v.toUpperCase()) || (p.imei ?? "").contains(v)).toList())),
             if (searchProdCtrl.text.isNotEmpty) _buildSearchResults(),
             _buildSelectedItemsList(),
             const SizedBox(height: 20),
@@ -213,17 +207,40 @@ class _CreateSaleViewState extends State<CreateSaleView> {
 
   Widget _buildSearchResults() {
     return Container(
-      constraints: const BoxConstraints(maxHeight: 200),
+      constraints: const BoxConstraints(maxHeight: 250),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10)]),
       child: ListView.builder(shrinkWrap: true, itemCount: _filteredInStock.length, itemBuilder: (ctx, i) {
         final p = _filteredInStock[i];
-        return ListTile(title: Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold)), subtitle: Text("Giá: ${NumberFormat('#,###').format(p.price)}"), trailing: const Icon(Icons.add_circle, color: Colors.green), onTap: () => _addItem(p));
+        return ListTile(
+          title: Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold)), 
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text("IMEI: ${p.imei ?? 'PK'}"),
+              Text("${p.capacity ?? ''} - Tồn: ${p.quantity}", style: const TextStyle(color: Colors.blueGrey, fontSize: 12)),
+              Text("Giá: ${NumberFormat('#,###').format(p.price)}", style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          isThreeLine: true,
+          trailing: const Icon(Icons.add_circle, color: Colors.green, size: 30), 
+          onTap: () => _addItem(p)
+        );
       }),
     );
   }
 
   Widget _buildSelectedItemsList() {
-    return Column(children: _selectedItems.map((item) => Card(child: ListTile(title: Text((item['product'] as Product).name), subtitle: Text("Giá bán: ${NumberFormat('#,###').format(item['sellPrice'])}"), trailing: IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () { setState(() { _selectedItems.remove(item); _calculateTotal(); }); })))).toList());
+    return Column(children: _selectedItems.map((item) {
+      final p = item['product'] as Product;
+      return Card(
+        margin: const EdgeInsets.symmetric(vertical: 4),
+        child: ListTile(
+          title: Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold)), 
+          subtitle: Text("IMEI: ${p.imei ?? 'PK'}\nGiá bán: ${NumberFormat('#,###').format(item['sellPrice'])}"), 
+          trailing: IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () { setState(() { _selectedItems.remove(item); _calculateTotal(); }); }),
+        )
+      );
+    }).toList());
   }
 
   Widget _buildCustomerSuggestions() {
