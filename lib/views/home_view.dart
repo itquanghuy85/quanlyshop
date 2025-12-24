@@ -18,11 +18,9 @@ import 'expense_view.dart';
 import 'debt_view.dart';
 import 'warranty_view.dart';
 import 'settings_view.dart';
-import 'printer_setting_view.dart';
 import 'chat_view.dart';
 import 'thermal_printer_design_view.dart';
 import 'inventory_check_view.dart';
-import 'repair_receipt_view.dart';
 import 'super_admin_view.dart' as admin_view;
 import 'staff_list_view.dart';
 import 'qr_scan_view.dart';
@@ -269,24 +267,16 @@ class _HomeViewState extends State<HomeView> {
     addTile('allowViewCustomers', l10n.customers, Icons.people_alt_rounded, [const Color(0xFF00BFA5), const Color(0xFF64FFDA)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => CustomerListView(role: widget.role))));
     addTile('allowViewRevenue', l10n.revenue, Icons.leaderboard_rounded, [const Color(0xFF304FFE), const Color(0xFF536DFE)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RevenueView())));
     addTile('allowViewRevenue', l10n.revenueReport, Icons.analytics_rounded, [const Color(0xFF3D5AFE), const Color(0xFF8C9EFF)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RevenueReportView())));
-    addTile('allowViewPrinter', l10n.printer, Icons.print_rounded, [const Color(0xFF607D8B), const Color(0xFF90A4AE)], _showPrinterMenu);
+    
+    addTile('allowViewPrinter', l10n.printer, Icons.print_rounded, [const Color(0xFF607D8B), const Color(0xFF90A4AE)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ThermalPrinterDesignView())));
+    
     addTile('allowViewSettings', l10n.settings, Icons.settings_rounded, [const Color(0xFF263238), const Color(0xFF455A64)], _openSettingsCenter);
     return GridView.count(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), crossAxisCount: 2, mainAxisSpacing: 15, crossAxisSpacing: 15, childAspectRatio: 1.3, children: tiles);
-  }
-
-  void _showPrinterMenu() {
-    final l10n = AppLocalizations.of(context)!;
-    showModalBottomSheet(context: context, shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))), builder: (ctx) => SafeArea(child: Padding(padding: const EdgeInsets.all(16), child: Column(mainAxisSize: MainAxisSize.min, children: [
-      ListTile(leading: const Icon(Icons.receipt_long_rounded, color: Colors.blueAccent), title: Text(l10n.receiptPrinter), onTap: () { Navigator.pop(ctx); Navigator.push(context, MaterialPageRoute(builder: (_) => const PrinterSettingView())); }),
-      ListTile(leading: const Icon(Icons.assignment_rounded, color: Colors.green), title: Text(l10n.repairReceipt), onTap: () { Navigator.pop(ctx); Navigator.push(context, MaterialPageRoute(builder: (_) => const RepairReceiptView())); }),
-      ListTile(leading: const Icon(Icons.thermostat_rounded, color: Colors.redAccent), title: Text(l10n.thermalPrinter), onTap: () { Navigator.pop(ctx); Navigator.push(context, MaterialPageRoute(builder: (_) => const ThermalPrinterDesignView())); }),
-    ]))));
   }
 
   void _openSettingsCenter() {
     showModalBottomSheet(context: context, shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))), builder: (ctx) => SafeArea(child: Padding(padding: const EdgeInsets.all(16), child: Column(mainAxisSize: MainAxisSize.min, children: [
       ListTile(leading: const Icon(Icons.settings_rounded, color: Colors.blueGrey), title: const Text("CÀI ĐẶT HỆ THỐNG"), onTap: () { Navigator.pop(ctx); Navigator.push(context, MaterialPageRoute(builder: (_) => SettingsView(setLocale: widget.setLocale))); }),
-      ListTile(leading: const Icon(Icons.print_rounded, color: Colors.teal), title: const Text("CẤU HÌNH MÁY IN"), onTap: () { Navigator.pop(ctx); Navigator.push(context, MaterialPageRoute(builder: (_) => const PrinterSettingView())); }),
       if (hasFullAccess) ListTile(leading: const Icon(Icons.group_rounded, color: Colors.indigo), title: const Text("QUẢN LÝ NHÂN VIÊN"), onTap: () { Navigator.pop(ctx); Navigator.push(context, MaterialPageRoute(builder: (_) => const StaffListView())); }),
       if (_isSuperAdmin) ListTile(leading: const Icon(Icons.admin_panel_settings_rounded, color: Colors.deepPurple), title: const Text("TRUNG TÂM SUPER ADMIN"), onTap: () { Navigator.pop(ctx); Navigator.push(context, MaterialPageRoute(builder: (_) => const admin_view.SuperAdminView())); }),
     ]))));

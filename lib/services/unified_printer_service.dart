@@ -37,7 +37,6 @@ class UnifiedPrinterService {
     if (bytes.isEmpty) return false;
     final prefs = await SharedPreferences.getInstance();
     
-    // Nếu yêu cầu WiFi hoặc có IP được truyền trực tiếp
     if (printerType == PrinterType.wifi || wifiIp != null) {
       final ip = wifiIp ?? prefs.getString('printer_ip') ?? "";
       if (ip.isNotEmpty) {
@@ -49,7 +48,6 @@ class UnifiedPrinterService {
       }
     }
 
-    // Ưu tiên Bluetooth nếu là auto hoặc yêu cầu bluetooth
     if (printerType == PrinterType.bluetooth || printerType == PrinterType.auto || printerType == null) {
       if (bluetoothPrinter != null) {
         final ok = await BluetoothPrinterService.connect(bluetoothPrinter.macAddress);
@@ -59,7 +57,6 @@ class UnifiedPrinterService {
       if (hasBt) return await BluetoothPrinterService.printBytes(bytes);
     }
 
-    // Fallback sang WiFi nếu auto/null mà BT thất bại
     if (printerType == PrinterType.auto || printerType == null) {
       final ip = prefs.getString('printer_ip') ?? "";
       if (ip.isNotEmpty) {
@@ -72,6 +69,17 @@ class UnifiedPrinterService {
     }
 
     return false;
+  }
+
+  // HÀM MỚI ĐỂ XÓA LỖI BUILD Ở SALE_DETAIL_VIEW
+  static Future<bool> printSaleReceiptFromOrder(SaleOrder s, Map<String, dynamic> shop, {PrinterType? printerType, dynamic bluetoothPrinter, String? wifiIp}) async {
+    final data = {
+      'customerName': s.customerName,
+      'productNames': s.productNames,
+      'totalPrice': s.totalPrice,
+      'id': s.firestoreId ?? s.soldAt.toString(),
+    };
+    return printSaleReceipt(data, PaperSize.mm80, printerType: printerType, bluetoothPrinter: bluetoothPrinter, wifiIp: wifiIp);
   }
 
   static Future<bool> printProductQRLabel(Map<String, dynamic> product) async {

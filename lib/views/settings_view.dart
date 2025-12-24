@@ -8,12 +8,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/user_service.dart';
 import '../services/firestore_service.dart';
 import '../l10n/app_localizations.dart';
-import 'invoice_template_view.dart';
 import 'staff_list_view.dart';
 
 class SettingsView extends StatefulWidget {
   final void Function(Locale)? setLocale;
-
   const SettingsView({super.key, this.setLocale});
 
   @override
@@ -27,11 +25,9 @@ class _SettingsViewState extends State<SettingsView> {
   final phoneCtrl = TextEditingController();
   final footerCtrl = TextEditingController();
   String? _logoPath;
-  // Cleanup config
   bool _cleanupEnabled = false;
   int _cleanupDays = 30;
 
-  // Owner account info
   final ownerNameCtrl = TextEditingController();
   final ownerPhoneCtrl = TextEditingController();
   final ownerEmailCtrl = TextEditingController();
@@ -57,8 +53,6 @@ class _SettingsViewState extends State<SettingsView> {
       footerCtrl.text = prefs.getString('invoice_footer') ?? "Cảm ơn quý khách đã tin tưởng!";
       _logoPath = prefs.getString('shop_logo');
     });
-
-    // Load owner info from Firestore
     await _loadOwnerInfo();
   }
 
@@ -75,8 +69,7 @@ class _SettingsViewState extends State<SettingsView> {
           ownerTaxCodeCtrl.text = shopInfo['ownerTaxCode'] ?? '';
         });
       }
-    } catch (e) {
-      // Fallback to current user info if shop info not available
+    } catch (_) {
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser != null) {
         final userInfo = await UserService.getUserInfo(currentUser.uid);
@@ -88,8 +81,6 @@ class _SettingsViewState extends State<SettingsView> {
         });
       }
     }
-
-    // Load user role
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser != null) {
       _userRole = await UserService.getUserRole(currentUser.uid);
@@ -104,10 +95,7 @@ class _SettingsViewState extends State<SettingsView> {
     await prefs.setString('shop_phone', phoneCtrl.text);
     await prefs.setString('invoice_footer', footerCtrl.text);
     if (_logoPath != null) await prefs.setString('shop_logo', _logoPath!);
-    
-    // Save shop info to Firestore
     await _saveShopInfoToFirestore();
-    
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.shopInfoSaved)));
     }
@@ -129,14 +117,7 @@ class _SettingsViewState extends State<SettingsView> {
         'updatedAt': FieldValue.serverTimestamp(),
       };
       await FirestoreService.updateCurrentShopInfo(shopData);
-    } catch (e) {
-      // Show error but don't block the save
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi lưu thông tin: $e')),
-        );
-      }
-    }
+    } catch (_) {}
   }
 
   Future<void> _pickLogo() async {
@@ -153,7 +134,6 @@ class _SettingsViewState extends State<SettingsView> {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          // Language switcher
           Row(
             children: [
               const Icon(Icons.language, color: Colors.blueAccent),
@@ -163,8 +143,8 @@ class _SettingsViewState extends State<SettingsView> {
               DropdownButton<Locale>(
                 value: _selectedLocale,
                 items: [
-                DropdownMenuItem(value: const Locale('vi'), child: Text(AppLocalizations.of(context)!.vietnamese)),
-                DropdownMenuItem(value: const Locale('en'), child: Text(AppLocalizations.of(context)!.english)),
+                  DropdownMenuItem(value: const Locale('vi'), child: Text(l10n.vietnamese)),
+                  DropdownMenuItem(value: const Locale('en'), child: Text(l10n.english)),
                 ],
                 onChanged: (locale) {
                   if (locale != null) {
@@ -199,22 +179,13 @@ class _SettingsViewState extends State<SettingsView> {
           const SizedBox(height: 15),
           _input(ownerNameCtrl, 'Tên chủ cửa hàng', Icons.person),
           _input(ownerPhoneCtrl, 'Số điện thoại', Icons.phone_android, type: TextInputType.phone),
-          _input(ownerEmailCtrl, 'Email', Icons.email, type: TextInputType.emailAddress),
-          _input(ownerAddressCtrl, 'Địa chỉ', Icons.home),
-          _input(ownerBusinessLicenseCtrl, 'Giấy phép kinh doanh', Icons.business),
-          _input(ownerTaxCodeCtrl, 'Mã số thuế', Icons.account_balance),
           
           const SizedBox(height: 20),
           ElevatedButton.icon(
             onPressed: _saveSettings,
             icon: const Icon(Icons.save),
             label: const Text('Lưu thông tin cửa hàng'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blueAccent,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
           ),
           
           const SizedBox(height: 30),
@@ -223,9 +194,7 @@ class _SettingsViewState extends State<SettingsView> {
           _input(footerCtrl, l10n.invoiceFooterLabel, Icons.chat_bubble_outline),
           
           const SizedBox(height: 20),
-          _menuTile(l10n.createInvoiceTemplate, Icons.receipt_long, Colors.green, () {
-            Navigator.push(context, MaterialPageRoute(builder: (_) => const InvoiceTemplateView()));
-          }),
+          // ĐÃ XÓA DÒNG TẠO MẪU HÓA ĐƠN THEO YÊU CẦU
           _menuTile(l10n.joinShopCode, Icons.group_add, Colors.orange, _joinShopDialog),
           _menuTile(l10n.cleanupManagement, Icons.cleaning_services_rounded, Colors.purple, _openCleanupDialog),
           if (_userRole == 'owner')
@@ -236,110 +205,7 @@ class _SettingsViewState extends State<SettingsView> {
           const SizedBox(height: 30),
           _sectionTitle(l10n.aboutSection),
           const SizedBox(height: 15),
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(15),
-              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05 * 255), blurRadius: 10, offset: const Offset(0, 2))],
-            ),
-            child: Column(
-              children: [
-                // Logo và tên app
-                Row(
-                  children: [
-                    Container(
-                      width: 60,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        color: Colors.blueAccent,
-                        borderRadius: BorderRadius.circular(15),
-                        boxShadow: [BoxShadow(color: Colors.blueAccent.withValues(alpha: 0.3 * 255), blurRadius: 8, offset: const Offset(0, 4))],
-                      ),
-                      child: const Icon(Icons.phone_android, color: Colors.white, size: 30),
-                    ),
-                    const SizedBox(width: 15),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(l10n.appName, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blueAccent.shade700)),
-                          Text(l10n.appDescription, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                // Thông tin phiên bản
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.blueAccent.withValues(alpha: 0.1 * 255),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.info_outline, color: Colors.blueAccent.shade700, size: 20),
-                      const SizedBox(width: 10),
-                      Text("${l10n.version}: ${l10n.versionNumber}", style: TextStyle(fontWeight: FontWeight.w500, color: Colors.blueAccent.shade700)),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 15),
-                // Thông tin liên hệ
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.green.withValues(alpha: 0.1 * 255),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(Icons.contact_support, color: Colors.green.shade700, size: 20),
-                          const SizedBox(width: 10),
-                          Text(l10n.contactSupport, style: TextStyle(fontWeight: FontWeight.w500, color: Colors.green.shade700)),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text("👨‍💻 ${l10n.developerName}", style: TextStyle(fontSize: 12, color: Colors.black87)),
-                      Text(l10n.contactPhone, style: TextStyle(fontSize: 12, color: Colors.black87)),
-                      Text(l10n.technicalSupport, style: TextStyle(fontSize: 12, color: Colors.black87)),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 15),
-                // Thông tin developer
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.purple.withValues(alpha: 0.1 * 255),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(Icons.code, color: Colors.purple.shade700, size: 20),
-                          const SizedBox(width: 10),
-                          Text(l10n.developer, style: TextStyle(fontWeight: FontWeight.w500, color: Colors.purple.shade700)),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text("👨‍💻 ${l10n.developerName}", style: TextStyle(fontSize: 12, color: Colors.black87)),
-                      Text("🚀 ${l10n.developerRole}", style: TextStyle(fontSize: 12, color: Colors.black87)),
-                      Text(l10n.contactPhone, style: TextStyle(fontSize: 12, color: Colors.black87)),
-                      Text("💡 ${l10n.businessSolutions}", style: TextStyle(fontSize: 12, color: Colors.black87)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
+          _buildAboutCard(l10n),
 
           const SizedBox(height: 40),
           SizedBox(
@@ -356,221 +222,71 @@ class _SettingsViewState extends State<SettingsView> {
     );
   }
 
-  Widget _sectionTitle(String title) => Text(title, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blueGrey));
-  
-  Widget _input(TextEditingController ctrl, String label, IconData icon, {TextInputType type = TextInputType.text}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: TextField(
-        controller: ctrl,
-        keyboardType: type,
-        decoration: InputDecoration(
-          labelText: label,
-          prefixIcon: Icon(icon, size: 20),
-          filled: true, fillColor: Colors.white,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-        ),
-      ),
+  Widget _buildAboutCard(AppLocalizations l10n) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)]),
+      child: Column(children: [
+        Row(children: [
+          Container(width: 50, height: 50, decoration: BoxDecoration(color: Colors.blueAccent, borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.phone_android, color: Colors.white)),
+          const SizedBox(width: 15),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(l10n.appName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)), Text(l10n.appDescription, style: const TextStyle(fontSize: 11, color: Colors.grey))])),
+        ]),
+        const Divider(height: 30),
+        _aboutRow(Icons.info_outline, "${l10n.version}: ${l10n.versionNumber}"),
+        _aboutRow(Icons.contact_support, l10n.contactSupport),
+      ]),
     );
   }
 
+  Widget _aboutRow(IconData i, String t) => Padding(padding: const EdgeInsets.symmetric(vertical: 5), child: Row(children: [Icon(i, size: 18, color: Colors.blueAccent), const SizedBox(width: 10), Text(t, style: const TextStyle(fontSize: 13))]));
+
+  Widget _sectionTitle(String title) => Text(title, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blueGrey));
+  
+  Widget _input(TextEditingController ctrl, String label, IconData icon, {TextInputType type = TextInputType.text}) {
+    return Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: TextField(controller: ctrl, keyboardType: type, decoration: InputDecoration(labelText: label, prefixIcon: Icon(icon, size: 20), filled: true, fillColor: Colors.white, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none))));
+  }
+
   Widget _menuTile(String title, IconData icon, Color color, VoidCallback onTap) {
-    return ListTile(
-      tileColor: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-      leading: Icon(icon, color: color),
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-      trailing: const Icon(Icons.chevron_right),
-      onTap: onTap,
-    );
+    return ListTile(tileColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)), leading: Icon(icon, color: color), title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)), trailing: const Icon(Icons.chevron_right), onTap: onTap);
   }
 
   void _joinShopDialog() {
     final codeCtrl = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(AppLocalizations.of(context)!.enterInviteCode),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: codeCtrl,
-              decoration: InputDecoration(labelText: AppLocalizations.of(context)!.inviteCode8Chars),
-              textCapitalization: TextCapitalization.characters,
-            ),
-            const SizedBox(height: 10),
-            ElevatedButton.icon(
-              onPressed: () async {
-                final result = await Navigator.push<String>(
-                  context,
-                  MaterialPageRoute(builder: (_) => const _QRScanView()),
-                );
-                if (result != null) {
-                  codeCtrl.text = result;
-                }
-              },
-              icon: const Icon(Icons.qr_code_scanner),
-              label: Text(AppLocalizations.of(context)!.scanQR),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(AppLocalizations.of(context)!.cancel),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final l10n = AppLocalizations.of(context)!;
-              final code = codeCtrl.text.trim().toUpperCase();
-              if (code.length != 8) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(l10n.codeMustBe8Chars)),
-                );
-                return;
-              }
-              final currentUser = FirebaseAuth.instance.currentUser;
-              if (currentUser == null) return;
-              final success = await UserService.useInviteCode(code, currentUser.uid);
-              if (!mounted) return;
-              if (success) {
-                if (!mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(l10n.joinedShopSuccessfully)),
-                );
-                Navigator.pop(context);
-              } else {
-                if (!mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(l10n.invalidOrExpiredCode)),
-                );
-              }
-            },
-            child: Text(AppLocalizations.of(context)!.join),
-          ),
-        ],
-      ),
-    );
+    showDialog(context: context, builder: (context) => AlertDialog(title: Text(AppLocalizations.of(context)!.enterInviteCode), content: Column(mainAxisSize: MainAxisSize.min, children: [TextField(controller: codeCtrl, decoration: InputDecoration(labelText: AppLocalizations.of(context)!.inviteCode8Chars), textCapitalization: TextCapitalization.characters), const SizedBox(height: 10), ElevatedButton.icon(onPressed: () async { final result = await Navigator.push<String>(context, MaterialPageRoute(builder: (_) => const _QRScanView())); if (result != null) codeCtrl.text = result; }, icon: const Icon(Icons.qr_code_scanner), label: Text(AppLocalizations.of(context)!.scanQR))]), actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(AppLocalizations.of(context)!.cancel)), ElevatedButton(onPressed: () async { final code = codeCtrl.text.trim().toUpperCase(); if (code.length != 8) return; final currentUser = FirebaseAuth.instance.currentUser; if (currentUser == null) return; final success = await UserService.useInviteCode(code, currentUser.uid); if (success) Navigator.pop(context); }, child: Text(AppLocalizations.of(context)!.join))]));
   }
 
   Future<void> _loadCleanupConfig() async {
-    try {
-      final perms = await UserService.getCurrentUserPermissions();
-      if (!(perms['allowViewSettings'] ?? false)) {
-        // không có quyền
-        return;
-      }
-      final doc = await FirebaseFirestore.instance.doc('settings/cleanup').get();
-      final data = doc.exists ? (doc.data() ?? {}) : {};
-      setState(() {
-        _cleanupEnabled = (data['enabled'] as bool?) ?? false;
-        _cleanupDays = (data['repairRetentionDays'] as int?) ?? 30;
-      });
-    } catch (e) {
-      // Handle error silently or log if needed
-    }
+    final perms = await UserService.getCurrentUserPermissions();
+    if (!(perms['allowViewSettings'] ?? false)) return;
+    final doc = await FirebaseFirestore.instance.doc('settings/cleanup').get();
+    if (doc.exists) setState(() { _cleanupEnabled = doc.data()?['enabled'] ?? false; _cleanupDays = doc.data()?['repairRetentionDays'] ?? 30; });
   }
 
   Future<void> _saveCleanupConfig(bool enabled, int days) async {
-    await FirebaseFirestore.instance.doc('settings/cleanup').set({
-      'enabled': enabled,
-      'repairRetentionDays': days,
-    }, SetOptions(merge: true));
-    if (!mounted) return;
-    final l10n = AppLocalizations.of(context)!;
-    setState(() {
-      _cleanupEnabled = enabled;
-      _cleanupDays = days;
-    });
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.cleanupConfigSaved)));
+    await FirebaseFirestore.instance.doc('settings/cleanup').set({'enabled': enabled, 'repairRetentionDays': days}, SetOptions(merge: true));
+    setState(() { _cleanupEnabled = enabled; _cleanupDays = days; });
   }
 
   void _openCleanupDialog() async {
-    final perms = await UserService.getCurrentUserPermissions();
-    if (!mounted) return;
-    final l10n = AppLocalizations.of(context)!;
-    if (!(perms['allowViewSettings'] ?? false)) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.noPermissionToConfigure)));
-      return;
-    }
-
     final daysCtrl = TextEditingController(text: _cleanupDays.toString());
     bool tempEnabled = _cleanupEnabled;
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.cleanupConfigOptIn),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              children: [
-                Text(l10n.enableCleanup),
-                const Spacer(),
-                Switch(
-                  value: tempEnabled,
-                  onChanged: (v) => setState(() => tempEnabled = v),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: daysCtrl,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(labelText: l10n.daysToDeleteAfter),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(l10n.cancel)),
-          ElevatedButton(
-            onPressed: () async {
-              final d = int.tryParse(daysCtrl.text) ?? 30;
-              await _saveCleanupConfig(tempEnabled, d);
-              Navigator.pop(ctx);
-            },
-            child: Text(l10n.save),
-          ),
-        ],
-      ),
-    );
+    showDialog(context: context, builder: (ctx) => AlertDialog(title: const Text("Dọn dẹp dữ liệu"), content: Column(mainAxisSize: MainAxisSize.min, children: [Row(children: [const Text("Bật tự động xóa"), const Spacer(), Switch(value: tempEnabled, onChanged: (v) => setState(() => tempEnabled = v))]), TextField(controller: daysCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "Xóa sau bao nhiêu ngày"))]), actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Hủy")), ElevatedButton(onPressed: () async { await _saveCleanupConfig(tempEnabled, int.tryParse(daysCtrl.text) ?? 30); Navigator.pop(ctx); }, child: const Text("Lưu"))]));
   }
 }
 
 class _QRScanView extends StatefulWidget {
   const _QRScanView();
-
   @override
   State<_QRScanView> createState() => _QRScanViewState();
 }
 
 class _QRScanViewState extends State<_QRScanView> {
   final MobileScannerController controller = MobileScannerController();
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(AppLocalizations.of(context)!.scanQRCode)),
-      body: MobileScanner(
-        controller: controller,
-        onDetect: (capture) {
-          final List<Barcode> barcodes = capture.barcodes;
-          for (final barcode in barcodes) {
-            if (barcode.rawValue != null) {
-              Navigator.pop(context, barcode.rawValue);
-              break;
-            }
-          }
-        },
-      ),
-    );
+    return Scaffold(appBar: AppBar(title: const Text("Quét mã")), body: MobileScanner(controller: controller, onDetect: (capture) { final List<Barcode> barcodes = capture.barcodes; for (final barcode in barcodes) { if (barcode.rawValue != null) { Navigator.pop(context, barcode.rawValue); break; } } }));
   }
-
   @override
-  void dispose() {
-    controller.dispose();
-    super.dispose();
-  }
+  void dispose() { controller.dispose(); super.dispose(); }
 }

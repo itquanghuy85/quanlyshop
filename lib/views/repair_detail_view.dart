@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/repair_model.dart';
 import '../services/unified_printer_service.dart';
 import '../services/notification_service.dart';
@@ -21,14 +22,24 @@ class _RepairDetailViewState extends State<RepairDetailView> {
   final db = DBHelper();
   late Repair r;
   bool _isUpdating = false;
+  String _shopName = ""; String _shopAddr = ""; String _shopPhone = "";
 
   @override
   void initState() {
     super.initState();
     r = widget.repair;
+    _loadShopInfo();
   }
 
-  // CẬP NHẬT TÀI CHÍNH (GIÁ VỐN/LÃI)
+  Future<void> _loadShopInfo() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _shopName = prefs.getString('shop_name') ?? "SHOP NEW";
+      _shopAddr = prefs.getString('shop_address') ?? "Chuyên Smartphone";
+      _shopPhone = prefs.getString('shop_phone') ?? "0123.456.789";
+    });
+  }
+
   Future<void> _editFinancials() async {
     final priceC = TextEditingController(text: (r.price / 1000).toStringAsFixed(0));
     final costC = TextEditingController(text: (r.cost / 1000).toStringAsFixed(0));
@@ -69,74 +80,106 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     if (mounted) setState(() => _isUpdating = false);
   }
 
+  // CHIA SẺ QUA ZALO
+  Future<void> _shareToZalo() async {
+    final String content = """
+🌟 PHIẾU SỬA CHỮA/BẢO HÀNH 🌟
+----------------------------
+Shop: $_shopName
+Mã đơn: ${r.firestoreId?.substring(0,8).toUpperCase() ?? r.createdAt}
+Khách hàng: ${r.customerName}
+Model: ${r.model}
+Lỗi: ${r.issue}
+Bảo hành: ${r.warranty}
+TỔNG CỘNG: ${NumberFormat('#,###').format(r.price)} đ
+----------------------------
+Cảm ơn quý khách đã tin tưởng!
+""";
+    await Share.share(content);
+  }
+
+  // IN PHIẾU NHIỆT
+  Future<void> _printReceipt() async {
+    final success = await UnifiedPrinterService.printRepairReceiptFromRepair(r, {
+      'shopName': _shopName,
+      'shopAddr': _shopAddr,
+      'shopPhone': _shopPhone
+    });
+    if (success) {
+      NotificationService.showSnackBar("Đã gửi lệnh in thành công", color: Colors.green);
+    } else {
+      NotificationService.showSnackBar("Lỗi máy in hoặc chưa kết nối!", color: Colors.red);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFF),
       appBar: AppBar(
         title: const Text("CHI TIẾT ĐƠN SỬA", style: TextStyle(fontWeight: FontWeight.bold)),
-        actions: [IconButton(onPressed: _editFinancials, icon: const Icon(Icons.monetization_on, color: Colors.blueAccent))],
+        actions: [
+          IconButton(onPressed: _shareToZalo, icon: const Icon(Icons.share_rounded, color: Colors.green)),
+          IconButton(onPressed: _printReceipt, icon: const Icon(Icons.print_rounded, color: Color(0xFF2962FF))),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildStatusCard(),
-            const SizedBox(height: 25),
-            
-            // 3. HIỂN THỊ HÌNH ẢNH (TỐI ƯU CHỐNG CRASH)
-            const Text("HÌNH ẢNH NHẬN MÁY", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey, fontSize: 13)),
-            const SizedBox(height: 12),
-            _buildImageGallery(),
-            
-            const SizedBox(height: 25),
+            const SizedBox(height: 20),
             _buildFinancialSummary(),
-            const SizedBox(height: 25),
+            const SizedBox(height: 20),
+            _buildImageGallery(),
+            const SizedBox(height: 20),
             _buildCustomerCard(),
             const SizedBox(height: 40),
           ],
         ),
       ),
-      bottomNavigationBar: SafeArea(child: Padding(padding: const EdgeInsets.all(16), child: ElevatedButton.icon(onPressed: () => UnifiedPrinterService.printRepairReceiptFromRepair(r, {'shopName': 'SHOP NEW', 'shopAddr': 'Smartphone Service'}), icon: const Icon(Icons.print), label: const Text("IN PHIẾU BẢO HÀNH"), style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2962FF), padding: const EdgeInsets.symmetric(vertical: 15))))),
+      bottomNavigationBar: _buildBottomActions(),
     );
   }
 
-  Widget _buildImageGallery() {
-    final images = r.receiveImages;
-    if (images.isEmpty) {
-      return Container(width: double.infinity, height: 100, decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(15)), child: const Center(child: Text("Không có ảnh", style: TextStyle(color: Colors.grey))));
-    }
-    return SizedBox(
-      height: 150,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: images.length,
-        itemBuilder: (ctx, i) => Container(
-          margin: const EdgeInsets.only(right: 12),
-          width: 150,
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.grey.shade200)),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(15),
-            child: Image.file(
-              File(images[i]),
-              fit: BoxFit.cover,
-              cacheWidth: 300, // Tối ưu bộ nhớ, chống crash
-              errorBuilder: (ctx, err, stack) => const Icon(Icons.broken_image, color: Colors.grey),
+  Widget _buildBottomActions() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: Colors.white, boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)]),
+      child: SafeArea(
+        child: Row(
+          children: [
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: _printReceipt,
+                icon: const Icon(Icons.print, color: Colors.white),
+                label: const Text("IN PHIẾU", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2962FF), padding: const EdgeInsets.symmetric(vertical: 15), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
+              ),
             ),
-          ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: _shareToZalo,
+                icon: const Icon(Icons.send_rounded, color: Colors.white),
+                label: const Text("GỬI ZALO", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.green.shade600, padding: const EdgeInsets.symmetric(vertical: 15), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
   Widget _buildStatusCard() {
+    Color color = r.status >= 3 ? Colors.green : Colors.orange;
     return Container(
-      padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10)]),
+      padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
       child: Row(children: [
-        Icon(r.status >= 3 ? Icons.check_circle : Icons.pending_actions, color: r.status >= 3 ? Colors.green : Colors.orange, size: 40),
+        Icon(r.status >= 3 ? Icons.check_circle : Icons.pending_actions, color: color, size: 40),
         const SizedBox(width: 15),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(r.model, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)), Text(r.status == 4 ? "ĐÃ GIAO" : "ĐANG XỬ LÝ", style: TextStyle(color: r.status >= 3 ? Colors.green : Colors.orange, fontWeight: FontWeight.bold))])),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(r.model, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)), Text(r.status == 4 ? "ĐÃ GIAO KHÁCH" : "ĐANG XỬ LÝ", style: TextStyle(color: color, fontWeight: FontWeight.bold))])),
       ]),
     );
   }
@@ -146,16 +189,31 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
       child: Column(children: [
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text("Lợi nhuận dự kiến", style: TextStyle(fontWeight: FontWeight.bold)), Text("${NumberFormat('#,###').format(r.price - r.cost)} đ", style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 18))]),
-        const Divider(height: 30),
+        const Divider(height: 25),
         Row(children: [
           _miniFin("GIÁ THU", r.price, Colors.blue),
           _miniFin("GIÁ VỐN", r.cost, Colors.orange),
         ]),
+        const SizedBox(height: 10),
+        TextButton.icon(onPressed: _editFinancials, icon: const Icon(Icons.edit, size: 14), label: const Text("Sửa chi phí/giá", style: TextStyle(fontSize: 12)))
       ]),
     );
   }
 
   Widget _miniFin(String l, int v, Color c) => Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(l, style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)), Text(NumberFormat('#,###').format(v), style: TextStyle(color: c, fontWeight: FontWeight.bold, fontSize: 15))]));
+
+  Widget _buildImageGallery() {
+    final images = r.receiveImages;
+    if (images.isEmpty) return const SizedBox();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text("HÌNH ẢNH NHẬN MÁY", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey, fontSize: 12)),
+        const SizedBox(height: 10),
+        SizedBox(height: 100, child: ListView.builder(scrollDirection: Axis.horizontal, itemCount: images.length, itemBuilder: (ctx, i) => Container(margin: const EdgeInsets.only(right: 10), width: 100, decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade200)), child: ClipRRect(borderRadius: BorderRadius.circular(12), child: Image.file(File(images[i]), fit: BoxFit.cover, cacheWidth: 200))))),
+      ],
+    );
+  }
 
   Widget _buildCustomerCard() {
     return Container(
@@ -164,7 +222,8 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         _infoRow("Khách hàng", r.customerName),
         _infoRow("Điện thoại", r.phone),
         _infoRow("Lỗi máy", r.issue),
-        _infoRow("Bảo hành", r.warranty),
+        _infoRow("Phụ kiện", r.accessories),
+        if (r.warranty.isNotEmpty) _infoRow("Bảo hành", r.warranty),
       ]),
     );
   }
