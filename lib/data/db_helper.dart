@@ -47,7 +47,6 @@ class DBHelper {
     );
   }
 
-  // --- HÀM UPSERT CHUNG ---
   Future<void> _upsert(String table, Map<String, dynamic> map, String firestoreId) async {
     final db = await database;
     await db.transaction((txn) async {
@@ -159,15 +158,15 @@ class DBHelper {
     });
   }
 
-  // FINANCE & CLOSINGS
+  // FINANCE
   Future<int> insertExpense(Map<String, dynamic> e) async => (await database).insert('expenses', e);
-  Future<void> upsertExpense(Expense e) async => _upsert('expenses', e.toMap(), e.firestoreId ?? "exp_${e.date}"); // THÊM HÀM NÀY
+  Future<void> upsertExpense(Expense e) async => _upsert('expenses', e.toMap(), e.firestoreId ?? "exp_${e.date}");
   Future<List<Map<String, dynamic>>> getAllExpenses() async => (await database).query('expenses', orderBy: 'date DESC');
   Future<int> deleteExpense(int id) async => (await database).delete('expenses', where: 'id = ?', whereArgs: [id]);
   Future<int> deleteExpenseByFirestoreId(String fId) async => (await database).delete('expenses', where: 'firestoreId = ?', whereArgs: [fId]);
   
   Future<int> insertDebt(Map<String, dynamic> d) async => (await database).insert('debts', d);
-  Future<void> upsertDebt(Debt d) async => _upsert('debts', d.toMap(), d.firestoreId ?? "debt_${d.createdAt}"); // THÊM HÀM NÀY
+  Future<void> upsertDebt(Debt d) async => _upsert('debts', d.toMap(), d.firestoreId ?? "debt_${d.createdAt}");
   Future<List<Map<String, dynamic>>> getAllDebts() async => (await database).query('debts', orderBy: 'status ASC, createdAt DESC');
   Future<int> deleteDebt(int id) async => (await database).delete('debts', where: 'id = ?', whereArgs: [id]);
   Future<int> deleteDebtByFirestoreId(String fId) async => (await database).delete('debts', where: 'firestoreId = ?', whereArgs: [fId]);
@@ -182,6 +181,7 @@ class DBHelper {
     });
   }
 
+  // CLOSINGS
   Future<Map<String, dynamic>?> getClosingByDate(String dateKey) async {
     final res = await (await database).query('cash_closings', where: 'dateKey = ?', whereArgs: [dateKey], limit: 1);
     return res.isNotEmpty ? res.first : null;
