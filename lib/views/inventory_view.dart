@@ -23,7 +23,6 @@ class _InventoryViewState extends State<InventoryView> {
   bool _isAdmin = false;
   String _searchQuery = "";
   
-  // Quản lý chọn nhiều máy để xóa
   final Set<int> _selectedIds = {};
   bool _isSelectionMode = false;
 
@@ -52,10 +51,8 @@ class _InventoryViewState extends State<InventoryView> {
     setState(() { _products = data; _suppliers = suppliers; _isLoading = false; });
   }
 
-  // Hàm xóa các máy đã chọn
   Future<void> _deleteSelected() async {
     if (_selectedIds.isEmpty) return;
-
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -63,11 +60,7 @@ class _InventoryViewState extends State<InventoryView> {
         content: Text("Bạn có chắc chắn muốn xóa ${_selectedIds.length} máy đã chọn không?"),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("HỦY")),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text("XÓA NGAY", style: TextStyle(color: Colors.white)),
-          ),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), style: ElevatedButton.styleFrom(backgroundColor: Colors.red), child: const Text("XÓA NGAY", style: TextStyle(color: Colors.white))),
         ],
       ),
     );
@@ -77,18 +70,14 @@ class _InventoryViewState extends State<InventoryView> {
       try {
         for (int id in _selectedIds) {
           final p = _products.firstWhere((element) => element.id == id);
-          // Xóa local
           await db.deleteProduct(id);
-          // Xóa cloud (set status = 0)
-          if (p.firestoreId != null) {
-            await FirestoreService.deleteProduct(p.firestoreId!);
-          }
+          if (p.firestoreId != null) await FirestoreService.deleteProduct(p.firestoreId!);
         }
         NotificationService.showSnackBar("ĐÃ XÓA ${_selectedIds.length} MÁY", color: Colors.green);
         _refresh();
       } catch (e) {
         setState(() => _isLoading = false);
-        NotificationService.showSnackBar("Lỗi khi xóa: $e", color: Colors.red);
+        NotificationService.showSnackBar("Lỗi: $e", color: Colors.red);
       }
     }
   }
@@ -118,6 +107,7 @@ class _InventoryViewState extends State<InventoryView> {
     final kpkF = FocusNode(); final pkF = FocusNode(); final qtyF = FocusNode();
 
     String type = "PHONE";
+    String payMethod = "TIỀN MẶT"; // THÊM MỚI: MẶC ĐỊNH THANH TOÁN TIỀN MẶT
     String? supplier = _suppliers.isNotEmpty ? _suppliers.first['name'] as String : null;
     bool isSaving = false;
 
@@ -143,13 +133,6 @@ class _InventoryViewState extends State<InventoryView> {
               final String imei = imeiC.text.trim();
               final String fixedFirestoreId = "prod_${timestamp}_${imei.isNotEmpty ? imei : timestamp}";
 
-              final existing = await db.getAllProducts();
-              if (imei.isNotEmpty && existing.any((p) => p.imei == imei && p.status == 1)) {
-                setS(() => isSaving = false);
-                NotificationService.showSnackBar("IMEI $imei ĐÃ TỒN TẠI TRONG KHO!", color: Colors.orange);
-                return;
-              }
-
               final p = Product(
                 firestoreId: fixedFirestoreId,
                 name: nameC.text.toUpperCase(),
@@ -165,17 +148,39 @@ class _InventoryViewState extends State<InventoryView> {
                 status: 1,
               );
 
+              // LƯU CHI PHÍ NẾU THANH TOÁN NGAY
+              if (payMethod != "CÔNG NỢ") {
+                await db.insertExpense({
+                  'title': "NHẬP HÀNG: ${p.name}",
+                  'amount': p.cost * p.quantity,
+                  'category': "NHẬP HÀNG",
+                  'date': timestamp,
+                  'paymentMethod': payMethod,
+                  'note': "Nhập từ $supplier",
+                });
+              } else {
+                // LƯU VÀO CÔNG NỢ NẾU CHỌN CÔNG NỢ
+                await db.insertDebt({
+                  'personName': supplier,
+                  'totalAmount': p.cost * p.quantity,
+                  'paidAmount': 0,
+                  'type': "SHOP_OWES",
+                  'status': "unpaid",
+                  'createdAt': timestamp,
+                  'note': "Nợ tiền máy ${p.name}",
+                });
+              }
+
               await db.upsertProduct(p);
               await FirestoreService.addProduct(p);
 
               if (next) {
-                imeiC.clear(); 
-                setS(() => isSaving = false);
+                imeiC.clear(); setS(() => isSaving = false);
                 FocusScope.of(context).requestFocus(imeiF);
-                NotificationService.showSnackBar("ĐÃ LƯU. MỜI NHẬP IMEI TIẾP THEO", color: Colors.blue);
+                NotificationService.showSnackBar("ĐÃ THÊM MÁY. NHẬP IMEI TIẾP...", color: Colors.blue);
               } else {
                 Navigator.pop(ctx); _refresh();
-                NotificationService.showSnackBar("ĐÃ NHẬP KHO THÀNH CÔNG", color: Colors.green);
+                NotificationService.showSnackBar("NHẬP KHO THÀNH CÔNG", color: Colors.green);
               }
             } catch (e) {
               setS(() => isSaving = false);
@@ -218,6 +223,19 @@ class _InventoryViewState extends State<InventoryView> {
                         onChanged: (v) => setS(() => supplier = v),
                       )),
                     ]),
+                    const SizedBox(height: 15),
+                    const Align(alignment: Alignment.centerLeft, child: Text("THANH TOÁN CHO NHÀ CC", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.blueGrey))),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      children: ["TIỀN MẶT", "CHUYỂN KHOẢN", "CÔNG NỢ"].map((m) => ChoiceChip(
+                        label: Text(m, style: const TextStyle(fontSize: 11)),
+                        selected: payMethod == m,
+                        onSelected: (v) => setS(() => payMethod = m),
+                        selectedColor: Colors.blueAccent,
+                        labelStyle: TextStyle(color: payMethod == m ? Colors.white : Colors.black87),
+                      )).toList(),
+                    ),
                   ],
                 ),
               ),
@@ -256,9 +274,8 @@ class _InventoryViewState extends State<InventoryView> {
   @override
   Widget build(BuildContext context) {
     final list = _products.where((p) => p.name.toLowerCase().contains(_searchQuery.toLowerCase()) || (p.imei ?? "").contains(_searchQuery)).toList();
-    
     return Scaffold(
-      backgroundColor: const Color(0xFFF0F4F8),
+      backgroundColor: const Color(0xFFF8FAFF),
       appBar: AppBar(
         title: _isSelectionMode 
             ? Text("ĐÃ CHỌN ${_selectedIds.length}", style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold))
@@ -267,10 +284,9 @@ class _InventoryViewState extends State<InventoryView> {
             ? IconButton(icon: const Icon(Icons.close, color: Colors.red), onPressed: () => setState(() { _isSelectionMode = false; _selectedIds.clear(); }))
             : null,
         actions: [
-          if (_isSelectionMode)
-            IconButton(onPressed: _deleteSelected, icon: const Icon(Icons.delete_forever, color: Colors.red, size: 28))
-          else
-            IconButton(onPressed: _refresh, icon: const Icon(Icons.refresh)),
+          if (!_isSelectionMode) TextButton.icon(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SupplierView())).then((_) => _refresh()), icon: const Icon(Icons.business_center, size: 20), label: const Text("NCC", style: TextStyle(fontWeight: FontWeight.bold))),
+          if (_isSelectionMode) IconButton(onPressed: _deleteSelected, icon: const Icon(Icons.delete_forever, color: Colors.red, size: 28))
+          else IconButton(onPressed: _refresh, icon: const Icon(Icons.refresh)),
         ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(60),
@@ -294,56 +310,20 @@ class _InventoryViewState extends State<InventoryView> {
 
   Widget _buildProductCard(Product p) {
     final bool isSelected = _selectedIds.contains(p.id);
-    
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15),
-        side: isSelected ? const BorderSide(color: Colors.red, width: 2) : BorderSide.none,
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15), side: isSelected ? const BorderSide(color: Colors.red, width: 2) : BorderSide.none),
       elevation: isSelected ? 5 : 2,
       child: ListTile(
-        onLongPress: () {
-          HapticFeedback.heavyImpact();
-          _toggleSelection(p.id!);
-        },
-        onTap: () {
-          if (_isSelectionMode) {
-            _toggleSelection(p.id!);
-          } else {
-            _showProductDetail(p);
-          }
-        },
-        leading: Stack(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10), 
-              decoration: BoxDecoration(
-                color: (isSelected ? Colors.red : const Color(0xFF2962FF)).withOpacity(0.1), 
-                borderRadius: BorderRadius.circular(12)
-              ), 
-              child: Icon(
-                p.type == 'PHONE' ? Icons.phone_android : Icons.headset, 
-                color: isSelected ? Colors.red : const Color(0xFF2962FF)
-              )
-            ),
-            if (isSelected)
-              const Positioned(
-                right: -2, bottom: -2,
-                child: CircleAvatar(radius: 8, backgroundColor: Colors.red, child: Icon(Icons.check, size: 10, color: Colors.white)),
-              ),
-          ],
-        ),
+        onLongPress: () { HapticFeedback.heavyImpact(); _toggleSelection(p.id!); },
+        onTap: () { if (_isSelectionMode) _toggleSelection(p.id!); else _showProductDetail(p); },
+        leading: Stack(children: [
+          Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: (isSelected ? Colors.red : const Color(0xFF2962FF)).withOpacity(0.1), borderRadius: BorderRadius.circular(12)), child: Icon(p.type == 'PHONE' ? Icons.phone_android : Icons.headset, color: isSelected ? Colors.red : const Color(0xFF2962FF))),
+          if (isSelected) const Positioned(right: -2, bottom: -2, child: CircleAvatar(radius: 8, backgroundColor: Colors.red, child: Icon(Icons.check, size: 10, color: Colors.white))),
+        ]),
         title: Text(p.name, style: TextStyle(fontWeight: FontWeight.bold, color: isSelected ? Colors.red : Colors.black)),
         subtitle: Text("${p.capacity ?? ''}\nIMEI: ${p.imei}"),
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center, 
-          crossAxisAlignment: CrossAxisAlignment.end, 
-          children: [
-            Text("${NumberFormat('#,###').format(p.price)} d", style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)), 
-            Text("Tồn: ${p.quantity}", style: const TextStyle(fontSize: 10, color: Colors.orange, fontWeight: FontWeight.bold))
-          ]
-        ),
+        trailing: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.end, children: [Text("${NumberFormat('#,###').format(p.price)} d", style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)), Text("Tồn: ${p.quantity}", style: const TextStyle(fontSize: 10, color: Colors.orange, fontWeight: FontWeight.bold))]),
       ),
     );
   }
