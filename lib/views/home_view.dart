@@ -26,6 +26,7 @@ import 'staff_list_view.dart';
 import 'qr_scan_view.dart';
 import 'attendance_view.dart';
 import 'staff_performance_view.dart';
+import 'audit_log_view.dart';
 import '../data/db_helper.dart';
 import '../widgets/perpetual_calendar.dart';
 import '../services/sync_service.dart';
@@ -50,6 +51,10 @@ class _HomeViewState extends State<HomeView> {
   int todayNewRepairs = 0;
   int todayExpense = 0;
   int totalDebtRemain = 0;
+  
+  // Dành cho nhắc bảo hành
+  int expiringWarranties = 0;
+
   bool _isSyncing = false;
   Timer? _autoSyncTimer;
   Timer? _debounceTimer;
@@ -131,28 +136,53 @@ class _HomeViewState extends State<HomeView> {
 
     int pendingR = repairs.where((r) => r.status == 1 || r.status == 2).length;
     int doneToday = 0; int soldToday = 0; int revToday = 0; int newRToday = 0; int expToday = 0; int debtRem = 0;
-    final now = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    int expWar = 0;
+    
+    final now = DateTime.now();
+    final todayStr = DateFormat('yyyy-MM-dd').format(now);
 
     for (var r in repairs) {
       final cDate = DateFormat('yyyy-MM-dd').format(DateTime.fromMillisecondsSinceEpoch(r.createdAt));
-      if (cDate == now) newRToday++;
-      if (r.status >= 3 && (r.deliveredAt != null && DateFormat('yyyy-MM-dd').format(DateTime.fromMillisecondsSinceEpoch(r.deliveredAt!)) == now)) {
+      if (cDate == todayStr) newRToday++;
+      if (r.status >= 3 && (r.deliveredAt != null && DateFormat('yyyy-MM-dd').format(DateTime.fromMillisecondsSinceEpoch(r.deliveredAt!)) == todayStr)) {
         doneToday++; revToday += (r.price - r.cost);
+      }
+      // Check nhắc bảo hành
+      if (r.deliveredAt != null && r.warranty.isNotEmpty && r.warranty != "KO BH") {
+        int months = int.tryParse(r.warranty.split(' ').first) ?? 0;
+        if (months > 0) {
+          DateTime delDate = DateTime.fromMillisecondsSinceEpoch(r.deliveredAt!);
+          DateTime expDate = DateTime(delDate.year, delDate.month + months, delDate.day);
+          int left = expDate.difference(now).inDays;
+          if (left > 0 && left <= 7) expWar++;
+        }
       }
     }
     for (var s in sales) {
-      if (DateFormat('yyyy-MM-dd').format(DateTime.fromMillisecondsSinceEpoch(s.soldAt)) == now) {
+      if (DateFormat('yyyy-MM-dd').format(DateTime.fromMillisecondsSinceEpoch(s.soldAt)) == todayStr) {
         soldToday++; revToday += (s.totalPrice - s.totalCost);
+      }
+      // Check bảo hành máy bán
+      if (s.warranty.isNotEmpty && s.warranty != "KO BH") {
+        int months = int.tryParse(s.warranty.split(' ').first) ?? 12;
+        DateTime saleDate = DateTime.fromMillisecondsSinceEpoch(s.soldAt);
+        DateTime expDate = DateTime(saleDate.year, saleDate.month + months, saleDate.day);
+        int left = expDate.difference(now).inDays;
+        if (left > 0 && left <= 7) expWar++;
       }
     }
     for (var e in expenses) {
-      if (DateFormat('yyyy-MM-dd').format(DateTime.fromMillisecondsSinceEpoch(e['date'] as int)) == now) expToday += (e['amount'] as int);
+      if (DateFormat('yyyy-MM-dd').format(DateTime.fromMillisecondsSinceEpoch(e['date'] as int)) == todayStr) expToday += (e['amount'] as int);
     }
     for (var d in debts) {
-      if (d['status'] != 'ĐÃ TRẢ') debtRem += (d['totalAmount'] as int) - (d['paidAmount'] as int? ?? 0);
+      if (d['status'] != 'paid' && d['status'] != 'ĐÃ TRẢ') debtRem += (d['totalAmount'] as int) - (d['paidAmount'] as int? ?? 0);
     }
 
-    if (mounted) setState(() { totalPendingRepair = pendingR; todayRepairDone = doneToday; todaySaleCount = soldToday; revenueToday = revToday; todayNewRepairs = newRToday; todayExpense = expToday; totalDebtRemain = debtRem; });
+    if (mounted) setState(() { 
+      totalPendingRepair = pendingR; todayRepairDone = doneToday; todaySaleCount = soldToday; 
+      revenueToday = revToday; todayNewRepairs = newRToday; todayExpense = expToday; 
+      totalDebtRemain = debtRem; expiringWarranties = expWar;
+    });
   }
 
   Future<void> _openCustomerHistoryQuick() async {
@@ -228,6 +258,8 @@ class _HomeViewState extends State<HomeView> {
           const SizedBox(height: 20),
           const PerpetualCalendar(),
           const SizedBox(height: 25),
+          _buildAlerts(), // PHẦN CẢNH BÁO NHẮC LỊCH
+          const SizedBox(height: 25),
           _buildTodaySummary(),
           const SizedBox(height: 25),
           _buildGridMenu(),
@@ -237,10 +269,30 @@ class _HomeViewState extends State<HomeView> {
     );
   }
 
+  Widget _buildAlerts() {
+    if (expiringWarranties == 0) return const SizedBox();
+    return InkWell(
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WarrantyView())),
+      child: Container(
+        width: double.infinity, padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(color: Colors.redAccent, borderRadius: BorderRadius.circular(15), boxShadow: [BoxShadow(color: Colors.red.withOpacity(0.2), blurRadius: 10)]),
+        child: Row(children: [
+          const Icon(Icons.notification_important, color: Colors.white, size: 28),
+          const SizedBox(width: 15),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text("NHẮC LỊCH BẢO HÀNH", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+            Text("Có $expiringWarranties máy sắp hết hạn bảo hành. Click để xem!", style: const TextStyle(color: Colors.white70, fontSize: 11)),
+          ])),
+          const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 16),
+        ]),
+      ),
+    );
+  }
+
   Widget _buildTodaySummary() {
     String _fmt(int v) => NumberFormat('#,###').format(v);
     return Container(width: double.infinity, padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8)]), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text("VIỆC HÔM NAY", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+      const Text("TỔNG QUAN HÔM NAY", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
       const SizedBox(height: 10),
       _summaryRow(Icons.build_circle_outlined, Colors.orange, "Máy nhận mới", "$todayNewRepairs", () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderListView(role: widget.role, todayOnly: true)))),
       _summaryRow(Icons.shopping_bag_outlined, Colors.pink, "Đơn bán mới", "$todaySaleCount", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SaleListView(todayOnly: true)))),
@@ -264,22 +316,17 @@ class _HomeViewState extends State<HomeView> {
     addTile('allowViewSales', l10n.sales, Icons.shopping_cart_checkout_rounded, [const Color(0xFFFF4081), const Color(0xFFFF80AB)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SaleListView())));
     addTile('allowViewRepairs', l10n.repair, Icons.build_circle_rounded, [const Color(0xFF2979FF), const Color(0xFF448AFF)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderListView(role: widget.role))));
     addTile('allowViewChat', l10n.chat, Icons.chat_bubble_rounded, [const Color(0xFF7C4DFF), const Color(0xFFB388FF)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChatView())));
-    
-    // THÊM NÚT CHẤM CÔNG
     addTile('allowViewChat', "CHẤM CÔNG", Icons.fingerprint_rounded, [const Color(0xFF00C853), const Color(0xFF64DD17)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AttendanceView())));
-
     addTile('allowViewInventory', "KIỂM KHO QR", Icons.qr_code_scanner_rounded, [const Color(0xFFFFAB00), const Color(0xFFFFD740)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const InventoryCheckView())));
     addTile('allowViewInventory', l10n.inventory, Icons.inventory_2_rounded, [const Color(0xFFFF6D00), const Color(0xFFFFAB40)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const InventoryView())));
     addTile('allowViewCustomers', l10n.customers, Icons.people_alt_rounded, [const Color(0xFF00BFA5), const Color(0xFF64FFDA)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => CustomerListView(role: widget.role))));
     
-    // THÊM NÚT DOANH SỐ & LƯƠNG (CHỈ CHO CHỦ SHOP/QUẢN LÝ)
     if (hasFullAccess) {
       addTile('allowViewRevenue', "DS & LƯƠNG", Icons.assessment_rounded, [const Color(0xFF6200EA), const Color(0xFF7C4DFF)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StaffPerformanceView())));
     }
 
     addTile('allowViewRevenue', l10n.revenue, Icons.leaderboard_rounded, [const Color(0xFF304FFE), const Color(0xFF536DFE)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RevenueView())));
     addTile('allowViewRevenue', l10n.revenueReport, Icons.analytics_rounded, [const Color(0xFF3D5AFE), const Color(0xFF8C9EFF)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RevenueReportView())));
-    
     addTile('allowViewPrinter', l10n.printer, Icons.print_rounded, [const Color(0xFF607D8B), const Color(0xFF90A4AE)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ThermalPrinterDesignView())));
     
     addTile('allowViewSettings', l10n.settings, Icons.settings_rounded, [const Color(0xFF263238), const Color(0xFF455A64)], _openSettingsCenter);
@@ -290,6 +337,7 @@ class _HomeViewState extends State<HomeView> {
     showModalBottomSheet(context: context, shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))), builder: (ctx) => SafeArea(child: Padding(padding: const EdgeInsets.all(16), child: Column(mainAxisSize: MainAxisSize.min, children: [
       ListTile(leading: const Icon(Icons.settings_rounded, color: Colors.blueGrey), title: const Text("CÀI ĐẶT HỆ THỐNG"), onTap: () { Navigator.pop(ctx); Navigator.push(context, MaterialPageRoute(builder: (_) => SettingsView(setLocale: widget.setLocale))); }),
       if (hasFullAccess) ListTile(leading: const Icon(Icons.group_rounded, color: Colors.indigo), title: const Text("QUẢN LÝ NHÂN VIÊN"), onTap: () { Navigator.pop(ctx); Navigator.push(context, MaterialPageRoute(builder: (_) => const StaffListView())); }),
+      if (hasFullAccess) ListTile(leading: const Icon(Icons.history_rounded, color: Colors.orange), title: const Text("NHẬT KÝ HOẠT ĐỘNG"), onTap: () { Navigator.pop(ctx); Navigator.push(context, MaterialPageRoute(builder: (_) => const AuditLogView())); }),
       if (_isSuperAdmin) ListTile(leading: const Icon(Icons.admin_panel_settings_rounded, color: Colors.deepPurple), title: const Text("TRUNG TÂM SUPER ADMIN"), onTap: () { Navigator.pop(ctx); Navigator.push(context, MaterialPageRoute(builder: (_) => const admin_view.SuperAdminView())); }),
     ]))));
   }

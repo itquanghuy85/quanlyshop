@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../data/db_helper.dart';
 import '../models/product_model.dart';
 import 'supplier_view.dart';
@@ -68,12 +69,26 @@ class _InventoryViewState extends State<InventoryView> {
     if (confirm == true) {
       setState(() => _isLoading = true);
       try {
+        final user = FirebaseAuth.instance.currentUser;
+        final userName = user?.email?.split('@').first.toUpperCase() ?? "ADMIN";
+
         for (int id in _selectedIds) {
           final p = _products.firstWhere((element) => element.id == id);
+          
+          // GHI NHẬT KÝ HÀNH ĐỘNG XÓA
+          await db.logAction(
+            userId: user?.uid ?? "0",
+            userName: userName,
+            action: "XÓA KHO",
+            type: "PRODUCT",
+            targetId: p.imei,
+            desc: "Đã xóa máy ${p.name} (IMEI: ${p.imei}) khỏi kho hàng",
+          );
+
           await db.deleteProduct(id);
           if (p.firestoreId != null) await FirestoreService.deleteProduct(p.firestoreId!);
         }
-        NotificationService.showSnackBar("ĐÃ XÓA ${_selectedIds.length} MÁY", color: Colors.green);
+        NotificationService.showSnackBar("ĐÃ XÓA ${_selectedIds.length} MÁY & GHI NHẬT KÝ", color: Colors.green);
         _refresh();
       } catch (e) {
         setState(() => _isLoading = false);
@@ -107,7 +122,7 @@ class _InventoryViewState extends State<InventoryView> {
     final kpkF = FocusNode(); final pkF = FocusNode(); final qtyF = FocusNode();
 
     String type = "PHONE";
-    String payMethod = "TIỀN MẶT"; // THÊM MỚI: MẶC ĐỊNH THANH TOÁN TIỀN MẶT
+    String payMethod = "TIỀN MẶT";
     String? supplier = _suppliers.isNotEmpty ? _suppliers.first['name'] as String : null;
     bool isSaving = false;
 
@@ -148,7 +163,19 @@ class _InventoryViewState extends State<InventoryView> {
                 status: 1,
               );
 
-              // LƯU CHI PHÍ NẾU THANH TOÁN NGAY
+              final user = FirebaseAuth.instance.currentUser;
+              final userName = user?.email?.split('@').first.toUpperCase() ?? "NV";
+
+              // GHI NHẬT KÝ NHẬP KHO
+              await db.logAction(
+                userId: user?.uid ?? "0",
+                userName: userName,
+                action: "NHẬP KHO",
+                type: "PRODUCT",
+                targetId: p.imei,
+                desc: "Đã nhập máy ${p.name} (IMEI: ${p.imei}) từ $supplier. Thanh toán: $payMethod",
+              );
+
               if (payMethod != "CÔNG NỢ") {
                 await db.insertExpense({
                   'title': "NHẬP HÀNG: ${p.name}",
@@ -159,7 +186,6 @@ class _InventoryViewState extends State<InventoryView> {
                   'note': "Nhập từ $supplier",
                 });
               } else {
-                // LƯU VÀO CÔNG NỢ NẾU CHỌN CÔNG NỢ
                 await db.insertDebt({
                   'personName': supplier,
                   'totalAmount': p.cost * p.quantity,
@@ -177,7 +203,7 @@ class _InventoryViewState extends State<InventoryView> {
               if (next) {
                 imeiC.clear(); setS(() => isSaving = false);
                 FocusScope.of(context).requestFocus(imeiF);
-                NotificationService.showSnackBar("ĐÃ THÊM MÁY. NHẬP IMEI TIẾP...", color: Colors.blue);
+                NotificationService.showSnackBar("ĐÃ THÊM MÁY & GHI NHẬT KÝ", color: Colors.blue);
               } else {
                 Navigator.pop(ctx); _refresh();
                 NotificationService.showSnackBar("NHẬP KHO THÀNH CÔNG", color: Colors.green);
