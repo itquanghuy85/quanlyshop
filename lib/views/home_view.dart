@@ -51,33 +51,30 @@ class _HomeViewState extends State<HomeView> {
   int todayNewRepairs = 0;
   int todayExpense = 0;
   int totalDebtRemain = 0;
-  
-  // Dành cho nhắc bảo hành
   int expiringWarranties = 0;
 
   bool _isSyncing = false;
   Timer? _autoSyncTimer;
-  Timer? _debounceTimer;
   bool _shopLocked = false;
   final TextEditingController _phoneSearchCtrl = TextEditingController();
   Map<String, bool> _permissions = {};
 
   final bool _isSuperAdmin = UserService.isCurrentUserSuperAdmin();
-
   bool get hasFullAccess => widget.role == 'admin' || widget.role == 'owner' || _isSuperAdmin;
 
   @override
   void initState() {
     super.initState();
     _initialSetup();
-    SyncService.initRealTimeSync(_debouncedLoadStats);
-    _autoSyncTimer = Timer.periodic(const Duration(seconds: 30), (_) => _syncNow(silent: true));
+    SyncService.initRealTimeSync(() {
+      if (mounted) _loadStats();
+    });
+    _autoSyncTimer = Timer.periodic(const Duration(seconds: 60), (_) => _syncNow(silent: true));
   }
 
   @override
   void dispose() {
     _autoSyncTimer?.cancel();
-    _debounceTimer?.cancel();
     _phoneSearchCtrl.dispose();
     super.dispose();
   }
@@ -109,11 +106,12 @@ class _HomeViewState extends State<HomeView> {
 
   Future<void> _syncNow({bool silent = false}) async {
     if (_isSyncing) return;
-    setState(() => _isSyncing = true);
+    if (mounted) setState(() => _isSyncing = true);
     try {
-      await Future.wait([SyncService.syncAllToCloud(), SyncService.downloadAllFromCloud()]).timeout(const Duration(seconds: 120));
+      await SyncService.syncAllToCloud();
+      await SyncService.downloadAllFromCloud();
       await _loadStats();
-      if (mounted && !silent) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ĐÃ ĐỒNG BỘ DỮ LIỆU")));
+      if (mounted && !silent) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ĐÃ CẬP NHẬT DỮ LIỆU MỚI NHẤT")));
     } catch (e) {
       if (mounted && !silent) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("LỖI ĐỒNG BỘ: $e")));
     } finally {
@@ -121,11 +119,10 @@ class _HomeViewState extends State<HomeView> {
     }
   }
 
-  void _debouncedLoadStats() {
-    _debounceTimer?.cancel();
-    _debounceTimer = Timer(const Duration(milliseconds: 100), () {
-      if (mounted) _loadStats();
-    });
+  bool _isSameDay(int timestamp) {
+    final date = DateTime.fromMillisecondsSinceEpoch(timestamp);
+    final now = DateTime.now();
+    return date.year == now.year && date.month == now.month && date.day == now.day;
   }
 
   Future<void> _loadStats() async {
@@ -134,108 +131,68 @@ class _HomeViewState extends State<HomeView> {
     final debts = await db.getAllDebts();
     final expenses = await db.getAllExpenses();
 
+    // 1. TỔNG MÁY ĐANG CHỜ (Không quan tâm ngày tháng)
     int pendingR = repairs.where((r) => r.status == 1 || r.status == 2).length;
-    int doneToday = 0; int soldToday = 0; int revToday = 0; int newRToday = 0; int expToday = 0; int debtRem = 0;
-    int expWar = 0;
     
+    int doneT = 0; int soldT = 0; int revT = 0; int newRT = 0; int expT = 0; int debtR = 0; int expW = 0;
     final now = DateTime.now();
-    final todayStr = DateFormat('yyyy-MM-dd').format(now);
 
     for (var r in repairs) {
-      final cDate = DateFormat('yyyy-MM-dd').format(DateTime.fromMillisecondsSinceEpoch(r.createdAt));
-      if (cDate == todayStr) newRToday++;
-      if (r.status >= 3 && (r.deliveredAt != null && DateFormat('yyyy-MM-dd').format(DateTime.fromMillisecondsSinceEpoch(r.deliveredAt!)) == todayStr)) {
-        doneToday++; revToday += (r.price - r.cost);
+      if (_isSameDay(r.createdAt)) newRT++;
+      if (r.status >= 3 && r.deliveredAt != null && _isSameDay(r.deliveredAt!)) {
+        doneT++; 
+        revT += (r.price - r.cost);
       }
-      // Check nhắc bảo hành
       if (r.deliveredAt != null && r.warranty.isNotEmpty && r.warranty != "KO BH") {
-        int months = int.tryParse(r.warranty.split(' ').first) ?? 0;
-        if (months > 0) {
-          DateTime delDate = DateTime.fromMillisecondsSinceEpoch(r.deliveredAt!);
-          DateTime expDate = DateTime(delDate.year, delDate.month + months, delDate.day);
-          int left = expDate.difference(now).inDays;
-          if (left > 0 && left <= 7) expWar++;
+        int m = int.tryParse(r.warranty.split(' ').first) ?? 0;
+        if (m > 0) {
+          DateTime d = DateTime.fromMillisecondsSinceEpoch(r.deliveredAt!);
+          DateTime e = DateTime(d.year, d.month + m, d.day);
+          if (e.isAfter(now) && e.difference(now).inDays <= 7) expW++;
         }
       }
     }
     for (var s in sales) {
-      if (DateFormat('yyyy-MM-dd').format(DateTime.fromMillisecondsSinceEpoch(s.soldAt)) == todayStr) {
-        soldToday++; revToday += (s.totalPrice - s.totalCost);
+      if (_isSameDay(s.soldAt)) {
+        soldT++; 
+        revT += (s.totalPrice - s.totalCost);
       }
-      // Check bảo hành máy bán
       if (s.warranty.isNotEmpty && s.warranty != "KO BH") {
-        int months = int.tryParse(s.warranty.split(' ').first) ?? 12;
-        DateTime saleDate = DateTime.fromMillisecondsSinceEpoch(s.soldAt);
-        DateTime expDate = DateTime(saleDate.year, saleDate.month + months, saleDate.day);
-        int left = expDate.difference(now).inDays;
-        if (left > 0 && left <= 7) expWar++;
+        int m = int.tryParse(s.warranty.split(' ').first) ?? 12;
+        DateTime d = DateTime.fromMillisecondsSinceEpoch(s.soldAt);
+        DateTime e = DateTime(d.year, d.month + m, d.day);
+        if (e.isAfter(now) && e.difference(now).inDays <= 7) expW++;
       }
     }
     for (var e in expenses) {
-      if (DateFormat('yyyy-MM-dd').format(DateTime.fromMillisecondsSinceEpoch(e['date'] as int)) == todayStr) expToday += (e['amount'] as int);
+      if (_isSameDay(e['date'] as int)) expT += (e['amount'] as int);
     }
+    
+    // 2. TỔNG CÔNG NỢ (Tất cả các nợ chưa trả xong)
     for (var d in debts) {
-      if (d['status'] != 'paid' && d['status'] != 'ĐÃ TRẢ') debtRem += (d['totalAmount'] as int) - (d['paidAmount'] as int? ?? 0);
+      final int total = d['totalAmount'] ?? 0;
+      final int paid = d['paidAmount'] ?? 0;
+      if (paid < total) {
+        debtR += (total - paid);
+      }
     }
 
-    if (mounted) setState(() { 
-      totalPendingRepair = pendingR; todayRepairDone = doneToday; todaySaleCount = soldToday; 
-      revenueToday = revToday; todayNewRepairs = newRToday; todayExpense = expToday; 
-      totalDebtRemain = debtRem; expiringWarranties = expWar;
-    });
-  }
-
-  Future<void> _openCustomerHistoryQuick() async {
-    final phone = _phoneSearchCtrl.text.trim();
-    if (phone.isEmpty) return;
-    Navigator.push(context, MaterialPageRoute(builder: (_) => CustomerHistoryView(phone: phone, name: phone)));
-  }
-
-  Future<bool> _onWillPop() async {
-    return await showDialog(
-      context: context,
-      builder: (context) => BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-        child: AlertDialog(
-          backgroundColor: Colors.white.withOpacity(0.9),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-          contentPadding: EdgeInsets.zero,
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                height: 120, width: double.infinity,
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(colors: [Color(0xFF2962FF), Color(0xFF00B0FF)]),
-                  borderRadius: BorderRadius.only(topLeft: Radius.circular(28), topRight: Radius.circular(28)),
-                ),
-                child: const Icon(Icons.logout_rounded, size: 50, color: Colors.white),
-              ),
-              const SizedBox(height: 24),
-              const Text("Nghỉ tay một chút nhé?", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
-              const Padding(
-                padding: EdgeInsets.all(20),
-                child: Text("Bạn có chắc muốn đóng ứng dụng không?", textAlign: TextAlign.center, style: TextStyle(color: Colors.blueGrey)),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-                child: Row(children: [
-                  Expanded(child: OutlinedButton(onPressed: () => Navigator.pop(context, false), child: const Text("HỦY"))),
-                  const SizedBox(width: 16),
-                  Expanded(child: ElevatedButton(onPressed: () => SystemNavigator.pop(), style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent), child: const Text("THOÁT", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)))),
-                ]),
-              ),
-            ],
-          ),
-        ),
-      ),
-    ) ?? false;
+    if (mounted) {
+      setState(() { 
+        totalPendingRepair = pendingR; todayRepairDone = doneT; todaySaleCount = soldT; 
+        revenueToday = revT; todayNewRepairs = newRT; todayExpense = expT; 
+        totalDebtRemain = debtR; expiringWarranties = expW;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
-      onWillPop: _onWillPop,
+      onWillPop: () async {
+        final ok = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(title: const Text("Thoát ứng dụng?"), actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("HỦY")), TextButton(onPressed: () => SystemNavigator.pop(), child: const Text("THOÁT"))]));
+        return ok ?? false;
+      },
       child: Scaffold(
         backgroundColor: const Color(0xFFF8FAFF),
         appBar: AppBar(
@@ -243,28 +200,30 @@ class _HomeViewState extends State<HomeView> {
           title: Row(children: [
             const Icon(Icons.store_rounded, color: Color(0xFF2962FF), size: 22),
             const SizedBox(width: 8),
-            Expanded(child: Text(hasFullAccess ? "QUẢN TRỊ CỬA HÀNG" : "NHÂN VIÊN", style: const TextStyle(color: Colors.black, fontSize: 15, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis)),
+            Expanded(child: Text(hasFullAccess ? "QUẢN TRỊ SHOP" : "NHÂN VIÊN", style: const TextStyle(color: Colors.black, fontSize: 15, fontWeight: FontWeight.bold))),
           ]),
           actions: [
             IconButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => QrScanView(role: widget.role))), icon: const Icon(Icons.qr_code_scanner_rounded, color: Color(0xFF2962FF))),
-            IconButton(onPressed: _loadStats, icon: const Icon(Icons.refresh_rounded, color: Colors.blue)),
             IconButton(onPressed: () => _syncNow(), icon: _isSyncing ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.sync, color: Colors.green)),
             IconButton(onPressed: () => FirebaseAuth.instance.signOut(), icon: const Icon(Icons.logout_rounded, color: Colors.redAccent)),
           ],
         ),
-        body: SingleChildScrollView(padding: const EdgeInsets.all(20), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          if (_shopLocked) Container(padding: const EdgeInsets.all(12), margin: const EdgeInsets.only(bottom: 12), decoration: BoxDecoration(color: Colors.red.shade50, border: Border.all(color: Colors.redAccent), borderRadius: BorderRadius.circular(10)), child: const Text("CỬA HÀNG BỊ KHÓA", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold))),
-          TextField(controller: _phoneSearchCtrl, decoration: InputDecoration(hintText: "Tìm khách theo SĐT", prefixIcon: const Icon(Icons.search), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), filled: true, fillColor: Colors.white), onSubmitted: (_) => _openCustomerHistoryQuick()),
-          const SizedBox(height: 20),
-          const PerpetualCalendar(),
-          const SizedBox(height: 25),
-          _buildAlerts(), // PHẦN CẢNH BÁO NHẮC LỊCH
-          const SizedBox(height: 25),
-          _buildTodaySummary(),
-          const SizedBox(height: 25),
-          _buildGridMenu(),
-          const SizedBox(height: 50),
-        ])),
+        body: RefreshIndicator(
+          onRefresh: () => _syncNow(),
+          child: SingleChildScrollView(padding: const EdgeInsets.all(20), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            if (_shopLocked) Container(padding: const EdgeInsets.all(12), margin: const EdgeInsets.only(bottom: 12), decoration: BoxDecoration(color: Colors.red.shade50, border: Border.all(color: Colors.redAccent), borderRadius: BorderRadius.circular(10)), child: const Text("CỬA HÀNG BỊ KHÓA", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold))),
+            TextField(controller: _phoneSearchCtrl, decoration: InputDecoration(hintText: "Tìm khách theo SĐT", prefixIcon: const Icon(Icons.search), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), filled: true, fillColor: Colors.white), onSubmitted: (v) { if(v.isNotEmpty) Navigator.push(context, MaterialPageRoute(builder: (_) => CustomerHistoryView(phone: v, name: v))); }),
+            const SizedBox(height: 20),
+            const PerpetualCalendar(),
+            const SizedBox(height: 25),
+            _buildAlerts(),
+            const SizedBox(height: 25),
+            _buildTodaySummary(),
+            const SizedBox(height: 25),
+            _buildGridMenu(),
+            const SizedBox(height: 50),
+          ])),
+        ),
       ),
     );
   }
@@ -281,7 +240,7 @@ class _HomeViewState extends State<HomeView> {
           const SizedBox(width: 15),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             const Text("NHẮC LỊCH BẢO HÀNH", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-            Text("Có $expiringWarranties máy sắp hết hạn bảo hành. Click để xem!", style: const TextStyle(color: Colors.white70, fontSize: 11)),
+            Text("Có $expiringWarranties máy sắp hết hạn bảo hành. Xem ngay!", style: const TextStyle(color: Colors.white70, fontSize: 11)),
           ])),
           const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 16),
         ]),
@@ -292,19 +251,25 @@ class _HomeViewState extends State<HomeView> {
   Widget _buildTodaySummary() {
     String _fmt(int v) => NumberFormat('#,###').format(v);
     return Container(width: double.infinity, padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8)]), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text("TỔNG QUAN HÔM NAY", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+      const Text("TRẠNG THÁI CỬA HÀNG", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
       const SizedBox(height: 10),
-      _summaryRow(Icons.build_circle_outlined, Colors.orange, "Máy nhận mới", "$todayNewRepairs", () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderListView(role: widget.role, todayOnly: true)))),
-      _summaryRow(Icons.shopping_bag_outlined, Colors.pink, "Đơn bán mới", "$todaySaleCount", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SaleListView(todayOnly: true)))),
-      _summaryRow(Icons.check_circle_outlined, Colors.green, "Đã xong/giao", "$todayRepairDone", () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderListView(role: widget.role, statusFilter: const [3, 4], todayOnly: true)))),
-      _summaryRow(Icons.money_off_rounded, Colors.redAccent, "Chi phí", "${_fmt(todayExpense)} đ", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ExpenseView()))),
-      _summaryRow(Icons.receipt_long_rounded, Colors.deepPurple, "Công nợ", "${_fmt(totalDebtRemain)} đ", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DebtView()))),
+      // THÊM: TỔNG MÁY ĐANG CHỜ (Luôn hiển thị công việc tồn đọng)
+      _summaryRow(Icons.build_circle, Colors.blue, "MÁY ĐANG CHỜ SỬA", "$totalPendingRepair", () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderListView(role: widget.role, statusFilter: const [1, 2])))),
+      
+      const Divider(height: 20),
+      
+      _summaryRow(Icons.add_task, Colors.orange, "Máy nhận mới hôm nay", "$todayNewRepairs", () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderListView(role: widget.role, todayOnly: true)))),
+      _summaryRow(Icons.shopping_bag_outlined, Colors.pink, "Đơn bán mới hôm nay", "$todaySaleCount", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SaleListView(todayOnly: true)))),
+      _summaryRow(Icons.check_circle_outlined, Colors.green, "Đã giao khách hôm nay", "$todayRepairDone", () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderListView(role: widget.role, statusFilter: const [4], todayOnly: true)))),
+      
+      const Divider(height: 20),
+      
+      _summaryRow(Icons.receipt_long_rounded, Colors.deepPurple, "TỔNG CÔNG NỢ TỒN ĐỌNG", "${_fmt(totalDebtRemain)} đ", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DebtView()))),
+      _summaryRow(Icons.money_off_rounded, Colors.redAccent, "Chi phí phát sinh", "${_fmt(todayExpense)} đ", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ExpenseView()))),
     ]));
   }
 
-  Widget _summaryRow(IconData icon, Color color, String label, String value, VoidCallback onTap) {
-    return InkWell(onTap: onTap, child: Padding(padding: const EdgeInsets.symmetric(vertical: 6), child: Row(children: [Icon(icon, size: 16, color: color), const SizedBox(width: 10), Expanded(child: Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey))), Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)), const Icon(Icons.chevron_right, size: 14, color: Colors.grey)])));
-  }
+  Widget _summaryRow(IconData i, Color c, String l, String v, VoidCallback t) => InkWell(onTap: t, child: Padding(padding: const EdgeInsets.symmetric(vertical: 6), child: Row(children: [Icon(i, size: 16, color: c), const SizedBox(width: 10), Expanded(child: Text(l, style: const TextStyle(fontSize: 12, color: Colors.grey))), Text(v, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)), const Icon(Icons.chevron_right, size: 14, color: Colors.grey)])));
 
   Widget _buildGridMenu() {
     final l10n = AppLocalizations.of(context)!;
@@ -320,15 +285,10 @@ class _HomeViewState extends State<HomeView> {
     addTile('allowViewInventory', "KIỂM KHO QR", Icons.qr_code_scanner_rounded, [const Color(0xFFFFAB00), const Color(0xFFFFD740)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const InventoryCheckView())));
     addTile('allowViewInventory', l10n.inventory, Icons.inventory_2_rounded, [const Color(0xFFFF6D00), const Color(0xFFFFAB40)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const InventoryView())));
     addTile('allowViewCustomers', l10n.customers, Icons.people_alt_rounded, [const Color(0xFF00BFA5), const Color(0xFF64FFDA)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => CustomerListView(role: widget.role))));
-    
-    if (hasFullAccess) {
-      addTile('allowViewRevenue', "DS & LƯƠNG", Icons.assessment_rounded, [const Color(0xFF6200EA), const Color(0xFF7C4DFF)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StaffPerformanceView())));
-    }
-
+    if (hasFullAccess) addTile('allowViewRevenue', "DS & LƯƠNG", Icons.assessment_rounded, [const Color(0xFF6200EA), const Color(0xFF7C4DFF)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StaffPerformanceView())));
     addTile('allowViewRevenue', l10n.revenue, Icons.leaderboard_rounded, [const Color(0xFF304FFE), const Color(0xFF536DFE)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RevenueView())));
     addTile('allowViewRevenue', l10n.revenueReport, Icons.analytics_rounded, [const Color(0xFF3D5AFE), const Color(0xFF8C9EFF)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RevenueReportView())));
     addTile('allowViewPrinter', l10n.printer, Icons.print_rounded, [const Color(0xFF607D8B), const Color(0xFF90A4AE)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ThermalPrinterDesignView())));
-    
     addTile('allowViewSettings', l10n.settings, Icons.settings_rounded, [const Color(0xFF263238), const Color(0xFF455A64)], _openSettingsCenter);
     return GridView.count(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), crossAxisCount: 2, mainAxisSpacing: 15, crossAxisSpacing: 15, childAspectRatio: 1.3, children: tiles);
   }
