@@ -112,6 +112,7 @@ class _HomeViewState extends State<HomeView> {
       await SyncService.downloadAllFromCloud();
       await _loadStats();
       if (mounted && !silent) {
+        HapticFeedback.lightImpact();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("DỮ LIỆU ĐÃ ĐƯỢC LÀM MỚI TỪ ĐÁM MÂY"), backgroundColor: Colors.green)
         );
@@ -151,7 +152,8 @@ class _HomeViewState extends State<HomeView> {
         if (m > 0) {
           DateTime d = DateTime.fromMillisecondsSinceEpoch(r.deliveredAt!);
           DateTime e = DateTime(d.year, d.month + m, d.day);
-          if (e.isAfter(now) && e.difference(now).inDays <= 7) expW++;
+          int left = e.difference(now).inDays;
+          if (left >= 0 && left <= 7) expW++;
         }
       }
     }
@@ -164,7 +166,8 @@ class _HomeViewState extends State<HomeView> {
         int m = int.tryParse(s.warranty.split(' ').first) ?? 12;
         DateTime d = DateTime.fromMillisecondsSinceEpoch(s.soldAt);
         DateTime e = DateTime(d.year, d.month + m, d.day);
-        if (e.isAfter(now) && e.difference(now).inDays <= 7) expW++;
+        int left = e.difference(now).inDays;
+        if (left >= 0 && left <= 7) expW++;
       }
     }
     for (var e in expenses) {
@@ -205,16 +208,16 @@ class _HomeViewState extends State<HomeView> {
             Expanded(child: Text(hasFullAccess ? "QUẢN TRỊ SHOP" : "NHÂN VIÊN", style: const TextStyle(color: Colors.black, fontSize: 15, fontWeight: FontWeight.bold))),
           ]),
           actions: [
-            IconButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => QrScanView(role: widget.role))), icon: const Icon(Icons.qr_code_scanner_rounded, color: Color(0xFF2962FF))),
-            IconButton(onPressed: () => _syncNow(), icon: _isSyncing ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.sync, color: Colors.green, size: 28)),
-            IconButton(onPressed: () => FirebaseAuth.instance.signOut(), icon: const Icon(Icons.logout_rounded, color: Colors.redAccent)),
+            IconButton(onPressed: () { HapticFeedback.lightImpact(); Navigator.push(context, MaterialPageRoute(builder: (_) => QrScanView(role: widget.role))); }, icon: const Icon(Icons.qr_code_scanner_rounded, color: Color(0xFF2962FF))),
+            IconButton(onPressed: () { HapticFeedback.lightImpact(); _syncNow(); }, icon: _isSyncing ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.sync, color: Colors.green, size: 28)),
+            IconButton(onPressed: () { HapticFeedback.mediumImpact(); FirebaseAuth.instance.signOut(); }, icon: const Icon(Icons.logout_rounded, color: Colors.redAccent)),
           ],
         ),
         body: RefreshIndicator(
           onRefresh: () => _syncNow(),
           child: SingleChildScrollView(padding: const EdgeInsets.all(20), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             if (_shopLocked) Container(padding: const EdgeInsets.all(12), margin: const EdgeInsets.only(bottom: 12), decoration: BoxDecoration(color: Colors.red.shade50, border: Border.all(color: Colors.redAccent), borderRadius: BorderRadius.circular(10)), child: const Text("CỬA HÀNG BỊ KHÓA", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold))),
-            TextField(controller: _phoneSearchCtrl, decoration: InputDecoration(hintText: "Tìm nhanh khách theo SĐT", prefixIcon: const Icon(Icons.search), border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)), filled: true, fillColor: Colors.white), onSubmitted: (v) { if(v.isNotEmpty) Navigator.push(context, MaterialPageRoute(builder: (_) => CustomerHistoryView(phone: v, name: v))); }),
+            TextField(controller: _phoneSearchCtrl, decoration: InputDecoration(hintText: "Tìm nhanh khách theo SĐT", prefixIcon: const Icon(Icons.search), border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)), filled: true, fillColor: Colors.white), onSubmitted: (v) { if(v.isNotEmpty) { HapticFeedback.lightImpact(); Navigator.push(context, MaterialPageRoute(builder: (_) => CustomerHistoryView(phone: v, name: v))); } }),
             const SizedBox(height: 20),
             const PerpetualCalendar(),
             const SizedBox(height: 25),
@@ -233,7 +236,7 @@ class _HomeViewState extends State<HomeView> {
   Widget _buildAlerts() {
     if (expiringWarranties == 0) return const SizedBox();
     return InkWell(
-      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WarrantyView())),
+      onTap: () { HapticFeedback.lightImpact(); Navigator.push(context, MaterialPageRoute(builder: (_) => const WarrantyView())); },
       child: Container(
         width: double.infinity, padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(color: Colors.redAccent, borderRadius: BorderRadius.circular(15), boxShadow: [BoxShadow(color: Colors.red.withOpacity(0.2), blurRadius: 10)]),
@@ -272,29 +275,35 @@ class _HomeViewState extends State<HomeView> {
     );
   }
 
-  Widget _summaryRow(IconData i, Color c, String l, String v, VoidCallback t, {bool isBold = false}) => InkWell(onTap: t, child: Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Row(children: [Icon(i, size: 18, color: c), const SizedBox(width: 12), Expanded(child: Text(l, style: TextStyle(fontSize: 13, color: isBold ? Colors.black : Colors.grey, fontWeight: isBold ? FontWeight.bold : FontWeight.normal))), Text(v, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: isBold ? c : Colors.black)), const SizedBox(width: 5), const Icon(Icons.chevron_right, size: 14, color: Colors.grey)])));
+  Widget _summaryRow(IconData i, Color c, String l, String v, VoidCallback t, {bool isBold = false}) => InkWell(onTap: () { HapticFeedback.lightImpact(); t(); }, child: Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Row(children: [Icon(i, size: 18, color: c), const SizedBox(width: 12), Expanded(child: Text(l, style: TextStyle(fontSize: 13, color: isBold ? Colors.black : Colors.grey, fontWeight: isBold ? FontWeight.bold : FontWeight.normal))), Text(v, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: isBold ? c : Colors.black)), const SizedBox(width: 5), const Icon(Icons.chevron_right, size: 14, color: Colors.grey)])));
 
   Widget _buildGridMenu() {
     final l10n = AppLocalizations.of(context)!;
     final perms = _permissions;
     final tiles = <Widget>[];
     void addTile(String permKey, String title, IconData icon, List<Color> colors, VoidCallback onTap) {
-      if (hasFullAccess || (perms[permKey] ?? true)) { tiles.add(_menuTile(title, icon, colors, onTap)); }
+      if (hasFullAccess || (perms[permKey] ?? true)) { 
+        tiles.add(_menuTile(title, icon, colors, () { HapticFeedback.mediumImpact(); onTap(); })); 
+      }
     }
     
     addTile('allowViewSales', l10n.sales, Icons.shopping_cart_checkout_rounded, [const Color(0xFFFF4081), const Color(0xFFFF80AB)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SaleListView())));
     addTile('allowViewRepairs', l10n.repair, Icons.build_circle_rounded, [const Color(0xFF2979FF), const Color(0xFF448AFF)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderListView(role: widget.role))));
+    
+    // KHÔI PHỤC NÚT KIỂM KHO QR NGAY TẠI ĐÂY
+    addTile('allowViewInventory', "KIỂM KHO QR", Icons.qr_code_scanner_rounded, [const Color(0xFFFFAB00), const Color(0xFFFFD740)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const InventoryCheckView())));
+
     addTile('allowViewInventory', l10n.inventory, Icons.inventory_2_rounded, [const Color(0xFFFF6D00), const Color(0xFFFFAB40)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const InventoryView())));
     
-    // NÚT CHAT NỘI BỘ (KHÔI PHỤC)
+    addTile('allowViewWarranty', "BẢO HÀNH", Icons.verified_user_rounded, [const Color(0xFF00C853), const Color(0xFFB2FF59)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WarrantyView())));
+
     addTile('allowViewChat', "CHAT NỘI BỘ", Icons.chat_bubble_rounded, [const Color(0xFF7C4DFF), const Color(0xFFB388FF)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChatView())));
 
-    // NÚT NHẬT KÝ
     if (hasFullAccess) {
       addTile('allowManageStaff', "NHẬT KÝ", Icons.history_edu_rounded, [const Color(0xFF455A64), const Color(0xFF78909C)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AuditLogView())));
     }
 
-    addTile('allowViewChat', "CHẤM CÔNG", Icons.fingerprint_rounded, [const Color(0xFF00C853), const Color(0xFF64DD17)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AttendanceView())));
+    addTile('allowViewChat', "CHẤM CÔNG", Icons.fingerprint_rounded, [const Color(0xFF009688), const Color(0xFF4DB6AC)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AttendanceView())));
     addTile('allowViewCustomers', l10n.customers, Icons.people_alt_rounded, [const Color(0xFF00BFA5), const Color(0xFF64FFDA)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => CustomerListView(role: widget.role))));
     
     if (hasFullAccess) addTile('allowViewRevenue', "DS & LƯƠNG", Icons.assessment_rounded, [const Color(0xFF6200EA), const Color(0xFF7C4DFF)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StaffPerformanceView())));

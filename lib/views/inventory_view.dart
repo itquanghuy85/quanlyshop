@@ -5,8 +5,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../data/db_helper.dart';
 import '../models/product_model.dart';
 import 'supplier_view.dart';
+import 'inventory_check_view.dart';
 import '../services/firestore_service.dart';
 import '../services/unified_printer_service.dart';
+import '../services/bluetooth_printer_service.dart';
 import '../services/notification_service.dart';
 import '../services/user_service.dart';
 
@@ -74,21 +76,12 @@ class _InventoryViewState extends State<InventoryView> {
 
         for (int id in _selectedIds) {
           final p = _products.firstWhere((element) => element.id == id);
-          
-          // GHI NHẬT KÝ HÀNH ĐỘNG XÓA
-          await db.logAction(
-            userId: user?.uid ?? "0",
-            userName: userName,
-            action: "XÓA KHO",
-            type: "PRODUCT",
-            targetId: p.imei,
-            desc: "Đã xóa máy ${p.name} (IMEI: ${p.imei}) khỏi kho hàng",
-          );
-
+          await db.logAction(userId: user?.uid ?? "0", userName: userName, action: "XÓA KHO", type: "PRODUCT", targetId: p.imei, desc: "Đã xóa máy ${p.name} (IMEI: ${p.imei}) khỏi kho hàng");
           await db.deleteProduct(id);
           if (p.firestoreId != null) await FirestoreService.deleteProduct(p.firestoreId!);
         }
-        NotificationService.showSnackBar("ĐÃ XÓA ${_selectedIds.length} MÁY & GHI NHẬT KÝ", color: Colors.green);
+        HapticFeedback.mediumImpact();
+        NotificationService.showSnackBar("ĐÃ XÓA VÀ GHI NHẬT KÝ", color: Colors.green);
         _refresh();
       } catch (e) {
         setState(() => _isLoading = false);
@@ -98,6 +91,7 @@ class _InventoryViewState extends State<InventoryView> {
   }
 
   void _toggleSelection(int id) {
+    HapticFeedback.selectionClick();
     setState(() {
       if (_selectedIds.contains(id)) {
         _selectedIds.remove(id);
@@ -136,6 +130,7 @@ class _InventoryViewState extends State<InventoryView> {
               NotificationService.showSnackBar("Vui lòng nhập Tên và Nhà cung cấp!", color: Colors.red);
               return;
             }
+            if (isSaving) return;
             setS(() => isSaving = true);
             try {
               int parseK(String t) {
@@ -148,62 +143,26 @@ class _InventoryViewState extends State<InventoryView> {
               final String imei = imeiC.text.trim();
               final String fixedFirestoreId = "prod_${timestamp}_${imei.isNotEmpty ? imei : timestamp}";
 
-              final p = Product(
-                firestoreId: fixedFirestoreId,
-                name: nameC.text.toUpperCase(),
-                imei: imei,
-                cost: parseK(costC.text),
-                kpkPrice: parseK(kpkPriceC.text),
-                price: parseK(pkPriceC.text), 
-                capacity: detailC.text.toUpperCase(),
-                quantity: int.tryParse(qtyC.text) ?? 1,
-                type: type,
-                createdAt: timestamp,
-                supplier: supplier,
-                status: 1,
-              );
+              final p = Product(firestoreId: fixedFirestoreId, name: nameC.text.toUpperCase(), imei: imei, cost: parseK(costC.text), kpkPrice: parseK(kpkPriceC.text), price: parseK(pkPriceC.text), capacity: detailC.text.toUpperCase(), quantity: int.tryParse(qtyC.text) ?? 1, type: type, createdAt: timestamp, supplier: supplier, status: 1);
 
               final user = FirebaseAuth.instance.currentUser;
               final userName = user?.email?.split('@').first.toUpperCase() ?? "NV";
-
-              // GHI NHẬT KÝ NHẬP KHO
-              await db.logAction(
-                userId: user?.uid ?? "0",
-                userName: userName,
-                action: "NHẬP KHO",
-                type: "PRODUCT",
-                targetId: p.imei,
-                desc: "Đã nhập máy ${p.name} (IMEI: ${p.imei}) từ $supplier. Thanh toán: $payMethod",
-              );
+              await db.logAction(userId: user?.uid ?? "0", userName: userName, action: "NHẬP KHO", type: "PRODUCT", targetId: p.imei, desc: "Đã nhập máy ${p.name} (IMEI: ${p.imei}) từ $supplier");
 
               if (payMethod != "CÔNG NỢ") {
-                await db.insertExpense({
-                  'title': "NHẬP HÀNG: ${p.name}",
-                  'amount': p.cost * p.quantity,
-                  'category': "NHẬP HÀNG",
-                  'date': timestamp,
-                  'paymentMethod': payMethod,
-                  'note': "Nhập từ $supplier",
-                });
+                await db.insertExpense({'title': "NHẬP HÀNG: ${p.name}", 'amount': p.cost * p.quantity, 'category': "NHẬP HÀNG", 'date': timestamp, 'paymentMethod': payMethod, 'note': "Nhập từ $supplier"});
               } else {
-                await db.insertDebt({
-                  'personName': supplier,
-                  'totalAmount': p.cost * p.quantity,
-                  'paidAmount': 0,
-                  'type': "SHOP_OWES",
-                  'status': "unpaid",
-                  'createdAt': timestamp,
-                  'note': "Nợ tiền máy ${p.name}",
-                });
+                await db.insertDebt({'personName': supplier, 'totalAmount': p.cost * p.quantity, 'paidAmount': 0, 'type': "SHOP_OWES", 'status': "unpaid", 'createdAt': timestamp, 'note': "Nợ tiền máy ${p.name}"});
               }
 
               await db.upsertProduct(p);
               await FirestoreService.addProduct(p);
 
+              HapticFeedback.lightImpact();
               if (next) {
                 imeiC.clear(); setS(() => isSaving = false);
                 FocusScope.of(context).requestFocus(imeiF);
-                NotificationService.showSnackBar("ĐÃ THÊM MÁY & GHI NHẬT KÝ", color: Colors.blue);
+                NotificationService.showSnackBar("ĐÃ THÊM MÁY", color: Colors.blue);
               } else {
                 Navigator.pop(ctx); _refresh();
                 NotificationService.showSnackBar("NHẬP KHO THÀNH CÔNG", color: Colors.green);
@@ -223,12 +182,7 @@ class _InventoryViewState extends State<InventoryView> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    DropdownButtonFormField<String>(
-                      value: type,
-                      items: const [DropdownMenuItem(value: "PHONE", child: Text("ĐIỆN THOẠI")), DropdownMenuItem(value: "ACCESSORY", child: Text("PHỤ KIỆN"))],
-                      onChanged: (v) => setS(() => type = v!),
-                      decoration: const InputDecoration(labelText: "Loại hàng", border: OutlineInputBorder()),
-                    ),
+                    DropdownButtonFormField<String>(value: type, items: const [DropdownMenuItem(value: "PHONE", child: Text("ĐIỆN THOẠI")), DropdownMenuItem(value: "ACCESSORY", child: Text("PHỤ KIỆN"))], onChanged: (v) => setS(() => type = v!), decoration: const InputDecoration(labelText: "Loại hàng")),
                     const SizedBox(height: 12),
                     _input(nameC, "Tên máy *", Icons.phone_android, f: nameF, next: imeiF, caps: true),
                     _input(detailC, "Chi tiết (Dung lượng - Màu...)", Icons.info_outline, caps: true),
@@ -242,26 +196,12 @@ class _InventoryViewState extends State<InventoryView> {
                     Row(children: [
                       Expanded(child: _input(qtyC, "SL", Icons.add_box, f: qtyF)),
                       const SizedBox(width: 8),
-                      Expanded(flex: 2, child: DropdownButtonFormField<String>(
-                        value: supplier, isExpanded: true,
-                        decoration: const InputDecoration(labelText: "Nhà cung cấp *", border: OutlineInputBorder()),
-                        items: _suppliers.map((s) => DropdownMenuItem(value: s['name'] as String, child: Text(s['name']))).toList(),
-                        onChanged: (v) => setS(() => supplier = v),
-                      )),
+                      Expanded(flex: 2, child: DropdownButtonFormField<String>(value: supplier, isExpanded: true, decoration: const InputDecoration(labelText: "Nhà cung cấp *"), items: _suppliers.map((s) => DropdownMenuItem(value: s['name'] as String, child: Text(s['name']))).toList(), onChanged: (v) => setS(() => supplier = v))),
                     ]),
                     const SizedBox(height: 15),
                     const Align(alignment: Alignment.centerLeft, child: Text("THANH TOÁN CHO NHÀ CC", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.blueGrey))),
                     const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      children: ["TIỀN MẶT", "CHUYỂN KHOẢN", "CÔNG NỢ"].map((m) => ChoiceChip(
-                        label: Text(m, style: const TextStyle(fontSize: 11)),
-                        selected: payMethod == m,
-                        onSelected: (v) => setS(() => payMethod = m),
-                        selectedColor: Colors.blueAccent,
-                        labelStyle: TextStyle(color: payMethod == m ? Colors.white : Colors.black87),
-                      )).toList(),
-                    ),
+                    Wrap(spacing: 8, children: ["TIỀN MẶT", "CHUYỂN KHOẢN", "CÔNG NỢ"].map((m) => ChoiceChip(label: Text(m, style: const TextStyle(fontSize: 11)), selected: payMethod == m, onSelected: (v) => setS(() => payMethod = m), selectedColor: Colors.blueAccent, labelStyle: TextStyle(color: payMethod == m ? Colors.white : Colors.black87))).toList()),
                   ],
                 ),
               ),
@@ -287,12 +227,7 @@ class _InventoryViewState extends State<InventoryView> {
         inputFormatters: type == TextInputType.number ? [FilteringTextInputFormatter.digitsOnly] : [],
         style: const TextStyle(fontSize: 14),
         onSubmitted: (_) { if (next != null) FocusScope.of(context).requestFocus(next); },
-        decoration: InputDecoration(
-          labelText: l, prefixIcon: Icon(i, size: 18), suffixText: suffix,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-          filled: true, fillColor: Colors.white,
-          contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
-        ),
+        decoration: InputDecoration(labelText: l, prefixIcon: Icon(i, size: 18), suffixText: suffix, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), filled: true, fillColor: Colors.white, contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12)),
       ),
     );
   }
@@ -303,33 +238,19 @@ class _InventoryViewState extends State<InventoryView> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFF),
       appBar: AppBar(
-        title: _isSelectionMode 
-            ? Text("ĐÃ CHỌN ${_selectedIds.length}", style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold))
-            : const Text("QUẢN LÝ KHO", style: TextStyle(fontWeight: FontWeight.bold)),
-        leading: _isSelectionMode 
-            ? IconButton(icon: const Icon(Icons.close, color: Colors.red), onPressed: () => setState(() { _isSelectionMode = false; _selectedIds.clear(); }))
-            : null,
+        title: _isSelectionMode ? Text("ĐÃ CHỌN ${_selectedIds.length}", style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)) : const Text("QUẢN LÝ KHO", style: TextStyle(fontWeight: FontWeight.bold)),
+        leading: _isSelectionMode ? IconButton(icon: const Icon(Icons.close, color: Colors.red), onPressed: () => setState(() { _isSelectionMode = false; _selectedIds.clear(); })) : null,
         actions: [
-          if (!_isSelectionMode) TextButton.icon(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SupplierView())).then((_) => _refresh()), icon: const Icon(Icons.business_center, size: 20), label: const Text("NCC", style: TextStyle(fontWeight: FontWeight.bold))),
-          if (_isSelectionMode) IconButton(onPressed: _deleteSelected, icon: const Icon(Icons.delete_forever, color: Colors.red, size: 28))
-          else IconButton(onPressed: _refresh, icon: const Icon(Icons.refresh)),
+          if (!_isSelectionMode) ...[
+            // KHÔI PHỤC NÚT KIỂM KHO QR
+            IconButton(onPressed: () { HapticFeedback.lightImpact(); Navigator.push(context, MaterialPageRoute(builder: (_) => const InventoryCheckView())); }, icon: const Icon(Icons.qr_code_scanner, color: Colors.blueAccent), tooltip: "Kiểm kho QR"),
+            TextButton.icon(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SupplierView())).then((_) => _refresh()), icon: const Icon(Icons.business_center, size: 20), label: const Text("NCC", style: TextStyle(fontWeight: FontWeight.bold))),
+          ],
+          if (_isSelectionMode) IconButton(onPressed: _deleteSelected, icon: const Icon(Icons.delete_forever, color: Colors.red, size: 28)) else IconButton(onPressed: _refresh, icon: const Icon(Icons.refresh)),
         ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(60),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-            child: TextField(
-              onChanged: (v) => setState(() => _searchQuery = v),
-              decoration: InputDecoration(hintText: "Tìm máy hoặc IMEI...", prefixIcon: const Icon(Icons.search), filled: true, fillColor: const Color(0xFFF8FAFF), border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none)),
-            ),
-          ),
-        ),
+        bottom: PreferredSize(preferredSize: const Size.fromHeight(60), child: Padding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 10), child: TextField(onChanged: (v) => setState(() => _searchQuery = v), decoration: InputDecoration(hintText: "Tìm máy hoặc IMEI...", prefixIcon: const Icon(Icons.search), filled: true, fillColor: const Color(0xFFF8FAFF), border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none))))),
       ),
-      body: _isLoading ? const Center(child: CircularProgressIndicator()) : ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: list.length,
-        itemBuilder: (ctx, i) => _buildProductCard(list[i]),
-      ),
+      body: _isLoading ? const Center(child: CircularProgressIndicator()) : ListView.builder(padding: const EdgeInsets.all(16), itemCount: list.length, itemBuilder: (ctx, i) => _buildProductCard(list[i])),
       floatingActionButton: _isSelectionMode ? null : FloatingActionButton.extended(onPressed: _showAddProductDialog, label: const Text("NHẬP KHO"), icon: const Icon(Icons.add_business_rounded), backgroundColor: const Color(0xFF2962FF)),
     );
   }
@@ -341,7 +262,7 @@ class _InventoryViewState extends State<InventoryView> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15), side: isSelected ? const BorderSide(color: Colors.red, width: 2) : BorderSide.none),
       elevation: isSelected ? 5 : 2,
       child: ListTile(
-        onLongPress: () { HapticFeedback.heavyImpact(); _toggleSelection(p.id!); },
+        onLongPress: () { _toggleSelection(p.id!); },
         onTap: () { if (_isSelectionMode) _toggleSelection(p.id!); else _showProductDetail(p); },
         leading: Stack(children: [
           Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: (isSelected ? Colors.red : const Color(0xFF2962FF)).withOpacity(0.1), borderRadius: BorderRadius.circular(12)), child: Icon(p.type == 'PHONE' ? Icons.phone_android : Icons.headset, color: isSelected ? Colors.red : const Color(0xFF2962FF))),
@@ -355,7 +276,48 @@ class _InventoryViewState extends State<InventoryView> {
   }
 
   void _showProductDetail(Product p) {
-    showModalBottomSheet(context: context, isScrollControlled: true, shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))), builder: (ctx) => Container(padding: const EdgeInsets.all(24), child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(10)))), const SizedBox(height: 20), Text(p.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF2962FF))), const SizedBox(height: 15), _detailItem("Chi tiết máy", p.capacity ?? ""), _detailItem("IMEI/Serial", p.imei ?? "N/A"), _detailItem("Nhà cung cấp", p.supplier ?? "N/A"), _detailItem("Giá CPK (Lẻ)", "${NumberFormat('#,###').format(p.price)} đ", color: Colors.red), _detailItem("Giá KPK", "${NumberFormat('#,###').format(p.kpkPrice ?? 0)} đ", color: Colors.blue), const Divider(height: 30), Row(children: [Expanded(child: ElevatedButton.icon(onPressed: () { Navigator.pop(ctx); UnifiedPrinterService.printProductQRLabel(p.toMap()); }, icon: const Icon(Icons.qr_code_2, color: Colors.white), label: const Text("IN TEM QR", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), style: ElevatedButton.styleFrom(backgroundColor: Colors.green, padding: const EdgeInsets.symmetric(vertical: 15)))), const SizedBox(width: 12), Expanded(child: OutlinedButton.icon(onPressed: () => Navigator.pop(ctx), icon: const Icon(Icons.close), label: const Text("ĐÓNG"), style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 15))))])])));
+    HapticFeedback.lightImpact();
+    showModalBottomSheet(context: context, isScrollControlled: true, shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))), builder: (ctx) => Container(padding: const EdgeInsets.all(24), child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(10)))),
+      const SizedBox(height: 20),
+      Text(p.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF2962FF))),
+      const SizedBox(height: 15),
+      _detailItem("Chi tiết máy", p.capacity ?? ""),
+      _detailItem("IMEI/Serial", p.imei ?? "N/A"),
+      _detailItem("Nhà cung cấp", p.supplier ?? "N/A"),
+      _detailItem("Giá CPK (Lẻ)", "${NumberFormat('#,###').format(p.price)} đ", color: Colors.red),
+      _detailItem("Giá KPK", "${NumberFormat('#,###').format(p.kpkPrice ?? 0)} đ", color: Colors.blue),
+      const Divider(height: 30),
+      Row(children: [
+        Expanded(child: ElevatedButton.icon(onPressed: () => _printOptions(p), icon: const Icon(Icons.qr_code_2, color: Colors.white), label: const Text("IN TEM QR", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), style: ElevatedButton.styleFrom(backgroundColor: Colors.green, padding: const EdgeInsets.symmetric(vertical: 15)))),
+        const SizedBox(width: 12),
+        Expanded(child: OutlinedButton.icon(onPressed: () => Navigator.pop(ctx), icon: const Icon(Icons.close), label: const Text("ĐÓNG"), style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 15))))
+      ])
+    ])));
+  }
+
+  void _printOptions(Product p) {
+    HapticFeedback.lightImpact();
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          ListTile(leading: const Icon(Icons.print, color: Colors.blue), title: const Text("In bằng máy in mặc định"), onTap: () { HapticFeedback.mediumImpact(); Navigator.pop(ctx); UnifiedPrinterService.printProductQRLabel(p.toMap()); }),
+          ListTile(leading: const Icon(Icons.bluetooth_searching, color: Colors.orange), title: const Text("Chọn máy in khác"), onTap: () async {
+            HapticFeedback.mediumImpact();
+            Navigator.pop(ctx);
+            final list = await BluetoothPrinterService.getPairedPrinters();
+            if (list.isNotEmpty && mounted) {
+              showModalBottomSheet(context: context, builder: (c) => ListView.builder(itemCount: list.length, itemBuilder: (cc, i) => ListTile(
+                title: Text(list[i].name), subtitle: Text(list[i].macAdress),
+                onTap: () { HapticFeedback.mediumImpact(); Navigator.pop(c); UnifiedPrinterService.printProductQRLabel(p.toMap(), customMac: list[i].macAdress); }
+              )));
+            }
+          }),
+        ]),
+      )
+    );
   }
 
   Widget _detailItem(String l, String v, {Color? color}) => Padding(padding: const EdgeInsets.symmetric(vertical: 6), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(l, style: const TextStyle(color: Colors.blueGrey, fontSize: 13)), Text(v, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: color))]));
