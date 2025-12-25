@@ -40,4 +40,14 @@ class StorageService {
     }
     return urls.join(',');
   }
+
+  /// Upload multiple images and return list of URLs
+  static Future<List<String>> uploadMultipleImages(List<String> localPaths, String folder) async {
+    List<String> urls = [];
+    for (String path in localPaths) {
+      String? url = await uploadAndGetUrl(path, folder);
+      if (url != null) urls.add(url);
+    }
+    return urls;
+  }
 }

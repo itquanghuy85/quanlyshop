@@ -12,6 +12,7 @@ import '../services/unified_printer_service.dart';
 import '../services/bluetooth_printer_service.dart';
 import '../services/notification_service.dart';
 import '../services/user_service.dart';
+import '../utils/sku_generator.dart';
 
 class InventoryView extends StatefulWidget {
   const InventoryView({super.key});
@@ -154,6 +155,12 @@ class _InventoryViewState extends State<InventoryView> {
 
   Color _getBrandColor(String name) {
     String n = name.toUpperCase();
+    if (n.startsWith("IP-")) return Colors.blueGrey; // iPhone
+    if (n.startsWith("SS-")) return Colors.blue; // Samsung
+    if (n.startsWith("PIN-")) return Colors.green; // Pin/Linh kiện
+    if (n.startsWith("MH-")) return Colors.orange; // Máy khác
+    if (n.startsWith("PK-")) return Colors.purple; // Phụ kiện
+    // Fallback cho tên cũ
     if (n.contains("IPHONE")) return Colors.blueGrey;
     if (n.contains("SAMSUNG")) return Colors.blue;
     if (n.contains("OPPO")) return Colors.green;
@@ -172,20 +179,57 @@ class _InventoryViewState extends State<InventoryView> {
     final qtyC = TextEditingController(text: "1");
     final nameF = FocusNode(); final imeiF = FocusNode(); final costF = FocusNode();
     final kpkF = FocusNode(); final pkF = FocusNode(); final qtyF = FocusNode();
+    
+    // SKU fields
+    String selectedNhom = 'IP'; // Default nhóm
+    final modelC = TextEditingController();
+    final thongtinC = TextEditingController();
+    final skuC = TextEditingController(); // Generated SKU display/edit
+    final skuF = FocusNode();
+    
     String type = "PHONE"; String payMethod = "TIỀN MẶT";
     String? supplier = _suppliers.isNotEmpty ? _suppliers.first['name'] as String : null;
     bool isSaving = false;
 
     showDialog(context: context, barrierDismissible: false, builder: (ctx) => StatefulBuilder(builder: (ctx, setS) {
+      Future<void> generateSKU() async {
+        if (selectedNhom.isEmpty) {
+          NotificationService.showSnackBar("Vui lòng chọn nhóm sản phẩm!", color: Colors.red);
+          return;
+        }
+        
+        try {
+          final generatedSKU = await SKUGenerator.generateSKU(
+            nhom: selectedNhom,
+            model: modelC.text.trim().isNotEmpty ? modelC.text.trim() : null,
+            thongtin: thongtinC.text.trim().isNotEmpty ? thongtinC.text.trim() : null,
+            dbHelper: db,
+            firestoreService: null,
+          );
+          
+          setS(() => skuC.text = generatedSKU);
+          NotificationService.showSnackBar("Đã tạo mã hàng: $generatedSKU", color: Colors.blue);
+        } catch (e) {
+          NotificationService.showSnackBar("Lỗi tạo mã hàng: $e", color: Colors.red);
+        }
+      }
+
       Future<void> saveProcess({bool next = false}) async {
-        if (nameC.text.isEmpty || supplier == null) { NotificationService.showSnackBar("Vui lòng nhập Tên và Nhà cung cấp!", color: Colors.red); return; }
+        if (skuC.text.isEmpty) { 
+          NotificationService.showSnackBar("Vui lòng tạo mã hàng trước!", color: Colors.red); 
+          return; 
+        }
+        if (supplier == null) { 
+          NotificationService.showSnackBar("Vui lòng chọn Nhà cung cấp!", color: Colors.red); 
+          return; 
+        }
         if (isSaving) return; setS(() => isSaving = true);
         try {
           int parseK(String t) { final c = t.replaceAll('.', '').replaceAll(RegExp(r'[^\d]'), ''); int v = int.tryParse(c) ?? 0; return (v > 0 && v < 100000) ? v * 1000 : v; }
           final int ts = DateTime.now().millisecondsSinceEpoch;
           final String imei = imeiC.text.trim();
           final String fId = "prod_${ts}_${imei.isNotEmpty ? imei : ts}";
-          final p = Product(firestoreId: fId, name: nameC.text.toUpperCase(), imei: imei, cost: parseK(costC.text), kpkPrice: parseK(kpkPriceC.text), price: parseK(pkPriceC.text), capacity: detailC.text.toUpperCase(), quantity: int.tryParse(qtyC.text) ?? 1, type: type, createdAt: ts, supplier: supplier, status: 1);
+          final p = Product(firestoreId: fId, name: skuC.text.toUpperCase(), imei: imei, cost: parseK(costC.text), kpkPrice: parseK(kpkPriceC.text), price: parseK(pkPriceC.text), capacity: detailC.text.toUpperCase(), quantity: int.tryParse(qtyC.text) ?? 1, type: type, createdAt: ts, supplier: supplier, status: 1);
           final user = FirebaseAuth.instance.currentUser;
           final userName = user?.email?.split('@').first.toUpperCase() ?? "NV";
           await db.logAction(userId: user?.uid ?? "0", userName: userName, action: "NHẬP KHO", type: "PRODUCT", targetId: p.imei, desc: "Đã nhập máy ${p.name}");
@@ -207,6 +251,43 @@ class _InventoryViewState extends State<InventoryView> {
           Row(children: [Expanded(child: _input(costC, "Giá vốn (k)", Icons.money, f: costF, next: kpkF, type: TextInputType.number, suffix: "k")), const SizedBox(width: 8), Expanded(child: _input(kpkPriceC, "Giá KPK (k)", Icons.card_giftcard, f: kpkF, next: pkF, type: TextInputType.number, suffix: "k"))]),
           _input(pkPriceC, "GIÁ CPK - LẺ (k)", Icons.sell, f: pkF, next: qtyF, type: TextInputType.number, suffix: "k"),
           Row(children: [Expanded(flex: 1, child: _input(qtyC, "SL", Icons.add_box, f: qtyF, isBig: true)), const SizedBox(width: 8), Expanded(flex: 2, child: DropdownButtonFormField<String>(value: supplier, isExpanded: true, decoration: const InputDecoration(labelText: "Nhà cung cấp *"), items: _suppliers.map((s) => DropdownMenuItem(value: s['name'] as String, child: Text(s['name']))).toList(), onChanged: (v) => setS(() => supplier = v)))]),
+          
+          // SKU Section
+          const Divider(height: 30, thickness: 1),
+          const Text("MÃ HÀNG", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF2962FF))),
+          const SizedBox(height: 10),
+          DropdownButtonFormField<String>(
+            value: selectedNhom,
+            decoration: const InputDecoration(labelText: "Nhóm *", prefixIcon: Icon(Icons.category, size: 18)),
+            items: const [
+              DropdownMenuItem(value: "IP", child: Text("IP - iPhone")),
+              DropdownMenuItem(value: "SS", child: Text("SS - Samsung")),
+              DropdownMenuItem(value: "PIN", child: Text("PIN - Pin sạc")),
+              DropdownMenuItem(value: "MH", child: Text("MH - Màn hình")),
+              DropdownMenuItem(value: "PK", child: Text("PK - Phụ kiện")),
+            ],
+            onChanged: (v) => setS(() => selectedNhom = v!),
+          ),
+          Row(children: [
+            Expanded(child: _input(modelC, "Model (vd: IP12PM)", Icons.smartphone, caps: true)),
+            const SizedBox(width: 8),
+            Expanded(child: _input(thongtinC, "Thông tin (vd: 256GB)", Icons.info, caps: true)),
+          ]),
+          Row(children: [
+            Expanded(flex: 2, child: _input(skuC, "Mã hàng được tạo", Icons.qr_code, f: skuF, caps: true, readOnly: true)),
+            const SizedBox(width: 8),
+            Expanded(flex: 1, child: ElevatedButton.icon(
+              onPressed: () => generateSKU(),
+              icon: const Icon(Icons.auto_fix_high, size: 16),
+              label: const Text("TẠO MÃ"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2962FF),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+            )),
+          ]),
+          
           const SizedBox(height: 15), Wrap(spacing: 8, children: ["TIỀN MẶT", "CHUYỂN KHOẢN", "CÔNG NỢ"].map((m) => ChoiceChip(label: Text(m, style: const TextStyle(fontSize: 11)), selected: payMethod == m, onSelected: (v) => setS(() => payMethod = m), selectedColor: Colors.blueAccent)).toList()),
         ])),
         actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("HỦY")), OutlinedButton(onPressed: isSaving ? null : () => saveProcess(next: true), child: const Text("NHẬP TIẾP")), ElevatedButton(onPressed: isSaving ? null : () => saveProcess(), style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2962FF)), child: const Text("HOÀN TẤT", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)))],
@@ -214,8 +295,8 @@ class _InventoryViewState extends State<InventoryView> {
     }));
   }
 
-  Widget _input(TextEditingController c, String l, IconData i, {FocusNode? f, FocusNode? next, TextInputType type = TextInputType.text, String? suffix, bool caps = false, bool isBig = false}) {
-    return Padding(padding: const EdgeInsets.only(bottom: 10), child: TextField(controller: c, focusNode: f, keyboardType: type, textInputAction: next != null ? TextInputAction.next : TextInputAction.done, textCapitalization: caps ? TextCapitalization.characters : TextCapitalization.none, inputFormatters: type == TextInputType.number ? [FilteringTextInputFormatter.digitsOnly] : [], style: TextStyle(fontSize: isBig ? 20 : 14, fontWeight: isBig ? FontWeight.bold : FontWeight.normal), onSubmitted: (_) { if (next != null) FocusScope.of(context).requestFocus(next); }, decoration: InputDecoration(labelText: l, prefixIcon: Icon(i, size: 18), suffixText: suffix, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), filled: true, fillColor: Colors.white, contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12))));
+  Widget _input(TextEditingController c, String l, IconData i, {FocusNode? f, FocusNode? next, TextInputType type = TextInputType.text, String? suffix, bool caps = false, bool isBig = false, bool readOnly = false}) {
+    return Padding(padding: const EdgeInsets.only(bottom: 10), child: TextField(controller: c, focusNode: f, keyboardType: type, textInputAction: next != null ? TextInputAction.next : TextInputAction.done, textCapitalization: caps ? TextCapitalization.characters : TextCapitalization.none, inputFormatters: type == TextInputType.number ? [FilteringTextInputFormatter.digitsOnly] : [], style: TextStyle(fontSize: isBig ? 20 : 14, fontWeight: isBig ? FontWeight.bold : FontWeight.normal), readOnly: readOnly, onSubmitted: (_) { if (next != null) FocusScope.of(context).requestFocus(next); }, decoration: InputDecoration(labelText: l, prefixIcon: Icon(i, size: 18), suffixText: suffix, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), filled: true, fillColor: readOnly ? Colors.grey[100] : Colors.white, contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12))));
   }
 
   void _showProductDetail(Product p) {

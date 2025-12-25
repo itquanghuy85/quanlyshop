@@ -234,4 +234,43 @@ class DBHelper {
       for (var t in tables) await txn.delete(t);
     });
   }
+
+  // --- PARTS INVENTORY (missing methods) ---
+  Future<List<Map<String, dynamic>>> getAllParts() async {
+    final db = await database;
+    return await db.query('products', where: 'type = ?', whereArgs: ['PART'], orderBy: 'name ASC');
+  }
+
+  Future<int> insertPart(Map<String, dynamic> part) async {
+    final db = await database;
+    return await db.insert('products', part);
+  }
+
+  // --- PAYROLL LOCKING (missing methods) ---
+  Future<bool> isPayrollMonthLocked(String monthKey) async {
+    final db = await database;
+    final res = await db.query('cash_closings', where: 'dateKey = ? AND locked = 1', whereArgs: [monthKey], limit: 1);
+    return res.isNotEmpty;
+  }
+
+  Future<void> setPayrollMonthLock(String monthKey, {required bool locked, String? lockedBy, String? note}) async {
+    final db = await database;
+    final existing = await db.query('cash_closings', where: 'dateKey = ?', whereArgs: [monthKey], limit: 1);
+    if (existing.isNotEmpty) {
+      await db.update('cash_closings', {
+        'locked': locked ? 1 : 0,
+        'lockedBy': lockedBy,
+        'lockNote': note,
+        'lockedAt': DateTime.now().millisecondsSinceEpoch,
+      }, where: 'dateKey = ?', whereArgs: [monthKey]);
+    } else {
+      await db.insert('cash_closings', {
+        'dateKey': monthKey,
+        'locked': locked ? 1 : 0,
+        'lockedBy': lockedBy,
+        'lockNote': note,
+        'lockedAt': DateTime.now().millisecondsSinceEpoch,
+      });
+    }
+  }
 }

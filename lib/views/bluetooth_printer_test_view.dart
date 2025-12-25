@@ -148,7 +148,26 @@ class _BluetoothPrinterTestViewState extends State<BluetoothPrinterTestView> {
 
       if (connectionResult['success'] == true) {
         _addLog("✅ Kết nối thành công!");
-        setState(() => _status = "Thành công: Máy in hoạt động bình thường");
+        
+        // Thử in test đơn giản
+        _addLog("Thử in test...");
+        try {
+          final testBytes = [0x1B, 0x40, 0x1B, 0x61, 0x01, 0x1B, 0x21, 0x20]; // ESC/POS commands
+          testBytes.addAll("TEST IN\n\n\n\n\n".codeUnits);
+          testBytes.addAll([0x1D, 0x56, 0x42, 0x00]); // Cut paper
+          
+          final printResult = await BluetoothPrinterService.printBytes(testBytes);
+          if (printResult) {
+            _addLog("✅ In test thành công!");
+            setState(() => _status = "Thành công: Máy in hoạt động bình thường");
+          } else {
+            _addLog("❌ In test thất bại");
+            setState(() => _status = "Lỗi: Kết nối OK nhưng in thất bại");
+          }
+        } catch (e) {
+          _addLog("❌ Lỗi khi in test: $e");
+          setState(() => _status = "Lỗi: Kết nối OK nhưng in lỗi - $e");
+        }
       } else {
         final error = connectionResult['error'] ?? 'Unknown error';
         _addLog("❌ Kết nối thất bại: $error");

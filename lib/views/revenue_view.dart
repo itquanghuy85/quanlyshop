@@ -32,7 +32,14 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
   void initState() {
     super.initState();
     _tabController = TabController(length: 5, vsync: this);
+    _tabController.addListener(_onTabChanged);
     _loadAllData();
+  }
+
+  void _onTabChanged() {
+    if (_tabController.index == 0) { // Tab TỔNG QUAN
+      setState(() => _selectedPeriod = 'Hôm nay');
+    }
   }
 
   Future<void> _loadAllData() async {
@@ -183,8 +190,86 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
 
   Widget _miniCard(String label, int value, Color color) { return Expanded(child: Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), border: Border.all(color: color.withOpacity(0.2))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey)), Text(NumberFormat('#,###').format(value), style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: color))]))); }
   Widget _mainProfitCard(int profit) { return Container(width: double.infinity, padding: const EdgeInsets.all(24), decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF2962FF), Color(0xFF00B0FF)]), borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.blue.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 5))]), child: Column(children: [const Text("LỢI NHUẬN RÒNG DỰ KIẾN", style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold)), const SizedBox(height: 8), Text("${NumberFormat('#,###').format(profit)} VND", style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold))])); }
-  Widget _buildSaleDetail() { final list = _sales.where((s) => _inRange(s.soldAt)).toList(); return ListView.builder(padding: const EdgeInsets.all(16), itemCount: list.length, itemBuilder: (ctx, i) => Card(margin: const EdgeInsets.only(bottom: 10), child: ListTile(title: Text(list[i].productNames, style: const TextStyle(fontWeight: FontWeight.bold)), subtitle: Text("Ngày: ${DateFormat('dd/MM').format(DateTime.fromMillisecondsSinceEpoch(list[i].soldAt))}"), trailing: Text("+${NumberFormat('#,###').format(list[i].totalPrice)}", style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold))))); }
-  Widget _buildRepairDetail() { final list = _repairs.where((r) => r.status >= 3 && _inRange(r.deliveredAt ?? r.createdAt)).toList(); return ListView.builder(padding: const EdgeInsets.all(16), itemCount: list.length, itemBuilder: (ctx, i) => Card(margin: const EdgeInsets.only(bottom: 10), child: ListTile(title: Text(list[i].model, style: const TextStyle(fontWeight: FontWeight.bold)), subtitle: Text(list[i].customerName), trailing: Text("+${NumberFormat('#,###').format(list[i].price)}", style: const TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold))))); }
+  Widget _buildSaleDetail() { 
+    final list = _sales.where((s) => _inRange(s.soldAt)).toList(); 
+    return ListView.builder(
+      padding: const EdgeInsets.all(16), 
+      itemCount: list.length, 
+      itemBuilder: (ctx, i) => Container(
+        margin: const EdgeInsets.only(bottom: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    list[i].productNames.length > 30 ? '${list[i].productNames.substring(0, 30)}...' : list[i].productNames,
+                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12, height: 1.2),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    "Khách: ${list[i].customerName} | ${DateFormat('dd/MM HH:mm').format(DateTime.fromMillisecondsSinceEpoch(list[i].soldAt))}",
+                    style: const TextStyle(fontSize: 10, color: Colors.grey, height: 1.2),
+                  ),
+                ],
+              ),
+            ),
+            Text(
+              "+${NumberFormat('#,###').format(list[i].totalPrice)}",
+              style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 12),
+            ),
+          ],
+        ),
+      )
+    ); 
+  }
+  Widget _buildRepairDetail() { 
+    final list = _repairs.where((r) => r.status >= 3 && _inRange(r.deliveredAt ?? r.createdAt)).toList(); 
+    return ListView.builder(
+      padding: const EdgeInsets.all(16), 
+      itemCount: list.length, 
+      itemBuilder: (ctx, i) => Container(
+        margin: const EdgeInsets.only(bottom: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    list[i].model.length > 25 ? '${list[i].model.substring(0, 25)}...' : list[i].model,
+                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12, height: 1.2),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    "Khách: ${list[i].customerName} | ${DateFormat('dd/MM HH:mm').format(DateTime.fromMillisecondsSinceEpoch(list[i].deliveredAt ?? list[i].createdAt))}",
+                    style: const TextStyle(fontSize: 10, color: Colors.grey, height: 1.2),
+                  ),
+                ],
+              ),
+            ),
+            Text(
+              "+${NumberFormat('#,###').format(list[i].price)}",
+              style: const TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold, fontSize: 12),
+            ),
+          ],
+        ),
+      )
+    ); 
+  }
   Widget _buildExpenseDetail() { final list = _expenses.where((e) => _inRange(e['date'] as int)).toList(); return ListView.builder(padding: const EdgeInsets.all(16), itemCount: list.length, itemBuilder: (ctx, i) => Card(margin: const EdgeInsets.only(bottom: 10), child: ListTile(title: Text(list[i]['title'] ?? 'Chi phí', style: const TextStyle(fontWeight: FontWeight.bold)), subtitle: Text(list[i]['category'] ?? 'Khác'), trailing: Text("-${NumberFormat('#,###').format(list[i]['amount'])}", style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold))))); }
 }
 

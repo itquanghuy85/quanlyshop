@@ -59,7 +59,7 @@ class BluetoothPrinterService {
       Map<String, dynamic> results = {
         'success': true,
         'permissions': <String, bool>{},
-        'errors': <String>[],
+        'errors': <String>[],  
         'warnings': <String>[],
       };
 
@@ -75,7 +75,22 @@ class BluetoothPrinterService {
       final bluetoothStatus = await Permission.bluetooth.request();
       results['permissions']['bluetooth'] = bluetoothStatus.isGranted;
 
-      results['success'] = bluetoothConnectStatus.isGranted && bluetoothScanStatus.isGranted;
+      // Thử yêu cầu quyền advertise (cho Android 12+)
+      try {
+        final bluetoothAdvertiseStatus = await Permission.bluetoothAdvertise.request();
+        results['permissions']['bluetoothAdvertise'] = bluetoothAdvertiseStatus.isGranted;
+      } catch (e) {
+        results['warnings'].add('Không thể yêu cầu quyền bluetoothAdvertise: $e');
+      }
+
+      // Kiểm tra quyền quan trọng
+      final hasEssentialPermissions = bluetoothConnectStatus.isGranted && bluetoothScanStatus.isGranted;
+      
+      if (!hasEssentialPermissions) {
+        results['errors'].add('Thiếu quyền bluetoothConnect hoặc bluetoothScan');
+      }
+
+      results['success'] = hasEssentialPermissions;
       return results;
     } catch (e) {
       return {'success': false, 'errors': [e.toString()]};
@@ -101,6 +116,21 @@ class BluetoothPrinterService {
 
   static Future<bool> connect(String macAddress) async {
     return await PrintBluetoothThermal.connect(macPrinterAddress: macAddress);
+  }
+
+  static Future<Map<String, dynamic>> connectWithStatus(String macAddress) async {
+    try {
+      final success = await connect(macAddress);
+      return {
+        'success': success,
+        'error': success ? null : 'Không thể kết nối với máy in',
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'error': e.toString(),
+      };
+    }
   }
 
   static Future<bool> printBytes(List<int> bytes) async {

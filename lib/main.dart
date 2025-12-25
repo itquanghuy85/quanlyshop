@@ -6,30 +6,26 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'l10n/app_localizations.dart';
-import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 import 'firebase_options.dart';
 import 'views/home_view.dart';
 import 'views/login_view.dart';
-import 'views/splash_view.dart'; // Import màn hình Splash mới
 import 'services/user_service.dart';
 import 'services/notification_service.dart';
+import 'services/connectivity_service.dart';
+import 'services/sync_service.dart';
 
 Future<void> main() async {
   await runZonedGuarded<Future<void>>(() async {
     WidgetsFlutterBinding.ensureInitialized();
-    
-    await Future.wait([
-      initializeDateFormatting('vi_VN', null),
-      initializeDateFormatting('en_US', null),
-    ]);
-
+    await initializeDateFormatting('vi_VN');
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
 
     await NotificationService.init();
+    await ConnectivityService.instance.initialize();
 
     runApp(const MyApp());
   }, (error, stack) {
@@ -56,13 +52,9 @@ class _MyAppState extends State<MyApp> {
   Future<void> _loadSavedLocale() async {
     final prefs = await SharedPreferences.getInstance();
     final languageCode = prefs.getString('app_language');
-    if (languageCode != null) {
-      setState(() {
-        _locale = Locale(languageCode);
-      });
-    } else {
-      _locale = const Locale('vi');
-    }
+    setState(() {
+      _locale = Locale(languageCode ?? 'vi');
+    });
   }
 
   void setLocale(Locale locale) {
@@ -78,7 +70,6 @@ class _MyAppState extends State<MyApp> {
       title: 'Quan Ly Shop',
       debugShowCheckedModeBanner: false,
       scaffoldMessengerKey: NotificationService.messengerKey,
-      locale: _locale,
       theme: ThemeData(
         useMaterial3: true,
         fontFamily: 'Roboto', 
@@ -106,35 +97,34 @@ class _MyAppState extends State<MyApp> {
           fillColor: Colors.white,
           contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide(color: Colors.grey.shade300)),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide(color: Colors.grey.shade200)),
           focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: const BorderSide(color: Color(0xFF2962FF), width: 1.5)),
           labelStyle: const TextStyle(color: Colors.blueGrey, fontSize: 14),
         ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF2962FF),
+            foregroundColor: Colors.white,
+            minimumSize: const Size(double.infinity, 55),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+            elevation: 4,
+            shadowColor: const Color(0xFF2962FF).withOpacity(0.4),
+          ),
+        ),
       ),
-      supportedLocales: const [
-        Locale('vi', ''),
-        Locale('en', ''),
-      ],
+      locale: _locale,
+      supportedLocales: const [Locale('vi'), Locale('en')],
       localizationsDelegates: const [
         AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      localeResolutionCallback: (locale, supportedLocales) {
-        for (var supportedLocale in supportedLocales) {
-          if (supportedLocale.languageCode == locale?.languageCode) {
-            return supportedLocale;
-          }
-        }
-        return supportedLocales.first;
-      },
-      home: SplashView(setLocale: setLocale), // Luôn bắt đầu từ SplashView để khởi tạo mượt mà
+      home: AuthGate(setLocale: setLocale),
     );
   }
 }
 
-// CỔNG KIỂM TRA ĐĂNG NHẬP (Dùng chung cho toàn hệ thống)
 class AuthGate extends StatefulWidget {
   final void Function(Locale)? setLocale;
   const AuthGate({Key? key, this.setLocale}) : super(key: key);
@@ -148,6 +138,7 @@ class _AuthGateState extends State<AuthGate> {
   void initState() {
     super.initState();
     _initNotificationListener();
+    _initSyncService();
   }
 
   void _initNotificationListener() {
@@ -158,28 +149,29 @@ class _AuthGateState extends State<AuthGate> {
     });
   }
 
+  Future<void> _initSyncService() async {
+    // Khởi tạo sync service khi user đăng nhập
+    await SyncService.initRealTimeSync(() {
+      if (mounted) setState(() {});
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snap) {
-        if (snap.connectionState == ConnectionState.waiting) {
-          return const Scaffold(body: Center(child: CircularProgressIndicator()));
-        }
-        
+        if (snap.connectionState == ConnectionState.waiting) return const Scaffold(body: Center(child: CircularProgressIndicator()));
         if (!snap.hasData) return LoginView(setLocale: widget.setLocale);
 
         return FutureBuilder<String>(
           future: UserService.getUserRole(snap.data!.uid),
           builder: (context, roleSnap) {
-            if (roleSnap.connectionState == ConnectionState.waiting) {
-              return const Scaffold(body: Center(child: CircularProgressIndicator()));
-            }
-            
+            if (roleSnap.connectionState == ConnectionState.waiting) return const Scaffold(body: Center(child: CircularProgressIndicator()));
             if (roleSnap.hasError || !roleSnap.hasData) {
-              return HomeView(role: 'user', setLocale: widget.setLocale);
+              FirebaseAuth.instance.signOut();
+              return LoginView(setLocale: widget.setLocale);
             }
-            
             return HomeView(role: roleSnap.data!, setLocale: widget.setLocale);
           },
         );

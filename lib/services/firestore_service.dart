@@ -127,7 +127,7 @@ class FirestoreService {
   }
 
   // --- CHAT NỘI BỘ ---
-  static Future<void> sendChat({required String message, required String senderId, required String senderName}) async {
+  static Future<void> sendChat({required String message, required String senderId, required String senderName, String? linkedType, String? linkedKey, String? linkedSummary}) async {
     try {
       final shopId = await UserService.getCurrentShopId();
       await _db.collection('chats').add({
@@ -135,6 +135,9 @@ class FirestoreService {
         'message': message,
         'senderId': senderId,
         'senderName': senderName,
+        'linkedType': linkedType,
+        'linkedKey': linkedKey,
+        'linkedSummary': linkedSummary,
         'createdAt': FieldValue.serverTimestamp(),
       });
     } catch (_) {}
