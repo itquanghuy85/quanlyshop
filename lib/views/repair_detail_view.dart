@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:photo_view/photo_view.dart';
+import 'package:photo_view/photo_view_gallery.dart';
 import '../models/repair_model.dart';
 import '../services/unified_printer_service.dart';
 import '../services/notification_service.dart';
@@ -39,11 +41,11 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     });
   }
 
-  // HÀM CHUYỂN TRẠNG THÁI & GHI NỢ TỰ ĐỘNG
   Future<void> _updateStatus(int newStatus) async {
     if (newStatus == 4) { // GIAO MÁY
       String payMethod = "TIỀN MẶT";
-      final warrantyC = TextEditingController(text: r.warranty.isEmpty ? "1 THÁNG" : r.warranty);
+      String selectedWarranty = r.warranty.isEmpty ? "1 THÁNG" : r.warranty;
+      final List<String> warrantyOptions = ["KO BH", "1 THÁNG", "3 THÁNG", "6 THÁNG", "12 THÁNG"];
       
       final confirm = await showDialog<bool>(
         context: context,
@@ -52,31 +54,43 @@ class _RepairDetailViewState extends State<RepairDetailView> {
             title: const Text("XÁC NHẬN GIAO MÁY & THANH TOÁN"),
             content: Column(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                TextField(controller: warrantyC, decoration: const InputDecoration(labelText: "Bảo hành cho khách")),
-                const SizedBox(height: 15),
-                const Text("Hình thức thanh toán:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                const Text("Chọn thời gian bảo hành:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.blueGrey)),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  children: warrantyOptions.map((opt) => ChoiceChip(
+                    label: Text(opt, style: const TextStyle(fontSize: 11)),
+                    selected: selectedWarranty == opt,
+                    onSelected: (v) => setS(() => selectedWarranty = opt),
+                    selectedColor: Colors.blue.shade100,
+                  )).toList(),
+                ),
+                const SizedBox(height: 20),
+                const Text("Hình thức thanh toán:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.blueGrey)),
                 const SizedBox(height: 8),
                 Wrap(spacing: 8, children: ["TIỀN MẶT", "CHUYỂN KHOẢN", "CÔNG NỢ"].map((m) => ChoiceChip(
-                  label: Text(m), selected: payMethod == m, 
+                  label: Text(m, style: const TextStyle(fontSize: 11)), 
+                  selected: payMethod == m, 
                   onSelected: (v) => setS(() => payMethod = m),
+                  selectedColor: Colors.orange.shade100,
                 )).toList()),
               ],
             ),
             actions: [
               TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("HỦY")),
-              ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text("HOÀN TẤT")),
+              ElevatedButton(onPressed: () => Navigator.pop(ctx, true), style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent), child: const Text("HOÀN TẤT GIAO MÁY", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
             ],
           ),
         ),
       );
 
       if (confirm != true) return;
-      r.warranty = warrantyC.text.toUpperCase();
+      r.warranty = selectedWarranty;
       r.paymentMethod = payMethod;
       r.deliveredAt = DateTime.now().millisecondsSinceEpoch;
 
-      // NẾU LÀ CÔNG NỢ => GHI VÀO SỔ NỢ
       if (payMethod == "CÔNG NỢ") {
         await db.insertDebt({
           'personName': r.customerName,
@@ -232,15 +246,44 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         const Text("HÌNH ẢNH LÚC NHẬN MÁY", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey, fontSize: 12)),
         const SizedBox(height: 10),
         SizedBox(height: 120, child: ListView.builder(scrollDirection: Axis.horizontal, itemCount: images.length, itemBuilder: (ctx, i) => GestureDetector(
-          onTap: () => _showFullImage(images[i]),
+          onTap: () => _showFullImage(images, i),
           child: Container(margin: const EdgeInsets.only(right: 10), width: 120, decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade200)), child: ClipRRect(borderRadius: BorderRadius.circular(12), child: Image.file(File(images[i]), fit: BoxFit.cover, cacheWidth: 300))),
         ))),
       ],
     );
   }
 
-  void _showFullImage(String path) {
-    showDialog(context: context, builder: (ctx) => Dialog(backgroundColor: Colors.transparent, child: Column(mainAxisSize: MainAxisSize.min, children: [ClipRRect(borderRadius: BorderRadius.circular(15), child: Image.file(File(path))), TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("ĐÓNG", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)))])));
+  void _showFullImage(List<String> images, int initialIndex) {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.black,
+        insetPadding: EdgeInsets.zero,
+        child: Stack(
+          children: [
+            PhotoViewGallery.builder(
+              itemCount: images.length,
+              builder: (context, index) => PhotoViewGalleryPageOptions(
+                imageProvider: FileImage(File(images[index])),
+                initialScale: PhotoViewComputedScale.contained,
+                minScale: PhotoViewComputedScale.contained,
+                maxScale: PhotoViewComputedScale.covered * 3,
+              ),
+              pageController: PageController(initialPage: initialIndex),
+              scrollPhysics: const BouncingScrollPhysics(),
+              backgroundDecoration: const BoxDecoration(color: Colors.black),
+            ),
+            Positioned(
+              top: 40, right: 20,
+              child: IconButton(
+                icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                onPressed: () => Navigator.pop(ctx),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildCustomerCard() {
