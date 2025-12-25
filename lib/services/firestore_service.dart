@@ -94,6 +94,17 @@ class FirestoreService {
     await _db.collection('products').doc(firestoreId).update({'status': 0});
   }
 
+  // --- NHẬT KÝ HOẠT ĐỘNG (CLOULD SYNC) ---
+  static Future<void> addAuditLogCloud(Map<String, dynamic> logData) async {
+    try {
+      final shopId = await UserService.getCurrentShopId();
+      final String docId = "log_${logData['createdAt']}_${logData['userId']}";
+      logData['shopId'] = shopId;
+      logData['firestoreId'] = docId;
+      await _db.collection('audit_logs').doc(docId).set(logData, SetOptions(merge: true));
+    } catch (_) {}
+  }
+
   // --- QUẢN LÝ CÔNG NỢ & CHI PHÍ ---
   static Future<void> addDebtCloud(Map<String, dynamic> debtData) async {
     try {

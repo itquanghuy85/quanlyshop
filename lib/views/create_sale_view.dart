@@ -32,7 +32,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
   
   String _paymentMethod = "TIỀN MẶT";
   String _saleWarranty = "12 THÁNG";
-  bool _autoCalcTotal = true;
+  bool _autoCalcTotal = true; // Flag để người dùng chủ động chọn
 
   List<Product> _allInStock = [];
   List<Product> _filteredInStock = []; 
@@ -72,11 +72,10 @@ class _CreateSaleViewState extends State<CreateSaleView> {
   }
 
   void _calculateTotal() {
+    if (!_autoCalcTotal) return; // Nếu người dùng đang chỉnh tay thì không ghi đè
     int total = _selectedItems.fold(0, (sum, item) => sum + (item['isGift'] ? 0 : (item['sellPrice'] as int)));
-    if (_autoCalcTotal) {
-      priceCtrl.text = _formatCurrency(total);
-      _calculateInstallment();
-    }
+    priceCtrl.text = _formatCurrency(total);
+    _calculateInstallment();
   }
 
   int _parseCurrency(String text) => int.tryParse(text.replaceAll('.', '')) ?? 0;
@@ -106,7 +105,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
       int totalPrice = _parseCurrency(priceCtrl.text);
       int paidAmount = _parseCurrency(downPaymentCtrl.text);
       if (paidAmount > 0 && paidAmount < 100000) paidAmount *= 1000;
-      if (_paymentMethod != "CÔNG NỢ" && paidAmount == 0) paidAmount = totalPrice; // Nếu không phải công nợ thì mặc định thu đủ
+      if (_paymentMethod != "CÔNG NỢ" && _paymentMethod != "TRẢ GÓP (NH)" && paidAmount == 0) paidAmount = totalPrice;
 
       final sale = SaleOrder(
         firestoreId: uniqueId,
@@ -128,21 +127,19 @@ class _CreateSaleViewState extends State<CreateSaleView> {
         warranty: _saleWarranty,
       );
 
-      // 1. GHI VÀO SỔ CÔNG NỢ NẾU KHÁCH CHƯA TRẢ ĐỦ
-      if (_paymentMethod == "CÔNG NỢ" || paidAmount < totalPrice) {
+      if (_paymentMethod == "CÔNG NỢ" || (_paymentMethod != "TRẢ GÓP (NH)" && paidAmount < totalPrice)) {
         await db.insertDebt({
           'personName': nameCtrl.text.trim().toUpperCase(),
           'phone': phoneCtrl.text.trim(),
           'totalAmount': totalPrice,
           'paidAmount': paidAmount,
           'type': "CUSTOMER_OWES",
-          'status': paidAmount >= totalPrice ? "paid" : "unpaid",
+          'status': "unpaid",
           'createdAt': now,
           'note': "Nợ mua máy: ${sale.productNames}",
         });
       }
 
-      // 2. TRỪ KHO
       for (var item in _selectedItems) {
         final p = item['product'] as Product;
         await db.updateProductStatus(p.id!, 0); 
@@ -154,7 +151,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
       await db.upsertSale(sale); 
       await FirestoreService.addSale(sale);
 
-      NotificationService.showSnackBar("ĐÃ BÁN HÀNG & CẬP NHẬT CÔNG NỢ!", color: Colors.green);
+      NotificationService.showSnackBar("ĐÃ BÁN HÀNG & CẬP NHẬT HỆ THỐNG!", color: Colors.green);
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       setState(() => _isSaving = false);
@@ -185,7 +182,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
             _sectionTitle("3. THANH TOÁN & GHI NỢ"),
             _buildPaymentSection(),
             const SizedBox(height: 30),
-            SizedBox(width: double.infinity, height: 55, child: ElevatedButton(onPressed: _isSaving ? null : _processSale, style: ElevatedButton.styleFrom(backgroundColor: Colors.green, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))), child: _isSaving ? const CircularProgressIndicator(color: Colors.white) : const Text("HOÀN TẤT & CẬP NHẬT SỔ NỢ", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)))),
+            SizedBox(width: double.infinity, height: 55, child: ElevatedButton(onPressed: _isSaving ? null : _processSale, style: ElevatedButton.styleFrom(backgroundColor: Colors.green, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))), child: _isSaving ? const CircularProgressIndicator(color: Colors.white) : const Text("HOÀN TẤT ĐƠN HÀNG", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)))),
           ],
         ),
       ),
@@ -198,16 +195,44 @@ class _CreateSaleViewState extends State<CreateSaleView> {
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.grey.shade200)),
       child: Column(
         children: [
-          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text("TỔNG TIỀN:", style: TextStyle(fontWeight: FontWeight.bold)), Text("${priceCtrl.text} Đ", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.red))]),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text("TỔNG TIỀN:", style: TextStyle(fontWeight: FontWeight.bold)),
+              Row(
+                children: [
+                  IconButton(
+                    icon: Icon(_autoCalcTotal ? Icons.lock_outline : Icons.edit, size: 18, color: Colors.blue),
+                    onPressed: () => setState(() => _autoCalcTotal = !_autoCalcTotal),
+                  ),
+                  SizedBox(
+                    width: 150,
+                    child: TextField(
+                      controller: priceCtrl,
+                      enabled: !_autoCalcTotal, // CHỈ CHO PHÉP SỬA KHI TẮT TỰ ĐỘNG
+                      keyboardType: TextInputType.number,
+                      textAlign: TextAlign.right,
+                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.red),
+                      decoration: const InputDecoration(border: InputBorder.none, hintText: "0"),
+                      onChanged: (_) => _calculateInstallment(),
+                    ),
+                  ),
+                  const Text(" Đ", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                ],
+              )
+            ],
+          ),
           const SizedBox(height: 15),
           Wrap(spacing: 8, children: ["TIỀN MẶT", "CHUYỂN KHOẢN", "CÔNG NỢ", "TRẢ GÓP (NH)"].map((e) => ChoiceChip(label: Text(e, style: const TextStyle(fontSize: 11)), selected: _paymentMethod == e, onSelected: (v) => setState(() { _paymentMethod = e; _isInstallment = (e == "TRẢ GÓP (NH)"); }))).toList()),
           const Divider(height: 30),
-          _moneyInput(downPaymentCtrl, _paymentMethod == "CÔNG NỢ" ? "KHÁCH TRẢ TRƯỚC (k)" : "SỐ TIỀN THU THỰC TẾ (k)", Colors.orange),
+          _moneyInput(downPaymentCtrl, _isInstallment ? "KHÁCH TRẢ TRƯỚC (k)" : "SỐ TIỀN THU THỰC TẾ (k)", Colors.orange),
           if (_isInstallment) ...[
             const SizedBox(height: 10),
             _moneyInput(loanAmountCtrl, "NGÂN HÀNG CHO VAY", Colors.blueGrey, enabled: false),
             const SizedBox(height: 10),
             TextField(controller: bankCtrl, decoration: const InputDecoration(labelText: "TÊN CÔNG TY TÀI CHÍNH", border: OutlineInputBorder(), prefixIcon: Icon(Icons.account_balance))),
+            const SizedBox(height: 8),
+            Wrap(spacing: 8, children: ["FE", "HOME", "MIRAE", "HD", "F83", "T86"].map((b) => ActionChip(label: Text(b, style: const TextStyle(fontSize: 11)), onPressed: () => setState(() => bankCtrl.text = b))).toList()),
           ],
           const Divider(height: 30),
           DropdownButtonFormField<String>(value: _saleWarranty, decoration: const InputDecoration(labelText: "CHỌN THỜI GIAN BẢO HÀNH"), items: ["KO BH", "1 THÁNG", "3 THÁNG", "6 THÁNG", "12 THÁNG"].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(), onChanged: (v) => setState(() => _saleWarranty = v ?? "KO BH"))

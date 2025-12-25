@@ -25,7 +25,7 @@ class _SaleDetailViewState extends State<SaleDetailView> {
   late SaleOrder s;
   
   String _shopName = ""; String _shopAddr = ""; String _shopPhone = "";
-  bool _isSaving = false;
+  bool _isPrinting = false;
 
   @override
   void initState() {
@@ -43,40 +43,31 @@ class _SaleDetailViewState extends State<SaleDetailView> {
     });
   }
 
-  // HÀM IN NHIỆT (ĐÃ SỬA LỖI CRASH)
   Future<void> _printReceipt() async {
+    if (_isPrinting) return;
+    setState(() => _isPrinting = true);
+    HapticFeedback.mediumImpact(); // Rung phản hồi khi bấm
+    
+    NotificationService.showSnackBar("Đang chuẩn bị lệnh in...", color: Colors.blue);
+
     try {
-      final shopInfo = {
-        'shopName': _shopName,
-        'shopAddr': _shopAddr,
-        'shopPhone': _shopPhone,
-      };
-      
+      final shopInfo = {'shopName': _shopName, 'shopAddr': _shopAddr, 'shopPhone': _shopPhone};
       final success = await UnifiedPrinterService.printSaleReceiptFromOrder(s, shopInfo);
       
       if (success) {
-        NotificationService.showSnackBar("Đã đẩy lệnh in thành công!", color: Colors.green);
+        NotificationService.showSnackBar("Đã gửi lệnh in thành công!", color: Colors.green);
       } else {
-        NotificationService.showSnackBar("Không tìm thấy máy in!", color: Colors.red);
+        NotificationService.showSnackBar("Lỗi kết nối máy in!", color: Colors.red);
       }
     } catch (e) {
-      NotificationService.showSnackBar("Lỗi in ấn: $e", color: Colors.red);
+      NotificationService.showSnackBar("Lỗi: $e", color: Colors.red);
+    } finally {
+      if (mounted) setState(() => _isPrinting = false);
     }
   }
 
-  // CHIA SẺ ZALO / GỬI KHÁCH
   Future<void> _shareInvoice() async {
-    final String content = """
-🌟 HÓA ĐƠN BÁN HÀNG 🌟
-----------------------------
-Shop: $_shopName
-Khách hàng: ${s.customerName}
-Sản phẩm: ${s.productNames}
-Bảo hành: ${s.warranty ?? "12 THÁNG"}
-TỔNG CỘNG: ${NumberFormat('#,###').format(s.totalPrice)} Đ
-----------------------------
-Cảm ơn quý khách đã ủng hộ!
-""";
+    final String content = """🌟 HÓA ĐƠN BÁN HÀNG 🌟\n----------------------------\nShop: $_shopName\nKhách: ${s.customerName}\nSản phẩm: ${s.productNames}\nBảo hành: ${s.warranty ?? "12 THÁNG"}\nTỔNG: ${NumberFormat('#,###').format(s.totalPrice)} Đ\n----------------------------""";
     await Share.share(content);
   }
 
@@ -84,90 +75,31 @@ Cảm ơn quý khách đã ủng hộ!
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFF),
-      appBar: AppBar(
-        title: const Text("CHI TIẾT ĐƠN BÁN", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-        backgroundColor: Colors.white, elevation: 0,
-        actions: [
-          IconButton(onPressed: _shareInvoice, icon: const Icon(Icons.share_rounded, color: Colors.green)),
-          IconButton(onPressed: _printReceipt, icon: const Icon(Icons.print_rounded, color: Color(0xFF2962FF))),
-        ],
-      ),
+      appBar: AppBar(title: const Text("CHI TIẾT ĐƠN BÁN", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)), actions: [IconButton(onPressed: _shareInvoice, icon: const Icon(Icons.share_rounded, color: Colors.green)), IconButton(onPressed: _printReceipt, icon: const Icon(Icons.print_rounded, color: Color(0xFF2962FF)))]),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            _buildHeaderCard(),
-            const SizedBox(height: 20),
-            _buildInfoCard(),
-            const SizedBox(height: 30),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _printReceipt,
-                    icon: const Icon(Icons.print),
-                    label: const Text(" IN "),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green.shade600, padding: const EdgeInsets.symmetric(vertical: 15)),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _shareInvoice,
-                    icon: const Icon(Icons.send_rounded),
-                    label: const Text("GỬI ZALO"),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green.shade600, padding: const EdgeInsets.symmetric(vertical: 15)),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+        child: Column(children: [
+          _buildHeaderCard(),
+          const SizedBox(height: 20),
+          _buildInfoCard(),
+          const SizedBox(height: 30),
+          Row(children: [
+            Expanded(child: ElevatedButton.icon(onPressed: _isPrinting ? null : _printReceipt, icon: _isPrinting ? const SizedBox(width: 15, height: 15, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Icons.print, color: Colors.white), label: const Text("IN HÓA ĐƠN", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2962FF), padding: const EdgeInsets.symmetric(vertical: 15), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))))),
+            const SizedBox(width: 12),
+            Expanded(child: ElevatedButton.icon(onPressed: _shareInvoice, icon: const Icon(Icons.send_rounded, color: Colors.white), label: const Text("ZALO", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), style: ElevatedButton.styleFrom(backgroundColor: Colors.green.shade600, padding: const EdgeInsets.symmetric(vertical: 15), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))))),
+          ]),
+        ]),
       ),
     );
   }
 
   Widget _buildHeaderCard() {
-    return Container(
-      width: double.infinity, padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: [Color(0xFF2962FF), Color(0xFF00B0FF)]),
-        borderRadius: BorderRadius.circular(25),
-        boxShadow: [BoxShadow(color: Colors.blue.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 5))]
-      ),
-      child: Column(
-        children: [
-          const Text("TỔNG THANH TOÁN", style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          Text("${NumberFormat('#,###').format(s.totalPrice)} Đ", style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          Text("Hình thức: ${s.paymentMethod}", style: const TextStyle(color: Colors.white, fontSize: 13)),
-        ],
-      ),
-    );
+    return Container(width: double.infinity, padding: const EdgeInsets.all(24), decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF2962FF), Color(0xFF00B0FF)]), borderRadius: BorderRadius.circular(25)), child: Column(children: [const Text("TỔNG THANH TOÁN", style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold)), const SizedBox(height: 8), Text("${NumberFormat('#,###').format(s.totalPrice)} Đ", style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)), const SizedBox(height: 8), Text("Hình thức: ${s.paymentMethod}", style: const TextStyle(color: Colors.white, fontSize: 13))]));
   }
 
   Widget _buildInfoCard() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
-      child: Column(
-        children: [
-          _row("Khách hàng", s.customerName),
-          _row("Điện thoại", s.phone),
-          const Divider(),
-          _row("Sản phẩm", s.productNames),
-          _row("IMEI", s.productImeis),
-          _row("Bảo hành", s.warranty ?? "12 THÁNG"),
-          const Divider(),
-          _row("Ngày bán", DateFormat('dd/MM/yyyy HH:mm').format(DateTime.fromMillisecondsSinceEpoch(s.soldAt))),
-          _row("Nhân viên", s.sellerName),
-        ],
-      ),
-    );
+    return Container(padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)), child: Column(children: [_row("Khách hàng", s.customerName), _row("Điện thoại", s.phone), const Divider(), _row("Sản phẩm", s.productNames), _row("IMEI", s.productImeis), _row("Bảo hành", s.warranty ?? "12 THÁNG"), const Divider(), _row("Ngày bán", DateFormat('dd/MM/yyyy HH:mm').format(DateTime.fromMillisecondsSinceEpoch(s.soldAt))), _row("Nhân viên", s.sellerName)]));
   }
 
-  Widget _row(String l, String v) {
-    return Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(l, style: const TextStyle(color: Colors.grey, fontSize: 12)), Expanded(child: Text(v, textAlign: TextAlign.right, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)))]));
-  }
+  Widget _row(String l, String v) => Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(l, style: const TextStyle(color: Colors.grey, fontSize: 12)), Expanded(child: Text(v, textAlign: TextAlign.right, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)))]));
 }

@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
 import '../data/db_helper.dart';
 import '../models/repair_model.dart';
 import '../services/notification_service.dart';
 import '../services/firestore_service.dart';
+import '../services/storage_service.dart';
 import '../services/unified_printer_service.dart';
 
 class CreateRepairOrderView extends StatefulWidget {
@@ -22,6 +22,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
   final db = DBHelper();
   final List<File> _images = [];
   bool _saving = false;
+  String _uploadStatus = "";
 
   final phoneCtrl = TextEditingController();
   final nameCtrl = TextEditingController();
@@ -42,9 +43,6 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
   final appearanceF = FocusNode();
   final accF = FocusNode();
 
-  String _paymentMethod = "TIỀN MẶT";
-  List<Map<String, dynamic>> _recentDevices = [];
-
   final List<String> brands = ["IPHONE", "SAMSUNG", "OPPO", "REDMI", "VIVO"];
   final List<String> commonIssues = ["THAY PIN", "ÉP KÍNH", "THAY MÀN", "MẤT NGUỒN", "LOA/MIC", "SẠC", "PHẦN MỀM"];
 
@@ -56,16 +54,6 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
     });
   }
 
-  @override
-  void dispose() {
-    phoneCtrl.dispose(); nameCtrl.dispose(); addressCtrl.dispose();
-    modelCtrl.dispose(); issueCtrl.dispose(); appearanceCtrl.dispose();
-    accCtrl.dispose(); passCtrl.dispose(); priceCtrl.dispose();
-    phoneF.dispose(); nameF.dispose(); modelF.dispose(); issueF.dispose();
-    priceF.dispose(); passF.dispose(); appearanceF.dispose(); accF.dispose();
-    super.dispose();
-  }
-
   void _smartFill() async {
     final res = await db.getUniqueCustomersAll();
     final find = res.where((c) => c['phone'] == phoneCtrl.text).toList();
@@ -74,68 +62,73 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
         nameCtrl.text = find.first['customerName'] ?? "";
         addressCtrl.text = (find.first['address'] ?? "").toString();
       });
-      final repairs = await db.getAllRepairs();
-      final devices = repairs.where((r) => r.phone == phoneCtrl.text).map((r) => {'model': r.model}).toSet().toList();
-      setState(() => _recentDevices = devices.take(3).toList());
     }
   }
 
-  // HÀM PARSE TIỀN TỆ CỰC KỲ CHẮC CHẮN
   int _parseFinalPrice(String text) {
-    if (text.isEmpty) return 0;
-    // Làm sạch chuỗi, chỉ giữ lại số
-    final String clean = text.replaceAll(RegExp(r'[^\d]'), '');
-    int value = int.tryParse(clean) ?? 0;
-    // Quy ước K: Nếu gõ số nhỏ (ví dụ 550) thì tự hiểu là hàng nghìn
-    if (value > 0 && value < 100000) return value * 1000;
-    return value;
+    final clean = text.replaceAll(RegExp(r'[^\d]'), '');
+    int v = int.tryParse(clean) ?? 0;
+    return (v > 0 && v < 100000) ? v * 1000 : v;
   }
 
-  Future<Repair?> _onlySave() async {
-    if (_saving) return null;
+  // TÁCH HÀM LƯU RIÊNG BIỆT ĐỂ DÙNG CHUNG
+  Future<Repair?> _saveOrderProcess() async {
     if (phoneCtrl.text.isEmpty || modelCtrl.text.isEmpty) {
       NotificationService.showSnackBar("Vui lòng nhập SĐT và Model máy", color: Colors.red);
       return null;
     }
 
-    setState(() => _saving = true);
+    setState(() { _saving = true; _uploadStatus = "Đang đồng bộ dữ liệu đám mây..."; });
     try {
-      final now = DateTime.now().millisecondsSinceEpoch;
-      final String uniqueId = "${now}_${phoneCtrl.text}";
+      String cloudImagePaths = "";
+      if (_images.isNotEmpty) {
+        List<String> localPaths = _images.map((e) => e.path).toList();
+        cloudImagePaths = await StorageService.uploadMultipleAndJoin(localPaths.join(','), 'repairs');
+      }
 
+      final now = DateTime.now().millisecondsSinceEpoch;
       final r = Repair(
-        firestoreId: uniqueId,
+        firestoreId: "rep_${now}_${phoneCtrl.text}",
         customerName: nameCtrl.text.trim().toUpperCase(),
         phone: phoneCtrl.text.trim(),
         model: modelCtrl.text.trim().toUpperCase(),
         issue: issueCtrl.text.trim().toUpperCase(),
         accessories: "${accCtrl.text} | MK: ${passCtrl.text}".trim().toUpperCase(),
         address: addressCtrl.text.trim().toUpperCase(),
-        paymentMethod: _paymentMethod,
         price: _parseFinalPrice(priceCtrl.text),
         createdAt: now,
-        imagePath: _images.map((e) => e.path).join(','),
+        imagePath: cloudImagePaths,
         createdBy: FirebaseAuth.instance.currentUser?.email?.split('@').first.toUpperCase() ?? "NV",
       );
 
       await db.upsertRepair(r);
       await FirestoreService.addRepair(r);
+      await db.logAction(userId: FirebaseAuth.instance.currentUser?.uid ?? "0", userName: r.createdBy ?? "NV", action: "NHẬP ĐƠN SỬA", type: "REPAIR", targetId: r.firestoreId, desc: "Đã nhập đơn sửa ${r.model} cho khách ${r.customerName}");
+      
       return r;
     } catch (e) {
-      NotificationService.showSnackBar("Lỗi lưu dữ liệu: $e", color: Colors.red);
+      NotificationService.showSnackBar("Lỗi: $e", color: Colors.red);
       return null;
     } finally {
       if (mounted) setState(() => _saving = false);
     }
   }
 
+  Future<void> _onlySave() async {
+    final r = await _saveOrderProcess();
+    if (r != null) {
+      HapticFeedback.mediumImpact();
+      if (mounted) Navigator.pop(context, true);
+      NotificationService.showSnackBar("ĐÃ LƯU ĐƠN THÀNH CÔNG", color: Colors.green);
+    }
+  }
+
   Future<void> _saveAndPrint() async {
-    final saved = await _onlySave();
-    if (saved != null) {
-      try {
-        final shopInfo = {'shopName': 'SHOP NEW', 'shopAddr': addressCtrl.text, 'shopPhone': '0123.456.789'};
-        await UnifiedPrinterService.printRepairReceiptFromRepair(saved, shopInfo);
-      } catch (_) {}
+    final r = await _saveOrderProcess();
+    if (r != null) {
+      HapticFeedback.mediumImpact();
+      NotificationService.showSnackBar("Đang gửi lệnh in phiếu...", color: Colors.blue);
+      await UnifiedPrinterService.printRepairReceiptFromRepair(r, {'shopName': 'QUANG HUY', 'shopAddr': 'HÀ NỘI', 'shopPhone': '0964095979'});
       if (mounted) Navigator.pop(context, true);
     }
   }
@@ -145,74 +138,70 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFF),
       appBar: AppBar(
-        title: const Text("TIẾP NHẬN MÁY", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-        backgroundColor: Colors.white, foregroundColor: Colors.black, elevation: 0,
-        actions: [IconButton(onPressed: _saveAndPrint, icon: const Icon(Icons.print, color: Colors.blueAccent))],
+        title: const Text("NHẬP ĐƠN SỬA CHỮA", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        actions: [IconButton(onPressed: _saveAndPrint, icon: const Icon(Icons.print, color: Color(0xFF2962FF)))],
       ),
-      body: _saving ? const Center(child: CircularProgressIndicator()) : SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            _sectionTitle("1. KHÁCH HÀNG"),
-            _input(phoneCtrl, "SỐ ĐIỆN THOẠI *", Icons.phone, type: TextInputType.phone, f: phoneF, next: nameF, action: TextInputAction.next),
-            _input(nameCtrl, "TÊN KHÁCH HÀNG", Icons.person, caps: true, f: nameF, next: modelF, action: TextInputAction.next),
-            
-            const SizedBox(height: 20),
-            _sectionTitle("2. THÔNG TIN MÁY"),
-            _quick(brands, modelCtrl, issueF),
-            _input(modelCtrl, "MODEL MÁY *", Icons.phone_android, caps: true, f: modelF, next: issueF, action: TextInputAction.next),
-            
-            if (_recentDevices.isNotEmpty) ...[
-              const SizedBox(height: 4),
-              Wrap(spacing: 8, children: _recentDevices.map((d) => ActionChip(label: Text(d['model'], style: const TextStyle(fontSize: 10)), onPressed: () => setState(() => modelCtrl.text = d['model']))).toList()),
-            ],
-
-            _sectionTitle("3. TÌNH TRẠNG & GIÁ"),
-            _quick(commonIssues, issueCtrl, priceF),
-            _input(issueCtrl, "LỖI MÁY *", Icons.build, caps: true, f: issueF, next: priceF, action: TextInputAction.next),
-            _input(priceCtrl, "GIÁ DỰ KIẾN", Icons.monetization_on, type: TextInputType.number, f: priceF, next: passF, suffix: "k", action: TextInputAction.next),
-            
-            ExpansionTile(
-              title: const Text("THÔNG TIN THÊM", style: TextStyle(fontSize: 12, color: Colors.blueGrey)),
+      body: _saving 
+        ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const CircularProgressIndicator(), const SizedBox(height: 20), Text(_uploadStatus, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey))]))
+        : SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _input(passCtrl, "MẬT KHẨU MÀN HÌNH", Icons.lock, f: passF, next: appearanceF, action: TextInputAction.next),
-                _input(appearanceCtrl, "NGOẠI QUAN", Icons.remove_red_eye, f: appearanceF, next: accF, action: TextInputAction.next),
-                _input(accCtrl, "PHỤ KIỆN", Icons.headphones, f: accF, action: TextInputAction.done),
+                _sectionTitle("THÔNG TIN KHÁCH HÀNG"),
+                _input(phoneCtrl, "SỐ ĐIỆN THOẠI *", Icons.phone, type: TextInputType.phone, f: phoneF, next: nameF),
+                _input(nameCtrl, "TÊN KHÁCH HÀNG", Icons.person, caps: true, f: nameF, next: modelF),
+                const SizedBox(height: 15),
+                _sectionTitle("THÔNG TIN MÁY"),
+                _quick(brands, modelCtrl, issueF),
+                _input(modelCtrl, "MODEL MÁY *", Icons.phone_android, caps: true, f: modelF, next: issueF),
+                const SizedBox(height: 15),
+                _sectionTitle("TÌNH TRẠNG LỖI"),
+                _quick(commonIssues, issueCtrl, priceF),
+                _input(issueCtrl, "LỖI MÁY *", Icons.build, caps: true, f: issueF, next: priceF),
+                _input(priceCtrl, "GIÁ DỰ KIẾN (k)", Icons.monetization_on, type: TextInputType.number, f: priceF, next: passF, suffix: "k"),
+                _input(passCtrl, "MẬT KHẨU MÀN HÌNH", Icons.lock, f: passF),
+                const SizedBox(height: 20),
+                const Text("HÌNH ẢNH HIỆN TRẠNG", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.blueGrey)),
+                const SizedBox(height: 10),
+                _imageRow(),
+                const SizedBox(height: 40),
+                Row(children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _saving ? null : _onlySave,
+                      icon: const Icon(Icons.save_rounded),
+                      label: const Text("CHỈ LƯU ĐƠN", style: TextStyle(fontWeight: FontWeight.bold)),
+                      style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 2,
+                    child: ElevatedButton.icon(
+                      onPressed: _saving ? null : _saveAndPrint,
+                      icon: const Icon(Icons.print_rounded),
+                      label: const Text("LƯU & IN PHIẾU", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2962FF), elevation: 4, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)), padding: const EdgeInsets.symmetric(vertical: 16)),
+                    ),
+                  ),
+                ]),
               ],
             ),
-            
-            const SizedBox(height: 20),
-            _imageRow(),
-            
-            const SizedBox(height: 30),
-            Row(children: [
-              Expanded(child: OutlinedButton(onPressed: _saving ? null : () async { final ok = await _onlySave(); if (ok != null && mounted) Navigator.pop(context, true); }, style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))), child: const Text("CHỈ LƯU", style: TextStyle(fontWeight: FontWeight.bold)))),
-              const SizedBox(width: 12),
-              Expanded(flex: 2, child: ElevatedButton.icon(onPressed: _saving ? null : _saveAndPrint, icon: const Icon(Icons.print, color: Colors.white), label: const Text("LƯU & IN PHIẾU", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2962FF), elevation: 4, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))))),
-            ]),
-          ],
-        ),
-      ),
+          ),
     );
   }
 
-  Widget _sectionTitle(String title) => Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Align(alignment: Alignment.centerLeft, child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey, fontSize: 12))));
+  Widget _sectionTitle(String title) => Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey, fontSize: 11)));
 
-  Widget _input(TextEditingController c, String l, IconData i, {bool caps = false, TextInputType type = TextInputType.text, FocusNode? f, FocusNode? next, String? suffix, TextInputAction? action}) {
+  Widget _input(TextEditingController c, String l, IconData i, {bool caps = false, TextInputType type = TextInputType.text, FocusNode? f, FocusNode? next, String? suffix}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: TextField(
         controller: c, focusNode: f, keyboardType: type,
-        textInputAction: action, // QUYẾT ĐỊNH HÀNH ĐỘNG CỦA BÀN PHÍM
         textCapitalization: caps ? TextCapitalization.characters : TextCapitalization.none,
         onSubmitted: (_) { if (next != null) FocusScope.of(context).requestFocus(next); },
-        style: const TextStyle(fontSize: 15),
-        decoration: InputDecoration(
-          labelText: l, prefixIcon: Icon(i, size: 20, color: const Color(0xFF2962FF)),
-          suffixText: suffix,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-          filled: true, fillColor: Colors.white,
-        ),
+        decoration: InputDecoration(labelText: l, prefixIcon: Icon(i, size: 20), suffixText: suffix, border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)), filled: true, fillColor: Colors.white),
       ),
     );
   }
@@ -241,11 +230,11 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(children: [
-        ..._images.map((f) => Container(margin: const EdgeInsets.only(right: 10), width: 75, height: 75, decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade300)), child: ClipRRect(borderRadius: BorderRadius.circular(12), child: Image.file(f, fit: BoxFit.cover)))),
+        ..._images.map((f) => Container(margin: const EdgeInsets.only(right: 10), width: 80, height: 80, decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade300)), child: ClipRRect(borderRadius: BorderRadius.circular(12), child: Image.file(f, fit: BoxFit.cover)))),
         GestureDetector(onTap: () async {
           final f = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 40);
           if (f != null) setState(() => _images.add(File(f.path)));
-        }, child: Container(width: 75, height: 75, decoration: BoxDecoration(color: const Color(0xFF2962FF).withOpacity(0.05), borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.add_a_photo, color: Color(0xFF2962FF)))),
+        }, child: Container(width: 80, height: 80, decoration: BoxDecoration(color: Colors.blue.withOpacity(0.05), borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.add_a_photo, color: Colors.blue))),
       ]),
     );
   }

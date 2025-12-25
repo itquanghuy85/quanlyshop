@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/services.dart';
 import '../data/db_helper.dart';
 import '../models/sale_order_model.dart';
-import 'create_sale_view.dart';
 import 'sale_detail_view.dart';
-import '../services/user_service.dart';
 import '../services/firestore_service.dart';
+import '../services/notification_service.dart';
 
 class SaleListView extends StatefulWidget {
   final bool todayOnly;
@@ -19,143 +18,141 @@ class SaleListView extends StatefulWidget {
 class _SaleListViewState extends State<SaleListView> {
   final db = DBHelper();
   List<SaleOrder> _sales = [];
-  bool _isLoading = true;
-  bool _canDelete = false;
-
-  // Theme colors cho màn hình danh sách bán hàng
-  final Color _primaryColor = Colors.cyan; // Màu chính cho danh sách bán hàng
-  final Color _accentColor = Colors.cyan.shade600;
-  final Color _backgroundColor = const Color(0xFFF8FAFF);
+  bool _loading = true;
+  String _search = "";
 
   @override
   void initState() {
     super.initState();
-    _loadPermissions();
     _refresh();
   }
 
-  Future<void> _loadPermissions() async {
-    final perms = await UserService.getCurrentUserPermissions();
-    if (!mounted) return;
-    setState(() {
-      _canDelete = perms['allowViewSales'] ?? false; // Assuming delete requires sales permission
-    });
-  }
-
   Future<void> _refresh() async {
-    setState(() => _isLoading = true);
+    setState(() => _loading = true);
     final data = await db.getAllSales();
-    setState(() {
-      _sales = widget.todayOnly ? data.where((s) {
-        final d = DateTime.fromMillisecondsSinceEpoch(s.soldAt);
-        final now = DateTime.now();
-        return d.year == now.year && d.month == now.month && d.day == now.day;
-      }).toList() : data;
-      _isLoading = false;
-    });
-  }
-
-  void _confirmDelete(SaleOrder s) {
-    if (!_canDelete) return;
-    final passCtrl = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text("XÁC NHẬN XÓA ĐƠN BÁN"),
-        content: TextField(
-          controller: passCtrl,
-          obscureText: true,
-          decoration: const InputDecoration(hintText: "Nhập lại mật khẩu tài khoản quản lý"),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("HỦY")),
-          ElevatedButton(
-            onPressed: () async {
-              final user = FirebaseAuth.instance.currentUser;
-              if (user == null || user.email == null) {
-                Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Không xác định được tài khoản hiện tại')));
-                return;
-              }
-              try {
-                final cred = EmailAuthProvider.credential(email: user.email!, password: passCtrl.text);
-                await user.reauthenticateWithCredential(cred);
-                // Xóa trên Firestore nếu có firestoreId
-                if (s.firestoreId != null) {
-                  await FirestoreService.deleteSale(s.firestoreId!);
-                }
-                await db.deleteSale(s.id!);
-                Navigator.pop(ctx);
-                _refresh();
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ĐÃ XÓA ĐƠN BÁN')));
-              } catch (_) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Mật khẩu không đúng')));
-              }
-            },
-            child: const Text("XÓA"),
-          ),
-        ],
-      ),
-    );
+    if (!mounted) return;
+    setState(() { _sales = data; _loading = false; });
   }
 
   @override
   Widget build(BuildContext context) {
+    final fmt = NumberFormat('#,###');
+    final nowStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    
+    var list = _sales.where((s) {
+      final searchLower = _search.toUpperCase();
+      return s.customerName.contains(searchLower) || 
+             s.productNames.contains(searchLower) || 
+             s.productImeis.contains(searchLower);
+    }).toList();
+
+    if (widget.todayOnly) {
+      list = list.where((s) => DateFormat('yyyy-MM-dd').format(DateTime.fromMillisecondsSinceEpoch(s.soldAt)) == nowStr).toList();
+    }
+
     return Scaffold(
-      backgroundColor: _backgroundColor,
+      backgroundColor: const Color(0xFFF0F4F8),
       appBar: AppBar(
-        backgroundColor: _primaryColor,
-        foregroundColor: Colors.white,
-        title: const Text("DANH SÁCH ĐƠN BÁN", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-        elevation: 2,
-      ),
-      body: _isLoading
-        ? Center(child: CircularProgressIndicator(color: _primaryColor))
-        : _sales.isEmpty
-          ? const Center(child: Text("Chưa có đơn bán hàng nào"))
-          : ListView.builder(
-              padding: const EdgeInsets.all(15),
-              itemCount: _sales.length,
-              itemBuilder: (ctx, i) {
-                final s = _sales[i];
-                return Card(
-                  elevation: 2,
-                  color: Colors.white,
-                  margin: const EdgeInsets.only(bottom: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                  child: ListTile(
-                    onTap: () async {
-                      final res = await Navigator.push(context, MaterialPageRoute(builder: (_) => SaleDetailView(sale: s)));
-                      if (res == true) _refresh();
-                    },
-                    onLongPress: () => _confirmDelete(s),
-                    leading: CircleAvatar(
-                      backgroundColor: _primaryColor.withOpacity(0.1),
-                      child: Icon(Icons.phone_iphone, color: _primaryColor, size: 20),
-                    ),
-                    title: Text(s.productNames, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                    subtitle: Text("Khách: ${s.customerName}"),
-                    trailing: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text("${NumberFormat('#,###').format(s.totalPrice)} đ", style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-                        if (s.isInstallment) Icon(Icons.account_balance_rounded, color: _primaryColor, size: 14),
-                      ],
-                    ),
-                  ),
-                );
-              },
+        title: Text(widget.todayOnly ? "DOANH SỐ HÔM NAY" : "QUẢN LÝ ĐƠN BÁN HÀNG", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        actions: [
+          IconButton(onPressed: _refresh, icon: const Icon(Icons.refresh, color: Colors.blue)),
+        ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(60),
+          child: Padding(
+            padding: const EdgeInsets.all(10),
+            child: TextField(
+              onChanged: (v) => setState(() => _search = v),
+              decoration: InputDecoration(
+                hintText: "Tìm theo tên khách, máy hoặc IMEI...", 
+                prefixIcon: const Icon(Icons.search), 
+                filled: true, fillColor: Colors.white, 
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none)
+              ),
             ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () async {
-          final res = await Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateSaleView()));
-          if (res == true) _refresh();
-        },
-        label: const Text("BÁN MÁY MỚI"),
-        icon: const Icon(Icons.add_shopping_cart),
-        backgroundColor: _primaryColor,
+          ),
+        ),
       ),
+      body: _loading ? const Center(child: CircularProgressIndicator()) : list.isEmpty 
+        ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.shopping_bag_outlined, size: 80, color: Colors.grey[300]), const Text("Chưa có dữ liệu đơn hàng", style: TextStyle(color: Colors.grey))]))
+        : ListView.builder(
+            padding: const EdgeInsets.all(15),
+            itemCount: list.length,
+            itemBuilder: (ctx, i) {
+              final s = list[i];
+              final date = DateFormat('HH:mm - dd/MM/yy').format(DateTime.fromMillisecondsSinceEpoch(s.soldAt));
+              final remain = s.totalPrice - s.downPayment;
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white, 
+                  borderRadius: BorderRadius.circular(20), 
+                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10)]
+                ),
+                child: ListTile(
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => SaleDetailView(sale: s))).then((_) => _refresh());
+                  },
+                  contentPadding: const EdgeInsets.all(15),
+                  title: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(child: Text(s.customerName.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14), overflow: TextOverflow.ellipsis)),
+                      Text(date, style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 6),
+                      Text(s.productNames, style: const TextStyle(color: Color(0xFF1A237E), fontWeight: FontWeight.w900, fontSize: 13)),
+                      Text("IMEI: ${s.productImeis}", style: const TextStyle(fontSize: 11, color: Colors.blueGrey)),
+                      const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Divider(height: 1)),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          _statItem("TỔNG TIỀN", fmt.format(s.totalPrice), Colors.black),
+                          _statItem("ĐÃ THU", fmt.format(s.downPayment), Colors.green),
+                          if (remain > 0) _statItem("CÒN NỢ", fmt.format(remain), Colors.red),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(color: _getPayColor(s.paymentMethod).withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                            child: Text(s.paymentMethod, style: TextStyle(color: _getPayColor(s.paymentMethod), fontSize: 9, fontWeight: FontWeight.bold)),
+                          ),
+                          Text("NV: ${s.sellerName}", style: const TextStyle(fontSize: 10, fontStyle: FontStyle.italic, color: Colors.grey)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
     );
+  }
+
+  Widget _statItem(String label, String value, Color color) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 8, color: Colors.grey, fontWeight: FontWeight.bold)),
+        Text("$value đ", style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: color)),
+      ],
+    );
+  }
+
+  Color _getPayColor(String m) {
+    if (m.contains("TIỀN MẶT")) return Colors.green;
+    if (m.contains("CHUYỂN KHOẢN")) return Colors.blue;
+    if (m.contains("TRẢ GÓP")) return Colors.orange;
+    return Colors.redAccent;
   }
 }
