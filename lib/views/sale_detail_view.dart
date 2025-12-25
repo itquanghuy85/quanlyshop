@@ -106,8 +106,8 @@ Cảm ơn quý khách đã ủng hộ!
                   child: ElevatedButton.icon(
                     onPressed: _printReceipt,
                     icon: const Icon(Icons.print),
-                    label: const Text("IN"),
-                    style: ElevatedButton.styleFrom(backgroundColor: const Color(#FFFF99), padding: const EdgeInsets.symmetric(vertical: 15)),
+                    label: const Text(" IN "),
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green.shade600, padding: const EdgeInsets.symmetric(vertical: 15)),
                   ),
                 ),
                 const SizedBox(width: 12),
