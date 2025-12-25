@@ -11,11 +11,8 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'firebase_options.dart';
 import 'views/home_view.dart';
 import 'views/login_view.dart';
-<<<<<<< HEAD
-=======
 import 'views/splash_view.dart'; // Import màn hình Splash mới
 import 'views/currency_input_demo.dart'; // Import demo currency input
->>>>>>> e7fff18 (TINH CHINH GIAO DIEN HOME CHINH TINH LUONG)
 import 'services/user_service.dart';
 import 'services/notification_service.dart';
 import 'services/connectivity_service.dart';

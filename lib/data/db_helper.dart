@@ -184,7 +184,11 @@ class DBHelper {
     return res.isNotEmpty ? res.first : null;
   }
   Future<List<Map<String, dynamic>>> getAttendanceRange(DateTime start, DateTime end) async {
-    final db = await database; return await db.query('attendance', orderBy: 'createdAt DESC');
+    final db = await database;
+    return await db.query('attendance',
+      where: 'createdAt >= ? AND createdAt <= ?',
+      whereArgs: [start.millisecondsSinceEpoch, end.millisecondsSinceEpoch],
+      orderBy: 'createdAt DESC');
   }
   Future<List<Map<String, dynamic>>> getAttendanceByUser(String userId) async {
     final db = await database; return await db.query('attendance', where: 'userId = ?', whereArgs: [userId], orderBy: 'createdAt DESC');
