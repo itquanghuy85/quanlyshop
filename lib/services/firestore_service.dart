@@ -4,6 +4,7 @@ import '../models/product_model.dart';
 import '../models/sale_order_model.dart';
 import '../models/debt_model.dart';
 import '../models/expense_model.dart';
+import '../models/purchase_order_model.dart';
 import 'user_service.dart';
 import 'notification_service.dart';
 
@@ -184,5 +185,20 @@ class FirestoreService {
 
   static Future<void> deleteSupplier(String firestoreId) async {
     try { await _db.collection('suppliers').doc(firestoreId).delete(); } catch (_) {}
+  }
+
+  // --- PURCHASE ORDERS ---
+  static Future<String?> addPurchaseOrder(PurchaseOrder order) async {
+    try {
+      final shopId = await UserService.getCurrentShopId();
+      final docId = order.firestoreId ?? "po_${order.createdAt}_${order.orderCode}";
+      final docRef = _db.collection('purchase_orders').doc(docId);
+      Map<String, dynamic> data = order.toMap();
+      data['shopId'] = shopId;
+      data['firestoreId'] = docRef.id;
+      await docRef.set(data, SetOptions(merge: true));
+      _notifyAll("📦 ĐƠN NHẬP HÀNG", "${order.createdBy} tạo đơn ${order.orderCode} từ ${order.supplierName}", type: 'purchase_order', id: docRef.id, summary: "${order.supplierName} - ${order.totalAmount} sản phẩm");
+      return docRef.id;
+    } catch (e) { return null; }
   }
 }

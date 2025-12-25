@@ -4,8 +4,13 @@ import 'package:intl/intl.dart';
 import 'bluetooth_printer_service.dart';
 import 'wifi_printer_service.dart';
 import '../models/repair_model.dart';
+<<<<<<< HEAD
 
 enum PrinterType { bluetooth, wifi, auto }
+=======
+import '../models/sale_order_model.dart';
+import '../models/printer_types.dart';
+>>>>>>> e7fff18 (TINH CHINH GIAO DIEN HOME CHINH TINH LUONG)
 
 class UnifiedPrinterService {
   static String _removeDiacritics(String str) {
@@ -327,5 +332,65 @@ class UnifiedPrinterService {
     bytes.addAll(generator.text(_removeDiacritics(labelData['name'] ?? 'TEM MAY'), styles: const PosStyles(bold: true)));
     bytes.addAll(generator.cut());
     return _sendToPrinter(bytes, wifiIp: ipAddress);
+  }
+
+  static Future<bool> printRepairReceipt(
+    Map<String, dynamic> receiptData,
+    PaperSize paperSize, {
+    PrinterType? printerType,
+    BluetoothPrinterConfig? bluetoothPrinter,
+    String? wifiIp,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final fontScale = prefs.getDouble('label_font_scale') ?? 1.0;
+    final profile = await CapabilityProfile.load();
+    final generator = Generator(paperSize, profile);
+    List<int> bytes = [];
+    bytes.addAll(generator.reset());
+
+    PosTextSize headerSize = fontScale >= 2.0 ? PosTextSize.size2 : PosTextSize.size1;
+
+    // Header
+    if (prefs.getBool('receipt_show_logo') ?? true) {
+      bytes.addAll(generator.text(_removeDiacritics(receiptData['shopName'] ?? 'SHOP NEW'), styles: PosStyles(align: PosAlign.center, bold: true, height: headerSize)));
+    }
+    bytes.addAll(generator.text(_removeDiacritics(receiptData['shopAddress'] ?? ''), styles: const PosStyles(align: PosAlign.center)));
+    if (prefs.getBool('receipt_show_phone') ?? true) {
+      bytes.addAll(generator.text("HOTLINE: ${receiptData['shopPhone'] ?? ''}", styles: const PosStyles(align: PosAlign.center, bold: true)));
+    }
+    bytes.addAll(generator.hr());
+    bytes.addAll(generator.text('PHIEU SUA CHUA', styles: PosStyles(align: PosAlign.center, bold: true, height: headerSize)));
+    bytes.addAll(generator.feed(1));
+
+    // Customer info
+    bytes.addAll(generator.text(_removeDiacritics("KHACH: ${receiptData['customerName'] ?? ''}")));
+    bytes.addAll(generator.text("SDT: ${receiptData['phone'] ?? ''}"));
+    bytes.addAll(generator.text(_removeDiacritics("MAY: ${receiptData['model'] ?? ''}")));
+    bytes.addAll(generator.text(_removeDiacritics("LOI: ${receiptData['issue'] ?? ''}")));
+    bytes.addAll(generator.text("GIA: ${_fmt(receiptData['estimatedCost'] ?? 0)} VND", styles: const PosStyles(bold: true)));
+    bytes.addAll(generator.text("NGAY NHAN: ${receiptData['receivedDate'] ?? ''}", styles: const PosStyles(bold: true)));
+
+    if (prefs.getBool('receipt_show_qr') ?? true) {
+      bytes.addAll(generator.qrcode("repair:${receiptData['repairId'] ?? ''}", align: PosAlign.center));
+    }
+
+    bytes.addAll(generator.feed(2));
+    bytes.addAll(generator.cut());
+
+    // Send to specific printer if provided
+    if (printerType == PrinterType.bluetooth && bluetoothPrinter != null) {
+      final ok = await BluetoothPrinterService.connect(bluetoothPrinter.macAddress);
+      if (ok) return await BluetoothPrinterService.printBytes(bytes);
+    } else if (printerType == PrinterType.wifi && wifiIp != null) {
+      try {
+        final ok = await WifiPrinterService.instance.connect(ip: wifiIp, port: 9100);
+        if (ok) {
+          await WifiPrinterService.instance.printBytes(bytes);
+          return true;
+        }
+      } catch (_) {}
+    }
+
+    return _sendToPrinter(bytes);
   }
 }

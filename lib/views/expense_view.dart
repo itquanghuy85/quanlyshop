@@ -5,6 +5,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../data/db_helper.dart';
 import '../services/user_service.dart';
 import '../services/notification_service.dart';
+import '../widgets/validated_text_field.dart';
+import '../widgets/currency_text_field.dart';
 
 class ExpenseView extends StatefulWidget {
   const ExpenseView({super.key});
@@ -107,19 +109,33 @@ class _ExpenseViewState extends State<ExpenseView> {
   }
 
   Widget _input(TextEditingController c, String l, IconData i, {FocusNode? f, FocusNode? next, TextInputType type = TextInputType.text, String? suffix, String? hint, bool caps = false}) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: TextField(
-        controller: c, focusNode: f, keyboardType: type,
-        textCapitalization: caps ? TextCapitalization.characters : TextCapitalization.none,
-        onSubmitted: (_) { if (next != null) FocusScope.of(context).requestFocus(next); },
-        decoration: InputDecoration(
-          labelText: l, prefixIcon: Icon(i, size: 20), suffixText: suffix, hintText: hint,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-          filled: true, fillColor: Colors.grey.shade50,
+    if (type == TextInputType.number && (l.contains('TIỀN') || suffix == 'k')) {
+      // Use CurrencyTextField for amount fields
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: CurrencyTextField(
+          controller: c,
+          label: l,
+          icon: i,
+          hint: hint,
+          onSubmitted: () { if (next != null) FocusScope.of(context).requestFocus(next); },
         ),
-      ),
-    );
+      );
+    } else {
+      // Use ValidatedTextField for text fields
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: ValidatedTextField(
+          controller: c,
+          label: l,
+          icon: i,
+          keyboardType: type,
+          uppercase: caps,
+          hint: hint,
+          onSubmitted: () { if (next != null) FocusScope.of(context).requestFocus(next); },
+        ),
+      );
+    }
   }
 
   @override

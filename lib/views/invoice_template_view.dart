@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import '../widgets/validated_text_field.dart';
 
 class InvoiceTemplateView extends StatefulWidget {
   const InvoiceTemplateView({super.key});
@@ -95,35 +96,29 @@ class _InvoiceTemplateViewState extends State<InvoiceTemplateView> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text('Header:', style: TextStyle(fontWeight: FontWeight.bold)),
-                    TextField(
+                    ValidatedTextField(
                       controller: _headerController,
-                      maxLines: 4,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        hintText: 'Nhập header hóa đơn',
-                      ),
+                      label: "HEADER HÓA ĐƠN",
+                      maxLength: 500,
+                      uppercase: true,
                       onChanged: (_) => _updatePreview(),
                     ),
                     const SizedBox(height: 16),
                     const Text('Body (sử dụng placeholders như {customerName}, {total}):', style: TextStyle(fontWeight: FontWeight.bold)),
-                    TextField(
+                    ValidatedTextField(
                       controller: _bodyController,
-                      maxLines: 8,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        hintText: 'Nhập nội dung chính',
-                      ),
+                      label: "NỘI DUNG CHÍNH",
+                      maxLength: 2000,
+                      uppercase: true,
                       onChanged: (_) => _updatePreview(),
                     ),
                     const SizedBox(height: 16),
                     const Text('Footer:', style: TextStyle(fontWeight: FontWeight.bold)),
-                    TextField(
+                    ValidatedTextField(
                       controller: _footerController,
-                      maxLines: 3,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        hintText: 'Nhập footer hóa đơn',
-                      ),
+                      label: "FOOTER HÓA ĐƠN",
+                      maxLength: 500,
+                      uppercase: true,
                       onChanged: (_) => _updatePreview(),
                     ),
                     const SizedBox(height: 16),

@@ -13,10 +13,12 @@ class ValidatedTextField extends StatefulWidget {
   final String? Function(String)? customValidator;
   final List<TextInputFormatter>? inputFormatters;
   final int? maxLength;
+  final int? maxLines;
   final bool enabled;
   final VoidCallback? onSubmitted;
   final Function(String)? onChanged;
   final bool autoValidate;
+  final bool uppercase; // New parameter for uppercase conversion
 
   const ValidatedTextField({
     super.key,
@@ -30,10 +32,12 @@ class ValidatedTextField extends StatefulWidget {
     this.customValidator,
     this.inputFormatters,
     this.maxLength,
+    this.maxLines,
     this.enabled = true,
     this.onSubmitted,
     this.onChanged,
     this.autoValidate = false,
+    this.uppercase = false, // Default to false
   });
 
   @override
@@ -106,8 +110,21 @@ class _ValidatedTextFieldState extends State<ValidatedTextField> {
         obscureText: widget.obscureText,
         inputFormatters: widget.inputFormatters,
         maxLength: widget.maxLength,
+        maxLines: widget.maxLines,
         enabled: widget.enabled,
         onChanged: (value) {
+          // Convert to uppercase if enabled
+          if (widget.uppercase) {
+            final upperValue = value.toUpperCase();
+            if (upperValue != value) {
+              widget.controller.value = TextEditingValue(
+                text: upperValue,
+                selection: TextSelection.collapsed(offset: upperValue.length),
+              );
+              value = upperValue;
+            }
+          }
+
           widget.onChanged?.call(value);
           if (widget.autoValidate) {
             _validate();

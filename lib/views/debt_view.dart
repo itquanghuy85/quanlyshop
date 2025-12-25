@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../data/db_helper.dart';
 import '../services/user_service.dart';
 import '../services/notification_service.dart';
+import '../widgets/currency_text_field.dart';
 
 class DebtView extends StatefulWidget {
   const DebtView({super.key});
@@ -45,11 +46,17 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text("CẬP NHẬT TRẢ NỢ"),
-        content: TextField(controller: payC, keyboardType: TextInputType.number, autofocus: true, decoration: const InputDecoration(labelText: "Số tiền khách trả thêm (k)", suffixText: "k")),
+        content: CurrencyTextField(
+          controller: payC,
+          label: "SỐ TIỀN KHÁCH TRẢ THÊM",
+          onSubmitted: () {
+            // Handle submission if needed
+          },
+        ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("HỦY")),
           ElevatedButton(onPressed: () async {
-            int pay = (int.tryParse(payC.text) ?? 0) * 1000;
+            int pay = int.tryParse(payC.text.replaceAll('.', '')) ?? 0;
             await db.updateDebtPaid(debt['id'], pay);
             Navigator.pop(ctx);
             _refresh();

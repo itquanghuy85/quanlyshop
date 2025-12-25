@@ -5,6 +5,7 @@ import '../services/firestore_service.dart';
 import '../services/bluetooth_printer_service.dart';
 import '../services/unified_printer_service.dart';
 import '../models/repair_model.dart';
+import '../models/printer_types.dart';
 import '../widgets/validated_text_field.dart';
 import '../widgets/printer_selection_dialog.dart';
 

@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/user_service.dart';
+import '../widgets/validated_text_field.dart';
 
 class MyProfileView extends StatefulWidget {
   const MyProfileView({super.key});
@@ -118,13 +119,11 @@ class _MyProfileViewState extends State<MyProfileView> {
   Widget _input(TextEditingController c, String label, {TextInputType keyboard = TextInputType.text}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
-      child: TextField(
+      child: ValidatedTextField(
         controller: c,
+        label: label,
         keyboardType: keyboard,
-        decoration: InputDecoration(
-          labelText: label,
-          border: const OutlineInputBorder(),
-        ),
+        uppercase: true, // All profile fields should be uppercase
       ),
     );
   }

@@ -9,6 +9,7 @@ import '../services/notification_service.dart';
 import '../services/firestore_service.dart';
 import '../widgets/validated_text_field.dart';
 import '../widgets/debounced_search_field.dart';
+import '../widgets/currency_text_field.dart';
 
 class CreateSaleView extends StatefulWidget {
   const CreateSaleView({super.key});
@@ -175,7 +176,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
             _buildSelectedItemsList(),
             const SizedBox(height: 20),
             _sectionTitle("2. THÔNG TIN KHÁCH HÀNG"),
-            ValidatedTextField(controller: nameCtrl, label: "TÊN KHÁCH HÀNG", icon: Icons.person),
+            ValidatedTextField(controller: nameCtrl, label: "TÊN KHÁCH HÀNG", icon: Icons.person, uppercase: true),
             _buildCustomerSuggestions(),
             ValidatedTextField(controller: phoneCtrl, label: "SỐ ĐIỆN THOẠI", icon: Icons.phone, keyboardType: TextInputType.phone),
             const SizedBox(height: 20),
@@ -207,13 +208,10 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                   ),
                   SizedBox(
                     width: 150,
-                    child: TextField(
+                    child: CurrencyTextField(
                       controller: priceCtrl,
-                      enabled: !_autoCalcTotal, // CHỈ CHO PHÉP SỬA KHI TẮT TỰ ĐỘNG
-                      keyboardType: TextInputType.number,
-                      textAlign: TextAlign.right,
-                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.red),
-                      decoration: const InputDecoration(border: InputBorder.none, hintText: "0"),
+                      label: "",
+                      enabled: !_autoCalcTotal,
                       onChanged: (_) => _calculateInstallment(),
                     ),
                   ),
@@ -230,7 +228,12 @@ class _CreateSaleViewState extends State<CreateSaleView> {
             const SizedBox(height: 10),
             _moneyInput(loanAmountCtrl, "NGÂN HÀNG CHO VAY", Colors.blueGrey, enabled: false),
             const SizedBox(height: 10),
-            TextField(controller: bankCtrl, decoration: const InputDecoration(labelText: "TÊN CÔNG TY TÀI CHÍNH", border: OutlineInputBorder(), prefixIcon: Icon(Icons.account_balance))),
+            ValidatedTextField(
+              controller: bankCtrl,
+              label: "TÊN CÔNG TY TÀI CHÍNH",
+              icon: Icons.account_balance,
+              uppercase: true,
+            ),
             const SizedBox(height: 8),
             Wrap(spacing: 8, children: ["FE", "HOME", "MIRAE", "HD", "F83", "T86"].map((b) => ActionChip(label: Text(b, style: const TextStyle(fontSize: 11)), onPressed: () => setState(() => bankCtrl.text = b))).toList()),
           ],
@@ -242,7 +245,13 @@ class _CreateSaleViewState extends State<CreateSaleView> {
   }
 
   Widget _moneyInput(TextEditingController ctrl, String label, Color color, {bool enabled = true}) {
-    return TextField(controller: ctrl, enabled: enabled, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: label, border: OutlineInputBorder(), prefixIcon: Icon(Icons.money, color: color), filled: !enabled, fillColor: enabled ? null : Colors.grey.shade50, suffixText: "k"), onChanged: (_) => _calculateInstallment());
+    return CurrencyTextField(
+      controller: ctrl,
+      label: label,
+      icon: Icons.money,
+      enabled: enabled,
+      onChanged: (_) => _calculateInstallment(),
+    );
   }
 
   Widget _sectionTitle(String t) => Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(t, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey, fontSize: 12)));

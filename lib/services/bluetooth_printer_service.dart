@@ -121,6 +121,7 @@ class BluetoothPrinterService {
   static Future<Map<String, dynamic>> connectWithStatus(String macAddress) async {
     try {
       final success = await connect(macAddress);
+<<<<<<< HEAD
       return {
         'success': success,
         'error': success ? null : 'Không thể kết nối với máy in',
@@ -130,6 +131,15 @@ class BluetoothPrinterService {
         'success': false,
         'error': e.toString(),
       };
+=======
+      if (success) {
+        return {'success': true};
+      } else {
+        return {'success': false, 'error': 'Connection failed'};
+      }
+    } catch (e) {
+      return {'success': false, 'error': e.toString()};
+>>>>>>> e7fff18 (TINH CHINH GIAO DIEN HOME CHINH TINH LUONG)
     }
   }
 

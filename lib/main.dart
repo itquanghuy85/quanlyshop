@@ -11,6 +11,11 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'firebase_options.dart';
 import 'views/home_view.dart';
 import 'views/login_view.dart';
+<<<<<<< HEAD
+=======
+import 'views/splash_view.dart'; // Import màn hình Splash mới
+import 'views/currency_input_demo.dart'; // Import demo currency input
+>>>>>>> e7fff18 (TINH CHINH GIAO DIEN HOME CHINH TINH LUONG)
 import 'services/user_service.dart';
 import 'services/notification_service.dart';
 import 'services/connectivity_service.dart';
@@ -120,7 +125,22 @@ class _MyAppState extends State<MyApp> {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
+<<<<<<< HEAD
       home: AuthGate(setLocale: setLocale),
+=======
+      localeResolutionCallback: (locale, supportedLocales) {
+        for (var supportedLocale in supportedLocales) {
+          if (supportedLocale.languageCode == locale?.languageCode) {
+            return supportedLocale;
+          }
+        }
+        return supportedLocales.first;
+      },
+      routes: {
+        '/currency-demo': (context) => const CurrencyInputDemo(),
+      },
+      home: SplashView(setLocale: setLocale), // Luôn bắt đầu từ SplashView để khởi tạo mượt mà
+>>>>>>> e7fff18 (TINH CHINH GIAO DIEN HOME CHINH TINH LUONG)
     );
   }
 }

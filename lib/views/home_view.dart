@@ -21,6 +21,7 @@ import 'settings_view.dart';
 import 'chat_view.dart';
 import 'thermal_printer_design_view.dart';
 import 'inventory_check_view.dart';
+import 'purchase_order_list_view.dart';
 import 'super_admin_view.dart' as admin_view;
 import 'staff_list_view.dart';
 import 'qr_scan_view.dart';
@@ -240,15 +241,41 @@ class _HomeViewState extends State<HomeView> {
           onRefresh: () => _syncNow(),
           child: SingleChildScrollView(padding: const EdgeInsets.all(20), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             if (_shopLocked) Container(padding: const EdgeInsets.all(12), margin: const EdgeInsets.only(bottom: 12), decoration: BoxDecoration(color: Colors.red.shade50, border: Border.all(color: Colors.redAccent), borderRadius: BorderRadius.circular(10)), child: const Text("CỬA HÀNG BỊ KHÓA", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold))),
+<<<<<<< HEAD
             TextField(controller: _phoneSearchCtrl, decoration: InputDecoration(hintText: "Tìm nhanh khách theo SĐT", prefixIcon: const Icon(Icons.search), border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)), filled: true, fillColor: Colors.white), onSubmitted: (v) { if(v.isNotEmpty) Navigator.push(context, MaterialPageRoute(builder: (_) => CustomerHistoryView(phone: v, name: v))); }),
+=======
+            
+            // Welcome Card
+            _buildWelcomeCard(),
+>>>>>>> e7fff18 (TINH CHINH GIAO DIEN HOME CHINH TINH LUONG)
             const SizedBox(height: 20),
-            const PerpetualCalendar(),
+            
+            // Priority Tasks
+            _buildPriorityTasks(),
+            const SizedBox(height: 20),
+            
+            // Quick Stats
+            _buildQuickStats(),
             const SizedBox(height: 25),
-            _buildAlerts(),
-            const SizedBox(height: 25),
+            
+            // Today Summary
             _buildTodaySummary(),
             const SizedBox(height: 25),
-            _buildGridMenu(),
+            
+            // Search field
+            TextField(controller: _phoneSearchCtrl, decoration: InputDecoration(hintText: "Tìm nhanh khách theo SĐT", prefixIcon: const Icon(Icons.search), border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)), filled: true, fillColor: Colors.white), onSubmitted: (v) { if(v.isNotEmpty) { HapticFeedback.lightImpact(); Navigator.push(context, MaterialPageRoute(builder: (_) => CustomerHistoryView(phone: v, name: v))); } }),
+            const SizedBox(height: 20),
+            
+            // Calendar
+            const PerpetualCalendar(),
+            const SizedBox(height: 25),
+            
+            // Alerts
+            _buildAlerts(),
+            const SizedBox(height: 25),
+            
+            // Module Grid
+            _buildModuleGrid(),
             const SizedBox(height: 50),
           ])),
         ),
@@ -297,9 +324,10 @@ class _HomeViewState extends State<HomeView> {
 
   Widget _summaryRow(IconData i, Color c, String l, String v, VoidCallback t, {bool isBold = false}) => InkWell(onTap: t, child: Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Row(children: [Icon(i, size: 18, color: c), const SizedBox(width: 12), Expanded(child: Text(l, style: TextStyle(fontSize: 13, color: isBold ? Colors.black : Colors.grey, fontWeight: isBold ? FontWeight.bold : FontWeight.normal))), Text(v, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: isBold ? c : Colors.black)), const SizedBox(width: 5), const Icon(Icons.chevron_right, size: 14, color: Colors.grey)])));
 
-  Widget _buildGridMenu() {
+  Widget _buildModuleGrid() {
     final l10n = AppLocalizations.of(context)!;
     final perms = _permissions;
+<<<<<<< HEAD
     final tiles = <Widget>[];
     void addTile(String permKey, String title, IconData icon, List<Color> colors, VoidCallback onTap) {
       if (hasFullAccess || (perms[permKey] ?? true)) { tiles.add(_menuTile(title, icon, colors, onTap)); }
@@ -316,6 +344,262 @@ class _HomeViewState extends State<HomeView> {
     addTile('allowViewPrinter', l10n.printer, Icons.print_rounded, [const Color(0xFF607D8B), const Color(0xFF90A4AE)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ThermalPrinterDesignView())));
     addTile('allowViewSettings', l10n.settings, Icons.settings_rounded, [const Color(0xFF263238), const Color(0xFF455A64)], _openSettingsCenter);
     return GridView.count(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), crossAxisCount: 2, mainAxisSpacing: 15, crossAxisSpacing: 15, childAspectRatio: 1.3, children: tiles);
+=======
+    final modules = <Widget>[];
+    
+    void addModule(String permKey, String title, IconData icon, List<Color> colors, VoidCallback onTap) {
+      if (hasFullAccess || (perms[permKey] ?? true)) { 
+        modules.add(_buildModuleCard(title, icon, colors, () { HapticFeedback.mediumImpact(); onTap(); })); 
+      }
+    }
+    
+    // Row 1 - Core business functions
+    addModule('allowViewSales', "Bán hàng", Icons.shopping_cart_checkout_rounded, [const Color(0xFFFF4081), const Color(0xFFFF80AB)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SaleListView())));
+    addModule('allowViewRepairs', "Sửa chữa", Icons.build_circle_rounded, [const Color(0xFF2979FF), const Color(0xFF448AFF)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderListView(role: widget.role))));
+    addModule('allowViewInventory', "Kho hàng", Icons.inventory_2_rounded, [const Color(0xFFFF6D00), const Color(0xFFFFAB40)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const InventoryView())));
+    
+    // Row 2 - Business operations
+    addModule('allowViewPurchaseOrders', "Đơn nhập", Icons.receipt_long_rounded, [const Color(0xFF4CAF50), const Color(0xFF81C784)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PurchaseOrderListView())));
+    addModule('allowViewRevenue', "Báo cáo", Icons.leaderboard_rounded, [const Color(0xFF304FFE), const Color(0xFF536DFE)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RevenueView())));
+    addModule('allowViewWarranty', "Bảo hành", Icons.verified_user_rounded, [const Color(0xFF00C853), const Color(0xFFB2FF59)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WarrantyView())));
+    
+    // Row 3 - Communication & HR
+    addModule('allowViewChat', "Chat", Icons.chat_bubble_rounded, [const Color(0xFF7C4DFF), const Color(0xFFB388FF)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChatView())));
+    addModule('allowViewChat', "Chấm công", Icons.fingerprint_rounded, [const Color(0xFF009688), const Color(0xFF4DB6AC)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AttendanceView())));
+    addModule('allowViewCustomers', "Khách hàng", Icons.people_alt_rounded, [const Color(0xFF00BFA5), const Color(0xFF64FFDA)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => CustomerListView(role: widget.role))));
+    
+    // Row 4 - Management & Tools
+    if (hasFullAccess) addModule('allowManageStaff', "Nhật ký", Icons.history_edu_rounded, [const Color(0xFF455A64), const Color(0xFF78909C)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AuditLogView())));
+    if (hasFullAccess) addModule('allowViewRevenue', "DS & Lương", Icons.assessment_rounded, [const Color(0xFF6200EA), const Color(0xFF7C4DFF)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StaffPerformanceView())));
+    addModule('allowViewPrinter', "In ấn", Icons.print_rounded, [const Color(0xFF607D8B), const Color(0xFF90A4AE)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ThermalPrinterDesignView())));
+    
+    // Row 5 - Tools & Settings
+    addModule('allowViewInventory', "Kiểm kho QR", Icons.qr_code_scanner_rounded, [const Color(0xFFFFAB00), const Color(0xFFFFD740)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const InventoryCheckView())));
+    addModule('allowViewSettings', "Cài đặt", Icons.settings_rounded, [const Color(0xFF263238), const Color(0xFF455A64)], _openSettingsCenter);
+    addModule('allowViewSettings', "Demo Currency", Icons.monetization_on_rounded, [const Color(0xFF00BCD4), const Color(0xFF4DD0E1)], () => Navigator.pushNamed(context, '/currency-demo'));
+    
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "Tất cả chức năng",
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
+          ),
+          const SizedBox(height: 16),
+          GridView.count(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisCount: 3,
+            mainAxisSpacing: 12,
+            crossAxisSpacing: 12,
+            childAspectRatio: 0.9,
+            children: modules,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildModuleCard(String title, IconData icon, List<Color> colors, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(colors: colors),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [BoxShadow(color: colors[0].withOpacity(0.3), blurRadius: 8)],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: Colors.white, size: 32),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWelcomeCard() {
+    final hour = DateTime.now().hour;
+    final greeting = hour < 12 ? "Chào buổi sáng" : hour < 18 ? "Chào buổi chiều" : "Chào buổi tối";
+    
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(colors: [Color(0xFF2962FF), Color(0xFF448AFF)]),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: const Color(0xFF2962FF).withOpacity(0.3), blurRadius: 15)],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.waving_hand, color: Colors.white, size: 28),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  "$greeting!",
+                  style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            "Hôm nay có ${totalPendingRepair + todaySaleCount} công việc cần làm",
+            style: const TextStyle(color: Colors.white70, fontSize: 14),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPriorityTasks() {
+    final tasks = <Map<String, dynamic>>[];
+    
+    if (totalPendingRepair > 0) {
+      tasks.add({
+        'title': '$totalPendingRepair đơn sửa chờ xử lý',
+        'icon': Icons.build_circle,
+        'color': Colors.red,
+        'onTap': () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderListView(role: widget.role))),
+      });
+    }
+    
+    if (expiringWarranties > 0) {
+      tasks.add({
+        'title': '$expiringWarranties bảo hành sắp hết hạn',
+        'icon': Icons.verified_user,
+        'color': Colors.orange,
+        'onTap': () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WarrantyView())),
+      });
+    }
+    
+    if (tasks.isEmpty) {
+      tasks.add({
+        'title': 'Tất cả công việc đã hoàn thành',
+        'icon': Icons.check_circle,
+        'color': Colors.green,
+        'onTap': null,
+      });
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "Nhiệm vụ ưu tiên",
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
+          ),
+          const SizedBox(height: 12),
+          ...tasks.map((task) => InkWell(
+            onTap: task['onTap'] != null ? () { HapticFeedback.lightImpact(); task['onTap'](); } : null,
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: task['color'].withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: task['color'].withOpacity(0.2)),
+              ),
+              child: Row(
+                children: [
+                  Icon(task['icon'], color: task['color'], size: 20),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      task['title'],
+                      style: TextStyle(color: task['color'], fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                  if (task['onTap'] != null)
+                    Icon(Icons.arrow_forward_ios, color: task['color'], size: 16),
+                ],
+              ),
+            ),
+          )),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickStats() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "Thống kê nhanh",
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildStatItem("💰", "${NumberFormat('#,###').format(revenueToday)}", "Doanh thu"),
+              _buildStatItem("🔧", "$todayRepairDone/$totalPendingRepair", "Sửa chữa"),
+              _buildStatItem("📦", todaySaleCount.toString(), "Đơn bán"),
+              _buildStatItem("🔧", todayNewRepairs.toString(), "Đơn sửa mới"),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatItem(String emoji, String value, String label) {
+    return Column(
+      children: [
+        Text(emoji, style: const TextStyle(fontSize: 24)),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 12, color: Colors.grey),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+>>>>>>> e7fff18 (TINH CHINH GIAO DIEN HOME CHINH TINH LUONG)
   }
 
   void _openSettingsCenter() {
@@ -324,9 +608,5 @@ class _HomeViewState extends State<HomeView> {
       if (hasFullAccess) ListTile(leading: const Icon(Icons.group_rounded, color: Colors.indigo), title: const Text("QUẢN LÝ NHÂN VIÊN"), onTap: () { Navigator.pop(ctx); Navigator.push(context, MaterialPageRoute(builder: (_) => const StaffListView())); }),
       if (_isSuperAdmin) ListTile(leading: const Icon(Icons.admin_panel_settings_rounded, color: Colors.deepPurple), title: const Text("TRUNG TÂM SUPER ADMIN"), onTap: () { Navigator.pop(ctx); Navigator.push(context, MaterialPageRoute(builder: (_) => const admin_view.SuperAdminView())); }),
     ]))));
-  }
-
-  Widget _menuTile(String title, IconData icon, List<Color> colors, VoidCallback onTap) {
-    return InkWell(onTap: onTap, child: Container(decoration: BoxDecoration(gradient: LinearGradient(colors: colors), borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: colors[0].withOpacity(0.3), blurRadius: 8)]), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(icon, color: Colors.white, size: 35), const SizedBox(height: 8), Text(title, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12))])));
   }
 }

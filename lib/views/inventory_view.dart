@@ -12,7 +12,12 @@ import '../services/unified_printer_service.dart';
 import '../services/bluetooth_printer_service.dart';
 import '../services/notification_service.dart';
 import '../services/user_service.dart';
+<<<<<<< HEAD
 import '../utils/sku_generator.dart';
+=======
+import '../widgets/validated_text_field.dart';
+import '../widgets/currency_text_field.dart';
+>>>>>>> e7fff18 (TINH CHINH GIAO DIEN HOME CHINH TINH LUONG)
 
 class InventoryView extends StatefulWidget {
   const InventoryView({super.key});
@@ -295,8 +300,37 @@ class _InventoryViewState extends State<InventoryView> {
     }));
   }
 
+<<<<<<< HEAD
   Widget _input(TextEditingController c, String l, IconData i, {FocusNode? f, FocusNode? next, TextInputType type = TextInputType.text, String? suffix, bool caps = false, bool isBig = false, bool readOnly = false}) {
     return Padding(padding: const EdgeInsets.only(bottom: 10), child: TextField(controller: c, focusNode: f, keyboardType: type, textInputAction: next != null ? TextInputAction.next : TextInputAction.done, textCapitalization: caps ? TextCapitalization.characters : TextCapitalization.none, inputFormatters: type == TextInputType.number ? [FilteringTextInputFormatter.digitsOnly] : [], style: TextStyle(fontSize: isBig ? 20 : 14, fontWeight: isBig ? FontWeight.bold : FontWeight.normal), readOnly: readOnly, onSubmitted: (_) { if (next != null) FocusScope.of(context).requestFocus(next); }, decoration: InputDecoration(labelText: l, prefixIcon: Icon(i, size: 18), suffixText: suffix, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), filled: true, fillColor: readOnly ? Colors.grey[100] : Colors.white, contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12))));
+=======
+  Widget _input(TextEditingController c, String l, IconData i, {FocusNode? f, FocusNode? next, TextInputType type = TextInputType.text, String? suffix, bool caps = false, bool isBig = false}) {
+    if (type == TextInputType.number && (l.contains('GIÁ') || l.contains('TIỀN') || suffix == 'k')) {
+      // Use CurrencyTextField for price fields
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: CurrencyTextField(
+          controller: c,
+          label: l,
+          icon: i,
+          onSubmitted: () { if (next != null) FocusScope.of(context).requestFocus(next); },
+        ),
+      );
+    } else {
+      // Use ValidatedTextField for text fields
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: ValidatedTextField(
+          controller: c,
+          label: l,
+          icon: i,
+          keyboardType: type,
+          uppercase: caps,
+          onSubmitted: () { if (next != null) FocusScope.of(context).requestFocus(next); },
+        ),
+      );
+    }
+>>>>>>> e7fff18 (TINH CHINH GIAO DIEN HOME CHINH TINH LUONG)
   }
 
   void _showProductDetail(Product p) {

@@ -59,6 +59,8 @@ class UserService {
       'allowViewParts': isOwner || isManager || isEmployee || isTechnician || isAdmin || isUser, // Tất cả đều cần xem linh kiện
       'allowViewSuppliers': isOwner || isManager || isEmployee || isAdmin,
       'allowViewCustomers': isOwner || isManager || isEmployee || isTechnician || isAdmin || isUser, // Tất cả đều cần xem khách hàng
+      'allowViewPurchaseOrders': isOwner || isManager || isAdmin,
+      'allowCreatePurchaseOrders': isOwner || isManager || isAdmin,
       'allowViewWarranty': isOwner || isManager || isEmployee || isTechnician || isAdmin,
       'allowViewChat': isOwner || isManager || isEmployee || isTechnician || isAdmin || isUser,
       'allowViewPrinter': isOwner || isManager || isEmployee || isTechnician || isAdmin || isUser,
@@ -274,6 +276,8 @@ class UserService {
         'allowViewParts': (data['allowViewParts'] as bool?) ?? defaults['allowViewParts']!,
         'allowViewSuppliers': (data['allowViewSuppliers'] as bool?) ?? defaults['allowViewSuppliers']!,
         'allowViewCustomers': (data['allowViewCustomers'] as bool?) ?? defaults['allowViewCustomers']!,
+        'allowViewPurchaseOrders': (data['allowViewPurchaseOrders'] as bool?) ?? defaults['allowViewPurchaseOrders']!,
+        'allowCreatePurchaseOrders': (data['allowCreatePurchaseOrders'] as bool?) ?? defaults['allowCreatePurchaseOrders']!,
         'allowViewWarranty': (data['allowViewWarranty'] as bool?) ?? defaults['allowViewWarranty']!,
         'allowViewChat': (data['allowViewChat'] as bool?) ?? defaults['allowViewChat']!,
         'allowViewPrinter': (data['allowViewPrinter'] as bool?) ?? defaults['allowViewPrinter']!,
