@@ -12,7 +12,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'firebase_options.dart';
 import 'views/home_view.dart';
 import 'views/login_view.dart';
-import 'views/intro_view.dart'; // Import màn hình giới thiệu mới
+import 'views/splash_view.dart'; // Import màn hình Splash mới
 import 'services/user_service.dart';
 import 'services/notification_service.dart';
 
@@ -129,41 +129,12 @@ class _MyAppState extends State<MyApp> {
         }
         return supportedLocales.first;
       },
-      home: RootGate(setLocale: setLocale), // Chuyển sang RootGate để kiểm tra Intro
+      home: SplashView(setLocale: setLocale), // Luôn bắt đầu từ SplashView để khởi tạo mượt mà
     );
   }
 }
 
-// CỔNG KIỂM TRA LẦN ĐẦU MỞ APP
-class RootGate extends StatelessWidget {
-  final void Function(Locale)? setLocale;
-  const RootGate({Key? key, this.setLocale}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<bool>(
-      future: _checkFirstTime(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(body: Center(child: CircularProgressIndicator()));
-        }
-        
-        // Nếu là lần đầu tiên -> Hiện Intro | Nếu không -> Sang AuthGate
-        if (snapshot.data == true) {
-          return IntroView(setLocale: setLocale);
-        } else {
-          return AuthGate(setLocale: setLocale);
-        }
-      },
-    );
-  }
-
-  Future<bool> _checkFirstTime() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool('is_first_time') ?? true;
-  }
-}
-
+// CỔNG KIỂM TRA ĐĂNG NHẬP (Dùng chung cho toàn hệ thống)
 class AuthGate extends StatefulWidget {
   final void Function(Locale)? setLocale;
   const AuthGate({Key? key, this.setLocale}) : super(key: key);

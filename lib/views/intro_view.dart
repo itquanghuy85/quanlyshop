@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'login_view.dart';
+import '../main.dart'; // Đảm bảo import main để dùng AuthGate
 
 class IntroView extends StatefulWidget {
   final void Function(Locale)? setLocale;
@@ -41,7 +41,12 @@ class _IntroViewState extends State<IntroView> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('is_first_time', false);
     if (!mounted) return;
-    Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => widget.setLocale != null ? LoginView(setLocale: widget.setLocale) : const Scaffold(body: Center(child: Text("Lỗi khởi tạo")))));
+    
+    // SỬA LỖI Ở ĐÂY: Thay vì vào LoginView, ta vào AuthGate để hệ thống tự điều hướng
+    Navigator.pushReplacement(
+      context, 
+      MaterialPageRoute(builder: (_) => AuthGate(setLocale: widget.setLocale))
+    );
   }
 
   @override
@@ -57,13 +62,14 @@ class _IntroViewState extends State<IntroView> {
             itemBuilder: (ctx, i) => _buildSlide(_introData[i]),
           ),
           
-          // Nút Skip
           Positioned(
             top: 50, right: 20,
-            child: TextButton(onPressed: _completeIntro, child: const Text("BỎ QUA", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold))),
+            child: TextButton(
+              onPressed: _completeIntro, 
+              child: const Text("BỎ QUA", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold))
+            ),
           ),
 
-          // Chỉ báo trang & Nút tiếp tục
           Positioned(
             bottom: 50, left: 20, right: 20,
             child: Row(
