@@ -22,6 +22,7 @@ class AttendanceView extends StatefulWidget {
 class _AttendanceViewState extends State<AttendanceView> with TickerProviderStateMixin {
   final db = DBHelper();
   bool _loading = true;
+  bool _hasPermission = false;
   Attendance? _today;
   File? _photoIn;
   File? _photoOut;
@@ -59,6 +60,20 @@ class _AttendanceViewState extends State<AttendanceView> with TickerProviderStat
   Future<void> _initData() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
+    
+    // Kiểm tra quyền truy cập chấm công
+    final perms = await UserService.getCurrentUserPermissions();
+    final hasPermission = perms['allowViewAttendance'] == true;
+    
+    if (!hasPermission) {
+      if (!mounted) return;
+      setState(() {
+        _hasPermission = false;
+        _loading = false;
+      });
+      return;
+    }
+    
     final r = await UserService.getUserRole(uid);
     final rec = await db.getAttendance(DateFormat('yyyy-MM-dd').format(DateTime.now()), uid);
     final schedule = await db.getWorkSchedule(uid);
@@ -67,6 +82,7 @@ class _AttendanceViewState extends State<AttendanceView> with TickerProviderStat
 
     if (!mounted) return;
     setState(() {
+      _hasPermission = true;
       _role = r;
       _today = rec;
       _workSchedule = schedule ?? {};
@@ -301,7 +317,22 @@ class _AttendanceViewState extends State<AttendanceView> with TickerProviderStat
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : TabBarView(
+          : !_hasPermission
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.lock, size: 80, color: Colors.grey[300]),
+                      const SizedBox(height: 16),
+                      const Text(
+                        "Bạn không có quyền truy cập\nchức năng chấm công",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.grey, fontSize: 16),
+                      ),
+                    ],
+                  ),
+                )
+              : TabBarView(
               controller: _tabController,
               children: [
                 _buildDashboardTab(),

@@ -12,7 +12,7 @@ class DebtView extends StatefulWidget {
   State<DebtView> createState() => _DebtViewState();
 }
 
-class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin {
+class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin, AutomaticKeepAliveClientMixin {
   final db = DBHelper();
   late TabController _tabController;
   List<Map<String, dynamic>> _debts = [];
@@ -36,6 +36,7 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
   Future<void> _refresh() async {
     setState(() => _isLoading = true);
     final data = await db.getAllDebts();
+    debugPrint('DebtView _refresh: loaded ${data.length} debts');
     if (!mounted) return;
     setState(() { _debts = data; _isLoading = false; });
   }
@@ -68,7 +69,11 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
   }
 
   @override
+  bool get wantKeepAlive => true;
+
+  @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
       backgroundColor: const Color(0xFFF0F4F8),
       appBar: AppBar(
@@ -131,7 +136,7 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Expanded(child: Text(d['personName'].toString().toUpperCase(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14))),
+            Expanded(child: Text((d['personName'] ?? 'N/A').toString().toUpperCase(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14))),
             Text(date, style: const TextStyle(fontSize: 10, color: Colors.grey)),
           ],
         ),

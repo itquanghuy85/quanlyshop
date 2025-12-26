@@ -37,6 +37,7 @@ class _StaffListViewState extends State<StaffListView> {
   String? _currentShopId;
   bool _isSuperAdmin = false;
   bool _loadingRole = true;
+  bool _hasManageStaffAccess = false;
   
   // Invite code QR
   String? _currentInviteCode;
@@ -59,12 +60,14 @@ class _StaffListViewState extends State<StaffListView> {
 
     final role = await UserService.getUserRole(user.uid);
     final shopId = await UserService.getCurrentShopId();
+    final perms = await UserService.getCurrentUserPermissions();
 
     if (!mounted) return;
     setState(() {
       _currentRole = role;
       _currentShopId = shopId;
       _isSuperAdmin = UserService.isCurrentUserSuperAdmin();
+      _hasManageStaffAccess = perms['allowManageStaff'] ?? false;
       _loadingRole = false;
     });
 
@@ -761,6 +764,35 @@ class _StaffListViewState extends State<StaffListView> {
 
   @override
   Widget build(BuildContext context) {
+    if (_loadingRole) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    // Kiểm tra quyền truy cập
+    if (!_hasManageStaffAccess && !_isSuperAdmin) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text("QUẢN LÝ NHÂN VIÊN"),
+        ),
+        body: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.people, size: 64, color: Colors.grey),
+              SizedBox(height: 16),
+              Text(
+                "Bạn không có quyền truy cập\nmàn hình quản lý nhân viên",
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 16, color: Colors.grey),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFF),
       appBar: AppBar(
@@ -948,6 +980,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter> with SingleT
   bool _canViewCustomers = true;
   bool _canViewWarranty = true;
   bool _canViewChat = true;
+  bool _canViewAttendance = true;
   bool _canViewPrinter = true;
   bool _canViewRevenue = false;
   bool _canViewExpenses = false;
@@ -981,6 +1014,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter> with SingleT
     _canViewCustomers = widget.fullData['allowViewCustomers'] == true;
     _canViewWarranty = widget.fullData['allowViewWarranty'] == true;
     _canViewChat = widget.fullData['allowViewChat'] == true;
+    _canViewAttendance = widget.fullData['allowViewAttendance'] == true;
     _canViewPrinter = widget.fullData['allowViewPrinter'] == true;
     _canViewRevenue = widget.fullData['allowViewRevenue'] == true;
     _canViewExpenses = widget.fullData['allowViewExpenses'] == true;
@@ -1133,6 +1167,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter> with SingleT
         allowViewCustomers: _canViewCustomers,
         allowViewWarranty: _canViewWarranty,
         allowViewChat: _canViewChat,
+        allowViewAttendance: _canViewAttendance,
         allowViewPrinter: _canViewPrinter,
         allowViewRevenue: _selectedRole == 'owner' || _selectedRole == 'manager' ? true : _canViewRevenue,
         allowViewExpenses: _selectedRole == 'owner' || _selectedRole == 'manager' ? true : _canViewExpenses,
@@ -1349,6 +1384,12 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter> with SingleT
                                 subtitle: const Text("Cho phép sử dụng phòng chat trong cửa hàng", style: TextStyle(fontSize: 11, color: Colors.grey)),
                                 value: _canViewChat,
                                 onChanged: (v) => setState(() => _canViewChat = v),
+                              ),
+                              SwitchListTile(
+                                title: const Text("CHẤM CÔNG", style: TextStyle(fontSize: 12)),
+                                subtitle: const Text("Cho phép chấm công và xem báo cáo chấm công", style: TextStyle(fontSize: 11, color: Colors.grey)),
+                                value: _canViewAttendance,
+                                onChanged: (v) => setState(() => _canViewAttendance = v),
                               ),
                               SwitchListTile(
                                 title: const Text("CẤU HÌNH MÁY IN", style: TextStyle(fontSize: 12)),

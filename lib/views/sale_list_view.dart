@@ -6,6 +6,7 @@ import '../models/sale_order_model.dart';
 import 'sale_detail_view.dart';
 import '../services/firestore_service.dart';
 import '../services/notification_service.dart';
+import 'create_sale_view.dart';
 
 class SaleListView extends StatefulWidget {
   final bool todayOnly;
@@ -55,6 +56,11 @@ class _SaleListViewState extends State<SaleListView> {
       appBar: AppBar(
         title: Text(widget.todayOnly ? "DOANH SỐ HÔM NAY" : "QUẢN LÝ ĐƠN BÁN HÀNG", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
         actions: [
+          IconButton(
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateSaleView())).then((_) => _refresh()),
+            icon: const Icon(Icons.add_shopping_cart, color: Colors.green),
+            tooltip: "Tạo đơn bán hàng mới",
+          ),
           IconButton(onPressed: _refresh, icon: const Icon(Icons.refresh, color: Colors.blue)),
         ],
         bottom: PreferredSize(

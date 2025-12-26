@@ -6,6 +6,8 @@ import '../data/db_helper.dart';
 import '../models/repair_model.dart';
 import '../models/sale_order_model.dart';
 import '../services/notification_service.dart';
+import '../services/user_service.dart';
+import 'debt_view.dart';
 
 class RevenueView extends StatefulWidget {
   const RevenueView({super.key});
@@ -21,6 +23,8 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
   List<SaleOrder> _sales = [];
   List<Map<String, dynamic>> _expenses = [];
   List<Map<String, dynamic>> _closings = [];
+  Map<String, bool> _permissions = {};
+  bool _hasRevenueAccess = false;
   bool _isLoading = true;
   String _selectedPeriod = 'Tháng này';
 
@@ -31,9 +35,19 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    _tabController = TabController(length: 6, vsync: this);
     _tabController.addListener(_onTabChanged);
+    _loadPermissions();
     _loadAllData();
+  }
+
+  Future<void> _loadPermissions() async {
+    final perms = await UserService.getCurrentUserPermissions();
+    if (!mounted) return;
+    setState(() {
+      _permissions = perms;
+      _hasRevenueAccess = perms['allowViewRevenue'] ?? false;
+    });
   }
 
   void _onTabChanged() {
@@ -70,6 +84,29 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
 
   @override
   Widget build(BuildContext context) {
+    // Kiểm tra quyền truy cập
+    if (!_hasRevenueAccess) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text("TÀI CHÍNH & CÔNG NỢ"),
+        ),
+        body: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.lock, size: 64, color: Colors.grey),
+              SizedBox(height: 16),
+              Text(
+                "Bạn không có quyền truy cập\nmàn hình này",
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 16, color: Colors.grey),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFF),
       appBar: AppBar(
@@ -88,7 +125,7 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
           isScrollable: true,
           labelColor: const Color(0xFF2962FF),
           indicatorColor: const Color(0xFF2962FF),
-          tabs: const [Tab(text: "TỔNG QUAN"), Tab(text: "CHỐT QUỸ"), Tab(text: "BÁN HÀNG"), Tab(text: "SỬA CHỮA"), Tab(text: "CHI TIÊU")],
+          tabs: const [Tab(text: "TỔNG QUAN"), Tab(text: "CHỐT QUỸ"), Tab(text: "BÁN HÀNG"), Tab(text: "SỬA CHỮA"), Tab(text: "CHI TIÊU"), Tab(text: "CÔNG NỢ")],
         ),
       ),
       body: _isLoading ? const Center(child: CircularProgressIndicator()) : TabBarView(
@@ -99,6 +136,7 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
           _buildSaleDetail(),
           _buildRepairDetail(),
           _buildExpenseDetail(),
+          const DebtView(),
         ],
       ),
     );

@@ -45,8 +45,17 @@ class UnifiedPrinterService {
       }
       final hasBt = await BluetoothPrinterService.ensureConnection();
       if (hasBt) return await BluetoothPrinterService.printBytes(bytes);
-      await WifiPrinterService.writeBytes(bytes);
-      return true;
+      
+      // Nếu không có Bluetooth, thử WiFi với IP từ settings
+      final prefs = await SharedPreferences.getInstance();
+      final savedIp = prefs.getString('printer_ip') ?? prefs.getString('thermal_printer_ip');
+      if (savedIp != null && savedIp.isNotEmpty) {
+        await WifiPrinterService.instance.connect(ip: savedIp, port: 9100);
+        await WifiPrinterService.instance.printBytes(bytes);
+        return true;
+      }
+      
+      return false;
     } catch (_) { return false; }
   }
 

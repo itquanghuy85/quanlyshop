@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart';
 import '../services/notification_service.dart';
 import '../services/bluetooth_printer_service.dart';
+import '../services/thermal_printer_service.dart';
 
 class ThermalPrinterDesignView extends StatefulWidget {
   const ThermalPrinterDesignView({super.key});
@@ -145,6 +146,17 @@ class _ThermalPrinterDesignViewState extends State<ThermalPrinterDesignView> wit
           const SizedBox(height: 15),
           _sectionCard("MÁY IN WIFI/LAN", [
             TextField(controller: _ipCtrl, decoration: const InputDecoration(hintText: "192.168.1.XXX", prefixIcon: Icon(Icons.lan))),
+            const SizedBox(height: 10),
+            ElevatedButton.icon(
+              onPressed: _testWifiConnection,
+              icon: const Icon(Icons.wifi_tethering, color: Colors.white),
+              label: const Text("TEST KẾT NỐI WIFI"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                minimumSize: const Size(double.infinity, 45),
+              ),
+            ),
           ], color: Colors.blue),
           const SizedBox(height: 15),
           _sectionCard("MÁY IN BLUETOOTH", [
@@ -154,6 +166,17 @@ class _ThermalPrinterDesignViewState extends State<ThermalPrinterDesignView> wit
               icon: _isScanning ? const SizedBox(width: 15, height: 15, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Icons.bluetooth_searching),
               label: Text(_isScanning ? "ĐANG TÌM..." : "QUÉT MÁY IN BLUETOOTH"),
               style: ElevatedButton.styleFrom(backgroundColor: Colors.blueGrey, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+            ),
+            const SizedBox(height: 10),
+            ElevatedButton.icon(
+              onPressed: _testBTConnection,
+              icon: const Icon(Icons.bluetooth_connected, color: Colors.white),
+              label: const Text("TEST KẾT NỐI BLUETOOTH"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blueGrey,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                minimumSize: const Size(double.infinity, 45),
+              ),
             ),
           ], color: Colors.blueGrey),
         ],
@@ -286,6 +309,41 @@ class _ThermalPrinterDesignViewState extends State<ThermalPrinterDesignView> wit
       })));
     } else {
       NotificationService.showSnackBar("Không tìm thấy máy in Bluetooth nào đã ghép đôi", color: Colors.orange);
+    }
+  }
+
+  Future<void> _testWifiConnection() async {
+    final ip = _ipCtrl.text.trim();
+    if (ip.isEmpty) {
+      NotificationService.showSnackBar("Vui lòng nhập địa chỉ IP của máy in", color: Colors.orange);
+      return;
+    }
+
+    NotificationService.showSnackBar("Đang test kết nối WiFi...", color: Colors.blue);
+
+    final success = await ThermalPrinterService.testWifiConnection(ip);
+
+    if (success) {
+      NotificationService.showSnackBar("✅ Kết nối WiFi thành công! Máy in đã sẵn sàng.", color: Colors.green);
+    } else {
+      NotificationService.showSnackBar("❌ Kết nối WiFi thất bại. Kiểm tra IP và kết nối mạng.", color: Colors.red);
+    }
+  }
+
+  Future<void> _testBTConnection() async {
+    if (_selectedBT == null) {
+      NotificationService.showSnackBar("Vui lòng quét và chọn máy in Bluetooth trước", color: Colors.orange);
+      return;
+    }
+
+    NotificationService.showSnackBar("Đang test kết nối Bluetooth...", color: Colors.blue);
+
+    final success = await ThermalPrinterService.testConnection();
+
+    if (success) {
+      NotificationService.showSnackBar("✅ Kết nối Bluetooth thành công! Máy in đã sẵn sàng.", color: Colors.green);
+    } else {
+      NotificationService.showSnackBar("❌ Kết nối Bluetooth thất bại. Kiểm tra máy in.", color: Colors.red);
     }
   }
 }

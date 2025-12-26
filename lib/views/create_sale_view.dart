@@ -12,7 +12,9 @@ import '../widgets/debounced_search_field.dart';
 import '../widgets/currency_text_field.dart';
 
 class CreateSaleView extends StatefulWidget {
-  const CreateSaleView({super.key});
+  final Product? preSelectedProduct; // Sản phẩm được chọn từ kho để bán nhanh
+  
+  const CreateSaleView({super.key, this.preSelectedProduct});
   @override
   State<CreateSaleView> createState() => _CreateSaleViewState();
 }
@@ -61,7 +63,18 @@ class _CreateSaleViewState extends State<CreateSaleView> {
     final prods = await db.getInStockProducts();
     final suggests = await db.getCustomerSuggestions();
     if (!mounted) return;
-    setState(() { _allInStock = prods; _filteredInStock = prods; _suggestCustomers = suggests; _isLoading = false; });
+    
+    setState(() { 
+      _allInStock = prods; 
+      _filteredInStock = prods; 
+      _suggestCustomers = suggests; 
+      _isLoading = false; 
+    });
+
+    // Nếu có sản phẩm được chọn từ kho, tự động thêm vào danh sách bán
+    if (widget.preSelectedProduct != null) {
+      _addProductToSale(widget.preSelectedProduct!);
+    }
   }
 
   void _calculateInstallment() {
@@ -90,6 +103,18 @@ class _CreateSaleViewState extends State<CreateSaleView> {
       searchProdCtrl.clear(); 
       _filteredInStock = _allInStock;
     });
+  }
+
+  void _addProductToSale(Product p) {
+    if (_selectedItems.any((item) => item['product'].id == p.id)) {
+      NotificationService.showSnackBar("Sản phẩm đã được thêm vào đơn hàng", color: Colors.orange);
+      return;
+    }
+    setState(() { 
+      _selectedItems.add({'product': p, 'isGift': false, 'sellPrice': p.price}); 
+      _calculateTotal(); 
+    });
+    NotificationService.showSnackBar("Đã thêm ${p.name} vào đơn hàng", color: Colors.green);
   }
 
   Future<void> _processSale() async {
