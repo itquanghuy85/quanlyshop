@@ -4,7 +4,6 @@ import '../models/product_model.dart';
 import '../models/sale_order_model.dart';
 import '../models/debt_model.dart';
 import '../models/expense_model.dart';
-import '../models/purchase_order_model.dart';
 import 'user_service.dart';
 import 'notification_service.dart';
 
@@ -68,10 +67,6 @@ class FirestoreService {
     } catch (e) { return null; }
   }
 
-  static Future<void> deleteSale(String firestoreId) async {
-    await _db.collection('sales').doc(firestoreId).delete();
-  }
-
   // --- QUẢN LÝ KHO ---
   static Future<String?> addProduct(Product p) async {
     try {
@@ -95,7 +90,7 @@ class FirestoreService {
     await _db.collection('products').doc(firestoreId).update({'status': 0});
   }
 
-  // --- NHẬT KÝ HOẠT ĐỘNG (CLOULD SYNC) ---
+  // --- NHẬT KÝ HOẠT ĐỘNG ---
   static Future<void> addAuditLogCloud(Map<String, dynamic> logData) async {
     try {
       final shopId = await UserService.getCurrentShopId();
@@ -127,6 +122,38 @@ class FirestoreService {
     } catch (_) {}
   }
 
+  // --- TÍNH NĂNG ĐẶC BIỆT: XÓA TRẮNG DỮ LIỆU SHOP ---
+  static Future<bool> resetEntireShopData() async {
+    try {
+      final shopId = await UserService.getCurrentShopId();
+      if (shopId == null) return false;
+
+      final collections = ['repairs', 'sales', 'products', 'debts', 'expenses', 'audit_logs', 'attendance', 'chats', 'inventory_checks', 'cash_closings'];
+
+      for (var colName in collections) {
+        final snapshots = await _db.collection(colName).where('shopId', isEqualTo: shopId).get();
+        final batch = _db.batch();
+        for (var doc in snapshots.docs) {
+          batch.delete(doc.reference);
+        }
+        await batch.commit();
+      }
+      return true;
+    } catch (e) {
+      print("RESET_SHOP_ERROR: $e");
+      return false;
+    }
+  }
+
+  // --- KHÁCH HÀNG & NHÀ CUNG CẤP ---
+  static Future<void> deleteCustomer(String firestoreId) async {
+    try { await _db.collection('customers').doc(firestoreId).delete(); } catch (_) {}
+  }
+
+  static Future<void> deleteSupplier(String firestoreId) async {
+    try { await _db.collection('suppliers').doc(firestoreId).delete(); } catch (_) {}
+  }
+
   // --- CHAT NỘI BỘ ---
   static Future<void> sendChat({required String message, required String senderId, required String senderName, String? linkedType, String? linkedKey, String? linkedSummary}) async {
     try {
@@ -148,57 +175,5 @@ class FirestoreService {
     Query<Map<String, dynamic>> q = _db.collection('chats');
     if (shopId != null) q = q.where('shopId', isEqualTo: shopId);
     return q.orderBy('createdAt', descending: true).limit(limit).snapshots();
-  }
-
-  // --- THÔNG TIN SHOP ---
-  static Future<Map<String, dynamic>?> getCurrentShopInfo() async {
-    try {
-      final shopId = await UserService.getCurrentShopId();
-      if (shopId == null) return null;
-      final doc = await _db.collection('shops').doc(shopId).get();
-      return doc.data();
-    } catch (_) { return null; }
-  }
-
-  static Future<void> updateCurrentShopInfo(Map<String, dynamic> data) async {
-    try {
-      final shopId = await UserService.getCurrentShopId();
-      if (shopId == null) return;
-      await _db.collection('shops').doc(shopId).set(data, SetOptions(merge: true));
-    } catch (_) {}
-  }
-
-  // --- KHÁCH HÀNG & NHÀ CUNG CẤP ---
-  static Future<void> deleteCustomer(String firestoreId) async {
-    try { await _db.collection('customers').doc(firestoreId).delete(); } catch (_) {}
-  }
-
-  static Future<void> upsertSupplier(Map<String, dynamic> s) async {
-    try {
-      final shopId = await UserService.getCurrentShopId();
-      final docId = "${shopId}_${s['name']}";
-      Map<String, dynamic> data = Map<String, dynamic>.from(s);
-      data['shopId'] = shopId;
-      await _db.collection('suppliers').doc(docId).set(data, SetOptions(merge: true));
-    } catch (_) {}
-  }
-
-  static Future<void> deleteSupplier(String firestoreId) async {
-    try { await _db.collection('suppliers').doc(firestoreId).delete(); } catch (_) {}
-  }
-
-  // --- PURCHASE ORDERS ---
-  static Future<String?> addPurchaseOrder(PurchaseOrder order) async {
-    try {
-      final shopId = await UserService.getCurrentShopId();
-      final docId = order.firestoreId ?? "po_${order.createdAt}_${order.orderCode}";
-      final docRef = _db.collection('purchase_orders').doc(docId);
-      Map<String, dynamic> data = order.toMap();
-      data['shopId'] = shopId;
-      data['firestoreId'] = docRef.id;
-      await docRef.set(data, SetOptions(merge: true));
-      _notifyAll("📦 ĐƠN NHẬP HÀNG", "${order.createdBy} tạo đơn ${order.orderCode} từ ${order.supplierName}", type: 'purchase_order', id: docRef.id, summary: "${order.supplierName} - ${order.totalAmount} sản phẩm");
-      return docRef.id;
-    } catch (e) { return null; }
   }
 }

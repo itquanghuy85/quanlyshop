@@ -1,20 +1,13 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/user_service.dart';
 import '../services/firestore_service.dart';
-import '../utils/app_info.dart';
-import '../l10n/app_localizations.dart';
-import 'invoice_template_view.dart';
-import 'staff_list_view.dart';
+import '../services/notification_service.dart';
+import '../data/db_helper.dart';
 
 class SettingsView extends StatefulWidget {
   final void Function(Locale)? setLocale;
-
   const SettingsView({super.key, this.setLocale});
 
   @override
@@ -22,562 +15,111 @@ class SettingsView extends StatefulWidget {
 }
 
 class _SettingsViewState extends State<SettingsView> {
-  Locale _selectedLocale = const Locale('vi');
-  final nameCtrl = TextEditingController();
-  final addressCtrl = TextEditingController();
-  final phoneCtrl = TextEditingController();
-  final footerCtrl = TextEditingController();
-  String? _logoPath;
-  // Cleanup config
-  bool _cleanupEnabled = false;
-  int _cleanupDays = 30;
-
-  // Owner account info
-  final ownerNameCtrl = TextEditingController();
-  final ownerPhoneCtrl = TextEditingController();
-  final ownerEmailCtrl = TextEditingController();
-  final ownerAddressCtrl = TextEditingController();
-  final ownerBusinessLicenseCtrl = TextEditingController();
-  final ownerTaxCodeCtrl = TextEditingController();
-
-  String? _userRole;
+  String _role = 'user';
+  bool _loading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadSettings();
-    _loadCleanupConfig();
+    _loadRole();
   }
 
-  Future<void> _loadSettings() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      nameCtrl.text = prefs.getString('shop_name') ?? "";
-      addressCtrl.text = prefs.getString('shop_address') ?? "";
-      phoneCtrl.text = prefs.getString('shop_phone') ?? "";
-      footerCtrl.text = prefs.getString('invoice_footer') ?? "Cảm ơn quý khách đã tin tưởng!";
-      _logoPath = prefs.getString('shop_logo');
-    });
-
-    // Load owner info from Firestore
-    await _loadOwnerInfo();
-  }
-
-  Future<void> _loadOwnerInfo() async {
-    try {
-      final shopInfo = await FirestoreService.getCurrentShopInfo();
-      if (shopInfo != null) {
-        setState(() {
-          ownerNameCtrl.text = shopInfo['ownerName'] ?? '';
-          ownerPhoneCtrl.text = shopInfo['ownerPhone'] ?? '';
-          ownerEmailCtrl.text = shopInfo['ownerEmail'] ?? '';
-          ownerAddressCtrl.text = shopInfo['ownerAddress'] ?? '';
-          ownerBusinessLicenseCtrl.text = shopInfo['ownerBusinessLicense'] ?? '';
-          ownerTaxCodeCtrl.text = shopInfo['ownerTaxCode'] ?? '';
-        });
-      }
-    } catch (e) {
-      // Fallback to current user info if shop info not available
-      final currentUser = FirebaseAuth.instance.currentUser;
-      if (currentUser != null) {
-        final userInfo = await UserService.getUserInfo(currentUser.uid);
-        setState(() {
-          ownerNameCtrl.text = userInfo['displayName'] ?? '';
-          ownerPhoneCtrl.text = userInfo['phone'] ?? '';
-          ownerEmailCtrl.text = currentUser.email ?? '';
-          ownerAddressCtrl.text = userInfo['address'] ?? '';
-        });
-      }
-    }
-
-    // Load user role
-    final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser != null) {
-      _userRole = await UserService.getUserRole(currentUser.uid);
-      setState(() {});
+  Future<void> _loadRole() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final role = await UserService.getUserRole(user.uid);
+      setState(() { _role = role; _loading = false; });
     }
   }
 
-  Future<void> _saveSettings() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('shop_name', nameCtrl.text.toUpperCase());
-    await prefs.setString('shop_address', addressCtrl.text);
-    await prefs.setString('shop_phone', phoneCtrl.text);
-    await prefs.setString('invoice_footer', footerCtrl.text);
-    if (_logoPath != null) await prefs.setString('shop_logo', _logoPath!);
-    
-    // Save shop info to Firestore
-    await _saveShopInfoToFirestore();
-    
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.shopInfoSaved)));
-    }
-  }
-
-  Future<void> _saveShopInfoToFirestore() async {
-    try {
-      final shopData = {
-        'name': nameCtrl.text.toUpperCase(),
-        'address': addressCtrl.text,
-        'phone': phoneCtrl.text,
-        'logoPath': _logoPath,
-        'ownerName': ownerNameCtrl.text.toUpperCase(),
-        'ownerPhone': ownerPhoneCtrl.text,
-        'ownerEmail': ownerEmailCtrl.text,
-        'ownerAddress': ownerAddressCtrl.text,
-        'ownerBusinessLicense': ownerBusinessLicenseCtrl.text,
-        'ownerTaxCode': ownerTaxCodeCtrl.text,
-        'updatedAt': FieldValue.serverTimestamp(),
-      };
-      await FirestoreService.updateCurrentShopInfo(shopData);
-    } catch (e) {
-      // Show error but don't block the save
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi lưu thông tin: $e')),
-        );
-      }
-    }
-  }
-
-  Future<void> _pickLogo() async {
-    final f = await ImagePicker().pickImage(source: ImageSource.gallery);
-    if (f != null) setState(() => _logoPath = f.path);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFF),
-      appBar: AppBar(title: Text(l10n.settingsTitle, style: const TextStyle(fontWeight: FontWeight.bold))),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          // Language switcher
-          Row(
-            children: [
-              const Icon(Icons.language, color: Colors.blueAccent),
-              const SizedBox(width: 10),
-              Text(l10n.languageLabel, style: const TextStyle(fontWeight: FontWeight.w600)),
-              const SizedBox(width: 10),
-              DropdownButton<Locale>(
-                value: _selectedLocale,
-                items: [
-                DropdownMenuItem(value: const Locale('vi'), child: Text(AppLocalizations.of(context)!.vietnamese)),
-                DropdownMenuItem(value: const Locale('en'), child: Text(AppLocalizations.of(context)!.english)),
-                ],
-                onChanged: (locale) {
-                  if (locale != null) {
-                    setState(() => _selectedLocale = locale);
-                    widget.setLocale?.call(locale);
-                  }
-                },
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          _sectionTitle(l10n.brandInfoSection),
-          const SizedBox(height: 15),
-          Center(
-            child: GestureDetector(
-              onTap: _pickLogo,
-              child: CircleAvatar(
-                radius: 50,
-                backgroundColor: Colors.white,
-                backgroundImage: _logoPath != null && File(_logoPath!).existsSync() ? FileImage(File(_logoPath!)) : null,
-                child: _logoPath == null ? const Icon(Icons.add_a_photo, size: 30, color: Colors.grey) : null,
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-          _input(nameCtrl, l10n.shopNameLabel, Icons.storefront),
-          _input(phoneCtrl, l10n.shopPhoneLabel, Icons.phone, type: TextInputType.phone),
-          _input(addressCtrl, l10n.shopAddressLabel, Icons.location_on),
-          
-          const SizedBox(height: 30),
-          _sectionTitle('Thông tin chủ cửa hàng'),
-          const SizedBox(height: 15),
-          _input(ownerNameCtrl, 'Tên chủ cửa hàng', Icons.person),
-          _input(ownerPhoneCtrl, 'Số điện thoại', Icons.phone_android, type: TextInputType.phone),
-          _input(ownerEmailCtrl, 'Email', Icons.email, type: TextInputType.emailAddress),
-          _input(ownerAddressCtrl, 'Địa chỉ', Icons.home),
-          _input(ownerBusinessLicenseCtrl, 'Giấy phép kinh doanh', Icons.business),
-          _input(ownerTaxCodeCtrl, 'Mã số thuế', Icons.account_balance),
-          
-          const SizedBox(height: 20),
-          ElevatedButton.icon(
-            onPressed: _saveSettings,
-            icon: const Icon(Icons.save),
-            label: const Text('Lưu thông tin cửa hàng'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blueAccent,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-          ),
-          
-          const SizedBox(height: 30),
-          _sectionTitle(l10n.invoiceConfigSection),
-          const SizedBox(height: 10),
-          _input(footerCtrl, l10n.invoiceFooterLabel, Icons.chat_bubble_outline),
-          
-          const SizedBox(height: 20),
-          _menuTile(l10n.createInvoiceTemplate, Icons.receipt_long, Colors.green, () {
-            Navigator.push(context, MaterialPageRoute(builder: (_) => const InvoiceTemplateView()));
-          }),
-          _menuTile(l10n.joinShopCode, Icons.group_add, Colors.orange, _joinShopDialog),
-          _menuTile(l10n.cleanupManagement, Icons.cleaning_services_rounded, Colors.purple, _openCleanupDialog),
-          if (_userRole == 'owner')
-            _menuTile('Quản lý nhân viên', Icons.group_rounded, Colors.indigo, () {
-              Navigator.push(context, MaterialPageRoute(builder: (_) => const StaffListView()));
-            }),
-
-          const SizedBox(height: 30),
-          _sectionTitle(l10n.aboutSection),
-          const SizedBox(height: 15),
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(15),
-              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05 * 255), blurRadius: 10, offset: const Offset(0, 2))],
-            ),
-            child: Column(
-              children: [
-                // Logo và tên app
-                Row(
-                  children: [
-                    Container(
-                      width: 60,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        color: Colors.blueAccent,
-                        borderRadius: BorderRadius.circular(15),
-                        boxShadow: [BoxShadow(color: Colors.blueAccent.withValues(alpha: 0.3 * 255), blurRadius: 8, offset: const Offset(0, 4))],
-                      ),
-                      child: const Icon(Icons.phone_android, color: Colors.white, size: 30),
-                    ),
-                    const SizedBox(width: 15),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(l10n.appName, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blueAccent.shade700)),
-                          Text(l10n.appDescription, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                // Thông tin phiên bản
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.blueAccent.withValues(alpha: 0.1 * 255),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: FutureBuilder<String>(
-                    future: AppInfo.getVersion(),
-                    builder: (context, snapshot) {
-                      final version = snapshot.data ?? l10n.versionNumber;
-                      return Row(
-                        children: [
-                          Icon(Icons.info_outline, color: Colors.blueAccent.shade700, size: 20),
-                          const SizedBox(width: 10),
-                          Text("${l10n.version}: $version", style: TextStyle(fontWeight: FontWeight.w500, color: Colors.blueAccent.shade700)),
-                        ],
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(height: 15),
-                // Thông tin liên hệ
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.green.withValues(alpha: 0.1 * 255),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(Icons.contact_support, color: Colors.green.shade700, size: 20),
-                          const SizedBox(width: 10),
-                          Text(l10n.contactSupport, style: TextStyle(fontWeight: FontWeight.w500, color: Colors.green.shade700)),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text("👨‍💻 ${l10n.developerName}", style: TextStyle(fontSize: 12, color: Colors.black87)),
-                      Text(l10n.contactPhone, style: TextStyle(fontSize: 12, color: Colors.black87)),
-                      Text(l10n.technicalSupport, style: TextStyle(fontSize: 12, color: Colors.black87)),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 15),
-                // Thông tin developer
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.purple.withValues(alpha: 0.1 * 255),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(Icons.code, color: Colors.purple.shade700, size: 20),
-                          const SizedBox(width: 10),
-                          Text(l10n.developer, style: TextStyle(fontWeight: FontWeight.w500, color: Colors.purple.shade700)),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text("👨‍💻 ${l10n.developerName}", style: TextStyle(fontSize: 12, color: Colors.black87)),
-                      Text("🚀 ${l10n.developerRole}", style: TextStyle(fontSize: 12, color: Colors.black87)),
-                      Text(l10n.contactPhone, style: TextStyle(fontSize: 12, color: Colors.black87)),
-                      Text("💡 ${l10n.businessSolutions}", style: TextStyle(fontSize: 12, color: Colors.black87)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 40),
-          SizedBox(
-            height: 55,
-            child: ElevatedButton.icon(
-              onPressed: _saveSettings,
-              icon: const Icon(Icons.save_rounded),
-              label: Text(l10n.saveAllSettings, style: const TextStyle(fontWeight: FontWeight.bold)),
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _sectionTitle(String title) => Text(title, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blueGrey));
-  
-  Widget _input(TextEditingController ctrl, String label, IconData icon, {TextInputType type = TextInputType.text}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: TextField(
-        controller: ctrl,
-        keyboardType: type,
-        decoration: InputDecoration(
-          labelText: label,
-          prefixIcon: Icon(icon, size: 20),
-          filled: true, fillColor: Colors.white,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-        ),
-      ),
-    );
-  }
-
-  Widget _menuTile(String title, IconData icon, Color color, VoidCallback onTap) {
-    return ListTile(
-      tileColor: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-      leading: Icon(icon, color: color),
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-      trailing: const Icon(Icons.chevron_right),
-      onTap: onTap,
-    );
-  }
-
-  void _joinShopDialog() {
-    final codeCtrl = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(AppLocalizations.of(context)!.enterInviteCode),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: codeCtrl,
-              decoration: InputDecoration(labelText: AppLocalizations.of(context)!.inviteCode8Chars),
-              textCapitalization: TextCapitalization.characters,
-            ),
-            const SizedBox(height: 10),
-            ElevatedButton.icon(
-              onPressed: () async {
-                final result = await Navigator.push<String>(
-                  context,
-                  MaterialPageRoute(builder: (_) => const _QRScanView()),
-                );
-                if (result != null) {
-                  codeCtrl.text = result;
-                }
-              },
-              icon: const Icon(Icons.qr_code_scanner),
-              label: Text(AppLocalizations.of(context)!.scanQR),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(AppLocalizations.of(context)!.cancel),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final l10n = AppLocalizations.of(context)!;
-              final code = codeCtrl.text.trim().toUpperCase();
-              if (code.length != 8) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(l10n.codeMustBe8Chars)),
-                );
-                return;
-              }
-              final currentUser = FirebaseAuth.instance.currentUser;
-              if (currentUser == null) return;
-              final success = await UserService.useInviteCode(code, currentUser.uid);
-              if (!mounted) return;
-              if (success) {
-                if (!mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(l10n.joinedShopSuccessfully)),
-                );
-                Navigator.pop(context);
-              } else {
-                if (!mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(l10n.invalidOrExpiredCode)),
-                );
-              }
-            },
-            child: Text(AppLocalizations.of(context)!.join),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _loadCleanupConfig() async {
-    try {
-      final perms = await UserService.getCurrentUserPermissions();
-      if (!(perms['allowViewSettings'] ?? false)) {
-        // không có quyền
-        return;
-      }
-      final doc = await FirebaseFirestore.instance.doc('settings/cleanup').get();
-      final data = doc.exists ? (doc.data() ?? {}) : {};
-      setState(() {
-        _cleanupEnabled = (data['enabled'] as bool?) ?? false;
-        _cleanupDays = (data['repairRetentionDays'] as int?) ?? 30;
-      });
-    } catch (e) {
-      // Handle error silently or log if needed
-    }
-  }
-
-  Future<void> _saveCleanupConfig(bool enabled, int days) async {
-    await FirebaseFirestore.instance.doc('settings/cleanup').set({
-      'enabled': enabled,
-      'repairRetentionDays': days,
-    }, SetOptions(merge: true));
-    if (!mounted) return;
-    final l10n = AppLocalizations.of(context)!;
-    setState(() {
-      _cleanupEnabled = enabled;
-      _cleanupDays = days;
-    });
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.cleanupConfigSaved)));
-  }
-
-  void _openCleanupDialog() async {
-    final perms = await UserService.getCurrentUserPermissions();
-    if (!mounted) return;
-    final l10n = AppLocalizations.of(context)!;
-    if (!(perms['allowViewSettings'] ?? false)) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.noPermissionToConfigure)));
-      return;
-    }
-
-    final daysCtrl = TextEditingController(text: _cleanupDays.toString());
-    bool tempEnabled = _cleanupEnabled;
-
-    showDialog(
+  // HÀM XỬ LÝ XÓA TRẮNG SHOP (BẢO MẬT TUYỆT ĐỐI)
+  Future<void> _handleResetShop() async {
+    final confirmTextC = TextEditingController();
+    final bool? result = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(l10n.cleanupConfigOptIn),
+        title: const Text("⚠️ CẢNH BÁO NGUY HIỂM", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Row(
-              children: [
-                Text(l10n.enableCleanup),
-                const Spacer(),
-                Switch(
-                  value: tempEnabled,
-                  onChanged: (v) => setState(() => tempEnabled = v),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: daysCtrl,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(labelText: l10n.daysToDeleteAfter),
-            ),
+            const Text("Hành động này sẽ xóa sạch 100% dữ liệu Đơn hàng, Kho, Nợ và Nhật ký của Shop trên cả Đám mây và Máy này. KHÔNG THỂ KHÔI PHỤC!"),
+            const SizedBox(height: 15),
+            const Text("Nhập chữ 'XOA HET' để xác nhận:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+            TextField(controller: confirmTextC, decoration: const InputDecoration(hintText: "XOA HET"), textAlign: TextAlign.center),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(l10n.cancel)),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("HỦY")),
           ElevatedButton(
-            onPressed: () async {
-              final d = int.tryParse(daysCtrl.text) ?? 30;
-              await _saveCleanupConfig(tempEnabled, d);
-              Navigator.pop(ctx);
-            },
-            child: Text(l10n.save),
-          ),
+            onPressed: () => Navigator.pop(ctx, confirmTextC.text.trim() == "XOA HET"),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text("XÁC NHẬN XÓA SẠCH", style: TextStyle(color: Colors.white)),
+          )
         ],
       ),
     );
+
+    if (result == true) {
+      setState(() => _loading = true);
+      final successCloud = await FirestoreService.resetEntireShopData();
+      await DBHelper().clearAllData();
+      
+      NotificationService.showSnackBar("ĐÃ XÓA SẠCH DỮ LIỆU SHOP!", color: Colors.green);
+      await FirebaseAuth.instance.signOut();
+      if (mounted) Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+    }
   }
-}
-
-class _QRScanView extends StatefulWidget {
-  const _QRScanView();
-
-  @override
-  State<_QRScanView> createState() => _QRScanViewState();
-}
-
-class _QRScanViewState extends State<_QRScanView> {
-  final MobileScannerController controller = MobileScannerController();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(AppLocalizations.of(context)!.scanQRCode)),
-      body: MobileScanner(
-        controller: controller,
-        onDetect: (capture) {
-          final List<Barcode> barcodes = capture.barcodes;
-          for (final barcode in barcodes) {
-            if (barcode.rawValue != null) {
-              Navigator.pop(context, barcode.rawValue);
-              break;
-            }
-          }
-        },
+      appBar: AppBar(title: const Text("CÀI ĐẶT HỆ THỐNG")),
+      body: _loading ? const Center(child: CircularProgressIndicator()) : ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          _buildSection("NGÔN NGỮ & GIAO DIỆN"),
+          ListTile(
+            leading: const Icon(Icons.language, color: Colors.blue),
+            title: const Text("Ngôn ngữ ứng dụng"),
+            trailing: const Text("Tiếng Việt"),
+            onTap: () {
+              if (widget.setLocale != null) widget.setLocale!(const Locale('vi'));
+            },
+          ),
+          const Divider(),
+          _buildSection("TÀI KHOẢN & BẢO MẬT"),
+          ListTile(
+            leading: const Icon(Icons.person_pin, color: Colors.teal),
+            title: const Text("Vai trò của bạn"),
+            trailing: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(color: Colors.blue.shade50, borderRadius: BorderRadius.circular(10)),
+              child: Text(_role.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: Colors.blue)),
+            ),
+          ),
+          
+          // NÚT XÓA TRẮNG CHỈ HIỆN CHO CHỦ SHOP
+          if (_role == 'owner' || UserService.isCurrentUserSuperAdmin()) ...[
+            const SizedBox(height: 30),
+            _buildSection("QUẢN TRỊ NÂNG CAO"),
+            Card(
+              color: Colors.red.shade50,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15), side: BorderSide(color: Colors.red.shade200)),
+              child: ListTile(
+                leading: const Icon(Icons.delete_forever, color: Colors.red),
+                title: const Text("XÓA TRẮNG DỮ LIỆU SHOP", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                subtitle: const Text("Dùng khi muốn khởi tạo lại toàn bộ dữ liệu cửa hàng", style: TextStyle(fontSize: 11)),
+                onTap: _handleResetShop,
+              ),
+            ),
+          ],
+          
+          const SizedBox(height: 50),
+          Center(child: Text("Phiên bản 1.0.0+7", style: TextStyle(color: Colors.grey.shade400, fontSize: 10))),
+        ],
       ),
     );
   }
 
-  @override
-  void dispose() {
-    controller.dispose();
-    super.dispose();
-  }
+  Widget _buildSection(String title) => Padding(padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 5), child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.blueGrey)));
 }

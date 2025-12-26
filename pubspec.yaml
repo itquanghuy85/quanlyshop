@@ -1,7 +1,7 @@
 name: QuanLyShop
-description: "Phần mềm quản lý tiệm sửa chữa điện thoại"
+description: "Phần mềm quản lý tiệm sửa chữa điện thoại chuyên nghiệp"
 publish_to: 'none'
-version: 1.0.0+6
+version: 1.0.0+7
 
 environment:
   sdk: '>=3.10.0 <4.0.0'
@@ -37,24 +37,19 @@ dependencies:
   qr_flutter: ^4.1.0
   permission_handler: ^11.3.1
   flutter_blue_plus: ^1.35.3
-  # GIẢI PHÁP IN BLUETOOTH
   print_bluetooth_thermal: ^1.1.0
-  # GIẢI PHÁP IN WIFI ỔN ĐỊNH
   esc_pos_utils: ^1.1.0
   esc_pos_printer: ^4.1.0
-  mockito: ^5.6.1
   file_picker: ^8.0.0
-  csv: ^6.0.0
   connectivity_plus: ^6.0.0
   geolocator: ^12.0.0
+  csv: ^6.0.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
-  # HẠ CẤP THEO GỢI Ý ĐỂ SỬA LỖI XUNG ĐỘT
   flutter_launcher_icons: ^0.11.0
-  http_mock_adapter: ^0.6.1
 
 flutter_launcher_icons:
   android: "launcher_icon"
@@ -68,18 +63,9 @@ flutter:
     - assets/images/
     - assets/fonts/
   generate: true
-  # Localization config
-  # See: https://docs.flutter.dev/accessibility-and-localization/internationalization
-  # L10n files in lib/l10n/
+
 l10n:
   arb-dir: lib/l10n
   template-arb-file: app_vi.arb
   output-localization-file: app_localizations.dart
   output-class: AppLocalizations
-
-  fonts:
-    - family: AppFont
-      fonts:
-        - asset: assets/fonts/Roboto-Regular.ttf
-        - asset: assets/fonts/Roboto-Bold.ttf
-          weight: 700

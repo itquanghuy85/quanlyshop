@@ -26,7 +26,7 @@ class DBHelper {
     String path = join(await getDatabasesPath(), 'repair_shop_v22.db'); 
     return await openDatabase(
       path,
-      version: 19, // Nâng lên v19 để thêm bảng Lịch sử trả nợ
+      version: 19, 
       onCreate: (db, version) async {
         await db.execute('CREATE TABLE IF NOT EXISTS repairs(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, customerName TEXT, phone TEXT, model TEXT, issue TEXT, accessories TEXT, address TEXT, imagePath TEXT, deliveredImage TEXT, warranty TEXT, partsUsed TEXT, status INTEGER, price INTEGER, cost INTEGER, paymentMethod TEXT, createdAt INTEGER, startedAt INTEGER, finishedAt INTEGER, deliveredAt INTEGER, createdBy TEXT, repairedBy TEXT, deliveredBy TEXT, lastCaredAt INTEGER, isSynced INTEGER DEFAULT 0, deleted INTEGER DEFAULT 0, color TEXT, imei TEXT, condition TEXT)');
         await db.execute('CREATE TABLE IF NOT EXISTS products(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, name TEXT, brand TEXT, imei TEXT, cost INTEGER, price INTEGER, condition TEXT, status INTEGER DEFAULT 1, description TEXT, images TEXT, warranty TEXT, createdAt INTEGER, supplier TEXT, type TEXT DEFAULT "PHONE", quantity INTEGER DEFAULT 1, color TEXT, isSynced INTEGER DEFAULT 0, capacity TEXT, kpkPrice INTEGER, pkPrice INTEGER)');
@@ -42,8 +42,6 @@ class DBHelper {
         await db.execute('CREATE TABLE IF NOT EXISTS payroll_settings(id INTEGER PRIMARY KEY AUTOINCREMENT, baseSalary INTEGER DEFAULT 0, saleCommPercent REAL DEFAULT 1.0, repairProfitPercent REAL DEFAULT 10.0, updatedAt INTEGER)');
         await db.execute('CREATE TABLE IF NOT EXISTS purchase_orders(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, orderCode TEXT UNIQUE, supplierName TEXT, supplierPhone TEXT, supplierAddress TEXT, itemsJson TEXT, totalAmount INTEGER, totalCost INTEGER, createdAt INTEGER, createdBy TEXT, status TEXT DEFAULT "PENDING", notes TEXT, isSynced INTEGER DEFAULT 0)');
         await db.execute('CREATE TABLE IF NOT EXISTS work_schedules(id INTEGER PRIMARY KEY AUTOINCREMENT, userId TEXT UNIQUE, startTime TEXT DEFAULT "08:00", endTime TEXT DEFAULT "17:00", breakTime INTEGER DEFAULT 1, maxOtHours INTEGER DEFAULT 4, workDays TEXT DEFAULT "[1,2,3,4,5,6]", updatedAt INTEGER)');
-        
-        // BẢNG MỚI: CHI TIẾT CÁC LẦN THANH TOÁN NỢ
         await db.execute('CREATE TABLE IF NOT EXISTS debt_payments(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, debtId INTEGER, debtFirestoreId TEXT, amount INTEGER, paidAt INTEGER, paymentMethod TEXT, note TEXT, createdBy TEXT, isSynced INTEGER DEFAULT 0)');
       },
       onUpgrade: (db, oldV, newV) async {
@@ -59,29 +57,7 @@ class DBHelper {
     );
   }
 
-  // --- QUẢN LÝ THANH TOÁN NỢ (CHI TIẾT) ---
-  Future<int> insertDebtPayment(Map<String, dynamic> payment) async {
-    final db = await database;
-    return await db.insert('debt_payments', payment);
-  }
-
-  Future<List<Map<String, dynamic>>> getDebtPayments(int debtId) async {
-    final db = await database;
-    return await db.query('debt_payments', where: 'debtId = ?', whereArgs: [debtId], orderBy: 'paidAt DESC');
-  }
-
-  Future<void> upsertDebtPayment(Map<String, dynamic> map) async {
-    final db = await database;
-    final fId = map['firestoreId'];
-    final existing = await db.query('debt_payments', where: 'firestoreId = ?', whereArgs: [fId], limit: 1);
-    if (existing.isNotEmpty) {
-      await db.update('debt_payments', map, where: 'id = ?', whereArgs: [existing.first['id']]);
-    } else {
-      await db.insert('debt_payments', map);
-    }
-  }
-
-  // --- CÁC HÀM CỐ LÕI (ĐÃ KHÓA BẢO VỆ) ---
+  // --- HÀM HỖ TRỢ CHUNG ---
   Future<void> _upsert(String table, Map<String, dynamic> map, String firestoreId) async {
     final db = await database;
     await db.transaction((txn) async {
@@ -93,6 +69,7 @@ class DBHelper {
     });
   }
 
+  // --- REPAIRS ---
   Future<void> upsertRepair(Repair r) async => _upsert('repairs', r.toMap(), r.firestoreId ?? "${r.createdAt}_${r.phone}");
   Future<int> insertRepair(Repair r) async { await upsertRepair(r); return 1; }
   Future<int> updateRepair(Repair r) async => (await database).update('repairs', r.toMap(), where: 'id = ?', whereArgs: [r.id]);
@@ -111,7 +88,9 @@ class DBHelper {
     return res.isNotEmpty ? Repair.fromMap(res.first) : null;
   }
 
+  // --- SALES ---
   Future<void> upsertSale(SaleOrder s) async => _upsert('sales', s.toMap(), s.firestoreId ?? "sale_${s.soldAt}");
+  Future<int> insertSale(SaleOrder s) async { await upsertSale(s); return 1; }
   Future<int> updateSale(SaleOrder s) async => (await database).update('sales', s.toMap(), where: 'id = ?', whereArgs: [s.id]);
   Future<int> deleteSale(int id) async => (await database).delete('sales', where: 'id = ?', whereArgs: [id]);
   Future<int> deleteSaleByFirestoreId(String fId) async => (await database).delete('sales', where: 'firestoreId = ?', whereArgs: [fId]);
@@ -124,6 +103,7 @@ class DBHelper {
     return res.isNotEmpty ? SaleOrder.fromMap(res.first) : null;
   }
 
+  // --- PRODUCTS ---
   Future<void> upsertProduct(Product p) async => _upsert('products', p.toMap(), p.firestoreId ?? "prod_${p.createdAt}");
   Future<int> updateProduct(Product p) async => (await database).update('products', p.toMap(), where: 'id = ?', whereArgs: [p.id]);
   Future<int> deleteProduct(int id) async => (await database).delete('products', where: 'id = ?', whereArgs: [id]);
@@ -143,6 +123,7 @@ class DBHelper {
     await db.rawUpdate('UPDATE products SET status = 0 WHERE id = ? AND quantity <= 0', [id]);
   }
 
+  // --- CUSTOMERS & SUPPLIERS ---
   Future<List<Map<String, dynamic>>> getCustomerSuggestions() async => (await database).rawQuery('SELECT DISTINCT customerName, phone, address FROM (SELECT customerName, phone, address FROM repairs UNION SELECT customerName, phone, address FROM sales UNION SELECT name as customerName, phone, address FROM customers) ORDER BY customerName ASC');
   Future<List<Map<String, dynamic>>> getUniqueCustomersAll() async => (await database).rawQuery('SELECT phone, customerName, address FROM (SELECT phone, customerName, address FROM repairs UNION SELECT phone, customerName, address FROM sales UNION SELECT phone, name as customerName, address FROM customers) as t WHERE phone IS NOT NULL AND phone != "" GROUP BY phone ORDER BY customerName ASC');
   Future<List<Map<String, dynamic>>> getCustomersWithoutShop() async => (await database).query('customers', where: 'shopId IS NULL OR shopId = ""');
@@ -168,11 +149,11 @@ class DBHelper {
   }
   Future<int> deleteSupplier(int id) async => (await database).delete('suppliers', where: 'id = ?', whereArgs: [id]);
 
+  // --- FINANCE ---
   Future<void> upsertExpense(Expense e) async => _upsert('expenses', e.toMap(), e.firestoreId ?? "exp_${e.date}");
   Future<int> insertExpense(Map<String, dynamic> e) async => (await database).insert('expenses', e);
   Future<List<Map<String, dynamic>>> getAllExpenses() async => (await database).query('expenses', orderBy: 'date DESC');
   Future<int> deleteExpenseByFirestoreId(String fId) async => (await database).delete('expenses', where: 'firestoreId = ?', whereArgs: [fId]);
-  
   Future<void> upsertDebt(Debt d) async => _upsert('debts', d.toMap(), d.firestoreId ?? "debt_${d.createdAt}");
   Future<int> insertDebt(Map<String, dynamic> d) async => (await database).insert('debts', d);
   Future<List<Map<String, dynamic>>> getAllDebts() async => (await database).query('debts', orderBy: 'status ASC, createdAt DESC');
@@ -291,5 +272,24 @@ class DBHelper {
       final tables = ['repairs', 'products', 'sales', 'suppliers', 'expenses', 'debts', 'customers', 'attendance', 'audit_logs', 'inventory_checks', 'cash_closings', 'payroll_settings', 'purchase_orders', 'work_schedules', 'debt_payments'];
       for (var t in tables) await txn.delete(t);
     });
+  }
+
+  // --- LỊCH SỬ TRẢ NỢ ---
+  Future<int> insertDebtPayment(Map<String, dynamic> p) async {
+    final db = await database;
+    return await db.insert('debt_payments', p);
+  }
+  Future<List<Map<String, dynamic>>> getDebtPayments(int debtId) async {
+    final db = await database;
+    return await db.query('debt_payments', where: 'debtId = ?', whereArgs: [debtId], orderBy: 'paidAt DESC');
+  }
+  Future<List<Map<String, dynamic>>> getAllDebtPaymentsWithDetails() async {
+    final db = await database;
+    return await db.rawQuery('''
+      SELECT p.*, d.type as debtType, d.personName 
+      FROM debt_payments p
+      JOIN debts d ON p.debtId = d.id
+      ORDER BY p.paidAt DESC
+    ''');
   }
 }
