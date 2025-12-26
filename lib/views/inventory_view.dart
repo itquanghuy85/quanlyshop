@@ -2,22 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:convert';
+import 'package:mobile_scanner/mobile_scanner.dart';
 import '../data/db_helper.dart';
 import '../models/product_model.dart';
+import '../models/inventory_check_model.dart';
 import 'supplier_view.dart';
-import 'inventory_check_view.dart';
 import 'create_sale_view.dart';
 import '../services/firestore_service.dart';
 import '../services/unified_printer_service.dart';
 import '../services/bluetooth_printer_service.dart';
 import '../services/notification_service.dart';
 import '../services/user_service.dart';
-<<<<<<< HEAD
 import '../utils/sku_generator.dart';
-=======
 import '../widgets/validated_text_field.dart';
 import '../widgets/currency_text_field.dart';
->>>>>>> e7fff18 (TINH CHINH GIAO DIEN HOME CHINH TINH LUONG)
 
 class InventoryView extends StatefulWidget {
   const InventoryView({super.key});
@@ -25,7 +24,7 @@ class InventoryView extends StatefulWidget {
   State<InventoryView> createState() => _InventoryViewState();
 }
 
-class _InventoryViewState extends State<InventoryView> {
+class _InventoryViewState extends State<InventoryView> with TickerProviderStateMixin {
   final db = DBHelper();
   List<Product> _products = [];
   List<Map<String, dynamic>> _suppliers = [];
@@ -36,10 +35,32 @@ class _InventoryViewState extends State<InventoryView> {
   final Set<int> _selectedIds = {};
   bool _isSelectionMode = false;
 
+  // Tab controller
+  late TabController _tabController;
+
+  // Inventory check variables
+  String _selectedType = 'PHONE';
+  List<Map<String, dynamic>> _items = [];
+  List<InventoryCheckItem> _checkItems = [];
+  bool _isCheckingLoading = false;
+  bool _isScanning = false;
+  final MobileScannerController _scannerController = MobileScannerController();
+  String _checkSearchQuery = '';
+  InventoryCheck? _currentCheck;
+
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
     _init();
+    _initCheckData();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    _scannerController.dispose();
+    super.dispose();
   }
 
   Future<void> _init() async {
@@ -47,6 +68,11 @@ class _InventoryViewState extends State<InventoryView> {
     if (!mounted) return;
     setState(() => _isAdmin = perms['allowViewInventory'] ?? false);
     _refresh();
+  }
+
+  Future<void> _initCheckData() async {
+    await _loadOrCreateCurrentCheck();
+    await _loadCheckItems();
   }
 
   Future<void> _refresh() async {
@@ -107,8 +133,164 @@ class _InventoryViewState extends State<InventoryView> {
     });
   }
 
+  // ===== INVENTORY CHECK METHODS =====
+  Future<void> _loadOrCreateCurrentCheck() async {
+    try {
+      final checks = await db.getInventoryChecks();
+      final today = DateTime.now();
+      final todayKey = DateFormat('yyyy-MM-dd').format(today);
+
+      // Find today's check or create new one
+      _currentCheck = checks.cast<InventoryCheck?>().firstWhere(
+        (check) => check != null && DateFormat('yyyy-MM-dd').format(DateTime.fromMillisecondsSinceEpoch(check.createdAt)) == todayKey,
+        orElse: () => null,
+      );
+
+      if (_currentCheck == null) {
+        _currentCheck = InventoryCheck(
+          checkType: _selectedType,
+          checkDate: today.millisecondsSinceEpoch,
+          checkedBy: FirebaseAuth.instance.currentUser?.email ?? 'Unknown',
+          items: [],
+          createdAt: today.millisecondsSinceEpoch,
+        );
+        await db.insertInventoryCheck(_currentCheck!.toMap());
+      }
+    } catch (e) {
+      print('Error loading current check: $e');
+    }
+  }
+
+  Future<void> _loadCheckItems() async {
+    setState(() => _isCheckingLoading = true);
+    try {
+      _items = await db.getItemsForInventoryCheck(_selectedType);
+      _updateCheckItems();
+    } catch (e) {
+      NotificationService.showSnackBar('Lỗi tải danh sách: $e', color: Colors.red);
+    } finally {
+      setState(() => _isCheckingLoading = false);
+    }
+  }
+
+  void _updateCheckItems() {
+    _checkItems = _items.map((item) {
+      final existingItem = _currentCheck?.items.firstWhere(
+        (checkItem) => checkItem.itemId == item['id'].toString(),
+        orElse: () => InventoryCheckItem(
+          itemId: item['id'].toString(),
+          itemName: item['name'] ?? '',
+          itemType: _selectedType,
+          imei: item['imei'],
+          quantity: item['quantity'] ?? 0,
+        ),
+      );
+      return existingItem ?? InventoryCheckItem(
+        itemId: item['id'].toString(),
+        itemName: item['name'] ?? '',
+        itemType: _selectedType,
+        imei: item['imei'],
+        quantity: item['quantity'] ?? 0,
+      );
+    }).toList();
+  }
+
+  void _updateItemQuantity(String itemId, int quantity) {
+    setState(() {
+      final index = _checkItems.indexWhere((item) => item.itemId == itemId);
+      if (index != -1) {
+        _checkItems[index] = InventoryCheckItem(
+          itemId: _checkItems[index].itemId,
+          itemName: _checkItems[index].itemName,
+          itemType: _checkItems[index].itemType,
+          imei: _checkItems[index].imei,
+          color: _checkItems[index].color,
+          quantity: quantity,
+          isChecked: quantity > 0,
+          checkedAt: quantity > 0 ? DateTime.now().millisecondsSinceEpoch : 0,
+        );
+      }
+    });
+  }
+
+  Future<void> _saveCheck() async {
+    if (_currentCheck == null) return;
+
+    setState(() => _isCheckingLoading = true);
+    try {
+      _currentCheck = InventoryCheck(
+        id: _currentCheck!.id,
+        firestoreId: _currentCheck!.firestoreId,
+        checkType: _currentCheck!.checkType,
+        checkDate: _currentCheck!.checkDate,
+        checkedBy: _currentCheck!.checkedBy,
+        items: _checkItems,
+        isCompleted: true,
+        isSynced: _currentCheck!.isSynced,
+        createdAt: _currentCheck!.createdAt,
+      );
+
+      await db.updateInventoryCheck(_currentCheck!.toMap());
+      NotificationService.showSnackBar('Đã lưu kiểm kho thành công!', color: Colors.green);
+    } catch (e) {
+      NotificationService.showSnackBar('Lỗi lưu kiểm kho: $e', color: Colors.red);
+    } finally {
+      setState(() => _isCheckingLoading = false);
+    }
+  }
+
+  void _onQRDetected(BarcodeCapture capture) {
+    final barcode = capture.barcodes.first;
+    if (barcode.rawValue != null) {
+      final imei = barcode.rawValue!;
+      final item = _checkItems.firstWhere(
+        (item) => item.imei == imei,
+        orElse: () => InventoryCheckItem(
+          itemId: imei,
+          itemName: 'Sản phẩm quét: $imei',
+          itemType: _selectedType,
+          quantity: 1,
+          isChecked: true,
+          checkedAt: DateTime.now().millisecondsSinceEpoch,
+        ),
+      );
+
+      if (!item.isChecked) {
+        _updateItemQuantity(item.itemId, item.quantity + 1);
+        HapticFeedback.vibrate();
+        NotificationService.showSnackBar('Đã quét: ${item.itemName}');
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF0F4F8),
+      appBar: AppBar(
+        title: const Text("QUẢN LÝ KHO TỔNG", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [
+            Tab(text: "KHO HÀNG", icon: Icon(Icons.inventory)),
+            Tab(text: "KIỂM KHO", icon: Icon(Icons.qr_code_scanner)),
+          ],
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
+          indicatorColor: Colors.white,
+        ),
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _buildInventoryTab(),
+          _buildInventoryCheckTab(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInventoryTab() {
     final filteredList = _products.where((p) => p.name.toLowerCase().contains(_searchQuery.toLowerCase()) || (p.imei ?? "").contains(_searchQuery)).toList();
     int totalQty = filteredList.length;
     int totalCapital = filteredList.fold(0, (sum, item) => sum + item.cost);
@@ -116,26 +298,148 @@ class _InventoryViewState extends State<InventoryView> {
     return Scaffold(
       backgroundColor: const Color(0xFFF0F4F8),
       appBar: AppBar(
-        title: _isSelectionMode ? Text("ĐÃ CHỌN ${_selectedIds.length}", style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 16)) : const Text("QUẢN LÝ KHO TỔNG", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        title: _isSelectionMode ? Text("ĐÃ CHỌN ${_selectedIds.length}", style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 16)) : const SizedBox(),
         leading: _isSelectionMode ? IconButton(icon: const Icon(Icons.close, color: Colors.red), onPressed: () => setState(() { _isSelectionMode = false; _selectedIds.clear(); })) : null,
         actions: [
           if (!_isSelectionMode) ...[
             // NÚT BÁN HÀNG NHANH
             IconButton(onPressed: () { HapticFeedback.mediumImpact(); Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateSaleView())).then((_) => _refresh()); }, icon: const Icon(Icons.shopping_cart_checkout_rounded, color: Colors.pinkAccent), tooltip: "Bán hàng nhanh"),
-            IconButton(onPressed: () { HapticFeedback.lightImpact(); Navigator.push(context, MaterialPageRoute(builder: (_) => const InventoryCheckView())); }, icon: const Icon(Icons.qr_code_scanner, color: Color(0xFF2962FF)), tooltip: "Kiểm kho QR"),
             TextButton.icon(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SupplierView())).then((_) => _refresh()), icon: const Icon(Icons.business_center, size: 20), label: const Text("NCC", style: TextStyle(fontWeight: FontWeight.bold))),
           ],
           if (_isSelectionMode) IconButton(onPressed: _deleteSelected, icon: const Icon(Icons.delete_forever, color: Colors.red, size: 28)) else IconButton(onPressed: _refresh, icon: const Icon(Icons.refresh, color: Colors.blue)),
         ],
+        backgroundColor: Colors.transparent,
+        elevation: 0,
       ),
       body: Column(
         children: [
           if (!_isSelectionMode) _buildInventorySummary(totalQty, totalCapital),
           _buildSearchBox(),
-          Expanded(child: _isLoading ? const Center(child: CircularProgressIndicator()) : filteredList.isEmpty ? _buildEmptyState() : RefreshIndicator(onRefresh: _refresh, child: ListView.builder(padding: const EdgeInsets.fromLTRB(16, 0, 16, 100), itemCount: filteredList.length, itemBuilder: (ctx, i) => _buildProfessionalCard(filteredList[i])))),
+          Expanded(
+            child: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : filteredList.isEmpty
+                ? _buildEmptyState()
+                : RefreshIndicator(
+                    onRefresh: _refresh,
+                    child: ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+                      itemCount: filteredList.length,
+                      itemBuilder: (ctx, i) => _buildProfessionalCard(filteredList[i])
+                    )
+                  )
+          ),
         ],
       ),
       floatingActionButton: _isSelectionMode ? null : FloatingActionButton.extended(onPressed: _showAddProductDialog, label: const Text("NHẬP KHO MỚI", style: TextStyle(fontWeight: FontWeight.bold)), icon: const Icon(Icons.add_box_rounded), backgroundColor: const Color(0xFF2962FF)),
+    );
+  }
+
+  Widget _buildInventoryCheckTab() {
+    return Column(
+      children: [
+        // Type selector
+        Container(
+          margin: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8)],
+          ),
+          child: DropdownButton<String>(
+            value: _selectedType,
+            isExpanded: true,
+            underline: const SizedBox(),
+            items: const [
+              DropdownMenuItem(value: "PHONE", child: Text("Điện thoại")),
+              DropdownMenuItem(value: "ACCESSORY", child: Text("Phụ kiện")),
+            ],
+            onChanged: (value) {
+              if (value != null) {
+                setState(() => _selectedType = value);
+                _initCheckData();
+              }
+            },
+          ),
+        ),
+
+        // QR Scanner
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16),
+          height: 200,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            color: Colors.black,
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: MobileScanner(
+              controller: _scannerController,
+              onDetect: (capture) => _onQRDetected(capture),
+            ),
+          ),
+        ),
+
+        // Check items list
+        Expanded(
+          child: _isCheckingLoading
+            ? const Center(child: CircularProgressIndicator())
+            : _checkItems.isEmpty
+              ? const Center(child: Text("Chưa có dữ liệu kiểm kho"))
+              : ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: _checkItems.length,
+                  itemBuilder: (context, index) {
+                    final item = _checkItems[index];
+                    final isComplete = item.isChecked;
+
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      child: ListTile(
+                        title: Text(item.itemName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: Text("SL hiện tại: ${item.quantity} | Đã kiểm: ${item.isChecked ? 'Có' : 'Chưa'}"),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.remove),
+                              onPressed: item.quantity > 0
+                                ? () => _updateItemQuantity(item.itemId, item.quantity - 1)
+                                : null,
+                            ),
+                            Text("${item.quantity}", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                            IconButton(
+                              icon: const Icon(Icons.add),
+                              onPressed: () => _updateItemQuantity(item.itemId, item.quantity + 1),
+                            ),
+                          ],
+                        ),
+                        leading: Icon(
+                          isComplete ? Icons.check_circle : Icons.radio_button_unchecked,
+                          color: isComplete ? Colors.green : Colors.grey,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+        ),
+
+        // Save button
+        Container(
+          padding: const EdgeInsets.all(16),
+          child: ElevatedButton.icon(
+            onPressed: _saveCheck,
+            icon: const Icon(Icons.save),
+            label: const Text("LƯU KIỂM KHO"),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2962FF),
+              foregroundColor: Colors.white,
+              minimumSize: const Size(double.infinity, 50),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -249,18 +553,54 @@ class _InventoryViewState extends State<InventoryView> {
       return AlertDialog(
         title: const Text("NHẬP KHO SIÊU TỐC", style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2962FF))),
         content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
-          DropdownButtonFormField<String>(value: type, items: const [DropdownMenuItem(value: "PHONE", child: Text("ĐIỆN THOẠI")), DropdownMenuItem(value: "ACCESSORY", child: Text("PHỤ KIỆN"))], onChanged: (v) => setS(() => type = v!), decoration: const InputDecoration(labelText: "Loại hàng")),
+          // Loại hàng
+          DropdownButtonFormField<String>(
+            value: type,
+            items: const [
+              DropdownMenuItem(value: "PHONE", child: Text("ĐIỆN THOẠI")),
+              DropdownMenuItem(value: "ACCESSORY", child: Text("PHỤ KIỆN"))
+            ],
+            onChanged: (v) => setS(() => type = v!),
+            decoration: const InputDecoration(labelText: "Loại hàng")
+          ),
+
+          // Tên máy
           _input(nameC, "Tên máy *", Icons.phone_android, f: nameF, next: imeiF, caps: true),
+
+          // Chi tiết
           _input(detailC, "Chi tiết (Dung lượng - Màu...)", Icons.info_outline, caps: true),
+
+          // IMEI/Serial
           _input(imeiC, "Số IMEI / Serial", Icons.fingerprint, f: imeiF, next: costF, type: TextInputType.number),
-          Row(children: [Expanded(child: _input(costC, "Giá vốn (k)", Icons.money, f: costF, next: kpkF, type: TextInputType.number, suffix: "k")), const SizedBox(width: 8), Expanded(child: _input(kpkPriceC, "Giá KPK (k)", Icons.card_giftcard, f: kpkF, next: pkF, type: TextInputType.number, suffix: "k"))]),
+
+          // Giá vốn
+          _input(costC, "Giá vốn (k)", Icons.money, f: costF, next: kpkF, type: TextInputType.number, suffix: "k"),
+
+          // Giá KPK
+          _input(kpkPriceC, "Giá KPK (k)", Icons.card_giftcard, f: kpkF, next: pkF, type: TextInputType.number, suffix: "k"),
+
+          // Giá CPK - Lẻ
           _input(pkPriceC, "GIÁ CPK - LẺ (k)", Icons.sell, f: pkF, next: qtyF, type: TextInputType.number, suffix: "k"),
-          Row(children: [Expanded(flex: 1, child: _input(qtyC, "SL", Icons.add_box, f: qtyF, isBig: true)), const SizedBox(width: 8), Expanded(flex: 2, child: DropdownButtonFormField<String>(value: supplier, isExpanded: true, decoration: const InputDecoration(labelText: "Nhà cung cấp *"), items: _suppliers.map((s) => DropdownMenuItem(value: s['name'] as String, child: Text(s['name']))).toList(), onChanged: (v) => setS(() => supplier = v)))]),
+
+          // Số lượng và Nhà cung cấp
+          Row(children: [
+            Expanded(flex: 1, child: _input(qtyC, "SL", Icons.add_box, f: qtyF, isBig: true)),
+            const SizedBox(width: 8),
+            Expanded(flex: 2, child: DropdownButtonFormField<String>(
+              value: supplier,
+              isExpanded: true,
+              decoration: const InputDecoration(labelText: "Nhà cung cấp *"),
+              items: _suppliers.map((s) => DropdownMenuItem(value: s['name'] as String, child: Text(s['name']))).toList(),
+              onChanged: (v) => setS(() => supplier = v)
+            ))
+          ]),
           
           // SKU Section
           const Divider(height: 30, thickness: 1),
           const Text("MÃ HÀNG", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF2962FF))),
           const SizedBox(height: 10),
+
+          // Nhóm
           DropdownButtonFormField<String>(
             value: selectedNhom,
             decoration: const InputDecoration(labelText: "Nhóm *", prefixIcon: Icon(Icons.category, size: 18)),
@@ -273,11 +613,14 @@ class _InventoryViewState extends State<InventoryView> {
             ],
             onChanged: (v) => setS(() => selectedNhom = v!),
           ),
-          Row(children: [
-            Expanded(child: _input(modelC, "Model (vd: IP12PM)", Icons.smartphone, caps: true)),
-            const SizedBox(width: 8),
-            Expanded(child: _input(thongtinC, "Thông tin (vd: 256GB)", Icons.info, caps: true)),
-          ]),
+
+          // Model
+          _input(modelC, "Model (vd: IP12PM)", Icons.smartphone, caps: true),
+
+          // Thông tin
+          _input(thongtinC, "Thông tin (vd: 256GB)", Icons.info, caps: true),
+
+          // Mã hàng và nút tạo
           Row(children: [
             Expanded(flex: 2, child: _input(skuC, "Mã hàng được tạo", Icons.qr_code, f: skuF, caps: true, readOnly: true)),
             const SizedBox(width: 8),
@@ -293,18 +636,15 @@ class _InventoryViewState extends State<InventoryView> {
             )),
           ]),
           
-          const SizedBox(height: 15), Wrap(spacing: 8, children: ["TIỀN MẶT", "CHUYỂN KHOẢN", "CÔNG NỢ"].map((m) => ChoiceChip(label: Text(m, style: const TextStyle(fontSize: 11)), selected: payMethod == m, onSelected: (v) => setS(() => payMethod = m), selectedColor: Colors.blueAccent)).toList()),
+          const SizedBox(height: 15),
+          Wrap(spacing: 8, children: ["TIỀN MẶT", "CHUYỂN KHOẢN", "CÔNG NỢ"].map((m) => ChoiceChip(label: Text(m, style: const TextStyle(fontSize: 11)), selected: payMethod == m, onSelected: (v) => setS(() => payMethod = m), selectedColor: Colors.blueAccent)).toList()),
         ])),
         actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("HỦY")), OutlinedButton(onPressed: isSaving ? null : () => saveProcess(next: true), child: const Text("NHẬP TIẾP")), ElevatedButton(onPressed: isSaving ? null : () => saveProcess(), style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2962FF)), child: const Text("HOÀN TẤT", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)))],
       );
     }));
   }
 
-<<<<<<< HEAD
   Widget _input(TextEditingController c, String l, IconData i, {FocusNode? f, FocusNode? next, TextInputType type = TextInputType.text, String? suffix, bool caps = false, bool isBig = false, bool readOnly = false}) {
-    return Padding(padding: const EdgeInsets.only(bottom: 10), child: TextField(controller: c, focusNode: f, keyboardType: type, textInputAction: next != null ? TextInputAction.next : TextInputAction.done, textCapitalization: caps ? TextCapitalization.characters : TextCapitalization.none, inputFormatters: type == TextInputType.number ? [FilteringTextInputFormatter.digitsOnly] : [], style: TextStyle(fontSize: isBig ? 20 : 14, fontWeight: isBig ? FontWeight.bold : FontWeight.normal), readOnly: readOnly, onSubmitted: (_) { if (next != null) FocusScope.of(context).requestFocus(next); }, decoration: InputDecoration(labelText: l, prefixIcon: Icon(i, size: 18), suffixText: suffix, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), filled: true, fillColor: readOnly ? Colors.grey[100] : Colors.white, contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12))));
-=======
-  Widget _input(TextEditingController c, String l, IconData i, {FocusNode? f, FocusNode? next, TextInputType type = TextInputType.text, String? suffix, bool caps = false, bool isBig = false}) {
     if (type == TextInputType.number && (l.contains('GIÁ') || l.contains('TIỀN') || suffix == 'k')) {
       // Use CurrencyTextField for price fields
       return Padding(
@@ -330,17 +670,115 @@ class _InventoryViewState extends State<InventoryView> {
         ),
       );
     }
->>>>>>> e7fff18 (TINH CHINH GIAO DIEN HOME CHINH TINH LUONG)
   }
 
-  void _showProductDetail(Product p) {
-    HapticFeedback.lightImpact();
-    showModalBottomSheet(context: context, isScrollControlled: true, shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))), builder: (ctx) => Container(padding: const EdgeInsets.all(24), child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(10)))), const SizedBox(height: 20), Text(p.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF2962FF))), const SizedBox(height: 15), _detailItem("Chi tiết máy", p.capacity ?? ""), _detailItem("IMEI/Serial", p.imei ?? "N/A"), _detailItem("Nhà cung cấp", p.supplier ?? "N/A"), _detailItem("Giá CPK (Lẻ)", "${NumberFormat('#,###').format(p.price)} đ", color: Colors.red), _detailItem("Giá KPK", "${NumberFormat('#,###').format(p.kpkPrice ?? 0)} đ", color: Colors.blue), const Divider(height: 30), Row(children: [Expanded(child: ElevatedButton.icon(onPressed: () { Navigator.pop(ctx); _printOptions(p); }, icon: const Icon(Icons.qr_code_2, color: Colors.white), label: const Text("IN TEM QR", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), style: ElevatedButton.styleFrom(backgroundColor: Colors.green, padding: const EdgeInsets.symmetric(vertical: 15)))), const SizedBox(width: 12), Expanded(child: OutlinedButton.icon(onPressed: () => Navigator.pop(ctx), icon: const Icon(Icons.close), label: const Text("ĐÓNG"), style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 15))))])])));
-  }
+  Widget _detailItem(String l, String v, {Color? color}) => Padding(padding: const EdgeInsets.symmetric(vertical: 6), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(l, style: const TextStyle(color: Colors.blueGrey, fontSize: 13)), Text(v, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: color))]));
 
   void _printOptions(Product p) {
     showModalBottomSheet(context: context, shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))), builder: (ctx) => SafeArea(child: Column(mainAxisSize: MainAxisSize.min, children: [ListTile(leading: const Icon(Icons.print, color: Colors.blue), title: const Text("In bằng máy in mặc định"), onTap: () { HapticFeedback.mediumImpact(); Navigator.pop(ctx); UnifiedPrinterService.printProductQRLabel(p.toMap()); }), ListTile(leading: const Icon(Icons.bluetooth_searching, color: Colors.orange), title: const Text("Chọn máy in khác"), onTap: () async { HapticFeedback.mediumImpact(); Navigator.pop(ctx); final list = await BluetoothPrinterService.getPairedPrinters(); if (list.isNotEmpty && mounted) { showModalBottomSheet(context: context, builder: (c) => ListView.builder(itemCount: list.length, itemBuilder: (cc, i) => ListTile(title: Text(list[i].name), subtitle: Text(list[i].macAdress), onTap: () { Navigator.pop(c); UnifiedPrinterService.printProductQRLabel(p.toMap(), customMac: list[i].macAdress); }))); } })])));
   }
 
-  Widget _detailItem(String l, String v, {Color? color}) => Padding(padding: const EdgeInsets.symmetric(vertical: 6), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(l, style: const TextStyle(color: Colors.blueGrey, fontSize: 13)), Text(v, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: color))]));
+  void _showProductDetail(Product p) {
+    HapticFeedback.lightImpact();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25))
+      ),
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(10)
+                )
+              )
+            ),
+            const SizedBox(height: 20),
+            Text(
+              p.name,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF2962FF)
+              )
+            ),
+            const SizedBox(height: 15),
+            _detailItem("Chi tiết máy", p.capacity ?? ""),
+            _detailItem("IMEI/Serial", p.imei ?? "N/A"),
+            _detailItem("Nhà cung cấp", p.supplier ?? "N/A"),
+            _detailItem("Giá CPK (Lẻ)", "${NumberFormat('#,###').format(p.price)} đ", color: Colors.red),
+            _detailItem("Giá KPK", "${NumberFormat('#,###').format(p.kpkPrice ?? 0)} đ", color: Colors.blue),
+            const Divider(height: 30),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      _printOptions(p);
+                    },
+                    icon: const Icon(Icons.qr_code_2, color: Colors.white),
+                    label: const Text(
+                      "IN TEM QR",
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      padding: const EdgeInsets.symmetric(vertical: 15)
+                    )
+                  )
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      _createSaleOrder(p);
+                    },
+                    icon: const Icon(Icons.shopping_cart, color: Colors.white),
+                    label: const Text(
+                      "TẠO ĐƠN HÀNG",
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF2962FF),
+                      padding: const EdgeInsets.symmetric(vertical: 15)
+                    )
+                  )
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => Navigator.pop(ctx),
+                    icon: const Icon(Icons.close),
+                    label: const Text("ĐÓNG"),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 15)
+                    )
+                  )
+                )
+              ]
+            )
+          ]
+        )
+      )
+    );
+  }
+
+  void _createSaleOrder(Product p) {
+    HapticFeedback.mediumImpact();
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const CreateSaleView()),
+    ).then((_) => _refresh());
+  }
 }

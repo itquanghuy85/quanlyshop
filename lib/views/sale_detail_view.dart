@@ -18,6 +18,7 @@ import '../services/user_service.dart';
 import '../services/audit_service.dart';
 import '../services/unified_printer_service.dart';
 import '../services/bluetooth_printer_service.dart';
+import '../models/printer_types.dart';
 import '../widgets/printer_selection_dialog.dart';
 
 class SaleDetailView extends StatefulWidget {

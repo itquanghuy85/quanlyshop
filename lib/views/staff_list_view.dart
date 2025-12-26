@@ -257,7 +257,7 @@ class _StaffListViewState extends State<StaffListView> {
         String role = 'employee'; // Default to employee instead of user
         String? errorText;
         bool submitting = false;
-        bool autoGeneratePassword = true; // New feature: auto-generate password
+        bool autoGeneratePassword = false; // Changed to false to allow manual password entry
 
         // Auto-generate strong password
         String generatePassword() {
@@ -360,9 +360,9 @@ class _StaffListViewState extends State<StaffListView> {
                     // Auto-generate password option
                     CheckboxListTile(
                       title: const Text('Tự động tạo mật khẩu mạnh'),
-                      subtitle: const Text('Khuyến nghị: dễ dàng và bảo mật hơn'),
+                      subtitle: const Text('Bỏ chọn để tự nhập mật khẩu'),
                       value: autoGeneratePassword,
-                      onChanged: (value) => setState(() => autoGeneratePassword = value ?? true),
+                      onChanged: (value) => setState(() => autoGeneratePassword = value ?? false),
                     ),
                     if (!autoGeneratePassword)
                       TextField(
@@ -957,10 +957,12 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter> with SingleT
   List<Repair> _repairsDelivered = [];
   List<SaleOrder> _sales = [];
 
+  Map<String, dynamic>? _workSchedule;
+
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     
     // Gán dữ liệu ban đầu
     nameCtrl.text = widget.fullData['displayName'] ?? widget.name;
@@ -986,6 +988,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter> with SingleT
 
     _loadCurrentShop();
     _loadAllStaffData();
+    _loadWorkSchedule();
   }
 
   Future<void> _loadCurrentShop() async {
@@ -1014,6 +1017,78 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter> with SingleT
         _sales = [];
       });
     }
+  }
+
+  Future<void> _loadWorkSchedule() async {
+    try {
+      final schedule = await db.getWorkSchedule(widget.uid);
+      if (!mounted) return;
+      setState(() => _workSchedule = schedule);
+    } catch (e) {
+      // Ignore errors when loading work schedule
+      setState(() => _workSchedule = null);
+    }
+  }
+
+  void _editWorkScheduleForStaff() async {
+    final startTimeCtrl = TextEditingController(text: _workSchedule?['startTime'] ?? '08:00');
+    final endTimeCtrl = TextEditingController(text: _workSchedule?['endTime'] ?? '17:00');
+    final breakTimeCtrl = TextEditingController(text: (_workSchedule?['breakTime'] ?? 1).toString());
+    final maxOtCtrl = TextEditingController(text: (_workSchedule?['maxOtHours'] ?? 4).toString());
+
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Chỉnh sửa lịch làm việc cho ${widget.name}'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: startTimeCtrl,
+              decoration: const InputDecoration(labelText: 'Giờ bắt đầu (HH:mm)'),
+            ),
+            TextField(
+              controller: endTimeCtrl,
+              decoration: const InputDecoration(labelText: 'Giờ kết thúc (HH:mm)'),
+            ),
+            TextField(
+              controller: breakTimeCtrl,
+              decoration: const InputDecoration(labelText: 'Giờ nghỉ (giờ)'),
+              keyboardType: TextInputType.number,
+            ),
+            TextField(
+              controller: maxOtCtrl,
+              decoration: const InputDecoration(labelText: 'OT tối đa (giờ/ngày)'),
+              keyboardType: TextInputType.number,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('HỦY')),
+          ElevatedButton(
+            onPressed: () async {
+              final newSchedule = {
+                'userId': widget.uid,
+                'startTime': startTimeCtrl.text,
+                'endTime': endTimeCtrl.text,
+                'breakTime': int.tryParse(breakTimeCtrl.text) ?? 1,
+                'maxOtHours': int.tryParse(maxOtCtrl.text) ?? 4,
+                'workDays': [1, 2, 3, 4, 5, 6], // Monday to Saturday
+                'updatedAt': DateTime.now().millisecondsSinceEpoch,
+              };
+
+              await db.upsertWorkSchedule(widget.uid, newSchedule);
+              await _loadWorkSchedule();
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Đã cập nhật lịch làm việc"), backgroundColor: Colors.green),
+              );
+            },
+            child: const Text('LƯU'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _pickPhoto() async {
@@ -1331,6 +1406,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter> with SingleT
               Tab(text: "ĐÃ NHẬN", icon: Icon(Icons.move_to_inbox_rounded, size: 20)),
               Tab(text: "ĐÃ GIAO", icon: Icon(Icons.outbox_rounded, size: 20)),
               Tab(text: "ĐÃ BÁN", icon: Icon(Icons.shopping_cart_checkout_rounded, size: 20)),
+              Tab(text: "LỊCH LÀM VIỆC", icon: Icon(Icons.schedule, size: 20)),
             ],
           ),
 
@@ -1341,6 +1417,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter> with SingleT
                 _buildRepairList(_repairsReceived),
                 _buildRepairList(_repairsDelivered),
                 _buildSaleList(_sales),
+                _buildWorkScheduleTab(),
               ],
             ),
           ),
@@ -1404,6 +1481,113 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter> with SingleT
         title: Text(list[i].productNames, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
         subtitle: Text("KH: ${list[i].customerName} | ${NumberFormat('#,###').format(list[i].totalPrice)} đ"),
         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => SaleDetailView(sale: list[i]))),
+      ),
+    );
+  }
+
+  Widget _buildWorkScheduleTab() {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                "Lịch làm việc hiện tại",
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              ElevatedButton.icon(
+                onPressed: _editWorkScheduleForStaff,
+                icon: const Icon(Icons.edit, size: 16),
+                label: const Text("Chỉnh sửa"),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          if (_workSchedule != null) ...[
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.access_time, color: Colors.blue),
+                        const SizedBox(width: 8),
+                        Text(
+                          "Giờ làm việc: ${_workSchedule!['startTime']} - ${_workSchedule!['endTime']}",
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Icon(Icons.free_breakfast, color: Colors.orange),
+                        const SizedBox(width: 8),
+                        Text(
+                          "Giờ nghỉ: ${_workSchedule!['breakTime']} giờ",
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Icon(Icons.timer, color: Colors.green),
+                        const SizedBox(width: 8),
+                        Text(
+                          "OT tối đa: ${_workSchedule!['maxOtHours']} giờ/ngày",
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Icon(Icons.calendar_today, color: Colors.purple),
+                        const SizedBox(width: 8),
+                        Text(
+                          "Ngày làm việc: Thứ 2 - Thứ 7",
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ] else ...[
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    const Icon(Icons.schedule, size: 48, color: Colors.grey),
+                    const SizedBox(height: 8),
+                    const Text(
+                      "Chưa có lịch làm việc",
+                      style: TextStyle(color: Colors.grey, fontSize: 16),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      "Nhấn 'Chỉnh sửa' để thiết lập lịch làm việc cho nhân viên này",
+                      style: TextStyle(color: Colors.grey, fontSize: 12),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

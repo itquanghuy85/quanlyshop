@@ -7,8 +7,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../data/db_helper.dart';
+import '../models/attendance_model.dart';
 import '../services/user_service.dart';
 import '../services/notification_service.dart';
+import '../services/storage_service.dart';
 import '../widgets/currency_text_field.dart';
 
 class AttendanceView extends StatefulWidget {
@@ -20,7 +22,7 @@ class AttendanceView extends StatefulWidget {
 class _AttendanceViewState extends State<AttendanceView> with TickerProviderStateMixin {
   final db = DBHelper();
   bool _loading = true;
-  Map<String, dynamic>? _today;
+  Attendance? _today;
   File? _photoIn;
   File? _photoOut;
   String _role = 'user';
@@ -34,10 +36,15 @@ class _AttendanceViewState extends State<AttendanceView> with TickerProviderStat
   bool _locationRequired = true;
   double _allowedRadius = 100; // meters
 
+  // Workplace location settings
+  double? _workplaceLat;
+  double? _workplaceLng;
+  String? _workplaceAddress;
+
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
     _initData();
     _loadSettings();
     _checkLocationPermission();
@@ -56,7 +63,7 @@ class _AttendanceViewState extends State<AttendanceView> with TickerProviderStat
     final rec = await db.getAttendance(DateFormat('yyyy-MM-dd').format(DateTime.now()), uid);
     final schedule = await db.getWorkSchedule(uid);
     final violations = await db.getAttendanceViolations(uid, DateTime.now().subtract(const Duration(days: 30)), DateTime.now());
-    final stats = await db.getPerformanceStats(uid, DateTime.now().subtract(const Duration(days: 30)), DateTime.now());
+    final stats = await db.getPerformanceStats(uid, DateFormat('yyyy-MM').format(DateTime.now()));
 
     if (!mounted) return;
     setState(() {
@@ -74,6 +81,9 @@ class _AttendanceViewState extends State<AttendanceView> with TickerProviderStat
     setState(() {
       _locationRequired = prefs.getBool('attendance_location_required') ?? true;
       _allowedRadius = prefs.getDouble('attendance_radius') ?? 100;
+      _workplaceLat = prefs.getDouble('workplace_lat');
+      _workplaceLng = prefs.getDouble('workplace_lng');
+      _workplaceAddress = prefs.getString('workplace_address');
     });
   }
 
@@ -85,6 +95,27 @@ class _AttendanceViewState extends State<AttendanceView> with TickerProviderStat
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
     }
+  }
+
+  Future<void> _setWorkplaceLocation() async {
+    final position = await _getCurrentPosition();
+    if (position == null) {
+      NotificationService.showSnackBar("Không thể lấy vị trí hiện tại", color: Colors.red);
+      return;
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('workplace_lat', position.latitude);
+    await prefs.setDouble('workplace_lng', position.longitude);
+    await prefs.setString('workplace_address', 'Vị trí hiện tại');
+
+    setState(() {
+      _workplaceLat = position.latitude;
+      _workplaceLng = position.longitude;
+      _workplaceAddress = 'Vị trí hiện tại';
+    });
+
+    NotificationService.showSnackBar("Đã cài đặt nơi làm việc thành công!", color: Colors.green);
   }
 
   Future<Position?> _getCurrentPosition() async {
@@ -107,11 +138,14 @@ class _AttendanceViewState extends State<AttendanceView> with TickerProviderStat
     setState(() => _currentPosition = position);
 
     // Check if within allowed radius of workplace
-    // For demo, we'll assume workplace is at current position
-    // In real app, this would be configured workplace coordinates
+    if (_workplaceLat == null || _workplaceLng == null) {
+      // If no workplace set, allow check-in (for first setup)
+      return true;
+    }
+
     final distance = Geolocator.distanceBetween(
       position.latitude, position.longitude,
-      position.latitude, position.longitude, // Replace with actual workplace coords
+      _workplaceLat!, _workplaceLng!,
     );
 
     return distance <= _allowedRadius;
@@ -132,70 +166,115 @@ class _AttendanceViewState extends State<AttendanceView> with TickerProviderStat
     if (picked == null) return;
 
     setState(() => _loading = true);
-    final user = FirebaseAuth.instance.currentUser!;
+    final user = FirebaseAuth.instance.currentUser;
+    
+    // Check if user is authenticated
+    if (user == null) {
+      NotificationService.showSnackBar("Bạn chưa đăng nhập! Vui lòng đăng nhập lại", color: Colors.red);
+      setState(() => _loading = false);
+      return;
+    }
+    
     final now = DateTime.now().millisecondsSinceEpoch;
 
-    // Check work schedule
-    final currentTime = DateTime.now();
-    final schedule = _workSchedule;
-    bool isLate = false;
-    bool isEarlyLeave = false;
+    try {
+      // Ensure user is authenticated and token is fresh
+      await user.getIdToken(true); // Force refresh token
+      
+      // Upload photo immediately to Firebase Storage
+      final photoUrls = await StorageService.uploadMultipleImages(
+        [picked.path],
+        'attendance/${DateFormat('yyyy-MM-dd').format(DateTime.now())}_${user.uid}_${isIn ? 'in' : 'out'}'
+      );
 
-    if (schedule.isNotEmpty) {
-      final startTime = DateTime.parse('${DateFormat('yyyy-MM-dd').format(currentTime)} ${schedule['startTime'] ?? '08:00'}');
-      final endTime = DateTime.parse('${DateFormat('yyyy-MM-dd').format(currentTime)} ${schedule['endTime'] ?? '17:00'}');
-
-      if (isIn && currentTime.isAfter(startTime.add(const Duration(minutes: 15)))) {
-        isLate = true;
+      if (photoUrls.isEmpty) {
+        NotificationService.showSnackBar("Không thể upload ảnh! Vui lòng kiểm tra kết nối mạng và thử lại", color: Colors.red);
+        setState(() => _loading = false);
+        return;
       }
-      if (!isIn && currentTime.isBefore(endTime.subtract(const Duration(minutes: 30)))) {
-        isEarlyLeave = true;
+
+      final photoUrl = photoUrls.first;
+
+      // Check work schedule
+      final currentTime = DateTime.now();
+      final schedule = _workSchedule;
+      bool isLate = false;
+      bool isEarlyLeave = false;
+
+      if (schedule.isNotEmpty) {
+        final startTime = DateTime.parse('${DateFormat('yyyy-MM-dd').format(currentTime)} ${schedule['startTime'] ?? '08:00'}');
+        final endTime = DateTime.parse('${DateFormat('yyyy-MM-dd').format(currentTime)} ${schedule['endTime'] ?? '17:00'}');
+
+        if (isIn && currentTime.isAfter(startTime.add(const Duration(minutes: 15)))) {
+          isLate = true;
+        }
+        if (!isIn && currentTime.isBefore(endTime.subtract(const Duration(minutes: 30)))) {
+          isEarlyLeave = true;
+        }
       }
+
+      final attendance = Attendance(
+        userId: user.uid,
+        email: user.email!,
+        name: user.email?.split('@').first.toUpperCase() ?? 'Unknown',
+        dateKey: DateFormat('yyyy-MM-dd').format(DateTime.now()),
+        checkInAt: isIn ? now : _today?.checkInAt,
+        checkOutAt: isIn ? null : now,
+        photoIn: isIn ? photoUrl : _today?.photoIn,
+        photoOut: isIn ? null : photoUrl,
+        status: 'pending',
+        location: _currentPosition != null ? 
+          '${_currentPosition!.latitude},${_currentPosition!.longitude}' : null,
+        isLate: isLate ? 1 : 0,
+        isEarlyLeave: isEarlyLeave ? 1 : 0,
+        workSchedule: schedule.toString(),
+        createdAt: _today?.createdAt ?? now,
+        updatedAt: now,
+        firestoreId: "attendance_${user.uid}_${DateFormat('yyyy-MM-dd').format(DateTime.now())}",
+      );
+
+      await db.upsertAttendance(attendance);
+
+      // Log violations
+      // TODO: Implement attendance violation logging
+      // if (isLate || isEarlyLeave) {
+      //   await db.logAttendanceViolation({
+      //     'userId': user.uid,
+      //     'date': DateFormat('yyyy-MM-dd').format(currentTime),
+      //     'type': isLate ? 'late_checkin' : 'early_checkout',
+      //     'timestamp': now,
+      //     'scheduleTime': isLate ? schedule['startTime'] : schedule['endTime'],
+      //     'actualTime': DateFormat('HH:mm').format(currentTime),
+      //   });
+      // }
+
+      await _initData();
+
+      String message = isIn ? "CHÀO BUỔI SÁNG! ĐÃ CHECK-IN" : "VẤT VẢ RỒI! ĐÃ CHECK-OUT";
+      if (isLate) message += " (Đi muộn)";
+      if (isEarlyLeave) message += " (Về sớm)";
+
+      NotificationService.showSnackBar(message, color: (isLate || isEarlyLeave) ? Colors.orange : Colors.green);
+    } catch (e) {
+      debugPrint("Lỗi check-in/out: $e");
+      String errorMessage = "Lỗi khi chấm công! ";
+      
+      // Check for specific Firebase errors
+      String errorStr = e.toString().toLowerCase();
+      if (errorStr.contains('permission') || errorStr.contains('unauthorized') || errorStr.contains('denied')) {
+        errorMessage += "Không có quyền upload ảnh. Vui lòng đăng nhập lại.";
+      } else if (errorStr.contains('network') || errorStr.contains('timeout') || errorStr.contains('unavailable')) {
+        errorMessage += "Vui lòng kiểm tra kết nối mạng.";
+      } else if (errorStr.contains('storage') || errorStr.contains('quota')) {
+        errorMessage += "Lỗi lưu trữ. Vui lòng thử lại sau.";
+      } else {
+        errorMessage += "Vui lòng thử lại.";
+      }
+      
+      NotificationService.showSnackBar(errorMessage, color: Colors.red);
+    } finally {
+      setState(() => _loading = false);
     }
-
-    final data = {
-      'userId': user.uid,
-      'email': user.email,
-      'name': user.email?.split('@').first.toUpperCase(),
-      'dateKey': DateFormat('yyyy-MM-dd').format(DateTime.now()),
-      'checkInAt': isIn ? now : _today?['checkInAt'],
-      'checkOutAt': isIn ? null : now,
-      'photoIn': isIn ? picked.path : _today?['photoIn'],
-      'photoOut': isIn ? null : picked.path,
-      'status': 'pending',
-      'location': _currentPosition != null ? {
-        'lat': _currentPosition!.latitude,
-        'lng': _currentPosition!.longitude,
-        'accuracy': _currentPosition!.accuracy,
-      } : null,
-      'isLate': isLate,
-      'isEarlyLeave': isEarlyLeave,
-      'workSchedule': schedule,
-      'createdAt': _today?['createdAt'] ?? now,
-      'updatedAt': now,
-    };
-
-    await db.upsertAttendance(data);
-
-    // Log violations
-    if (isLate || isEarlyLeave) {
-      await db.logAttendanceViolation({
-        'userId': user.uid,
-        'date': DateFormat('yyyy-MM-dd').format(currentTime),
-        'type': isLate ? 'late_checkin' : 'early_checkout',
-        'timestamp': now,
-        'scheduleTime': isLate ? schedule['startTime'] : schedule['endTime'],
-        'actualTime': DateFormat('HH:mm').format(currentTime),
-      });
-    }
-
-    await _initData();
-
-    String message = isIn ? "CHÀO BUỔI SÁNG! ĐÃ CHECK-IN" : "VẤT VẢ RỒI! ĐÃ CHECK-OUT";
-    if (isLate) message += " (Đi muộn)";
-    if (isEarlyLeave) message += " (Về sớm)";
-
-    NotificationService.showSnackBar(message, color: (isLate || isEarlyLeave) ? Colors.orange : Colors.green);
   }
 
   @override
@@ -213,6 +292,7 @@ class _AttendanceViewState extends State<AttendanceView> with TickerProviderStat
             Tab(icon: Icon(Icons.history), text: "Lịch sử"),
             Tab(icon: Icon(Icons.schedule), text: "Lịch làm"),
             Tab(icon: Icon(Icons.analytics), text: "Báo cáo"),
+            Tab(icon: Icon(Icons.settings), text: "Cài đặt"),
           ],
           labelColor: Colors.blue,
           unselectedLabelColor: Colors.grey,
@@ -228,6 +308,7 @@ class _AttendanceViewState extends State<AttendanceView> with TickerProviderStat
                 _buildHistoryTab(),
                 _buildScheduleTab(),
                 _buildReportsTab(),
+                _buildSettingsTab(),
               ],
             ),
     );
@@ -241,6 +322,8 @@ class _AttendanceViewState extends State<AttendanceView> with TickerProviderStat
           _buildClockCard(),
           const SizedBox(height: 30),
           _buildActionButtons(),
+          const SizedBox(height: 30),
+          if (_today != null) _buildTodayAttendanceCard(),
           const SizedBox(height: 30),
           _buildTodayStats(),
           const SizedBox(height: 30),
@@ -278,8 +361,11 @@ class _AttendanceViewState extends State<AttendanceView> with TickerProviderStat
           ),
         ),
         Expanded(
-          child: FutureBuilder<List<Map<String, dynamic>>>(
-            future: db.getAttendanceRange(DateTime.now().subtract(const Duration(days: 30)), DateTime.now()),
+          child: FutureBuilder<List<Attendance>>(
+            future: db.getAttendanceByDateRange(
+              DateFormat('yyyy-MM-dd').format(DateTime.now().subtract(const Duration(days: 30))),
+              DateFormat('yyyy-MM-dd').format(DateTime.now())
+            ),
             builder: (context, snapshot) {
               if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
 
@@ -287,7 +373,14 @@ class _AttendanceViewState extends State<AttendanceView> with TickerProviderStat
                 itemCount: snapshot.data!.length,
                 itemBuilder: (context, index) {
                   final record = snapshot.data![index];
-                  return _buildHistoryCard(record);
+                  // TODO: Implement _buildHistoryCard for Attendance
+                  return Card(
+                    child: ListTile(
+                      title: Text(record.name),
+                      subtitle: Text('Date: ${record.dateKey}'),
+                      trailing: Text(record.status),
+                    ),
+                  );
                 },
               );
             },
@@ -333,22 +426,120 @@ class _AttendanceViewState extends State<AttendanceView> with TickerProviderStat
     );
   }
 
+  Widget _buildSettingsTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "CÀI ĐẶT CHẤM CÔNG",
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blue),
+          ),
+          const SizedBox(height: 24),
+
+          // Workplace Location Settings
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Nơi làm việc",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 12),
+                  if (_workplaceLat != null && _workplaceLng != null) ...[
+                    Text("Tọa độ: ${_workplaceLat!.toStringAsFixed(6)}, ${_workplaceLng!.toStringAsFixed(6)}"),
+                    Text("Địa chỉ: ${_workplaceAddress ?? 'Chưa có'}"),
+                    const SizedBox(height: 12),
+                  ],
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: _setWorkplaceLocation,
+                          icon: const Icon(Icons.location_on),
+                          label: const Text("Đặt vị trí hiện tại"),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // Location Validation Settings
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Kiểm tra vị trí",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 12),
+                  SwitchListTile(
+                    title: const Text("Yêu cầu kiểm tra vị trí"),
+                    subtitle: const Text("Nhân viên phải ở gần nơi làm việc để chấm công"),
+                    value: _locationRequired,
+                    onChanged: (value) async {
+                      final prefs = await SharedPreferences.getInstance();
+                      await prefs.setBool('attendance_location_required', value);
+                      setState(() => _locationRequired = value);
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  Text("Bán kính cho phép: ${_allowedRadius.toInt()}m"),
+                  Slider(
+                    value: _allowedRadius,
+                    min: 10,
+                    max: 1000,
+                    divisions: 99,
+                    label: "${_allowedRadius.toInt()}m",
+                    onChanged: (value) async {
+                      final prefs = await SharedPreferences.getInstance();
+                      await prefs.setDouble('attendance_radius', value);
+                      setState(() => _allowedRadius = value);
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildTodayStats() {
     final today = DateTime.now();
     final thisMonth = DateTime(today.year, today.month, 1);
     final nextMonth = DateTime(today.year, today.month + 1, 1);
 
-    return FutureBuilder<List<Map<String, dynamic>>>(
-      future: db.getAttendanceRange(thisMonth, nextMonth),
+    return FutureBuilder<List<Attendance>>(
+      future: db.getAttendanceByDateRange(
+        DateFormat('yyyy-MM-dd').format(thisMonth),
+        DateFormat('yyyy-MM-dd').format(nextMonth)
+      ),
       builder: (context, snapshot) {
         if (!snapshot.hasData) return const SizedBox();
 
         final thisMonthData = snapshot.data!;
-        final workedDays = thisMonthData.where((d) => d['checkInAt'] != null && d['checkOutAt'] != null).length;
-        final lateDays = thisMonthData.where((d) => d['isLate'] == true).length;
+        final workedDays = thisMonthData.where((d) => d.checkInAt != null && d.checkOutAt != null).length;
+        final lateDays = thisMonthData.where((d) => d.isLate == 1).length;
         final totalHours = thisMonthData.fold<double>(0, (sum, d) {
-          final inMs = d['checkInAt'] as int?;
-          final outMs = d['checkOutAt'] as int?;
+          final inMs = d.checkInAt;
+          final outMs = d.checkOutAt;
           if (inMs != null && outMs != null) {
             return sum + (outMs - inMs) / (1000 * 60 * 60);
           }
@@ -688,16 +879,17 @@ class _AttendanceViewState extends State<AttendanceView> with TickerProviderStat
           ElevatedButton(
             onPressed: () async {
               final user = FirebaseAuth.instance.currentUser!;
-              await db.submitLeaveRequest({
-                'userId': user.uid,
-                'startDate': DateFormat('yyyy-MM-dd').format(startDate),
-                'endDate': DateFormat('yyyy-MM-dd').format(endDate),
-                'reason': reasonCtrl.text,
-                'status': 'pending',
-                'submittedAt': DateTime.now().millisecondsSinceEpoch,
-              });
+              // TODO: Implement leave request
+              // await db.submitLeaveRequest({
+              //   'userId': user.uid,
+              //   'startDate': DateFormat('yyyy-MM-dd').format(startDate),
+              //   'endDate': DateFormat('yyyy-MM-dd').format(endDate),
+              //   'reason': reasonCtrl.text,
+              //   'status': 'pending',
+              //   'submittedAt': DateTime.now().millisecondsSinceEpoch,
+              // });
               Navigator.pop(ctx);
-              NotificationService.showSnackBar("Đã gửi yêu cầu xin nghỉ", color: Colors.green);
+              NotificationService.showSnackBar("Tính năng xin nghỉ đang phát triển", color: Colors.orange);
             },
             child: const Text('GỬI'),
           ),
@@ -750,16 +942,17 @@ class _AttendanceViewState extends State<AttendanceView> with TickerProviderStat
           ElevatedButton(
             onPressed: () async {
               final user = FirebaseAuth.instance.currentUser!;
-              await db.submitOvertimeRequest({
-                'userId': user.uid,
-                'date': DateFormat('yyyy-MM-dd').format(date),
-                'hours': hours,
-                'reason': reasonCtrl.text,
-                'status': 'pending',
-                'submittedAt': DateTime.now().millisecondsSinceEpoch,
-              });
+              // TODO: Implement overtime request
+              // await db.submitOvertimeRequest({
+              //   'userId': user.uid,
+              //   'date': DateFormat('yyyy-MM-dd').format(date),
+              //   'hours': hours,
+              //   'reason': reasonCtrl.text,
+              //   'status': 'pending',
+              //   'submittedAt': DateTime.now().millisecondsSinceEpoch,
+              // });
               Navigator.pop(ctx);
-              NotificationService.showSnackBar("Đã gửi yêu cầu OT", color: Colors.green);
+              NotificationService.showSnackBar("Tính năng OT đang phát triển", color: Colors.orange);
             },
             child: const Text('GỬI'),
           ),
@@ -816,7 +1009,7 @@ class _AttendanceViewState extends State<AttendanceView> with TickerProviderStat
                 'updatedAt': DateTime.now().millisecondsSinceEpoch,
               };
 
-              await db.updateWorkSchedule(newSchedule);
+              await db.upsertWorkSchedule(user.uid, newSchedule);
               await _initData();
               Navigator.pop(ctx);
               NotificationService.showSnackBar("Đã cập nhật lịch làm việc", color: Colors.green);
@@ -951,6 +1144,137 @@ class _AttendanceViewState extends State<AttendanceView> with TickerProviderStat
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildTodayAttendanceCard() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text("CHẤM CÔNG HÔM NAY", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          const SizedBox(height: 15),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  children: [
+                    const Icon(Icons.login, color: Colors.green),
+                    const SizedBox(height: 8),
+                    Text(
+                      _today!.checkInAt != null
+                          ? DateFormat('HH:mm').format(DateTime.fromMillisecondsSinceEpoch(_today!.checkInAt!))
+                          : '--:--',
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    const Text("Check-in", style: TextStyle(color: Colors.grey, fontSize: 12)),
+                  ],
+                ),
+              ),
+              Container(width: 1, height: 40, color: Colors.grey.shade300),
+              Expanded(
+                child: Column(
+                  children: [
+                    const Icon(Icons.logout, color: Colors.red),
+                    const SizedBox(height: 8),
+                    Text(
+                      _today!.checkOutAt != null
+                          ? DateFormat('HH:mm').format(DateTime.fromMillisecondsSinceEpoch(_today!.checkOutAt!))
+                          : '--:--',
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    const Text("Check-out", style: TextStyle(color: Colors.grey, fontSize: 12)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (_today!.photoIn != null || _today!.photoOut != null) ...[
+            const SizedBox(height: 20),
+            const Text("Ảnh chấm công", style: TextStyle(fontWeight: FontWeight.w500)),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                if (_today!.photoIn != null)
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => _showPhoto(_today!.photoIn!),
+                      child: Container(
+                        height: 80,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8),
+                          image: DecorationImage(
+                            image: NetworkImage(_today!.photoIn!),
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                        child: const Center(
+                          child: Icon(Icons.photo, color: Colors.white),
+                        ),
+                      ),
+                    ),
+                  ),
+                if (_today!.photoIn != null && _today!.photoOut != null) const SizedBox(width: 10),
+                if (_today!.photoOut != null)
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => _showPhoto(_today!.photoOut!),
+                      child: Container(
+                        height: 80,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8),
+                          image: DecorationImage(
+                            image: NetworkImage(_today!.photoOut!),
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                        child: const Center(
+                          child: Icon(Icons.photo, color: Colors.white),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  void _showPhoto(String photoUrl) {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AppBar(
+              title: const Text("Ảnh chấm công"),
+              automaticallyImplyLeading: false,
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(ctx),
+                ),
+              ],
+            ),
+            SizedBox(
+              height: 300,
+              child: Image.network(
+                photoUrl,
+                fit: BoxFit.contain,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

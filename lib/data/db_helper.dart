@@ -8,6 +8,7 @@ import '../models/sale_order_model.dart';
 import '../models/expense_model.dart';
 import '../models/debt_model.dart';
 import '../models/purchase_order_model.dart';
+import '../models/attendance_model.dart';
 
 class DBHelper {
   static final DBHelper _instance = DBHelper._internal();
@@ -25,7 +26,7 @@ class DBHelper {
     String path = join(await getDatabasesPath(), 'repair_shop_v22.db'); 
     return await openDatabase(
       path,
-      version: 17, 
+      version: 23, 
       onCreate: (db, version) async {
         await db.execute('CREATE TABLE IF NOT EXISTS repairs(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, customerName TEXT, phone TEXT, model TEXT, issue TEXT, accessories TEXT, address TEXT, imagePath TEXT, deliveredImage TEXT, warranty TEXT, partsUsed TEXT, status INTEGER, price INTEGER, cost INTEGER, paymentMethod TEXT, createdAt INTEGER, startedAt INTEGER, finishedAt INTEGER, deliveredAt INTEGER, createdBy TEXT, repairedBy TEXT, deliveredBy TEXT, lastCaredAt INTEGER, isSynced INTEGER DEFAULT 0, deleted INTEGER DEFAULT 0, color TEXT, imei TEXT, condition TEXT)');
         await db.execute('CREATE TABLE IF NOT EXISTS products(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, name TEXT, brand TEXT, imei TEXT, cost INTEGER, price INTEGER, condition TEXT, status INTEGER DEFAULT 1, description TEXT, images TEXT, warranty TEXT, createdAt INTEGER, supplier TEXT, type TEXT DEFAULT "PHONE", quantity INTEGER DEFAULT 1, color TEXT, isSynced INTEGER DEFAULT 0, capacity TEXT, kpkPrice INTEGER, pkPrice INTEGER)');
@@ -34,7 +35,8 @@ class DBHelper {
         await db.execute('CREATE TABLE IF NOT EXISTS suppliers(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, name TEXT, contactPerson TEXT, phone TEXT, address TEXT, items TEXT, importCount INTEGER DEFAULT 0, totalAmount INTEGER DEFAULT 0, createdAt INTEGER, shopId TEXT, isSynced INTEGER DEFAULT 0)');
         await db.execute('CREATE TABLE IF NOT EXISTS expenses(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, title TEXT, amount INTEGER, category TEXT, date INTEGER, note TEXT, paymentMethod TEXT, isSynced INTEGER DEFAULT 0)');
         await db.execute('CREATE TABLE IF NOT EXISTS debts(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, personName TEXT, phone TEXT, totalAmount INTEGER, paidAmount INTEGER DEFAULT 0, type TEXT, status TEXT, createdAt INTEGER, note TEXT, isSynced INTEGER DEFAULT 0)');
-        await db.execute('CREATE TABLE IF NOT EXISTS attendance(id INTEGER PRIMARY KEY AUTOINCREMENT, userId TEXT, email TEXT, name TEXT, dateKey TEXT, checkInAt INTEGER, checkOutAt INTEGER, overtimeOn INTEGER DEFAULT 0, photoIn TEXT, photoOut TEXT, note TEXT, status TEXT DEFAULT "pending", approvedBy TEXT, approvedAt INTEGER, rejectReason TEXT, locked INTEGER DEFAULT 0, createdAt INTEGER, location TEXT, isLate INTEGER DEFAULT 0, isEarlyLeave INTEGER DEFAULT 0, workSchedule TEXT, updatedAt INTEGER)');
+        await db.execute('CREATE TABLE IF NOT EXISTS attendance(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, userId TEXT, email TEXT, name TEXT, dateKey TEXT, checkInAt INTEGER, checkOutAt INTEGER, overtimeOn INTEGER DEFAULT 0, photoIn TEXT, photoOut TEXT, note TEXT, status TEXT DEFAULT "pending", approvedBy TEXT, approvedAt INTEGER, rejectReason TEXT, locked INTEGER DEFAULT 0, createdAt INTEGER, location TEXT, isLate INTEGER DEFAULT 0, isEarlyLeave INTEGER DEFAULT 0, workSchedule TEXT, updatedAt INTEGER)');
+        await db.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_attendance_firestore ON attendance(firestoreId)');
         await db.execute('CREATE TABLE IF NOT EXISTS work_schedules(id INTEGER PRIMARY KEY AUTOINCREMENT, userId TEXT UNIQUE, startTime TEXT DEFAULT "08:00", endTime TEXT DEFAULT "17:00", breakTime INTEGER DEFAULT 1, maxOtHours INTEGER DEFAULT 4, workDays TEXT DEFAULT "[1,2,3,4,5,6]", updatedAt INTEGER)');
         await db.execute('CREATE TABLE IF NOT EXISTS attendance_violations(id INTEGER PRIMARY KEY AUTOINCREMENT, userId TEXT, date TEXT, type TEXT, timestamp INTEGER, scheduleTime TEXT, actualTime TEXT, status TEXT DEFAULT "active")');
         await db.execute('CREATE TABLE IF NOT EXISTS leave_requests(id INTEGER PRIMARY KEY AUTOINCREMENT, userId TEXT, startDate TEXT, endDate TEXT, reason TEXT, status TEXT DEFAULT "pending", submittedAt INTEGER, approvedBy TEXT, approvedAt INTEGER, rejectReason TEXT)');
@@ -52,6 +54,26 @@ class DBHelper {
         if (oldV < 17) {
           try { await db.execute('ALTER TABLE audit_logs ADD COLUMN firestoreId TEXT'); } catch(_) {}
           try { await db.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_audit_firestore ON audit_logs(firestoreId)'); } catch(_) {}
+        }
+        if (oldV < 18) {
+          try { 
+            await db.execute('DROP TABLE IF EXISTS attendance');
+            await db.execute('CREATE TABLE IF NOT EXISTS attendance(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, userId TEXT, email TEXT, name TEXT, dateKey TEXT, checkInAt INTEGER, checkOutAt INTEGER, overtimeOn INTEGER DEFAULT 0, photoIn TEXT, photoOut TEXT, note TEXT, status TEXT DEFAULT "pending", approvedBy TEXT, approvedAt INTEGER, rejectReason TEXT, locked INTEGER DEFAULT 0, createdAt INTEGER, location TEXT, isLate INTEGER DEFAULT 0, isEarlyLeave INTEGER DEFAULT 0, workSchedule TEXT, updatedAt INTEGER)');
+            await db.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_attendance_firestore ON attendance(firestoreId)'); 
+          } catch(_) {}
+        }
+        if (oldV < 19) {
+          try { 
+            await db.execute('ALTER TABLE attendance ADD COLUMN firestoreId TEXT UNIQUE'); 
+            await db.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_attendance_firestore ON attendance(firestoreId)'); 
+          } catch(_) {}
+        }
+        if (oldV < 22) {
+          try { 
+            await db.execute('DROP TABLE IF EXISTS attendance');
+            await db.execute('CREATE TABLE IF NOT EXISTS attendance(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, userId TEXT, email TEXT, name TEXT, dateKey TEXT, checkInAt INTEGER, checkOutAt INTEGER, overtimeOn INTEGER DEFAULT 0, photoIn TEXT, photoOut TEXT, note TEXT, status TEXT DEFAULT "pending", approvedBy TEXT, approvedAt INTEGER, rejectReason TEXT, locked INTEGER DEFAULT 0, createdAt INTEGER, location TEXT, isLate INTEGER DEFAULT 0, isEarlyLeave INTEGER DEFAULT 0, workSchedule TEXT, updatedAt INTEGER)');
+            await db.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_attendance_firestore ON attendance(firestoreId)'); 
+          } catch(_) {}
         }
       }
     );
@@ -171,29 +193,6 @@ class DBHelper {
     else await db.insert('cash_closings', map);
   }
 
-  // --- ATTENDANCE ---
-  Future<void> upsertAttendance(Map<String, dynamic> map) async {
-    final db = await database; final dateKey = map['dateKey']; final userId = map['userId'];
-    final existing = await db.query('attendance', where: 'dateKey = ? AND userId = ?', whereArgs: [dateKey, userId], limit: 1);
-    if (existing.isNotEmpty) await db.update('attendance', map, where: 'id = ?', whereArgs: [existing.first['id']]);
-    else await db.insert('attendance', map);
-  }
-  Future<Map<String, dynamic>?> getAttendance(String dateKey, String userId) async {
-    final db = await database;
-    final res = await db.query('attendance', where: 'dateKey = ? AND userId = ?', whereArgs: [dateKey, userId], limit: 1);
-    return res.isNotEmpty ? res.first : null;
-  }
-  Future<List<Map<String, dynamic>>> getAttendanceRange(DateTime start, DateTime end) async {
-    final db = await database;
-    return await db.query('attendance',
-      where: 'createdAt >= ? AND createdAt <= ?',
-      whereArgs: [start.millisecondsSinceEpoch, end.millisecondsSinceEpoch],
-      orderBy: 'createdAt DESC');
-  }
-  Future<List<Map<String, dynamic>>> getAttendanceByUser(String userId) async {
-    final db = await database; return await db.query('attendance', where: 'userId = ?', whereArgs: [userId], orderBy: 'createdAt DESC');
-  }
-
   // --- INVENTORY CHECKS ---
   Future<List<Map<String, dynamic>>> getInventoryChecks({String? checkType, bool? isCompleted}) async {
     final db = await database; String where = '1=1'; List<Object> args = [];
@@ -249,7 +248,6 @@ class DBHelper {
     });
   }
 
-<<<<<<< HEAD
   // --- PARTS INVENTORY (missing methods) ---
   Future<List<Map<String, dynamic>>> getAllParts() async {
     final db = await database;
@@ -266,7 +264,8 @@ class DBHelper {
     final db = await database;
     final res = await db.query('cash_closings', where: 'dateKey = ? AND locked = 1', whereArgs: [monthKey], limit: 1);
     return res.isNotEmpty;
-=======
+  }
+
   // --- PURCHASE ORDERS ---
   Future<String> generateNextOrderCode() async {
     final db = await database;
@@ -322,273 +321,80 @@ class DBHelper {
     }).toList();
   }
 
-  // --- REPAIR PARTS ---
-  Future<List<Map<String, dynamic>>> getAllParts() async {
+  // --- ATTENDANCE ---
+  Future<void> upsertAttendance(Attendance a) async {
     final db = await database;
-    return await db.query('repair_parts', orderBy: 'partName ASC');
+    await db.transaction((txn) async {
+      final List<Map<String, dynamic>> existing = await txn.query('attendance', where: 'dateKey = ? AND userId = ?', whereArgs: [a.dateKey, a.userId], limit: 1);
+      Map<String, dynamic> data = Map<String, dynamic>.from(a.toMap());
+      data.remove('id');
+      if (existing.isNotEmpty) {
+        await txn.update('attendance', data, where: 'id = ?', whereArgs: [existing.first['id']]);
+      } else {
+        await txn.insert('attendance', data);
+      }
+    });
   }
-
-  Future<int> insertPart(Map<String, dynamic> data) async {
-    final db = await database;
-    return await db.insert('repair_parts', data);
+  Future<int> insertAttendance(Attendance a) async { await upsertAttendance(a); return 1; }
+  Future<int> updateAttendance(Attendance a) async => (await database).update('attendance', a.toMap(), where: 'id = ?', whereArgs: [a.id]);
+  Future<int> deleteAttendance(int id) async => (await database).delete('attendance', where: 'id = ?', whereArgs: [id]);
+  Future<int> deleteAttendanceByFirestoreId(String fId) async => (await database).delete('attendance', where: 'firestoreId = ?', whereArgs: [fId]);
+  Future<List<Attendance>> getAllAttendance() async {
+    final maps = await (await database).query('attendance', orderBy: 'createdAt DESC');
+    return List.generate(maps.length, (i) => Attendance.fromMap(maps[i]));
   }
-
-  // --- PAYROLL LOCKS ---
-  Future<bool> isPayrollMonthLocked(String monthKey) async {
-    final db = await database;
-    final result = await db.query('payroll_locks', where: 'monthKey = ?', whereArgs: [monthKey], limit: 1);
-    return result.isNotEmpty && (result.first['locked'] as int) == 1;
->>>>>>> e7fff18 (TINH CHINH GIAO DIEN HOME CHINH TINH LUONG)
+  Future<Attendance?> getAttendance(String dateKey, String userId) async {
+    final res = await (await database).query('attendance', where: 'dateKey = ? AND userId = ?', whereArgs: [dateKey, userId], limit: 1);
+    return res.isNotEmpty ? Attendance.fromMap(res.first) : null;
   }
-
-  Future<void> setPayrollMonthLock(String monthKey, {required bool locked, String? lockedBy, String? note}) async {
-    final db = await database;
-<<<<<<< HEAD
-    final existing = await db.query('cash_closings', where: 'dateKey = ?', whereArgs: [monthKey], limit: 1);
-    if (existing.isNotEmpty) {
-      await db.update('cash_closings', {
-        'locked': locked ? 1 : 0,
-        'lockedBy': lockedBy,
-        'lockNote': note,
-        'lockedAt': DateTime.now().millisecondsSinceEpoch,
-      }, where: 'dateKey = ?', whereArgs: [monthKey]);
-    } else {
-      await db.insert('cash_closings', {
-        'dateKey': monthKey,
-        'locked': locked ? 1 : 0,
-        'lockedBy': lockedBy,
-        'lockNote': note,
-        'lockedAt': DateTime.now().millisecondsSinceEpoch,
-      });
+  Future<List<Attendance>> getAttendanceByUser(String userId, {int? limit}) async {
+    final maps = await (await database).query('attendance', where: 'userId = ?', whereArgs: [userId], orderBy: 'createdAt DESC', limit: limit);
+    return List.generate(maps.length, (i) => Attendance.fromMap(maps[i]));
+  }
+  Future<List<Attendance>> getAttendanceByDateRange(String startDate, String endDate, {String? userId}) async {
+    String whereClause = 'dateKey BETWEEN ? AND ?';
+    List<String> whereArgs = [startDate, endDate];
+    if (userId != null) {
+      whereClause += ' AND userId = ?';
+      whereArgs.add(userId);
     }
-  }
-=======
-    final data = {
-      'monthKey': monthKey,
-      'locked': locked ? 1 : 0,
-      'lockedBy': lockedBy,
-      'lockedAt': DateTime.now().millisecondsSinceEpoch,
-      'note': note,
-    };
-    await _upsert('payroll_locks', data, monthKey);
+    final maps = await (await database).query('attendance', where: whereClause, whereArgs: whereArgs, orderBy: 'dateKey DESC');
+    return List.generate(maps.length, (i) => Attendance.fromMap(maps[i]));
   }
 
-  // --- ADVANCED ATTENDANCE FEATURES ---
-
-  // Work Schedule Management
+  // --- WORK SCHEDULES ---
   Future<Map<String, dynamic>?> getWorkSchedule(String userId) async {
-    final db = await database;
-    final res = await db.query('work_schedules', where: 'userId = ?', whereArgs: [userId], limit: 1);
+    final res = await (await database).query('work_schedules', where: 'userId = ?', whereArgs: [userId], limit: 1);
     return res.isNotEmpty ? res.first : null;
   }
 
-  Future<void> updateWorkSchedule(Map<String, dynamic> schedule) async {
+  Future<void> upsertWorkSchedule(String userId, Map<String, dynamic> schedule) async {
     final db = await database;
-    final userId = schedule['userId'];
-    final existing = await db.query('work_schedules', where: 'userId = ?', whereArgs: [userId], limit: 1);
-    if (existing.isNotEmpty) {
-      await db.update('work_schedules', schedule, where: 'userId = ?', whereArgs: [userId]);
-    } else {
-      await db.insert('work_schedules', schedule);
-    }
-  }
-
-  // Attendance Violations
-  Future<void> logAttendanceViolation(Map<String, dynamic> violation) async {
-    final db = await database;
-    await db.insert('attendance_violations', violation);
-  }
-
-  Future<List<Map<String, dynamic>>> getAttendanceViolations(String userId, DateTime start, DateTime end) async {
-    final db = await database;
-    final startStr = DateFormat('yyyy-MM-dd').format(start);
-    final endStr = DateFormat('yyyy-MM-dd').format(end);
-    return await db.query(
-      'attendance_violations',
-      where: 'userId = ? AND date BETWEEN ? AND ?',
-      whereArgs: [userId, startStr, endStr],
-      orderBy: 'timestamp DESC',
-    );
-  }
-
-  // Leave Requests
-  Future<void> submitLeaveRequest(Map<String, dynamic> request) async {
-    final db = await database;
-    await db.insert('leave_requests', request);
-  }
-
-  Future<List<Map<String, dynamic>>> getLeaveRequests(String userId, {String? status}) async {
-    final db = await database;
-    String where = 'userId = ?';
-    List<String> args = [userId];
-    if (status != null) {
-      where += ' AND status = ?';
-      args.add(status);
-    }
-    return await db.query('leave_requests', where: where, whereArgs: args, orderBy: 'submittedAt DESC');
-  }
-
-  Future<void> updateLeaveRequestStatus(int id, String status, {String? approvedBy, String? rejectReason}) async {
-    final db = await database;
-    final data = {
-      'status': status,
-      'approvedBy': approvedBy,
-      'approvedAt': DateTime.now().millisecondsSinceEpoch,
-      'rejectReason': rejectReason,
-    };
-    await db.update('leave_requests', data, where: 'id = ?', whereArgs: [id]);
-  }
-
-  // Overtime Requests
-  Future<void> submitOvertimeRequest(Map<String, dynamic> request) async {
-    final db = await database;
-    await db.insert('overtime_requests', request);
-  }
-
-  Future<List<Map<String, dynamic>>> getOvertimeRequests(String userId, {String? status}) async {
-    final db = await database;
-    String where = 'userId = ?';
-    List<String> args = [userId];
-    if (status != null) {
-      where += ' AND status = ?';
-      args.add(status);
-    }
-    return await db.query('overtime_requests', where: where, whereArgs: args, orderBy: 'submittedAt DESC');
-  }
-
-  Future<void> updateOvertimeRequestStatus(int id, String status, {String? approvedBy, String? rejectReason}) async {
-    final db = await database;
-    final data = {
-      'status': status,
-      'approvedBy': approvedBy,
-      'approvedAt': DateTime.now().millisecondsSinceEpoch,
-      'rejectReason': rejectReason,
-    };
-    await db.update('overtime_requests', data, where: 'id = ?', whereArgs: [id]);
-  }
-
-  // Performance Statistics
-  Future<Map<String, dynamic>?> getPerformanceStats(String userId, DateTime start, DateTime end) async {
-    final db = await database;
-    final month = DateFormat('yyyy-MM').format(start);
-    final existing = await db.query('performance_stats', where: 'userId = ? AND month = ?', whereArgs: [userId, month], limit: 1);
-
-    if (existing.isNotEmpty) {
-      return existing.first;
-    }
-
-    // Calculate performance stats
-    final attendanceData = await getAttendanceByUser(userId);
-    final monthData = attendanceData.where((a) {
-      final date = DateTime.parse(a['dateKey']);
-      return date.isAfter(start.subtract(const Duration(days: 1))) && date.isBefore(end.add(const Duration(days: 1)));
-    }).toList();
-
-    if (monthData.isEmpty) {
-      return {
-        'attendanceRate': 0.0,
-        'punctualityRate': 0.0,
-        'avgHours': 0.0,
-        'totalOvertime': 0.0,
-      };
-    }
-
-    final totalDays = monthData.length;
-    final presentDays = monthData.where((a) => a['checkInAt'] != null).length;
-    final onTimeDays = monthData.where((a) => a['isLate'] == 0 || a['isLate'] == null).length;
-    final totalHours = monthData.fold<double>(0, (sum, a) {
-      final inMs = a['checkInAt'] as int?;
-      final outMs = a['checkOutAt'] as int?;
-      if (inMs != null && outMs != null) {
-        return sum + (outMs - inMs) / (1000 * 60 * 60);
-      }
-      return sum;
-    });
-
-    final stats = {
+    await db.insert('work_schedules', {
       'userId': userId,
-      'month': month,
-      'attendanceRate': totalDays > 0 ? (presentDays / totalDays) * 100 : 0.0,
-      'punctualityRate': presentDays > 0 ? (onTimeDays / presentDays) * 100 : 0.0,
-      'avgHours': totalDays > 0 ? totalHours / totalDays : 0.0,
-      'totalOvertime': monthData.fold<double>(0, (sum, a) => sum + ((a['overtimeOn'] ?? 0) == 1 ? 1 : 0)),
+      'startTime': schedule['startTime'] ?? '08:00',
+      'endTime': schedule['endTime'] ?? '17:00',
+      'breakTime': schedule['breakTime'] ?? 1,
+      'maxOtHours': schedule['maxOtHours'] ?? 4,
+      'workDays': schedule['workDays'] ?? '[1,2,3,4,5,6]',
       'updatedAt': DateTime.now().millisecondsSinceEpoch,
-    };
-
-    await db.insert('performance_stats', stats);
-    return stats;
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
-  // Enhanced Attendance Queries
-  Future<List<Map<String, dynamic>>> getAttendanceWithViolations(String userId, DateTime start, DateTime end) async {
-    final db = await database;
-    final attendance = await getAttendanceByUser(userId);
-    final violations = await getAttendanceViolations(userId, start, end);
-
-    // Merge attendance with violations
-    final result = attendance.map((a) {
-      final date = a['dateKey'];
-      final dayViolations = violations.where((v) => v['date'] == date).toList();
-      return {
-        ...a,
-        'violations': dayViolations,
-        'hasViolations': dayViolations.isNotEmpty,
-      };
-    }).toList();
-
-    return result;
+  // --- ATTENDANCE VIOLATIONS ---
+  Future<List<Map<String, dynamic>>> getAttendanceViolations(String userId, DateTime startDate, DateTime endDate) async {
+    final maps = await (await database).query(
+      'attendance_violations',
+      where: 'userId = ? AND timestamp BETWEEN ? AND ?',
+      whereArgs: [userId, startDate.millisecondsSinceEpoch, endDate.millisecondsSinceEpoch],
+      orderBy: 'timestamp DESC'
+    );
+    return maps;
   }
 
-  // Admin Functions for Attendance Management
-  Future<List<Map<String, dynamic>>> getAllPendingLeaveRequests() async {
-    final db = await database;
-    return await db.query('leave_requests', where: 'status = ?', whereArgs: ['pending'], orderBy: 'submittedAt ASC');
+  // --- PERFORMANCE STATS ---
+  Future<Map<String, dynamic>?> getPerformanceStats(String userId, String month) async {
+    final res = await (await database).query('performance_stats', where: 'userId = ? AND month = ?', whereArgs: [userId, month], limit: 1);
+    return res.isNotEmpty ? res.first : null;
   }
-
-  Future<List<Map<String, dynamic>>> getAllPendingOvertimeRequests() async {
-    final db = await database;
-    return await db.query('overtime_requests', where: 'status = ?', whereArgs: ['pending'], orderBy: 'submittedAt ASC');
-  }
-
-  Future<Map<String, dynamic>> getTeamAttendanceStats(DateTime start, DateTime end) async {
-    final db = await database;
-    final attendance = await getAttendanceRange(start, end);
-
-    final totalUsers = <String>{};
-    final presentUsers = <String>{};
-    int totalLate = 0;
-    int totalEarlyLeave = 0;
-    double totalHours = 0;
-    int totalRecords = attendance.length;
-
-    for (final record in attendance) {
-      final userId = record['userId'] as String;
-      totalUsers.add(userId);
-
-      if (record['checkInAt'] != null) {
-        presentUsers.add(userId);
-      }
-
-      if (record['isLate'] == 1) totalLate++;
-      if (record['isEarlyLeave'] == 1) totalEarlyLeave++;
-
-      final inMs = record['checkInAt'] as int?;
-      final outMs = record['checkOutAt'] as int?;
-      if (inMs != null && outMs != null) {
-        totalHours += (outMs - inMs) / (1000 * 60 * 60);
-      }
-    }
-
-    return {
-      'totalUsers': totalUsers.length,
-      'presentUsers': presentUsers.length,
-      'absentUsers': totalUsers.length - presentUsers.length,
-      'attendanceRate': totalUsers.isNotEmpty ? (presentUsers.length / totalUsers.length) * 100 : 0,
-      'totalLate': totalLate,
-      'totalEarlyLeave': totalEarlyLeave,
-      'avgHoursPerDay': totalRecords > 0 ? totalHours / totalRecords : 0,
-      'totalRecords': totalRecords,
-    };
-  }
->>>>>>> e7fff18 (TINH CHINH GIAO DIEN HOME CHINH TINH LUONG)
 }

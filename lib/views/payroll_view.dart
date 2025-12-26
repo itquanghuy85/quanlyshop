@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../data/db_helper.dart';
+import '../models/attendance_model.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/user_service.dart';
@@ -17,7 +18,7 @@ class PayrollView extends StatefulWidget {
 class _PayrollViewState extends State<PayrollView> {
   final db = DBHelper();
   bool _loading = true;
-  List<Map<String, dynamic>> _att = [];
+  List<Attendance> _att = [];
   DateTime _from = DateTime(DateTime.now().year, DateTime.now().month, 1);
   DateTime _to = DateTime.now();
   String? _selectedStaff;
@@ -45,7 +46,10 @@ class _PayrollViewState extends State<PayrollView> {
   }
 
   Future<void> _load() async {
-    final data = await db.getAttendanceRange(_from, _to);
+    final data = await db.getAttendanceByDateRange(
+      DateFormat('yyyy-MM-dd').format(_from),
+      DateFormat('yyyy-MM-dd').format(_to)
+    );
     setState(() {
       _att = data;
       _loading = false;
@@ -79,17 +83,17 @@ class _PayrollViewState extends State<PayrollView> {
   List<String> get _staffList {
     final s = <String>{};
     for (final a in _att) {
-      final name = (a['name'] ?? '').toString();
+      final name = (a.name ?? '').toString();
       if (name.isNotEmpty) s.add(name);
     }
     final list = s.toList()..sort();
     return list;
   }
 
-  Iterable<Map<String, dynamic>> get _filteredAtt {
+  Iterable<Attendance> get _filteredAtt {
     final filter = (_selectedStaff ?? _customStaff.text).trim().toUpperCase();
     if (filter.isEmpty) return _att;
-    return _att.where((a) => (a['name'] ?? '').toString().toUpperCase().contains(filter));
+    return _att.where((a) => (a.name ?? '').toString().toUpperCase().contains(filter));
   }
 
   double _getBase(String staff) => _basePerDay[staff] ?? 0;
@@ -107,13 +111,13 @@ class _PayrollViewState extends State<PayrollView> {
     int days = 0;
 
     for (final a in _filteredAtt) {
-      final inMs = a['checkInAt'] as int?;
-      final outMs = a['checkOutAt'] as int?;
+      final inMs = a.checkInAt;
+      final outMs = a.checkOutAt;
       if (inMs == null || outMs == null || outMs <= inMs) continue;
       final hrs = (outMs - inMs) / (1000 * 60 * 60);
       totalHours += hrs;
       days += 1;
-      if ((a['overtimeOn'] ?? 0) == 1 && hrs > hoursStd) {
+      if ((a.overtimeOn ?? 0) == 1 && hrs > hoursStd) {
         otHours += (hrs - hoursStd);
       }
     }
@@ -200,29 +204,29 @@ class _PayrollViewState extends State<PayrollView> {
     if (!_isManager) return;
     final email = FirebaseAuth.instance.currentUser?.email ?? 'manager';
     final newLock = !_monthLocked;
-    await db.setPayrollMonthLock(DateFormat('yyyy-MM').format(_from), locked: newLock, lockedBy: email, note: 'payroll_view');
-    await _refreshLockState();
+    // TODO: Implement payroll month locking
+    // await db.setPayrollMonthLock(DateFormat('yyyy-MM').format(_from), locked: newLock, lockedBy: email, note: 'payroll_view');
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(newLock ? 'Đã khóa sổ tháng' : 'Đã mở khóa tháng')));
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Tính năng khóa sổ đang phát triển')));
   }
 
   Future<void> _exportCsv(Map<String, dynamic> summary) async {
     final buffer = StringBuffer();
     buffer.writeln('Date,Name,CheckIn,CheckOut,Hours,OT,Status');
     for (final a in _filteredAtt) {
-      final inMs = a['checkInAt'] as int?;
-      final outMs = a['checkOutAt'] as int?;
+      final inMs = a.checkInAt;
+      final outMs = a.checkOutAt;
       final hrs = (inMs != null && outMs != null && outMs > inMs)
           ? ((outMs - inMs) / (1000 * 60 * 60))
           : 0.0;
       buffer.writeln([
-        a['dateKey'] ?? '',
-        a['name'] ?? '',
+        a.dateKey ?? '',
+        a.name ?? '',
         inMs == null ? '' : DateFormat('HH:mm').format(DateTime.fromMillisecondsSinceEpoch(inMs)),
         outMs == null ? '' : DateFormat('HH:mm').format(DateTime.fromMillisecondsSinceEpoch(outMs)),
         hrs.toStringAsFixed(2),
-        (a['overtimeOn'] ?? 0) == 1 ? 'OT' : '',
-        (a['status'] ?? 'pending').toString(),
+        (a.overtimeOn ?? 0) == 1 ? 'OT' : '',
+        (a.status ?? 'pending').toString(),
       ].join(','));
     }
     buffer.writeln('');
@@ -323,16 +327,16 @@ class _PayrollViewState extends State<PayrollView> {
                 Expanded(
                   child: ListView(
                     children: _filteredAtt.map((a) {
-                      final inMs = a['checkInAt'] as int?;
-                      final outMs = a['checkOutAt'] as int?;
+                      final inMs = a.checkInAt;
+                      final outMs = a.checkOutAt;
                       final hrs = (inMs != null && outMs != null && outMs > inMs)
                           ? ((outMs - inMs) / (1000 * 60 * 60))
                           : 0.0;
                       return ListTile(
                         leading: const Icon(Icons.calendar_today, size: 18),
-                        title: Text(a['dateKey'] ?? ''),
+                        title: Text(a.dateKey ?? ''),
                         subtitle: Text('In: ${inMs == null ? '--' : DateFormat('HH:mm').format(DateTime.fromMillisecondsSinceEpoch(inMs))} • Out: ${outMs == null ? '--' : DateFormat('HH:mm').format(DateTime.fromMillisecondsSinceEpoch(outMs))} • ${hrs.toStringAsFixed(2)}h'),
-                        trailing: Text((a['overtimeOn'] ?? 0) == 1 ? 'OT' : ''),
+                        trailing: Text((a.overtimeOn ?? 0) == 1 ? 'OT' : ''),
                       );
                     }).toList(),
                   ),

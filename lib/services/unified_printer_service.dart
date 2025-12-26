@@ -1,16 +1,13 @@
 import 'package:esc_pos_utils/esc_pos_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'bluetooth_printer_service.dart';
 import 'wifi_printer_service.dart';
 import '../models/repair_model.dart';
-<<<<<<< HEAD
 
-enum PrinterType { bluetooth, wifi, auto }
-=======
 import '../models/sale_order_model.dart';
 import '../models/printer_types.dart';
->>>>>>> e7fff18 (TINH CHINH GIAO DIEN HOME CHINH TINH LUONG)
 
 class UnifiedPrinterService {
   static String _removeDiacritics(String str) {
@@ -131,7 +128,7 @@ class UnifiedPrinterService {
     return _sendToPrinter(bytes, bluetoothPrinter: customMac != null ? {'macAddress': customMac} : null);
   }
 
-  static Future<bool> printRepairReceipt(Map<String, dynamic> data, PaperSize paper, {PrinterType? printerType, dynamic bluetoothPrinter, String? wifiIp}) async {
+  static Future<bool> printRepairReceiptLegacy(Map<String, dynamic> data, PaperSize paper, {PrinterType? printerType, dynamic bluetoothPrinter, String? wifiIp}) async {
     final profile = await CapabilityProfile.load();
     final generator = Generator(paper, profile);
     List<int> bytes = [];
@@ -392,5 +389,11 @@ class UnifiedPrinterService {
     }
 
     return _sendToPrinter(bytes);
+  }
+
+  static String _fmt(dynamic value) {
+    if (value is int) return NumberFormat('#,###').format(value);
+    if (value is double) return NumberFormat('#,###').format(value);
+    return value.toString();
   }
 }

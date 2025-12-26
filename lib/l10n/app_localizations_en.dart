@@ -399,7 +399,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get version => 'Version';
 
   @override
-  String get versionNumber => '2.1.0';
+  String get versionNumber => '1.0.0+1';
 
   @override
   String get contactSupport => 'Contact Support';

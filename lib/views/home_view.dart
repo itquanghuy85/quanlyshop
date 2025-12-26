@@ -28,6 +28,7 @@ import 'qr_scan_view.dart';
 import 'attendance_view.dart';
 import 'staff_performance_view.dart';
 import 'audit_log_view.dart';
+import 'work_schedule_settings_view.dart';
 import '../data/db_helper.dart';
 import '../widgets/perpetual_calendar.dart';
 import '../services/sync_service.dart';
@@ -131,7 +132,7 @@ class _HomeViewState extends State<HomeView> {
 
   // HÀM HIỂN THỊ BẰNG CHỨNG ĐỒNG BỘ
   void _showSyncSummary(int r, int p, int s, int l) {
-    HapticFeedback.successImpact();
+    HapticFeedback.mediumImpact();
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -241,13 +242,9 @@ class _HomeViewState extends State<HomeView> {
           onRefresh: () => _syncNow(),
           child: SingleChildScrollView(padding: const EdgeInsets.all(20), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             if (_shopLocked) Container(padding: const EdgeInsets.all(12), margin: const EdgeInsets.only(bottom: 12), decoration: BoxDecoration(color: Colors.red.shade50, border: Border.all(color: Colors.redAccent), borderRadius: BorderRadius.circular(10)), child: const Text("CỬA HÀNG BỊ KHÓA", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold))),
-<<<<<<< HEAD
-            TextField(controller: _phoneSearchCtrl, decoration: InputDecoration(hintText: "Tìm nhanh khách theo SĐT", prefixIcon: const Icon(Icons.search), border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)), filled: true, fillColor: Colors.white), onSubmitted: (v) { if(v.isNotEmpty) Navigator.push(context, MaterialPageRoute(builder: (_) => CustomerHistoryView(phone: v, name: v))); }),
-=======
             
             // Welcome Card
             _buildWelcomeCard(),
->>>>>>> e7fff18 (TINH CHINH GIAO DIEN HOME CHINH TINH LUONG)
             const SizedBox(height: 20),
             
             // Priority Tasks
@@ -327,7 +324,6 @@ class _HomeViewState extends State<HomeView> {
   Widget _buildModuleGrid() {
     final l10n = AppLocalizations.of(context)!;
     final perms = _permissions;
-<<<<<<< HEAD
     final tiles = <Widget>[];
     void addTile(String permKey, String title, IconData icon, List<Color> colors, VoidCallback onTap) {
       if (hasFullAccess || (perms[permKey] ?? true)) { tiles.add(_menuTile(title, icon, colors, onTap)); }
@@ -344,7 +340,6 @@ class _HomeViewState extends State<HomeView> {
     addTile('allowViewPrinter', l10n.printer, Icons.print_rounded, [const Color(0xFF607D8B), const Color(0xFF90A4AE)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ThermalPrinterDesignView())));
     addTile('allowViewSettings', l10n.settings, Icons.settings_rounded, [const Color(0xFF263238), const Color(0xFF455A64)], _openSettingsCenter);
     return GridView.count(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), crossAxisCount: 2, mainAxisSpacing: 15, crossAxisSpacing: 15, childAspectRatio: 1.3, children: tiles);
-=======
     final modules = <Widget>[];
     
     void addModule(String permKey, String title, IconData icon, List<Color> colors, VoidCallback onTap) {
@@ -371,6 +366,7 @@ class _HomeViewState extends State<HomeView> {
     // Row 4 - Management & Tools
     if (hasFullAccess) addModule('allowManageStaff', "Nhật ký", Icons.history_edu_rounded, [const Color(0xFF455A64), const Color(0xFF78909C)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AuditLogView())));
     if (hasFullAccess) addModule('allowViewRevenue', "DS & Lương", Icons.assessment_rounded, [const Color(0xFF6200EA), const Color(0xFF7C4DFF)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StaffPerformanceView())));
+    if (hasFullAccess) addModule('allowManageStaff', "Lịch làm việc", Icons.schedule_rounded, [const Color(0xFF0097A7), const Color(0xFF26C6DA)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WorkScheduleSettingsView())));
     addModule('allowViewPrinter', "In ấn", Icons.print_rounded, [const Color(0xFF607D8B), const Color(0xFF90A4AE)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ThermalPrinterDesignView())));
     
     // Row 5 - Tools & Settings
@@ -435,6 +431,10 @@ class _HomeViewState extends State<HomeView> {
         ),
       ),
     );
+  }
+
+  Widget _menuTile(String title, IconData icon, List<Color> colors, VoidCallback onTap) {
+    return _buildModuleCard(title, icon, colors, onTap);
   }
 
   Widget _buildWelcomeCard() {
@@ -599,7 +599,6 @@ class _HomeViewState extends State<HomeView> {
         ),
       ],
     );
->>>>>>> e7fff18 (TINH CHINH GIAO DIEN HOME CHINH TINH LUONG)
   }
 
   void _openSettingsCenter() {

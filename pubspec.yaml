@@ -1,7 +1,7 @@
 name: QuanLyShop
 description: "Phần mềm quản lý tiệm sửa chữa điện thoại"
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.0.0+6
 
 environment:
   sdk: '>=3.10.0 <4.0.0'
@@ -19,6 +19,7 @@ dependencies:
   sqflite: ^2.3.0
   path: ^1.8.3
   intl: 0.20.2
+  yaml: ^3.1.2
   image_picker: ^1.0.7
   photo_view: ^0.15.0
   url_launcher: ^6.3.2

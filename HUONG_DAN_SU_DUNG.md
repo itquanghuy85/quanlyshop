@@ -91,10 +91,72 @@ Nơi quản lý lời hứa của bạn với khách hàng.
 ## 7. CHẤM CÔNG & TÍNH LƯƠNG
 Quản trị nhân sự bằng công nghệ AI và hình ảnh.
 
-*   **Chấm công:** Nhân viên Selfie khi vào ca (Check-in) và tan ca (Check-out). Lưu vị trí và giờ giấc thực tế.
-*   **Công thức lương:** Chủ shop tự lập công thức:
-    *   *Lương = Lương cứng + (% Doanh số bán) + (% Lợi nhuận sửa).*
-*   **Báo cáo:** Chốt lương cuối tháng cho toàn bộ nhân viên chỉ với 1 nút bấm.
+### 🕒 CÀI ĐẶT THỜI GIAN LÀM VIỆC
+**Bước 1:** Từ màn hình chính → **Cài đặt** → **Lịch làm việc**
+
+**Bước 2:** Cấu hình thời gian làm việc:
+- **Giờ bắt đầu:** 08:00 (mặc định)
+- **Giờ kết thúc:** 17:00 (mặc định)  
+- **Giờ nghỉ trưa:** 1 giờ
+- **Giờ OT tối đa:** 4 giờ/ngày
+
+**Bước 3:** Chọn ngày làm việc trong tuần:
+- ✅ Thứ 2 → Thứ 6 (mặc định)
+- ❌ Chủ nhật (nghỉ)
+
+**Bước 4:** Thêm ngày nghỉ lễ:
+- Nhập ngày nghỉ lễ (VD: 2025-01-01)
+- Hệ thống tự động tính lương không bao gồm ngày lễ
+
+### 💰 CÀI ĐẶT TỶ LỆ TĂNG CA (OT)
+- **Ngày thường:** 150% (mặc định)
+- **Cuối tuần:** 200% (mặc định)  
+- **Ngày lễ:** 300% (mặc định)
+
+### 👥 CÀI ĐẶT LƯƠNG TỪNG NHÂN VIÊN
+**Bước 1:** Trong **Lịch làm việc** → Tab **Lương nhân viên**
+
+**Bước 2:** Chọn nhân viên từ danh sách
+
+**Bước 3:** Nhập lương cơ bản (VNĐ/tháng):
+- VD: Nguyễn Văn A - 8,000,000 đ/tháng
+- VD: Trần Thị B - 7,500,000 đ/tháng
+
+**Bước 4:** Lưu cài đặt cho từng nhân viên
+
+### 📊 CÀI ĐẶT CÔNG THỨC TÍNH LƯƠNG CHUNG
+**Bước 1:** Từ màn hình chính → **Cài đặt** → **Công thức lương**
+
+**Bước 2:** Cấu hình các tỷ lệ:
+- **Lương cơ bản:** 8,000,000 đ/tháng (mặc định)
+- **Hoa hồng bán máy:** 1% trên giá bán
+- **Thưởng sửa chữa:** 10% trên lợi nhuận
+
+### 📸 CHẤM CÔNG HẰNG NGÀY
+**Bước 1:** Nhân viên mở app → **Chấm công**
+
+**Bước 2:** Nhấn **CHECK-IN** khi bắt đầu ca:
+- Chụp ảnh selfie
+- Hệ thống ghi nhận vị trí GPS
+- Tự động phát hiện đi muộn/sớm
+
+**Bước 3:** Nhấn **CHECK-OUT** khi kết thúc ca:
+- Chụp ảnh selfie lần nữa
+- Tính tổng giờ làm việc
+- Tự động tính giờ OT nếu có
+
+### 📈 XEM BÁO CÁO LƯƠNG
+**Bước 1:** Từ màn hình chính → **Chấm công** → **Báo cáo**
+
+**Bước 2:** Chọn tháng cần xem
+
+**Bước 3:** Xem chi tiết:
+- Số ngày công thực tế
+- Giờ làm việc chuẩn/OT
+- Lương cơ bản + hoa hồng + thưởng
+- Tổng lương tháng
+
+**Bước 4:** Xuất CSV để in bảng lương
 
 > ![Ảnh minh họa: Nhân viên selfie chấm công và bảng lương tổng hợp](assets/images/docs/payroll.png)
 

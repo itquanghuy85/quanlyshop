@@ -122,9 +122,6 @@ class _MyAppState extends State<MyApp> {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-<<<<<<< HEAD
-      home: AuthGate(setLocale: setLocale),
-=======
       localeResolutionCallback: (locale, supportedLocales) {
         for (var supportedLocale in supportedLocales) {
           if (supportedLocale.languageCode == locale?.languageCode) {
@@ -137,7 +134,6 @@ class _MyAppState extends State<MyApp> {
         '/currency-demo': (context) => const CurrencyInputDemo(),
       },
       home: SplashView(setLocale: setLocale), // Luôn bắt đầu từ SplashView để khởi tạo mượt mà
->>>>>>> e7fff18 (TINH CHINH GIAO DIEN HOME CHINH TINH LUONG)
     );
   }
 }

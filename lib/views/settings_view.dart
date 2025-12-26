@@ -7,6 +7,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/user_service.dart';
 import '../services/firestore_service.dart';
+import '../utils/app_info.dart';
 import '../l10n/app_localizations.dart';
 import 'invoice_template_view.dart';
 import 'staff_list_view.dart';
@@ -278,12 +279,18 @@ class _SettingsViewState extends State<SettingsView> {
                     color: Colors.blueAccent.withValues(alpha: 0.1 * 255),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.info_outline, color: Colors.blueAccent.shade700, size: 20),
-                      const SizedBox(width: 10),
-                      Text("${l10n.version}: ${l10n.versionNumber}", style: TextStyle(fontWeight: FontWeight.w500, color: Colors.blueAccent.shade700)),
-                    ],
+                  child: FutureBuilder<String>(
+                    future: AppInfo.getVersion(),
+                    builder: (context, snapshot) {
+                      final version = snapshot.data ?? l10n.versionNumber;
+                      return Row(
+                        children: [
+                          Icon(Icons.info_outline, color: Colors.blueAccent.shade700, size: 20),
+                          const SizedBox(width: 10),
+                          Text("${l10n.version}: $version", style: TextStyle(fontWeight: FontWeight.w500, color: Colors.blueAccent.shade700)),
+                        ],
+                      );
+                    },
                   ),
                 ),
                 const SizedBox(height: 15),

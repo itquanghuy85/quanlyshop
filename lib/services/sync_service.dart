@@ -8,6 +8,7 @@ import '../models/product_model.dart';
 import '../models/sale_order_model.dart';
 import '../models/expense_model.dart';
 import '../models/debt_model.dart';
+import '../models/attendance_model.dart';
 import 'storage_service.dart';
 import 'user_service.dart';
 
@@ -160,6 +161,30 @@ class SyncService {
       },
       onBatchDone: onDataChanged,
     );
+
+    // 8. Đồng bộ ATTENDANCE
+    try {
+      _subscribeToCollection(
+        collection: 'attendance',
+        shopId: shopId,
+        onChanged: (data, docId) async {
+          try {
+            final db = DBHelper();
+            if (data['deleted'] == true) {
+              await db.deleteAttendanceByFirestoreId(docId);
+            } else {
+              data['firestoreId'] = docId;
+              await db.upsertAttendance(Attendance.fromMap(data));
+            }
+          } catch (e) {
+            debugPrint("Lỗi sync attendance $docId: $e");
+          }
+        },
+        onBatchDone: onDataChanged,
+      );
+    } catch (e) {
+      debugPrint("Lỗi khởi tạo attendance sync: $e");
+    }
     debugPrint("Đã khởi tạo real-time sync cho ${isSuperAdmin ? 'super admin' : 'shop: $shopId'}");
   }
 
@@ -311,7 +336,60 @@ class SyncService {
         }
       }
       await productBatch.commit();
-      
+
+      // Sync ATTENDANCE
+      try {
+        final attendance = await dbHelper.getAllAttendance();
+        debugPrint("syncAllToCloud: có ${attendance.length} attendance cần sync");
+        final WriteBatch attendanceBatch = _db.batch();
+        for (var a in attendance) {
+          if (a.firestoreId != null && a.firestoreId!.isNotEmpty) continue; // Đã sync rồi
+
+          try {
+            Map<String, dynamic> data = a.toMap();
+            data['shopId'] = shopId;
+            data.remove('id');
+
+            // Xử lý upload ảnh check-in/out nếu là ảnh local
+            if (a.photoIn != null && a.photoIn!.isNotEmpty && !a.photoIn!.startsWith('http')) {
+              List<String> urls = await StorageService.uploadMultipleImages(
+                [a.photoIn!],
+                'attendance/${a.dateKey}_${a.userId}_in'
+              ).timeout(const Duration(seconds: 30), onTimeout: () {
+                debugPrint("Upload ảnh check-in ${a.id} quá thời gian, bỏ qua");
+                return <String>[];
+              });
+              if (urls.isNotEmpty) data['photoIn'] = urls.first;
+            }
+
+            if (a.photoOut != null && a.photoOut!.isNotEmpty && !a.photoOut!.startsWith('http')) {
+              List<String> urls = await StorageService.uploadMultipleImages(
+                [a.photoOut!],
+                'attendance/${a.dateKey}_${a.userId}_out'
+              ).timeout(const Duration(seconds: 30), onTimeout: () {
+                debugPrint("Upload ảnh check-out ${a.id} quá thời gian, bỏ qua");
+                return <String>[];
+              });
+              if (urls.isNotEmpty) data['photoOut'] = urls.first;
+            }
+
+            final docId = a.firestoreId ?? "attendance_${a.userId}_${a.dateKey}";
+            attendanceBatch.set(_db.collection('attendance').doc(docId), data, SetOptions(merge: true));
+
+            a.firestoreId = docId;
+            a.photoIn = data['photoIn'];
+            a.photoOut = data['photoOut'];
+            await dbHelper.updateAttendance(a);
+          } catch (e) {
+            debugPrint("Lỗi sync attendance ${a.id}: $e");
+            // Tiếp tục với attendance tiếp theo
+          }
+        }
+        await attendanceBatch.commit();
+      } catch (e) {
+        debugPrint("Lỗi sync attendance collection: $e");
+      }
+
       debugPrint("Đã hoàn thành đồng bộ toàn bộ dữ liệu lên Cloud.");
     } catch (e) {
       debugPrint("Lỗi syncAllToCloud: $e");
@@ -333,9 +411,10 @@ class SyncService {
       final localRepairs = await db.getAllRepairs();
       final localProducts = await db.getInStockProducts();
       final localSales = await db.getAllSales();
-      debugPrint("LOCAL DATA BEFORE SYNC: repairs=${localRepairs.length}, products=${localProducts.length}, sales=${localSales.length}");
+      final localAttendance = await db.getAllAttendance();
+      debugPrint("LOCAL DATA BEFORE SYNC: repairs=${localRepairs.length}, products=${localProducts.length}, sales=${localSales.length}, attendance=${localAttendance.length}");
 
-      final collections = ['repairs', 'products', 'sales', 'expenses', 'debts', 'users', 'shops'];
+      final collections = ['repairs', 'products', 'sales', 'expenses', 'debts', 'users', 'shops', 'attendance'];
       
       for (var col in collections) {
         try {
@@ -352,6 +431,13 @@ class SyncService {
               else if (col == 'sales') await db.upsertSale(SaleOrder.fromMap(data));
               else if (col == 'expenses') await db.upsertExpense(Expense.fromMap(data));
               else if (col == 'debts') await db.upsertDebt(Debt.fromMap(data));
+              else if (col == 'attendance') {
+                try {
+                  await db.upsertAttendance(Attendance.fromMap(data));
+                } catch (e) {
+                  debugPrint("Lỗi upsert attendance ${doc.id}: $e");
+                }
+              }
               // Users và shops không cần upsert local vì không có DB local
             } catch (e) {
               debugPrint("Lỗi xử lý document ${doc.id} trong collection $col: $e");
@@ -368,7 +454,8 @@ class SyncService {
       final localRepairsAfter = await db.getAllRepairs();
       final localProductsAfter = await db.getInStockProducts();
       final localSalesAfter = await db.getAllSales();
-      debugPrint("LOCAL DATA AFTER SYNC: repairs=${localRepairsAfter.length}, products=${localProductsAfter.length}, sales=${localSalesAfter.length}");
+      final localAttendanceAfter = await db.getAllAttendance();
+      debugPrint("LOCAL DATA AFTER SYNC: repairs=${localRepairsAfter.length}, products=${localProductsAfter.length}, sales=${localSalesAfter.length}, attendance=${localAttendanceAfter.length}");
 
       debugPrint("Đã hoàn thành downloadAllFromCloud.");
     } catch (e) {
