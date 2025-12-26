@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; // BỔ SUNG THƯ VIỆN BỊ THIẾU
 import 'package:fl_chart/fl_chart.dart';
 import '../data/db_helper.dart';
 import '../services/user_service.dart';
@@ -20,7 +21,7 @@ class _ExpenseViewState extends State<ExpenseView> {
   final db = DBHelper();
   List<Map<String, dynamic>> _expenses = [];
   bool _isLoading = true;
-  String _selectedFilter = 'Tất cả';
+  bool _isSaving = false;
 
   @override
   void initState() {
@@ -35,7 +36,68 @@ class _ExpenseViewState extends State<ExpenseView> {
     setState(() { _expenses = data; _isLoading = false; });
   }
 
+  Future<void> _handleDeleteExpense(Map<String, dynamic> exp) async {
+    final passC = TextEditingController();
+    final bool? result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("XÁC NHẬN XÓA CHI PHÍ", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 15)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text("Bạn đang xóa khoản chi: ${exp['title']}\nSố tiền: ${NumberFormat('#,###').format(exp['amount'])}đ"),
+            const SizedBox(height: 15),
+            TextField(
+              controller: passC,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: "Nhập mật khẩu tài khoản để xóa", border: OutlineInputBorder()),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("HỦY")),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text("XÁC NHẬN XÓA", style: TextStyle(color: Colors.white)),
+          )
+        ],
+      ),
+    );
+
+    if (result == true) {
+      if (passC.text.isEmpty) return;
+      setState(() => _isLoading = true);
+      try {
+        final email = FirebaseAuth.instance.currentUser?.email;
+        if (email != null) {
+          AuthCredential credential = EmailAuthProvider.credential(email: email, password: passC.text);
+          await FirebaseAuth.instance.currentUser?.reauthenticateWithCredential(credential);
+          
+          await db.deleteExpenseByFirestoreId(exp['firestoreId']);
+          await FirebaseFirestore.instance.collection('expenses').doc(exp['firestoreId']).delete();
+          
+          final user = FirebaseAuth.instance.currentUser;
+          await db.logAction(
+            userId: user?.uid ?? "0",
+            userName: email.split('@').first.toUpperCase(),
+            action: "XÓA CHI PHÍ",
+            type: "FINANCE",
+            desc: "Đã xóa khoản chi ${exp['title']} số tiền ${exp['amount']}đ"
+          );
+
+          NotificationService.showSnackBar("Đã xóa chi phí thành công", color: Colors.green);
+          _refresh();
+        }
+      } catch (e) {
+        NotificationService.showSnackBar("Mật khẩu không đúng! Không thể xóa.", color: Colors.red);
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
   void _showAddExpenseDialog() {
+    if (_isSaving) return;
     final titleC = TextEditingController();
     final amountC = TextEditingController();
     final noteC = TextEditingController();
@@ -67,7 +129,7 @@ class _ExpenseViewState extends State<ExpenseView> {
                 ),
                 const SizedBox(height: 15),
                 _input(titleC, "Nội dung chi *", Icons.edit_note, caps: true),
-                _input(amountC, "Số tiền (x1k) *", Icons.payments, type: TextInputType.number, suffix: "k"),
+                _input(amountC, "Số tiền (x1k) *", Icons.payments, type: TextInputType.number),
                 _input(noteC, "Ghi chú thêm", Icons.description),
                 const Text("THANH TOÁN BẰNG", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
                 const SizedBox(height: 8),
@@ -91,11 +153,15 @@ class _ExpenseViewState extends State<ExpenseView> {
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFD32F2F), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
               onPressed: () async {
-                if (titleC.text.isEmpty || amountC.text.isEmpty) return;
+                if (titleC.text.isEmpty || amountC.text.isEmpty || _isSaving) return;
+                setS(() => _isSaving = true);
+                
                 int amount = int.tryParse(amountC.text.replaceAll('.', '')) ?? 0;
                 if (amount > 0 && amount < 100000) amount *= 1000;
 
+                final String fId = "exp_${DateTime.now().millisecondsSinceEpoch}_${titleC.text.hashCode}";
                 final expData = {
+                  'firestoreId': fId,
                   'title': titleC.text.toUpperCase(),
                   'amount': amount,
                   'category': category,
@@ -104,17 +170,18 @@ class _ExpenseViewState extends State<ExpenseView> {
                   'paymentMethod': payMethod,
                 };
 
-                // 1. Lưu local
                 await db.insertExpense(expData);
-                // 2. Đồng bộ Firebase
                 await FirestoreService.addExpenseCloud(expData);
-                // 3. Nhật ký
+                
                 final user = FirebaseAuth.instance.currentUser;
-                await db.logAction(userId: user?.uid ?? "0", userName: user?.email?.split('@').first.toUpperCase() ?? "NV", action: "CHI PHÍ", type: "FINANCE", desc: "Đã chi ${NumberFormat('#,###').format(amount)} đ cho $category");
+                await db.logAction(userId: user?.uid ?? "0", userName: user?.email?.split('@').first.toUpperCase() ?? "NV", action: "CHI PHÍ", type: "FINANCE", desc: "Đã chi ${NumberFormat('#,###').format(amount)}đ");
 
-                Navigator.pop(ctx);
-                _refresh();
-                NotificationService.showSnackBar("Đã lưu và đồng bộ chi phí!", color: Colors.green);
+                if (mounted) {
+                  Navigator.pop(ctx);
+                  _refresh();
+                  _isSaving = false;
+                  NotificationService.showSnackBar("Đã lưu chi phí!", color: Colors.green);
+                }
               }, 
               child: const Text("LƯU CHI PHÍ", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
             ),
@@ -124,7 +191,7 @@ class _ExpenseViewState extends State<ExpenseView> {
     );
   }
 
-  Widget _input(TextEditingController c, String l, IconData i, {TextInputType type = TextInputType.text, String? suffix, bool caps = false}) {
+  Widget _input(TextEditingController c, String l, IconData i, {TextInputType type = TextInputType.text, bool caps = false}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: type == TextInputType.number 
@@ -174,7 +241,6 @@ class _ExpenseViewState extends State<ExpenseView> {
   }
 
   Widget _buildProfessionalHeader(int total, List<Map<String, dynamic>> list) {
-    // Tính toán tỷ lệ cho biểu đồ
     int coDinh = list.where((e) => e['category'] == 'CỐ ĐỊNH').fold(0, (sum, e) => sum + (e['amount'] as int));
     int phatSinh = list.where((e) => e['category'] == 'PHÁT SINH').fold(0, (sum, e) => sum + (e['amount'] as int));
     int khac = list.where((e) => e['category'] == 'KHÁC').fold(0, (sum, e) => sum + (e['amount'] as int));
@@ -206,7 +272,6 @@ class _ExpenseViewState extends State<ExpenseView> {
               ],
             ),
           ),
-          // BIỂU ĐỒ TRÒN NHỎ
           SizedBox(
             width: 80, height: 80,
             child: PieChart(
@@ -250,28 +315,21 @@ class _ExpenseViewState extends State<ExpenseView> {
           child: Icon(cat == 'CỐ ĐỊNH' ? Icons.home_work : Icons.shopping_cart, color: color, size: 24),
         ),
         title: Text(e['title'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1A237E))),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        subtitle: Text("${DateFormat('HH:mm - dd/MM').format(DateTime.fromMillisecondsSinceEpoch(e['date']))} | ${e['paymentMethod']}", style: const TextStyle(fontSize: 10, color: Colors.grey)),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            const SizedBox(height: 4),
-            Text("${DateFormat('HH:mm - dd/MM').format(DateTime.fromMillisecondsSinceEpoch(e['date']))} | ${e['paymentMethod']}", style: const TextStyle(fontSize: 10, color: Colors.grey)),
-            const SizedBox(height: 4),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(5)),
-              child: Text(cat, style: TextStyle(color: color, fontSize: 8, fontWeight: FontWeight.bold)),
+            Text("-${NumberFormat('#,###').format(e['amount'])}", style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w900, fontSize: 15)),
+            const SizedBox(width: 8),
+            IconButton(
+              icon: const Icon(Icons.delete_outline, color: Colors.grey, size: 20),
+              onPressed: () => _handleDeleteExpense(e),
             )
           ],
         ),
-        trailing: Text("-${NumberFormat('#,###').format(e['amount'])}", style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w900, fontSize: 15)),
       ),
     );
   }
 
   Widget _buildEmpty() => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.money_off_rounded, size: 80, color: Colors.grey[200]), const Text("Chưa ghi nhận chi phí nào", style: TextStyle(color: Colors.grey))]));
-}
-
-class _TransactionItem {
-  final String title; final int amount; final String method; final int time; final String type; final bool isDebt;
-  _TransactionItem({required this.title, required this.amount, required this.method, required this.time, required this.type, required this.isDebt});
 }
