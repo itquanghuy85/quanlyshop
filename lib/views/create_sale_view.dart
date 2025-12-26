@@ -36,6 +36,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
   String _paymentMethod = "TIỀN MẶT";
   String _saleWarranty = "12 THÁNG";
   bool _autoCalcTotal = true; // Flag để người dùng chủ động chọn
+  bool _hasDebt = false;
 
   List<Product> _allInStock = [];
   List<Product> _filteredInStock = []; 
@@ -83,6 +84,15 @@ class _CreateSaleViewState extends State<CreateSaleView> {
     if (down > 0 && down < 100000) down *= 1000;
     int loan = total - down;
     loanAmountCtrl.text = _formatCurrency(loan > 0 ? loan : 0);
+    _updateDebtStatus();
+  }
+
+  void _updateDebtStatus() {
+    int totalPrice = _parseCurrency(priceCtrl.text);
+    int paidAmount = _parseCurrency(downPaymentCtrl.text);
+    if (paidAmount > 0 && paidAmount < 100000) paidAmount *= 1000;
+    if (_paymentMethod != "CÔNG NỢ" && _paymentMethod != "TRẢ GÓP (NH)" && paidAmount == 0) paidAmount = totalPrice;
+    setState(() => _hasDebt = totalPrice > paidAmount);
   }
 
   void _calculateTotal() {
@@ -92,8 +102,17 @@ class _CreateSaleViewState extends State<CreateSaleView> {
     _calculateInstallment();
   }
 
-  int _parseCurrency(String text) => int.tryParse(text.replaceAll('.', '')) ?? 0;
-  String _formatCurrency(int n) => NumberFormat('#,###').format(n).replaceAll(',', '.');
+  int _parseCurrency(String s) {
+    String digitsOnly = s.replaceAll(RegExp(r'[^0-9]'), '');
+    int amount = int.tryParse(digitsOnly) ?? 0;
+    if (amount > 0 && amount < 100000) amount *= 1000;
+    return amount;
+  }
+
+  String _formatCurrency(int amount) {
+    if (amount == 0) return '0';
+    return NumberFormat('#,###').format(amount);
+  }
 
   void _addItem(Product p) {
     if (_selectedItems.any((item) => item['product'].id == p.id)) return;
@@ -237,7 +256,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                       controller: priceCtrl,
                       label: "",
                       enabled: !_autoCalcTotal,
-                      onChanged: (_) => _calculateInstallment(),
+                      onChanged: (_) { _calculateInstallment(); _updateDebtStatus(); },
                     ),
                   ),
                   const Text(" Đ", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
@@ -246,9 +265,9 @@ class _CreateSaleViewState extends State<CreateSaleView> {
             ],
           ),
           const SizedBox(height: 15),
-          Wrap(spacing: 8, children: ["TIỀN MẶT", "CHUYỂN KHOẢN", "CÔNG NỢ", "TRẢ GÓP (NH)"].map((e) => ChoiceChip(label: Text(e, style: const TextStyle(fontSize: 11)), selected: _paymentMethod == e, onSelected: (v) => setState(() { _paymentMethod = e; _isInstallment = (e == "TRẢ GÓP (NH)"); }))).toList()),
+          Wrap(spacing: 8, children: ["TIỀN MẶT", "CHUYỂN KHOẢN", "CÔNG NỢ", "TRẢ GÓP (NH)"].map((e) => ChoiceChip(label: Text(e, style: const TextStyle(fontSize: 11)), selected: _paymentMethod == e, onSelected: (v) => setState(() { _paymentMethod = e; _isInstallment = (e == "TRẢ GÓP (NH)"); _updateDebtStatus(); }))).toList()),
           const Divider(height: 30),
-          _moneyInput(downPaymentCtrl, _isInstallment ? "KHÁCH TRẢ TRƯỚC (k)" : "SỐ TIỀN THU THỰC TẾ (k)", Colors.orange),
+          _moneyInput(downPaymentCtrl, _isInstallment ? "KHÁCH TRẢ TRƯỚC (k)" : "SỐ TIỀN THU THỰC TẾ (k)", Colors.orange, onChanged: _updateDebtStatus),
           if (_isInstallment) ...[
             const SizedBox(height: 10),
             _moneyInput(loanAmountCtrl, "NGÂN HÀNG CHO VAY", Colors.blueGrey, enabled: false),
@@ -263,19 +282,22 @@ class _CreateSaleViewState extends State<CreateSaleView> {
             Wrap(spacing: 8, children: ["FE", "HOME", "MIRAE", "HD", "F83", "T86"].map((b) => ActionChip(label: Text(b, style: const TextStyle(fontSize: 11)), onPressed: () => setState(() => bankCtrl.text = b))).toList()),
           ],
           const Divider(height: 30),
-          DropdownButtonFormField<String>(value: _saleWarranty, decoration: const InputDecoration(labelText: "CHỌN THỜI GIAN BẢO HÀNH"), items: ["KO BH", "1 THÁNG", "3 THÁNG", "6 THÁNG", "12 THÁNG"].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(), onChanged: (v) => setState(() => _saleWarranty = v ?? "KO BH"))
+          DropdownButtonFormField<String>(value: _saleWarranty, decoration: const InputDecoration(labelText: "CHỌN THỜI GIAN BẢO HÀNH"), items: ["KO BH", "1 THÁNG", "3 THÁNG", "6 THÁNG", "12 THÁNG"].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(), onChanged: !_hasDebt ? (v) => setState(() => _saleWarranty = v ?? "KO BH") : null)
         ],
       ),
     );
   }
 
-  Widget _moneyInput(TextEditingController ctrl, String label, Color color, {bool enabled = true}) {
+  Widget _moneyInput(TextEditingController ctrl, String label, Color color, {bool enabled = true, Function()? onChanged}) {
     return CurrencyTextField(
       controller: ctrl,
       label: label,
       icon: Icons.money,
       enabled: enabled,
-      onChanged: (_) => _calculateInstallment(),
+      onChanged: (_) {
+        _calculateInstallment();
+        if (onChanged != null) onChanged();
+      },
     );
   }
 

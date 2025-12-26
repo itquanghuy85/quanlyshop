@@ -110,21 +110,27 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       final user = FirebaseAuth.instance.currentUser;
       final userName = user?.email?.split('@').first.toUpperCase() ?? "NV";
 
-      // --- SỬA LỖI TRÙNG NHẬT KÝ ---
-      // Chỉ dùng 1 lệnh log duy nhất vào SQLite, hệ thống SyncService sẽ lo việc đẩy lên Cloud
+      // GHI NHẬT KÝ GIAO MÁY
       await db.logAction(
-        userId: user?.uid ?? "0", 
-        userName: userName, 
-        action: "GIAO MÁY", 
-        type: "REPAIR", 
-        targetId: r.firestoreId, 
-        desc: "Giao máy ${r.model} cho ${r.customerName}. Thanh toán: $payMethod"
+        userId: user?.uid ?? "0",
+        userName: userName,
+        action: "GIAO MÁY",
+        type: "REPAIR",
+        targetId: r.firestoreId,
+        desc: "Đã giao máy ${r.model} cho khách ${r.customerName}. Bảo hành: $selectedWarranty",
       );
 
       if (payMethod == "CÔNG NỢ") {
-        final debtData = {'personName': r.customerName, 'phone': r.phone, 'totalAmount': r.price, 'paidAmount': 0, 'type': "CUSTOMER_OWES", 'status': "unpaid", 'createdAt': DateTime.now().millisecondsSinceEpoch, 'note': "Nợ tiền sửa máy: ${r.model}"};
-        await db.insertDebt(debtData);
-        await FirestoreService.addDebtCloud(debtData);
+        await db.insertDebt({
+          'personName': r.customerName,
+          'phone': r.phone,
+          'totalAmount': r.price,
+          'paidAmount': 0,
+          'type': "CUSTOMER_OWES",
+          'status': "unpaid",
+          'createdAt': DateTime.now().millisecondsSinceEpoch,
+          'note': "Nợ tiền sửa máy: ${r.model}",
+        });
       }
     }
 
@@ -190,7 +196,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFF),
-      appBar: AppBar(title: const Text("CHI TIẾT ĐƠN SỬA", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
+      appBar: AppBar(title: const Text("CHI TIẾT ĐƠN SỬA", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)), actions: [IconButton(onPressed: _shareToZalo, icon: const Icon(Icons.share_rounded, color: Colors.green)), IconButton(onPressed: _printReceipt, icon: const Icon(Icons.print_rounded, color: Color(0xFF2962FF)))]),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(children: [_buildStatusCard(), const SizedBox(height: 15), _buildActionButtons(), const SizedBox(height: 20), _buildFinancialSummary(), const SizedBox(height: 20), _buildImageGallery(), const SizedBox(height: 20), _buildCustomerCard(), const SizedBox(height: 100)]),
@@ -253,55 +259,25 @@ class _RepairDetailViewState extends State<RepairDetailView> {
             const SizedBox(width: 8),
             Expanded(
               child: ElevatedButton.icon(
-                onPressed: _showSharePrintDialog,
-                icon: const Icon(Icons.share_rounded, color: Colors.white),
-                label: const Text("CHIA SẺ & IN", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                onPressed: _isPrinting ? null : _printReceipt,
+                icon: _isPrinting ? const SizedBox(width: 15, height: 15, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Icons.print, color: Colors.white),
+                label: const Text("IN PHIẾU", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                 style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2962FF), padding: const EdgeInsets.symmetric(vertical: 15), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: _shareToZalo,
+                icon: const Icon(Icons.send_rounded, color: Colors.white),
+                label: const Text("ZALO", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.green.shade600, padding: const EdgeInsets.symmetric(vertical: 15), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
               ),
             ),
           ],
         ),
       ),
     );
-  }
-
-  Future<void> _showSharePrintDialog() async {
-    final result = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text("CHỌN HÀNH ĐỘNG", style: TextStyle(fontWeight: FontWeight.bold)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.print, color: Color(0xFF2962FF)),
-              title: const Text("In phiếu sửa chữa"),
-              subtitle: const Text("Gửi lệnh in tới máy in"),
-              onTap: () => Navigator.pop(ctx, 'print'),
-            ),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.share, color: Colors.green),
-              title: const Text("Chia sẻ qua Zalo"),
-              subtitle: const Text("Gửi thông tin đơn hàng"),
-              onTap: () => Navigator.pop(ctx, 'share'),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("HỦY"),
-          ),
-        ],
-      ),
-    );
-
-    if (result == 'print') {
-      _printReceipt();
-    } else if (result == 'share') {
-      _shareToZalo();
-    }
   }
 
   Future<void> _shareToZalo() async {

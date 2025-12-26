@@ -35,6 +35,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
   final accCtrl = TextEditingController();
   final passCtrl = TextEditingController();
   final priceCtrl = TextEditingController();
+  final warrantyCtrl = TextEditingController(text: "Không bảo hành");
 
   final phoneF = FocusNode();
   final nameF = FocusNode();
@@ -44,9 +45,11 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
   final passF = FocusNode();
   final appearanceF = FocusNode();
   final accF = FocusNode();
+  final warrantyF = FocusNode();
 
   final List<String> brands = ["IPHONE", "SAMSUNG", "OPPO", "REDMI", "VIVO"];
   final List<String> commonIssues = ["THAY PIN", "ÉP KÍNH", "THAY MÀN", "MẤT NGUỒN", "LOA/MIC", "SẠC", "PHẦN MỀM"];
+  final List<String> warrantyOptions = ["Không bảo hành", "6 tháng", "12 tháng", "24 tháng"];
 
   @override
   void initState() {
@@ -98,6 +101,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
         accessories: "${accCtrl.text} | MK: ${passCtrl.text}".trim().toUpperCase(),
         address: addressCtrl.text.trim().toUpperCase(),
         price: _parseFinalPrice(priceCtrl.text),
+        warranty: warrantyCtrl.text,
         createdAt: now,
         imagePath: cloudImagePaths,
         createdBy: FirebaseAuth.instance.currentUser?.email?.split('@').first.toUpperCase() ?? "NV",
@@ -161,7 +165,11 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
                 _sectionTitle("TÌNH TRẠNG LỖI"),
                 _quick(commonIssues, issueCtrl, priceF),
                 _input(issueCtrl, "LỖI MÁY *", Icons.build, caps: true, f: issueF, next: priceF),
-                _input(priceCtrl, "GIÁ DỰ KIẾN (k)", Icons.monetization_on, type: TextInputType.number, f: priceF, next: passF, suffix: "k"),
+                _input(priceCtrl, "GIÁ DỰ KIẾN (k)", Icons.monetization_on, type: TextInputType.number, f: priceF, next: warrantyF, suffix: "k"),
+                const SizedBox(height: 15),
+                _sectionTitle("BẢO HÀNH"),
+                _quick(warrantyOptions, warrantyCtrl, passF),
+                _input(warrantyCtrl, "THỜI HẠN BẢO HÀNH", Icons.verified_user, f: warrantyF, next: passF),
                 _input(passCtrl, "MẬT KHẨU MÀN HÌNH", Icons.lock, f: passF),
                 const SizedBox(height: 20),
                 const Text("HÌNH ẢNH HIỆN TRẠNG", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.blueGrey)),
