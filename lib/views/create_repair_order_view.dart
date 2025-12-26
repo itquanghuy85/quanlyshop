@@ -9,8 +9,6 @@ import '../services/notification_service.dart';
 import '../services/firestore_service.dart';
 import '../services/storage_service.dart';
 import '../services/unified_printer_service.dart';
-import '../widgets/validated_text_field.dart';
-import '../widgets/currency_text_field.dart';
 
 class CreateRepairOrderView extends StatefulWidget {
   final String role;
@@ -35,7 +33,6 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
   final accCtrl = TextEditingController();
   final passCtrl = TextEditingController();
   final priceCtrl = TextEditingController();
-  final warrantyCtrl = TextEditingController(text: "Không bảo hành");
 
   final phoneF = FocusNode();
   final nameF = FocusNode();
@@ -45,11 +42,12 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
   final passF = FocusNode();
   final appearanceF = FocusNode();
   final accF = FocusNode();
-  final warrantyF = FocusNode();
 
   final List<String> brands = ["IPHONE", "SAMSUNG", "OPPO", "REDMI", "VIVO"];
   final List<String> commonIssues = ["THAY PIN", "ÉP KÍNH", "THAY MÀN", "MẤT NGUỒN", "LOA/MIC", "SẠC", "PHẦN MỀM"];
-  final List<String> warrantyOptions = ["Không bảo hành", "6 tháng", "12 tháng", "24 tháng"];
+  
+  final List<String> quickAccs = ["SẠC", "CÁP", "SIM", "ỐP LƯNG", "THẺ NHỚ", "CƯỜNG LỰC", "KO PHỤ KIỆN"];
+  final Set<String> _selectedAccs = {};
 
   @override
   void initState() {
@@ -76,7 +74,6 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
     return (v > 0 && v < 100000) ? v * 1000 : v;
   }
 
-  // TÁCH HÀM LƯU RIÊNG BIỆT ĐỂ DÙNG CHUNG
   Future<Repair?> _saveOrderProcess() async {
     if (phoneCtrl.text.isEmpty || modelCtrl.text.isEmpty) {
       NotificationService.showSnackBar("Vui lòng nhập SĐT và Model máy", color: Colors.red);
@@ -91,6 +88,11 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
         cloudImagePaths = await StorageService.uploadMultipleAndJoin(localPaths.join(','), 'repairs');
       }
 
+      String finalAccs = _selectedAccs.join(', ');
+      if (accCtrl.text.isNotEmpty) {
+        finalAccs = finalAccs.isEmpty ? accCtrl.text.toUpperCase() : "$finalAccs, ${accCtrl.text.toUpperCase()}";
+      }
+
       final now = DateTime.now().millisecondsSinceEpoch;
       final r = Repair(
         firestoreId: "rep_${now}_${phoneCtrl.text}",
@@ -98,10 +100,9 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
         phone: phoneCtrl.text.trim(),
         model: modelCtrl.text.trim().toUpperCase(),
         issue: issueCtrl.text.trim().toUpperCase(),
-        accessories: "${accCtrl.text} | MK: ${passCtrl.text}".trim().toUpperCase(),
+        accessories: "$finalAccs | MK: ${passCtrl.text}".trim().toUpperCase(),
         address: addressCtrl.text.trim().toUpperCase(),
         price: _parseFinalPrice(priceCtrl.text),
-        warranty: warrantyCtrl.text,
         createdAt: now,
         imagePath: cloudImagePaths,
         createdBy: FirebaseAuth.instance.currentUser?.email?.split('@').first.toUpperCase() ?? "NV",
@@ -165,36 +166,34 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
                 _sectionTitle("TÌNH TRẠNG LỖI"),
                 _quick(commonIssues, issueCtrl, priceF),
                 _input(issueCtrl, "LỖI MÁY *", Icons.build, caps: true, f: issueF, next: priceF),
-                _input(priceCtrl, "GIÁ DỰ KIẾN (k)", Icons.monetization_on, type: TextInputType.number, f: priceF, next: warrantyF, suffix: "k"),
-                const SizedBox(height: 15),
-                _sectionTitle("BẢO HÀNH"),
-                _quick(warrantyOptions, warrantyCtrl, passF),
-                _input(warrantyCtrl, "THỜI HẠN BẢO HÀNH", Icons.verified_user, f: warrantyF, next: passF),
+                _input(priceCtrl, "GIÁ DỰ KIẾN (k)", Icons.monetization_on, type: TextInputType.number, f: priceF, next: passF, suffix: "k"),
                 _input(passCtrl, "MẬT KHẨU MÀN HÌNH", Icons.lock, f: passF),
+                
+                const SizedBox(height: 15),
+                _sectionTitle("PHỤ KIỆN ĐI KÈM"),
+                // HÀNG NÚT CHỌN NHANH ƯU TIÊN THEO YÊU CẦU
+                Row(
+                  children: [
+                    _priorityChip("CHỈ SIM", () { setState(() { _selectedAccs.clear(); _selectedAccs.add("SIM"); }); }),
+                    const SizedBox(width: 8),
+                    _priorityChip("CHỈ ỐP", () { setState(() { _selectedAccs.clear(); _selectedAccs.add("ỐP LƯNG"); }); }),
+                    const SizedBox(width: 8),
+                    _priorityChip("CẢ SIM & ỐP", () { setState(() { _selectedAccs.clear(); _selectedAccs.add("SIM"); _selectedAccs.add("ỐP LƯNG"); }); }),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                _buildQuickAccs(),
+                _input(accCtrl, "GÕ THÊM PHỤ KIỆN KHÁC", Icons.add_box_outlined, caps: true),
+
                 const SizedBox(height: 20),
                 const Text("HÌNH ẢNH HIỆN TRẠNG", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.blueGrey)),
                 const SizedBox(height: 10),
                 _imageRow(),
                 const SizedBox(height: 40),
                 Row(children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _saving ? null : _onlySave,
-                      icon: const Icon(Icons.save_rounded),
-                      label: const Text("CHỈ LƯU ĐƠN", style: TextStyle(fontWeight: FontWeight.bold)),
-                      style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
-                    ),
-                  ),
+                  Expanded(child: OutlinedButton.icon(onPressed: _saving ? null : _onlySave, icon: const Icon(Icons.save_rounded), label: const Text("CHỈ LƯU ĐƠN", style: TextStyle(fontWeight: FontWeight.bold)), style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))))),
                   const SizedBox(width: 12),
-                  Expanded(
-                    flex: 2,
-                    child: ElevatedButton.icon(
-                      onPressed: _saving ? null : _saveAndPrint,
-                      icon: const Icon(Icons.print_rounded),
-                      label: const Text("LƯU & IN PHIẾU", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2962FF), elevation: 4, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)), padding: const EdgeInsets.symmetric(vertical: 16)),
-                    ),
-                  ),
+                  Expanded(flex: 2, child: ElevatedButton.icon(onPressed: _saving ? null : _saveAndPrint, icon: const Icon(Icons.print_rounded), label: const Text("LƯU & IN PHIẾU", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2962FF), elevation: 4, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)), padding: const EdgeInsets.symmetric(vertical: 16)))),
                 ]),
               ],
             ),
@@ -202,66 +201,54 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
     );
   }
 
-  Widget _sectionTitle(String title) => Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey, fontSize: 11)));
-
-  Widget _input(TextEditingController c, String l, IconData i, {bool caps = false, TextInputType type = TextInputType.text, FocusNode? f, FocusNode? next, String? suffix}) {
-    if (type == TextInputType.number && (l.contains('GIÁ') || l.contains('TIỀN'))) {
-      // Use CurrencyTextField for price fields
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: CurrencyTextField(
-          controller: c,
-          label: l,
-          icon: i,
-          onSubmitted: () { if (next != null) FocusScope.of(context).requestFocus(next); },
-        ),
-      );
-    } else {
-      // Use ValidatedTextField for text fields
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: ValidatedTextField(
-          controller: c,
-          label: l,
-          icon: i,
-          keyboardType: type,
-          uppercase: caps,
-          onSubmitted: () { if (next != null) FocusScope.of(context).requestFocus(next); },
-        ),
-      );
-    }
-  }
-
-  Widget _quick(List<String> items, TextEditingController target, FocusNode? nextF) {
-    return Container(
-      height: 38, margin: const EdgeInsets.only(bottom: 8),
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: items.length,
-        itemBuilder: (ctx, i) => Padding(
-          padding: const EdgeInsets.only(right: 8),
-          child: ActionChip(
-            label: Text(items[i], style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-            onPressed: () {
-              setState(() => target.text = items[i]);
-              if (nextF != null) FocusScope.of(context).requestFocus(nextF);
-            },
-          ),
-        ),
+  Widget _priorityChip(String label, VoidCallback onTap) {
+    return Expanded(
+      child: ActionChip(
+        label: Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white)),
+        backgroundColor: Colors.orange.shade700,
+        padding: const EdgeInsets.all(0),
+        onPressed: () {
+          HapticFeedback.lightImpact();
+          onTap();
+        },
       ),
     );
   }
 
-  Widget _imageRow() {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(children: [
-        ..._images.map((f) => Container(margin: const EdgeInsets.only(right: 10), width: 80, height: 80, decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade300)), child: ClipRRect(borderRadius: BorderRadius.circular(12), child: Image.file(f, fit: BoxFit.cover)))),
-        GestureDetector(onTap: () async {
-          final f = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 40);
-          if (f != null) setState(() => _images.add(File(f.path)));
-        }, child: Container(width: 80, height: 80, decoration: BoxDecoration(color: Colors.blue.withOpacity(0.05), borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.add_a_photo, color: Colors.blue))),
-      ]),
+  Widget _buildQuickAccs() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 15),
+      child: Wrap(
+        spacing: 8, runSpacing: 0,
+        children: quickAccs.map((acc) {
+          final isSelected = _selectedAccs.contains(acc);
+          return FilterChip(
+            label: Text(acc, style: TextStyle(fontSize: 11, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal, color: isSelected ? Colors.white : Colors.black87)),
+            selected: isSelected,
+            onSelected: (v) {
+              HapticFeedback.lightImpact();
+              setState(() { v ? _selectedAccs.add(acc) : _selectedAccs.remove(acc); });
+            },
+            selectedColor: const Color(0xFF2962FF),
+            checkmarkColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          );
+        }).toList(),
+      ),
     );
+  }
+
+  Widget _sectionTitle(String title) => Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey, fontSize: 11)));
+
+  Widget _input(TextEditingController c, String l, IconData i, {bool caps = false, TextInputType type = TextInputType.text, FocusNode? f, FocusNode? next, String? suffix}) {
+    return Padding(padding: const EdgeInsets.only(bottom: 12), child: TextField(controller: c, focusNode: f, keyboardType: type, textCapitalization: caps ? TextCapitalization.characters : TextCapitalization.none, onSubmitted: (_) { if (next != null) FocusScope.of(context).requestFocus(next); }, decoration: InputDecoration(labelText: l, prefixIcon: Icon(i, size: 20), suffixText: suffix, border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)), filled: true, fillColor: Colors.white)));
+  }
+
+  Widget _quick(List<String> items, TextEditingController target, FocusNode? nextF) {
+    return Container(height: 38, margin: const EdgeInsets.only(bottom: 8), child: ListView.builder(scrollDirection: Axis.horizontal, itemCount: items.length, itemBuilder: (ctx, i) => Padding(padding: const EdgeInsets.only(right: 8), child: ActionChip(label: Text(items[i], style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)), onPressed: () { setState(() => target.text = items[i]); if (nextF != null) FocusScope.of(context).requestFocus(nextF); }))));
+  }
+
+  Widget _imageRow() {
+    return SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children: [..._images.map((f) => Container(margin: const EdgeInsets.only(right: 10), width: 80, height: 80, decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade300)), child: ClipRRect(borderRadius: BorderRadius.circular(12), child: Image.file(f, fit: BoxFit.cover)))), GestureDetector(onTap: () async { final f = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 40); if (f != null) setState(() => _images.add(File(f.path))); }, child: Container(width: 80, height: 80, decoration: BoxDecoration(color: Colors.blue.withOpacity(0.05), borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.add_a_photo, color: Colors.blue)))]));
   }
 }

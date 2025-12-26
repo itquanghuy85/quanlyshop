@@ -133,12 +133,14 @@ class _HomeViewState extends State<HomeView> {
 
     int pendingR = repairs.where((r) => r.status == 1 || r.status == 2).length;
     int doneT = 0; int soldT = 0; int revT = 0; int newRT = 0; int expT = 0; int debtR = 0; int expW = 0;
+    
     final now = DateTime.now();
 
     for (var r in repairs) {
       if (_isSameDay(r.createdAt)) newRT++;
       if (r.status >= 3 && r.deliveredAt != null && _isSameDay(r.deliveredAt!)) {
-        doneT++; revT += (r.price - r.cost);
+        doneT++; 
+        revT += (r.price - r.cost);
       }
       if (r.deliveredAt != null && r.warranty.isNotEmpty && r.warranty != "KO BH") {
         int m = int.tryParse(r.warranty.split(' ').first) ?? 0;
@@ -151,7 +153,8 @@ class _HomeViewState extends State<HomeView> {
     }
     for (var s in sales) {
       if (_isSameDay(s.soldAt)) {
-        soldT++; revT += (s.totalPrice - s.totalCost);
+        soldT++; 
+        revT += (s.totalPrice - s.totalCost);
       }
       if (s.warranty.isNotEmpty && s.warranty != "KO BH") {
         int m = int.tryParse(s.warranty.split(' ').first) ?? 12;
@@ -164,8 +167,8 @@ class _HomeViewState extends State<HomeView> {
       if (_isSameDay(e['date'] as int)) expT += (e['amount'] as int);
     }
     for (var d in debts) {
-      int total = d['totalAmount'] ?? 0;
-      int paid = d['paidAmount'] ?? 0;
+      final int total = d['totalAmount'] ?? 0;
+      final int paid = d['paidAmount'] ?? 0;
       if (total > paid) debtR += (total - paid);
     }
 
@@ -190,7 +193,11 @@ class _HomeViewState extends State<HomeView> {
         backgroundColor: const Color(0xFFF8FAFF),
         appBar: AppBar(
           backgroundColor: Colors.white, elevation: 0,
-          title: Row(children: [const Icon(Icons.store_rounded, color: Color(0xFF2962FF), size: 22), const SizedBox(width: 8), Expanded(child: Text(hasFullAccess ? "QUẢN TRỊ SHOP" : "NHÂN VIÊN", style: const TextStyle(color: Colors.black, fontSize: 15, fontWeight: FontWeight.bold)))]),
+          title: Row(children: [
+            const Icon(Icons.store_rounded, color: Color(0xFF2962FF), size: 22),
+            const SizedBox(width: 8),
+            Expanded(child: Text(hasFullAccess ? "QUẢN TRỊ SHOP" : "NHÂN VIÊN", style: const TextStyle(color: Colors.black, fontSize: 15, fontWeight: FontWeight.bold))),
+          ]),
           actions: [
             IconButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => QrScanView(role: widget.role))), icon: const Icon(Icons.qr_code_scanner_rounded, color: Color(0xFF2962FF))),
             IconButton(onPressed: () => _syncNow(), icon: _isSyncing ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.sync, color: Colors.green, size: 28)),
@@ -241,7 +248,10 @@ class _HomeViewState extends State<HomeView> {
     String _fmt(int v) => NumberFormat('#,###').format(v);
     return Container(
       width: double.infinity, padding: const EdgeInsets.all(18), 
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10)]), 
+      decoration: BoxDecoration(
+        color: Colors.white, borderRadius: BorderRadius.circular(20), 
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10)]
+      ), 
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         const Text("TRẠNG THÁI CỬA HÀNG", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
         const SizedBox(height: 15),
@@ -274,9 +284,16 @@ class _HomeViewState extends State<HomeView> {
     addTile('allowViewSales', l10n.sales, Icons.shopping_cart_checkout_rounded, [const Color(0xFFFF4081), const Color(0xFFFF80AB)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SaleListView())));
     addTile('allowViewRepairs', l10n.repair, Icons.build_circle_rounded, [const Color(0xFF2979FF), const Color(0xFF448AFF)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderListView(role: widget.role))));
     addTile('allowViewInventory', l10n.inventory, Icons.inventory_2_rounded, [const Color(0xFFFF6D00), const Color(0xFFFFAB40)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => InventoryView(role: widget.role))));
+    
+    // NÚT CÔNG NỢ
     addTile('allowViewDebts', "CÔNG NỢ", Icons.receipt_long_rounded, [const Color(0xFF9C27B0), const Color(0xFFE1BEE7)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DebtView())));
 
-    // --- ICON CHAT CÓ BADGE SỐ 1 ---
+    // NÚT CHI TIÊU (MỚI ĐƯA RA NGOÀI)
+    addTile('allowViewExpenses', "CHI TIÊU", Icons.money_off_rounded, [const Color(0xFFFF5722), const Color(0xFFFFAB91)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ExpenseView())));
+
+    // NÚT BẢO HÀNH (MỚI ĐƯA RA NGOÀI)
+    addTile('allowViewWarranty', "BẢO HÀNH", Icons.verified_user_rounded, [const Color(0xFF4CAF50), const Color(0xFF81C784)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WarrantyView())));
+
     addTile(
       'allowViewChat', "CHAT NỘI BỘ", Icons.chat_bubble_rounded, [const Color(0xFF7C4DFF), const Color(0xFFB388FF)], 
       () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChatView())),
@@ -305,15 +322,19 @@ class _HomeViewState extends State<HomeView> {
       )
     );
 
-    if (hasFullAccess) addTile('allowManageStaff', "NHẬT KÝ", Icons.history_edu_rounded, [const Color(0xFF455A64), const Color(0xFF78909C)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AuditLogView())));
+    if (hasFullAccess) {
+      addTile('allowManageStaff', "NHẬT KÝ", Icons.history_edu_rounded, [const Color(0xFF455A64), const Color(0xFF78909C)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AuditLogView())));
+    }
+
     addTile('allowViewChat', "CHẤM CÔNG", Icons.fingerprint_rounded, [const Color(0xFF00C853), const Color(0xFF64DD17)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AttendanceView())));
     addTile('allowViewCustomers', l10n.customers, Icons.people_alt_rounded, [const Color(0xFF00BFA5), const Color(0xFF64FFDA)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => CustomerListView(role: widget.role))));
+    
     if (hasFullAccess) addTile('allowViewRevenue', "DS & LƯƠNG", Icons.assessment_rounded, [const Color(0xFF6200EA), const Color(0xFF7C4DFF)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StaffPerformanceView())));
+    
     addTile('allowViewRevenue', l10n.revenue, Icons.leaderboard_rounded, [const Color(0xFF304FFE), const Color(0xFF536DFE)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RevenueView())));
     addTile('allowViewPrinter', l10n.printer, Icons.print_rounded, [const Color(0xFF607D8B), const Color(0xFF90A4AE)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ThermalPrinterDesignView())));
     addTile('allowViewSettings', l10n.settings, Icons.settings_rounded, [const Color(0xFF263238), const Color(0xFF455A64)], _openSettingsCenter);
-    addTile('allowViewInventory', "KIỂM KHO QR", Icons.qr_code_scanner_rounded, [const Color(0xFFFFAB00), const Color(0xFFFFD740)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const InventoryCheckView())));
-
+    
     return GridView.count(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), crossAxisCount: 2, mainAxisSpacing: 15, crossAxisSpacing: 15, childAspectRatio: 1.3, children: tiles);
   }
 
