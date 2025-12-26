@@ -31,6 +31,7 @@ import '../data/db_helper.dart';
 import '../widgets/perpetual_calendar.dart';
 import '../services/sync_service.dart';
 import '../services/user_service.dart';
+import '../services/firestore_service.dart';
 
 class HomeView extends StatefulWidget {
   final String role;
@@ -111,13 +112,8 @@ class _HomeViewState extends State<HomeView> {
       await SyncService.syncAllToCloud();
       await SyncService.downloadAllFromCloud();
       await _loadStats();
-      if (mounted && !silent) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("DỮ LIỆU ĐÃ ĐƯỢC LÀM MỚI TỪ ĐÁM MÂY"), backgroundColor: Colors.green)
-        );
-      }
     } catch (e) {
-      if (mounted && !silent) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("LỖI ĐỒNG BỘ: $e")));
+      debugPrint("SYNC ERROR: $e");
     } finally {
       if (mounted) setState(() => _isSyncing = false);
     }
@@ -137,14 +133,12 @@ class _HomeViewState extends State<HomeView> {
 
     int pendingR = repairs.where((r) => r.status == 1 || r.status == 2).length;
     int doneT = 0; int soldT = 0; int revT = 0; int newRT = 0; int expT = 0; int debtR = 0; int expW = 0;
-    
     final now = DateTime.now();
 
     for (var r in repairs) {
       if (_isSameDay(r.createdAt)) newRT++;
       if (r.status >= 3 && r.deliveredAt != null && _isSameDay(r.deliveredAt!)) {
-        doneT++; 
-        revT += (r.price - r.cost);
+        doneT++; revT += (r.price - r.cost);
       }
       if (r.deliveredAt != null && r.warranty.isNotEmpty && r.warranty != "KO BH") {
         int m = int.tryParse(r.warranty.split(' ').first) ?? 0;
@@ -157,8 +151,7 @@ class _HomeViewState extends State<HomeView> {
     }
     for (var s in sales) {
       if (_isSameDay(s.soldAt)) {
-        soldT++; 
-        revT += (s.totalPrice - s.totalCost);
+        soldT++; revT += (s.totalPrice - s.totalCost);
       }
       if (s.warranty.isNotEmpty && s.warranty != "KO BH") {
         int m = int.tryParse(s.warranty.split(' ').first) ?? 12;
@@ -171,11 +164,9 @@ class _HomeViewState extends State<HomeView> {
       if (_isSameDay(e['date'] as int)) expT += (e['amount'] as int);
     }
     for (var d in debts) {
-      final int total = d['totalAmount'] ?? 0;
-      final int paid = d['paidAmount'] ?? 0;
-      if (paid < total) {
-        debtR += (total - paid);
-      }
+      int total = d['totalAmount'] ?? 0;
+      int paid = d['paidAmount'] ?? 0;
+      if (total > paid) debtR += (total - paid);
     }
 
     if (mounted) {
@@ -199,11 +190,7 @@ class _HomeViewState extends State<HomeView> {
         backgroundColor: const Color(0xFFF8FAFF),
         appBar: AppBar(
           backgroundColor: Colors.white, elevation: 0,
-          title: Row(children: [
-            const Icon(Icons.store_rounded, color: Color(0xFF2962FF), size: 22),
-            const SizedBox(width: 8),
-            Expanded(child: Text(hasFullAccess ? "QUẢN TRỊ SHOP" : "NHÂN VIÊN", style: const TextStyle(color: Colors.black, fontSize: 15, fontWeight: FontWeight.bold))),
-          ]),
+          title: Row(children: [const Icon(Icons.store_rounded, color: Color(0xFF2962FF), size: 22), const SizedBox(width: 8), Expanded(child: Text(hasFullAccess ? "QUẢN TRỊ SHOP" : "NHÂN VIÊN", style: const TextStyle(color: Colors.black, fontSize: 15, fontWeight: FontWeight.bold)))]),
           actions: [
             IconButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => QrScanView(role: widget.role))), icon: const Icon(Icons.qr_code_scanner_rounded, color: Color(0xFF2962FF))),
             IconButton(onPressed: () => _syncNow(), icon: _isSyncing ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.sync, color: Colors.green, size: 28)),
@@ -214,15 +201,15 @@ class _HomeViewState extends State<HomeView> {
           onRefresh: () => _syncNow(),
           child: SingleChildScrollView(padding: const EdgeInsets.all(20), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             if (_shopLocked) Container(padding: const EdgeInsets.all(12), margin: const EdgeInsets.only(bottom: 12), decoration: BoxDecoration(color: Colors.red.shade50, border: Border.all(color: Colors.redAccent), borderRadius: BorderRadius.circular(10)), child: const Text("CỬA HÀNG BỊ KHÓA", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold))),
+            _buildTodaySummary(),
+            const SizedBox(height: 25),
+            _buildGridMenu(),
+            const SizedBox(height: 20),
             TextField(controller: _phoneSearchCtrl, decoration: InputDecoration(hintText: "Tìm nhanh khách theo SĐT", prefixIcon: const Icon(Icons.search), border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)), filled: true, fillColor: Colors.white), onSubmitted: (v) { if(v.isNotEmpty) { HapticFeedback.lightImpact(); Navigator.push(context, MaterialPageRoute(builder: (_) => CustomerHistoryView(phone: v, name: v))); } }),
             const SizedBox(height: 20),
             const PerpetualCalendar(),
             const SizedBox(height: 25),
             _buildAlerts(),
-            const SizedBox(height: 25),
-            _buildTodaySummary(),
-            const SizedBox(height: 25),
-            _buildGridMenu(),
             const SizedBox(height: 50),
           ])),
         ),
@@ -254,10 +241,7 @@ class _HomeViewState extends State<HomeView> {
     String _fmt(int v) => NumberFormat('#,###').format(v);
     return Container(
       width: double.infinity, padding: const EdgeInsets.all(18), 
-      decoration: BoxDecoration(
-        color: Colors.white, borderRadius: BorderRadius.circular(20), 
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10)]
-      ), 
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10)]), 
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         const Text("TRẠNG THÁI CỬA HÀNG", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
         const SizedBox(height: 15),
@@ -272,39 +256,64 @@ class _HomeViewState extends State<HomeView> {
     );
   }
 
-  Widget _summaryRow(IconData i, Color c, String l, String v, VoidCallback t, {bool isBold = false}) => InkWell(onTap: t, child: Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Row(children: [Icon(i, size: 18, color: c), const SizedBox(width: 12), Expanded(child: Text(l, style: TextStyle(fontSize: 13, color: isBold ? Colors.black : Colors.grey, fontWeight: isBold ? FontWeight.bold : FontWeight.normal))), Text(v, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: isBold ? c : Colors.black)), const SizedBox(width: 5), const Icon(Icons.chevron_right, size: 14, color: Colors.grey)])));
+  Widget _summaryRow(IconData i, Color c, String l, String v, VoidCallback t, {bool isBold = false}) => InkWell(onTap: t, child: Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Row(children: [Icon(i, size: 18, color: c), const SizedBox(width: 12), Expanded(child: Text(l, style: TextStyle(fontSize: 13, color: isBold ? Colors.black : Colors.grey, fontWeight: isBold ? FontWeight.bold : FontWeight.normal))), Text(v, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: isBold ? c : Colors.black)), const Icon(Icons.chevron_right, size: 14, color: Colors.grey)])));
 
   Widget _buildGridMenu() {
     final l10n = AppLocalizations.of(context)!;
     final perms = _permissions;
     final tiles = <Widget>[];
-    void addTile(String permKey, String title, IconData icon, List<Color> colors, VoidCallback onTap) {
-      if (hasFullAccess || (perms[permKey] ?? true)) { tiles.add(_menuTile(title, icon, colors, onTap)); }
+    
+    void addTile(String permKey, String title, IconData icon, List<Color> colors, VoidCallback onTap, {Widget? badge}) {
+      if (hasFullAccess || (perms[permKey] ?? true)) { 
+        tiles.add(
+          _menuTile(title, icon, colors, onTap, badge: badge)
+        ); 
+      }
     }
     
     addTile('allowViewSales', l10n.sales, Icons.shopping_cart_checkout_rounded, [const Color(0xFFFF4081), const Color(0xFFFF80AB)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SaleListView())));
     addTile('allowViewRepairs', l10n.repair, Icons.build_circle_rounded, [const Color(0xFF2979FF), const Color(0xFF448AFF)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderListView(role: widget.role))));
-    
-    // SỬA LỖI Ở ĐÂY: Truyền role: widget.role vào InventoryView
     addTile('allowViewInventory', l10n.inventory, Icons.inventory_2_rounded, [const Color(0xFFFF6D00), const Color(0xFFFFAB40)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => InventoryView(role: widget.role))));
-    
     addTile('allowViewDebts', "CÔNG NỢ", Icons.receipt_long_rounded, [const Color(0xFF9C27B0), const Color(0xFFE1BEE7)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DebtView())));
 
-    addTile('allowViewChat', "CHAT NỘI BỘ", Icons.chat_bubble_rounded, [const Color(0xFF7C4DFF), const Color(0xFFB388FF)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChatView())));
+    // --- ICON CHAT CÓ BADGE SỐ 1 ---
+    addTile(
+      'allowViewChat', "CHAT NỘI BỘ", Icons.chat_bubble_rounded, [const Color(0xFF7C4DFF), const Color(0xFFB388FF)], 
+      () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChatView())),
+      badge: StreamBuilder<QuerySnapshot>(
+        stream: FirestoreService.chatStream(),
+        builder: (context, snap) {
+          if (!snap.hasData) return const SizedBox();
+          final userId = FirebaseAuth.instance.currentUser?.uid;
+          final unreadCount = snap.data!.docs.where((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            final List readBy = data['readBy'] ?? [];
+            return !readBy.contains(userId);
+          }).length;
+          
+          if (unreadCount == 0) return const SizedBox();
+          return Positioned(
+            right: 0, top: 0,
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+              constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+              child: Text("$unreadCount", style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+            ),
+          );
+        }
+      )
+    );
 
-    if (hasFullAccess) {
-      addTile('allowManageStaff', "NHẬT KÝ", Icons.history_edu_rounded, [const Color(0xFF455A64), const Color(0xFF78909C)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AuditLogView())));
-    }
-
+    if (hasFullAccess) addTile('allowManageStaff', "NHẬT KÝ", Icons.history_edu_rounded, [const Color(0xFF455A64), const Color(0xFF78909C)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AuditLogView())));
     addTile('allowViewChat', "CHẤM CÔNG", Icons.fingerprint_rounded, [const Color(0xFF00C853), const Color(0xFF64DD17)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AttendanceView())));
     addTile('allowViewCustomers', l10n.customers, Icons.people_alt_rounded, [const Color(0xFF00BFA5), const Color(0xFF64FFDA)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => CustomerListView(role: widget.role))));
-    
     if (hasFullAccess) addTile('allowViewRevenue', "DS & LƯƠNG", Icons.assessment_rounded, [const Color(0xFF6200EA), const Color(0xFF7C4DFF)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StaffPerformanceView())));
-    
     addTile('allowViewRevenue', l10n.revenue, Icons.leaderboard_rounded, [const Color(0xFF304FFE), const Color(0xFF536DFE)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RevenueView())));
     addTile('allowViewPrinter', l10n.printer, Icons.print_rounded, [const Color(0xFF607D8B), const Color(0xFF90A4AE)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ThermalPrinterDesignView())));
     addTile('allowViewSettings', l10n.settings, Icons.settings_rounded, [const Color(0xFF263238), const Color(0xFF455A64)], _openSettingsCenter);
-    
+    addTile('allowViewInventory', "KIỂM KHO QR", Icons.qr_code_scanner_rounded, [const Color(0xFFFFAB00), const Color(0xFFFFD740)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const InventoryCheckView())));
+
     return GridView.count(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), crossAxisCount: 2, mainAxisSpacing: 15, crossAxisSpacing: 15, childAspectRatio: 1.3, children: tiles);
   }
 
@@ -316,7 +325,19 @@ class _HomeViewState extends State<HomeView> {
     ]))));
   }
 
-  Widget _menuTile(String title, IconData icon, List<Color> colors, VoidCallback onTap) {
-    return InkWell(onTap: onTap, child: Container(decoration: BoxDecoration(gradient: LinearGradient(colors: colors), borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: colors[0].withOpacity(0.3), blurRadius: 8)]), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(icon, color: Colors.white, size: 35), const SizedBox(height: 8), Text(title, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12))])));
+  Widget _menuTile(String title, IconData icon, List<Color> colors, VoidCallback onTap, {Widget? badge}) {
+    return InkWell(
+      onTap: onTap, 
+      child: Stack(
+        children: [
+          Container(
+            width: double.infinity, height: double.infinity,
+            decoration: BoxDecoration(gradient: LinearGradient(colors: colors), borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: colors[0].withOpacity(0.3), blurRadius: 8)]), 
+            child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(icon, color: Colors.white, size: 35), const SizedBox(height: 8), Text(title, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12))])
+          ),
+          if (badge != null) badge,
+        ],
+      )
+    );
   }
 }
