@@ -9,26 +9,18 @@ class NotificationService {
   static final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
   static final GlobalKey<ScaffoldMessengerState> messengerKey = GlobalKey<ScaffoldMessengerState>();
   static final _db = FirebaseFirestore.instance;
-  static DateTime _appStartTime = DateTime.now();
+  static DateTime _appStartTime = DateTime.now().subtract(const Duration(minutes: 1)); // Lùi 1 phút để tránh sót tin
 
   static Future<void> init() async {
-    // 1. Xin quyền thông báo (Bắt buộc cho Android 13+)
     if (await Permission.notification.isDenied) {
       await Permission.notification.request();
     }
 
-    // 2. Khởi tạo Plugin
     const AndroidInitializationSettings androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
     const InitializationSettings initSettings = InitializationSettings(android: androidInit);
     
-    await _localNotifications.initialize(
-      initSettings,
-      onDidReceiveNotificationResponse: (details) {
-        // Xử lý khi người dùng chạm vào thông báo (nếu cần)
-      },
-    );
+    await _localNotifications.initialize(initSettings);
 
-    // Tạo Channel cho Android
     const AndroidNotificationChannel channel = AndroidNotificationChannel(
       'shop_channel', 'Thông báo cửa hàng',
       description: 'Thông báo về đơn hàng và tin nhắn mới',
@@ -38,15 +30,14 @@ class NotificationService {
     await _localNotifications
         .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(channel);
-
-    _appStartTime = DateTime.now();
   }
 
-  // HÀM LẮNG NGHE THÔNG BÁO CHUẨN KIẾN TRÚC
+  // MẠCH LẮNG NGHE GIA CỐ (KHÓA CHẶT SHOP ID)
   static void listenToNotifications(Function(String, String) onMessageReceived) {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
+    // Lắng nghe thay đổi ShopId liên tục để đảm bảo không mất kết nối
     UserService.getCurrentShopId().then((shopId) {
       if (shopId == null) return;
 
@@ -57,18 +48,15 @@ class NotificationService {
           for (var change in snapshot.docChanges) {
             if (change.type == DocumentChangeType.added) {
               final data = change.doc.data() as Map<String, dynamic>;
-              
-              // Chỉ báo nếu không phải mình gửi
               if (data['senderId'] != user.uid) {
                 String title = data['title'] ?? "THÔNG BÁO MỚI";
                 String body = data['body'] ?? "";
-                
                 _showLocalNotification(title, body);
                 onMessageReceived(title, body);
               }
             }
           }
-        });
+        }, onError: (e) => debugPrint("LỖI MẠCH THÔNG BÁO: $e"));
     });
   }
 
@@ -87,35 +75,31 @@ class NotificationService {
         'createdAt': FieldValue.serverTimestamp(),
       });
     } catch (e) {
-      debugPrint("LỖI GỬI THÔNG BÁO: $e");
+      debugPrint("LỖI GỬI: $e");
     }
   }
 
   static Future<void> _showLocalNotification(String title, String body) async {
     final int id = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-    
     const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
       'shop_channel', 'Thông báo cửa hàng',
       channelDescription: 'Thông báo về đơn hàng và tin nhắn mới',
       importance: Importance.max,
       priority: Priority.high,
       showWhen: true,
-      icon: '@mipmap/ic_launcher', // Sử dụng icon mặc định của app
+      icon: '@mipmap/ic_launcher',
     );
-
-    const NotificationDetails details = NotificationDetails(android: androidDetails);
-    await _localNotifications.show(id, title, body, details);
+    await _localNotifications.show(id, title, body, const NotificationDetails(android: androidDetails));
   }
 
   static void showSnackBar(String message, {Color color = Colors.blueAccent}) {
     messengerKey.currentState?.hideCurrentSnackBar();
     messengerKey.currentState?.showSnackBar(
       SnackBar(
-        content: Text(message, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        content: Text(message, style: const TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: color,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        duration: const Duration(seconds: 3),
       ),
     );
   }

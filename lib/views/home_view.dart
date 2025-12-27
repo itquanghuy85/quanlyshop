@@ -27,6 +27,7 @@ import 'qr_scan_view.dart';
 import 'attendance_view.dart';
 import 'staff_performance_view.dart';
 import 'audit_log_view.dart';
+import 'work_schedule_settings_view.dart'; // Import màn hình cài lịch
 import '../data/db_helper.dart';
 import '../widgets/perpetual_calendar.dart';
 import '../services/sync_service.dart';
@@ -169,7 +170,7 @@ class _HomeViewState extends State<HomeView> {
     for (var d in debts) {
       final int total = d['totalAmount'] ?? 0;
       final int paid = d['paidAmount'] ?? 0;
-      if (total > paid) debtR += (total - paid);
+      if (paid < total) debtR += (total - paid);
     }
 
     if (mounted) {
@@ -284,14 +285,12 @@ class _HomeViewState extends State<HomeView> {
     addTile('allowViewSales', l10n.sales, Icons.shopping_cart_checkout_rounded, [const Color(0xFFFF4081), const Color(0xFFFF80AB)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SaleListView())));
     addTile('allowViewRepairs', l10n.repair, Icons.build_circle_rounded, [const Color(0xFF2979FF), const Color(0xFF448AFF)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderListView(role: widget.role))));
     addTile('allowViewInventory', l10n.inventory, Icons.inventory_2_rounded, [const Color(0xFFFF6D00), const Color(0xFFFFAB40)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => InventoryView(role: widget.role))));
-    
-    // NÚT CÔNG NỢ
     addTile('allowViewDebts', "CÔNG NỢ", Icons.receipt_long_rounded, [const Color(0xFF9C27B0), const Color(0xFFE1BEE7)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DebtView())));
 
-    // NÚT CHI TIÊU (MỚI ĐƯA RA NGOÀI)
-    addTile('allowViewExpenses', "CHI TIÊU", Icons.money_off_rounded, [const Color(0xFFFF5722), const Color(0xFFFFAB91)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ExpenseView())));
+    // --- KHÔI PHỤC NÚT CHI PHÍ ---
+    addTile('allowViewExpenses', "CHI PHÍ", Icons.money_off_rounded, [const Color(0xFFFF5722), const Color(0xFFFFAB91)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ExpenseView())));
 
-    // NÚT BẢO HÀNH (MỚI ĐƯA RA NGOÀI)
+    // --- KHÔI PHỤC NÚT BẢO HÀNH ---
     addTile('allowViewWarranty', "BẢO HÀNH", Icons.verified_user_rounded, [const Color(0xFF4CAF50), const Color(0xFF81C784)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WarrantyView())));
 
     addTile(
@@ -329,12 +328,18 @@ class _HomeViewState extends State<HomeView> {
     addTile('allowViewChat', "CHẤM CÔNG", Icons.fingerprint_rounded, [const Color(0xFF00C853), const Color(0xFF64DD17)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AttendanceView())));
     addTile('allowViewCustomers', l10n.customers, Icons.people_alt_rounded, [const Color(0xFF00BFA5), const Color(0xFF64FFDA)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => CustomerListView(role: widget.role))));
     
-    if (hasFullAccess) addTile('allowViewRevenue', "DS & LƯƠNG", Icons.assessment_rounded, [const Color(0xFF6200EA), const Color(0xFF7C4DFF)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StaffPerformanceView())));
-    
+    if (hasFullAccess) {
+      addTile('allowViewRevenue', "DS & LƯƠNG", Icons.assessment_rounded, [const Color(0xFF6200EA), const Color(0xFF7C4DFF)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StaffPerformanceView())));
+      // NÚT LỊCH LÀM VIỆC DÀNH RIÊNG CHO OWNER
+      addTile('allowManageStaff', "LỊCH LÀM", Icons.schedule_rounded, [const Color(0xFF0097A7), const Color(0xFF26C6DA)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WorkScheduleSettingsView())));
+    }
+
     addTile('allowViewRevenue', l10n.revenue, Icons.leaderboard_rounded, [const Color(0xFF304FFE), const Color(0xFF536DFE)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RevenueView())));
     addTile('allowViewPrinter', l10n.printer, Icons.print_rounded, [const Color(0xFF607D8B), const Color(0xFF90A4AE)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ThermalPrinterDesignView())));
     addTile('allowViewSettings', l10n.settings, Icons.settings_rounded, [const Color(0xFF263238), const Color(0xFF455A64)], _openSettingsCenter);
     
+    addTile('allowViewInventory', "KIỂM KHO QR", Icons.qr_code_scanner_rounded, [const Color(0xFFFFAB00), const Color(0xFFFFD740)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const InventoryCheckView())));
+
     return GridView.count(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), crossAxisCount: 2, mainAxisSpacing: 15, crossAxisSpacing: 15, childAspectRatio: 1.3, children: tiles);
   }
 

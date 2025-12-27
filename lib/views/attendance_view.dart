@@ -4,8 +4,6 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../data/db_helper.dart';
 import '../models/attendance_model.dart';
 import '../services/user_service.dart';
@@ -21,9 +19,8 @@ class AttendanceView extends StatefulWidget {
 class _AttendanceViewState extends State<AttendanceView> with TickerProviderStateMixin {
   final db = DBHelper();
   bool _loading = true;
-  bool _hasPermission = false;
   Attendance? _today;
-  String _role = 'user';
+  String _role = 'employee'; 
   late TabController _tabController;
 
   Map<String, dynamic> _workSchedule = {};
@@ -32,8 +29,7 @@ class _AttendanceViewState extends State<AttendanceView> with TickerProviderStat
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
-    _initData();
+    _loadInitialData();
   }
 
   @override
@@ -42,28 +38,33 @@ class _AttendanceViewState extends State<AttendanceView> with TickerProviderStat
     super.dispose();
   }
 
-  Future<void> _initData() async {
+  Future<void> _loadInitialData() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
     
-    final perms = await UserService.getCurrentUserPermissions();
-    final hasPermission = perms['allowViewAttendance'] == true;
-    
-    if (!hasPermission) {
-      if (!mounted) return;
-      setState(() { _hasPermission = false; _loading = false; });
-      return;
-    }
-    
+    // Lấy vai trò thực tế để phân quyền giao diện
     final r = await UserService.getUserRole(uid);
+    
+    // PHÂN QUYỀN TAB: Nhân viên thường chỉ thấy 2 tab, Quản lý thấy 3 tab
+    int tabCount = (r == 'owner' || r == 'manager') ? 3 : 2;
+    _tabController = TabController(length: tabCount, vsync: this);
+
+    if (!mounted) return;
+    setState(() { _role = r; });
+    _refreshAttendanceData();
+  }
+
+  Future<void> _refreshAttendanceData() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    setState(() => _loading = true);
     final rec = await db.getAttendance(DateFormat('yyyy-MM-dd').format(DateTime.now()), uid);
     final schedule = await db.getWorkSchedule(uid);
-    final history = await db.getAttendanceByUser(uid, limit: 30);
+    final history = await db.getAttendanceByUser(uid);
 
     if (!mounted) return;
     setState(() {
-      _hasPermission = true;
-      _role = r;
       _today = rec;
       _workSchedule = schedule ?? {};
       _history = history;
@@ -83,10 +84,9 @@ class _AttendanceViewState extends State<AttendanceView> with TickerProviderStat
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
 
-      // 1. Upload ảnh lên Cloud để đồng bộ máy khác
       final cloudUrl = await StorageService.uploadAndGetUrl(picked.path, 'attendance');
       if (cloudUrl == null) {
-        NotificationService.showSnackBar("Lỗi kết nối mạng khi tải ảnh!", color: Colors.red);
+        NotificationService.showSnackBar("Lỗi mạng! Không thể tải ảnh lên.", color: Colors.red);
         setState(() => _loading = false);
         return;
       }
@@ -94,7 +94,6 @@ class _AttendanceViewState extends State<AttendanceView> with TickerProviderStat
       final now = DateTime.now();
       final timestamp = now.millisecondsSinceEpoch;
       
-      // 2. Logic kiểm tra đi muộn/về sớm (Giả định lịch 08:00 - 17:00 nếu chưa cài)
       bool isLate = false;
       bool isEarly = false;
       if (isIn && now.hour >= 8 && now.minute > 15) isLate = true;
@@ -103,7 +102,7 @@ class _AttendanceViewState extends State<AttendanceView> with TickerProviderStat
       final attendance = Attendance(
         userId: user.uid,
         email: user.email!,
-        name: user.email?.split('@').first.toUpperCase() ?? 'Unknown',
+        name: user.email?.split('@').first.toUpperCase() ?? 'NV',
         dateKey: DateFormat('yyyy-MM-dd').format(now),
         checkInAt: isIn ? timestamp : _today?.checkInAt,
         checkOutAt: isIn ? null : timestamp,
@@ -118,11 +117,11 @@ class _AttendanceViewState extends State<AttendanceView> with TickerProviderStat
       );
 
       await db.upsertAttendance(attendance);
-      await _initData();
+      await _refreshAttendanceData();
 
       NotificationService.showSnackBar(isIn ? "CHECK-IN THÀNH CÔNG!" : "CHECK-OUT THÀNH CÔNG!", color: Colors.green);
     } catch (e) {
-      NotificationService.showSnackBar("Lỗi chấm công: $e", color: Colors.red);
+      NotificationService.showSnackBar("Lỗi: $e", color: Colors.red);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -131,22 +130,29 @@ class _AttendanceViewState extends State<AttendanceView> with TickerProviderStat
   @override
   Widget build(BuildContext context) {
     if (_loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    if (!_hasPermission) return _buildNoPermission();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFF),
       appBar: AppBar(
-        title: const Text("CHẤM CÔNG THÔNG MINH", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        title: const Text("CHẤM CÔNG NHÂN VIÊN", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
         bottom: TabBar(
           controller: _tabController,
           labelColor: const Color(0xFF2962FF),
           indicatorColor: const Color(0xFF2962FF),
-          tabs: const [Tab(text: "HÔM NAY"), Tab(text: "LỊCH SỬ"), Tab(text: "THỐNG KÊ")],
+          tabs: [
+            const Tab(text: "HÔM NAY"),
+            const Tab(text: "LỊCH SỬ"),
+            if (_role == 'owner' || _role == 'manager') const Tab(text: "THỐNG KÊ"),
+          ],
         ),
       ),
       body: TabBarView(
         controller: _tabController,
-        children: [_buildTodayTab(), _buildHistoryTab(), _buildStatsTab()],
+        children: [
+          _buildTodayTab(),
+          _buildHistoryTab(),
+          if (_role == 'owner' || _role == 'manager') _buildStatsTab(),
+        ],
       ),
     );
   }
@@ -164,6 +170,16 @@ class _AttendanceViewState extends State<AttendanceView> with TickerProviderStat
         ]),
         const SizedBox(height: 30),
         if (_today != null) _buildTodaySummary(),
+        if (_role == 'owner' || _role == 'manager') ...[
+          const SizedBox(height: 20),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.settings, color: Colors.grey),
+            title: const Text("Cài đặt lịch làm việc", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+            trailing: const Icon(Icons.chevron_right, size: 18),
+            onTap: () => NotificationService.showSnackBar("Tính năng đang mở rộng cho Chủ shop", color: Colors.blue),
+          )
+        ],
       ]),
     );
   }
@@ -237,6 +253,4 @@ class _AttendanceViewState extends State<AttendanceView> with TickerProviderStat
   }
 
   Widget _statCard(String l, String v, Color c) => Container(width: double.infinity, padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15)), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(l, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey)), Text(v, style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: c))]));
-
-  Widget _buildNoPermission() => const Center(child: Text("Bạn không có quyền truy cập Chấm công"));
 }

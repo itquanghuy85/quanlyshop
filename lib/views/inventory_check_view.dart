@@ -1,38 +1,32 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import 'package:flutter/services.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:intl/intl.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../data/db_helper.dart';
 import '../models/inventory_check_model.dart';
 import '../services/notification_service.dart';
 
 class InventoryCheckView extends StatefulWidget {
   const InventoryCheckView({super.key});
-
   @override
   State<InventoryCheckView> createState() => _InventoryCheckViewState();
 }
 
 class _InventoryCheckViewState extends State<InventoryCheckView> {
-  final DBHelper _dbHelper = DBHelper();
-  String _selectedType = 'PHONE';
+  final _dbHelper = DBHelper();
+  final _scannerController = MobileScannerController();
+  
+  String _selectedType = 'PHONE'; // PHONE hoặc ACCESSORY
   List<Map<String, dynamic>> _items = [];
   List<InventoryCheckItem> _checkItems = [];
-  bool _isLoading = false;
+  bool _isLoading = true;
   bool _isScanning = false;
-  final MobileScannerController _scannerController = MobileScannerController();
-  String _searchQuery = '';
-  InventoryCheck? _currentCheck;
 
   @override
   void initState() {
     super.initState();
-    _initData();
-  }
-
-  Future<void> _initData() async {
-    await _loadOrCreateCurrentCheck();
-    await _loadItems();
+    _loadData();
   }
 
   @override
@@ -41,11 +35,18 @@ class _InventoryCheckViewState extends State<InventoryCheckView> {
     super.dispose();
   }
 
-  Future<void> _loadItems() async {
+  Future<void> _loadData() async {
     setState(() => _isLoading = true);
     try {
       _items = await _dbHelper.getItemsForInventoryCheck(_selectedType);
-      _updateCheckItems();
+      _checkItems = _items.map((item) => InventoryCheckItem(
+        itemId: item['id'].toString(),
+        itemName: item['name'] ?? '',
+        itemType: _selectedType,
+        imei: item['imei'],
+        quantity: 0, // SL kiểm được ban đầu là 0
+        isChecked: false,
+      )).toList();
     } catch (e) {
       NotificationService.showSnackBar('Lỗi tải danh sách: $e', color: Colors.red);
     } finally {
@@ -53,144 +54,97 @@ class _InventoryCheckViewState extends State<InventoryCheckView> {
     }
   }
 
-  Future<void> _loadOrCreateCurrentCheck() async {
-    final today = DateTime.now();
-    final todayKey = DateFormat('yyyy-MM-dd').format(today);
+  void _updateQuantity(int index, int delta) {
+    setState(() {
+      int newVal = _checkItems[index].quantity + delta;
+      if (newVal < 0) newVal = 0;
+      _checkItems[index] = InventoryCheckItem(
+        itemId: _checkItems[index].itemId,
+        itemName: _checkItems[index].itemName,
+        itemType: _checkItems[index].itemType,
+        imei: _checkItems[index].imei,
+        quantity: newVal,
+        isChecked: newVal > 0,
+        checkedAt: newVal > 0 ? DateTime.now().millisecondsSinceEpoch : 0,
+      );
+    });
+    HapticFeedback.lightImpact();
+  }
 
-    // Lấy dữ liệu Map từ DB và chuyển đổi sang Model thủ công để tránh lỗi type
-    final List<Map<String, dynamic>> res = await _dbHelper.getInventoryChecks(
+  void _onDetect(BarcodeCapture capture) {
+    final barcode = capture.barcodes.first;
+    if (barcode.rawValue == null) return;
+    
+    final String code = barcode.rawValue!;
+    int foundIdx = _checkItems.indexWhere((item) => item.imei == code || item.itemId == code);
+    
+    if (foundIdx != -1) {
+      _updateQuantity(foundIdx, 1);
+      NotificationService.showSnackBar('Đã kiểm: ${_checkItems[foundIdx].itemName}', color: Colors.green);
+    } else {
+      NotificationService.showSnackBar('Không tìm thấy mã: $code', color: Colors.orange);
+    }
+  }
+
+  Future<void> _handleSave() async {
+    if (_checkItems.every((item) => !item.isChecked)) {
+      NotificationService.showSnackBar("Chưa có mặt hàng nào được kiểm!", color: Colors.orange);
+      return;
+    }
+
+    final newCheck = InventoryCheck(
       checkType: _selectedType,
-      isCompleted: false
+      checkDate: DateTime.now().millisecondsSinceEpoch,
+      checkedBy: FirebaseAuth.instance.currentUser?.email?.split('@').first.toUpperCase() ?? 'ADMIN',
+      items: _checkItems.where((i) => i.isChecked).toList(),
+      createdAt: DateTime.now().millisecondsSinceEpoch,
     );
 
-    InventoryCheck? todayCheck;
-    for (var map in res) {
-      final checkDate = DateTime.fromMillisecondsSinceEpoch(map['checkDate'] ?? 0);
-      final checkDateKey = DateFormat('yyyy-MM-dd').format(checkDate);
-      if (checkDateKey == todayKey) {
-        // Parse itemsJson nếu cần
-        List<InventoryCheckItem> items = [];
-        if (map['itemsJson'] != null) {
-          final decoded = jsonDecode(map['itemsJson']);
-          items = (decoded as List).map((e) => InventoryCheckItem.fromMap(e)).toList();
-        }
-        todayCheck = InventoryCheck(
-          id: map['id'],
-          firestoreId: map['firestoreId'],
-          checkType: map['type'] ?? 'PHONE',
-          checkDate: map['checkDate'] ?? 0,
-          checkedBy: map['createdBy'] ?? '',
-          items: items,
-          isCompleted: (map['isCompleted'] ?? 0) == 1,
-          createdAt: map['checkDate'] ?? 0,
-        );
-        break;
-      }
-    }
-
-    if (todayCheck != null) {
-      setState(() {
-        _currentCheck = todayCheck;
-        _checkItems = todayCheck!.items;
-      });
-    } else {
-      final newCheck = InventoryCheck(
-        checkType: _selectedType,
-        checkDate: today.millisecondsSinceEpoch,
-        checkedBy: 'admin', 
-        items: [],
-        createdAt: today.millisecondsSinceEpoch,
-      );
-      final id = await _dbHelper.insertInventoryCheck(newCheck.toMap());
-      newCheck.id = id;
-      setState(() {
-        _currentCheck = newCheck;
-        _checkItems = [];
-      });
-    }
-  }
-
-  void _updateCheckItems() {
-    setState(() {
-      _checkItems = _items.map((item) {
-        final String itemId = (item['firestoreId'] ?? item['id']).toString();
-        final existing = _checkItems.where((ci) => ci.itemId == itemId).toList();
-        if (existing.isNotEmpty) return existing.first;
-
-        return InventoryCheckItem(
-          itemId: itemId,
-          itemName: (_selectedType == 'PHONE' ? item['name'] : item['partName']) ?? 'N/A',
-          itemType: _selectedType,
-          imei: item['imei'],
-          color: item['color'],
-          quantity: item['quantity'] ?? 1,
-        );
-      }).toList();
-    });
-  }
-
-  Future<void> _saveCurrentCheck() async {
-    if (_currentCheck != null) {
-      final map = _currentCheck!.toMap();
-      // Chuyển danh sách item sang JSON để lưu vào cột itemsJson
-      map['itemsJson'] = jsonEncode(_checkItems.map((e) => e.toMap()).toList());
-      map['type'] = _selectedType;
-      map['createdBy'] = _currentCheck!.checkedBy;
-      await _dbHelper.updateInventoryCheck(map);
-    }
+    await _dbHelper.insertInventoryCheck(newCheck);
+    HapticFeedback.heavyImpact();
+    NotificationService.showSnackBar("ĐÃ LƯU KẾT QUẢ KIỂM KHO", color: Colors.blue);
+    if (mounted) Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
-    final filteredItems = _checkItems.where((item) {
-      final name = item.itemName.toLowerCase();
-      final query = _searchQuery.toLowerCase();
-      return name.contains(query);
-    }).toList();
-
     return Scaffold(
+      backgroundColor: const Color(0xFFF0F4F8),
       appBar: AppBar(
-        title: const Text('KIỂM KHO'),
+        title: const Text("KIỂM KHO CHUYÊN NGHIỆP", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
         actions: [
-          IconButton(
-            icon: Icon(_isScanning ? Icons.stop : Icons.qr_code_scanner),
-            onPressed: () => setState(() => _isScanning = !_isScanning),
-          ),
+          IconButton(onPressed: () => setState(() => _isScanning = !_isScanning), icon: Icon(_isScanning ? Icons.list_alt : Icons.qr_code_scanner, color: Colors.blueAccent))
         ],
       ),
       body: Column(
         children: [
           _buildHeader(),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: TextField(
-              decoration: const InputDecoration(hintText: 'Tìm kiếm...', prefixIcon: Icon(Icons.search), border: OutlineInputBorder()),
-              onChanged: (v) => setState(() => _searchQuery = v),
-            ),
-          ),
-          if (_isScanning) Container(height: 200, child: MobileScanner(controller: _scannerController, onDetect: (c) {})),
-          Expanded(
-            child: _isLoading ? const Center(child: CircularProgressIndicator()) : ListView.builder(
-              itemCount: filteredItems.length,
-              itemBuilder: (ctx, i) => _buildItemTile(filteredItems[i]),
-            ),
-          ),
+          if (_isScanning) _buildScannerArea() else Expanded(child: _isLoading ? const Center(child: CircularProgressIndicator()) : _buildItemList()),
         ],
       ),
+      bottomNavigationBar: _buildBottomBar(),
     );
   }
 
   Widget _buildHeader() {
     return Container(
-      padding: const EdgeInsets.all(16), color: Colors.blue.shade50,
+      padding: const EdgeInsets.all(16),
+      color: Colors.white,
       child: Row(
         children: [
-          Expanded(child: Text('Đã kiểm: ${_checkItems.where((e)=>e.isChecked).length}/${_checkItems.length}', style: const TextStyle(fontWeight: FontWeight.bold))),
+          const Text("LOẠI HÀNG:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+          const SizedBox(width: 15),
           Expanded(
-            child: DropdownButton<String>(
-              value: _selectedType,
-              items: const [DropdownMenuItem(value: 'PHONE', child: Text('Điện thoại')), DropdownMenuItem(value: 'ACCESSORY', child: Text('Phụ kiện'))],
-              onChanged: (v) { if(v!=null) { setState(()=>_selectedType=v); _initData(); } },
+            child: SegmentedButton<String>(
+              segments: const [
+                ButtonSegment(value: 'PHONE', label: Text('Máy'), icon: Icon(Icons.phone_android, size: 16)),
+                ButtonSegment(value: 'ACCESSORY', label: Text('Phụ kiện'), icon: Icon(Icons.headset, size: 16)),
+              ],
+              selected: {_selectedType},
+              onSelectionChanged: (val) {
+                setState(() => _selectedType = val.first);
+                _loadData();
+              },
             ),
           ),
         ],
@@ -198,21 +152,62 @@ class _InventoryCheckViewState extends State<InventoryCheckView> {
     );
   }
 
-  Widget _buildItemTile(InventoryCheckItem item) {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      color: item.isChecked ? Colors.green.shade50 : Colors.white,
-      child: ListTile(
-        leading: Checkbox(
-          value: item.isChecked,
-          onChanged: (v) {
-            setState(() { item.isChecked = v ?? false; item.checkedAt = v == true ? DateTime.now().millisecondsSinceEpoch : 0; });
-            _saveCurrentCheck();
-          },
+  Widget _buildScannerArea() {
+    return Expanded(
+      child: Stack(
+        children: [
+          MobileScanner(controller: _scannerController, onDetect: _onDetect),
+          Center(
+            child: Container(
+              width: 250, height: 250,
+              decoration: BoxDecoration(border: Border.all(color: Colors.white, width: 2), borderRadius: BorderRadius.circular(20)),
+            ),
+          ),
+          const Positioned(bottom: 40, left: 0, right: 0, child: Text("Đưa mã máy/QR vào khung để kiểm nhanh", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, backgroundColor: Colors.black45)))
+        ],
+      ),
+    );
+  }
+
+  Widget _buildItemList() {
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: _checkItems.length,
+      itemBuilder: (ctx, i) {
+        final item = _checkItems[i];
+        return Container(
+          margin: const EdgeInsets.only(bottom: 10),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), border: Border.all(color: item.isChecked ? Colors.green.shade200 : Colors.transparent)),
+          child: ListTile(
+            title: Text(item.itemName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+            subtitle: Text(item.imei ?? "Mã phụ kiện", style: const TextStyle(fontSize: 11, color: Colors.grey)),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(onPressed: () => _updateQuantity(i, -1), icon: const Icon(Icons.remove_circle_outline, color: Colors.redAccent)),
+                Text("${item.quantity}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                IconButton(onPressed: () => _updateQuantity(i, 1), icon: const Icon(Icons.add_circle_outline, color: Colors.green)),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildBottomBar() {
+    int checkedCount = _checkItems.where((i) => i.isChecked).length;
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
+      child: SafeArea(
+        child: Row(
+          children: [
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [const Text("ĐÃ KIỂM", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)), Text("$checkedCount / ${_checkItems.length} mặt hàng", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14))])),
+            const SizedBox(width: 15),
+            ElevatedButton(onPressed: _handleSave, style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2962FF), padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15)), child: const Text("XÁC NHẬN CHỐT KHO", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+          ],
         ),
-        title: Text(item.itemName, style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text('SL: ${item.quantity} | IMEI: ${item.imei ?? "N/A"}'),
-        trailing: item.isChecked ? const Icon(Icons.check_circle, color: Colors.green) : const Icon(Icons.radio_button_unchecked),
       ),
     );
   }
