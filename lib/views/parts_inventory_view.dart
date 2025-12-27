@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../data/db_helper.dart';
 import '../services/user_service.dart';
+import '../widgets/validated_text_field.dart';
 
 class PartsInventoryView extends StatefulWidget {
   const PartsInventoryView({super.key});
@@ -61,14 +62,14 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(controller: nameC, decoration: const InputDecoration(labelText: "Tên linh kiện (VD: PIN IPHONE 11)"), textCapitalization: TextCapitalization.characters),
-              TextField(controller: modelC, decoration: const InputDecoration(labelText: "Dòng máy tương thích"), textCapitalization: TextCapitalization.characters),
+              ValidatedTextField(controller: nameC, label: "Tên linh kiện (VD: PIN IPHONE 11)", icon: Icons.inventory, uppercase: true, required: true),
+              ValidatedTextField(controller: modelC, label: "Dòng máy tương thích", icon: Icons.phone_android, uppercase: true),
               Row(children: [
-                Expanded(child: TextField(controller: costC, decoration: const InputDecoration(labelText: "Giá vốn (.000)", suffixText: "k"), keyboardType: TextInputType.number)),
+                Expanded(child: ValidatedTextField(controller: costC, label: "Giá vốn (.000)", icon: Icons.attach_money, keyboardType: TextInputType.number)),
                 const SizedBox(width: 10),
-                Expanded(child: TextField(controller: priceC, decoration: const InputDecoration(labelText: "Giá bán (.000)", suffixText: "k"), keyboardType: TextInputType.number)),
+                Expanded(child: ValidatedTextField(controller: priceC, label: "Giá bán (.000)", icon: Icons.sell, keyboardType: TextInputType.number)),
               ]),
-              TextField(controller: qtyC, decoration: const InputDecoration(labelText: "Số lượng nhập"), keyboardType: TextInputType.number),
+              ValidatedTextField(controller: qtyC, label: "Số lượng nhập", icon: Icons.numbers, keyboardType: TextInputType.number),
             ],
           ),
         ),
@@ -92,7 +93,7 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
             }
             Navigator.pop(ctx);
             _refreshParts();
-          }, child: const Text("XÁC NHẬN")),
+          }, child: const Text("XÁC NHẬN"), enabled: nameC.text.isNotEmpty),
         ],
       ),
     );

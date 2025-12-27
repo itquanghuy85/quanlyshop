@@ -7,6 +7,7 @@ import '../models/attendance_model.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/user_service.dart';
+import '../widgets/validated_text_field.dart';
 
 class PayrollView extends StatefulWidget {
   const PayrollView({super.key});
@@ -138,6 +139,15 @@ class _PayrollViewState extends State<PayrollView> {
     };
   }
 
+  bool _isValidPayrollInput(String base, String hours, String ot) {
+    final baseVal = double.tryParse(base);
+    final hoursVal = double.tryParse(hours);
+    final otVal = double.tryParse(ot);
+    return baseVal != null && baseVal > 0 &&
+           hoursVal != null && hoursVal > 0 &&
+           otVal != null && otVal >= 0;
+  }
+
   void _openRuleDialog() async {
     final staff = (_selectedStaff ?? _customStaff.text).trim().toUpperCase();
     if (staff.isEmpty) return;
@@ -160,14 +170,14 @@ class _PayrollViewState extends State<PayrollView> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(controller: baseCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Lương ngày (đ)')),
-            TextField(controller: hourCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Giờ chuẩn/ngày')), 
-            TextField(controller: otCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Hệ số OT (%)')), 
+            ValidatedTextField(controller: baseCtrl, label: 'Lương ngày (đ)', icon: Icons.attach_money, keyboardType: TextInputType.number, required: true),
+            ValidatedTextField(controller: hourCtrl, label: 'Giờ chuẩn/ngày', icon: Icons.schedule, keyboardType: TextInputType.number, required: true), 
+            ValidatedTextField(controller: otCtrl, label: 'Hệ số OT (%)', icon: Icons.trending_up, keyboardType: TextInputType.number, required: true), 
           ],
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('HỦY')),
-          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('LƯU')),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('LƯU'), enabled: _isValidPayrollInput(baseCtrl.text, hourCtrl.text, otCtrl.text)),
         ],
       ),
     );

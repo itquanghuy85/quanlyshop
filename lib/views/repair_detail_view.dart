@@ -12,6 +12,7 @@ import '../services/unified_printer_service.dart';
 import '../services/notification_service.dart';
 import '../services/firestore_service.dart';
 import '../data/db_helper.dart';
+import '../widgets/validated_text_field.dart';
 
 class RepairDetailView extends StatefulWidget {
   final Repair repair;
@@ -162,6 +163,12 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     if (mounted) setState(() => _isUpdating = false);
   }
 
+  bool _isValidFinancialInput(String price, String cost) {
+    final priceVal = int.tryParse(price);
+    final costVal = int.tryParse(cost);
+    return (priceVal != null && priceVal >= 0) && (costVal != null && costVal >= 0);
+  }
+
   Future<void> _editFinancials() async {
     final priceC = TextEditingController(text: (r.price / 1000).toStringAsFixed(0));
     final costC = TextEditingController(text: (r.cost / 1000).toStringAsFixed(0));
@@ -172,14 +179,14 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(controller: priceC, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "Giá thu khách (k)", suffixText: "k")),
+            ValidatedTextField(controller: priceC, label: "Giá thu khách (k)", icon: Icons.attach_money, keyboardType: TextInputType.number),
             const SizedBox(height: 12),
-            TextField(controller: costC, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "Giá vốn linh kiện (k)", suffixText: "k")),
+            ValidatedTextField(controller: costC, label: "Giá vốn linh kiện (k)", icon: Icons.inventory, keyboardType: TextInputType.number),
           ],
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("HỦY")),
-          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text("LƯU")),
+          ElevatedButton(onPressed: _isValidFinancialInput(priceC.text, costC.text) ? () => Navigator.pop(ctx, true) : null, child: const Text("LƯU")),
         ],
       ),
     );

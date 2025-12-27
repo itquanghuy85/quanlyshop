@@ -10,6 +10,7 @@ import '../services/firestore_service.dart';
 import '../services/storage_service.dart';
 import '../services/unified_printer_service.dart';
 import '../utils/money_utils.dart';
+import '../widgets/validated_text_field.dart';
 
 class CreateRepairOrderView extends StatefulWidget {
   final String role;
@@ -242,7 +243,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
   Widget _sectionTitle(String title) => Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey, fontSize: 11)));
 
   Widget _input(TextEditingController c, String l, IconData i, {bool caps = false, TextInputType type = TextInputType.text, FocusNode? f, FocusNode? next, String? suffix}) {
-    return Padding(padding: const EdgeInsets.only(bottom: 12), child: TextField(controller: c, focusNode: f, keyboardType: type, textCapitalization: caps ? TextCapitalization.characters : TextCapitalization.none, onSubmitted: (_) { if (next != null) FocusScope.of(context).requestFocus(next); }, decoration: InputDecoration(labelText: l, prefixIcon: Icon(i, size: 20), suffixText: suffix, border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)), filled: true, fillColor: Colors.white)));
+    return Padding(padding: const EdgeInsets.only(bottom: 12), child: ValidatedTextField(controller: c, label: l.replaceAll(' *', ''), icon: i, keyboardType: type, uppercase: caps, required: l.contains('*'), onSubmitted: () { if (next != null) FocusScope.of(context).requestFocus(next); }));
   }
 
   Widget _quick(List<String> items, TextEditingController target, FocusNode? nextF) {

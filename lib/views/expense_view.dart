@@ -104,11 +104,18 @@ class _ExpenseViewState extends State<ExpenseView> {
     String category = "PHÁT SINH";
     String payMethod = "TIỀN MẶT";
 
+    bool _isValidExpenseInput() {
+      return titleC.text.isNotEmpty && amountC.text.isNotEmpty;
+    }
+
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setS) => AlertDialog(
+        builder: (ctx, setS) {
+          titleC.addListener(() => setS(() {}));
+          amountC.addListener(() => setS(() {}));
+          return AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
           title: const Text("GHI CHÉP CHI PHÍ", style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFD32F2F))),
           content: SingleChildScrollView(
@@ -152,7 +159,7 @@ class _ExpenseViewState extends State<ExpenseView> {
             TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("HỦY")),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFD32F2F), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-              onPressed: () async {
+              onPressed: _isValidExpenseInput() && !_isSaving ? () async {
                 if (titleC.text.isEmpty || amountC.text.isEmpty || _isSaving) return;
                 setS(() => _isSaving = true);
                 
@@ -182,10 +189,11 @@ class _ExpenseViewState extends State<ExpenseView> {
                   _isSaving = false;
                   NotificationService.showSnackBar("Đã lưu chi phí!", color: Colors.green);
                 }
-              }, 
+              } : null, 
               child: const Text("LƯU CHI PHÍ", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
             ),
           ],
+        ),
         ),
       ),
     );
