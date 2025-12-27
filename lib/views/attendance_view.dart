@@ -9,6 +9,7 @@ import '../models/attendance_model.dart';
 import '../services/user_service.dart';
 import '../services/notification_service.dart';
 import '../services/storage_service.dart';
+import 'work_schedule_settings_view.dart'; // Import màn hình cài đặt lịch
 
 class AttendanceView extends StatefulWidget {
   const AttendanceView({super.key});
@@ -42,10 +43,7 @@ class _AttendanceViewState extends State<AttendanceView> with TickerProviderStat
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
     
-    // Lấy vai trò thực tế để phân quyền giao diện
     final r = await UserService.getUserRole(uid);
-    
-    // PHÂN QUYỀN TAB: Nhân viên thường chỉ thấy 2 tab, Quản lý thấy 3 tab
     int tabCount = (r == 'owner' || r == 'manager') ? 3 : 2;
     _tabController = TabController(length: tabCount, vsync: this);
 
@@ -96,8 +94,16 @@ class _AttendanceViewState extends State<AttendanceView> with TickerProviderStat
       
       bool isLate = false;
       bool isEarly = false;
-      if (isIn && now.hour >= 8 && now.minute > 15) isLate = true;
-      if (!isIn && now.hour < 17) isEarly = true;
+      
+      // Lấy lịch làm việc thực tế từ Database
+      String startStr = _workSchedule['startTime'] ?? '08:00';
+      String endStr = _workSchedule['endTime'] ?? '17:00';
+      
+      final startTime = DateTime(now.year, now.month, now.day, int.parse(startStr.split(':')[0]), int.parse(startStr.split(':')[1]));
+      final endTime = DateTime(now.year, now.month, now.day, int.parse(endStr.split(':')[0]), int.parse(endStr.split(':')[1]));
+
+      if (isIn && now.isAfter(startTime.add(const Duration(minutes: 15)))) isLate = true;
+      if (!isIn && now.isBefore(endTime)) isEarly = true;
 
       final attendance = Attendance(
         userId: user.uid,
@@ -174,10 +180,11 @@ class _AttendanceViewState extends State<AttendanceView> with TickerProviderStat
           const SizedBox(height: 20),
           const Divider(),
           ListTile(
-            leading: const Icon(Icons.settings, color: Colors.grey),
-            title: const Text("Cài đặt lịch làm việc", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+            leading: const Icon(Icons.calendar_month, color: Colors.blueAccent),
+            title: const Text("Cấu hình lịch làm việc", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+            subtitle: const Text("Thiết lập giờ vào/ra cho thợ", style: TextStyle(fontSize: 11)),
             trailing: const Icon(Icons.chevron_right, size: 18),
-            onTap: () => NotificationService.showSnackBar("Tính năng đang mở rộng cho Chủ shop", color: Colors.blue),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WorkScheduleSettingsView())),
           )
         ],
       ]),

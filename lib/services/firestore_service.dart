@@ -4,6 +4,7 @@ import '../models/product_model.dart';
 import '../models/sale_order_model.dart';
 import '../models/debt_model.dart';
 import '../models/expense_model.dart';
+import '../models/purchase_order_model.dart';
 import 'user_service.dart';
 import 'notification_service.dart';
 
@@ -23,13 +24,40 @@ class FirestoreService {
         'linkedType': type,
         'linkedKey': id,
         'linkedSummary': summary,
-        'readBy': ['SYSTEM'], // Đánh dấu hệ thống đã đọc
+        'readBy': ['SYSTEM'],
         'createdAt': FieldValue.serverTimestamp(),
       });
     } catch (_) {}
   }
 
-  // --- CÁC HÀM CỐ LÕI REPAIR, SALE, PRODUCT (KHÓA CHẶT) ---
+  // --- QUẢN LÝ ĐƠN NHẬP HÀNG (MỚI BỔ SUNG ĐỂ SỬA LỖI BUILD) ---
+  static Future<String?> addPurchaseOrder(PurchaseOrder order) async {
+    try {
+      final shopId = await UserService.getCurrentShopId();
+      final docId = order.firestoreId ?? "po_${order.createdAt}_${order.orderCode}";
+      final docRef = _db.collection('purchase_orders').doc(docId);
+      
+      Map<String, dynamic> data = order.toMap();
+      data['shopId'] = shopId;
+      data['firestoreId'] = docId;
+      
+      await docRef.set(data, SetOptions(merge: true));
+      
+      _notifyAll(
+        "📦 ĐƠN NHẬP MỚI", 
+        "Vừa nhập hàng từ NCC: ${order.supplierName} - Mã: ${order.orderCode}",
+        type: 'purchase_order',
+        id: docId,
+        summary: "${order.supplierName} - ${order.orderCode}"
+      );
+      
+      return docId;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // --- CÁC HÀM CỐ LÕI KHÁC (KHÔNG THAY ĐỔI LOGIC) ---
   static Future<String?> addRepair(Repair r) async {
     try {
       final shopId = await UserService.getCurrentShopId();
@@ -89,7 +117,6 @@ class FirestoreService {
     await _db.collection('products').doc(firestoreId).update({'status': 0});
   }
 
-  // --- CHAT NỘI BỘ VÀ badge ---
   static Future<void> sendChat({required String message, required String senderId, required String senderName, String? linkedType, String? linkedKey, String? linkedSummary}) async {
     try {
       final shopId = await UserService.getCurrentShopId();
@@ -101,22 +128,9 @@ class FirestoreService {
         'linkedType': linkedType,
         'linkedKey': linkedKey,
         'linkedSummary': linkedSummary,
-        'readBy': [senderId], // Khi gửi thì mặc định mình đã đọc
+        'readBy': [senderId],
         'createdAt': FieldValue.serverTimestamp(),
       });
-    } catch (_) {}
-  }
-
-  static Future<void> markAllChatsAsRead(String userId) async {
-    try {
-      final shopId = await UserService.getCurrentShopId();
-      if (shopId == null) return;
-      final unread = await _db.collection('chats')
-          .where('shopId', isEqualTo: shopId)
-          .where('readBy', arrayContains: userId) // Đây là logic Firestore để tìm những gì CHƯA CÓ (cần xử lý cẩn thận)
-          .get();
-      // Logic Firestore array-contains-any hoặc cập nhật từng doc
-      // Để đảm bảo "Nguyên tắc vàng", em sẽ tối ưu logic mark read trong màn hình Chat chi tiết
     } catch (_) {}
   }
 
@@ -126,7 +140,6 @@ class FirestoreService {
     return q.orderBy('createdAt', descending: true).limit(limit).snapshots();
   }
 
-  // --- CÁC HÀM KHÁC (GIỮ NGUYÊN) ---
   static Future<void> addAuditLogCloud(Map<String, dynamic> logData) async {
     try {
       final shopId = await UserService.getCurrentShopId();
@@ -161,7 +174,7 @@ class FirestoreService {
     try {
       final shopId = await UserService.getCurrentShopId();
       if (shopId == null) return false;
-      final collections = ['repairs', 'sales', 'products', 'debts', 'expenses', 'audit_logs', 'attendance', 'chats', 'inventory_checks', 'cash_closings'];
+      final collections = ['repairs', 'sales', 'products', 'debts', 'expenses', 'audit_logs', 'attendance', 'chats', 'inventory_checks', 'cash_closings', 'purchase_orders'];
       for (var colName in collections) {
         final snapshots = await _db.collection(colName).where('shopId', isEqualTo: shopId).get();
         final batch = _db.batch();
