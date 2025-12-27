@@ -22,13 +22,26 @@ Future<void> main() async {
   await runZonedGuarded<Future<void>>(() async {
     WidgetsFlutterBinding.ensureInitialized();
     await initializeDateFormatting('vi_VN');
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-
-    await NotificationService.init();
-    await ConnectivityService.instance.initialize();
-
+    try {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+    } catch (e) {
+      debugPrint('Firebase initialization failed: $e');
+      rethrow;
+    }
+    try {
+      await NotificationService.init();
+    } catch (e) {
+      debugPrint('NotificationService initialization failed: $e');
+      // Continue, as notifications are not critical for launch
+    }
+    try {
+      await ConnectivityService.instance.initialize();
+    } catch (e) {
+      debugPrint('ConnectivityService initialization failed: $e');
+      // Continue, as connectivity monitoring is not critical for launch
+    }
     runApp(const MyApp());
   }, (error, stack) {
     debugPrint('GLOBAL ERROR: $error');
