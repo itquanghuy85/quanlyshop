@@ -359,6 +359,7 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
   }
 
   void _updateItemQuantity(String itemId, int quantity) {
+    quantity = quantity < 0 ? 0 : quantity;
     setState(() {
       final index = _checkItems.indexWhere((item) => item.itemId == itemId);
       if (index != -1) {

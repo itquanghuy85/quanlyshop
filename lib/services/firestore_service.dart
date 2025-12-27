@@ -87,6 +87,12 @@ class FirestoreService {
   static Future<String?> addSale(SaleOrder s) async {
     try {
       final shopId = await UserService.getCurrentShopId();
+      if (shopId == null && !UserService.isCurrentUserSuperAdmin()) {
+        throw Exception('Không tìm thấy thông tin cửa hàng. Vui lòng liên hệ quản trị viên.');
+      }
+      if (s.totalPrice <= 0 || s.totalCost < 0) {
+        throw Exception('Số tiền bán hàng không hợp lệ');
+      }
       final docId = s.firestoreId ?? "sale_${s.soldAt}";
       final docRef = _db.collection('sales').doc(docId);
       Map<String, dynamic> data = s.toMap();
@@ -165,6 +171,7 @@ class FirestoreService {
 
   static Future<void> addExpenseCloud(Map<String, dynamic> expData) async {
     try {
+      if ((expData['amount'] as int?) ?? 0 <= 0) return;
       final shopId = await UserService.getCurrentShopId();
       final String docId = "exp_${expData['date']}_${expData['title'].hashCode}";
       expData['shopId'] = shopId;
