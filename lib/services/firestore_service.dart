@@ -5,6 +5,7 @@ import '../models/sale_order_model.dart';
 import '../models/debt_model.dart';
 import '../models/expense_model.dart';
 import '../models/purchase_order_model.dart';
+import '../models/attendance_model.dart';
 import 'user_service.dart';
 import 'notification_service.dart';
 
@@ -181,6 +182,70 @@ class FirestoreService {
       expData['firestoreId'] = docId;
       await _db.collection('expenses').doc(docId).set(expData, SetOptions(merge: true));
     } catch (_) {}
+  }
+
+  // --- ATTENDANCE CRUD METHODS ---
+  static Future<String?> addAttendance(Attendance attendance) async {
+    try {
+      final shopId = await UserService.getCurrentShopId();
+      if (shopId == null && !UserService.isCurrentUserSuperAdmin()) {
+        throw Exception('Không tìm thấy thông tin cửa hàng. Vui lòng liên hệ quản trị viên.');
+      }
+      final docId = attendance.firestoreId ?? "att_${attendance.dateKey}_${attendance.userId}";
+      final docRef = _db.collection('attendance').doc(docId);
+      Map<String, dynamic> data = attendance.toMap();
+      data['shopId'] = shopId;
+      data['firestoreId'] = docId;
+      await docRef.set(data, SetOptions(merge: true));
+      return docId;
+    } catch (e) {
+      debugPrint('Firestore addAttendance error: $e');
+      return null;
+    }
+  }
+
+  static Future<void> updateAttendanceCloud(Attendance attendance) async {
+    if (attendance.firestoreId == null) return;
+    try {
+      final shopId = await UserService.getCurrentShopId();
+      Map<String, dynamic> data = attendance.toMap();
+      data['shopId'] = shopId;
+      await _db.collection('attendance').doc(attendance.firestoreId!).set(data, SetOptions(merge: true));
+    } catch (e) {
+      debugPrint('Firestore updateAttendanceCloud error: $e');
+    }
+  }
+
+  static Future<void> deleteAttendance(String firestoreId) async {
+    try {
+      await _db.collection('attendance').doc(firestoreId).update({'deleted': true});
+    } catch (e) {
+      debugPrint('Firestore deleteAttendance error: $e');
+    }
+  }
+
+  static Stream<QuerySnapshot> getAttendanceStream({String? userId, String? dateKey}) async* {
+    try {
+      final shopId = await UserService.getCurrentShopId();
+      Query query = _db.collection('attendance');
+
+      if (shopId != null) {
+        query = query.where('shopId', isEqualTo: shopId);
+      }
+
+      if (userId != null) {
+        query = query.where('userId', isEqualTo: userId);
+      }
+
+      if (dateKey != null) {
+        query = query.where('dateKey', isEqualTo: dateKey);
+      }
+
+      yield* query.orderBy('createdAt', descending: true).snapshots();
+    } catch (e) {
+      debugPrint('Firestore getAttendanceStream error: $e');
+      yield* const Stream.empty();
+    }
   }
 
   static Future<bool> resetEntireShopData() async {
