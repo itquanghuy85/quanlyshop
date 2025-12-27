@@ -5,6 +5,7 @@ import '../services/user_service.dart';
 import '../services/firestore_service.dart';
 import '../services/notification_service.dart';
 import '../data/db_helper.dart';
+import '../services/sync_service.dart';
 
 class SettingsView extends StatefulWidget {
   final void Function(Locale)? setLocale;
@@ -65,7 +66,12 @@ class _SettingsViewState extends State<SettingsView> {
       await DBHelper().clearAllData();
       
       NotificationService.showSnackBar("ĐÃ XÓA SẠCH DỮ LIỆU SHOP!", color: Colors.green);
-      await FirebaseAuth.instance.signOut();
+      await SyncService.cancelAllSubscriptions();
+      try {
+        await FirebaseAuth.instance.signOut();
+      } catch (e) {
+        debugPrint('Logout error: $e');
+      }
       if (mounted) Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
     }
   }

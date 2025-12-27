@@ -163,7 +163,14 @@ class _HomeViewState extends State<HomeView> {
           actions: [
             IconButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => QrScanView(role: widget.role))), icon: const Icon(Icons.qr_code_scanner_rounded, color: Color(0xFF2962FF))),
             IconButton(onPressed: () => _syncNow(), icon: _isSyncing ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.sync, color: Colors.green, size: 28)),
-            IconButton(onPressed: () => FirebaseAuth.instance.signOut(), icon: const Icon(Icons.logout_rounded, color: Colors.redAccent)),
+            IconButton(onPressed: () async {
+              await SyncService.cancelAllSubscriptions();
+              try {
+                await FirebaseAuth.instance.signOut();
+              } catch (e) {
+                debugPrint('Logout error: $e');
+              }
+            }, icon: const Icon(Icons.logout_rounded, color: Colors.redAccent)),
           ],
         ),
         body: RefreshIndicator(
