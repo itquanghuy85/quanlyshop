@@ -53,7 +53,13 @@ class _QrScanViewState extends State<QrScanView> {
       }
 
       // Ưu tiên tìm đơn sửa, sau đó đến đơn bán
-      final Repair? r = await _db.getRepairByFirestoreId(key);
+      Repair? r;
+      try {
+        r = await _db.getRepairByFirestoreId(key);
+      } catch (e) {
+        debugPrint('DB error getting repair: $e');
+        r = null;
+      }
       if (!mounted) return;
       if (r != null) {
         await Navigator.push(
@@ -66,7 +72,13 @@ class _QrScanViewState extends State<QrScanView> {
         return;
       }
 
-      final SaleOrder? s = await _db.getSaleByFirestoreId(key);
+      SaleOrder? s;
+      try {
+        s = await _db.getSaleByFirestoreId(key);
+      } catch (e) {
+        debugPrint('DB error getting sale: $e');
+        s = null;
+      }
       if (!mounted) return;
       if (s != null) {
         await Navigator.push(
@@ -315,12 +327,16 @@ class _QrScanViewState extends State<QrScanView> {
   }
 
   void _onDetect(BarcodeCapture capture) {
-    if (_handling) return;
-    final barcodes = capture.barcodes;
-    if (barcodes.isEmpty) return;
-    final raw = barcodes.first.rawValue;
-    if (raw == null || raw.isEmpty) return;
-    _handleBarcode(raw);
+    try {
+      if (_handling) return;
+      final barcodes = capture.barcodes;
+      if (barcodes.isEmpty) return;
+      final raw = barcodes.first.rawValue;
+      if (raw == null || raw.isEmpty) return;
+      _handleBarcode(raw);
+    } catch (e) {
+      debugPrint('Scanner detection error: $e');
+    }
   }
 
   @override
