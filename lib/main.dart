@@ -160,6 +160,8 @@ class AuthGate extends StatefulWidget {
 }
 
 class _AuthGateState extends State<AuthGate> {
+  bool _isInitializing = false;
+
   @override
   void initState() {
     super.initState();
@@ -176,10 +178,16 @@ class _AuthGateState extends State<AuthGate> {
   }
 
   Future<void> _initSyncService() async {
-    // Khởi tạo sync service khi user đăng nhập
-    await SyncService.initRealTimeSync(() {
-      if (mounted) setState(() {});
-    });
+    if (_isInitializing) return;
+    _isInitializing = true;
+    try {
+      // Khởi tạo sync service khi user đăng nhập
+      await SyncService.initRealTimeSync(() {
+        if (mounted) setState(() {});
+      });
+    } finally {
+      _isInitializing = false;
+    }
   }
 
   @override
