@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import '../models/repair_model.dart';
 import '../models/product_model.dart';
 import '../models/sale_order_model.dart';
@@ -175,13 +176,48 @@ class FirestoreService {
 
   static Future<void> addExpenseCloud(Map<String, dynamic> expData) async {
     try {
-      if ((expData['amount'] as int?) ?? 0 <= 0) return;
+      if (((expData['amount'] as int?) ?? 0) <= 0) return;
       final shopId = await UserService.getCurrentShopId();
       final String docId = "exp_${expData['date']}_${expData['title'].hashCode}";
       expData['shopId'] = shopId;
       expData['firestoreId'] = docId;
       await _db.collection('expenses').doc(docId).set(expData, SetOptions(merge: true));
     } catch (_) {}
+  }
+
+  static Future<void> updateExpenseCloud(Map<String, dynamic> expData) async {
+    if (expData['firestoreId'] == null) return;
+    try {
+      final shopId = await UserService.getCurrentShopId();
+      expData['shopId'] = shopId;
+      await _db.collection('expenses').doc(expData['firestoreId']).set(expData, SetOptions(merge: true));
+    } catch (e) {
+      debugPrint('Firestore updateExpenseCloud error: $e');
+    }
+  }
+
+  static Future<void> deleteExpenseCloud(String firestoreId) async {
+    try {
+      await _db.collection('expenses').doc(firestoreId).update({'deleted': true});
+    } catch (e) {
+      debugPrint('Firestore deleteExpenseCloud error: $e');
+    }
+  }
+
+  static Stream<QuerySnapshot> getExpenseStream() async* {
+    try {
+      final shopId = await UserService.getCurrentShopId();
+      Query query = _db.collection('expenses');
+
+      if (shopId != null) {
+        query = query.where('shopId', isEqualTo: shopId);
+      }
+
+      yield* query.orderBy('date', descending: true).snapshots();
+    } catch (e) {
+      debugPrint('Firestore getExpenseStream error: $e');
+      yield* const Stream.empty();
+    }
   }
 
   // --- ATTENDANCE CRUD METHODS ---

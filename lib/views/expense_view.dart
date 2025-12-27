@@ -75,7 +75,7 @@ class _ExpenseViewState extends State<ExpenseView> {
           await FirebaseAuth.instance.currentUser?.reauthenticateWithCredential(credential);
           
           await db.deleteExpenseByFirestoreId(exp['firestoreId']);
-          await FirebaseFirestore.instance.collection('expenses').doc(exp['firestoreId']).delete();
+          await FirestoreService.deleteExpenseCloud(exp['firestoreId']);
           
           final user = FirebaseAuth.instance.currentUser;
           await db.logAction(
