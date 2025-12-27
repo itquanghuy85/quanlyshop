@@ -9,6 +9,7 @@ import '../services/notification_service.dart';
 import '../services/firestore_service.dart';
 import '../services/storage_service.dart';
 import '../services/unified_printer_service.dart';
+import '../utils/money_utils.dart';
 
 class CreateRepairOrderView extends StatefulWidget {
   final String role;
@@ -69,8 +70,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
   }
 
   int _parseFinalPrice(String text) {
-    final clean = text.replaceAll(RegExp(r'[^\d]'), '');
-    int v = int.tryParse(clean) ?? 0;
+    int v = MoneyUtils.parseMoney(text);
     return (v > 0 && v < 100000) ? v * 1000 : v;
   }
 

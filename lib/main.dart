@@ -67,8 +67,10 @@ class _MyAppState extends State<MyApp> {
   Future<void> _loadSavedLocale() async {
     final prefs = await SharedPreferences.getInstance();
     final languageCode = prefs.getString('app_language');
+    final supportedCodes = ['vi', 'en'];
+    final code = supportedCodes.contains(languageCode) ? languageCode : 'vi';
     setState(() {
-      _locale = Locale(languageCode ?? 'vi');
+      _locale = Locale(code!);
     });
   }
 

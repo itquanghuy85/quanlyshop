@@ -72,7 +72,10 @@ class FirestoreService {
       await docRef.set(data, SetOptions(merge: true));
       _notifyAll("🔧 MÁY NHẬN MỚI", "${r.createdBy} nhận ${r.model} của khách ${r.customerName}", type: 'repair', id: docRef.id, summary: "${r.customerName} - ${r.model}");
       return docRef.id;
-    } catch (e) { return null; }
+    } catch (e) { 
+      debugPrint('Firestore addRepair error: $e');
+      return null; 
+    }
   }
 
   static Future<void> upsertRepair(Repair r) async {

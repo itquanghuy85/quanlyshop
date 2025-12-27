@@ -84,6 +84,13 @@ class ConnectivityService {
         return;
       }
 
+      // Kiểm tra shopId
+      final shopId = await UserService.getCurrentShopId();
+      if (shopId == null) {
+        debugPrint('Không có shopId, bỏ qua sync');
+        return;
+      }
+
       // Thực hiện đồng bộ dữ liệu
       await SyncService.syncAllToCloud();
       await SyncService.downloadAllFromCloud();

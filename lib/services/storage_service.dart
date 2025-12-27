@@ -31,11 +31,13 @@ class StorageService {
   /// Xử lý đồng loạt cho danh sách ảnh
   static Future<String> uploadMultipleAndJoin(String localPathsCsv, String folder) async {
     if (localPathsCsv.isEmpty) return "";
-    List<String> paths = localPathsCsv.split(',').where((e) => e.isNotEmpty).toList();
+    List<String> paths = localPathsCsv.split(',').where((e) => e.trim().isNotEmpty).toList();
     List<String> urls = [];
 
     for (String p in paths) {
-      String? url = await uploadAndGetUrl(p, folder);
+      String trimmed = p.trim();
+      if (trimmed.isEmpty || !File(trimmed).existsSync()) continue;
+      String? url = await uploadAndGetUrl(trimmed, folder);
       if (url != null) urls.add(url);
     }
     return urls.join(',');
