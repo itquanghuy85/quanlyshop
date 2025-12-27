@@ -109,7 +109,8 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
       );
 
       await db.upsertRepair(r);
-      await FirestoreService.addRepair(r);
+      final cloudDocId = await FirestoreService.addRepair(r);
+      if (cloudDocId == null) throw Exception('Lỗi đồng bộ đám mây');
       await db.logAction(userId: FirebaseAuth.instance.currentUser?.uid ?? "0", userName: r.createdBy ?? "NV", action: "NHẬP ĐƠN SỬA", type: "REPAIR", targetId: r.firestoreId, desc: "Đã nhập đơn sửa ${r.model} cho khách ${r.customerName}");
       
       return r;

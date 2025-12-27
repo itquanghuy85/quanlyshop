@@ -61,6 +61,9 @@ class FirestoreService {
   static Future<String?> addRepair(Repair r) async {
     try {
       final shopId = await UserService.getCurrentShopId();
+      if (shopId == null && !UserService.isCurrentUserSuperAdmin()) {
+        throw Exception('Không tìm thấy thông tin cửa hàng. Vui lòng liên hệ quản trị viên.');
+      }
       final docId = r.firestoreId ?? "rep_${r.createdAt}_${r.phone}";
       final docRef = _db.collection('repairs').doc(docId);
       Map<String, dynamic> data = r.toMap();
