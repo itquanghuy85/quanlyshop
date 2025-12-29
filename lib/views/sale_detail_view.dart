@@ -80,6 +80,7 @@ class _SaleDetailViewState extends State<SaleDetailView> {
     }
 
     final passCtrl = TextEditingController();
+    if (!mounted) return;
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -128,6 +129,7 @@ class _SaleDetailViewState extends State<SaleDetailView> {
 
   Future<void> _printWifi() async {
     // Show printer selection dialog
+    final messenger = ScaffoldMessenger.of(context);
     final printerConfig = await showPrinterSelectionDialog(context);
     if (printerConfig == null) return; // User cancelled
 
@@ -161,23 +163,19 @@ class _SaleDetailViewState extends State<SaleDetailView> {
         wifiIp: wifiIp,
       );
 
-      if (mounted) {
-        if (success) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Đã in hóa đơn thành công!')),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('In thất bại! Vui lòng kiểm tra cài đặt máy in.')),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi khi in: $e')),
+      if (success) {
+        messenger.showSnackBar(
+          const SnackBar(content: Text('Đã in hóa đơn thành công!')),
+        );
+      } else {
+        messenger.showSnackBar(
+          const SnackBar(content: Text('In thất bại! Vui lòng kiểm tra cài đặt máy in.')),
         );
       }
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('Lỗi khi in: $e')),
+      );
     }
   }
 
@@ -508,6 +506,7 @@ class _SaleDetailViewState extends State<SaleDetailView> {
     final summary = "ĐƠN BÁN - ${s.customerName} - ${s.phone} - ${NumberFormat('#,###').format(s.totalPrice)} đ";
     final msg = "Trao đổi về $summary";
 
+    final messenger = ScaffoldMessenger.of(context);
     await FirestoreService.sendChat(
       message: msg,
       senderId: senderId,
@@ -517,18 +516,16 @@ class _SaleDetailViewState extends State<SaleDetailView> {
       linkedSummary: summary,
     );
 
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("ĐÃ GIM ĐƠN BÁN VÀO CHAT NỘI BỘ")),
-      );
-    }
+    messenger.showSnackBar(
+      const SnackBar(content: Text("ĐÃ GIM ĐƠN BÁN VÀO CHAT NỘI BỘ")),
+    );
   }
 
   Future<void> _sendSmsToCustomer() async {
+    final messenger = ScaffoldMessenger.of(context);
     final phone = s.phone.trim();
     if (phone.isEmpty) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(content: Text("KHÔNG CÓ SỐ ĐIỆN THOẠI KHÁCH")),
       );
       return;
@@ -548,19 +545,16 @@ class _SaleDetailViewState extends State<SaleDetailView> {
     try {
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri);
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           const SnackBar(content: Text("ĐÃ MỞ ỨNG DỤNG NHẮN TIN (nội dung đã copy sẵn).")),
         );
       } else {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           const SnackBar(content: Text("KHÔNG MỞ ĐƯỢC ỨNG DỤNG NHẮN TIN, anh/chị dán nội dung vào Zalo/SMS giúp em.")),
         );
       }
     } catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(content: Text("LỖI KHI GỬI TIN NHẮN, nhưng nội dung đã được copy sẵn.")),
       );
     }
