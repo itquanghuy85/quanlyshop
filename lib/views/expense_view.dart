@@ -31,7 +31,10 @@ class _ExpenseViewState extends State<ExpenseView> {
     setState(() => _isLoading = true);
     final data = await db.getAllExpenses();
     if (!mounted) return;
-    setState(() { _expenses = data; _isLoading = false; });
+    setState(() {
+      _expenses = data;
+      _isLoading = false;
+    });
   }
 
   Future<void> _handleDeleteExpense(Map<String, dynamic> exp) async {
@@ -39,26 +42,44 @@ class _ExpenseViewState extends State<ExpenseView> {
     final bool? result = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text("XÁC NHẬN XÓA CHI PHÍ", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 15)),
+        title: const Text(
+          "XÁC NHẬN XÓA CHI PHÍ",
+          style: TextStyle(
+            color: Colors.red,
+            fontWeight: FontWeight.bold,
+            fontSize: 15,
+          ),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text("Bạn đang xóa khoản chi: ${exp['title']}\nSố tiền: ${NumberFormat('#,###').format(exp['amount'])}đ"),
+            Text(
+              "Bạn đang xóa khoản chi: ${exp['title']}\nSố tiền: ${NumberFormat('#,###').format(exp['amount'])}đ",
+            ),
             const SizedBox(height: 15),
             TextField(
               controller: passC,
               obscureText: true,
-              decoration: const InputDecoration(labelText: "Nhập mật khẩu tài khoản để xóa", border: OutlineInputBorder()),
+              decoration: const InputDecoration(
+                labelText: "Nhập mật khẩu tài khoản để xóa",
+                border: OutlineInputBorder(),
+              ),
             ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("HỦY")),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text("HỦY"),
+          ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text("XÁC NHẬN XÓA", style: TextStyle(color: Colors.white)),
-          )
+            child: const Text(
+              "XÁC NHẬN XÓA",
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
         ],
       ),
     );
@@ -69,26 +90,37 @@ class _ExpenseViewState extends State<ExpenseView> {
       try {
         final email = FirebaseAuth.instance.currentUser?.email;
         if (email != null) {
-          AuthCredential credential = EmailAuthProvider.credential(email: email, password: passC.text);
-          await FirebaseAuth.instance.currentUser?.reauthenticateWithCredential(credential);
-          
+          AuthCredential credential = EmailAuthProvider.credential(
+            email: email,
+            password: passC.text,
+          );
+          await FirebaseAuth.instance.currentUser?.reauthenticateWithCredential(
+            credential,
+          );
+
           await db.deleteExpenseByFirestoreId(exp['firestoreId']);
           await FirestoreService.deleteExpenseCloud(exp['firestoreId']);
-          
+
           final user = FirebaseAuth.instance.currentUser;
           await db.logAction(
             userId: user?.uid ?? "0",
             userName: email.split('@').first.toUpperCase(),
             action: "XÓA CHI PHÍ",
             type: "FINANCE",
-            desc: "Đã xóa khoản chi ${exp['title']} số tiền ${exp['amount']}đ"
+            desc: "Đã xóa khoản chi ${exp['title']} số tiền ${exp['amount']}đ",
           );
 
-          NotificationService.showSnackBar("Đã xóa chi phí thành công", color: Colors.green);
+          NotificationService.showSnackBar(
+            "Đã xóa chi phí thành công",
+            color: Colors.green,
+          );
           _refresh();
         }
       } catch (e) {
-        NotificationService.showSnackBar("Mật khẩu không đúng! Không thể xóa.", color: Colors.red);
+        NotificationService.showSnackBar(
+          "Mật khẩu không đúng! Không thể xóa.",
+          color: Colors.red,
+        );
         setState(() => _isLoading = false);
       }
     }
@@ -114,94 +146,182 @@ class _ExpenseViewState extends State<ExpenseView> {
           titleC.addListener(() => setS(() {}));
           amountC.addListener(() => setS(() {}));
           return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-          title: const Text("GHI CHÉP CHI PHÍ", style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFD32F2F))),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text("PHÂN LOẠI", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  children: ["CỐ ĐỊNH", "PHÁT SINH", "KHÁC"].map((c) => ChoiceChip(
-                    label: Text(c, style: const TextStyle(fontSize: 10)),
-                    selected: category == c,
-                    onSelected: (v) => setS(() => category = c),
-                    selectedColor: Colors.red.shade100,
-                  )).toList(),
-                ),
-                const SizedBox(height: 15),
-                _input(titleC, "Nội dung chi *", Icons.edit_note, caps: true),
-                _input(amountC, "Số tiền (x1k) *", Icons.payments, type: TextInputType.number),
-                _input(noteC, "Ghi chú thêm", Icons.description),
-                const Text("THANH TOÁN BẰNG", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
-                const SizedBox(height: 8),
-                Row(
-                  children: ["TIỀN MẶT", "CHUYỂN KHOẢN"].map((m) => Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.only(right: 4),
-                      child: ChoiceChip(
-                        label: Text(m, style: const TextStyle(fontSize: 9)),
-                        selected: payMethod == m,
-                        onSelected: (v) => setS(() => payMethod = m),
-                      ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(25),
+            ),
+            title: const Text(
+              "GHI CHÉP CHI PHÍ",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Color(0xFFD32F2F),
+              ),
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "PHÂN LOẠI",
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey,
                     ),
-                  )).toList(),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    children: ["CỐ ĐỊNH", "PHÁT SINH", "KHÁC"]
+                        .map(
+                          (c) => ChoiceChip(
+                            label: Text(
+                              c,
+                              style: const TextStyle(fontSize: 10),
+                            ),
+                            selected: category == c,
+                            onSelected: (v) => setS(() => category = c),
+                            selectedColor: Colors.red.shade100,
+                          ),
+                        )
+                        .toList(),
+                  ),
+                  const SizedBox(height: 15),
+                  _input(titleC, "Nội dung chi *", Icons.edit_note, caps: true),
+                  _input(
+                    amountC,
+                    "Số tiền (x1k) *",
+                    Icons.payments,
+                    type: TextInputType.number,
+                  ),
+                  _input(noteC, "Ghi chú thêm", Icons.description),
+                  const Text(
+                    "THANH TOÁN BẰNG",
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: ["TIỀN MẶT", "CHUYỂN KHOẢN"]
+                        .map(
+                          (m) => Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.only(right: 4),
+                              child: ChoiceChip(
+                                label: Text(
+                                  m,
+                                  style: const TextStyle(fontSize: 9),
+                                ),
+                                selected: payMethod == m,
+                                onSelected: (v) => setS(() => payMethod = m),
+                              ),
+                            ),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text("HỦY"),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFD32F2F),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("HỦY")),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFD32F2F), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-              onPressed: isValidExpenseInput() && !_isSaving ? () async {
-                if (titleC.text.isEmpty || amountC.text.isEmpty || _isSaving) return;
-                setS(() => _isSaving = true);
-                
-                int amount = int.tryParse(amountC.text.replaceAll('.', '')) ?? 0;
-                if (amount > 0 && amount < 100000) amount *= 1000;
+                onPressed: isValidExpenseInput() && !_isSaving
+                    ? () async {
+                        if (titleC.text.isEmpty ||
+                            amountC.text.isEmpty ||
+                            _isSaving)
+                          return;
+                        setS(() => _isSaving = true);
 
-                final String fId = "exp_${DateTime.now().millisecondsSinceEpoch}_${titleC.text.hashCode}";
-                final expData = {
-                  'firestoreId': fId,
-                  'title': titleC.text.toUpperCase(),
-                  'amount': amount,
-                  'category': category,
-                  'date': DateTime.now().millisecondsSinceEpoch,
-                  'note': noteC.text,
-                  'paymentMethod': payMethod,
-                };
+                        int amount =
+                            int.tryParse(amountC.text.replaceAll('.', '')) ?? 0;
+                        if (amount > 0 && amount < 100000) amount *= 1000;
 
-                final navigator = Navigator.of(ctx);
-              await db.insertExpense(expData);
-                await FirestoreService.addExpenseCloud(expData);
-                
-                final user = FirebaseAuth.instance.currentUser;
-                await db.logAction(userId: user?.uid ?? "0", userName: user?.email?.split('@').first.toUpperCase() ?? "NV", action: "CHI PHÍ", type: "FINANCE", desc: "Đã chi ${NumberFormat('#,###').format(amount)}đ");
+                        final String fId =
+                            "exp_${DateTime.now().millisecondsSinceEpoch}_${titleC.text.hashCode}";
+                        final expData = {
+                          'firestoreId': fId,
+                          'title': titleC.text.toUpperCase(),
+                          'amount': amount,
+                          'category': category,
+                          'date': DateTime.now().millisecondsSinceEpoch,
+                          'note': noteC.text,
+                          'paymentMethod': payMethod,
+                        };
 
-                if (!mounted) return;
-                navigator.pop();
-                _refresh();
-                setState(() { _isSaving = false; });
-                NotificationService.showSnackBar("Đã lưu chi phí!", color: Colors.green);
-              } : null,
-              child: const Text("LƯU CHI PHÍ", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
-            ),
-          ],
-        ),
+                        final navigator = Navigator.of(ctx);
+                        await db.insertExpense(expData);
+                        await FirestoreService.addExpenseCloud(expData);
+
+                        final user = FirebaseAuth.instance.currentUser;
+                        await db.logAction(
+                          userId: user?.uid ?? "0",
+                          userName:
+                              user?.email?.split('@').first.toUpperCase() ??
+                              "NV",
+                          action: "CHI PHÍ",
+                          type: "FINANCE",
+                          desc:
+                              "Đã chi ${NumberFormat('#,###').format(amount)}đ",
+                        );
+
+                        if (!mounted) return;
+                        navigator.pop();
+                        _refresh();
+                        setState(() {
+                          _isSaving = false;
+                        });
+                        NotificationService.showSnackBar(
+                          "Đã lưu chi phí!",
+                          color: Colors.green,
+                        );
+                      }
+                    : null,
+                child: const Text(
+                  "LƯU CHI PHÍ",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
 
-  Widget _input(TextEditingController c, String l, IconData i, {TextInputType type = TextInputType.text, bool caps = false}) {
+  Widget _input(
+    TextEditingController c,
+    String l,
+    IconData i, {
+    TextInputType type = TextInputType.text,
+    bool caps = false,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: type == TextInputType.number 
-        ? CurrencyTextField(controller: c, label: l, icon: i)
-        : ValidatedTextField(controller: c, label: l, icon: i, uppercase: caps),
+      child: type == TextInputType.number
+          ? CurrencyTextField(controller: c, label: l, icon: i)
+          : ValidatedTextField(
+              controller: c,
+              label: l,
+              icon: i,
+              uppercase: caps,
+            ),
     );
   }
 
@@ -213,32 +333,50 @@ class _ExpenseViewState extends State<ExpenseView> {
       return d.day == now.day && d.month == now.month && d.year == now.year;
     }).toList();
 
-    int totalToday = todayExpenses.fold(0, (sum, e) => sum + (e['amount'] as int));
+    int totalToday = todayExpenses.fold(
+      0,
+      (sum, e) => sum + (e['amount'] as int),
+    );
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFF),
       appBar: AppBar(
-        title: const Text("QUẢN LÝ CHI PHÍ", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-        backgroundColor: Colors.white, elevation: 0,
-        actions: [IconButton(onPressed: _refresh, icon: const Icon(Icons.refresh, color: Colors.blue))],
+        title: const Text(
+          "QUẢN LÝ CHI PHÍ",
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        actions: [
+          IconButton(
+            onPressed: _refresh,
+            icon: const Icon(Icons.refresh, color: Colors.blue),
+          ),
+        ],
       ),
       body: Column(
         children: [
           _buildProfessionalHeader(totalToday, todayExpenses),
           Expanded(
-            child: _isLoading ? const Center(child: CircularProgressIndicator()) : _expenses.isEmpty 
-              ? _buildEmpty() 
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: _expenses.length,
-                  itemBuilder: (ctx, i) => _expenseProfessionalCard(_expenses[i]),
-                ),
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _expenses.isEmpty
+                ? _buildEmpty()
+                : ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _expenses.length,
+                    itemBuilder: (ctx, i) =>
+                        _expenseProfessionalCard(_expenses[i]),
+                  ),
           ),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _showAddExpenseDialog,
-        label: const Text("CHI PHÍ MỚI", style: TextStyle(fontWeight: FontWeight.bold)),
+        label: const Text(
+          "CHI PHÍ MỚI",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         icon: const Icon(Icons.add_circle_outline),
         backgroundColor: const Color(0xFFD32F2F),
       ),
@@ -246,16 +384,32 @@ class _ExpenseViewState extends State<ExpenseView> {
   }
 
   Widget _buildProfessionalHeader(int total, List<Map<String, dynamic>> list) {
-    int coDinh = list.where((e) => e['category'] == 'CỐ ĐỊNH').fold(0, (sum, e) => sum + (e['amount'] as int));
-    int phatSinh = list.where((e) => e['category'] == 'PHÁT SINH').fold(0, (sum, e) => sum + (e['amount'] as int));
-    int khac = list.where((e) => e['category'] == 'KHÁC').fold(0, (sum, e) => sum + (e['amount'] as int));
+    int coDinh = list
+        .where((e) => e['category'] == 'CỐ ĐỊNH')
+        .fold(0, (sum, e) => sum + (e['amount'] as int));
+    int phatSinh = list
+        .where((e) => e['category'] == 'PHÁT SINH')
+        .fold(0, (sum, e) => sum + (e['amount'] as int));
+    int khac = list
+        .where((e) => e['category'] == 'KHÁC')
+        .fold(0, (sum, e) => sum + (e['amount'] as int));
 
     return Container(
-      width: double.infinity, margin: const EdgeInsets.all(16), padding: const EdgeInsets.all(20),
+      width: double.infinity,
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: [Color(0xFFB71C1C), Color(0xFFEF5350)]),
+        gradient: const LinearGradient(
+          colors: [Color(0xFFB71C1C), Color(0xFFEF5350)],
+        ),
         borderRadius: BorderRadius.circular(25),
-        boxShadow: [BoxShadow(color: Colors.red.withAlpha(77), blurRadius: 15, offset: const Offset(0, 8))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.red.withAlpha(77),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -263,9 +417,24 @@ class _ExpenseViewState extends State<ExpenseView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text("TỔNG CHI HÔM NAY", style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.1)),
+                const Text(
+                  "TỔNG CHI HÔM NAY",
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.1,
+                  ),
+                ),
                 const SizedBox(height: 5),
-                Text("${NumberFormat('#,###').format(total)} đ", style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w900)),
+                Text(
+                  "${NumberFormat('#,###').format(total)} đ",
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 26,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
                 const SizedBox(height: 15),
                 Row(
                   children: [
@@ -273,23 +442,40 @@ class _ExpenseViewState extends State<ExpenseView> {
                     const SizedBox(width: 10),
                     _miniStat("Phát sinh", phatSinh),
                   ],
-                )
+                ),
               ],
             ),
           ),
           SizedBox(
-            width: 80, height: 80,
+            width: 80,
+            height: 80,
             child: PieChart(
               PieChartData(
-                sectionsSpace: 2, centerSpaceRadius: 20,
+                sectionsSpace: 2,
+                centerSpaceRadius: 20,
                 sections: [
-                  PieChartSectionData(value: coDinh.toDouble() == 0 ? 1 : coDinh.toDouble(), color: Colors.white, radius: 10, showTitle: false),
-                  PieChartSectionData(value: phatSinh.toDouble() == 0 ? 1 : phatSinh.toDouble(), color: Colors.white60, radius: 10, showTitle: false),
-                  PieChartSectionData(value: khac.toDouble() == 0 ? 1 : khac.toDouble(), color: Colors.white24, radius: 10, showTitle: false),
-                ]
+                  PieChartSectionData(
+                    value: coDinh.toDouble() == 0 ? 1 : coDinh.toDouble(),
+                    color: Colors.white,
+                    radius: 10,
+                    showTitle: false,
+                  ),
+                  PieChartSectionData(
+                    value: phatSinh.toDouble() == 0 ? 1 : phatSinh.toDouble(),
+                    color: Colors.white60,
+                    radius: 10,
+                    showTitle: false,
+                  ),
+                  PieChartSectionData(
+                    value: khac.toDouble() == 0 ? 1 : khac.toDouble(),
+                    color: Colors.white24,
+                    radius: 10,
+                    showTitle: false,
+                  ),
+                ],
               ),
             ),
-          )
+          ),
         ],
       ),
     );
@@ -300,41 +486,95 @@ class _ExpenseViewState extends State<ExpenseView> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label, style: const TextStyle(color: Colors.white60, fontSize: 9)),
-        Text(NumberFormat('#,###').format(val), style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+        Text(
+          NumberFormat('#,###').format(val),
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ],
     );
   }
 
   Widget _expenseProfessionalCard(Map<String, dynamic> e) {
     final cat = e['category'] ?? 'KHÁC';
-    final color = cat == 'CỐ ĐỊNH' ? Colors.blue : (cat == 'PHÁT SINH' ? Colors.orange : Colors.grey);
-    
+    final color = cat == 'CỐ ĐỊNH'
+        ? Colors.blue
+        : (cat == 'PHÁT SINH' ? Colors.orange : Colors.grey);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), boxShadow: [BoxShadow(color: Colors.black.withAlpha(5), blurRadius: 10)]),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withAlpha(5), blurRadius: 10),
+        ],
+      ),
       child: ListTile(
         contentPadding: const EdgeInsets.all(15),
         leading: Container(
           padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(color: color.withAlpha(25), borderRadius: BorderRadius.circular(15)),
-          child: Icon(cat == 'CỐ ĐỊNH' ? Icons.home_work : Icons.shopping_cart, color: color, size: 24),
+          decoration: BoxDecoration(
+            color: color.withAlpha(25),
+            borderRadius: BorderRadius.circular(15),
+          ),
+          child: Icon(
+            cat == 'CỐ ĐỊNH' ? Icons.home_work : Icons.shopping_cart,
+            color: color,
+            size: 24,
+          ),
         ),
-        title: Text(e['title'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1A237E))),
-        subtitle: Text("${DateFormat('HH:mm - dd/MM').format(DateTime.fromMillisecondsSinceEpoch(e['date']))} | ${e['paymentMethod']}", style: const TextStyle(fontSize: 10, color: Colors.grey)),
+        title: Text(
+          e['title'],
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+            color: Color(0xFF1A237E),
+          ),
+        ),
+        subtitle: Text(
+          "${DateFormat('HH:mm - dd/MM').format(DateTime.fromMillisecondsSinceEpoch(e['date']))} | ${e['paymentMethod']}",
+          style: const TextStyle(fontSize: 10, color: Colors.grey),
+        ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text("-${NumberFormat('#,###').format(e['amount'])}", style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w900, fontSize: 15)),
+            Text(
+              "-${NumberFormat('#,###').format(e['amount'])}",
+              style: const TextStyle(
+                color: Colors.redAccent,
+                fontWeight: FontWeight.w900,
+                fontSize: 15,
+              ),
+            ),
             const SizedBox(width: 8),
             IconButton(
-              icon: const Icon(Icons.delete_outline, color: Colors.grey, size: 20),
+              icon: const Icon(
+                Icons.delete_outline,
+                color: Colors.grey,
+                size: 20,
+              ),
               onPressed: () => _handleDeleteExpense(e),
-            )
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildEmpty() => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.money_off_rounded, size: 80, color: Colors.grey[200]), const Text("Chưa ghi nhận chi phí nào", style: TextStyle(color: Colors.grey))]));
+  Widget _buildEmpty() => Center(
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(Icons.money_off_rounded, size: 80, color: Colors.grey[200]),
+        const Text(
+          "Chưa ghi nhận chi phí nào",
+          style: TextStyle(color: Colors.grey),
+        ),
+      ],
+    ),
+  );
 }
