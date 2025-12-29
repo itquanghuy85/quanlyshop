@@ -9,7 +9,7 @@ class NotificationService {
   static final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
   static final GlobalKey<ScaffoldMessengerState> messengerKey = GlobalKey<ScaffoldMessengerState>();
   static final _db = FirebaseFirestore.instance;
-  static DateTime _appStartTime = DateTime.now().subtract(const Duration(minutes: 1)); // Lùi 1 phút để tránh sót tin
+  static final DateTime _appStartTime = DateTime.now().subtract(const Duration(minutes: 1)); // Lùi 1 phút để tránh sót tin
 
   static Future<void> init() async {
     if (await Permission.notification.isDenied) {

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import '../data/db_helper.dart';
@@ -40,7 +39,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
 
   List<Product> _allInStock = [];
   List<Product> _filteredInStock = []; 
-  List<Map<String, dynamic>> _selectedItems = []; 
+  final List<Map<String, dynamic>> _selectedItems = []; 
   List<Map<String, dynamic>> _suggestCustomers = [];
   bool _isLoading = true;
   bool _isSaving = false;
@@ -179,7 +178,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
         const Divider(height: 30),
         // KHÔI PHỤC TAB BẢO HÀNH: Cho phép chọn bảo hành bất kể trạng thái nợ
         DropdownButtonFormField<String>(
-          value: _saleWarranty, 
+          initialValue: _saleWarranty, 
           decoration: const InputDecoration(labelText: "CHỌN THỜI GIAN BẢO HÀNH", prefixIcon: Icon(Icons.verified_user)), 
           items: ["KO BH", "1 THÁNG", "3 THÁNG", "6 THÁNG", "12 THÁNG"].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(), 
           onChanged: (v) => setState(() => _saleWarranty = v ?? "KO BH")
@@ -197,7 +196,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
   Widget _buildSearchResults() {
     return Container(
       constraints: const BoxConstraints(maxHeight: 250), 
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10)]), 
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10)]), 
       child: ListView.builder(shrinkWrap: true, itemCount: _filteredInStock.length, itemBuilder: (ctx, i) { 
         final p = _filteredInStock[i]; 
         return ListTile(

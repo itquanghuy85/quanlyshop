@@ -269,7 +269,7 @@ extension UIConstantsExtension on BuildContext {
   Color get colorSchemeTertiary => Theme.of(this).colorScheme.tertiary;
   Color get colorSchemeError => Theme.of(this).colorScheme.error;
   Color get colorSchemeSurface => Theme.of(this).colorScheme.surface;
-  Color get colorSchemeBackground => Theme.of(this).colorScheme.background;
+  Color get colorSchemeBackground => Theme.of(this).colorScheme.surface;
   Color get colorSchemeOnPrimary => Theme.of(this).colorScheme.onPrimary;
   Color get colorSchemeOnSurface => Theme.of(this).colorScheme.onSurface;
 

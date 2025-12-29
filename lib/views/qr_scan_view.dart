@@ -26,6 +26,9 @@ class _QrScanViewState extends State<QrScanView> {
     if (_handling) return;
     setState(() => _handling = true);
 
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+
     final key = raw.trim();
     if (key.isEmpty) {
       if (mounted) {
@@ -62,8 +65,7 @@ class _QrScanViewState extends State<QrScanView> {
       }
       if (!mounted) return;
       if (r != null) {
-        await Navigator.push(
-          context,
+        await navigator.push(
           MaterialPageRoute(
             builder: (_) => RepairDetailView(repair: r),
           ),
@@ -81,8 +83,7 @@ class _QrScanViewState extends State<QrScanView> {
       }
       if (!mounted) return;
       if (s != null) {
-        await Navigator.push(
-          context,
+        await navigator.push(
           MaterialPageRoute(
             builder: (_) => SaleDetailView(sale: s),
           ),
@@ -92,13 +93,13 @@ class _QrScanViewState extends State<QrScanView> {
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(content: Text('Không tìm thấy đơn tương ứng với QR: $key')),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(content: Text('Lỗi khi xử lý QR: $e')),
         );
       }
@@ -144,26 +145,20 @@ class _QrScanViewState extends State<QrScanView> {
       final navigator = Navigator.of(context);
       final docId = await _db.insertRepair(repair);
 
-      if (docId != null) {
-        messenger.showSnackBar(
-          const SnackBar(content: Text('Đã tạo đơn hàng từ tem điện thoại!')),
-        );
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Đã tạo đơn hàng từ tem điện thoại!')),
+      );
 
-        // Mở chi tiết đơn hàng vừa tạo
-        final createdRepair = await _db.getRepairById(docId);
-        if (createdRepair != null) {
-          await navigator.push(
-            MaterialPageRoute(
-              builder: (_) => RepairDetailView(repair: createdRepair),
-            ),
-          );
-        }
-      } else {
-        messenger.showSnackBar(
-          const SnackBar(content: Text('Lỗi khi tạo đơn hàng từ tem')),
+      // Mở chi tiết đơn hàng vừa tạo
+      final createdRepair = await _db.getRepairById(docId);
+      if (createdRepair != null) {
+        await navigator.push(
+          MaterialPageRoute(
+            builder: (_) => RepairDetailView(repair: createdRepair),
+          ),
         );
       }
-    } catch (e) {
+        } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Lỗi xử lý tem điện thoại: $e')),
@@ -223,6 +218,8 @@ class _QrScanViewState extends State<QrScanView> {
   }
 
   Future<void> _handleInviteCodeQR(String qrData) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
     try {
       // Parse JSON data từ QR mã mời
       final data = _parseInviteCodeData(qrData);
@@ -239,7 +236,7 @@ class _QrScanViewState extends State<QrScanView> {
       final shopName = data['shopName'];
 
       // Hiển thị dialog xác nhận tham gia shop
-      final join = await showDialog<bool>(
+      final join = await showDialog<bool> (
         context: context,
         builder: (ctx) => AlertDialog(
           title: const Text('THAM GIA SHOP'),
@@ -263,7 +260,7 @@ class _QrScanViewState extends State<QrScanView> {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          messenger.showSnackBar(
             const SnackBar(content: Text('Cần đăng nhập để tham gia shop')),
           );
         }
@@ -272,21 +269,21 @@ class _QrScanViewState extends State<QrScanView> {
 
       final success = await UserService.useInviteCode(code, user.uid);
       if (success && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(content: Text('Đã tham gia shop "$shopName" thành công!')),
         );
         // Có thể navigate về home hoặc refresh app state
-        Navigator.of(context).pop(); // Đóng scanner
+        navigator.pop(); // Đóng scanner
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          messenger.showSnackBar(
             const SnackBar(content: Text('Mã mời không hợp lệ hoặc đã được sử dụng')),
           );
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(content: Text('Lỗi xử lý mã mời: $e')),
         );
       }

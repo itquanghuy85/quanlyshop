@@ -8,7 +8,6 @@ import '../utils/ui_constants.dart';
 import 'repair_detail_view.dart';
 import 'sale_detail_view.dart';
 import 'inventory_view.dart';
-import 'customer_history_view.dart';
 
 class GlobalSearchResultsView extends StatefulWidget {
   final String query;
@@ -74,7 +73,7 @@ class _GlobalSearchResultsViewState extends State<GlobalSearchResultsView> {
           allResults = customerResults;
           break;
         case 'Đơn sửa chữa':
-          allResults = customerResults.where((r) => r is Repair).toList();
+          allResults = customerResults.whereType<Repair>().toList();
           break;
         case 'Đơn bán hàng':
           allResults = saleResults;
@@ -144,7 +143,7 @@ class _GlobalSearchResultsViewState extends State<GlobalSearchResultsView> {
                               setState(() => _selectedCategory = category);
                               _performSearch();
                             },
-                            backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
+                            backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                             selectedColor: Theme.of(context).colorScheme.primary.withAlpha(25),
                             checkmarkColor: Theme.of(context).colorScheme.primary,
                           ),

@@ -49,7 +49,7 @@ Future<void> main() async {
 }
 
 class MyApp extends StatefulWidget {
-  const MyApp({Key? key}) : super(key: key);
+  const MyApp({super.key});
 
   @override
   State<MyApp> createState() => _MyAppState();
@@ -125,7 +125,7 @@ class _MyAppState extends State<MyApp> {
             minimumSize: const Size(double.infinity, 55),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
             elevation: 4,
-            shadowColor: Color(0xFF2962FF).withAlpha(102),
+            shadowColor: const Color(0xFF2962FF).withAlpha(102),
           ),
         ),
       ),
@@ -155,7 +155,7 @@ class _MyAppState extends State<MyApp> {
 
 class AuthGate extends StatefulWidget {
   final void Function(Locale)? setLocale;
-  const AuthGate({Key? key, this.setLocale}) : super(key: key);
+  const AuthGate({super.key, this.setLocale});
 
   @override
   State<AuthGate> createState() => _AuthGateState();

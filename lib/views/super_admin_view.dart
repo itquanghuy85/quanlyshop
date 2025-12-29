@@ -138,7 +138,7 @@ class ShopsTab extends StatelessWidget {
                   ),
                 ),
               );
-            }).toList(),
+            }),
           ],
         );
       },
@@ -149,11 +149,11 @@ class ShopsTab extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
+      child: const Padding(
+        padding: EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
+          children: [
             Row(
               children: [
                 Icon(Icons.info_outline, color: Colors.blueAccent),

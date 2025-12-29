@@ -177,7 +177,7 @@ class _PayrollViewState extends State<PayrollView> {
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('HỦY')),
-          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('LƯU'), enabled: _isValidPayrollInput(baseCtrl.text, hourCtrl.text, otCtrl.text)),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), enabled: _isValidPayrollInput(baseCtrl.text, hourCtrl.text, otCtrl.text), child: const Text('LƯU')),
         ],
       ),
     );
@@ -277,7 +277,7 @@ class _PayrollViewState extends State<PayrollView> {
                         children: [
                           Expanded(
                             child: DropdownButtonFormField<String>(
-                              value: _selectedStaff,
+                              initialValue: _selectedStaff,
                               decoration: const InputDecoration(labelText: 'Chọn nhân viên', border: OutlineInputBorder()),
                               items: _staffList.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
                               onChanged: (v) => setState(() => _selectedStaff = v),

@@ -426,8 +426,9 @@ class SyncService {
               if (data['deleted'] == true) continue;
               
               data['firestoreId'] = doc.id;
-              if (col == 'repairs') await db.upsertRepair(Repair.fromMap(data));
-              else if (col == 'products') await db.upsertProduct(Product.fromMap(data));
+              if (col == 'repairs') {
+                await db.upsertRepair(Repair.fromMap(data));
+              } else if (col == 'products') await db.upsertProduct(Product.fromMap(data));
               else if (col == 'sales') await db.upsertSale(SaleOrder.fromMap(data));
               else if (col == 'expenses') await db.upsertExpense(Expense.fromMap(data));
               else if (col == 'debts') await db.upsertDebt(Debt.fromMap(data));

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/connectivity_service.dart';
 
 class SyncStatusWidget extends StatefulWidget {
-  const SyncStatusWidget({Key? key}) : super(key: key);
+  const SyncStatusWidget({super.key});
 
   @override
   State<SyncStatusWidget> createState() => _SyncStatusWidgetState();

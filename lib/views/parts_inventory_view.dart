@@ -93,7 +93,7 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
             if (!mounted) return;
             Navigator.of(context).pop();
             _refreshParts();
-          }, child: const Text("XÁC NHẬN"), enabled: nameC.text.isNotEmpty),
+          }, enabled: nameC.text.isNotEmpty, child: const Text("XÁC NHẬN")),
         ],
       ),
     );

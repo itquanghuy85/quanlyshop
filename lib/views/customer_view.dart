@@ -25,7 +25,7 @@ class _CustomerListViewState extends State<CustomerListView> {
   
   // Multi-select state
   bool _isSelectionMode = false;
-  Set<int> _selectedIndices = {};
+  final Set<int> _selectedIndices = {};
   bool _isDeleting = false;
 
   // Theme colors cho màn hình quản lý khách hàng

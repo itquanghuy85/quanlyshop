@@ -9,7 +9,7 @@ void main() {
 
   test('payroll locking set and unset', () async {
     final db = DBHelper();
-    final month = '2099-12'; // use a far future month to avoid collisions
+    const month = '2099-12'; // use a far future month to avoid collisions
 
     // Ensure lock is unset to start
     await db.setPayrollMonthLock(month, locked: false, lockedBy: 'test_init', note: 'init');

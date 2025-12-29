@@ -1,17 +1,13 @@
 import 'dart:async';
-import 'dart:ui';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../l10n/app_localizations.dart';
 import 'customer_history_view.dart';
 import 'order_list_view.dart';
 import 'revenue_view.dart';
-import 'revenue_report_view.dart';
-import 'customer_view.dart';
 import 'inventory_view.dart';
 import 'sale_list_view.dart';
 import 'expense_view.dart';
@@ -20,7 +16,6 @@ import 'warranty_view.dart';
 import 'settings_view.dart';
 import 'chat_view.dart';
 import 'thermal_printer_design_view.dart';
-import 'inventory_check_view.dart';
 import 'purchase_order_list_view.dart';
 import 'super_admin_view.dart' as admin_view;
 import 'staff_list_view.dart';
@@ -39,7 +34,7 @@ class HomeView extends StatefulWidget {
   final String role;
   final void Function(Locale)? setLocale;
 
-  HomeView({Key? key, required this.role, this.setLocale}) : super(key: key);
+  const HomeView({super.key, required this.role, this.setLocale});
 
   @override
   State<HomeView> createState() => _HomeViewState();
@@ -195,7 +190,7 @@ class _HomeViewState extends State<HomeView> {
   }
 
   Widget _buildTodaySummary() {
-    String _fmt(int v) => NumberFormat('#,###').format(v);
+    String fmt(int v) => NumberFormat('#,###').format(v);
     return Container(
       width: double.infinity, padding: const EdgeInsets.all(18), 
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withAlpha(8), blurRadius: 10)]), 
@@ -203,12 +198,12 @@ class _HomeViewState extends State<HomeView> {
         const Text("TRẠNG THÁI CỬA HÀNG", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
         const SizedBox(height: 15),
         _summaryRow(Icons.build_circle, Colors.blue, "MÁY ĐANG CHỜ SỬA", "$totalPendingRepair", () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderListView(role: widget.role, statusFilter: const [1, 2]))), isBold: true),
-        _summaryRow(Icons.receipt_long_rounded, Colors.red, "TỔNG CÔNG NỢ TỒN ĐỌNG", "${_fmt(totalDebtRemain)} đ", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DebtView())), isBold: true),
+        _summaryRow(Icons.receipt_long_rounded, Colors.red, "TỔNG CÔNG NỢ TỒN ĐỌNG", "${fmt(totalDebtRemain)} đ", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DebtView())), isBold: true),
         const Padding(padding: EdgeInsets.symmetric(vertical: 10), child: Divider()),
         _summaryRow(Icons.add_task, Colors.orange, "Máy nhận mới hôm nay", "$todayNewRepairs", () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderListView(role: widget.role, todayOnly: true)))),
         _summaryRow(Icons.shopping_bag_outlined, Colors.pink, "Đơn bán mới hôm nay", "$todaySaleCount", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SaleListView(todayOnly: true)))),
         _summaryRow(Icons.check_circle_outlined, Colors.green, "Đã giao khách hôm nay", "$todayRepairDone", () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderListView(role: widget.role, statusFilter: const [4], todayOnly: true)))),
-        _summaryRow(Icons.money_off_rounded, Colors.blueGrey, "Chi phí phát sinh", "${_fmt(todayExpense)} đ", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ExpenseView()))),
+        _summaryRow(Icons.money_off_rounded, Colors.blueGrey, "Chi phí phát sinh", "${fmt(todayExpense)} đ", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ExpenseView()))),
       ])
     );
   }

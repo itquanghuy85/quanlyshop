@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:sqflite/sqflite.dart';
 import '../data/db_helper.dart';
 import '../services/firestore_service.dart';
 import '../services/user_service.dart';

@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
-import 'dart:convert';
 import '../services/user_service.dart';
-import '../data/db_helper.dart';
 
 class RegisterView extends StatefulWidget {
   final Function(Locale)? setLocale;

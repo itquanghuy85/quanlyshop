@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart';
@@ -134,7 +133,7 @@ class _ThermalPrinterDesignViewState extends State<ThermalPrinterDesignView> wit
         children: [
           _sectionCard("LOẠI GIẤY / TEM", [
              DropdownButtonFormField<String>(
-              value: _paperSize,
+              initialValue: _paperSize,
               items: const [
                 DropdownMenuItem(value: "80mm", child: Text("Khổ 80mm (Mặc định)")),
                 DropdownMenuItem(value: "58mm", child: Text("Khổ 58mm / Tem nhỏ")),

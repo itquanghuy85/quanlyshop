@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../data/db_helper.dart';
-import '../models/repair_model.dart';
-import '../models/sale_order_model.dart';
 
 class StaffPerformanceView extends StatefulWidget {
   const StaffPerformanceView({super.key});
@@ -30,8 +28,12 @@ class _StaffPerformanceViewState extends State<StaffPerformanceView> {
 
     // Lấy danh sách tên nhân viên duy nhất từ các đơn hàng
     Set<String> staffNames = {};
-    for (var r in repairs) if (r.createdBy != null) staffNames.add(r.createdBy!.toUpperCase());
-    for (var s in sales) staffNames.add(s.sellerName.toUpperCase());
+    for (var r in repairs) {
+      if (r.createdBy != null) staffNames.add(r.createdBy!.toUpperCase());
+    }
+    for (var s in sales) {
+      staffNames.add(s.sellerName.toUpperCase());
+    }
 
     List<Map<String, dynamic>> results = [];
     final firstDay = DateTime(_selectedMonth.year, _selectedMonth.month, 1);

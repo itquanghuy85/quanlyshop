@@ -56,11 +56,11 @@ class _CurrencyInputDemoState extends State<CurrencyInputDemo> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
+                  const Row(
                     children: [
-                      const Icon(Icons.warning, color: Colors.red),
-                      const SizedBox(width: 8),
-                      const Text(
+                      Icon(Icons.warning, color: Colors.red),
+                      SizedBox(width: 8),
+                      Text(
                         'QUY ƯỚC X1K (CurrencyTextField)',
                         style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.red),
                       ),
@@ -103,11 +103,11 @@ class _CurrencyInputDemoState extends State<CurrencyInputDemo> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
+                  const Row(
                     children: [
-                      const Icon(Icons.check_circle, color: Colors.green),
-                      const SizedBox(width: 8),
-                      const Text(
+                      Icon(Icons.check_circle, color: Colors.green),
+                      SizedBox(width: 8),
+                      Text(
                         'NHẬP TRỰC TIẾP (EnhancedCurrencyInput)',
                         style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.green),
                       ),
@@ -247,7 +247,7 @@ class _CurrencyInputDemoState extends State<CurrencyInputDemo> {
       result = str[i] + result;
       count++;
       if (count % 3 == 0 && i > 0) {
-        result = '.' + result;
+        result = '.$result';
       }
     }
 

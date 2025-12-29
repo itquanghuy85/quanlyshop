@@ -24,7 +24,7 @@ class InventoryCheck {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
-      'firestoreId': firestoreId ?? "inv_check_${createdAt}",
+      'firestoreId': firestoreId ?? "inv_check_$createdAt",
       'checkType': checkType,
       'checkDate': checkDate,
       'checkedBy': checkedBy,

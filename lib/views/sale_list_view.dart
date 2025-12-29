@@ -4,8 +4,6 @@ import 'package:flutter/services.dart';
 import '../data/db_helper.dart';
 import '../models/sale_order_model.dart';
 import 'sale_detail_view.dart';
-import '../services/firestore_service.dart';
-import '../services/notification_service.dart';
 import 'create_sale_view.dart';
 
 class SaleListView extends StatefulWidget {

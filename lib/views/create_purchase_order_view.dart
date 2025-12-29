@@ -30,7 +30,7 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
 
   // Data
   List<Map<String, dynamic>> _suppliers = [];
-  List<PurchaseItem> _items = [];
+  final List<PurchaseItem> _items = [];
   bool _isLoading = true;
   bool _isSaving = false;
   String _currentUserName = '';
@@ -59,7 +59,7 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
 
       setState(() {
         _suppliers = suppliers;
-        _currentUserName = userData?['name'] ?? 'Unknown';
+        _currentUserName = userData['name'] ?? 'Unknown';
         _isLoading = false;
       });
     } catch (e) {
@@ -214,7 +214,7 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: itemCondition,
+                    initialValue: itemCondition,
                     decoration: const InputDecoration(labelText: "Tình trạng", border: OutlineInputBorder()),
                     items: const [
                       DropdownMenuItem(value: "Mới", child: Text("Mới")),

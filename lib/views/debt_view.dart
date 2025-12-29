@@ -63,7 +63,7 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
           children: [
             Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(10))),
             const SizedBox(height: 20),
-            Text("LỊCH SỬ THANH TOÁN", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF1A237E))),
+            const Text("LỊCH SỬ THANH TOÁN", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF1A237E))),
             Text(debt['personName'].toString().toUpperCase(), style: const TextStyle(fontSize: 13, color: Colors.blueGrey)),
             const Divider(height: 30),
             if (payments.isEmpty)
@@ -292,5 +292,5 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
     );
   }
 
-  Widget _miniValue(String l, int v, Color c) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(l, style: const TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: Colors.grey)), Text("${NumberFormat('#,###').format(v)}", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: c))]);
+  Widget _miniValue(String l, int v, Color c) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(l, style: const TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: Colors.grey)), Text(NumberFormat('#,###').format(v), style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: c))]);
 }

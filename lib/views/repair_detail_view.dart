@@ -299,8 +299,11 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     NotificationService.showSnackBar("Đang chuẩn bị lệnh in...", color: Colors.blue);
     try {
       final success = await UnifiedPrinterService.printRepairReceiptFromRepair(r, {'shopName': _shopName, 'shopAddr': _shopAddr, 'shopPhone': _shopPhone});
-      if (success) NotificationService.showSnackBar("Đã gửi lệnh in thành công", color: Colors.green);
-      else NotificationService.showSnackBar("Lỗi máy in!", color: Colors.red);
+      if (success) {
+        NotificationService.showSnackBar("Đã gửi lệnh in thành công", color: Colors.green);
+      } else {
+        NotificationService.showSnackBar("Lỗi máy in!", color: Colors.red);
+      }
     } catch (e) {
       NotificationService.showSnackBar("Lỗi: $e", color: Colors.red);
     } finally {

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../services/user_service.dart';
 import '../services/firestore_service.dart';
 import '../services/notification_service.dart';

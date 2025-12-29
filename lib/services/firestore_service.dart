@@ -3,8 +3,6 @@ import 'package:flutter/foundation.dart';
 import '../models/repair_model.dart';
 import '../models/product_model.dart';
 import '../models/sale_order_model.dart';
-import '../models/debt_model.dart';
-import '../models/expense_model.dart';
 import '../models/purchase_order_model.dart';
 import '../models/attendance_model.dart';
 import 'user_service.dart';
@@ -292,7 +290,9 @@ class FirestoreService {
       for (var colName in collections) {
         final snapshots = await _db.collection(colName).where('shopId', isEqualTo: shopId).get();
         final batch = _db.batch();
-        for (var doc in snapshots.docs) batch.delete(doc.reference);
+        for (var doc in snapshots.docs) {
+          batch.delete(doc.reference);
+        }
         await batch.commit();
       }
       return true;

@@ -430,9 +430,9 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
               // Templates Section
               ExpansionPanel(
                 headerBuilder: (BuildContext context, bool isExpanded) {
-                  return ListTile(
-                    leading: const Icon(Icons.inventory, color: Color(0xFF2962FF)),
-                    title: const Text(
+                  return const ListTile(
+                    leading: Icon(Icons.inventory, color: Color(0xFF2962FF)),
+                    title: Text(
                       "CHỌN TEMPLATE SẢN PHẨM",
                       style: TextStyle(
                         fontSize: 16,
@@ -440,7 +440,7 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
                         color: Color(0xFF2962FF),
                       ),
                     ),
-                    subtitle: const Text("Áp dụng mẫu sản phẩm nhanh"),
+                    subtitle: Text("Áp dụng mẫu sản phẩm nhanh"),
                   );
                 },
                 body: Padding(
@@ -645,9 +645,9 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
               // Product Details Section
               ExpansionPanel(
                 headerBuilder: (BuildContext context, bool isExpanded) {
-                  return ListTile(
-                    leading: const Icon(Icons.inventory, color: Color(0xFF2962FF)),
-                    title: const Text(
+                  return const ListTile(
+                    leading: Icon(Icons.inventory, color: Color(0xFF2962FF)),
+                    title: Text(
                       "THÔNG TIN CHI TIẾT",
                       style: TextStyle(
                         fontSize: 16,
@@ -655,7 +655,7 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
                         color: Color(0xFF2962FF),
                       ),
                     ),
-                    subtitle: const Text("IMEI, giá cả, nhà cung cấp"),
+                    subtitle: Text("IMEI, giá cả, nhà cung cấp"),
                   );
                 },
                 body: Padding(

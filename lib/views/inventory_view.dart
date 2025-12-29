@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'dart:convert';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../data/db_helper.dart';
 import '../models/product_model.dart';
@@ -48,7 +47,7 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
   bool _isCheckingLoading = false;
   bool _isScanning = false;
   final MobileScannerController _scannerController = MobileScannerController();
-  String _checkSearchQuery = '';
+  final String _checkSearchQuery = '';
   InventoryCheck? _currentCheck;
 
   // Layout sizing constants
@@ -519,7 +518,7 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF2962FF),
                       foregroundColor: Colors.white,
-                      padding: EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+                      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
                       minimumSize: Size(double.infinity, _btnMinHeight),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
@@ -536,7 +535,7 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF2962FF),
                       foregroundColor: Colors.white,
-                      padding: EdgeInsets.symmetric(vertical: 6, horizontal: 6),
+                      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 6),
                       minimumSize: Size(0, _btnMinHeight),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
@@ -647,7 +646,7 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
             children: [
               // Type selector
               DropdownButtonFormField<String>(
-                value: _selectedType,
+                initialValue: _selectedType,
                 decoration: InputDecoration(
                   labelText: "Loại sản phẩm kiểm kho",
                   prefixIcon: const Icon(Icons.category),
@@ -687,7 +686,7 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _isScanning ? Colors.red : Colors.green,
                         foregroundColor: Colors.white,
-                        padding: EdgeInsets.symmetric(vertical: 8),
+                        padding: const EdgeInsets.symmetric(vertical: 8),
                         minimumSize: Size(double.infinity, _btnMinHeight),
                       ),
                     ),
@@ -1027,9 +1026,9 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
                       fontSize: _smallFontSize + 2,
                     ),
                   ),
-                  SizedBox(height: 4),
+                  const SizedBox(height: 4),
                   Container(
-                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: Colors.green.withAlpha(25),
                       borderRadius: BorderRadius.circular(12),
@@ -1125,8 +1124,11 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
           final user = FirebaseAuth.instance.currentUser;
           final userName = user?.email?.split('@').first.toUpperCase() ?? "NV";
           await db.logAction(userId: user?.uid ?? "0", userName: userName, action: "NHẬP KHO", type: "PRODUCT", targetId: p.imei, desc: "Đã nhập máy ${p.name}");
-          if (payMethod != "CÔNG NỢ") await db.insertExpense({'title': "NHẬP HÀNG: ${p.name}", 'amount': p.cost * p.quantity, 'category': "NHẬP HÀNG", 'date': ts, 'paymentMethod': payMethod, 'note': "Nhập từ $supplier"});
-          else await db.insertDebt({'personName': supplier, 'totalAmount': p.cost * p.quantity, 'paidAmount': 0, 'type': "SHOP_OWES", 'status': "unpaid", 'createdAt': ts, 'note': "Nợ tiền máy ${p.name}"});
+          if (payMethod != "CÔNG NỢ") {
+            await db.insertExpense({'title': "NHẬP HÀNG: ${p.name}", 'amount': p.cost * p.quantity, 'category': "NHẬP HÀNG", 'date': ts, 'paymentMethod': payMethod, 'note': "Nhập từ $supplier"});
+          } else {
+            await db.insertDebt({'personName': supplier, 'totalAmount': p.cost * p.quantity, 'paidAmount': 0, 'type': "SHOP_OWES", 'status': "unpaid", 'createdAt': ts, 'note': "Nợ tiền máy ${p.name}"});
+          }
           await db.upsertProduct(p); await FirestoreService.addProduct(p);
           HapticFeedback.lightImpact();
           if (next) { imeiC.clear(); setS(() => isSaving = false); if (mounted) { FocusScope.of(context).requestFocus(imeiF); NotificationService.showSnackBar("ĐÃ THÊM MÁY", color: Colors.blue); } }
@@ -1138,7 +1140,7 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
         content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
           // Loại hàng
           DropdownButtonFormField<String>(
-            value: type,
+            initialValue: type,
             items: const [
               DropdownMenuItem(value: "PHONE", child: Text("ĐIỆN THOẠI")),
               DropdownMenuItem(value: "ACCESSORY", child: Text("PHỤ KIỆN"))
@@ -1170,7 +1172,7 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
             Expanded(flex: 1, child: _input(qtyC, "SL", Icons.add_box, f: qtyF, isBig: true)),
             const SizedBox(width: 8),
             Expanded(flex: 2, child: DropdownButtonFormField<String>(
-              value: supplier,
+              initialValue: supplier,
               isExpanded: true,
               decoration: const InputDecoration(labelText: "Nhà cung cấp *"),
               items: _suppliers.map((s) => DropdownMenuItem(value: s['name'] as String, child: Text(s['name']))).toList(),
@@ -1185,7 +1187,7 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
 
           // Nhóm
           DropdownButtonFormField<String>(
-            value: selectedNhom,
+            initialValue: selectedNhom,
             decoration: const InputDecoration(labelText: "Nhóm *", prefixIcon: Icon(Icons.category, size: 18)),
             items: const [
               DropdownMenuItem(value: "IP", child: Text("IP - iPhone")),

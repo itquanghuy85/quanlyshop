@@ -5,7 +5,6 @@ import '../data/db_helper.dart';
 import '../models/repair_model.dart';
 import '../models/sale_order_model.dart';
 import '../services/user_service.dart';
-import '../services/firestore_service.dart';
 import 'repair_detail_view.dart';
 import 'sale_detail_view.dart';
 
@@ -137,8 +136,11 @@ class _WarrantyViewState extends State<WarrantyView> {
       ),
       child: InkWell(
         onTap: () {
-          if (isSale) Navigator.push(context, MaterialPageRoute(builder: (_) => SaleDetailView(sale: item['data'] as SaleOrder)));
-          else Navigator.push(context, MaterialPageRoute(builder: (_) => RepairDetailView(repair: item['data'] as Repair)));
+          if (isSale) {
+            Navigator.push(context, MaterialPageRoute(builder: (_) => SaleDetailView(sale: item['data'] as SaleOrder)));
+          } else {
+            Navigator.push(context, MaterialPageRoute(builder: (_) => RepairDetailView(repair: item['data'] as Repair)));
+          }
         },
         borderRadius: BorderRadius.circular(22),
         child: Column(

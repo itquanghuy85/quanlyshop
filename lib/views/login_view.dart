@@ -65,7 +65,7 @@ class _LoginViewState extends State<LoginView> {
         await UserService.syncUserInfo(u.uid, u.email!);
       }
       await _saveAccount();
-    } on FirebaseAuthException catch (e) {
+    } on FirebaseAuthException {
       if (mounted) setState(() => _error = AppLocalizations.of(context)!.loginError);
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -130,7 +130,7 @@ class _LoginViewState extends State<LoginView> {
                           value: const Locale('vi'),
                           child: Row(
                             children: [
-                              Text('🇻🇳 ', style: TextStyle(fontSize: 16)),
+                              const Text('🇻🇳 ', style: TextStyle(fontSize: 16)),
                               Text(localizations.vietnamese),
                             ],
                           ),
@@ -139,7 +139,7 @@ class _LoginViewState extends State<LoginView> {
                           value: const Locale('en'),
                           child: Row(
                             children: [
-                              Text('🇺🇸 ', style: TextStyle(fontSize: 16)),
+                              const Text('🇺🇸 ', style: TextStyle(fontSize: 16)),
                               Text(localizations.english),
                             ],
                           ),
@@ -347,9 +347,9 @@ class _LoginViewState extends State<LoginView> {
               ],
             ),
             const SizedBox(height: 12),
-            Row(
+            const Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: const [
+              children: [
                 Expanded(
                   child: Center(
                     child: Text('T2', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white)),

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/bluetooth_printer_service.dart';
-import '../services/unified_printer_service.dart';
 import '../l10n/app_localizations.dart';
 import '../models/printer_types.dart';
 

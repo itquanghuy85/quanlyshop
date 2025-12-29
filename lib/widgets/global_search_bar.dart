@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../utils/ui_constants.dart';
 
 class GlobalSearchBar extends StatefulWidget {
   final String hintText;

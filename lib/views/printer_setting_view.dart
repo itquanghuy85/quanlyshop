@@ -13,7 +13,7 @@ class PrinterSettingView extends StatefulWidget {
 class _PrinterSettingViewState extends State<PrinterSettingView> {
   final ipCtrl = TextEditingController();
   final labelIpCtrl = TextEditingController();
-  bool _isTesting = false;
+  final bool _isTesting = false;
   String _logoPath = "";
   bool _enableLabelPrinter = false;
   String _paperSize = "80mm";
@@ -104,7 +104,7 @@ class _PrinterSettingViewState extends State<PrinterSettingView> {
               CircleAvatar(backgroundColor: color.withAlpha(25), child: Icon(icon, color: color)),
               const SizedBox(width: 15),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)), Text(desc, style: const TextStyle(fontSize: 11, color: Colors.grey))])),
-              if (onToggle != null) Switch(value: isEnable, onChanged: onToggle, activeColor: color),
+              if (onToggle != null) Switch(value: isEnable, onChanged: onToggle, activeThumbColor: color),
             ],
           ),
           if (isEnable) ...[

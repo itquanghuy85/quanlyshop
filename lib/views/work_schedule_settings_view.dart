@@ -360,9 +360,9 @@ class _WorkScheduleSettingsViewState extends State<WorkScheduleSettingsView> wit
               controller: controller,
               readOnly: true,
               onTap: () => _selectTime(controller),
-              decoration: InputDecoration(
-                border: const OutlineInputBorder(),
-                suffixIcon: const Icon(Icons.access_time),
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                suffixIcon: Icon(Icons.access_time),
                 hintText: 'Chọn giờ',
               ),
             ),
@@ -530,7 +530,7 @@ class _WorkScheduleSettingsViewState extends State<WorkScheduleSettingsView> wit
                   const SizedBox(height: 16),
 
                   DropdownButtonFormField<String>(
-                    value: selectedStaff,
+                    initialValue: selectedStaff,
                     decoration: const InputDecoration(
                       labelText: 'Chọn nhân viên',
                       border: OutlineInputBorder(),
@@ -595,7 +595,7 @@ class _WorkScheduleSettingsViewState extends State<WorkScheduleSettingsView> wit
                 child: ListTile(
                   title: Text(staff['name'] as String),
                   trailing: Text(
-                    NumberFormat('#,###').format(entry.value) + ' đ',
+                    '${NumberFormat('#,###').format(entry.value)} đ',
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
@@ -674,7 +674,7 @@ class _WorkScheduleSettingsViewState extends State<WorkScheduleSettingsView> wit
                   const Text('Chọn nhân viên', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
                   const SizedBox(height: 8),
                   DropdownButtonFormField<String>(
-                    value: selectedStaffForAttendance,
+                    initialValue: selectedStaffForAttendance,
                     decoration: const InputDecoration(
                       labelText: 'Nhân viên',
                       border: OutlineInputBorder(),
@@ -769,12 +769,12 @@ class _WorkScheduleSettingsViewState extends State<WorkScheduleSettingsView> wit
               )),
             ],
           ] else ...[
-            Card(
+            const Card(
               child: Padding(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.all(16),
                 child: Text(
                   'Vui lòng chọn nhân viên để xem thông tin chấm công',
-                  style: const TextStyle(color: Colors.grey),
+                  style: TextStyle(color: Colors.grey),
                 ),
               ),
             ),

@@ -3,7 +3,6 @@ import 'package:esc_pos_utils/esc_pos_utils.dart';
 import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
 class BluetoothPrinterConfig {
   final String name;

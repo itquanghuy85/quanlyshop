@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; // BỔ SUNG THƯ VIỆN BỊ THIẾU
+// BỔ SUNG THƯ VIỆN BỊ THIẾU
 import 'package:fl_chart/fl_chart.dart';
 import '../data/db_helper.dart';
-import '../services/user_service.dart';
 import '../services/notification_service.dart';
 import '../services/firestore_service.dart';
 import '../widgets/validated_text_field.dart';
@@ -104,7 +102,7 @@ class _ExpenseViewState extends State<ExpenseView> {
     String category = "PHÁT SINH";
     String payMethod = "TIỀN MẶT";
 
-    bool _isValidExpenseInput() {
+    bool isValidExpenseInput() {
       return titleC.text.isNotEmpty && amountC.text.isNotEmpty;
     }
 
@@ -159,7 +157,7 @@ class _ExpenseViewState extends State<ExpenseView> {
             TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("HỦY")),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFD32F2F), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-              onPressed: _isValidExpenseInput() && !_isSaving ? () async {
+              onPressed: isValidExpenseInput() && !_isSaving ? () async {
                 if (titleC.text.isEmpty || amountC.text.isEmpty || _isSaving) return;
                 setS(() => _isSaving = true);
                 
@@ -193,7 +191,6 @@ class _ExpenseViewState extends State<ExpenseView> {
               child: const Text("LƯU CHI PHÍ", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
             ),
           ],
-        ),
         ),
       ),
     );

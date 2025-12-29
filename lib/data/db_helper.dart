@@ -1,8 +1,6 @@
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:flutter/foundation.dart';
-import 'dart:convert';
-import 'package:intl/intl.dart';
 import '../models/repair_model.dart';
 import '../models/product_model.dart';
 import '../models/sale_order_model.dart';
@@ -71,8 +69,11 @@ class DBHelper {
       final List<Map<String, dynamic>> existing = await txn.query(table, where: 'firestoreId = ?', whereArgs: [firestoreId], limit: 1);
       Map<String, dynamic> data = Map<String, dynamic>.from(map);
       data.remove('id');
-      if (existing.isNotEmpty) await txn.update(table, data, where: 'id = ?', whereArgs: [existing.first['id']]);
-      else await txn.insert(table, data);
+      if (existing.isNotEmpty) {
+        await txn.update(table, data, where: 'id = ?', whereArgs: [existing.first['id']]);
+      } else {
+        await txn.insert(table, data);
+      }
     });
   }
 
@@ -171,8 +172,11 @@ class DBHelper {
     final db = await database;
     final dateKey = map['dateKey'];
     final existing = await db.query('cash_closings', where: 'dateKey = ?', whereArgs: [dateKey], limit: 1);
-    if (existing.isNotEmpty) await db.update('cash_closings', map, where: 'id = ?', whereArgs: [existing.first['id']]);
-    else await db.insert('cash_closings', map);
+    if (existing.isNotEmpty) {
+      await db.update('cash_closings', map, where: 'id = ?', whereArgs: [existing.first['id']]);
+    } else {
+      await db.insert('cash_closings', map);
+    }
   }
 
   // --- ATTENDANCE & WORK SCHEDULES ---
@@ -305,8 +309,9 @@ class DBHelper {
   // --- SYSTEM ---
   Future<void> updateOrderStatusFromDebt(String linkedId, int newPaidAmount) async {
     final db = await database;
-    if (linkedId.startsWith('sale_')) await db.rawUpdate('UPDATE sales SET downPayment = ? WHERE firestoreId = ?', [newPaidAmount, linkedId]);
-    else if (linkedId.startsWith('rep_')) await db.rawUpdate('UPDATE repairs SET paymentMethod = "ĐÃ THANH TOÁN" WHERE firestoreId = ?', [linkedId]);
+    if (linkedId.startsWith('sale_')) {
+      await db.rawUpdate('UPDATE sales SET downPayment = ? WHERE firestoreId = ?', [newPaidAmount, linkedId]);
+    } else if (linkedId.startsWith('rep_')) await db.rawUpdate('UPDATE repairs SET paymentMethod = "ĐÃ THANH TOÁN" WHERE firestoreId = ?', [linkedId]);
   }
   Future<void> cleanDuplicateData() async {
     final db = await database;
@@ -318,7 +323,9 @@ class DBHelper {
     final db = await database;
     await db.transaction((txn) async {
       final tables = ['repairs', 'products', 'sales', 'suppliers', 'expenses', 'debts', 'customers', 'attendance', 'audit_logs', 'inventory_checks', 'cash_closings', 'payroll_settings', 'purchase_orders', 'work_schedules', 'debt_payments'];
-      for (var t in tables) await txn.delete(t);
+      for (var t in tables) {
+        await txn.delete(t);
+      }
     });
   }
 

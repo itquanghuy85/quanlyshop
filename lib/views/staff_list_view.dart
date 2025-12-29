@@ -823,8 +823,8 @@ class _StaffListViewState extends State<StaffListView> {
                     child: FloatingActionButton(
                       onPressed: _showInviteQRDialog,
                       tooltip: 'Tạo mã mời QR',
-                      child: const Icon(Icons.qr_code_2),
                       backgroundColor: Colors.blue,
+                      child: const Icon(Icons.qr_code_2),
                     ),
                   ),
                 FloatingActionButton.extended(
@@ -905,7 +905,7 @@ class _StaffListViewState extends State<StaffListView> {
                                     final shopName = shopData['name'] ?? 'Shop không tên';
                                     return Text("Shop: $shopName", style: const TextStyle(fontSize: 11, color: Colors.blue, fontWeight: FontWeight.w500));
                                   } else if (snapshot.hasError) {
-                                    return Text("Shop: Lỗi tải", style: const TextStyle(fontSize: 11, color: Colors.red));
+                                    return const Text("Shop: Lỗi tải", style: TextStyle(fontSize: 11, color: Colors.red));
                                   } else {
                                     return Text("Shop: $shopId", style: const TextStyle(fontSize: 11, color: Colors.blue));
                                   }
@@ -916,7 +916,7 @@ class _StaffListViewState extends State<StaffListView> {
                           ],
                         ),
                         isThreeLine: true,
-                        trailing: Icon(Icons.edit_note_rounded, color: Colors.blueAccent),
+                        trailing: const Icon(Icons.edit_note_rounded, color: Colors.blueAccent),
                         onTap: () => _showStaffActivityCenter(uid, displayName, email, role, userData),
                       ),
                     );
@@ -1242,8 +1242,11 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter> with SingleT
                 IconButton(
                   icon: Icon(_isEditing ? Icons.check_circle : Icons.edit, color: _isEditing ? Colors.green : Colors.blue),
                   onPressed: () {
-                    if (_isEditing) _saveStaffInfo();
-                    else setState(() => _isEditing = true);
+                    if (_isEditing) {
+                      _saveStaffInfo();
+                    } else {
+                      setState(() => _isEditing = true);
+                    }
                   },
                 )
               ],
@@ -1593,13 +1596,13 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter> with SingleT
                       ],
                     ),
                     const SizedBox(height: 8),
-                    Row(
+                    const Row(
                       children: [
-                        const Icon(Icons.calendar_today, color: Colors.purple),
-                        const SizedBox(width: 8),
+                        Icon(Icons.calendar_today, color: Colors.purple),
+                        SizedBox(width: 8),
                         Text(
                           "Ngày làm việc: Thứ 2 - Thứ 7",
-                          style: const TextStyle(fontSize: 14),
+                          style: TextStyle(fontSize: 14),
                         ),
                       ],
                     ),
@@ -1608,19 +1611,19 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter> with SingleT
               ),
             ),
           ] else ...[
-            Card(
+            const Card(
               child: Padding(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.all(16),
                 child: Column(
                   children: [
-                    const Icon(Icons.schedule, size: 48, color: Colors.grey),
-                    const SizedBox(height: 8),
-                    const Text(
+                    Icon(Icons.schedule, size: 48, color: Colors.grey),
+                    SizedBox(height: 8),
+                    Text(
                       "Chưa có lịch làm việc",
                       style: TextStyle(color: Colors.grey, fontSize: 16),
                     ),
-                    const SizedBox(height: 8),
-                    const Text(
+                    SizedBox(height: 8),
+                    Text(
                       "Nhấn 'Chỉnh sửa' để thiết lập lịch làm việc cho nhân viên này",
                       style: TextStyle(color: Colors.grey, fontSize: 12),
                       textAlign: TextAlign.center,

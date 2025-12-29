@@ -12,7 +12,7 @@ class BluetoothPrinterTestView extends StatefulWidget {
 class _BluetoothPrinterTestViewState extends State<BluetoothPrinterTestView> {
   String _status = "Chưa kiểm tra";
   bool _isTesting = false;
-  List<String> _logs = [];
+  final List<String> _logs = [];
 
   void _addLog(String message) {
     setState(() {
@@ -230,11 +230,11 @@ class _BluetoothPrinterTestViewState extends State<BluetoothPrinterTestView> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  const Text(
                     "HƯỚNG DẪN:",
                     style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue),
                   ),
-                  SizedBox(height: 8),
+                  const SizedBox(height: 8),
                   Text(
                     "1. Nhấn 'YÊU CẦU QUYỀN BLUETOOTH' để cấp quyền cần thiết\n"
                     "2. Đảm bảo Bluetooth đã bật trong cài đặt thiết bị\n"

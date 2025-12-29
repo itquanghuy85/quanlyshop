@@ -7,7 +7,6 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:esc_pos_printer/esc_pos_printer.dart';
 import 'package:esc_pos_utils/esc_pos_utils.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -272,9 +271,9 @@ class _SaleDetailViewState extends State<SaleDetailView> {
               TextField(controller: imeis, decoration: const InputDecoration(labelText: "IMEI/Serial")),
               TextField(controller: totalPrice, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "Tổng tiền (.000)")),
               TextField(controller: totalCost, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "Giá vốn (.000)")),
-              DropdownButtonFormField<String>(value: warranty, decoration: const InputDecoration(labelText: "Bảo hành"), items: warranties.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(), onChanged: (v) => warranty = v ?? warranty),
+              DropdownButtonFormField<String>(initialValue: warranty, decoration: const InputDecoration(labelText: "Bảo hành"), items: warranties.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(), onChanged: (v) => warranty = v ?? warranty),
               DropdownButtonFormField<String>(
-                value: payment,
+                initialValue: payment,
                 decoration: const InputDecoration(labelText: "Hình thức"),
                 items: const ["TIỀN MẶT", "CHUYỂN KHOẢN", "CÔNG NỢ", "TRẢ GÓP (NH)"]
                     .map((e) => DropdownMenuItem(value: e, child: Text(e)))
@@ -408,7 +407,7 @@ class _SaleDetailViewState extends State<SaleDetailView> {
     );
 
     await screenshotController.captureFromWidget(invoiceWidget).then((image) async {
-      final imagePath = '${directory}/$fileName';
+      final imagePath = '$directory/$fileName';
       await File(imagePath).writeAsBytes(image);
       await Share.shareXFiles([XFile(imagePath)], text: 'HÓA ĐƠN SHOP $_shopName');
     });

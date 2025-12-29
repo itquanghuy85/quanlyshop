@@ -1,16 +1,12 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../data/db_helper.dart';
 import '../models/repair_model.dart';
-import '../models/product_model.dart';
 import '../models/sale_order_model.dart';
 import '../services/notification_service.dart';
 import '../services/user_service.dart';
-import '../services/firestore_service.dart';
 import '../widgets/currency_text_field.dart';
 import 'debt_view.dart';
 import 'warranty_view.dart';
@@ -32,7 +28,7 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
   List<Map<String, dynamic>> _debtPayments = []; 
   bool _hasRevenueAccess = false;
   bool _isLoading = true;
-  String _selectedPeriod = 'Tháng này';
+  final String _selectedPeriod = 'Tháng này';
 
   final cashEndCtrl = TextEditingController();
   final bankEndCtrl = TextEditingController();
@@ -130,7 +126,7 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
         const Text("GIAO DỊCH TRONG NGÀY", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.blueGrey)),
         const SizedBox(height: 12),
         if (todayTrans.isEmpty) const Center(child: Padding(padding: EdgeInsets.all(20), child: Text("Chưa có giao dịch")))
-        else ...todayTrans.map((t) => _buildTransactionRow(t)).toList(),
+        else ...todayTrans.map((t) => _buildTransactionRow(t)),
       ],
     );
   }
