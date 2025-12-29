@@ -95,13 +95,13 @@ class _PrinterSettingViewState extends State<PrinterSettingView> {
   Widget _buildPrinterCard({required String title, required String desc, required IconData icon, required Color color, required TextEditingController controller, required bool isEnable, Function(bool)? onToggle}) {
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(25), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10)]),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(25), boxShadow: [BoxShadow(color: Colors.black.withAlpha(8), blurRadius: 10)]),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              CircleAvatar(backgroundColor: color.withOpacity(0.1), child: Icon(icon, color: color)),
+              CircleAvatar(backgroundColor: color.withAlpha(25), child: Icon(icon, color: color)),
               const SizedBox(width: 15),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)), Text(desc, style: const TextStyle(fontSize: 11, color: Colors.grey))])),
               if (onToggle != null) Switch(value: isEnable, onChanged: onToggle, activeColor: color),

@@ -78,7 +78,7 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
                     return Container(
                       margin: const EdgeInsets.only(bottom: 12),
                       padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(color: Colors.green.withOpacity(0.05), borderRadius: BorderRadius.circular(12)),
+                      decoration: BoxDecoration(color: Colors.green.withAlpha(13), borderRadius: BorderRadius.circular(12)),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -191,7 +191,8 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
               // 5. Nhật ký
               await db.logAction(userId: user?.uid ?? "0", userName: userName, action: "THU NỢ", type: "DEBT", targetId: debt['firestoreId'], desc: "Khách trả ${NumberFormat('#,###').format(payAmount)} đ.");
 
-              Navigator.pop(ctx);
+              if (!mounted) return;
+              Navigator.pop(context);
               _refresh();
               NotificationService.showSnackBar("Đã thu nợ và đồng bộ hệ thống!", color: Colors.green);
             }, child: const Text("XÁC NHẬN")),
@@ -250,7 +251,7 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
   Widget _summaryHeader(String label, int amount, Color color) {
     return Container(
       width: double.infinity, margin: const EdgeInsets.all(16), padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(20), border: Border.all(color: color.withOpacity(0.3))),
+      decoration: BoxDecoration(color: color.withAlpha(25), borderRadius: BorderRadius.circular(20), border: Border.all(color: color.withAlpha(77))),
       child: Column(children: [Text(label, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 11)), const SizedBox(height: 4), Text("${NumberFormat('#,###').format(amount)} đ", style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 24))]),
     );
   }
@@ -263,7 +264,7 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10)]),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), boxShadow: [BoxShadow(color: Colors.black.withAlpha(5), blurRadius: 10)]),
       child: ListTile(
         onTap: () => _showDebtHistory(d),
         contentPadding: const EdgeInsets.all(15),

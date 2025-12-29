@@ -132,7 +132,7 @@ class _CustomerHistoryViewState extends State<CustomerHistoryView> {
                       decoration: m.BoxDecoration(
                         color: m.Colors.white,
                         borderRadius: m.BorderRadius.circular(15),
-                        boxShadow: [m.BoxShadow(color: m.Colors.black.withOpacity(0.02), blurRadius: 10)]
+                        boxShadow: [m.BoxShadow(color: m.Colors.black.withAlpha(5), blurRadius: 10)]
                       ),
                       child: m.ListTile(
                         contentPadding: const m.EdgeInsets.all(12),
@@ -141,7 +141,7 @@ class _CustomerHistoryViewState extends State<CustomerHistoryView> {
                           child: m.Container(
                             width: 55, height: 55,
                             decoration: m.BoxDecoration(
-                              color: isRepair ? m.Colors.orange.withOpacity(0.1) : m.Colors.pink.withOpacity(0.1),
+                              color: isRepair ? m.Colors.orange.withAlpha(25) : m.Colors.pink.withAlpha(25),
                               borderRadius: m.BorderRadius.circular(10),
                             ),
                             child: hasThumb

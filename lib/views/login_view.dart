@@ -208,15 +208,16 @@ class _LoginViewState extends State<LoginView> {
               ),              const SizedBox(height: 15),
               TextButton(
                 onPressed: () async {
+                  final messenger = ScaffoldMessenger.of(context);
                   final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => const RegisterView()));
-                  if (result == true && mounted) {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Đăng ký thành công! Vui lòng đăng nhập.')),
-                      );
-                    }
+                  if (result == true) {
+                    messenger.showSnackBar(
+                      const SnackBar(content: Text('Đăng ký thành công! Vui lòng đăng nhập.')),
+                    );
                   }
                 },
+
+
                 child: const Text('Chưa có tài khoản? Đăng ký ngay', style: TextStyle(color: Colors.blueAccent)),
               ),              const SizedBox(height: 30),
               _buildCalendarCard(),

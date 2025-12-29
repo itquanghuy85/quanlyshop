@@ -47,6 +47,7 @@ class _MyProfileViewState extends State<MyProfileView> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
     setState(() => _saving = true);
+    final messenger = ScaffoldMessenger.of(context);
     try {
       await UserService.updateUserInfo(
         uid: user.uid,
@@ -56,13 +57,9 @@ class _MyProfileViewState extends State<MyProfileView> {
         role: _role,
         photoUrl: _photoPath,
       );
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ĐÃ LƯU HỒ SƠ CÁ NHÂN')));
-      }
+      messenger.showSnackBar(const SnackBar(content: Text('ĐÃ LƯU HỒ SƠ CÁ NHÂN')));
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi: $e')));
-      }
+      messenger.showSnackBar(SnackBar(content: Text('Lỗi: $e')));
     } finally {
       if (mounted) setState(() => _saving = false);
     }

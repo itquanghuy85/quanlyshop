@@ -94,7 +94,7 @@ class _SaleListViewState extends State<SaleListView> {
                 decoration: BoxDecoration(
                   color: Colors.white, 
                   borderRadius: BorderRadius.circular(20), 
-                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10)]
+                  boxShadow: [BoxShadow(color: Colors.black.withAlpha(5), blurRadius: 10)]
                 ),
                 child: ListTile(
                   onTap: () {
@@ -130,7 +130,7 @@ class _SaleListViewState extends State<SaleListView> {
                         children: [
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(color: _getPayColor(s.paymentMethod).withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                            decoration: BoxDecoration(color: _getPayColor(s.paymentMethod).withAlpha(25), borderRadius: BorderRadius.circular(8)),
                             child: Text(s.paymentMethod, style: TextStyle(color: _getPayColor(s.paymentMethod), fontSize: 9, fontWeight: FontWeight.bold)),
                           ),
                           Text("NV: ${s.sellerName}", style: const TextStyle(fontSize: 10, fontStyle: FontStyle.italic, color: Colors.grey)),

@@ -108,11 +108,13 @@ class ShopsTab extends StatelessWidget {
                         ),
                         value: appLocked,
                         onChanged: (v) async {
+                          final messenger = ScaffoldMessenger.of(context);
                           await UserService.updateShopControlFlags(shopId: shopId, appLocked: v);
-                          ScaffoldMessenger.of(context).showSnackBar(
+                          messenger.showSnackBar(
                             SnackBar(content: Text(v ? 'ĐÃ KHÓA toàn bộ app cho shop $shopId' : 'ĐÃ MỞ KHÓA app cho shop $shopId')),
                           );
                         },
+
                       ),
                       const SizedBox(height: 4),
                       SwitchListTile(
@@ -124,11 +126,13 @@ class ShopsTab extends StatelessWidget {
                         ),
                         value: adminFinanceLocked,
                         onChanged: (v) async {
+                          final messenger = ScaffoldMessenger.of(context);
                           await UserService.updateShopControlFlags(shopId: shopId, adminFinanceLocked: v);
-                          ScaffoldMessenger.of(context).showSnackBar(
+                          messenger.showSnackBar(
                             SnackBar(content: Text(v ? 'ĐÃ KHÓA tài chính của quản lý shop $shopId' : 'ĐÃ MỞ lại tài chính cho quản lý shop $shopId')),
                           );
                         },
+
                       ),
                     ],
                   ),
@@ -301,6 +305,8 @@ class UsersTab extends StatelessWidget {
           ),
           TextButton(
             onPressed: () async {
+              final messenger = ScaffoldMessenger.of(context);
+              final navigator = Navigator.of(context);
               try {
                 await UserService.updateUserInfo(
                   uid: uid,
@@ -310,12 +316,12 @@ class UsersTab extends StatelessWidget {
                   role: roleController.text,
                   shopId: shopIdController.text.isEmpty ? null : shopIdController.text,
                 );
-                Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
+                navigator.pop();
+                messenger.showSnackBar(
                   const SnackBar(content: Text('Đã cập nhật thông tin user')),
                 );
               } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
+                messenger.showSnackBar(
                   SnackBar(content: Text('Lỗi: $e')),
                 );
               }
@@ -340,9 +346,11 @@ class UsersTab extends StatelessWidget {
           ),
           TextButton(
             onPressed: () async {
+              final messenger = ScaffoldMessenger.of(context);
+              final navigator = Navigator.of(context);
               await UserService.deleteUser(uid);
-              Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
+              navigator.pop();
+              messenger.showSnackBar(
                 SnackBar(content: Text('Đã xóa user $email')),
               );
             },

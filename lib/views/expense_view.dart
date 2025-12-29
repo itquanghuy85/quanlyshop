@@ -177,19 +177,19 @@ class _ExpenseViewState extends State<ExpenseView> {
                   'paymentMethod': payMethod,
                 };
 
-                await db.insertExpense(expData);
+                final navigator = Navigator.of(ctx);
+              await db.insertExpense(expData);
                 await FirestoreService.addExpenseCloud(expData);
                 
                 final user = FirebaseAuth.instance.currentUser;
                 await db.logAction(userId: user?.uid ?? "0", userName: user?.email?.split('@').first.toUpperCase() ?? "NV", action: "CHI PHÍ", type: "FINANCE", desc: "Đã chi ${NumberFormat('#,###').format(amount)}đ");
 
-                if (mounted) {
-                  Navigator.pop(ctx);
-                  _refresh();
-                  _isSaving = false;
-                  NotificationService.showSnackBar("Đã lưu chi phí!", color: Colors.green);
-                }
-              } : null, 
+                if (!mounted) return;
+                navigator.pop();
+                _refresh();
+                setState(() { _isSaving = false; });
+                NotificationService.showSnackBar("Đã lưu chi phí!", color: Colors.green);
+              }, 
               child: const Text("LƯU CHI PHÍ", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
             ),
           ],
@@ -258,7 +258,7 @@ class _ExpenseViewState extends State<ExpenseView> {
       decoration: BoxDecoration(
         gradient: const LinearGradient(colors: [Color(0xFFB71C1C), Color(0xFFEF5350)]),
         borderRadius: BorderRadius.circular(25),
-        boxShadow: [BoxShadow(color: Colors.red.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8))],
+        boxShadow: [BoxShadow(color: Colors.red.withAlpha(77), blurRadius: 15, offset: const Offset(0, 8))],
       ),
       child: Row(
         children: [
@@ -314,12 +314,12 @@ class _ExpenseViewState extends State<ExpenseView> {
     
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10)]),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), boxShadow: [BoxShadow(color: Colors.black.withAlpha(5), blurRadius: 10)]),
       child: ListTile(
         contentPadding: const EdgeInsets.all(15),
         leading: Container(
           padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(15)),
+          decoration: BoxDecoration(color: color.withAlpha(25), borderRadius: BorderRadius.circular(15)),
           child: Icon(cat == 'CỐ ĐỊNH' ? Icons.home_work : Icons.shopping_cart, color: color, size: 24),
         ),
         title: Text(e['title'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1A237E))),

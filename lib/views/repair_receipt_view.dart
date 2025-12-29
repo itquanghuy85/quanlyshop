@@ -45,6 +45,7 @@ class _RepairReceiptViewState extends State<RepairReceiptView> {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
+    final messenger = ScaffoldMessenger.of(context);
 
     try {
       // Tạo repair record
@@ -71,12 +72,12 @@ class _RepairReceiptViewState extends State<RepairReceiptView> {
         // In phiếu tiếp nhận
         await _printReceipt(repair, docId);
 
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Đã lưu và in phiếu tiếp nhận thành công!')),
-          );
+        messenger.showSnackBar(
+          const SnackBar(content: Text('Đã lưu và in phiếu tiếp nhận thành công!')),
+        );
 
-          // Reset form
+        // Reset form (guard with mounted)
+        if (mounted) {
           _formKey.currentState!.reset();
           _generateReceiptCode();
         }
@@ -84,11 +85,9 @@ class _RepairReceiptViewState extends State<RepairReceiptView> {
         throw Exception('Không thể lưu phiếu tiếp nhận');
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi: $e')),
-        );
-      }
+      messenger.showSnackBar(
+        SnackBar(content: Text('Lỗi: $e')),
+      );
     } finally {
       setState(() => _isLoading = false);
     }

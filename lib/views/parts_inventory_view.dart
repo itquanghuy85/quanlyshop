@@ -20,7 +20,6 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
 
   // Theme colors cho màn hình phụ tùng
   final Color _primaryColor = Colors.purple; // Màu chính cho phụ tùng
-  final Color _accentColor = Colors.purple.shade600;
   final Color _backgroundColor = const Color(0xFFF8FAFF);
 
   @override
@@ -91,7 +90,8 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
               // Cập nhật linh kiện (giả sử có hàm updatePart trong db_helper)
               await (await db.database).update('repair_parts', data, where: 'id = ?', whereArgs: [part['id']]);
             }
-            Navigator.pop(ctx);
+            if (!mounted) return;
+            Navigator.of(context).pop();
             _refreshParts();
           }, child: const Text("XÁC NHẬN"), enabled: nameC.text.isNotEmpty),
         ],
@@ -122,7 +122,7 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                 child: ListTile(
                   leading: CircleAvatar(
-                    backgroundColor: isLow ? Colors.red.withOpacity(0.1) : _primaryColor.withOpacity(0.1),
+                    backgroundColor: isLow ? Colors.red.withAlpha(25) : _primaryColor.withAlpha(25),
                     child: Icon(Icons.settings_input_component, color: isLow ? Colors.red : _primaryColor),
                   ),
                   title: Text(p['partName'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),

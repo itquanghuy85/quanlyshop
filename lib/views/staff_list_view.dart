@@ -886,7 +886,7 @@ class _StaffListViewState extends State<StaffListView> {
                       child: ListTile(
                         leading: CircleAvatar(
                           backgroundImage: _safeImageProvider(photoUrl),
-                          backgroundColor: role == 'owner' ? Colors.purple.withOpacity(0.1) : role == 'manager' ? Colors.orange.withOpacity(0.1) : role == 'employee' ? Colors.blue.withOpacity(0.1) : role == 'technician' ? Colors.green.withOpacity(0.1) : role == 'admin' ? Colors.red.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
+                          backgroundColor: role == 'owner' ? Colors.purple.withAlpha(25) : role == 'manager' ? Colors.orange.withAlpha(25) : role == 'employee' ? Colors.blue.withAlpha(25) : role == 'technician' ? Colors.green.withAlpha(25) : role == 'admin' ? Colors.red.withAlpha(25) : Colors.grey.withAlpha(25),
                           child: photoUrl == null ? Icon(role == 'owner' ? Icons.business : role == 'manager' ? Icons.supervisor_account : role == 'employee' ? Icons.work : role == 'technician' ? Icons.build : role == 'admin' ? Icons.admin_panel_settings : Icons.person, color: role == 'owner' ? Colors.purple : role == 'manager' ? Colors.orange : role == 'employee' ? Colors.blue : role == 'technician' ? Colors.green : role == 'admin' ? Colors.red : Colors.grey) : null,
                         ),
                         title: Text(displayName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
@@ -1111,10 +1111,12 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter> with SingleT
                 'updatedAt': DateTime.now().millisecondsSinceEpoch,
               };
 
+              final messenger = ScaffoldMessenger.of(context);
+              final navigator = Navigator.of(context);
               await db.upsertWorkSchedule(widget.uid, newSchedule);
               await _loadWorkSchedule();
-              Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
+              navigator.pop();
+              messenger.showSnackBar(
                 const SnackBar(content: Text("Đã cập nhật lịch làm việc"), backgroundColor: Colors.green),
               );
             },
@@ -1221,7 +1223,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter> with SingleT
                   child: CircleAvatar(
                     radius: 30,
                     backgroundImage: _safeImageProvider(_photoPath),
-                    backgroundColor: Colors.blue.withOpacity(0.1),
+                    backgroundColor: Colors.blue.withAlpha(25),
                     child: _photoPath == null ? const Icon(Icons.camera_alt, color: Colors.blue) : null,
                   ),
                 ),
@@ -1314,7 +1316,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter> with SingleT
                         decoration: BoxDecoration(
                           color: Colors.grey[50],
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.grey.withOpacity(0.2)),
+                          border: Border.all(color: Colors.grey.withAlpha(51)),
                         ),
                         child: Column(
                           children: [

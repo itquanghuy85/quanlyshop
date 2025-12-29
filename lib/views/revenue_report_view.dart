@@ -123,7 +123,7 @@ class _RevenueReportViewState extends State<RevenueReportView> {
       decoration: BoxDecoration(
         color: isMain ? color : Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10)],
+        boxShadow: [BoxShadow(color: Colors.black.withAlpha(5), blurRadius: 10)],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,

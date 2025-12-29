@@ -125,7 +125,7 @@ class _MyAppState extends State<MyApp> {
             minimumSize: const Size(double.infinity, 55),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
             elevation: 4,
-            shadowColor: const Color(0xFF2962FF).withOpacity(0.4),
+            shadowColor: Color(0xFF2962FF).withAlpha(102),
           ),
         ),
       ),

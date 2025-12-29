@@ -149,7 +149,7 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
   Widget _inputClosingSection() {
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)]),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withAlpha(13), blurRadius: 10)]),
       child: Column(children: [
         const Text("ĐỐI SOÁT THỰC TẾ CUỐI NGÀY", style: TextStyle(fontWeight: FontWeight.bold)),
         const SizedBox(height: 15),
@@ -181,7 +181,7 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
     HapticFeedback.mediumImpact(); _loadAllData(); cashEndCtrl.clear(); bankEndCtrl.clear();
   }
 
-  Widget _balanceCard(String l, int v, Color c) => Expanded(child: Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: c.withOpacity(0.1), borderRadius: BorderRadius.circular(15), border: Border.all(color: c.withOpacity(0.2))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(l, style: TextStyle(fontSize: 9, color: c, fontWeight: FontWeight.bold)), Text(NumberFormat('#,###').format(v), style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: c))])));
+  Widget _balanceCard(String l, int v, Color c) => Expanded(child: Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: c.withAlpha(25), borderRadius: BorderRadius.circular(15), border: Border.all(color: c.withAlpha(51))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(l, style: TextStyle(fontSize: 9, color: c, fontWeight: FontWeight.bold)), Text(NumberFormat('#,###').format(v), style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: c))])));
 
   Widget _buildOverview() {
     final now = DateTime.now();
@@ -193,7 +193,7 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
     int profit = totalIn - totalOut - fSales.fold<int>(0, (sum, s) => sum + s.totalCost) - fRepairs.fold<int>(0, (sum, r) => sum + r.cost);
     return ListView(padding: const EdgeInsets.all(16), children: [Row(children: [_miniCard("THU HÔM NAY", totalIn, Colors.green), const SizedBox(width: 12), _miniCard("CHI HÔM NAY", totalOut, Colors.redAccent)]), const SizedBox(height: 16), _mainProfitCard(profit)]);
   }
-  Widget _miniCard(String l, int v, Color c) => Expanded(child: Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), border: Border.all(color: c.withOpacity(0.2))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(l, style: const TextStyle(fontSize: 10, color: Colors.grey)), Text(NumberFormat('#,###').format(v), style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: c))])));
+  Widget _miniCard(String l, int v, Color c) => Expanded(child: Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), border: Border.all(color: c.withAlpha(51))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(l, style: const TextStyle(fontSize: 10, color: Colors.grey)), Text(NumberFormat('#,###').format(v), style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: c))])));
   Widget _mainProfitCard(int p) => Container(width: double.infinity, padding: const EdgeInsets.all(24), decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF2962FF), Color(0xFF00B0FF)]), borderRadius: BorderRadius.circular(20)), child: Column(children: [const Text("LỢI NHUẬN RÒNG HÔM NAY", style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold)), const SizedBox(height: 8), Text("${NumberFormat('#,###').format(p)} đ", style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold))]));
   Widget _buildSaleDetail() { final list = _sales.where((s) => _isSameDay(s.soldAt, DateTime.now())).toList(); return ListView.builder(padding: const EdgeInsets.all(16), itemCount: list.length, itemBuilder: (ctx, i) => Card(child: ListTile(title: Text(list[i].productNames), subtitle: Text("Khách: ${list[i].customerName}"), trailing: Text("+${NumberFormat('#,###').format(list[i].totalPrice)}", style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold))))); }
   Widget _buildRepairDetail() { final list = _repairs.where((r) => r.status >= 3 && _isSameDay(r.deliveredAt ?? r.createdAt, DateTime.now())).toList(); return ListView.builder(padding: const EdgeInsets.all(16), itemCount: list.length, itemBuilder: (ctx, i) => Card(child: ListTile(title: Text(list[i].model), subtitle: Text("Khách: ${list[i].customerName}"), trailing: Text("+${NumberFormat('#,###').format(list[i].price)}", style: const TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold))))); }

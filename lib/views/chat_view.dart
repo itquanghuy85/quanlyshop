@@ -125,13 +125,12 @@ class _ChatViewState extends State<ChatView> {
     final key = data['linkedKey'] as String?;
     if (type == null || key == null || key.isEmpty) return;
 
+    final messenger = ScaffoldMessenger.of(context);
     try {
       if (type == 'repair') {
         final Repair? r = await _db.getRepairByFirestoreId(key);
         if (r == null) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Không tìm thấy đơn sửa tương ứng')));
-          }
+          messenger.showSnackBar(const SnackBar(content: Text('Không tìm thấy đơn sửa tương ứng')));
           return;
         }
         if (!mounted) return;
@@ -142,9 +141,7 @@ class _ChatViewState extends State<ChatView> {
       } else if (type == 'sale') {
         final SaleOrder? s = await _db.getSaleByFirestoreId(key);
         if (s == null) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Không tìm thấy đơn bán tương ứng')));
-          }
+          messenger.showSnackBar(const SnackBar(content: Text('Không tìm thấy đơn bán tương ứng')));
           return;
         }
         if (!mounted) return;
@@ -154,9 +151,7 @@ class _ChatViewState extends State<ChatView> {
         );
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi khi mở đơn: $e')));
-      }
+      messenger.showSnackBar(SnackBar(content: Text('Lỗi khi mở đơn: $e')));
     }
   }
 

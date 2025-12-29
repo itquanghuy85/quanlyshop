@@ -114,7 +114,7 @@ class _WarrantyViewState extends State<WarrantyView> {
 
   Widget _buildEmptyState() {
     return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      Icon(Icons.verified_user_outlined, size: 100, color: Colors.blue.withOpacity(0.2)),
+      Icon(Icons.verified_user_outlined, size: 100, color: Colors.blue.withAlpha(51)),
       const SizedBox(height: 15),
       const Text("KHÔNG CÓ MÁY NÀO TRONG HẠN BẢO HÀNH", style: TextStyle(color: Colors.blueGrey, fontWeight: FontWeight.bold, fontSize: 13)),
       const Text("Mọi đơn hàng đã hết hạn hoặc chưa được giao.", style: TextStyle(color: Colors.grey, fontSize: 11)),
@@ -133,7 +133,7 @@ class _WarrantyViewState extends State<WarrantyView> {
       margin: const EdgeInsets.only(bottom: 18),
       decoration: BoxDecoration(
         color: Colors.white, borderRadius: BorderRadius.circular(22),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 5))],
+        boxShadow: [BoxShadow(color: Colors.black.withAlpha(8), blurRadius: 10, offset: const Offset(0, 5))],
       ),
       child: InkWell(
         onTap: () {
@@ -150,7 +150,7 @@ class _WarrantyViewState extends State<WarrantyView> {
                 children: [
                   Container(
                     padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(color: (isSale ? Colors.pink : Colors.orange).withOpacity(0.1), borderRadius: BorderRadius.circular(15)),
+                    decoration: BoxDecoration(color: (isSale ? Colors.pink : Colors.orange).withAlpha(25), borderRadius: BorderRadius.circular(15)),
                     child: Icon(isSale ? Icons.shopping_bag_rounded : Icons.handyman_rounded, color: isSale ? Colors.pink : Colors.orange, size: 26),
                   ),
                   const SizedBox(width: 15),
@@ -196,7 +196,7 @@ class _WarrantyViewState extends State<WarrantyView> {
     Color color = days < 10 ? Colors.red : (days < 30 ? Colors.orange : Colors.green);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10), border: Border.all(color: color.withOpacity(0.2))),
+      decoration: BoxDecoration(color: color.withAlpha(25), borderRadius: BorderRadius.circular(10), border: Border.all(color: color.withAlpha(51))),
       child: Column(children: [
         Text("$days", style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 16)),
         Text("NGÀY", style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 8)),

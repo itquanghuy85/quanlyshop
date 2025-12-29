@@ -163,6 +163,7 @@ class _HomeViewState extends State<HomeView> {
           actions: [
             IconButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => QrScanView(role: widget.role))), icon: const Icon(Icons.qr_code_scanner_rounded, color: Color(0xFF2962FF))),
             IconButton(onPressed: () => _syncNow(), icon: _isSyncing ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.sync, color: Colors.green, size: 28)),
+            IconButton(onPressed: _openSettingsCenter, icon: const Icon(Icons.settings_rounded, color: Colors.black54), tooltip: 'Cài đặt'),
             IconButton(onPressed: () async {
               await SyncService.cancelAllSubscriptions();
               try {
@@ -197,7 +198,7 @@ class _HomeViewState extends State<HomeView> {
     String _fmt(int v) => NumberFormat('#,###').format(v);
     return Container(
       width: double.infinity, padding: const EdgeInsets.all(18), 
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10)]), 
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withAlpha(8), blurRadius: 10)]), 
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         const Text("TRẠNG THÁI CỬA HÀNG", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
         const SizedBox(height: 15),
@@ -228,7 +229,7 @@ class _HomeViewState extends State<HomeView> {
 
     // NHÓM 2: QUẢN LÝ KHO & BẢO HÀNH
     addModule('allowViewInventory', "Kho hàng", Icons.inventory_rounded, [const Color(0xFFFF6F00), const Color(0xFFFFA726)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => InventoryView(role: widget.role))));
-    addModule('allowViewInventory', "Kiểm kho QR", Icons.qr_code_scanner_rounded, [const Color(0xFFFFAB00), const Color(0xFFFFD740)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const InventoryCheckView())));
+    // 'Kiểm kho QR' removed from Home screen as requested
     addModule('allowViewWarranty', "Bảo hành", Icons.verified_user_rounded, [const Color(0xFF00C853), const Color(0xFFB2FF59)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WarrantyView())));
 
     // NHÓM 3: NHÂN SỰ & CHAT
@@ -263,7 +264,7 @@ class _HomeViewState extends State<HomeView> {
   }
 
   Widget _menuTile(String title, IconData icon, List<Color> colors, VoidCallback onTap, {Widget? badge}) {
-    return InkWell(onTap: () { HapticFeedback.mediumImpact(); onTap(); }, child: Stack(children: [Container(width: double.infinity, height: double.infinity, decoration: BoxDecoration(gradient: LinearGradient(colors: colors, begin: Alignment.topLeft, end: Alignment.bottomRight), borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: colors[0].withOpacity(0.3), blurRadius: 6, offset: const Offset(0, 3))]), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(icon, color: Colors.white, size: 28), const SizedBox(height: 6), Text(title, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10))])), if (badge != null) badge]));
+    return InkWell(onTap: () { HapticFeedback.mediumImpact(); onTap(); }, child: Stack(children: [Container(width: double.infinity, height: double.infinity, decoration: BoxDecoration(gradient: LinearGradient(colors: colors, begin: Alignment.topLeft, end: Alignment.bottomRight), borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: colors[0].withAlpha(77), blurRadius: 6, offset: const Offset(0, 3))]), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(icon, color: Colors.white, size: 28), const SizedBox(height: 6), Text(title, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10))])), if (badge != null) badge]));
   }
 
   void _openSettingsCenter() {
@@ -280,7 +281,7 @@ class _HomeViewState extends State<HomeView> {
       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WarrantyView())),
       child: Container(
         width: double.infinity, padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(color: Colors.redAccent, borderRadius: BorderRadius.circular(15), boxShadow: [BoxShadow(color: Colors.red.withOpacity(0.2), blurRadius: 10)]),
+        decoration: BoxDecoration(color: Colors.redAccent, borderRadius: BorderRadius.circular(15), boxShadow: [BoxShadow(color: Colors.red.withAlpha(51), blurRadius: 10)]),
         child: Row(children: [
           const Icon(Icons.notification_important, color: Colors.white, size: 28),
           const SizedBox(width: 15),

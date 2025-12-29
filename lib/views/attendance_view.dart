@@ -195,7 +195,7 @@ class _AttendanceViewState extends State<AttendanceView> with TickerProviderStat
     final now = DateTime.now();
     return Container(
       width: double.infinity, padding: const EdgeInsets.all(30),
-      decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF1A237E), Color(0xFF2962FF)]), borderRadius: BorderRadius.circular(25), boxShadow: [BoxShadow(color: Colors.blue.withOpacity(0.3), blurRadius: 15)]),
+      decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF1A237E), Color(0xFF2962FF)]), borderRadius: BorderRadius.circular(25), boxShadow: [BoxShadow(color: Colors.blue.withAlpha(77), blurRadius: 15)]),
       child: Column(children: [
         Text(DateFormat('HH:mm').format(now), style: const TextStyle(fontSize: 48, fontWeight: FontWeight.w900, color: Colors.white)),
         Text(DateFormat('EEEE, dd MMMM', 'vi_VN').format(now).toUpperCase(), style: const TextStyle(color: Colors.white70, letterSpacing: 1.2, fontSize: 12)),

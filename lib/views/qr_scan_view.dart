@@ -140,29 +140,28 @@ class _QrScanViewState extends State<QrScanView> {
       );
 
       // Lưu vào database
+      final messenger = ScaffoldMessenger.of(context);
+      final navigator = Navigator.of(context);
       final docId = await _db.insertRepair(repair);
 
-      if (docId != null && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+      if (docId != null) {
+        messenger.showSnackBar(
           const SnackBar(content: Text('Đã tạo đơn hàng từ tem điện thoại!')),
         );
 
         // Mở chi tiết đơn hàng vừa tạo
         final createdRepair = await _db.getRepairById(docId);
-        if (createdRepair != null && mounted) {
-          await Navigator.push(
-            context,
+        if (createdRepair != null) {
+          await navigator.push(
             MaterialPageRoute(
               builder: (_) => RepairDetailView(repair: createdRepair),
             ),
           );
         }
       } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Lỗi khi tạo đơn hàng từ tem')),
-          );
-        }
+        messenger.showSnackBar(
+          const SnackBar(content: Text('Lỗi khi tạo đơn hàng từ tem')),
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -373,7 +372,7 @@ class _QrScanViewState extends State<QrScanView> {
               height: 240,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.white.withOpacity(0.8), width: 3),
+                border: Border.all(color: Colors.white.withAlpha(204), width: 3),
               ),
             ),
           ),
@@ -385,7 +384,7 @@ class _QrScanViewState extends State<QrScanView> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.6),
+                    color: Colors.black.withAlpha(153),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: const Text(

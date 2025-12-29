@@ -214,7 +214,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
 
   Widget _buildStatusCard() {
     Color color = r.status == 4 ? Colors.blue : (r.status == 3 ? Colors.green : Colors.orange);
-    return Container(padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: color.withOpacity(0.2))), child: Row(children: [Icon(r.status == 4 ? Icons.verified : (r.status == 3 ? Icons.check_circle : Icons.pending_actions), color: color, size: 40), const SizedBox(width: 15), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(r.model.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)), Text(_getStatusText(r.status), style: TextStyle(color: color, fontWeight: FontWeight.bold, letterSpacing: 1.2))]))]));
+    return Container(padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: color.withAlpha(51))), child: Row(children: [Icon(r.status == 4 ? Icons.verified : (r.status == 3 ? Icons.check_circle : Icons.pending_actions), color: color, size: 40), const SizedBox(width: 15), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(r.model.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)), Text(_getStatusText(r.status), style: TextStyle(color: color, fontWeight: FontWeight.bold, letterSpacing: 1.2))]))]));
   }
 
   Widget _buildActionButtons() {
@@ -251,7 +251,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
   Widget _buildBottomActions() {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)]),
+      decoration: BoxDecoration(color: Colors.white, boxShadow: [BoxShadow(color: Colors.black.withAlpha(13), blurRadius: 10)]),
       child: SafeArea(
         child: Row(
           children: [

@@ -188,6 +188,7 @@ class _WorkScheduleSettingsViewState extends State<WorkScheduleSettingsView> wit
   }
 
   Future<void> _saveWorkSchedule() async {
+    final messenger = ScaffoldMessenger.of(context);
     try {
       final prefs = await SharedPreferences.getInstance();
 
@@ -209,22 +210,19 @@ class _WorkScheduleSettingsViewState extends State<WorkScheduleSettingsView> wit
       await prefs.setInt('weekend_ot_rate', int.tryParse(weekendOtRateCtrl.text) ?? 200);
       await prefs.setInt('holiday_ot_rate', int.tryParse(holidayOtRateCtrl.text) ?? 300);
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Đã lưu cài đặt lịch làm việc')),
-        );
-      }
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Đã lưu cài đặt lịch làm việc')),
+      );
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi khi lưu: $e')),
-        );
-      }
+      messenger.showSnackBar(
+        SnackBar(content: Text('Lỗi khi lưu: $e')),
+      );
     }
   }
 
   Future<void> _saveStaffSalary() async {
     if (selectedStaff == null || staffSalaryCtrl.text.isEmpty) return;
+    final messenger = ScaffoldMessenger.of(context);
 
     try {
       final salary = double.tryParse(staffSalaryCtrl.text.replaceAll(',', ''));
@@ -241,17 +239,13 @@ class _WorkScheduleSettingsViewState extends State<WorkScheduleSettingsView> wit
 
       setState(() {});
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Đã lưu lương nhân viên')),
-        );
-      }
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Đã lưu lương nhân viên')),
+      );
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi khi lưu: $e')),
-        );
-      }
+      messenger.showSnackBar(
+        SnackBar(content: Text('Lỗi khi lưu: $e')),
+      );
     }
   }
 

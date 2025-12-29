@@ -214,10 +214,10 @@ class _PayrollViewState extends State<PayrollView> {
     if (!_isManager) return;
     final email = FirebaseAuth.instance.currentUser?.email ?? 'manager';
     final newLock = !_monthLocked;
-    // TODO: Implement payroll month locking
-    // await db.setPayrollMonthLock(DateFormat('yyyy-MM').format(_from), locked: newLock, lockedBy: email, note: 'payroll_view');
+    await db.setPayrollMonthLock(DateFormat('yyyy-MM').format(_from), locked: newLock, lockedBy: email, note: 'payroll_view');
+    await _refreshLockState();
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Tính năng khóa sổ đang phát triển')));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(newLock ? 'Đã khóa tháng' : 'Đã mở khóa tháng')));
   }
 
   Future<void> _exportCsv(Map<String, dynamic> summary) async {
@@ -310,7 +310,7 @@ class _PayrollViewState extends State<PayrollView> {
                 Container(
                   margin: const EdgeInsets.symmetric(horizontal: 12),
                   padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 6)]),
+                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: Colors.black.withAlpha(8), blurRadius: 6)]),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [

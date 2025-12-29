@@ -222,6 +222,9 @@ class _PrinterSelectionDialogState extends State<PrinterSelectionDialog> {
   }
 
   void _confirmSelection(BuildContext context) async {
+    // Capture navigator before any awaits to avoid using BuildContext across async gaps
+    final navigator = Navigator.of(context);
+
     // Save settings based on selection
     if (_selectedPrinter == PrinterType.bluetooth && _selectedBluetoothPrinter != null) {
       await BluetoothPrinterService.savePrinter(_selectedBluetoothPrinter!);
@@ -233,7 +236,7 @@ class _PrinterSelectionDialogState extends State<PrinterSelectionDialog> {
     }
 
     // Return the selected printer configuration
-    Navigator.pop(context, {
+    navigator.pop({
       'type': _selectedPrinter,
       'bluetoothPrinter': _selectedBluetoothPrinter,
       'wifiIp': _wifiIp,
@@ -245,6 +248,6 @@ class _PrinterSelectionDialogState extends State<PrinterSelectionDialog> {
 Future<Map<String, dynamic>?> showPrinterSelectionDialog(BuildContext context) {
   return showDialog<Map<String, dynamic>>(
     context: context,
-    builder: (context) => const PrinterSelectionDialog(),
+    builder: (ctx) => const PrinterSelectionDialog(),
   );
 }

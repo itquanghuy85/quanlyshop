@@ -44,11 +44,12 @@ class _InvoiceTemplateViewState extends State<InvoiceTemplateView> {
   }
 
   Future<void> _saveTemplate() async {
+    final messenger = ScaffoldMessenger.of(context);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('invoice_header', _headerController.text);
     await prefs.setString('invoice_body', _bodyController.text);
     await prefs.setString('invoice_footer', _footerController.text);
-    ScaffoldMessenger.of(context).showSnackBar(
+    messenger.showSnackBar(
       const SnackBar(content: Text('Đã lưu mẫu hóa đơn')),
     );
   }

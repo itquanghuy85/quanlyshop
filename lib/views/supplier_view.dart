@@ -50,8 +50,10 @@ class _SupplierViewState extends State<SupplierView> {
   }
 
   Future<void> _confirmDeleteSupplier(Map<String, dynamic> s) async {
+    final messenger = ScaffoldMessenger.of(context);
+
     if (!_isAdmin) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(content: Text('Chỉ tài khoản QUẢN LÝ mới được xóa nhà cung cấp')),
       );
       return;
@@ -77,8 +79,7 @@ class _SupplierViewState extends State<SupplierView> {
         await FirestoreService.deleteSupplier(firestoreId);
       }
       await db.deleteSupplier(s['id'] as int);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(content: Text('ĐÃ XÓA NHÀ CUNG CẤP')), 
       );
       _refresh();
@@ -117,6 +118,7 @@ class _SupplierViewState extends State<SupplierView> {
           ElevatedButton(
             onPressed: () async {
               if (nameC.text.isEmpty) return;
+              final navigator = Navigator.of(ctx);
               await db.insertSupplier({
                 'name': nameC.text.toUpperCase(),
                 'contactPerson': contactC.text.toUpperCase(),
@@ -125,7 +127,7 @@ class _SupplierViewState extends State<SupplierView> {
                 'items': itemsC.text.toUpperCase(),
                 'createdAt': DateTime.now().millisecondsSinceEpoch,
               });
-              Navigator.pop(ctx);
+              navigator.pop();
               _refresh();
             },
             child: const Text("LƯU"),

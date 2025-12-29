@@ -93,17 +93,21 @@ class OrderListViewState extends State<OrderListView> {
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () async {
+              final messenger = ScaffoldMessenger.of(context);
               final user = FirebaseAuth.instance.currentUser;
               if (user == null || user.email == null) return;
               try {
+                final navigator = Navigator.of(ctx);
                 final cred = EmailAuthProvider.credential(email: user.email!, password: passCtrl.text);
                 await user.reauthenticateWithCredential(cred);
                 await db.deleteRepairByFirestoreId(r.firestoreId ?? "");
                 if (r.firestoreId != null) await FirestoreService.deleteRepair(r.firestoreId!);
-                Navigator.pop(ctx);
+                navigator.pop();
                 _loadInitialData();
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ĐÃ XÓA THÀNH CÔNG')));
-              } catch (_) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Mật khẩu sai'))); }
+                messenger.showSnackBar(const SnackBar(content: Text('ĐÃ XÓA THÀNH CÔNG')));
+              } catch (_) {
+                messenger.showSnackBar(const SnackBar(content: Text('Mật khẩu sai')));
+              }
             },
             child: const Text("XÓA", style: TextStyle(color: Colors.white)),
           ),

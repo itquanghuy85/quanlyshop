@@ -2,13 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'dart:convert';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../data/db_helper.dart';
 import '../models/product_model.dart';
 import '../services/firestore_service.dart';
 import '../services/notification_service.dart';
-import '../services/user_service.dart';
 import '../utils/sku_generator.dart';
 import '../widgets/currency_text_field.dart';
 import '../widgets/validated_text_field.dart';
@@ -305,7 +303,7 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
 
       setState(() => _batchItems.clear());
       NotificationService.showSnackBar("Đã nhập kho ${_batchItems.length} sản phẩm thành công!", color: Colors.green);
-      Navigator.of(context).pop();
+      if (mounted) Navigator.of(context).pop();
 
       // Refresh recent products
       _loadRecentProducts();
@@ -396,386 +394,593 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Templates
-          const Text(
-            "CHỌN TEMPLATE SẢN PHẨM",
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF2962FF)),
-          ),
-          const SizedBox(height: 8),
-          SizedBox(
-            height: 60,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: _productTemplates.length,
-              itemBuilder: (context, index) {
-                final template = _productTemplates[index];
-                return Container(
-                  margin: const EdgeInsets.only(right: 8),
-                  child: ElevatedButton(
-                    onPressed: () => _applyTemplate(template),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: const Color(0xFF2962FF),
-                      elevation: 2,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: Text(
-                      template['name'],
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-
-          const SizedBox(height: 20),
-
-          // Product Type
-          DropdownButtonFormField<String>(
-            value: _selectedType,
-            decoration: const InputDecoration(
-              labelText: "Loại sản phẩm",
-              prefixIcon: Icon(Icons.category),
-            ),
-            items: const [
-              DropdownMenuItem(value: "PHONE", child: Text("Điện thoại")),
-              DropdownMenuItem(value: "ACCESSORY", child: Text("Phụ kiện")),
-            ],
-            onChanged: (value) => setState(() => _selectedType = value!),
-          ),
-
-          const SizedBox(height: 16),
-
-          // SKU Generation Section
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8)],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  "TẠO MÃ HÀNG",
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF2962FF)),
-                ),
-                const SizedBox(height: 12),
-
-                // Group selection
-                DropdownButtonFormField<String>(
-                  value: _selectedGroup,
-                  decoration: const InputDecoration(
-                    labelText: "Nhóm",
-                    prefixIcon: Icon(Icons.group_work, size: 18),
-                  ),
-                  items: const [
-                    DropdownMenuItem(value: "IP", child: Text("IP - iPhone")),
-                    DropdownMenuItem(value: "SS", child: Text("SS - Samsung")),
-                    DropdownMenuItem(value: "PIN", child: Text("PIN - Pin sạc")),
-                    DropdownMenuItem(value: "MH", child: Text("MH - Màn hình")),
-                    DropdownMenuItem(value: "PK", child: Text("PK - Phụ kiện")),
-                  ],
-                  onChanged: (value) => setState(() => _selectedGroup = value!),
-                ),
-
-                const SizedBox(height: 12),
-
-                // Model and Info
-                Row(
-                  children: [
-                    Expanded(
-                      child: ValidatedTextField(
-                        controller: _modelController,
-                        label: "Model",
-                        icon: Icons.smartphone,
-                        uppercase: true,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ValidatedTextField(
-                        controller: _infoController,
-                        label: "Thông tin",
-                        icon: Icons.info,
-                        uppercase: true,
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 12),
-
-                // SKU generation
-                Row(
-                  children: [
-                    Expanded(
-                      flex: 2,
-                      child: ValidatedTextField(
-                        controller: _skuController,
-                        label: "Mã hàng",
-                        icon: Icons.qr_code,
-                        uppercase: true,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      flex: 1,
-                      child: ElevatedButton.icon(
-                        onPressed: _generateSKU,
-                        icon: const Icon(Icons.auto_fix_high, size: 16),
-                        label: const Text("TẠO MÃ"),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF2962FF),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 20),
-
-          // Product Details
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8)],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  "THÔNG TIN SẢN PHẨM",
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF2962FF)),
-                ),
-                const SizedBox(height: 12),
-
-                // IMEI and Details
-                Row(
-                  children: [
-                    Expanded(
-                      child: ValidatedTextField(
-                        controller: _imeiController,
-                        label: "IMEI/Serial",
-                        icon: Icons.fingerprint,
-                        keyboardType: TextInputType.number,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ValidatedTextField(
-                        controller: _detailController,
-                        label: "Chi tiết",
-                        icon: Icons.info_outline,
-                        uppercase: true,
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 12),
-
-                // Prices
-                Row(
-                  children: [
-                    Expanded(
-                      child: CurrencyTextField(
-                        controller: _costController,
-                        label: "Giá vốn (k)",
-                        icon: Icons.money,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: CurrencyTextField(
-                        controller: _kpkController,
-                        label: "Giá KPK (k)",
-                        icon: Icons.card_giftcard,
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 12),
-
-                Row(
-                  children: [
-                    Expanded(
-                      child: CurrencyTextField(
-                        controller: _retailController,
-                        label: "Giá lẻ (k)",
-                        icon: Icons.sell,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ValidatedTextField(
-                        controller: _quantityController,
-                        label: "Số lượng",
-                        icon: Icons.add_box,
-                        keyboardType: TextInputType.number,
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 12),
-
-                // Supplier
-                DropdownButtonFormField<String>(
-                  value: _selectedSupplier,
-                  decoration: const InputDecoration(
-                    labelText: "Nhà cung cấp",
-                    prefixIcon: Icon(Icons.business),
-                  ),
-                  items: _suppliers.map((supplier) => DropdownMenuItem(
-                    value: supplier['name'] as String,
-                    child: Text(supplier['name']),
-                  )).toList(),
-                  onChanged: (value) => setState(() => _selectedSupplier = value!),
-                ),
-
-                const SizedBox(height: 16),
-
-                // Payment Method
-                const Text(
-                  "PHƯƠNG THỨC THANH TOÁN",
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey),
-                ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  children: ["TIỀN MẶT", "CHUYỂN KHOẢN", "CÔNG NỢ"].map((method) => ChoiceChip(
-                    label: Text(method, style: const TextStyle(fontSize: 11)),
-                    selected: _selectedPayment == method,
-                    onSelected: (selected) => setState(() => _selectedPayment = method),
-                    selectedColor: Colors.blueAccent.withOpacity(0.2),
-                  )).toList(),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 24),
-
-          // Recent Products Section
-          if (_showRecent && _recentProducts.isNotEmpty) ...[
+          // Header with batch mode indicator
+          if (_isBatchMode)
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              margin: const EdgeInsets.only(bottom: 16),
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8)],
+                color: Colors.blue.withAlpha(25),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.blue.withAlpha(77)),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Row(
                 children: [
-                  const Text(
-                    "SẢN PHẨM ĐÃ NHẬP GẦN ĐÂY",
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF2962FF)),
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    height: 120,
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: _recentProducts.length,
-                      itemBuilder: (context, index) {
-                        final product = _recentProducts[index];
-                        return Container(
-                          width: 200,
-                          margin: const EdgeInsets.only(right: 8),
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.grey[50],
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.grey[200]!),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                product.name,
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                "IMEI: ${product.imei ?? 'N/A'}",
-                                style: const TextStyle(fontSize: 10, color: Colors.grey),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const Spacer(),
-                              Text(
-                                "${NumberFormat('#,###').format(product.price)}đ",
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.green,
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
+                  const Icon(Icons.batch_prediction, color: Colors.blue),
+                  const SizedBox(width: 8),
+                  Text(
+                    "Chế độ Batch: ${_batchItems.length} sản phẩm",
+                    style: const TextStyle(
+                      color: Colors.blue,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 16),
-          ],
 
-          // Action Buttons
-          Row(
+          // Expandable Sections
+          ExpansionPanelList(
+            expansionCallback: (int index, bool isExpanded) {
+              setState(() {
+                // We can add state to control expansion if needed
+              });
+            },
             children: [
-              if (_isBatchMode)
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _isSaving ? null : () => _saveProduct(addToBatch: true),
-                    icon: const Icon(Icons.add_to_queue),
-                    label: const Text("THÊM VÀO BATCH"),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      side: const BorderSide(color: Colors.blue),
+              // Templates Section
+              ExpansionPanel(
+                headerBuilder: (BuildContext context, bool isExpanded) {
+                  return ListTile(
+                    leading: const Icon(Icons.inventory, color: Color(0xFF2962FF)),
+                    title: const Text(
+                      "CHỌN TEMPLATE SẢN PHẨM",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF2962FF),
+                      ),
                     ),
-                  ),
-                )
-              else
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _isSaving ? null : () => _saveProduct(),
-                    icon: const Icon(Icons.save, color: Colors.white),
-                    label: _isSaving
-                        ? const Text("ĐANG LƯU...")
-                        : const Text("NHẬP KHO NGAY"),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2962FF),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    subtitle: const Text("Áp dụng mẫu sản phẩm nhanh"),
+                  );
+                },
+                body: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: SizedBox(
+                    height: 70,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _productTemplates.length,
+                      itemBuilder: (context, index) {
+                        final template = _productTemplates[index];
+                        return Container(
+                          width: 120,
+                          margin: const EdgeInsets.only(right: 12),
+                          child: ElevatedButton(
+                            onPressed: () => _applyTemplate(template),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              foregroundColor: const Color(0xFF2962FF),
+                              elevation: 3,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  template['group'] == 'IP' ? Icons.phone_iphone :
+                                  template['group'] == 'SS' ? Icons.phone_android :
+                                  Icons.devices_other,
+                                  size: 20,
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  template['name'].split(' ')[0], // Short name
+                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ),
-              const SizedBox(width: 12),
-              IconButton(
-                onPressed: _clearForm,
-                icon: const Icon(Icons.clear, color: Colors.grey),
-                tooltip: "Xóa form",
+                isExpanded: true, // Keep templates expanded by default
               ),
+
+              // Product Type & SKU Section
+              ExpansionPanel(
+                headerBuilder: (BuildContext context, bool isExpanded) {
+                  return ListTile(
+                    leading: const Icon(Icons.qr_code, color: Color(0xFF2962FF)),
+                    title: const Text(
+                      "LOẠI SẢN PHẨM & MÃ HÀNG",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF2962FF),
+                      ),
+                    ),
+                    subtitle: Text(_skuController.text.isEmpty ? "Chưa tạo mã hàng" : "Mã: ${_skuController.text}"),
+                  );
+                },
+                body: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Product Type
+                      DropdownButtonFormField<String>(
+                        initialValue: _selectedType,
+                        decoration: InputDecoration(
+                          labelText: "Loại sản phẩm",
+                          prefixIcon: const Icon(Icons.category),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        items: const [
+                          DropdownMenuItem(value: "PHONE", child: Text("📱 Điện thoại")),
+                          DropdownMenuItem(value: "ACCESSORY", child: Text("🔧 Phụ kiện")),
+                        ],
+                        onChanged: (value) => setState(() => _selectedType = value!),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // SKU Generation Card
+                      Card(
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                "TẠO MÃ HÀNG TỰ ĐỘNG",
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF2962FF),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+
+                              // Group selection
+                              DropdownButtonFormField<String>(
+                                initialValue: _selectedGroup,
+                                decoration: InputDecoration(
+                                  labelText: "Nhóm sản phẩm",
+                                  prefixIcon: const Icon(Icons.group_work, size: 18),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                                items: const [
+                                  DropdownMenuItem(value: "IP", child: Text("🍎 IP - iPhone")),
+                                  DropdownMenuItem(value: "SS", child: Text("🤖 SS - Samsung")),
+                                  DropdownMenuItem(value: "PIN", child: Text("🔌 PIN - Pin sạc")),
+                                  DropdownMenuItem(value: "MH", child: Text("📺 MH - Màn hình")),
+                                  DropdownMenuItem(value: "PK", child: Text("🔧 PK - Phụ kiện")),
+                                ],
+                                onChanged: (value) => setState(() => _selectedGroup = value!),
+                              ),
+
+                              const SizedBox(height: 12),
+
+                              // Model and Info
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: ValidatedTextField(
+                                      controller: _modelController,
+                                      label: "Model",
+                                      icon: Icons.smartphone,
+                                      uppercase: true,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: ValidatedTextField(
+                                      controller: _infoController,
+                                      label: "Thông tin bổ sung",
+                                      icon: Icons.info,
+                                      uppercase: true,
+                                    ),
+                                  ),
+                                ],
+                              ),
+
+                              const SizedBox(height: 12),
+
+                              // SKU generation
+                              Row(
+                                children: [
+                                  Expanded(
+                                    flex: 3,
+                                    child: ValidatedTextField(
+                                      controller: _skuController,
+                                      label: "Mã hàng được tạo",
+                                      icon: Icons.qr_code,
+                                      uppercase: true,
+                                      enabled: false,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    flex: 2,
+                                    child: ElevatedButton.icon(
+                                      onPressed: _generateSKU,
+                                      icon: const Icon(Icons.auto_fix_high, size: 18),
+                                      label: const Text("TẠO MÃ"),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(0xFF2962FF),
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(vertical: 16),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                isExpanded: true,
+              ),
+
+              // Product Details Section
+              ExpansionPanel(
+                headerBuilder: (BuildContext context, bool isExpanded) {
+                  return ListTile(
+                    leading: const Icon(Icons.inventory, color: Color(0xFF2962FF)),
+                    title: const Text(
+                      "THÔNG TIN CHI TIẾT",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF2962FF),
+                      ),
+                    ),
+                    subtitle: const Text("IMEI, giá cả, nhà cung cấp"),
+                  );
+                },
+                body: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // IMEI and Details
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ValidatedTextField(
+                              controller: _imeiController,
+                              label: "IMEI/Serial",
+                              icon: Icons.fingerprint,
+                              keyboardType: TextInputType.number,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ValidatedTextField(
+                              controller: _detailController,
+                              label: "Chi tiết (dung lượng, màu...)",
+                              icon: Icons.info_outline,
+                              uppercase: true,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Prices
+                      Text(
+                        "THÔNG TIN GIÁ BÁN",
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey.shade700,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: CurrencyTextField(
+                              controller: _costController,
+                              label: "Giá vốn (VNĐ)",
+                              icon: Icons.money,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: CurrencyTextField(
+                              controller: _kpkController,
+                              label: "Giá KPK (VNĐ)",
+                              icon: Icons.card_giftcard,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      Row(
+                        children: [
+                          Expanded(
+                            child: CurrencyTextField(
+                              controller: _retailController,
+                              label: "Giá lẻ (VNĐ)",
+                              icon: Icons.sell,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ValidatedTextField(
+                              controller: _quantityController,
+                              label: "Số lượng",
+                              icon: Icons.add_box,
+                              keyboardType: TextInputType.number,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Supplier
+                      DropdownButtonFormField<String>(
+                        initialValue: _selectedSupplier,
+                        decoration: InputDecoration(
+                          labelText: "Nhà cung cấp",
+                          prefixIcon: const Icon(Icons.business),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        items: _suppliers.map((supplier) => DropdownMenuItem(
+                          value: supplier['name'] as String,
+                          child: Text(supplier['name']),
+                        )).toList(),
+                        onChanged: (value) => setState(() => _selectedSupplier = value!),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Payment Method
+                      Text(
+                        "PHƯƠNG THỨC THANH TOÁN",
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey.shade700,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: ["TIỀN MẶT", "CHUYỂN KHOẢN", "CÔNG NỢ"].map((method) {
+                          final isSelected = _selectedPayment == method;
+                          return ChoiceChip(
+                            label: Text(
+                              method,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: isSelected ? Colors.white : Colors.black87,
+                              ),
+                            ),
+                            selected: isSelected,
+                            onSelected: (selected) => setState(() => _selectedPayment = method),
+                            selectedColor: const Color(0xFF2962FF),
+                            backgroundColor: Colors.grey[200],
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ),
+                ),
+                isExpanded: true,
+              ),
+
+              // Recent Products Section
+              if (_showRecent && _recentProducts.isNotEmpty)
+                ExpansionPanel(
+                  headerBuilder: (BuildContext context, bool isExpanded) {
+                    return ListTile(
+                      leading: const Icon(Icons.history, color: Color(0xFF2962FF)),
+                      title: const Text(
+                        "SẢN PHẨM ĐÃ NHẬP GẦN ĐÂY",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF2962FF),
+                        ),
+                      ),
+                      subtitle: Text("${_recentProducts.length} sản phẩm"),
+                    );
+                  },
+                  body: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: SizedBox(
+                      height: 140,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: _recentProducts.length,
+                        itemBuilder: (context, index) {
+                          final product = _recentProducts[index];
+                          return Container(
+                            width: 220,
+                            margin: const EdgeInsets.only(right: 12),
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[50],
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.grey[300]!),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withAlpha(13),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(
+                                      product.type == 'PHONE' ? Icons.phone_iphone : Icons.devices_other,
+                                      size: 16,
+                                      color: const Color(0xFF2962FF),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Expanded(
+                                      child: Text(
+                                        product.name,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  "IMEI: ${product.imei ?? 'N/A'}",
+                                  style: const TextStyle(fontSize: 11, color: Colors.grey),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const Spacer(),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.green.withAlpha(25),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    "${NumberFormat('#,###').format(product.price)}đ",
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.green,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                  isExpanded: false,
+                ),
             ],
+          ),
+
+          const SizedBox(height: 24),
+
+          // Action Buttons
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha(13),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    if (_isBatchMode)
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: _isSaving ? null : () => _saveProduct(addToBatch: true),
+                          icon: const Icon(Icons.add_to_queue),
+                          label: const Text("THÊM VÀO BATCH"),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            side: const BorderSide(color: Colors.blue),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        ),
+                      )
+                    else
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: _isSaving ? null : () => _saveProduct(),
+                          icon: const Icon(Icons.save, color: Colors.white),
+                          label: _isSaving
+                              ? const Text("ĐANG LƯU...")
+                              : const Text("NHẬP KHO NGAY"),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF2962FF),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        ),
+                      ),
+                    const SizedBox(width: 12),
+                    Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey[300]!),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: IconButton(
+                        onPressed: _clearForm,
+                        icon: const Icon(Icons.clear, color: Colors.grey),
+                        tooltip: "Xóa tất cả thông tin",
+                      ),
+                    ),
+                  ],
+                ),
+                if (_isBatchMode && _batchItems.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    "Batch hiện tại: ${_batchItems.length} sản phẩm",
+                    style: const TextStyle(
+                      color: Colors.blue,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
         ],
       ),

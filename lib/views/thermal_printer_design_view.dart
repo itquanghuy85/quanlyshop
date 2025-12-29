@@ -300,12 +300,12 @@ class _ThermalPrinterDesignViewState extends State<ThermalPrinterDesignView> wit
     
     if (list.isNotEmpty) {
       showModalBottomSheet(context: context, builder: (ctx) => ListView.builder(itemCount: list.length, itemBuilder: (c, i) => ListTile(title: Text(list[i].name), subtitle: Text(list[i].macAdress), onTap: () async {
+        final navigator = Navigator.of(ctx);
         final config = BluetoothPrinterConfig(name: list[i].name, macAddress: list[i].macAdress);
         await BluetoothPrinterService.savePrinter(config);
-        if (mounted) {
-          setState(() => _selectedBT = config);
-          Navigator.pop(ctx);
-        }
+        if (!mounted) return;
+        setState(() => _selectedBT = config);
+        navigator.pop();
       })));
     } else {
       NotificationService.showSnackBar("Không tìm thấy máy in Bluetooth nào đã ghép đôi", color: Colors.orange);

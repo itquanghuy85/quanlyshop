@@ -26,7 +26,7 @@ class DBHelper {
     String path = join(await getDatabasesPath(), 'repair_shop_v22.db'); 
     return await openDatabase(
       path,
-      version: 19, 
+      version: 20, 
       onCreate: (db, version) async {
         await db.execute('CREATE TABLE IF NOT EXISTS repairs(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, customerName TEXT, phone TEXT, model TEXT, issue TEXT, accessories TEXT, address TEXT, imagePath TEXT, deliveredImage TEXT, warranty TEXT, partsUsed TEXT, status INTEGER, price INTEGER, cost INTEGER, paymentMethod TEXT, createdAt INTEGER, startedAt INTEGER, finishedAt INTEGER, deliveredAt INTEGER, createdBy TEXT, repairedBy TEXT, deliveredBy TEXT, lastCaredAt INTEGER, isSynced INTEGER DEFAULT 0, deleted INTEGER DEFAULT 0, color TEXT, imei TEXT, condition TEXT)');
         await db.execute('CREATE TABLE IF NOT EXISTS products(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, name TEXT, brand TEXT, imei TEXT, cost INTEGER, price INTEGER, condition TEXT, status INTEGER DEFAULT 1, description TEXT, images TEXT, warranty TEXT, createdAt INTEGER, supplier TEXT, type TEXT DEFAULT "PHONE", quantity INTEGER DEFAULT 1, color TEXT, isSynced INTEGER DEFAULT 0, capacity TEXT, kpkPrice INTEGER, pkPrice INTEGER)');
@@ -40,6 +40,7 @@ class DBHelper {
         await db.execute('CREATE TABLE IF NOT EXISTS inventory_checks(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, type TEXT, checkDate INTEGER, itemsJson TEXT, status TEXT, createdBy TEXT, isSynced INTEGER DEFAULT 0, isCompleted INTEGER DEFAULT 0)');
         await db.execute('CREATE TABLE IF NOT EXISTS cash_closings(id INTEGER PRIMARY KEY AUTOINCREMENT, dateKey TEXT UNIQUE, cashStart INTEGER DEFAULT 0, bankStart INTEGER DEFAULT 0, cashEnd INTEGER DEFAULT 0, bankEnd INTEGER DEFAULT 0, expectedCashDelta INTEGER DEFAULT 0, expectedBankDelta INTEGER DEFAULT 0, note TEXT, createdAt INTEGER)');
         await db.execute('CREATE TABLE IF NOT EXISTS payroll_settings(id INTEGER PRIMARY KEY AUTOINCREMENT, baseSalary INTEGER DEFAULT 0, saleCommPercent REAL DEFAULT 1.0, repairProfitPercent REAL DEFAULT 10.0, updatedAt INTEGER)');
+        await db.execute('CREATE TABLE IF NOT EXISTS payroll_locks(id INTEGER PRIMARY KEY AUTOINCREMENT, monthKey TEXT UNIQUE, locked INTEGER DEFAULT 0, lockedBy TEXT, lockedAt INTEGER, note TEXT)');
         await db.execute('CREATE TABLE IF NOT EXISTS purchase_orders(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, orderCode TEXT UNIQUE, supplierName TEXT, supplierPhone TEXT, supplierAddress TEXT, itemsJson TEXT, totalAmount INTEGER, totalCost INTEGER, createdAt INTEGER, createdBy TEXT, status TEXT DEFAULT "PENDING", notes TEXT, isSynced INTEGER DEFAULT 0)');
         await db.execute('CREATE TABLE IF NOT EXISTS work_schedules(id INTEGER PRIMARY KEY AUTOINCREMENT, userId TEXT UNIQUE, startTime TEXT DEFAULT "08:00", endTime TEXT DEFAULT "17:00", breakTime INTEGER DEFAULT 1, maxOtHours INTEGER DEFAULT 4, workDays TEXT DEFAULT "[1,2,3,4,5,6]", updatedAt INTEGER)');
         await db.execute('CREATE TABLE IF NOT EXISTS debt_payments(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, debtId INTEGER, debtFirestoreId TEXT, amount INTEGER, paidAt INTEGER, paymentMethod TEXT, note TEXT, createdBy TEXT, isSynced INTEGER DEFAULT 0)');
@@ -53,6 +54,9 @@ class DBHelper {
         }
         if (oldV < 19) {
           try { await db.execute('CREATE TABLE IF NOT EXISTS debt_payments(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, debtId INTEGER, debtFirestoreId TEXT, amount INTEGER, paidAt INTEGER, paymentMethod TEXT, note TEXT, createdBy TEXT, isSynced INTEGER DEFAULT 0)'); } catch(e) { debugPrint('DB upgrade error (debt_payments): $e'); }
+        }
+        if (oldV < 20) {
+          try { await db.execute('CREATE TABLE IF NOT EXISTS payroll_locks(id INTEGER PRIMARY KEY AUTOINCREMENT, monthKey TEXT UNIQUE, locked INTEGER DEFAULT 0, lockedBy TEXT, lockedAt INTEGER, note TEXT)'); } catch(_) {}
         }
         debugPrint('DB upgrade completed');
       }
@@ -236,6 +240,21 @@ class DBHelper {
     return await db.query('repair_parts');
   }
 
+  // --- PARTS HELPERS ---
+  Future<List<Map<String, dynamic>>> getAllParts() async {
+    final db = await database;
+    // Return all repair parts, ordered by name
+    return await db.query('repair_parts', orderBy: 'partName COLLATE NOCASE');
+  }
+
+  Future<int> insertPart(Map<String, dynamic> part) async {
+    final db = await database;
+    final data = Map<String, dynamic>.from(part);
+    data['createdAt'] = data['createdAt'] ?? DateTime.now().millisecondsSinceEpoch;
+    data['updatedAt'] = data['updatedAt'] ?? data['createdAt'];
+    return await db.insert('repair_parts', data);
+  }
+
   // --- AUDIT LOGS ---
   Future<void> logAction({required String userId, required String userName, required String action, required String type, String? targetId, String? desc, String? fId}) async {
     final db = await database;
@@ -254,6 +273,32 @@ class DBHelper {
   }
   Future<void> savePayrollSettings(Map<String, dynamic> data) async {
     final db = await database; await db.delete('payroll_settings'); await db.insert('payroll_settings', data);
+  }
+
+  // --- PAYROLL LOCKS ---
+  Future<bool> isPayrollMonthLocked(String monthKey) async {
+    final db = await database;
+    final res = await db.query('payroll_locks', where: 'monthKey = ?', whereArgs: [monthKey], limit: 1);
+    if (res.isEmpty) return false;
+    return (res.first['locked'] ?? 0) == 1;
+  }
+
+  Future<void> setPayrollMonthLock(String monthKey, {required bool locked, String? lockedBy, String? note}) async {
+    final db = await database;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final data = {
+      'monthKey': monthKey,
+      'locked': locked ? 1 : 0,
+      'lockedBy': lockedBy,
+      'lockedAt': now,
+      'note': note,
+    };
+    await db.insert('payroll_locks', data, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<List<Map<String, dynamic>>> getPayrollLocks({int limit = 100}) async {
+    final db = await database;
+    return await db.query('payroll_locks', orderBy: 'lockedAt DESC', limit: limit);
   }
 
   // --- SYSTEM ---

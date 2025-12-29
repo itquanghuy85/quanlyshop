@@ -61,13 +61,13 @@ class _AuditLogViewState extends State<AuditLogView> {
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: Colors.white, borderRadius: BorderRadius.circular(15),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 5)],
+        boxShadow: [BoxShadow(color: Colors.black.withAlpha(5), blurRadius: 5)],
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         leading: Container(
           padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(color: actionColor.withOpacity(0.1), shape: BoxShape.circle),
+          decoration: BoxDecoration(color: actionColor.withAlpha(25), shape: BoxShape.circle),
           child: Icon(_getActionIcon(log['action']), color: actionColor, size: 20),
         ),
         title: Row(

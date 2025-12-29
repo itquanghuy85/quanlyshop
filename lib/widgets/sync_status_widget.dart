@@ -19,8 +19,10 @@ class _SyncStatusWidgetState extends State<SyncStatusWidget> {
   }
 
   Future<void> _manualSync() async {
+    final messenger = ScaffoldMessenger.of(context);
+
     if (!ConnectivityService.instance.isOnline) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(
           content: Text('Không có kết nối mạng. Vui lòng kiểm tra internet.'),
           backgroundColor: Colors.red,
@@ -32,23 +34,19 @@ class _SyncStatusWidgetState extends State<SyncStatusWidget> {
     setState(() => _isSyncing = true);
     try {
       await ConnectivityService.instance.manualSync();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Đồng bộ dữ liệu thành công!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Đồng bộ dữ liệu thành công!'),
+          backgroundColor: Colors.green,
+        ),
+      );
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Lỗi đồng bộ: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Lỗi đồng bộ: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     } finally {
       if (mounted) {
         setState(() => _isSyncing = false);

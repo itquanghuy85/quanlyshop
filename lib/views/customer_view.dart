@@ -149,6 +149,7 @@ class _CustomerListViewState extends State<CustomerListView> {
 
   Future<void> _deleteSelectedCustomers() async {
     if (_selectedIndices.isEmpty) return;
+    final messenger = ScaffoldMessenger.of(context);
 
     // Xác thực mật khẩu admin
     final password = await _showPasswordDialog();
@@ -165,11 +166,9 @@ class _CustomerListViewState extends State<CustomerListView> {
       );
       await currentUser.reauthenticateWithCredential(credential);
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Mật khẩu không đúng!"))
-        );
-      }
+      messenger.showSnackBar(
+        const SnackBar(content: Text("Mật khẩu không đúng!"))
+      );
       return;
     }
 
@@ -186,17 +185,13 @@ class _CustomerListViewState extends State<CustomerListView> {
       await _refresh();
       _cancelSelection();
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Đã xóa ${selectedCustomers.length} khách hàng"))
-        );
-      }
+      messenger.showSnackBar(
+        SnackBar(content: Text("Đã xóa ${selectedCustomers.length} khách hàng"))
+      );
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Lỗi khi xóa: $e"))
-        );
-      }
+      messenger.showSnackBar(
+        SnackBar(content: Text("Lỗi khi xóa: $e"))
+      );
     } finally {
       setState(() => _isDeleting = false);
     }
