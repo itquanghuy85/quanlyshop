@@ -55,46 +55,52 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(part == null ? "NHẬP LINH KIỆN MỚI" : "SỬA LINH KIỆN"),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ValidatedTextField(controller: nameC, label: "Tên linh kiện (VD: PIN IPHONE 11)", icon: Icons.inventory, uppercase: true, required: true),
-              ValidatedTextField(controller: modelC, label: "Dòng máy tương thích", icon: Icons.phone_android, uppercase: true),
-              Row(children: [
-                Expanded(child: ValidatedTextField(controller: costC, label: "Giá vốn (.000)", icon: Icons.attach_money, keyboardType: TextInputType.number)),
-                const SizedBox(width: 10),
-                Expanded(child: ValidatedTextField(controller: priceC, label: "Giá bán (.000)", icon: Icons.sell, keyboardType: TextInputType.number)),
-              ]),
-              ValidatedTextField(controller: qtyC, label: "Số lượng nhập", icon: Icons.numbers, keyboardType: TextInputType.number),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setS) {
+          nameC.addListener(() => setS(() {}));
+          return AlertDialog(
+            title: Text(part == null ? "NHẬP LINH KIỆN MỚI" : "SỬA LINH KIỆN"),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ValidatedTextField(controller: nameC, label: "Tên linh kiện (VD: PIN IPHONE 11)", icon: Icons.inventory, uppercase: true, required: true),
+                  ValidatedTextField(controller: modelC, label: "Dòng máy tương thích", icon: Icons.phone_android, uppercase: true),
+                  Row(children: [
+                    Expanded(child: ValidatedTextField(controller: costC, label: "Giá vốn (.000)", icon: Icons.attach_money, keyboardType: TextInputType.number)),
+                    const SizedBox(width: 10),
+                    Expanded(child: ValidatedTextField(controller: priceC, label: "Giá bán (.000)", icon: Icons.sell, keyboardType: TextInputType.number)),
+                  ]),
+                  ValidatedTextField(controller: qtyC, label: "Số lượng nhập", icon: Icons.numbers, keyboardType: TextInputType.number),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("HỦY")),
+              ElevatedButton(
+                onPressed: nameC.text.isNotEmpty ? () async {
+                  if (nameC.text.isEmpty) return;
+                  final data = {
+                    'partName': nameC.text.toUpperCase(),
+                    'compatibleModels': modelC.text.toUpperCase(),
+                    'cost': (int.tryParse(costC.text) ?? 0) * 1000,
+                    'price': (int.tryParse(priceC.text) ?? 0) * 1000,
+                    'quantity': int.tryParse(qtyC.text) ?? 0,
+                    'updatedAt': DateTime.now().millisecondsSinceEpoch,
+                  };
+                  if (part == null) {
+                    await db.insertPart(data);
+                  } else {
+                    await (await db.database).update('repair_parts', data, where: 'id = ?', whereArgs: [part['id']]);
+                  }
+                  if (!mounted) return;
+                  Navigator.of(context).pop();
+                  _refreshParts();
+                } : null,
+                child: const Text("XÁC NHẬN")),
             ],
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("HỦY")),
-          ElevatedButton(onPressed: () async {
-            if (nameC.text.isEmpty) return;
-            final data = {
-              'partName': nameC.text.toUpperCase(),
-              'compatibleModels': modelC.text.toUpperCase(),
-              'cost': (int.tryParse(costC.text) ?? 0) * 1000,
-              'price': (int.tryParse(priceC.text) ?? 0) * 1000,
-              'quantity': int.tryParse(qtyC.text) ?? 0,
-              'updatedAt': DateTime.now().millisecondsSinceEpoch,
-            };
-            if (part == null) {
-              await db.insertPart(data);
-            } else {
-              // Cập nhật linh kiện (giả sử có hàm updatePart trong db_helper)
-              await (await db.database).update('repair_parts', data, where: 'id = ?', whereArgs: [part['id']]);
-            }
-            if (!mounted) return;
-            Navigator.of(context).pop();
-            _refreshParts();
-          }, enabled: nameC.text.isNotEmpty, child: const Text("XÁC NHẬN")),
-        ],
+          );
+        }
       ),
     );
   }

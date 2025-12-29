@@ -165,20 +165,30 @@ class _PayrollViewState extends State<PayrollView> {
 
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Cài công thức: $staff'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ValidatedTextField(controller: baseCtrl, label: 'Lương ngày (đ)', icon: Icons.attach_money, keyboardType: TextInputType.number, required: true),
-            ValidatedTextField(controller: hourCtrl, label: 'Giờ chuẩn/ngày', icon: Icons.schedule, keyboardType: TextInputType.number, required: true), 
-            ValidatedTextField(controller: otCtrl, label: 'Hệ số OT (%)', icon: Icons.trending_up, keyboardType: TextInputType.number, required: true), 
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('HỦY')),
-          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), enabled: _isValidPayrollInput(baseCtrl.text, hourCtrl.text, otCtrl.text), child: const Text('LƯU')),
-        ],
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setS) {
+          baseCtrl.addListener(() => setS(() {}));
+          hourCtrl.addListener(() => setS(() {}));
+          otCtrl.addListener(() => setS(() {}));
+          return AlertDialog(
+            title: Text('Cài công thức: $staff'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ValidatedTextField(controller: baseCtrl, label: 'Lương ngày (đ)', icon: Icons.attach_money, keyboardType: TextInputType.number, required: true),
+                ValidatedTextField(controller: hourCtrl, label: 'Giờ chuẩn/ngày', icon: Icons.schedule, keyboardType: TextInputType.number, required: true), 
+                ValidatedTextField(controller: otCtrl, label: 'Hệ số OT (%)', icon: Icons.trending_up, keyboardType: TextInputType.number, required: true), 
+              ],
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('HỦY')),
+              ElevatedButton(
+                onPressed: _isValidPayrollInput(baseCtrl.text, hourCtrl.text, otCtrl.text) ? () => Navigator.pop(ctx, true) : null,
+                child: const Text('LƯU'),
+              ),
+            ],
+          );
+        }
       ),
     );
 

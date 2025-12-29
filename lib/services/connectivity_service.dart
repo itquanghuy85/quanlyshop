@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import '../services/user_service.dart';
 import 'sync_service.dart';
 
 class ConnectivityService {
