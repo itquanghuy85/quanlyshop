@@ -189,7 +189,7 @@ class _ExpenseViewState extends State<ExpenseView> {
                 _refresh();
                 setState(() { _isSaving = false; });
                 NotificationService.showSnackBar("Đã lưu chi phí!", color: Colors.green);
-              }, 
+              } : null,
               child: const Text("LƯU CHI PHÍ", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
             ),
           ],
