@@ -474,7 +474,7 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
       appBar: AppBar(
         title: Text(
           "QUẢN LÝ KHO",
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: _titleFontSize),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: _titleFontSize, color: Colors.black),
         ),
         backgroundColor: Colors.white,
         elevation: 0,

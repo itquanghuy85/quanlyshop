@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../data/db_helper.dart';
-import '../services/user_service.dart';
 import '../services/notification_service.dart';
 import '../services/firestore_service.dart';
 import '../services/event_bus.dart';
@@ -20,13 +19,12 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
   late TabController _tabController;
   List<Map<String, dynamic>> _debts = [];
   bool _isLoading = true;
-  bool _isAdmin = false;
   StreamSubscription<String>? _eventSub;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     _loadRole();
     _refresh();
 
@@ -44,9 +42,7 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
   }
 
   Future<void> _loadRole() async {
-    final perms = await UserService.getCurrentUserPermissions();
-    if (!mounted) return;
-    setState(() => _isAdmin = perms['allowViewDebts'] ?? false);
+    // Role loading not needed for current functionality
   }
 
   Future<void> _refresh() async {
@@ -252,20 +248,124 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
           controller: _tabController,
           labelColor: const Color(0xFF2962FF),
           indicatorColor: const Color(0xFF2962FF),
-          tabs: const [Tab(text: "KHÁCH NỢ"), Tab(text: "SHOP NỢ NCC")],
+          tabs: const [Tab(text: "KHÁCH NỢ"), Tab(text: "SHOP NỢ NCC"), Tab(text: "CÔNG NỢ KHÁC")],
         ),
       ),
       body: _isLoading ? const Center(child: CircularProgressIndicator()) : TabBarView(
         controller: _tabController,
-        children: [_buildDebtList('CUSTOMER_OWES'), _buildDebtList('SHOP_OWES')],
+        children: [_buildDebtList('CUSTOMER_OWES'), _buildDebtList('SHOP_OWES'), _buildDebtList('OTHER')],
       ),
+      floatingActionButton: _tabController.index == 2 ? FloatingActionButton(
+        onPressed: _createOtherDebt,
+        backgroundColor: Colors.purpleAccent,
+        child: const Icon(Icons.add, color: Colors.white),
+        tooltip: 'Tạo công nợ khác',
+      ) : null,
     );
   }
 
   Widget _buildDebtList(String type) {
-    final list = _debts.where((d) => d['type'] == type && (d['status'] != 'paid')).toList();
+    List<Map<String, dynamic>> list;
+    if (type == 'OTHER') {
+      list = _debts.where((d) => d['type'].toString().startsWith('OTHER_') && (d['status'] != 'paid')).toList();
+    } else {
+      list = _debts.where((d) => d['type'] == type && (d['status'] != 'paid')).toList();
+    }
+
     if (list.isEmpty) {
       return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.receipt_long_outlined, size: 80, color: Colors.grey[300]), const SizedBox(height: 10), const Text("Hiện tại không có khoản nợ nào", style: TextStyle(color: Colors.grey))]));
+    }
+
+    if (type == 'OTHER') {
+      // For OTHER tab, separate into receivable and payable debts
+      final receivableDebts = list.where((d) => d['type'] == 'OTHER_CUSTOMER_OWES').toList();
+      final payableDebts = list.where((d) => d['type'] == 'OTHER_SHOP_OWES').toList();
+
+      int totalReceivable = receivableDebts.fold(0, (sum, d) {
+        final int total = d['totalAmount'] as int;
+        final int paid = d['paidAmount'] as int? ?? 0;
+        final int remain = total - paid;
+        return remain > 0 ? sum + remain : sum;
+      });
+
+      int totalPayable = payableDebts.fold(0, (sum, d) {
+        final int total = d['totalAmount'] as int;
+        final int paid = d['paidAmount'] as int? ?? 0;
+        final int remain = total - paid;
+        return remain > 0 ? sum + remain : sum;
+      });
+
+      return Column(
+        children: [
+          // Summary for receivable debts
+          if (receivableDebts.isNotEmpty)
+            Container(
+              margin: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.red.withAlpha(25),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.red.withAlpha(77)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.arrow_downward, color: Colors.red),
+                  const SizedBox(width: 8),
+                  const Text("NỢ PHẢI THU", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                  const Spacer(),
+                  Text("${NumberFormat('#,###').format(totalReceivable)} đ", style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 16)),
+                ],
+              ),
+            ),
+
+          // Receivable debts list
+          if (receivableDebts.isNotEmpty)
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: receivableDebts.length,
+                itemBuilder: (ctx, i) => _debtCardWithIcon(receivableDebts[i], Icons.arrow_downward, Colors.red),
+              ),
+            ),
+
+          // Summary for payable debts
+          if (payableDebts.isNotEmpty)
+            Container(
+              margin: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.blue.withAlpha(25),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.blue.withAlpha(77)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.arrow_upward, color: Colors.blue),
+                  const SizedBox(width: 8),
+                  const Text("NỢ PHẢI TRẢ", style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
+                  const Spacer(),
+                  Text("${NumberFormat('#,###').format(totalPayable)} đ", style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold, fontSize: 16)),
+                ],
+              ),
+            ),
+
+          // Payable debts list
+          if (payableDebts.isNotEmpty)
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: payableDebts.length,
+                itemBuilder: (ctx, i) => _debtCardWithIcon(payableDebts[i], Icons.arrow_upward, Colors.blue),
+              ),
+            ),
+
+          // If no debts of either type
+          if (receivableDebts.isEmpty && payableDebts.isEmpty)
+            const Expanded(
+              child: Center(child: Text("Không có công nợ nào", style: TextStyle(color: Colors.grey))),
+            ),
+        ],
+      );
     }
 
     int totalRemain = list.fold(0, (sum, d) {
@@ -334,4 +434,133 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
   }
 
   Widget _miniValue(String l, int v, Color c) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(l, style: const TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: Colors.grey)), Text(NumberFormat('#,###').format(v), style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: c))]);
+
+  void _createOtherDebt() {
+    final nameC = TextEditingController();
+    final phoneC = TextEditingController();
+    final amountC = TextEditingController();
+    final noteC = TextEditingController();
+    String debtType = "CUSTOMER_OWES"; // Default to customer owes (nợ phải thu)
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setS) => AlertDialog(
+          title: const Text("TẠO CÔNG NỢ KHÁC"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(controller: nameC, decoration: const InputDecoration(labelText: "Tên người nợ")),
+              const SizedBox(height: 10),
+              TextField(controller: phoneC, decoration: const InputDecoration(labelText: "Số điện thoại")),
+              const SizedBox(height: 10),
+              CurrencyTextField(controller: amountC, label: "Số tiền nợ (Ví dụ: 500 = 500k)"),
+              const SizedBox(height: 10),
+              TextField(controller: noteC, decoration: const InputDecoration(labelText: "Ghi chú")),
+              const SizedBox(height: 15),
+              const Text("Hình thức nợ:", style: TextStyle(fontWeight: FontWeight.bold)),
+              Wrap(spacing: 8, children: [
+                ChoiceChip(
+                  label: const Text("NỢ PHẢI THU", style: TextStyle(fontSize: 12)),
+                  selected: debtType == "CUSTOMER_OWES",
+                  selectedColor: Colors.red.withAlpha(50),
+                  onSelected: (v) => setS(() => debtType = "CUSTOMER_OWES"),
+                ),
+                ChoiceChip(
+                  label: const Text("NỢ PHẢI TRẢ", style: TextStyle(fontSize: 12)),
+                  selected: debtType == "SHOP_OWES",
+                  selectedColor: Colors.blue.withAlpha(50),
+                  onSelected: (v) => setS(() => debtType = "SHOP_OWES"),
+                ),
+              ]),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("HỦY")),
+            ElevatedButton(
+              onPressed: () async {
+                if (nameC.text.isEmpty || amountC.text.isEmpty) return;
+
+                // Xử lý quy ước nhập nhanh (x1000)
+                int rawAmount = int.tryParse(amountC.text.replaceAll('.', '')) ?? 0;
+                if (rawAmount <= 0) return;
+
+                // Nếu nhập số nhỏ (dưới 100k) thì tự động nhân 1000
+                int debtAmount = (rawAmount > 0 && rawAmount < 100000) ? rawAmount * 1000 : rawAmount;
+
+                final user = FirebaseAuth.instance.currentUser;
+                final userName = user?.email?.split('@').first.toUpperCase() ?? "NV";
+                final now = DateTime.now().millisecondsSinceEpoch;
+
+                final newDebtData = {
+                  'firestoreId': "debt_other_${now}",
+                  'personName': nameC.text.trim(),
+                  'phone': phoneC.text.trim(),
+                  'totalAmount': debtAmount,
+                  'paidAmount': 0,
+                  'type': 'OTHER_${debtType}', // OTHER_CUSTOMER_OWES or OTHER_SHOP_OWES
+                  'status': 'unpaid',
+                  'createdAt': now,
+                  'note': noteC.text.trim().isEmpty ? null : noteC.text.trim(),
+                  'createdBy': userName,
+                };
+
+                await db.insertDebt(newDebtData);
+                await FirestoreService.addDebtCloud(newDebtData);
+
+                if (mounted) {
+                  Navigator.pop(ctx);
+                  _refresh();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Đã tạo công nợ mới")),
+                  );
+                }
+              },
+              child: const Text("TẠO"),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _debtCardWithIcon(Map<String, dynamic> d, IconData icon, Color iconColor) {
+    final int total = d['totalAmount'];
+    final int paid = d['paidAmount'] ?? 0;
+    final int remain = total - paid;
+    final date = DateFormat('dd/MM/yyyy').format(DateTime.fromMillisecondsSinceEpoch(d['createdAt']));
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), boxShadow: [BoxShadow(color: Colors.black.withAlpha(5), blurRadius: 10)]),
+      child: ListTile(
+        onTap: () => _showDebtHistory(d),
+        contentPadding: const EdgeInsets.all(15),
+        leading: CircleAvatar(
+          backgroundColor: iconColor.withAlpha(25),
+          child: Icon(icon, color: iconColor, size: 20),
+        ),
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(child: Text((d['personName'] ?? 'N/A').toString().toUpperCase(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14))),
+            Text(date, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+          ],
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (d['phone'] != null) Text("SĐT: ${d['phone']}", style: const TextStyle(fontSize: 11, color: Colors.blueGrey)),
+            Text("Nội dung: ${d['note'] ?? ''}", style: const TextStyle(fontSize: 11)),
+            const SizedBox(height: 10),
+            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+              _miniValue("ĐÃ TRẢ", paid, Colors.green),
+              _miniValue("CÒN NỢ", remain, iconColor),
+            ]),
+          ],
+        ),
+        trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+      ),
+    );
+  }
 }

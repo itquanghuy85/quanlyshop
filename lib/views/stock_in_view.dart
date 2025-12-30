@@ -51,10 +51,13 @@ class _StockInViewState extends State<StockInView> {
   final notesF = FocusNode();
 
   // Dropdown options
-  final List<String> types = ['PHONE', 'ACCESSORY'];
+  final List<String> types = ['PHONE', 'ACCESSORY', 'LINH KIỆN'];
   final List<String> brands = ['IPHONE', 'SAMSUNG', 'OPPO'];
   final List<String> conditions = ['Mới', '99', '98', 'Khác'];
   List<Map<String, dynamic>> suppliers = [];
+
+  // Computed property to check if current type is accessory or linh kiện
+  bool get _isAccessoryOrLinhKien => typeCtrl.text == 'ACCESSORY' || typeCtrl.text == 'LINH KIỆN';
 
   @override
   void initState() {
@@ -272,17 +275,18 @@ class _StockInViewState extends State<StockInView> {
   }) {
     return DropdownButtonFormField<String>(
       value: controller.text.isNotEmpty ? controller.text : null,
-      style: const TextStyle(fontSize: 12),
+      style: const TextStyle(fontSize: 12, color: Colors.black87),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(fontSize: 12),
-        prefixIcon: icon != null ? Icon(icon, size: 16) : null,
+        labelStyle: const TextStyle(fontSize: 12, color: Colors.black87),
+        prefixIcon: icon != null ? Icon(icon, size: 16, color: Colors.black54) : null,
         border: const OutlineInputBorder(),
         contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        filled: false, // Override theme to not fill background
       ),
       items: items.map((item) => DropdownMenuItem(
         value: item,
-        child: Text(item, style: const TextStyle(fontSize: 12)),
+        child: Text(item, style: const TextStyle(fontSize: 12, color: Colors.black87)),
       )).toList(),
       onChanged: (value) {
         setState(() {
@@ -310,15 +314,16 @@ class _StockInViewState extends State<StockInView> {
       focusNode: focusNode,
       keyboardType: keyboardType,
       textCapitalization: TextCapitalization.characters,
-      style: const TextStyle(fontSize: 12),
+      style: const TextStyle(fontSize: 12, color: Colors.black87),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(fontSize: 12),
-        prefixIcon: icon != null ? Icon(icon, size: 16) : null,
+        labelStyle: const TextStyle(fontSize: 12, color: Colors.black87),
+        prefixIcon: icon != null ? Icon(icon, size: 16, color: Colors.black54) : null,
         suffixText: suffix,
         suffixStyle: const TextStyle(fontSize: 10, color: Colors.grey),
         border: const OutlineInputBorder(),
         contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        filled: false, // Override theme to not fill background
       ),
       onChanged: (value) {
         controller.value = controller.value.copyWith(
@@ -339,8 +344,8 @@ class _StockInViewState extends State<StockInView> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Nhập Kho'),
-        backgroundColor: Theme.of(context).primaryColor,
       ),
+      backgroundColor: const Color(0xFFF0F4F8),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -365,66 +370,74 @@ class _StockInViewState extends State<StockInView> {
             ),
             const SizedBox(height: 8),
 
-            // Model
-            _buildTextField(
-              controller: modelCtrl,
-              label: 'Model *',
-              focusNode: modelF,
-              nextFocus: capacityF,
-              icon: Icons.smartphone,
-            ),
-            const SizedBox(height: 8),
+            // Model (ẩn với accessory/linh kiện)
+            if (!_isAccessoryOrLinhKien) ...[
+              _buildTextField(
+                controller: modelCtrl,
+                label: 'Model *',
+                focusNode: modelF,
+                nextFocus: capacityF,
+                icon: Icons.smartphone,
+              ),
+              const SizedBox(height: 8),
+            ],
 
-            // Dung lượng
-            _buildTextField(
-              controller: capacityCtrl,
-              label: 'Dung lượng *',
-              focusNode: capacityF,
-              nextFocus: colorF,
-              icon: Icons.memory,
-            ),
-            const SizedBox(height: 8),
+            // Dung lượng (ẩn với accessory/linh kiện)
+            if (!_isAccessoryOrLinhKien) ...[
+              _buildTextField(
+                controller: capacityCtrl,
+                label: 'Dung lượng *',
+                focusNode: capacityF,
+                nextFocus: colorF,
+                icon: Icons.memory,
+              ),
+              const SizedBox(height: 8),
+            ],
 
             // Màu sắc
             _buildTextField(
               controller: colorCtrl,
               label: 'Màu sắc *',
               focusNode: colorF,
-              nextFocus: imeiF,
+              nextFocus: _isAccessoryOrLinhKien ? costF : imeiF,
               icon: Icons.color_lens,
             ),
             const SizedBox(height: 8),
 
             // Tình trạng máy
             _buildDropdownField(
-              label: 'Tình trạng máy',
+              label: 'Tình trạng',
               controller: conditionCtrl,
               items: conditions,
               icon: Icons.check_circle,
             ),
             const SizedBox(height: 8),
 
-            // IMEI/Serial
-            _buildTextField(
-              controller: imeiCtrl,
-              label: 'IMEI/Serial',
-              focusNode: imeiF,
-              nextFocus: quantityF,
-              keyboardType: TextInputType.number,
-              icon: Icons.qr_code,
-            ),
-            const SizedBox(height: 8),
+            // IMEI/Serial (ẩn với accessory/linh kiện)
+            if (!_isAccessoryOrLinhKien) ...[
+              _buildTextField(
+                controller: imeiCtrl,
+                label: 'IMEI/Serial',
+                focusNode: imeiF,
+                nextFocus: quantityF,
+                keyboardType: TextInputType.number,
+                icon: Icons.qr_code,
+              ),
+              const SizedBox(height: 8),
+            ],
 
-            // Số lượng
-            _buildTextField(
-              controller: quantityCtrl,
-              label: 'Số lượng *',
-              focusNode: quantityF,
-              nextFocus: costF,
-              keyboardType: TextInputType.number,
-              icon: Icons.add_box,
-            ),
-            const SizedBox(height: 8),
+            // Số lượng (ẩn với accessory/linh kiện)
+            if (!_isAccessoryOrLinhKien) ...[
+              _buildTextField(
+                controller: quantityCtrl,
+                label: 'Số lượng *',
+                focusNode: quantityF,
+                nextFocus: costF,
+                keyboardType: TextInputType.number,
+                icon: Icons.add_box,
+              ),
+              const SizedBox(height: 8),
+            ],
 
             // Giá nhập
             _buildTextField(
@@ -438,29 +451,43 @@ class _StockInViewState extends State<StockInView> {
             ),
             const SizedBox(height: 8),
 
-            // Giá bán không phụ kiện
-            _buildTextField(
-              controller: priceCtrl,
-              label: 'Giá bán không phụ kiện (VNĐ)',
-              focusNode: priceF,
-              nextFocus: kpkPriceF,
-              keyboardType: TextInputType.number,
-              icon: Icons.sell,
-              suffix: 'x1k',
-            ),
-            const SizedBox(height: 8),
+            // Giá bán (cho accessory) hoặc Giá thay (cho linh kiện)
+            if (_isAccessoryOrLinhKien) ...[
+              _buildTextField(
+                controller: priceCtrl,
+                label: typeCtrl.text == 'ACCESSORY' ? 'Giá bán phụ kiện (VNĐ)' : 'Giá thay linh kiện (VNĐ)',
+                focusNode: priceF,
+                nextFocus: notesF,
+                keyboardType: TextInputType.number,
+                icon: Icons.sell,
+                suffix: 'x1k',
+              ),
+              const SizedBox(height: 8),
+            ] else ...[
+              // Giá bán không phụ kiện (cho phone)
+              _buildTextField(
+                controller: priceCtrl,
+                label: 'Giá bán không phụ kiện (VNĐ)',
+                focusNode: priceF,
+                nextFocus: kpkPriceF,
+                keyboardType: TextInputType.number,
+                icon: Icons.sell,
+                suffix: 'x1k',
+              ),
+              const SizedBox(height: 8),
 
-            // Giá KPK
-            _buildTextField(
-              controller: kpkPriceCtrl,
-              label: 'Giá KPK (VNĐ)',
-              focusNode: kpkPriceF,
-              nextFocus: notesF,
-              keyboardType: TextInputType.number,
-              icon: Icons.card_giftcard,
-              suffix: 'x1k',
-            ),
-            const SizedBox(height: 8),
+              // Giá KPK (chỉ cho phone)
+              _buildTextField(
+                controller: kpkPriceCtrl,
+                label: 'Giá KPK (VNĐ)',
+                focusNode: kpkPriceF,
+                nextFocus: notesF,
+                keyboardType: TextInputType.number,
+                icon: Icons.card_giftcard,
+                suffix: 'x1k',
+              ),
+              const SizedBox(height: 8),
+            ],
 
             // Nhà cung cấp
             DropdownButtonFormField<String>(

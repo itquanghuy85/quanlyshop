@@ -17,7 +17,6 @@ import 'warranty_view.dart';
 import 'settings_view.dart';
 import 'chat_view.dart';
 import 'thermal_printer_design_view.dart';
-import 'purchase_order_list_view.dart';
 import 'super_admin_view.dart' as admin_view;
 import 'staff_list_view.dart';
 import 'qr_scan_view.dart';
@@ -27,6 +26,7 @@ import 'audit_log_view.dart';
 import 'notification_settings_view.dart';
 import 'global_search_view.dart';
 import 'work_schedule_settings_view.dart';
+import 'debt_analysis_view.dart';
 import '../data/db_helper.dart';
 import '../widgets/perpetual_calendar.dart';
 import '../services/sync_service.dart';
@@ -124,14 +124,14 @@ class _HomeViewState extends State<HomeView> {
     final now = DateTime.now();
     for (var r in repairs) {
       if (_isSameDay(r.createdAt)) newRT++;
-      if (r.status >= 3 && r.deliveredAt != null && _isSameDay(r.deliveredAt!)) { doneT++; revT += (r.price - r.cost); }
+      if (r.status >= 3 && r.deliveredAt != null && _isSameDay(r.deliveredAt!)) { doneT++; revT += ((r.price as int) - (r.cost as int)); }
       if (r.deliveredAt != null && r.warranty.isNotEmpty && r.warranty != "KO BH") {
         int m = int.tryParse(r.warranty.split(' ').first) ?? 0;
         if (m > 0) { DateTime d = DateTime.fromMillisecondsSinceEpoch(r.deliveredAt!); DateTime e = DateTime(d.year, d.month + m, d.day); if (e.isAfter(now) && e.difference(now).inDays <= 7) expW++; }
       }
     }
     for (var s in sales) {
-      if (_isSameDay(s.soldAt)) { soldT++; revT += (s.totalPrice - s.totalCost); }
+      if (_isSameDay(s.soldAt)) { soldT++; revT += ((s.totalPrice as int) - (s.totalCost as int)); }
       if (s.warranty.isNotEmpty && s.warranty != "KO BH") {
         int m = int.tryParse(s.warranty.split(' ').first) ?? 12;
         DateTime d = DateTime.fromMillisecondsSinceEpoch(s.soldAt); DateTime e = DateTime(d.year, d.month + m, d.day); if (e.isAfter(now) && e.difference(now).inDays <= 7) expW++;
@@ -229,7 +229,6 @@ class _HomeViewState extends State<HomeView> {
     // NHÓM 1: KINH DOANH CỐT LÕI
     addModule('allowViewSales', "Bán hàng", Icons.shopping_cart_checkout_rounded, [const Color(0xFFFF4081), const Color(0xFFFF80AB)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SaleListView())));
     addModule('allowViewRepairs', "Sửa chữa", Icons.build_circle_rounded, [const Color(0xFF2979FF), const Color(0xFF448AFF)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderListView(role: widget.role))));
-    addModule('allowViewPurchaseOrders', "Đơn nhập", Icons.receipt_long_rounded, [const Color(0xFF4CAF50), const Color(0xFF81C784)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PurchaseOrderListView())));
 
     // NHÓM 2: QUẢN LÝ KHO & BẢO HÀNH
     addModule('allowViewInventory', "Kho hàng", Icons.inventory_rounded, [const Color(0xFFFF6F00), const Color(0xFFFFA726)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => InventoryView(role: widget.role))));
@@ -247,6 +246,7 @@ class _HomeViewState extends State<HomeView> {
     addModule('allowViewRevenue', "Báo cáo DT", Icons.leaderboard_rounded, [const Color(0xFF304FFE), const Color(0xFF536DFE)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RevenueView())));
 
     // NHÓM 5: CÔNG CỤ & HỆ THỐNG
+    if (_isSuperAdmin) addModule('allowViewDebts', "PHÂN TÍCH NỢ", Icons.analytics_rounded, [const Color(0xFFFF0000), const Color(0xFFFF4444)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DebtAnalysisView())));
     addModule('allowViewDebts', "Công nợ", Icons.receipt_long_rounded, [const Color(0xFF9C27B0), const Color(0xFFE1BEE7)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DebtView())));
     addModule('allowViewExpenses', "Chi phí", Icons.money_off_rounded, [const Color(0xFFFF5722), const Color(0xFFFFAB91)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ExpenseView())));
     addModule('allowViewPrinter', "Máy in", Icons.print_rounded, [const Color(0xFF607D8B), const Color(0xFF90A4AE)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ThermalPrinterDesignView())));
