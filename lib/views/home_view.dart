@@ -1,0 +1,302 @@
+import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'customer_history_view.dart';
+import 'order_list_view.dart';
+import 'revenue_view.dart';
+import 'inventory_view.dart';
+import 'fast_inventory_check_view.dart';
+import 'sale_list_view.dart';
+import 'expense_view.dart';
+import 'debt_view.dart';
+import 'warranty_view.dart';
+import 'settings_view.dart';
+import 'chat_view.dart';
+import 'thermal_printer_design_view.dart';
+import 'purchase_order_list_view.dart';
+import 'super_admin_view.dart' as admin_view;
+import 'staff_list_view.dart';
+import 'qr_scan_view.dart';
+import 'attendance_view.dart';
+import 'staff_performance_view.dart';
+import 'audit_log_view.dart';
+import 'notification_settings_view.dart';
+import 'global_search_view.dart';
+import 'work_schedule_settings_view.dart';
+import '../data/db_helper.dart';
+import '../widgets/perpetual_calendar.dart';
+import '../services/sync_service.dart';
+import '../services/user_service.dart';
+import '../services/firestore_service.dart';
+
+class HomeView extends StatefulWidget {
+  final String role;
+  final void Function(Locale)? setLocale;
+
+  const HomeView({super.key, required this.role, this.setLocale});
+
+  @override
+  State<HomeView> createState() => _HomeViewState();
+}
+
+class _HomeViewState extends State<HomeView> {
+  final db = DBHelper();
+  int totalPendingRepair = 0;
+  int todaySaleCount = 0;
+  int todayRepairDone = 0;
+  int revenueToday = 0;
+  int todayNewRepairs = 0;
+  int todayExpense = 0;
+  int totalDebtRemain = 0;
+  int expiringWarranties = 0;
+
+  bool _isSyncing = false;
+  Timer? _autoSyncTimer;
+  bool _shopLocked = false;
+  final TextEditingController _phoneSearchCtrl = TextEditingController();
+  Map<String, bool> _permissions = {};
+
+  final bool _isSuperAdmin = UserService.isCurrentUserSuperAdmin();
+  bool get hasFullAccess => widget.role == 'admin' || widget.role == 'owner' || _isSuperAdmin;
+
+  @override
+  void initState() {
+    super.initState();
+    _initialSetup();
+    SyncService.initRealTimeSync(() { if (mounted) _loadStats(); });
+    _autoSyncTimer = Timer.periodic(const Duration(seconds: 60), (_) => _syncNow(silent: true));
+  }
+
+  @override
+  void dispose() { _autoSyncTimer?.cancel(); _phoneSearchCtrl.dispose(); super.dispose(); }
+
+  Future<void> _initialSetup() async {
+    final prefs = await SharedPreferences.getInstance();
+    final currentUser = FirebaseAuth.instance.currentUser;
+    final lastUserId = prefs.getString('lastUserId');
+    if (currentUser != null && currentUser.uid != lastUserId) {
+      await db.clearAllData();
+      await prefs.setString('lastUserId', currentUser.uid);
+      if (currentUser.email != null) await UserService.syncUserInfo(currentUser.uid, currentUser.email!);
+    }
+    await db.cleanDuplicateData();
+    await _loadStats();
+    await _updatePermissions();
+  }
+
+  Future<void> _updatePermissions() async {
+    final perms = await UserService.getCurrentUserPermissions();
+    if (!mounted) return;
+    setState(() {
+      _shopLocked = perms['shopAppLocked'] == true;
+      _permissions = perms.map((key, value) => MapEntry(key, value == true));
+    });
+  }
+
+  Future<void> _syncNow({bool silent = false}) async {
+    if (_isSyncing) return;
+    if (mounted) setState(() => _isSyncing = true);
+    try {
+      await SyncService.syncAllToCloud();
+      await SyncService.downloadAllFromCloud();
+      await _loadStats();
+    } catch (e) { debugPrint("SYNC ERROR: $e"); }
+    finally { if (mounted) setState(() => _isSyncing = false); }
+  }
+
+  bool _isSameDay(int timestamp) {
+    final date = DateTime.fromMillisecondsSinceEpoch(timestamp);
+    final now = DateTime.now();
+    return date.year == now.year && date.month == now.month && date.day == now.day;
+  }
+
+  Future<void> _loadStats() async {
+    final repairs = await db.getAllRepairs();
+    final sales = await db.getAllSales();
+    final debts = await db.getAllDebts();
+    final expenses = await db.getAllExpenses();
+    int pendingR = repairs.where((r) => r.status == 1 || r.status == 2).length;
+    int doneT = 0; int soldT = 0; int revT = 0; int newRT = 0; int expT = 0; int debtR = 0; int expW = 0;
+    final now = DateTime.now();
+    for (var r in repairs) {
+      if (_isSameDay(r.createdAt)) newRT++;
+      if (r.status >= 3 && r.deliveredAt != null && _isSameDay(r.deliveredAt!)) { doneT++; revT += (r.price - r.cost); }
+      if (r.deliveredAt != null && r.warranty.isNotEmpty && r.warranty != "KO BH") {
+        int m = int.tryParse(r.warranty.split(' ').first) ?? 0;
+        if (m > 0) { DateTime d = DateTime.fromMillisecondsSinceEpoch(r.deliveredAt!); DateTime e = DateTime(d.year, d.month + m, d.day); if (e.isAfter(now) && e.difference(now).inDays <= 7) expW++; }
+      }
+    }
+    for (var s in sales) {
+      if (_isSameDay(s.soldAt)) { soldT++; revT += (s.totalPrice - s.totalCost); }
+      if (s.warranty.isNotEmpty && s.warranty != "KO BH") {
+        int m = int.tryParse(s.warranty.split(' ').first) ?? 12;
+        DateTime d = DateTime.fromMillisecondsSinceEpoch(s.soldAt); DateTime e = DateTime(d.year, d.month + m, d.day); if (e.isAfter(now) && e.difference(now).inDays <= 7) expW++;
+      }
+    }
+    for (var e in expenses) { if (_isSameDay(e['date'] as int)) expT += (e['amount'] as int); }
+    for (var d in debts) { 
+      final int total = d['totalAmount'] ?? 0; 
+      final int paid = d['paidAmount'] ?? 0; 
+      final int remain = total - paid;
+      if (remain > 0) debtR += remain;
+      else if (remain < 0) debugPrint('Debt with negative remain: id=${d['id']}, total=$total, paid=$paid');
+    }
+    if (mounted) setState(() { totalPendingRepair = pendingR; todayRepairDone = doneT; todaySaleCount = soldT; revenueToday = revT; todayNewRepairs = newRT; todayExpense = expT; totalDebtRemain = debtR; expiringWarranties = expW; });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return WillPopScope(
+      onWillPop: () async {
+        final ok = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(title: const Text("Thoát ứng dụng?"), actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("HỦY")), TextButton(onPressed: () => SystemNavigator.pop(), child: const Text("THOÁT"))]));
+        return ok ?? false;
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF8FAFF),
+        appBar: AppBar(
+          backgroundColor: Colors.white, elevation: 0,
+          title: Row(children: [
+            const Icon(Icons.store_rounded, color: Color(0xFF2962FF), size: 22),
+            const SizedBox(width: 8),
+            Expanded(child: Text(hasFullAccess ? "QUẢN TRỊ SHOP" : "NHÂN VIÊN", style: const TextStyle(color: Colors.black, fontSize: 15, fontWeight: FontWeight.bold))),
+          ]),
+          actions: [
+            IconButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => QrScanView(role: widget.role))), icon: const Icon(Icons.qr_code_scanner_rounded, color: Color(0xFF2962FF))),
+            IconButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => GlobalSearchView(role: widget.role))), icon: const Icon(Icons.search, color: Color(0xFF9C27B0), size: 28), tooltip: 'Tìm kiếm toàn app'),
+            IconButton(onPressed: () => _syncNow(), icon: _isSyncing ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.sync, color: Colors.green, size: 28)),
+            IconButton(onPressed: _openSettingsCenter, icon: const Icon(Icons.settings_rounded, color: Colors.black54), tooltip: 'Cài đặt'),
+            IconButton(onPressed: () async {
+              await SyncService.cancelAllSubscriptions();
+              try {
+                await FirebaseAuth.instance.signOut();
+              } catch (e) {
+                debugPrint('Logout error: $e');
+              }
+            }, icon: const Icon(Icons.logout_rounded, color: Colors.redAccent)),
+          ],
+        ),
+        body: RefreshIndicator(
+          onRefresh: () => _syncNow(),
+          child: SingleChildScrollView(padding: const EdgeInsets.all(20), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            if (_shopLocked) Container(padding: const EdgeInsets.all(12), margin: const EdgeInsets.only(bottom: 12), decoration: BoxDecoration(color: Colors.red.shade50, border: Border.all(color: Colors.redAccent), borderRadius: BorderRadius.circular(10)), child: const Text("CỬA HÀNG BỊ KHÓA", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold))),
+            _buildTodaySummary(),
+            const SizedBox(height: 20),
+            _buildModuleGrid(),
+            const SizedBox(height: 20),
+            const SizedBox(height: 20),
+            const PerpetualCalendar(),
+            const SizedBox(height: 25),
+            _buildAlerts(),
+            const SizedBox(height: 50),
+          ])),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTodaySummary() {
+    String fmt(int v) => NumberFormat('#,###').format(v);
+    return Container(
+      width: double.infinity, padding: const EdgeInsets.all(18), 
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withAlpha(8), blurRadius: 10)]), 
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Text("TRẠNG THÁI CỬA HÀNG", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+        const SizedBox(height: 15),
+        _summaryRow(Icons.build_circle, Colors.blue, "MÁY ĐANG CHỜ SỬA", "$totalPendingRepair", () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderListView(role: widget.role, statusFilter: const [1, 2]))), isBold: true),
+        _summaryRow(Icons.receipt_long_rounded, Colors.red, "TỔNG CÔNG NỢ TỒN ĐỌNG", "${fmt(totalDebtRemain)} đ", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DebtView())), isBold: true),
+        const Padding(padding: EdgeInsets.symmetric(vertical: 10), child: Divider()),
+        _summaryRow(Icons.add_task, Colors.orange, "Máy nhận mới hôm nay", "$todayNewRepairs", () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderListView(role: widget.role, todayOnly: true)))),
+        _summaryRow(Icons.shopping_bag_outlined, Colors.pink, "Đơn bán mới hôm nay", "$todaySaleCount", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SaleListView(todayOnly: true)))),
+        _summaryRow(Icons.check_circle_outlined, Colors.green, "Đã giao khách hôm nay", "$todayRepairDone", () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderListView(role: widget.role, statusFilter: const [4], todayOnly: true)))),
+        _summaryRow(Icons.money_off_rounded, Colors.blueGrey, "Chi phí phát sinh", "${fmt(todayExpense)} đ", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ExpenseView()))),
+      ])
+    );
+  }
+
+  Widget _summaryRow(IconData i, Color c, String l, String v, VoidCallback t, {bool isBold = false}) => InkWell(onTap: t, child: Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Row(children: [Icon(i, size: 18, color: c), const SizedBox(width: 12), Expanded(child: Text(l, style: TextStyle(fontSize: 13, color: isBold ? Colors.black : Colors.grey, fontWeight: isBold ? FontWeight.bold : FontWeight.normal))), Text(v, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: isBold ? c : Colors.black)), const Icon(Icons.chevron_right, size: 14, color: Colors.grey)])));
+
+  Widget _buildModuleGrid() {
+    final perms = _permissions;
+    final modules = <Widget>[];
+    void addModule(String permKey, String title, IconData icon, List<Color> colors, VoidCallback onTap, {Widget? badge}) {
+      if (hasFullAccess || (perms[permKey] ?? true)) { modules.add(_menuTile(title, icon, colors, onTap, badge: badge)); }
+    }
+    
+    // NHÓM 1: KINH DOANH CỐT LÕI
+    addModule('allowViewSales', "Bán hàng", Icons.shopping_cart_checkout_rounded, [const Color(0xFFFF4081), const Color(0xFFFF80AB)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SaleListView())));
+    addModule('allowViewRepairs', "Sửa chữa", Icons.build_circle_rounded, [const Color(0xFF2979FF), const Color(0xFF448AFF)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderListView(role: widget.role))));
+    addModule('allowViewPurchaseOrders', "Đơn nhập", Icons.receipt_long_rounded, [const Color(0xFF4CAF50), const Color(0xFF81C784)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PurchaseOrderListView())));
+
+    // NHÓM 2: QUẢN LÝ KHO & BẢO HÀNH
+    addModule('allowViewInventory', "Kho hàng", Icons.inventory_rounded, [const Color(0xFFFF6F00), const Color(0xFFFFA726)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => InventoryView(role: widget.role))));
+    addModule('allowViewInventory', "Kiểm kho QR", Icons.qr_code_scanner_rounded, [const Color(0xFF2196F3), const Color(0xFF64B5F6)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FastInventoryCheckView())));
+    addModule('allowViewWarranty', "Bảo hành", Icons.verified_user_rounded, [const Color(0xFF00C853), const Color(0xFFB2FF59)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WarrantyView())));
+
+    // NHÓM 3: NHÂN SỰ & CHAT
+    addModule('allowViewChat', "Chat", Icons.chat_bubble_rounded, [const Color(0xFF7C4DFF), const Color(0xFFB388FF)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChatView())), badge: _buildChatBadge());
+    addModule('allowViewAttendance', "Chấm công", Icons.fingerprint_rounded, [const Color(0xFF009688), const Color(0xFF4DB6AC)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AttendanceView())));
+    if (hasFullAccess) addModule('allowManageStaff', "Lịch làm", Icons.schedule_rounded, [const Color(0xFF0097A7), const Color(0xFF26C6DA)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => WorkScheduleSettingsView())));
+
+    // NHÓM 4: QUẢN TRỊ & TÀI CHÍNH
+    if (hasFullAccess) addModule('allowManageStaff', "Nhật ký", Icons.history_edu_rounded, [const Color(0xFF455A64), const Color(0xFF78909C)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AuditLogView())));
+    if (hasFullAccess) addModule('allowViewRevenue', "DS & Lương", Icons.assessment_rounded, [const Color(0xFF6200EA), const Color(0xFF7C4DFF)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StaffPerformanceView())));
+    addModule('allowViewRevenue', "Báo cáo DT", Icons.leaderboard_rounded, [const Color(0xFF304FFE), const Color(0xFF536DFE)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RevenueView())));
+
+    // NHÓM 5: CÔNG CỤ & HỆ THỐNG
+    addModule('allowViewDebts', "Công nợ", Icons.receipt_long_rounded, [const Color(0xFF9C27B0), const Color(0xFFE1BEE7)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DebtView())));
+    addModule('allowViewExpenses', "Chi phí", Icons.money_off_rounded, [const Color(0xFFFF5722), const Color(0xFFFFAB91)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ExpenseView())));
+    addModule('allowViewPrinter', "Máy in", Icons.print_rounded, [const Color(0xFF607D8B), const Color(0xFF90A4AE)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ThermalPrinterDesignView())));
+
+    return GridView.count(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), crossAxisCount: 3, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 0.9, children: modules);
+  }
+
+  Widget _buildChatBadge() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirestoreService.chatStream(),
+      builder: (context, snap) {
+        if (!snap.hasData) return const SizedBox();
+        final userId = FirebaseAuth.instance.currentUser?.uid;
+        final count = snap.data!.docs.where((doc) { final data = doc.data() as Map<String, dynamic>; final List readBy = data['readBy'] ?? []; return !readBy.contains(userId); }).length;
+        if (count == 0) return const SizedBox();
+        return Positioned(right: 5, top: 5, child: Container(padding: const EdgeInsets.all(4), decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle), constraints: const BoxConstraints(minWidth: 16, minHeight: 16), child: Text("$count", style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold), textAlign: TextAlign.center)));
+      }
+    );
+  }
+
+  Widget _menuTile(String title, IconData icon, List<Color> colors, VoidCallback onTap, {Widget? badge}) {
+    return InkWell(onTap: () { HapticFeedback.mediumImpact(); onTap(); }, child: Stack(children: [Container(width: double.infinity, height: double.infinity, decoration: BoxDecoration(gradient: LinearGradient(colors: colors, begin: Alignment.topLeft, end: Alignment.bottomRight), borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: colors[0].withAlpha(77), blurRadius: 6, offset: const Offset(0, 3))]), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(icon, color: Colors.white, size: 28), const SizedBox(height: 6), Text(title, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10))])), if (badge != null) badge]));
+  }
+
+  void _openSettingsCenter() {
+    showModalBottomSheet(context: context, shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))), builder: (ctx) => SafeArea(child: Padding(padding: const EdgeInsets.all(16), child: Column(mainAxisSize: MainAxisSize.min, children: [
+      ListTile(leading: const Icon(Icons.notifications_rounded, color: Colors.orange), title: const Text("CÀI ĐẶT THÔNG BÁO"), onTap: () { Navigator.pop(ctx); Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationSettingsView())); }),
+      ListTile(leading: const Icon(Icons.settings_rounded, color: Colors.blueGrey), title: const Text("CÀI ĐẶT HỆ THỐNG"), onTap: () { Navigator.pop(ctx); Navigator.push(context, MaterialPageRoute(builder: (_) => SettingsView(setLocale: widget.setLocale))); }),
+      if (hasFullAccess) ListTile(leading: const Icon(Icons.group_rounded, color: Colors.indigo), title: const Text("QUẢN LÝ NHÂN VIÊN"), onTap: () { Navigator.pop(ctx); Navigator.push(context, MaterialPageRoute(builder: (_) => const StaffListView())); }),
+      if (_isSuperAdmin) ListTile(leading: const Icon(Icons.admin_panel_settings_rounded, color: Colors.deepPurple), title: const Text("TRUNG TÂM SUPER ADMIN"), onTap: () { Navigator.pop(ctx); Navigator.push(context, MaterialPageRoute(builder: (_) => const admin_view.SuperAdminView())); }),
+    ]))));
+  }
+
+  Widget _buildAlerts() {
+    if (expiringWarranties == 0) return const SizedBox();
+    return InkWell(
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WarrantyView())),
+      child: Container(
+        width: double.infinity, padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(color: Colors.redAccent, borderRadius: BorderRadius.circular(15), boxShadow: [BoxShadow(color: Colors.red.withAlpha(51), blurRadius: 10)]),
+        child: Row(children: [
+          const Icon(Icons.notification_important, color: Colors.white, size: 28),
+          const SizedBox(width: 15),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text("NHẮC LỊCH BẢO HÀNH", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+            Text("Có $expiringWarranties máy sắp hết hạn bảo hành. Xem ngay!", style: const TextStyle(color: Colors.white70, fontSize: 11)),
+          ])),
+          const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 16),
+        ]),
+      ),
+    );
+  }
+}
