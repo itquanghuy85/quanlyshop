@@ -95,6 +95,7 @@ class _HomeViewState extends State<HomeView> {
       _shopLocked = perms['shopAppLocked'] == true;
       _permissions = perms.map((key, value) => MapEntry(key, value == true));
     });
+    debugPrint('HomeView permissions updated: $_permissions');
   }
 
   Future<void> _syncNow({bool silent = false}) async {
@@ -244,10 +245,10 @@ class _HomeViewState extends State<HomeView> {
     if (hasFullAccess) addModule('allowManageStaff', "Nhật ký", Icons.history_edu_rounded, [const Color(0xFF455A64), const Color(0xFF78909C)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AuditLogView())));
     if (hasFullAccess) addModule('allowViewRevenue', "DS & Lương", Icons.assessment_rounded, [const Color(0xFF6200EA), const Color(0xFF7C4DFF)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StaffPerformanceView())));
     addModule('allowViewRevenue', "Báo cáo DT", Icons.leaderboard_rounded, [const Color(0xFF304FFE), const Color(0xFF536DFE)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RevenueView())));
+    addModule('allowViewDebts', "Công nợ", Icons.receipt_long_rounded, [const Color(0xFF9C27B0), const Color(0xFFE1BEE7)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DebtView())));
 
     // NHÓM 5: CÔNG CỤ & HỆ THỐNG
     if (_isSuperAdmin) addModule('allowViewDebts', "PHÂN TÍCH NỢ", Icons.analytics_rounded, [const Color(0xFFFF0000), const Color(0xFFFF4444)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DebtAnalysisView())));
-    addModule('allowViewDebts', "Công nợ", Icons.receipt_long_rounded, [const Color(0xFF9C27B0), const Color(0xFFE1BEE7)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DebtView())));
     addModule('allowViewExpenses', "Chi phí", Icons.money_off_rounded, [const Color(0xFFFF5722), const Color(0xFFFFAB91)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ExpenseView())));
     addModule('allowViewPrinter', "Máy in", Icons.print_rounded, [const Color(0xFF607D8B), const Color(0xFF90A4AE)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ThermalPrinterDesignView())));
 

@@ -895,7 +895,16 @@ class _StaffListViewState extends State<StaffListView> {
                           children: [
                             Text(email, style: const TextStyle(fontSize: 11, color: Colors.grey)),
                             Text("SĐT: $phone", style: const TextStyle(fontSize: 11, color: Colors.grey)),
-                            Text("Vai trò: ${role == 'owner' ? 'Chủ shop' : role == 'manager' ? 'Quản lý' : role == 'employee' ? 'Nhân viên' : role == 'technician' ? 'Kỹ thuật' : role == 'admin' ? 'Admin' : role}", style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                            role == 'admin' 
+                              ? Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text("Vai trò: Admin", style: const TextStyle(fontSize: 11, color: Colors.yellow, fontWeight: FontWeight.bold)),
+                                )
+                              : Text("Vai trò: ${role == 'owner' ? 'Chủ shop' : role == 'manager' ? 'Quản lý' : role == 'employee' ? 'Nhân viên' : role == 'technician' ? 'Kỹ thuật' : role}", style: const TextStyle(fontSize: 11, color: Colors.grey)),
                             if (shopId != null)
                               FutureBuilder<DocumentSnapshot>(
                                 future: FirebaseFirestore.instance.collection('shops').doc(shopId).get(),
@@ -1020,9 +1029,31 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter> with SingleT
     _canViewExpenses = widget.fullData['allowViewExpenses'] == true;
     _canViewDebts = widget.fullData['allowViewDebts'] == true;
 
+    // Đồng bộ permissions với role hiện tại
+    _syncPermissionsWithRole();
+
     _loadCurrentShop();
     _loadAllStaffData();
     _loadWorkSchedule();
+  }
+
+  void _syncPermissionsWithRole() {
+    // Nếu là owner hoặc manager, luôn có full permissions
+    if (_selectedRole == 'owner' || _selectedRole == 'manager') {
+      _canViewSales = true;
+      _canViewRepairs = true;
+      _canViewInventory = true;
+      _canViewParts = true;
+      _canViewSuppliers = true;
+      _canViewCustomers = true;
+      _canViewWarranty = true;
+      _canViewChat = true;
+      _canViewAttendance = true;
+      _canViewPrinter = true;
+      _canViewRevenue = true;
+      _canViewExpenses = true;
+      _canViewDebts = true;
+    }
   }
 
   Future<void> _loadCurrentShop() async {
@@ -1171,9 +1202,9 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter> with SingleT
         allowViewChat: _canViewChat,
         allowViewAttendance: _canViewAttendance,
         allowViewPrinter: _canViewPrinter,
-        allowViewRevenue: _selectedRole == 'owner' || _selectedRole == 'manager' ? true : _canViewRevenue,
-        allowViewExpenses: _selectedRole == 'owner' || _selectedRole == 'manager' ? true : _canViewExpenses,
-        allowViewDebts: _selectedRole == 'owner' || _selectedRole == 'manager' ? true : _canViewDebts,
+        allowViewRevenue: _canViewRevenue,
+        allowViewExpenses: _canViewExpenses,
+        allowViewDebts: _canViewDebts,
       );
 
       setState(() => _isEditing = false);
@@ -1277,7 +1308,12 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter> with SingleT
                               DropdownMenuItem(value: 'employee', child: Text("NHÂN VIÊN")),
                               DropdownMenuItem(value: 'technician', child: Text("KỸ THUẬT")),
                             ],
-                            onChanged: (v) => setState(() => _selectedRole = v!),
+                            onChanged: (v) {
+                              setState(() {
+                                _selectedRole = v!;
+                                _syncPermissionsWithRole();
+                              });
+                            },
                           ),
                         ],
                       ),

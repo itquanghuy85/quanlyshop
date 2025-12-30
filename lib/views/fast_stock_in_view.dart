@@ -366,7 +366,7 @@ class _FastStockInViewState extends State<FastStockInView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Nhà cung cấp', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+        Text('Nhà cung cấp', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.black87)),
         const SizedBox(height: 4),
         Row(
           children: [
@@ -375,15 +375,18 @@ class _FastStockInViewState extends State<FastStockInView> {
                 value: selectedSupplier,
                 items: suppliers.map((sup) => DropdownMenuItem<String>(
                   value: sup['name'] as String,
-                  child: Text(sup['name'] as String, style: const TextStyle(fontSize: 11)),
+                  child: Text(sup['name'] as String, style: const TextStyle(fontSize: 11, color: Colors.black87)),
                 )).toList(),
                 onChanged: (val) => setState(() => selectedSupplier = val),
                 decoration: InputDecoration(
                   hintText: 'Chọn nhà cung cấp',
+                  hintStyle: const TextStyle(fontSize: 11, color: Colors.black54),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(4)),
+                  filled: false,
                 ),
-                style: const TextStyle(fontSize: 11),
+                style: const TextStyle(fontSize: 11, color: Colors.black87),
+                dropdownColor: Colors.white,
               ),
             ),
             const SizedBox(width: 8),

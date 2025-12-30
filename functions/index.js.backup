@@ -258,11 +258,6 @@ exports.cleanupDeletedRepairs = onSchedule("every 24 hours", async (event) => {
         console.error(`Failed to delete repair ${doc.id}:`, e);
       }
     }
-  } catch (error) {
-    console.error('Error in cleanupDeletedRepairs:', error);
-  }
-});
-
 // 🔔 Gửi FCM push notification khi có thông báo shop mới
 exports.sendShopNotification = onDocumentCreated("shop_notifications/{notificationId}", async (event) => {
   const notificationData = event.data?.data();

@@ -81,6 +81,18 @@ class DBHelper {
         } catch (e) {
           debugPrint('DB onOpen check error: $e');
         }
+
+        // Ensure createdBy column exists in debts table
+        try {
+          final cols = await db.rawQuery('PRAGMA table_info(debts)');
+          final has = cols.any((c) => (c['name'] ?? c['name'.toString()]) == 'createdBy');
+          if (!has) {
+            await db.execute('ALTER TABLE debts ADD COLUMN createdBy TEXT');
+            debugPrint('DB: added createdBy column to debts');
+          }
+        } catch (e) {
+          debugPrint('DB onOpen check error (debts createdBy): $e');
+        }
       }
     );
   }

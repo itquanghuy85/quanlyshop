@@ -255,12 +255,20 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
         controller: _tabController,
         children: [_buildDebtList('CUSTOMER_OWES'), _buildDebtList('SHOP_OWES'), _buildDebtList('OTHER')],
       ),
-      floatingActionButton: _tabController.index == 2 ? FloatingActionButton(
-        onPressed: _createOtherDebt,
-        backgroundColor: Colors.purpleAccent,
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          if (_tabController.index == 0) {
+            _createCustomerDebt(); // Tạo nợ khách hàng (phải thu)
+          } else if (_tabController.index == 1) {
+            _createSupplierDebt(); // Tạo nợ nhà cung cấp (phải trả)
+          } else {
+            _createOtherDebt(); // Tạo công nợ khác
+          }
+        },
+        backgroundColor: _tabController.index == 0 ? Colors.redAccent : _tabController.index == 1 ? Colors.blueAccent : Colors.purpleAccent,
         child: const Icon(Icons.add, color: Colors.white),
-        tooltip: 'Tạo công nợ khác',
-      ) : null,
+        tooltip: _tabController.index == 0 ? 'Tạo nợ khách hàng' : _tabController.index == 1 ? 'Tạo nợ nhà cung cấp' : 'Tạo công nợ khác',
+      ),
     );
   }
 
@@ -520,6 +528,156 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _createCustomerDebt() {
+    final nameC = TextEditingController();
+    final phoneC = TextEditingController();
+    final amountC = TextEditingController();
+    final noteC = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("TẠO NỢ KHÁCH HÀNG (PHẢI THU)"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(controller: nameC, decoration: const InputDecoration(labelText: "Tên khách hàng")),
+            const SizedBox(height: 10),
+            TextField(controller: phoneC, decoration: const InputDecoration(labelText: "Số điện thoại")),
+            const SizedBox(height: 10),
+            CurrencyTextField(controller: amountC, label: "Số tiền nợ (Ví dụ: 500 = 500k)"),
+            const SizedBox(height: 10),
+            TextField(controller: noteC, decoration: const InputDecoration(labelText: "Ghi chú")),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("HỦY")),
+          ElevatedButton(
+            onPressed: () async {
+              if (nameC.text.isEmpty || amountC.text.isEmpty) return;
+
+              try {
+                // Xử lý quy ước nhập nhanh (x1000)
+                int rawAmount = int.tryParse(amountC.text.replaceAll('.', '')) ?? 0;
+                if (rawAmount <= 0) return;
+
+                // Nếu nhập số nhỏ (dưới 100k) thì tự động nhân 1000
+                int debtAmount = (rawAmount > 0 && rawAmount < 100000) ? rawAmount * 1000 : rawAmount;
+
+                final user = FirebaseAuth.instance.currentUser;
+                final userName = user?.email?.split('@').first.toUpperCase() ?? "NV";
+                final now = DateTime.now().millisecondsSinceEpoch;
+
+                final newDebtData = {
+                  'firestoreId': "debt_customer_${now}",
+                  'personName': nameC.text.trim(),
+                  'phone': phoneC.text.trim(),
+                  'totalAmount': debtAmount,
+                  'paidAmount': 0,
+                  'type': 'CUSTOMER_OWES',
+                  'status': 'unpaid',
+                  'createdAt': now,
+                  'note': noteC.text.trim(),
+                  'createdBy': userName,
+                };
+
+                await db.insertDebt(newDebtData);
+                await FirestoreService.addDebtCloud(newDebtData);
+
+                // Nhật ký
+                await db.logAction(userId: user?.uid ?? "0", userName: userName, action: "TẠO NỢ", type: "DEBT", targetId: newDebtData['firestoreId'] as String, desc: "Tạo nợ khách hàng: ${nameC.text} - ${NumberFormat('#,###').format(debtAmount)} đ.");
+
+                if (!mounted) return;
+                Navigator.pop(context);
+                _refresh();
+                NotificationService.showSnackBar("Đã tạo nợ khách hàng!", color: Colors.green);
+              } catch (e) {
+                if (!mounted) return;
+                NotificationService.showSnackBar("Lỗi tạo nợ: $e", color: Colors.red);
+              }
+            },
+            child: const Text("TẠO"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _createSupplierDebt() {
+    final nameC = TextEditingController();
+    final phoneC = TextEditingController();
+    final amountC = TextEditingController();
+    final noteC = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("TẠO NỢ NHÀ CUNG CẤP (PHẢI TRẢ)"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(controller: nameC, decoration: const InputDecoration(labelText: "Tên nhà cung cấp")),
+            const SizedBox(height: 10),
+            TextField(controller: phoneC, decoration: const InputDecoration(labelText: "Số điện thoại")),
+            const SizedBox(height: 10),
+            CurrencyTextField(controller: amountC, label: "Số tiền nợ (Ví dụ: 500 = 500k)"),
+            const SizedBox(height: 10),
+            TextField(controller: noteC, decoration: const InputDecoration(labelText: "Ghi chú")),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("HỦY")),
+          ElevatedButton(
+            onPressed: () async {
+              if (nameC.text.isEmpty || amountC.text.isEmpty) return;
+
+              try {
+                // Xử lý quy ước nhập nhanh (x1000)
+                int rawAmount = int.tryParse(amountC.text.replaceAll('.', '')) ?? 0;
+                if (rawAmount <= 0) return;
+
+                // Nếu nhập số nhỏ (dưới 100k) thì tự động nhân 1000
+                int debtAmount = (rawAmount > 0 && rawAmount < 100000) ? rawAmount * 1000 : rawAmount;
+
+                final user = FirebaseAuth.instance.currentUser;
+                final userName = user?.email?.split('@').first.toUpperCase() ?? "NV";
+                final now = DateTime.now().millisecondsSinceEpoch;
+
+                final newDebtData = {
+                  'firestoreId': "debt_supplier_${now}",
+                  'personName': nameC.text.trim(),
+                  'phone': phoneC.text.trim(),
+                  'totalAmount': debtAmount,
+                  'paidAmount': 0,
+                  'type': 'SHOP_OWES',
+                  'status': 'unpaid',
+                  'createdAt': now,
+                  'note': noteC.text.trim(),
+                  'createdBy': userName,
+                };
+
+                await db.insertDebt(newDebtData);
+                await FirestoreService.addDebtCloud(newDebtData);
+
+                // Nhật ký
+                await db.logAction(userId: user?.uid ?? "0", userName: userName, action: "TẠO NỢ", type: "DEBT", targetId: newDebtData['firestoreId'] as String, desc: "Tạo nợ nhà cung cấp: ${nameC.text} - ${NumberFormat('#,###').format(debtAmount)} đ.");
+
+                if (!mounted) return;
+                Navigator.pop(context);
+                _refresh();
+                NotificationService.showSnackBar("Đã tạo nợ nhà cung cấp!", color: Colors.green);
+              } catch (e) {
+                if (!mounted) return;
+                NotificationService.showSnackBar("Lỗi tạo nợ: $e", color: Colors.red);
+              }
+            },
+            child: const Text("TẠO"),
+          ),
+        ],
       ),
     );
   }

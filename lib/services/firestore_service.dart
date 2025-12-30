@@ -134,7 +134,8 @@ class FirestoreService {
       final docRef = _db.collection('products').doc(docId);
       Map<String, dynamic> data = p.toMap();
       data['shopId'] = shopId;
-      data['firestoreId'] = docRef.id;
+      // Remove firestoreId from data since it's already in docId
+      data.remove('firestoreId');
       await docRef.set(data, SetOptions(merge: true));
       return docRef.id;
     } catch (e) { return null; }
@@ -197,7 +198,10 @@ class FirestoreService {
       debtData['shopId'] = shopId;
       debtData['firestoreId'] = docId;
       await _db.collection('debts').doc(docId).set(debtData, SetOptions(merge: true));
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('Error adding debt to cloud: $e');
+      rethrow; // Re-throw để caller biết có lỗi
+    }
   }
 
   static Future<void> addExpenseCloud(Map<String, dynamic> expData) async {

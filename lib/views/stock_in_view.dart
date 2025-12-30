@@ -52,7 +52,6 @@ class _StockInViewState extends State<StockInView> {
 
   // Dropdown options
   final List<String> types = ['PHONE', 'ACCESSORY', 'LINH KIỆN'];
-  final List<String> brands = ['IPHONE', 'SAMSUNG', 'OPPO'];
   final List<String> conditions = ['Mới', '99', '98', 'Khác'];
   List<Map<String, dynamic>> suppliers = [];
 
@@ -133,22 +132,29 @@ class _StockInViewState extends State<StockInView> {
 
   Future<bool> _validateForm() async {
     if (brandCtrl.text.isEmpty) {
-      NotificationService.showSnackBar("Vui lòng chọn hãng!", color: Colors.red);
+      NotificationService.showSnackBar("Vui lòng nhập loại!", color: Colors.red);
       return false;
     }
-    if (modelCtrl.text.isEmpty) {
-      NotificationService.showSnackBar("Vui lòng nhập model!", color: Colors.red);
-      return false;
+
+    // Chỉ validate model và capacity cho phone
+    if (!_isAccessoryOrLinhKien) {
+      if (modelCtrl.text.isEmpty) {
+        NotificationService.showSnackBar("Vui lòng nhập model!", color: Colors.red);
+        return false;
+      }
+      if (capacityCtrl.text.isEmpty) {
+        NotificationService.showSnackBar("Vui lòng nhập dung lượng!", color: Colors.red);
+        return false;
+      }
     }
-    if (capacityCtrl.text.isEmpty) {
-      NotificationService.showSnackBar("Vui lòng nhập dung lượng!", color: Colors.red);
-      return false;
-    }
+
     if (colorCtrl.text.isEmpty) {
       NotificationService.showSnackBar("Vui lòng nhập màu sắc!", color: Colors.red);
       return false;
     }
-    if (imeiCtrl.text.isNotEmpty) {
+
+    // Chỉ validate IMEI cho phone
+    if (!_isAccessoryOrLinhKien && imeiCtrl.text.isNotEmpty) {
       // Check for duplicate IMEI
       final dbInstance = await db.database;
       final result = await dbInstance.query('products', where: 'imei = ?', whereArgs: [imeiCtrl.text.trim()]);
@@ -157,6 +163,7 @@ class _StockInViewState extends State<StockInView> {
         return false;
       }
     }
+
     final quantity = int.tryParse(quantityCtrl.text);
     if (quantity == null || quantity <= 0) {
       NotificationService.showSnackBar("Số lượng phải là số dương!", color: Colors.red);
@@ -169,14 +176,19 @@ class _StockInViewState extends State<StockInView> {
     }
     final price = _parseMoneyWithK(priceCtrl.text);
     if (price < 0) {
-      NotificationService.showSnackBar("Giá bán không phụ kiện không được âm!", color: Colors.red);
+      NotificationService.showSnackBar("Giá bán không được âm!", color: Colors.red);
       return false;
     }
-    final kpkPrice = _parseMoneyWithK(kpkPriceCtrl.text);
-    if (kpkPrice < 0) {
-      NotificationService.showSnackBar("Giá KPK không được âm!", color: Colors.red);
-      return false;
+
+    // Chỉ validate giá KPK cho phone
+    if (!_isAccessoryOrLinhKien) {
+      final kpkPrice = _parseMoneyWithK(kpkPriceCtrl.text);
+      if (kpkPrice < 0) {
+        NotificationService.showSnackBar("Giá KPK không được âm!", color: Colors.red);
+        return false;
+      }
     }
+
     if (supplierCtrl.text.isEmpty) {
       NotificationService.showSnackBar("Vui lòng chọn nhà cung cấp!", color: Colors.red);
       return false;
@@ -198,9 +210,11 @@ class _StockInViewState extends State<StockInView> {
 
       final product = Product(
         firestoreId: fId,
-        name: '${brandCtrl.text} ${modelCtrl.text}'.toUpperCase(),
+        name: _isAccessoryOrLinhKien
+            ? '${brandCtrl.text} ${colorCtrl.text}'.toUpperCase()
+            : '${brandCtrl.text} ${modelCtrl.text}'.toUpperCase(),
         brand: brandCtrl.text.toUpperCase(),
-        imei: imei.isNotEmpty ? imei : null,
+        imei: (!_isAccessoryOrLinhKien && imei.isNotEmpty) ? imei : null,
         cost: _parseMoneyWithK(costCtrl.text),
         price: _parseMoneyWithK(priceCtrl.text),
         condition: conditionCtrl.text,
@@ -211,8 +225,8 @@ class _StockInViewState extends State<StockInView> {
         type: typeCtrl.text,
         quantity: quantity,
         color: colorCtrl.text.trim().toUpperCase(),
-        capacity: capacityCtrl.text.trim().toUpperCase(),
-        kpkPrice: _parseMoneyWithK(kpkPriceCtrl.text),
+        capacity: !_isAccessoryOrLinhKien ? capacityCtrl.text.trim().toUpperCase() : null,
+        kpkPrice: !_isAccessoryOrLinhKien ? _parseMoneyWithK(kpkPriceCtrl.text) : 0,
         paymentMethod: selectedPaymentMethod,
       );
 
@@ -252,15 +266,22 @@ class _StockInViewState extends State<StockInView> {
   }
 
   void _resetForm() {
+    // Không reset type để giữ loại sản phẩm hiện tại
     brandCtrl.clear();
-    modelCtrl.clear();
-    capacityCtrl.clear();
+    if (!_isAccessoryOrLinhKien) {
+      modelCtrl.clear();
+      capacityCtrl.clear();
+    }
     colorCtrl.clear();
-    imeiCtrl.clear();
+    if (!_isAccessoryOrLinhKien) {
+      imeiCtrl.clear();
+    }
     quantityCtrl.text = '1';
     costCtrl.clear();
     priceCtrl.clear();
-    kpkPriceCtrl.clear();
+    if (!_isAccessoryOrLinhKien) {
+      kpkPriceCtrl.clear();
+    }
     notesCtrl.clear();
     selectedDate = DateTime.now();
     setState(() {});
@@ -360,12 +381,12 @@ class _StockInViewState extends State<StockInView> {
             ),
             const SizedBox(height: 8),
 
-            // Hãng
-            _buildDropdownField(
-              label: 'Hãng *',
+            // Loại (thay cho Hãng, nhập tay được)
+            _buildTextField(
               controller: brandCtrl,
-              items: brands,
-              nextFocus: modelF,
+              label: 'Loại *',
+              focusNode: brandF,
+              nextFocus: _isAccessoryOrLinhKien ? colorF : modelF,
               icon: Icons.business,
             ),
             const SizedBox(height: 8),
@@ -394,13 +415,13 @@ class _StockInViewState extends State<StockInView> {
               const SizedBox(height: 8),
             ],
 
-            // Màu sắc
+            // Thông tin (thay cho Màu sắc)
             _buildTextField(
               controller: colorCtrl,
-              label: 'Màu sắc *',
+              label: 'Thông tin *',
               focusNode: colorF,
-              nextFocus: _isAccessoryOrLinhKien ? costF : imeiF,
-              icon: Icons.color_lens,
+              nextFocus: _isAccessoryOrLinhKien ? quantityF : imeiF,
+              icon: Icons.info,
             ),
             const SizedBox(height: 8),
 
@@ -413,7 +434,7 @@ class _StockInViewState extends State<StockInView> {
             ),
             const SizedBox(height: 8),
 
-            // IMEI/Serial (ẩn với accessory/linh kiện)
+            // IMEI/Serial (chỉ cho phone)
             if (!_isAccessoryOrLinhKien) ...[
               _buildTextField(
                 controller: imeiCtrl,
@@ -426,18 +447,16 @@ class _StockInViewState extends State<StockInView> {
               const SizedBox(height: 8),
             ],
 
-            // Số lượng (ẩn với accessory/linh kiện)
-            if (!_isAccessoryOrLinhKien) ...[
-              _buildTextField(
-                controller: quantityCtrl,
-                label: 'Số lượng *',
-                focusNode: quantityF,
-                nextFocus: costF,
-                keyboardType: TextInputType.number,
-                icon: Icons.add_box,
-              ),
-              const SizedBox(height: 8),
-            ],
+            // Số lượng (cho tất cả loại sản phẩm)
+            _buildTextField(
+              controller: quantityCtrl,
+              label: 'Số lượng *',
+              focusNode: quantityF,
+              nextFocus: costF,
+              keyboardType: TextInputType.number,
+              icon: Icons.add_box,
+            ),
+            const SizedBox(height: 8),
 
             // Giá nhập
             _buildTextField(
@@ -492,17 +511,19 @@ class _StockInViewState extends State<StockInView> {
             // Nhà cung cấp
             DropdownButtonFormField<String>(
               value: supplierCtrl.text.isNotEmpty ? supplierCtrl.text : null,
-              style: const TextStyle(fontSize: 12),
+              style: const TextStyle(fontSize: 12, color: Colors.black87),
+              dropdownColor: Colors.white,
               decoration: const InputDecoration(
                 labelText: 'Nhà cung cấp *',
-                labelStyle: TextStyle(fontSize: 12),
-                prefixIcon: Icon(Icons.business_center, size: 16),
+                labelStyle: TextStyle(fontSize: 12, color: Colors.black87),
+                prefixIcon: Icon(Icons.business_center, size: 16, color: Colors.black54),
                 border: OutlineInputBorder(),
                 contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                filled: false,
               ),
               items: suppliers.map((supplier) => DropdownMenuItem<String>(
                 value: supplier['name'] as String,
-                child: Text(supplier['name'] as String, style: const TextStyle(fontSize: 12)),
+                child: Text(supplier['name'] as String, style: const TextStyle(fontSize: 12, color: Colors.black87)),
               )).toList(),
               onChanged: (value) {
                 setState(() {
