@@ -311,12 +311,106 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
           ..._items.asMap().entries.map((entry) {
             final index = entry.key;
             final item = entry.value;
-            return ListTile(
-              title: Text(item.productName ?? ''),
-              subtitle: Text("${item.quantity} x ${NumberFormat('#,###').format(item.unitCost)}đ = ${NumberFormat('#,###').format(item.quantity * item.unitCost)}đ"),
-              trailing: IconButton(
-                icon: const Icon(Icons.delete, color: Colors.red),
-                onPressed: () => _removeItem(index),
+            return Card(
+              margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            item.productName ?? '',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.red),
+                          onPressed: () => _removeItem(index),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text("Giá nhập: ${NumberFormat('#,###').format(item.unitCost)}đ"),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Text("Số lượng: "),
+                        IconButton(
+                          icon: const Icon(Icons.remove, size: 20),
+                          onPressed: () {
+                            if (item.quantity > 1) {
+                              setState(() {
+                                _items[index] = item.copyWith(quantity: item.quantity - 1);
+                              });
+                            }
+                          },
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                        SizedBox(
+                          width: 50,
+                          child: TextFormField(
+                            initialValue: item.quantity.toString(),
+                            keyboardType: TextInputType.number,
+                            textAlign: TextAlign.center,
+                            onChanged: (value) {
+                              final newQuantity = int.tryParse(value) ?? 1;
+                              if (newQuantity > 0) {
+                                setState(() {
+                                  _items[index] = item.copyWith(quantity: newQuantity);
+                                });
+                              }
+                            },
+                            decoration: const InputDecoration(
+                              isDense: true,
+                              contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.add, size: 20),
+                          onPressed: () {
+                            setState(() {
+                              _items[index] = item.copyWith(quantity: item.quantity + 1);
+                            });
+                          },
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Text("IMEI: "),
+                        Expanded(
+                          child: TextFormField(
+                            initialValue: item.imei ?? '',
+                            onChanged: (value) {
+                              setState(() {
+                                _items[index] = item.copyWith(imei: value.trim().isNotEmpty ? value.trim() : null);
+                              });
+                            },
+                            decoration: const InputDecoration(
+                              isDense: true,
+                              contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              hintText: "Nhập IMEI (tùy chọn)",
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      "Thành tiền: ${NumberFormat('#,###').format(item.quantity * item.unitCost)}đ",
+                      style: const TextStyle(fontWeight: FontWeight.w500),
+                    ),
+                  ],
+                ),
               ),
             );
           }),

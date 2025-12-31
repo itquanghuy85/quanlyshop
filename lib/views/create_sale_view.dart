@@ -333,11 +333,25 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                 Row(
                   children: [
                     const Text("Số lượng: "),
+                    IconButton(
+                      icon: const Icon(Icons.remove, size: 20),
+                      onPressed: () {
+                        if (quantity > 1) {
+                          setState(() {
+                            item['quantity'] = quantity - 1;
+                            _calculateTotal();
+                          });
+                        }
+                      },
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
                     SizedBox(
-                      width: 60,
-                      child: TextField(
-                        controller: TextEditingController(text: quantity.toString()),
+                      width: 50,
+                      child: TextFormField(
+                        initialValue: quantity.toString(),
                         keyboardType: TextInputType.number,
+                        textAlign: TextAlign.center,
                         onChanged: (value) {
                           final newQuantity = int.tryParse(value) ?? 1;
                           setState(() {
@@ -347,9 +361,21 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                         },
                         decoration: const InputDecoration(
                           isDense: true,
-                          contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                          border: OutlineInputBorder(),
                         ),
                       ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.add, size: 20),
+                      onPressed: () {
+                        setState(() {
+                          item['quantity'] = quantity + 1;
+                          _calculateTotal();
+                        });
+                      },
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
                     ),
                   ],
                 ),
