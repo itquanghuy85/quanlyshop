@@ -520,4 +520,51 @@ class SyncService {
       debugPrint("Lỗi downloadAllFromCloud: $e");
     }
   }
+
+  /// Đồng bộ Quick Input Codes từ Local lên Cloud
+  static Future<void> syncQuickInputCodesToCloud() async {
+    debugPrint("Bắt đầu syncQuickInputCodesToCloud...");
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        debugPrint("Không có user, bỏ qua syncQuickInputCodesToCloud");
+        return;
+      }
+
+      final String? shopId = await UserService.getCurrentShopId();
+      final dbHelper = DBHelper();
+
+      // Đồng bộ Quick Input Codes
+      final quickInputCodes = await dbHelper.getUnsyncedQuickInputCodes();
+      debugPrint("syncQuickInputCodesToCloud: có ${quickInputCodes.length} quick input codes cần sync");
+
+      if (quickInputCodes.isNotEmpty) {
+        final WriteBatch quickInputBatch = _db.batch();
+        for (var code in quickInputCodes) {
+          try {
+            Map<String, dynamic> data = code.toMap();
+            data['shopId'] = shopId;
+            data.remove('id');
+
+            final docId = code.firestoreId ?? "qic_${code.createdAt}_${code.name.replaceAll(' ', '_')}";
+            quickInputBatch.set(_db.collection('quick_input_codes').doc(docId), data, SetOptions(merge: true));
+
+            code.firestoreId = docId;
+            code.shopId = shopId;
+            code.isSynced = true;
+            await dbHelper.updateQuickInputCode(code);
+          } catch (e) {
+            debugPrint("Lỗi sync quick input code ${code.id}: $e");
+          }
+        }
+        await quickInputBatch.commit();
+        debugPrint("Đã đồng bộ thành công ${quickInputCodes.length} mã nhập nhanh lên Cloud");
+      } else {
+        debugPrint("Không có mã nhập nhanh nào cần đồng bộ");
+      }
+    } catch (e) {
+      debugPrint("Lỗi syncQuickInputCodesToCloud: $e");
+      rethrow;
+    }
+  }
 }

@@ -44,15 +44,13 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
   // Debounce mechanism
   Timer? _scanDebounceTimer;
   bool _isProcessingScan = false;
-  bool _isScanInProgress = false; // Track if async processing is running
   DateTime? _lastScanTime;
-  static const Duration _scanDebounceDuration = Duration(seconds: 1); // Increased to 1 second to prevent multiple notifications
-  static const Duration _duplicateScanWarningDuration = Duration(seconds: 2); // Reduced to 2 seconds
+  static const Duration _scanDebounceDuration = Duration(milliseconds: 1500); // 1.5 seconds between scans
+  static const Duration _duplicateScanWarningDuration = Duration(seconds: 3); // Show warning for 3 seconds
 
   // Duplicate scan tracking
   String? _lastScannedCode;
   Timer? _duplicateWarningTimer;
-  final Map<String, DateTime> _recentlyProcessedQRs = {}; // Track processed QR codes to prevent duplicates
 
   // User preferences
   bool _enableSoundFeedback = true;
@@ -69,8 +67,38 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
     _scannerController.dispose();
     _scanDebounceTimer?.cancel();
     _duplicateWarningTimer?.cancel();
-    _recentlyProcessedQRs.clear();
     super.dispose();
+  }
+
+  void _provideScanFeedback({bool isSuccess = true}) {
+    if (_enableHapticFeedback) {
+      if (isSuccess) {
+        HapticFeedback.lightImpact();
+      } else {
+        HapticFeedback.vibrate();
+      }
+    }
+
+    if (_enableSoundFeedback) {
+      if (isSuccess) {
+        SystemSound.play(SystemSoundType.click);
+      } else {
+        SystemSound.play(SystemSoundType.alert);
+      }
+    }
+  }
+
+  void _resetCheck() {
+    setState(() {
+      _checkedPhoneImeis.clear();
+      _scannedAccessoryCounts.clear();
+      _totalScanned = 0;
+      _currentZone = _inventoryZones.isNotEmpty ? _inventoryZones.first : null;
+      // Reset zone progress
+      for (var zone in _inventoryZones) {
+        zone.scannedCounts.clear();
+      }
+    });
   }
 
   Future<void> _loadInventoryData() async {
@@ -140,7 +168,7 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
     _scanDebounceTimer?.cancel();
 
     // If currently processing a scan, ignore new detections
-    if (_isProcessingScan || _isScanInProgress) {
+    if (_isProcessingScan) {
       return;
     }
 
@@ -150,55 +178,25 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
     final qrData = barcode.rawValue!.trim();
     if (qrData.isEmpty) return;
 
-    // Check if this QR was processed recently (within 3 seconds)
-    final now = DateTime.now();
-    if (_recentlyProcessedQRs.containsKey(qrData)) {
-      final timeSinceProcessed = now.difference(_recentlyProcessedQRs[qrData]!);
-      if (timeSinceProcessed < const Duration(seconds: 3)) {
-        return; // Ignore duplicate detection
-      }
-    }
-
     // Check for duplicate scan (same QR code scanned too quickly)
     if (_isDuplicateScan(qrData)) {
       _showDuplicateScanWarning(qrData);
       return;
     }
 
-    // Set processing flags
+    // Set processing flag and debounce timer
     setState(() => _isProcessingScan = true);
-    _isScanInProgress = true;
     _lastScanTime = DateTime.now();
     _lastScannedCode = qrData;
 
-    // Add to recently processed map
-    _recentlyProcessedQRs[qrData] = now;
+    // Process the scan
+    _processQRScan(qrData);
 
-    // Clean up old entries from the map (older than 5 seconds)
-    _recentlyProcessedQRs.removeWhere((key, time) => now.difference(time) > const Duration(seconds: 5));
-
-    // Process the scan asynchronously
-    _processQRScan(qrData).then((_) {
-      // Reset processing flags after successful processing
-      if (mounted) {
-        setState(() {
-          _isProcessingScan = false;
-          _isScanInProgress = false;
-        });
-      }
-    }).catchError((error) {
-      // Reset processing flags on error
-      if (mounted) {
-        setState(() {
-          _isProcessingScan = false;
-          _isScanInProgress = false;
-        });
-      }
-    });
-
-    // Set debounce timer to prevent rapid scanning
+    // Set debounce timer to reset processing flag
     _scanDebounceTimer = Timer(_scanDebounceDuration, () {
-      // Timer just prevents new scans, flag is reset by the async completion above
+      if (mounted) {
+        setState(() => _isProcessingScan = false);
+      }
     });
   }
 
@@ -207,24 +205,6 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
 
     final timeSinceLastScan = DateTime.now().difference(_lastScanTime!);
     return _lastScannedCode == qrData && timeSinceLastScan < _duplicateScanWarningDuration;
-  }
-
-  void _showDuplicateScanWarning(String qrData) {
-    _provideScanFeedback(isSuccess: false);
-
-    // Cancel any existing warning timer
-    _duplicateWarningTimer?.cancel();
-
-    // Show warning notification
-    NotificationService.showSnackBar(
-      '⚠️ Đã scan mã này gần đây! Đợi 3 giây trước khi scan lại',
-      color: Colors.orange,
-    );
-
-    // Set timer to clear the warning after 3 seconds
-    _duplicateWarningTimer = Timer(_duplicateScanWarningDuration, () {
-      // Warning automatically clears
-    });
   }
 
   void _provideScanFeedback({bool isSuccess = true}) {
@@ -245,7 +225,7 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
     }
   }
 
-  Future<void> _processQRScan(String qrData) async {
+  void _processQRScan(String qrData) {
     try {
       // Parse QR using unified format
       final qrMap = QRParser.parse(qrData);
@@ -257,13 +237,9 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
         _handleAccessoryScan(qrMap);
       } else {
         // Try to handle legacy QR codes (just IMEI) or other formats
-        await _handleLegacyQR(qrData, qrMap);
+        _handleLegacyQR(qrData, qrMap);
       }
     } catch (e) {
-      // Reset processing flag on error
-      if (mounted) {
-        setState(() => _isProcessingScan = false);
-      }
       HapticFeedback.vibrate();
       NotificationService.showSnackBar('❌ Lỗi xử lý QR: $e', color: Colors.red);
     }
@@ -308,10 +284,10 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
         });
         _provideScanFeedback(isSuccess: true);
         NotificationService.showSnackBar('✅ ${expectedProduct.name} (${storedImei.substring(storedImei.length - 5)})');
-
+        
         // Update zone progress
         _updateZoneProgress(storedImei, 1);
-
+        
         // Add to checklist
         _addToChecklist('📱', expectedProduct.name, storedImei.substring(storedImei.length - 5));
       }
@@ -319,7 +295,7 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
       // Unexpected phone
       _provideScanFeedback(isSuccess: false);
       NotificationService.showSnackBar('🚨 Thừa: ${imei.substring(imei.length - 5)}', color: Colors.red);
-
+      
       // Add to checklist as extra
       _addToChecklist('📱', 'Thừa: ${imei.substring(imei.length - 5)}', imei, status: '🚨');
     }
@@ -351,25 +327,25 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
 
     // Always show as successful scan with current count
     NotificationService.showSnackBar('✅ $accessoryName (đã quét: $currentCount)');
-
+    
     // Update zone progress
     _updateZoneProgress(code, 1);
-
+    
     // Add to checklist (will update existing if same accessory)
     _addToChecklist('🔧', accessoryName, 'x$currentCount');
   }
 
   /// Handle legacy QR codes that don't have type field
-  Future<void> _handleLegacyQR(String qrData, Map<String, String> qrMap) async {
+  void _handleLegacyQR(String qrData, Map<String, String> qrMap) {
     // Handle legacy inventory check format: check_inv:ID
     if (qrData.startsWith('check_inv:')) {
       final productId = qrData.substring('check_inv:'.length);
       if (productId.isNotEmpty) {
-        await _handleLegacyInventoryCheck(productId);
+        _handleLegacyInventoryCheck(productId);
         return;
       }
     }
-
+    
     // Case 1: Has imei key
     if (qrMap.containsKey('imei') && qrMap['imei']!.isNotEmpty) {
       _handlePhoneScan(qrMap);
@@ -446,61 +422,130 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
   void _showScanSettings() {
     showDialog(
       context: context,
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              title: const Text('CÀI ĐẶT QUÉT QR'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SwitchListTile(
-                    title: const Text('Âm thanh phản hồi'),
-                    subtitle: const Text('Phát âm thanh khi scan'),
-                    value: _enableSoundFeedback,
-                    onChanged: (value) {
-                      setState(() => _enableSoundFeedback = value);
-                    },
-                  ),
-                  SwitchListTile(
-                    title: const Text('Rung phản hồi'),
-                    subtitle: const Text('Rung thiết bị khi scan'),
-                    value: _enableHapticFeedback,
-                    onChanged: (value) {
-                      setState(() => _enableHapticFeedback = value);
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    '⚡ Mẹo: Giữ khoảng cách 20-30cm với QR code\n⏱️ Thời gian chờ giữa các lần scan: 1.5 giây\n🚫 Tránh scan cùng mã quá nhanh',
-                    style: TextStyle(fontSize: 12, color: Colors.grey),
-                  ),
-                ],
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('CÀI ĐẶT QUÉT QR'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SwitchListTile(
+                title: const Text('Âm thanh phản hồi'),
+                subtitle: const Text('Phát âm thanh khi scan'),
+                value: _enableSoundFeedback,
+                onChanged: (value) {
+                  setState(() => _enableSoundFeedback = value);
+                },
               ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text('ĐÓNG'),
-                ),
-              ],
-            );
-          },
-        );
-      },
+              SwitchListTile(
+                title: const Text('Rung phản hồi'),
+                subtitle: const Text('Rung thiết bị khi scan'),
+                value: _enableHapticFeedback,
+                onChanged: (value) {
+                  setState(() => _enableHapticFeedback = value);
+                },
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                '⚡ Mẹo: Giữ khoảng cách 20-30cm với QR code\n⏱️ Thời gian chờ giữa các lần scan: 1.5 giây\n🚫 Tránh scan cùng mã quá nhanh',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('ĐÓNG'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
-  void _resetCheck() {
-    setState(() {
-      _checkedPhoneImeis.clear();
-      _scannedAccessoryCounts.clear();
-      _totalScanned = 0;
-      _currentZone = _inventoryZones.isNotEmpty ? _inventoryZones.first : null;
-      // Reset zone progress
-      for (var zone in _inventoryZones) {
-        zone.scannedCounts.clear();
-      }
-    });
+  void _showScanSettings() {
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('CÀI ĐẶT QUÉT QR'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SwitchListTile(
+                title: const Text('Âm thanh phản hồi'),
+                subtitle: const Text('Phát âm thanh khi scan'),
+                value: _enableSoundFeedback,
+                onChanged: (value) {
+                  setState(() => _enableSoundFeedback = value);
+                },
+              ),
+              SwitchListTile(
+                title: const Text('Rung phản hồi'),
+                subtitle: const Text('Rung thiết bị khi scan'),
+                value: _enableHapticFeedback,
+                onChanged: (value) {
+                  setState(() => _enableHapticFeedback = value);
+                },
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                '⚡ Mẹo: Giữ khoảng cách 20-30cm với QR code\n⏱️ Thời gian chờ giữa các lần scan: 1.5 giây\n🚫 Tránh scan cùng mã quá nhanh',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('ĐÓNG'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+    final phoneResults = _getPhoneResults();
+    final accessoryResults = _getAccessoryResults();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('KẾT QUẢ KIỂM KHO'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('📱 ĐIỆN THOẠI:', style: TextStyle(fontWeight: FontWeight.bold)),
+              Text('• Đã kiểm: ${phoneResults['checked']}'),
+              Text('• Thiếu: ${phoneResults['missing']}'),
+              Text('• Thừa: ${phoneResults['extra']}'),
+              const SizedBox(height: 16),
+              Text('🔧 PHỤ KIỆN:', style: TextStyle(fontWeight: FontWeight.bold)),
+              Text('• Đã kiểm: ${accessoryResults['checked']}'),
+              Text('• Thiếu: ${accessoryResults['missing']}'),
+              Text('• Thừa: ${accessoryResults['extra']}'),
+              const SizedBox(height: 16),
+              Text('📊 TỔNG QUAN:', style: TextStyle(fontWeight: FontWeight.bold)),
+              Text('• Tổng scan: $_totalScanned'),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('ĐÓNG'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _resetCheck();
+            },
+            child: const Text('KIỂM LẠI'),
+          ),
+        ],
+      ),
+    );
   }
 
   Map<String, int> _getPhoneResults() {
@@ -516,7 +561,7 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
   Map<String, int> _getAccessoryResults() {
     // For accessories, we just count total scanned items since each scan represents checking one item
     final totalScanned = _scannedAccessoryCounts.values.fold(0, (sum, count) => sum + count);
-
+    
     // Since accessories can be scanned multiple times for same type, we don't calculate missing/extra
     // All scanned accessories are considered "checked"
     return {'checked': totalScanned, 'missing': 0, 'extra': 0};
@@ -553,7 +598,7 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
     setState(() {
       // Deactivate all zones
       _inventoryZones = _inventoryZones.map((z) => z.copyWith(isActive: false)).toList();
-
+      
       // Activate selected zone
       _inventoryZones = _inventoryZones.map((z) {
         if (z.id == zone.id) {
@@ -573,10 +618,10 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
   void _addToChecklist(String type, String name, String identifier, {String? status}) {
     // For accessories, check if we already have this item and update count instead of adding new
     if (type == '🔧') {
-      final existingIndex = _scannedItems.indexWhere((item) =>
+      final existingIndex = _scannedItems.indexWhere((item) => 
         item['type'] == type && item['name'] == name && item['status'] == (status ?? '✅')
       );
-
+      
       if (existingIndex != -1) {
         // Update existing accessory count
         setState(() {
@@ -718,7 +763,7 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
                                 ],
                               ),
                             ),
-
+                      
                       // Processing overlay
                       if (_isProcessingScan)
                         Container(

@@ -392,158 +392,161 @@ class _CustomerListViewState extends State<CustomerListView> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        height: MediaQuery.of(context).size.height * 0.85,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(25))
-        ),
-        child: Column(
-          children: [
-            // Header với drag handle
-            Container(
-              margin: const EdgeInsets.only(top: 10),
-              width: 40,
-              height: 5,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(10)
+      builder: (ctx) => DefaultTabController(
+        length: 2,
+        child: Container(
+          height: MediaQuery.of(context).size.height * 0.85,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(25))
+          ),
+          child: Column(
+            children: [
+              // Header với drag handle
+              Container(
+                margin: const EdgeInsets.only(top: 10),
+                width: 40,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(10)
+                ),
               ),
-            ),
 
-            // Customer info header
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: _primaryColor.withOpacity(0.05),
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
-              ),
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: _primaryColor,
-                          shape: BoxShape.circle,
+              // Customer info header
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: _primaryColor.withOpacity(0.05),
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: _primaryColor,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.person, color: Colors.white, size: 24),
                         ),
-                        child: const Icon(Icons.person, color: Colors.white, size: 24),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              c['customerName'].toString().toUpperCase(),
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black87,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Row(
-                              children: [
-                                Icon(Icons.phone, size: 16, color: Colors.grey[600]),
-                                const SizedBox(width: 4),
-                                Text(
-                                  c['phone'].toString(),
-                                  style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                c['customerName'].toString().toUpperCase(),
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
                                 ),
-                              ],
-                            ),
-                            if (c['address'] != null && c['address'].toString().isNotEmpty) ...[
-                              const SizedBox(height: 2),
+                              ),
+                              const SizedBox(height: 4),
                               Row(
                                 children: [
-                                  Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
+                                  Icon(Icons.phone, size: 16, color: Colors.grey[600]),
                                   const SizedBox(width: 4),
-                                  Expanded(
-                                    child: Text(
-                                      c['address'].toString(),
-                                      style: TextStyle(color: Colors.grey[600], fontSize: 14),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
+                                  Text(
+                                    c['phone'].toString(),
+                                    style: TextStyle(color: Colors.grey[600], fontSize: 14),
                                   ),
                                 ],
                               ),
+                              if (c['address'] != null && c['address'].toString().isNotEmpty) ...[
+                                const SizedBox(height: 2),
+                                Row(
+                                  children: [
+                                    Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
+                                    const SizedBox(width: 4),
+                                    Expanded(
+                                      child: Text(
+                                        c['address'].toString(),
+                                        style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ],
-                          ],
+                          ),
                         ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          _buildStatItem(
+                            "Tổng chi tiêu",
+                            "${NumberFormat('#,###').format(c['totalSpent'] ?? 0)} đ",
+                            Colors.red,
+                            Icons.attach_money,
+                          ),
+                          _buildStatItem(
+                            "Lần sửa chữa",
+                            "${c['repairCount'] ?? 0}",
+                            Colors.orange,
+                            Icons.build,
+                          ),
+                          _buildStatItem(
+                            "Lần mua hàng",
+                            "${c['saleCount'] ?? 0}",
+                            Colors.blue,
+                            Icons.shopping_cart,
+                          ),
+                        ],
+                      ),
                     ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        _buildStatItem(
-                          "Tổng chi tiêu",
-                          "${NumberFormat('#,###').format(c['totalSpent'] ?? 0)} đ",
-                          Colors.red,
-                          Icons.attach_money,
-                        ),
-                        _buildStatItem(
-                          "Lần sửa chữa",
-                          "${c['repairCount'] ?? 0}",
-                          Colors.orange,
-                          Icons.build,
-                        ),
-                        _buildStatItem(
-                          "Lần mua hàng",
-                          "${c['saleCount'] ?? 0}",
-                          Colors.blue,
-                          Icons.shopping_cart,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
 
-            // Tab bar
-            Container(
-              color: Colors.white,
-              child: const TabBar(
-                labelColor: Colors.pink,
-                unselectedLabelColor: Colors.grey,
-                indicatorColor: Colors.pink,
-                indicatorWeight: 3,
-                labelStyle: TextStyle(fontWeight: FontWeight.w600),
-                tabs: [
-                  Tab(text: "LỊCH SỬ SỬA CHỮA"),
-                  Tab(text: "LỊCH SỬ MUA HÀNG"),
-                ],
+              // Tab bar
+              Container(
+                color: Colors.white,
+                child: const TabBar(
+                  labelColor: Colors.pink,
+                  unselectedLabelColor: Colors.grey,
+                  indicatorColor: Colors.pink,
+                  indicatorWeight: 3,
+                  labelStyle: TextStyle(fontWeight: FontWeight.w600),
+                  tabs: [
+                    Tab(text: "LỊCH SỬ SỬA CHỮA"),
+                    Tab(text: "LỊCH SỬ MUA HÀNG"),
+                  ],
+                ),
               ),
-            ),
 
-            // Tab content
-            Expanded(
-              child: TabBarView(
-                children: [
-                  _buildRepairHistoryList(repairHistory),
-                  _buildSaleHistoryList(saleHistory),
-                ],
+              // Tab content
+              Expanded(
+                child: TabBarView(
+                  children: [
+                    _buildRepairHistoryList(repairHistory),
+                    _buildSaleHistoryList(saleHistory),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

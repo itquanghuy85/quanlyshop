@@ -80,22 +80,26 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
               ElevatedButton(
                 onPressed: nameC.text.isNotEmpty ? () async {
                   if (nameC.text.isEmpty) return;
-                  final data = {
-                    'partName': nameC.text.toUpperCase(),
-                    'compatibleModels': modelC.text.toUpperCase(),
-                    'cost': (int.tryParse(costC.text) ?? 0) * 1000,
-                    'price': (int.tryParse(priceC.text) ?? 0) * 1000,
-                    'quantity': int.tryParse(qtyC.text) ?? 0,
-                    'updatedAt': DateTime.now().millisecondsSinceEpoch,
-                  };
-                  if (part == null) {
-                    await db.insertPart(data);
-                  } else {
-                    await (await db.database).update('repair_parts', data, where: 'id = ?', whereArgs: [part['id']]);
+                  try {
+                    final data = {
+                      'partName': nameC.text.toUpperCase(),
+                      'compatibleModels': modelC.text.toUpperCase(),
+                      'cost': (int.tryParse(costC.text) ?? 0) * 1000,
+                      'price': (int.tryParse(priceC.text) ?? 0) * 1000,
+                      'quantity': int.tryParse(qtyC.text) ?? 0,
+                      'updatedAt': DateTime.now().millisecondsSinceEpoch,
+                    };
+                    if (part == null) {
+                      await db.insertPart(data);
+                    } else {
+                      await (await db.database).update('repair_parts', data, where: 'id = ?', whereArgs: [part['id']]);
+                    }
+                    if (!mounted) return;
+                    Navigator.of(context).pop();
+                    _refreshParts();
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi: $e'), backgroundColor: Colors.red));
                   }
-                  if (!mounted) return;
-                  Navigator.of(context).pop();
-                  _refreshParts();
                 } : null,
                 child: const Text("XÁC NHẬN")),
             ],

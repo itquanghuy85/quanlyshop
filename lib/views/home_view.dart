@@ -11,6 +11,7 @@ import 'revenue_view.dart';
 import 'inventory_view.dart';
 import 'fast_inventory_input_view.dart';
 import 'fast_inventory_check_view.dart';
+import 'quick_input_codes_view.dart';
 import 'sale_list_view.dart';
 import 'expense_view.dart';
 import 'debt_view.dart';
@@ -33,11 +34,13 @@ import 'customer_view.dart';
 import 'stock_in_view.dart';
 import 'parts_inventory_view.dart';
 import 'create_repair_order_view.dart';
+import 'about_developer_view.dart';
 import '../data/db_helper.dart';
 import '../widgets/perpetual_calendar.dart';
 import '../services/sync_service.dart';
 import '../services/user_service.dart';
 import '../services/firestore_service.dart';
+import '../services/notification_service.dart';
 
 class HomeView extends StatefulWidget {
   final String role;
@@ -81,6 +84,13 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
     _initialSetup();
     SyncService.initRealTimeSync(() { if (mounted) _loadStats(); });
     _autoSyncTimer = Timer.periodic(const Duration(seconds: 60), (_) => _syncNow(silent: true));
+    
+    // Listen to notifications for snackbars
+    NotificationService.listenToNotifications((title, body) {
+      if (mounted) {
+        NotificationService.showSnackBar('$title: $body');
+      }
+    });
   }
 
   void _initializeTabs() {
@@ -222,8 +232,14 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
           items: _navItems,
           type: BottomNavigationBarType.fixed,
           selectedItemColor: const Color(0xFF2962FF),
-          unselectedItemColor: Colors.grey,
+          unselectedItemColor: Colors.grey.shade600,
           showUnselectedLabels: true,
+          backgroundColor: Colors.white,
+          elevation: 8,
+          selectedIconTheme: const IconThemeData(size: 28),
+          unselectedIconTheme: const IconThemeData(size: 24),
+          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+          unselectedLabelStyle: const TextStyle(fontSize: 11),
         ),
       ),
     );
@@ -352,10 +368,10 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
       children: [
         const Text("BÁN HÀNG", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
         const SizedBox(height: 20),
-        _tabMenuItem("Danh sách đơn bán", Icons.list_alt, Colors.blue, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SaleListView()))),
-        _tabMenuItem("Tạo đơn bán mới", Icons.add_circle, Colors.green, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateSaleView()))),
-        _tabMenuItem("Quản lý khách hàng", Icons.people, Colors.purple, () => Navigator.push(context, MaterialPageRoute(builder: (_) => CustomerListView(role: widget.role)))),
-        _tabMenuItem("Bảo hành", Icons.verified_user, Colors.teal, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WarrantyView()))),
+        _tabMenuItem("Danh sách đơn bán", Icons.list_alt, Colors.blue, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SaleListView())), subtitle: "Xem, tìm kiếm và theo dõi tất cả đơn bán hàng."),
+        _tabMenuItem("Tạo đơn bán mới", Icons.add_circle, Colors.green, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateSaleView())), subtitle: "Tạo đơn bán hàng mới với sản phẩm và thông tin khách."),
+        _tabMenuItem("Quản lý khách hàng", Icons.people, Colors.purple, () => Navigator.push(context, MaterialPageRoute(builder: (_) => CustomerListView(role: widget.role))), subtitle: "Thêm, sửa và xem thông tin khách hàng."),
+        _tabMenuItem("Bảo hành", Icons.verified_user, Colors.teal, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WarrantyView())), subtitle: "Xem và xử lý các yêu cầu bảo hành sản phẩm."),
       ],
     );
   }
@@ -366,9 +382,9 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
       children: [
         const Text("SỬA CHỮA", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
         const SizedBox(height: 20),
-        _tabMenuItem("Danh sách đơn sửa", Icons.list_alt, Colors.blue, () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderListView(role: widget.role)))),
-        _tabMenuItem("Tạo đơn sửa mới", Icons.add_circle, Colors.green, () => Navigator.push(context, MaterialPageRoute(builder: (_) => CreateRepairOrderView(role: widget.role)))),
-        _tabMenuItem("Kho phụ tùng", Icons.build, Colors.orange, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PartsInventoryView()))),
+        _tabMenuItem("Danh sách đơn sửa", Icons.list_alt, Colors.blue, () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderListView(role: widget.role))), subtitle: "Xem, tìm kiếm và theo dõi tất cả đơn sửa chữa."),
+        _tabMenuItem("Tạo đơn sửa mới", Icons.add_circle, Colors.green, () => Navigator.push(context, MaterialPageRoute(builder: (_) => CreateRepairOrderView(role: widget.role))), subtitle: "Tạo đơn sửa chữa mới với thông tin máy và khách."),
+        _tabMenuItem("Kho phụ tùng", Icons.build, Colors.orange, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PartsInventoryView())), subtitle: "Quản lý tồn kho phụ tùng cho sửa chữa."),
       ],
     );
   }
@@ -379,10 +395,11 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
       children: [
         const Text("QUẢN LÝ KHO", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
         const SizedBox(height: 20),
-        _tabMenuItem("Danh sách sản phẩm", Icons.inventory, Colors.blue, () => Navigator.push(context, MaterialPageRoute(builder: (_) => InventoryView(role: widget.role)))),
-        _tabMenuItem("Nhập kho thủ công", Icons.add_shopping_cart, Colors.green, () => Navigator.push(context, MaterialPageRoute(builder: (_) => StockInView()))),
-        _tabMenuItem("Nhập kho siêu tốc", Icons.flash_on, Colors.orange, () => Navigator.push(context, MaterialPageRoute(builder: (_) => FastInventoryInputView()))),
-        _tabMenuItem("Kiểm kho QR", Icons.qr_code_scanner, Colors.purple, () => Navigator.push(context, MaterialPageRoute(builder: (_) => FastInventoryCheckView()))),
+        _tabMenuItem("Danh sách sản phẩm", Icons.inventory, Colors.blue, () => Navigator.push(context, MaterialPageRoute(builder: (_) => InventoryView(role: widget.role))), subtitle: "Xem và quản lý danh sách sản phẩm trong kho."),
+        _tabMenuItem("Nhập kho thủ công", Icons.add_shopping_cart, Colors.green, () => Navigator.push(context, MaterialPageRoute(builder: (_) => StockInView())), subtitle: "Thêm sản phẩm vào kho bằng cách nhập thủ công."),
+        _tabMenuItem("Nhập kho siêu tốc", Icons.flash_on, Colors.orange, () => Navigator.push(context, MaterialPageRoute(builder: (_) => FastInventoryInputView())), subtitle: "Nhập nhiều sản phẩm vào kho nhanh bằng mã QR."),
+        _tabMenuItem("Danh sách mã nhập nhanh", Icons.qr_code, Colors.teal, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const QuickInputCodesView())), subtitle: "Xem và quản lý danh sách mã nhập nhanh đã tạo."),
+        _tabMenuItem("Kiểm kho QR", Icons.qr_code_scanner, Colors.purple, () => Navigator.push(context, MaterialPageRoute(builder: (_) => FastInventoryCheckView())), subtitle: "Kiểm tra tồn kho bằng cách quét mã QR."),
       ],
     );
   }
@@ -396,10 +413,10 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
       children: [
         const Text("QUẢN LÝ NHÂN SỰ", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
         const SizedBox(height: 20),
-        _tabMenuItem("Danh sách nhân viên", Icons.people, Colors.blue, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StaffListView()))),
-        _tabMenuItem("Chấm công", Icons.fingerprint, Colors.green, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AttendanceView()))),
-        _tabMenuItem("Hiệu suất", Icons.bar_chart, Colors.orange, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StaffPerformanceView()))),
-        _tabMenuItem("Lịch làm việc", Icons.schedule, Colors.purple, () => Navigator.push(context, MaterialPageRoute(builder: (_) => WorkScheduleSettingsView()))),
+        _tabMenuItem("Danh sách nhân viên", Icons.people, Colors.blue, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StaffListView())), subtitle: "Xem và quản lý thông tin nhân viên."),
+        _tabMenuItem("Chấm công", Icons.fingerprint, Colors.green, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AttendanceView())), subtitle: "Ghi nhận giờ làm việc của nhân viên."),
+        _tabMenuItem("Hiệu suất", Icons.bar_chart, Colors.orange, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StaffPerformanceView())), subtitle: "Xem báo cáo hiệu suất làm việc của nhân viên."),
+        _tabMenuItem("Lịch làm việc", Icons.schedule, Colors.purple, () => Navigator.push(context, MaterialPageRoute(builder: (_) => WorkScheduleSettingsView())), subtitle: "Thiết lập và xem lịch làm việc của nhân viên."),
       ],
     );
   }
@@ -410,10 +427,10 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
       children: [
         const Text("QUẢN LÝ TÀI CHÍNH", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
         const SizedBox(height: 20),
-        _tabMenuItem("Báo cáo doanh thu", Icons.trending_up, Colors.blue, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RevenueView()))),
-        _tabMenuItem("Quản lý chi phí", Icons.money_off, Colors.red, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ExpenseView()))),
-        _tabMenuItem("Công nợ", Icons.receipt_long, Colors.purple, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DebtView()))),
-        if (_isSuperAdmin) _tabMenuItem("Phân tích nợ", Icons.analytics, Colors.deepOrange, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DebtAnalysisView()))),
+        _tabMenuItem("Báo cáo doanh thu", Icons.trending_up, Colors.blue, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RevenueView())), subtitle: "Xem báo cáo doanh thu và lợi nhuận theo thời gian."),
+        _tabMenuItem("Quản lý chi phí", Icons.money_off, Colors.red, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ExpenseView())), subtitle: "Thêm và theo dõi các khoản chi phí của cửa hàng."),
+        _tabMenuItem("Công nợ", Icons.receipt_long, Colors.purple, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DebtView())), subtitle: "Quản lý các khoản nợ và thu nợ từ khách hàng."),
+        if (_isSuperAdmin) _tabMenuItem("Phân tích nợ", Icons.analytics, Colors.deepOrange, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DebtAnalysisView())), subtitle: "Phân tích chi tiết các khoản nợ (chỉ dành cho admin)."),
       ],
     );
   }
@@ -424,23 +441,25 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
       children: [
         const Text("CÀI ĐẶT HỆ THỐNG", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
         const SizedBox(height: 20),
-        _tabMenuItem("Thông báo", Icons.notifications, Colors.blue, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationSettingsView()))),
-        _tabMenuItem("Máy in", Icons.print, Colors.green, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ThermalPrinterDesignView()))),
-        _tabMenuItem("Tìm kiếm toàn cục", Icons.search, Colors.orange, () => Navigator.push(context, MaterialPageRoute(builder: (_) => GlobalSearchView(role: widget.role)))),
-        _tabMenuItem("Chat nội bộ", Icons.chat, Colors.purple, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChatView()))),
-        if (hasFullAccess) _tabMenuItem("Cài đặt hệ thống", Icons.settings, Colors.grey, () => Navigator.push(context, MaterialPageRoute(builder: (_) => SettingsView(setLocale: widget.setLocale)))),
-        if (_isSuperAdmin) _tabMenuItem("Trung tâm Admin", Icons.admin_panel_settings, Colors.red, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const admin_view.SuperAdminView()))),
-        if (hasFullAccess) _tabMenuItem("Nhật ký hệ thống", Icons.history, Colors.teal, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AuditLogView()))),
+        _tabMenuItem("Thông báo", Icons.notifications, Colors.blue, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationSettingsView())), subtitle: "Cấu hình cài đặt thông báo và cảnh báo."),
+        _tabMenuItem("Máy in", Icons.print, Colors.green, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ThermalPrinterDesignView())), subtitle: "Thiết kế mẫu in cho máy in nhiệt."),
+        _tabMenuItem("Tìm kiếm toàn cục", Icons.search, Colors.orange, () => Navigator.push(context, MaterialPageRoute(builder: (_) => GlobalSearchView(role: widget.role))), subtitle: "Tìm kiếm thông tin trên toàn bộ ứng dụng."),
+        _tabMenuItem("Chat nội bộ", Icons.chat, Colors.purple, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChatView())), subtitle: "Trò chuyện với nhân viên trong cửa hàng."),
+        if (hasFullAccess) _tabMenuItem("Cài đặt hệ thống", Icons.settings, Colors.grey, () => Navigator.push(context, MaterialPageRoute(builder: (_) => SettingsView(setLocale: widget.setLocale))), subtitle: "Thay đổi cài đặt chung của ứng dụng."),
+        if (_isSuperAdmin) _tabMenuItem("Trung tâm Admin", Icons.admin_panel_settings, Colors.red, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const admin_view.SuperAdminView())), subtitle: "Quản lý toàn bộ hệ thống cho admin cấp cao."),
+        if (hasFullAccess) _tabMenuItem("Nhật ký hệ thống", Icons.history, Colors.teal, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AuditLogView())), subtitle: "Xem lịch sử hoạt động và thay đổi trong hệ thống."),
+        _tabMenuItem("Về nhà phát triển", Icons.info, Colors.indigo, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AboutDeveloperView())), subtitle: "Thông tin về nhà phát triển và ứng dụng."),
       ],
     );
   }
 
-  Widget _tabMenuItem(String title, IconData icon, Color color, VoidCallback onTap) {
+  Widget _tabMenuItem(String title, IconData icon, Color color, VoidCallback onTap, {String? subtitle}) {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
         leading: Icon(icon, color: color),
         title: Text(title),
+        subtitle: subtitle != null ? Text(subtitle, style: const TextStyle(fontSize: 12, color: Colors.grey)) : null,
         trailing: const Icon(Icons.chevron_right),
         onTap: onTap,
       ),

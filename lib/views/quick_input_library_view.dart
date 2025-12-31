@@ -3,12 +3,15 @@ import 'package:flutter/foundation.dart';
 import '../data/db_helper.dart';
 import '../models/quick_input_code_model.dart';
 import '../models/product_model.dart';
+import '../services/sync_service.dart';
 import '../services/notification_service.dart';
 import '../widgets/validated_text_field.dart';
 import '../widgets/currency_text_field.dart';
 import 'fast_stock_in_view.dart';
 import 'quick_input_sync_check_view.dart';
 import 'stock_in_view.dart';
+
+enum QuickInputFilter { all, unsynced }
 
 class QuickInputLibraryView extends StatefulWidget {
   const QuickInputLibraryView({super.key});
@@ -21,6 +24,8 @@ class _QuickInputLibraryViewState extends State<QuickInputLibraryView> {
   final db = DBHelper();
   List<QuickInputCode> _codes = [];
   bool _isLoading = true;
+  QuickInputFilter _currentFilter = QuickInputFilter.all;
+  bool _isSyncing = false;
 
   @override
   void initState() {
@@ -44,6 +49,32 @@ class _QuickInputLibraryViewState extends State<QuickInputLibraryView> {
       if (mounted) {
         NotificationService.showSnackBar('Lỗi tải thư viện mã nhập nhanh: $e', color: Colors.red);
         setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  List<QuickInputCode> get _filteredCodes {
+    switch (_currentFilter) {
+      case QuickInputFilter.all:
+        return _codes;
+      case QuickInputFilter.unsynced:
+        return _codes.where((code) => !code.isSynced).toList();
+    }
+  }
+
+  Future<void> _syncToCloud() async {
+    if (_isSyncing) return;
+
+    setState(() => _isSyncing = true);
+    try {
+      await SyncService.syncQuickInputCodesToCloud();
+      NotificationService.showSnackBar('Đã đồng bộ thành công mã nhập nhanh lên Cloud!', color: Colors.green);
+      await _loadCodes(); // Refresh list
+    } catch (e) {
+      NotificationService.showSnackBar('Lỗi đồng bộ: $e', color: Colors.red);
+    } finally {
+      if (mounted) {
+        setState(() => _isSyncing = false);
       }
     }
   }
@@ -157,6 +188,13 @@ class _QuickInputLibraryViewState extends State<QuickInputLibraryView> {
         elevation: 0,
         actions: [
           IconButton(
+            onPressed: _isSyncing ? null : _syncToCloud,
+            icon: _isSyncing
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                : const Icon(Icons.cloud_upload, color: Colors.blue),
+            tooltip: 'Đồng bộ lên Cloud',
+          ),
+          IconButton(
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const QuickInputSyncCheckView()),
@@ -174,10 +212,53 @@ class _QuickInputLibraryViewState extends State<QuickInputLibraryView> {
           ? const Center(child: CircularProgressIndicator())
           : _codes.isEmpty
               ? _buildEmpty()
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: _codes.length,
-                  itemBuilder: (ctx, i) => _buildCodeCard(_codes[i]),
+              : Column(
+                  children: [
+                    // Filter chips
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      color: Colors.white,
+                      child: Row(
+                        children: [
+                          FilterChip(
+                            label: Text('Tất cả (${_codes.length})'),
+                            selected: _currentFilter == QuickInputFilter.all,
+                            onSelected: (selected) {
+                              if (selected) {
+                                setState(() => _currentFilter = QuickInputFilter.all);
+                              }
+                            },
+                            backgroundColor: Colors.grey[100],
+                            selectedColor: Colors.blue[100],
+                            checkmarkColor: Colors.blue,
+                          ),
+                          const SizedBox(width: 8),
+                          FilterChip(
+                            label: Text('Chưa đồng bộ (${_codes.where((c) => !c.isSynced).length})'),
+                            selected: _currentFilter == QuickInputFilter.unsynced,
+                            onSelected: (selected) {
+                              if (selected) {
+                                setState(() => _currentFilter = QuickInputFilter.unsynced);
+                              }
+                            },
+                            backgroundColor: Colors.grey[100],
+                            selectedColor: Colors.orange[100],
+                            checkmarkColor: Colors.orange,
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Code list
+                    Expanded(
+                      child: _filteredCodes.isEmpty
+                          ? _buildEmptyFiltered()
+                          : ListView.builder(
+                              padding: const EdgeInsets.all(16),
+                              itemCount: _filteredCodes.length,
+                              itemBuilder: (ctx, i) => _buildCodeCard(_filteredCodes[i]),
+                            ),
+                    ),
+                  ],
                 ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showAddEditDialog(),
@@ -211,6 +292,34 @@ class _QuickInputLibraryViewState extends State<QuickInputLibraryView> {
         ),
       );
 
+  Widget _buildEmptyFiltered() => Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              _currentFilter == QuickInputFilter.unsynced ? Icons.check_circle : Icons.filter_list,
+              size: 80, 
+              color: _currentFilter == QuickInputFilter.unsynced ? Colors.green[200] : Colors.grey[200]
+            ),
+            const SizedBox(height: 16),
+            Text(
+              _currentFilter == QuickInputFilter.unsynced 
+                ? "Tất cả mã đã được đồng bộ!" 
+                : "Không có mã nào phù hợp với bộ lọc",
+              style: TextStyle(color: Colors.grey[600], fontSize: 16),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _currentFilter == QuickInputFilter.unsynced 
+                ? "Không có mã nhập nhanh nào chưa đồng bộ" 
+                : "Thử thay đổi bộ lọc để xem các mã khác",
+              style: TextStyle(color: Colors.grey[400], fontSize: 12),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+
   Widget _buildCodeCard(QuickInputCode code) {
     final isPhone = code.type == 'PHONE';
     return Container(
@@ -218,6 +327,7 @@ class _QuickInputLibraryViewState extends State<QuickInputLibraryView> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
+        border: !code.isSynced ? Border.all(color: Colors.orange.withAlpha(100), width: 2) : null,
         boxShadow: [
           BoxShadow(color: Colors.black.withAlpha(5), blurRadius: 10),
         ],
@@ -261,6 +371,26 @@ class _QuickInputLibraryViewState extends State<QuickInputLibraryView> {
                     ],
                   ),
                 ),
+                // Sync status indicator
+                if (!code.isSynced)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.orange[100],
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.sync_problem, size: 10, color: Colors.orange),
+                        SizedBox(width: 2),
+                        Text(
+                          'CHƯA ĐỒNG BỘ',
+                          style: TextStyle(fontSize: 8, color: Colors.orange, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  ),
                 if (!code.isActive)
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),

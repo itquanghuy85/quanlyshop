@@ -26,21 +26,23 @@ class _MyProfileViewState extends State<MyProfileView> {
     _load();
   }
 
-  Future<void> _load() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      if (mounted) Navigator.pop(context);
-      return;
+  String _getRoleDisplayName(String role) {
+    switch (role) {
+      case 'owner':
+        return 'CHỦ SHOP';
+      case 'manager':
+        return 'QUẢN LÝ';
+      case 'employee':
+        return 'NHÂN VIÊN';
+      case 'technician':
+        return 'KỸ THUẬT';
+      case 'admin':
+        return 'ADMIN';
+      case 'user':
+        return 'NGƯỜI DÙNG';
+      default:
+        return role.toUpperCase();
     }
-    final info = await UserService.getUserInfo(user.uid);
-    setState(() {
-      nameCtrl.text = (info['displayName'] ?? '').toString();
-      phoneCtrl.text = (info['phone'] ?? '').toString();
-      addressCtrl.text = (info['address'] ?? '').toString();
-      _photoPath = info['photoUrl'] as String?;
-      _role = (info['role'] ?? 'user').toString();
-      _loading = false;
-    });
   }
 
   Future<void> _save() async {
@@ -86,7 +88,7 @@ class _MyProfileViewState extends State<MyProfileView> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(_role == 'admin' ? 'QUẢN LÝ' : 'NHÂN VIÊN', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                          Text(_getRoleDisplayName(_role), style: const TextStyle(fontSize: 12, color: Colors.grey)),
                           const SizedBox(height: 4),
                         ],
                       )

@@ -18,6 +18,25 @@ class WorkScheduleSettingsView extends StatefulWidget {
 class _WorkScheduleSettingsViewState extends State<WorkScheduleSettingsView> with TickerProviderStateMixin {
   late TabController _tabController;
 
+  String _getShortRoleName(String role) {
+    switch (role) {
+      case 'owner':
+        return 'CS';
+      case 'manager':
+        return 'QL';
+      case 'employee':
+        return 'NV';
+      case 'technician':
+        return 'KT';
+      case 'admin':
+        return 'AD';
+      case 'user':
+        return 'ND';
+      default:
+        return role.substring(0, 2).toUpperCase();
+    }
+  }
+
   // Work Schedule Settings
   final startTimeCtrl = TextEditingController(text: '08:00');
   final endTimeCtrl = TextEditingController(text: '17:00');
@@ -682,7 +701,7 @@ class _WorkScheduleSettingsViewState extends State<WorkScheduleSettingsView> wit
                     items: staffList.map((staff) {
                       return DropdownMenuItem<String>(
                         value: staff['id'] as String,
-                        child: Text('${staff['name']} (${staff['role']})'),
+                        child: Text('${staff['name']} (${_getShortRoleName(staff['role'])})'),
                       );
                     }).toList(),
                     onChanged: (value) async {

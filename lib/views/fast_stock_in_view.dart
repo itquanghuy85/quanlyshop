@@ -653,7 +653,7 @@ class _FastStockInViewState extends State<FastStockInView> {
               context,
               MaterialPageRoute(builder: (_) => const QuickInputLibraryView()),
             ),
-            child: const Text('Quản lý thư viện'),
+            child: const Text('Quản lý mã nhập'),
           ),
         ],
       ),

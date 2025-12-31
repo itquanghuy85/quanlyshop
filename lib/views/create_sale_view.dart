@@ -37,12 +37,16 @@ class _CreateSaleViewState extends State<CreateSaleView> {
   String _saleWarranty = "12 THÁNG";
   bool _autoCalcTotal = true; 
 
-  List<Product> _allInStock = [];
-  List<Product> _filteredInStock = []; 
-  final List<Map<String, dynamic>> _selectedItems = []; 
+  List<Map<String, dynamic>> _selectedItems = []; 
   List<Map<String, dynamic>> _suggestCustomers = [];
+  List<Product> _allInStock = [];
+  List<Product> _filteredInStock = [];
   bool _isLoading = true;
   bool _isSaving = false;
+
+  // Focus management cho IMEI fields
+  final Map<String, FocusNode> _imeiFocusNodes = {};
+  final Map<String, TextEditingController> _imeiControllers = {};
 
   @override
   void initState() {
@@ -56,6 +60,11 @@ class _CreateSaleViewState extends State<CreateSaleView> {
     nameCtrl.dispose(); phoneCtrl.dispose(); addressCtrl.dispose();
     priceCtrl.dispose(); noteCtrl.dispose(); searchProdCtrl.dispose();
     downPaymentCtrl.dispose(); loanAmountCtrl.dispose(); bankCtrl.dispose();
+    
+    // Dispose IMEI controllers và focus nodes
+    _imeiControllers.forEach((_, controller) => controller.dispose());
+    _imeiFocusNodes.forEach((_, focusNode) => focusNode.dispose());
+    
     super.dispose();
   }
 
@@ -64,7 +73,9 @@ class _CreateSaleViewState extends State<CreateSaleView> {
     final suggests = await db.getCustomerSuggestions();
     if (!mounted) return;
     setState(() { _allInStock = prods; _filteredInStock = prods; _suggestCustomers = suggests; _isLoading = false; });
-    if (widget.preSelectedProduct != null) { _addProductToSale(widget.preSelectedProduct!); }
+    if (widget.preSelectedProduct != null) { 
+      _addProductToSale(widget.preSelectedProduct!); 
+    }
   }
 
   void _calculateInstallment() {
@@ -93,29 +104,63 @@ class _CreateSaleViewState extends State<CreateSaleView> {
 
   void _addItem(Product p) {
     if (_selectedItems.any((item) => item['product'].id == p.id)) return;
+    
+    final productId = p.id;
+    final imeiController = TextEditingController(text: p.imei ?? '');
+    final imeiFocusNode = FocusNode();
+    
     setState(() { 
       _selectedItems.add({
         'product': p, 
         'isGift': false, 
         'sellPrice': p.price,
-        'quantity': 1, // Thêm số lượng mặc định
+        'quantity': 1,
+        'imei': p.imei ?? '',
       }); 
+      
+      _imeiControllers[productId.toString()] = imeiController;
+      _imeiFocusNodes[productId.toString()] = imeiFocusNode;
+      
       _calculateTotal(); 
       searchProdCtrl.clear(); 
       _filteredInStock = _allInStock; 
+    });
+    
+    // Tự động focus vào IMEI field sau khi thêm sản phẩm
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (mounted && _imeiFocusNodes[productId.toString()]?.context != null) {
+        FocusScope.of(context).requestFocus(_imeiFocusNodes[productId.toString()]);
+      }
     });
   }
 
   void _addProductToSale(Product p) {
     if (_selectedItems.any((item) => item['product'].id == p.id)) return;
+    
+    final productId = p.id;
+    final imeiController = TextEditingController(text: p.imei ?? '');
+    final imeiFocusNode = FocusNode();
+    
     setState(() { 
       _selectedItems.add({
         'product': p, 
         'isGift': false, 
         'sellPrice': p.price,
-        'quantity': 1, // Thêm số lượng mặc định
+        'quantity': 1,
+        'imei': p.imei ?? '',
       }); 
+      
+      _imeiControllers[productId.toString()] = imeiController;
+      _imeiFocusNodes[productId.toString()] = imeiFocusNode;
+      
       _calculateTotal(); 
+    });
+    
+    // Tự động focus vào IMEI field
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (mounted && _imeiFocusNodes[productId.toString()]?.context != null) {
+        FocusScope.of(context).requestFocus(_imeiFocusNodes[productId.toString()]);
+      }
     });
   }
 
@@ -216,7 +261,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFF),
       appBar: AppBar(
-        title: const Text("TẠO ĐƠN BÁN HÀNG", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)), 
+        title: const Tooltip(message: "Chọn sản phẩm, nhập thông tin khách và hoàn tất đơn bán.", child: Text("TẠO ĐƠN BÁN HÀNG", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))), 
         backgroundColor: Colors.pinkAccent, foregroundColor: Colors.white,
         actions: [
           IconButton(onPressed: () { Navigator.push(context, MaterialPageRoute(builder: (_) => const SupplierView())); }, icon: const Icon(Icons.business_center_rounded)),
@@ -321,6 +366,12 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                       onPressed: () {
                         setState(() {
                           _selectedItems.remove(item);
+                          // Dispose IMEI controller và focus node khi xóa sản phẩm
+                          final productId = product.id;
+                          _imeiControllers[productId.toString()]?.dispose();
+                          _imeiFocusNodes[productId.toString()]?.dispose();
+                          _imeiControllers.remove(productId.toString());
+                          _imeiFocusNodes.remove(productId.toString());
                           _calculateTotal();
                         });
                       },
@@ -385,7 +436,8 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                     const Text("IMEI: "),
                     Expanded(
                       child: TextField(
-                        controller: TextEditingController(text: item['imei'] ?? ''),
+                        controller: _imeiControllers[product.id.toString()] ?? TextEditingController(text: item['imei'] ?? ''),
+                        focusNode: _imeiFocusNodes[product.id.toString()],
                         onChanged: (value) {
                           setState(() {
                             item['imei'] = value.trim();
@@ -396,6 +448,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                           contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           hintText: "Nhập IMEI (tùy chọn)",
                         ),
+                        textInputAction: TextInputAction.next,
                       ),
                     ),
                   ],

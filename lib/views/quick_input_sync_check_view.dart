@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../data/db_helper.dart';
 import '../models/quick_input_code_model.dart';
+import '../services/sync_service.dart';
+import '../services/notification_service.dart';
 
 class QuickInputSyncCheckView extends StatefulWidget {
   const QuickInputSyncCheckView({super.key});
@@ -12,6 +14,7 @@ class QuickInputSyncCheckView extends StatefulWidget {
 class _QuickInputSyncCheckViewState extends State<QuickInputSyncCheckView> {
   List<QuickInputCode> _unsyncedCodes = [];
   bool _isLoading = true;
+  bool _isSyncing = false;
 
   @override
   void initState() {
@@ -33,12 +36,37 @@ class _QuickInputSyncCheckViewState extends State<QuickInputSyncCheckView> {
     }
   }
 
+  Future<void> _syncToCloud() async {
+    if (_isSyncing) return;
+
+    setState(() => _isSyncing = true);
+    try {
+      await SyncService.syncQuickInputCodesToCloud();
+      NotificationService.showSnackBar('Đã đồng bộ thành công mã nhập nhanh lên Cloud!', color: Colors.green);
+      await _checkSyncStatus(); // Refresh list
+    } catch (e) {
+      NotificationService.showSnackBar('Lỗi đồng bộ: $e', color: Colors.red);
+    } finally {
+      if (mounted) {
+        setState(() => _isSyncing = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Kiểm tra đồng bộ mã nhập nhanh'),
         actions: [
+          if (_unsyncedCodes.isNotEmpty)
+            IconButton(
+              onPressed: _isSyncing ? null : _syncToCloud,
+              icon: _isSyncing
+                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Icon(Icons.cloud_upload, color: Colors.blue),
+              tooltip: 'Đồng bộ lên Cloud',
+            ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _checkSyncStatus,

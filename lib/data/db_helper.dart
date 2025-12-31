@@ -26,7 +26,7 @@ class DBHelper {
     String path = join(await getDatabasesPath(), 'repair_shop_v22.db'); 
     return await openDatabase(
       path,
-      version: 27, 
+      version: 28, 
       onCreate: (db, version) async {
         await db.execute('CREATE TABLE IF NOT EXISTS repairs(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, customerName TEXT, phone TEXT, model TEXT, issue TEXT, accessories TEXT, address TEXT, imagePath TEXT, deliveredImage TEXT, warranty TEXT, partsUsed TEXT, status INTEGER, price INTEGER, cost INTEGER, paymentMethod TEXT, createdAt INTEGER, startedAt INTEGER, finishedAt INTEGER, deliveredAt INTEGER, createdBy TEXT, repairedBy TEXT, deliveredBy TEXT, lastCaredAt INTEGER, isSynced INTEGER DEFAULT 0, deleted INTEGER DEFAULT 0, color TEXT, imei TEXT, condition TEXT)');
         await db.execute('CREATE TABLE IF NOT EXISTS products(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, name TEXT, brand TEXT, imei TEXT, cost INTEGER, price INTEGER, condition TEXT, status INTEGER DEFAULT 1, description TEXT, images TEXT, warranty TEXT, createdAt INTEGER, supplier TEXT, type TEXT DEFAULT "PHONE", quantity INTEGER DEFAULT 1, color TEXT, isSynced INTEGER DEFAULT 0, capacity TEXT, paymentMethod TEXT)');
@@ -107,6 +107,9 @@ class DBHelper {
           try { await db.execute('CREATE TABLE IF NOT EXISTS supplier_product_prices(id INTEGER PRIMARY KEY AUTOINCREMENT, supplierId INTEGER, productName TEXT, productBrand TEXT, productModel TEXT, costPrice INTEGER, lastUpdated INTEGER, createdAt INTEGER, isActive INTEGER DEFAULT 1)'); } catch(e) { debugPrint('DB upgrade error (supplier_product_prices): $e'); }
           try { await db.execute('CREATE TABLE IF NOT EXISTS supplier_import_history(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, supplierId INTEGER, supplierName TEXT, productName TEXT, productBrand TEXT, productModel TEXT, imei TEXT, quantity INTEGER, costPrice INTEGER, totalAmount INTEGER, paymentMethod TEXT, importDate INTEGER, importedBy TEXT, notes TEXT, isSynced INTEGER DEFAULT 0)'); } catch(e) { debugPrint('DB upgrade error (supplier_import_history): $e'); }
         }
+        if (oldV < 28) {
+          try { await db.execute('CREATE TABLE IF NOT EXISTS repair_parts(id INTEGER PRIMARY KEY AUTOINCREMENT, partName TEXT, compatibleModels TEXT, cost INTEGER, price INTEGER, quantity INTEGER, updatedAt INTEGER, createdAt INTEGER)'); } catch(e) { debugPrint('DB upgrade error (repair_parts): $e'); }
+        }
         debugPrint('DB upgrade completed');
       },
       onOpen: (db) async {
@@ -156,6 +159,14 @@ class DBHelper {
           }
         } catch (e) {
           debugPrint('DB onOpen check error (products model): $e');
+        }
+
+        // Ensure repair_parts table exists
+        try {
+          await db.execute('CREATE TABLE IF NOT EXISTS repair_parts(id INTEGER PRIMARY KEY AUTOINCREMENT, partName TEXT, compatibleModels TEXT, cost INTEGER, price INTEGER, quantity INTEGER, updatedAt INTEGER, createdAt INTEGER)');
+          debugPrint('DB: ensured repair_parts table exists');
+        } catch (e) {
+          debugPrint('DB onOpen check error (repair_parts): $e');
         }
       }
     );
@@ -506,6 +517,12 @@ class DBHelper {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query('quick_input_codes', where: 'isSynced = 0');
     return List.generate(maps.length, (i) => QuickInputCode.fromMap(maps[i]));
+  }
+
+  Future<int> getUnsyncedQuickInputCodesCount() async {
+    final db = await database;
+    final result = await db.rawQuery('SELECT COUNT(*) as count FROM quick_input_codes WHERE isSynced = 0');
+    return Sqflite.firstIntValue(result) ?? 0;
   }
 
   // Supplier Product Prices methods

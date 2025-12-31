@@ -53,7 +53,10 @@ class _SaleListViewState extends State<SaleListView> {
     return Scaffold(
       backgroundColor: const Color(0xFFF0F4F8),
       appBar: AppBar(
-        title: Text(widget.todayOnly ? "DOANH SỐ HÔM NAY" : "QUẢN LÝ ĐƠN BÁN HÀNG", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        title: Tooltip(
+          message: "Xem, tìm kiếm và theo dõi tất cả đơn bán hàng.",
+          child: Text(widget.todayOnly ? "DOANH SỐ HÔM NAY" : "QUẢN LÝ ĐƠN BÁN HÀNG", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        ),
         actions: [
           IconButton(
             onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateSaleView())).then((_) => _refresh()),

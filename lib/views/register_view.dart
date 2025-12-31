@@ -35,7 +35,6 @@ class _RegisterViewState extends State<RegisterView> {
   }
 
   void _updateEmail() {
-    if (_isJoinShop) return;
     final name = _nameC.text.trim();
     final shopName = _shopNameC.text.trim();
     if (name.isNotEmpty && shopName.isNotEmpty) {
@@ -91,7 +90,12 @@ class _RegisterViewState extends State<RegisterView> {
     try {
       final email = _emailC.text.trim();
       final pass = _passC.text.trim();
-      if (email.isEmpty || pass.isEmpty || _nameC.text.isEmpty) throw "Vui lòng điền các thông tin bắt buộc.";
+      final shopName = _shopNameC.text.trim();
+      final name = _nameC.text.trim();
+
+      if (shopName.isEmpty) throw "Vui lòng nhập tên cửa hàng.";
+      if (name.isEmpty) throw "Vui lòng nhập họ và tên.";
+      if (email.isEmpty || pass.isEmpty) throw "Vui lòng điền các thông tin bắt buộc.";
       if (pass != _confirmPassC.text.trim()) throw "Mật khẩu xác nhận không khớp.";
 
       final cred = await FirebaseAuth.instance.createUserWithEmailAndPassword(email: email, password: pass);
@@ -101,10 +105,10 @@ class _RegisterViewState extends State<RegisterView> {
           if (!success) throw "Mã mời không chính xác hoặc đã hết hạn.";
         } else {
           await UserService.syncUserInfo(cred.user!.uid, email, extra: {
-            'displayName': _nameC.text.trim().toUpperCase(),
+            'displayName': name.toUpperCase(),
             'phone': _phoneC.text.trim(),
             'address': _addressC.text.trim().toUpperCase(),
-            'shopName': _shopNameC.text.trim().toUpperCase(),
+            'shopName': shopName.toUpperCase(),
           });
         }
       }
@@ -207,14 +211,67 @@ class _RegisterViewState extends State<RegisterView> {
   Widget _stepInputInfo() {
     return Column(
       children: [
-        if (!_isJoinShop) _input(_shopNameC, "Tên cửa hàng", Icons.shop),
+        _input(_shopNameC, "Tên cửa hàng", Icons.shop),
         _input(_nameC, "Họ và tên", Icons.person),
         _input(_phoneC, "Số điện thoại", Icons.phone, type: TextInputType.phone),
-        _input(_emailC, "Email đăng nhập", Icons.email, readOnly: !_isJoinShop),
+        _input(_emailC, "Email đăng nhập", Icons.email, readOnly: true, helperText: "Email được tạo tự động từ tên và tên shop"),
         _input(_passC, "Mật khẩu", Icons.lock, obscure: _obscurePass, suffix: IconButton(icon: Icon(_obscurePass ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => _obscurePass = !_obscurePass))),
         _input(_confirmPassC, "Xác nhận mật khẩu", Icons.lock_clock, obscure: _obscureConfirm, suffix: IconButton(icon: Icon(_obscureConfirm ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm))),
         _input(_addressC, "Địa chỉ", Icons.map),
-        if (_isJoinShop) _input(_inviteCodeC, "Mã mời từ Shop", Icons.qr_code),
+        if (_isJoinShop) ...[
+          _input(_inviteCodeC, "Mã mời từ Shop", Icons.qr_code),
+          Container(
+            padding: const EdgeInsets.all(16),
+            margin: const EdgeInsets.only(top: 8),
+            decoration: BoxDecoration(
+              color: Colors.blue.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.blue.shade200),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.blue.shade700, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      "HƯỚNG DẪN LẤY MÃ MỜI",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue.shade700,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  "Để nhận mã mời tham gia shop, vui lòng yêu cầu chủ shop thực hiện các bước sau:",
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey.shade700,
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _buildInstructionStep(1, "Chủ shop đăng nhập vào ứng dụng"),
+                _buildInstructionStep(2, "Chọn tab 'Nhân sự' ở bottom navigation"),
+                _buildInstructionStep(3, "Chọn 'Danh sách nhân viên'"),
+                _buildInstructionStep(4, "Chọn nút 'Thêm nhân viên' để tạo tk và pass cho nhân viên"),
+                const SizedBox(height: 8),
+                Text(
+                  "Chủ shop sẽ cung cấp email đăng nhập và password cho bạn đăng nhập vào app.",
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade600,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
         
         if (_error != null) Text(_error!, style: const TextStyle(color: Colors.red, fontSize: 13)),
         const SizedBox(height: 24),
@@ -229,16 +286,57 @@ class _RegisterViewState extends State<RegisterView> {
     );
   }
 
-  Widget _input(TextEditingController c, String l, IconData i, {bool obscure = false, TextInputType type = TextInputType.text, bool readOnly = false, Widget? suffix}) {
+  Widget _input(TextEditingController c, String l, IconData i, {bool obscure = false, TextInputType type = TextInputType.text, bool readOnly = false, Widget? suffix, String? helperText}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: TextField(
         controller: c, obscureText: obscure, keyboardType: type, readOnly: readOnly,
         decoration: InputDecoration(
           labelText: l, prefixIcon: Icon(i, size: 20), suffixIcon: suffix,
+          helperText: helperText, helperStyle: const TextStyle(fontSize: 12, color: Colors.grey),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           filled: true, fillColor: Colors.white,
         ),
+      ),
+    );
+  }
+
+  Widget _buildInstructionStep(int step, String instruction) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 24,
+            height: 24,
+            decoration: BoxDecoration(
+              color: Colors.blue.shade700,
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Text(
+                step.toString(),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              instruction,
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.grey.shade700,
+                height: 1.3,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

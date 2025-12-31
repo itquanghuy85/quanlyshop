@@ -904,7 +904,7 @@ class _StaffListViewState extends State<StaffListView> {
                                   ),
                                   child: Text("Vai trò: Admin", style: const TextStyle(fontSize: 11, color: Colors.yellow, fontWeight: FontWeight.bold)),
                                 )
-                              : Text("Vai trò: ${role == 'owner' ? 'Chủ shop' : role == 'manager' ? 'Quản lý' : role == 'employee' ? 'Nhân viên' : role == 'technician' ? 'Kỹ thuật' : role}", style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                              : Text("Vai trò: ${role == 'owner' ? 'Chủ shop' : role == 'manager' ? 'Quản lý' : role == 'employee' ? 'Nhân viên' : role == 'technician' ? 'Kỹ thuật' : role == 'admin' ? 'Admin' : role == 'user' ? 'Người dùng' : role}", style: const TextStyle(fontSize: 11, color: Colors.grey)),
                             if (shopId != null)
                               FutureBuilder<DocumentSnapshot>(
                                 future: FirebaseFirestore.instance.collection('shops').doc(shopId).get(),

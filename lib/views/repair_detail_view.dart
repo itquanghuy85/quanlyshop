@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../models/repair_model.dart';
 import '../services/unified_printer_service.dart';
 import '../services/bluetooth_printer_service.dart';
@@ -241,7 +242,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFF),
-      appBar: AppBar(title: const Text("CHI TIẾT ĐƠN SỬA", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)), actions: [IconButton(onPressed: _shareToZalo, icon: const Icon(Icons.share_rounded, color: Colors.green)), IconButton(onPressed: _printReceipt, icon: const Icon(Icons.print_rounded, color: Color(0xFF2962FF)))]),
+      appBar: AppBar(title: const Tooltip(message: "Theo dõi tiến độ sửa chữa và cập nhật trạng thái.", child: Text("CHI TIẾT ĐƠN SỬA", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))), actions: [IconButton(onPressed: _shareToZalo, icon: const Icon(Icons.share_rounded, color: Colors.green)), IconButton(onPressed: _printReceipt, icon: const Icon(Icons.print_rounded, color: Color(0xFF2962FF)))]),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(children: [_buildStatusCard(), const SizedBox(height: 15), _buildActionButtons(), const SizedBox(height: 20), _buildFinancialSummary(), const SizedBox(height: 20), _buildImageGallery(), const SizedBox(height: 20), _buildCustomerCard(), const SizedBox(height: 100)]),
@@ -281,10 +282,43 @@ class _RepairDetailViewState extends State<RepairDetailView> {
   }
 
   Widget _buildCustomerCard() {
-    return Container(padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)), child: Column(children: [_infoRow("Khách hàng", r.customerName), _infoRow("Số điện thoại", r.phone), _infoRow("Tình trạng lỗi", r.issue), _infoRow("Phụ kiện kèm", r.accessories.isEmpty ? "Không có" : r.accessories), _infoRow("Bảo hành", r.warranty.isEmpty ? "Chưa có" : r.warranty), if (r.deliveredAt != null) _infoRow("Ngày giao", DateFormat('dd/MM/yyyy HH:mm').format(DateTime.fromMillisecondsSinceEpoch(r.deliveredAt!)))]));
+    return Container(padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)), child: Column(children: [_infoRow("Khách hàng", r.customerName), _phoneRow("Số điện thoại", r.phone), _infoRow("Tình trạng lỗi", r.issue), _infoRow("Phụ kiện kèm", r.accessories.isEmpty ? "Không có" : r.accessories), _infoRow("Bảo hành", r.warranty.isEmpty ? "Chưa có" : r.warranty), if (r.deliveredAt != null) _infoRow("Ngày giao", DateFormat('dd/MM/yyyy HH:mm').format(DateTime.fromMillisecondsSinceEpoch(r.deliveredAt!)))]));
   }
 
   Widget _infoRow(String l, String v) => Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(l, style: const TextStyle(color: Colors.grey, fontSize: 13)), Text(v, style: const TextStyle(fontWeight: FontWeight.bold))]));
+
+  Widget _phoneRow(String label, String phone) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 8),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: const TextStyle(color: Colors.grey, fontSize: 13)),
+        Row(
+          children: [
+            Text(phone, style: const TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(width: 8),
+            IconButton(
+              onPressed: () => _callCustomer(phone),
+              icon: const Icon(Icons.call, color: Colors.green, size: 20),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              tooltip: 'Gọi điện',
+            ),
+          ],
+        ),
+      ],
+    ),
+  );
+
+  Future<void> _callCustomer(String phone) async {
+    final cleanPhone = phone.replaceAll(RegExp(r'[^\d+]'), '');
+    final url = Uri.parse('tel:$cleanPhone');
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url);
+    } else {
+      NotificationService.showSnackBar('Không thể gọi điện: $phone', color: Colors.red);
+    }
+  }
 
   Widget _buildBottomActions() {
     return Container(

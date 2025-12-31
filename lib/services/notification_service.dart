@@ -15,6 +15,11 @@ class NotificationService {
   static final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
   static final DateTime _appStartTime = DateTime.now().subtract(const Duration(minutes: 1));
 
+  // Rate limiting: max 3 notifications per 10 seconds
+  static final List<DateTime> _recentNotifications = [];
+  static const int _maxNotificationsPerPeriod = 3;
+  static const Duration _rateLimitPeriod = Duration(seconds: 10);
+
   // Notification settings keys
   static const String _newOrderKey = 'notification_new_order';
   static const String _paymentKey = 'notification_payment';
@@ -455,9 +460,31 @@ class NotificationService {
   static Future<bool> _shouldShowNotification(String? type) async {
     if (type == null) return true;
 
+    // Check rate limiting
+    if (!_isWithinRateLimit()) {
+      debugPrint('Notification rate limited: $type');
+      return false;
+    }
+
     final prefs = await SharedPreferences.getInstance();
     final key = _getNotificationSettingKey(type);
     return prefs.getBool(key) ?? _getDefaultNotificationSetting(type);
+  }
+
+  static bool _isWithinRateLimit() {
+    final now = DateTime.now();
+    
+    // Remove old notifications outside the rate limit period
+    _recentNotifications.removeWhere((time) => now.difference(time) > _rateLimitPeriod);
+    
+    // Check if we're within the limit
+    if (_recentNotifications.length >= _maxNotificationsPerPeriod) {
+      return false;
+    }
+    
+    // Add current notification to the list
+    _recentNotifications.add(now);
+    return true;
   }
 
   static Future<void> setNotificationEnabled(String type, bool enabled) async {

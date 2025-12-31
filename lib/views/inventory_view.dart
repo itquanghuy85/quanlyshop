@@ -36,6 +36,7 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
   List<Product> _products = [];
   List<Map<String, dynamic>> _suppliers = [];
   bool _isLoading = true;
+  int _unsyncedCount = 0;
   bool _isAdmin = false;
   bool _hasInventoryAccess = false;
   String _searchQuery = "";
@@ -400,8 +401,14 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
     });
     final data = await db.getInStockProducts();
     final suppliers = await db.getSuppliers();
+    final unsyncedCount = await db.getUnsyncedQuickInputCodesCount();
     if (!mounted) return;
-    setState(() { _products = data; _suppliers = suppliers; _isLoading = false; });
+    setState(() { 
+      _products = data; 
+      _suppliers = suppliers; 
+      _unsyncedCount = unsyncedCount;
+      _isLoading = false; 
+    });
   }
 
   Future<void> _deleteSelected() async {
@@ -663,19 +670,48 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
               children: [
                 // Thư viện mã nhập nhanh button (primary)
                 Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const QuickInputLibraryView())).then((_) => _refresh()),
-                    icon: Icon(Icons.library_books, size: _iconSize),
-                    label: Text("THƯ VIỆN", style: TextStyle(fontSize: _smallFontSize)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2962FF),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
-                      minimumSize: Size(double.infinity, _btnMinHeight),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                  child: Stack(
+                    children: [
+                      ElevatedButton.icon(
+                        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const QuickInputLibraryView())).then((_) => _refresh()),
+                        icon: Icon(Icons.library_books, size: _iconSize),
+                        label: Text("THƯ VIỆN", style: TextStyle(fontSize: _smallFontSize)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF2962FF),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+                          minimumSize: Size(double.infinity, _btnMinHeight),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
                       ),
-                    ),
+                      if (_unsyncedCount > 0)
+                        Positioned(
+                          top: 4,
+                          right: 4,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.red,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            constraints: const BoxConstraints(
+                              minWidth: 16,
+                              minHeight: 16,
+                            ),
+                            child: Text(
+                              _unsyncedCount > 99 ? '99+' : _unsyncedCount.toString(),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
                 const SizedBox(width: 8),

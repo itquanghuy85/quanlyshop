@@ -25,6 +25,25 @@ class _SettingsViewState extends State<SettingsView> {
     _loadRole();
   }
 
+  String _getRoleDisplayName(String role) {
+    switch (role) {
+      case 'owner':
+        return 'CHỦ SHOP';
+      case 'manager':
+        return 'QUẢN LÝ';
+      case 'employee':
+        return 'NHÂN VIÊN';
+      case 'technician':
+        return 'KỸ THUẬT';
+      case 'admin':
+        return 'ADMIN';
+      case 'user':
+        return 'NGƯỜI DÙNG';
+      default:
+        return role.toUpperCase();
+    }
+  }
+
   Future<void> _loadRole() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
@@ -142,7 +161,7 @@ class _SettingsViewState extends State<SettingsView> {
             trailing: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(color: Colors.blue.shade50, borderRadius: BorderRadius.circular(10)),
-              child: Text(_role.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: Colors.blue)),
+              child: Text(_getRoleDisplayName(_role), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: Colors.blue)),
             ),
           ),
           
