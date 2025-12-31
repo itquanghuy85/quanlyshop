@@ -451,6 +451,7 @@ class _SaleDetailViewState extends State<SaleDetailView> {
         backgroundColor: _primaryColor,
         foregroundColor: Colors.white,
         elevation: 2,
+        automaticallyImplyLeading: true,
         title: const Text("CHI TIẾT ĐƠN BÁN", style: TextStyle(fontWeight: FontWeight.bold)),
         actions: [
           if (_checkingManager)

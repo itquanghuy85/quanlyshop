@@ -158,7 +158,7 @@ class _ChatViewState extends State<ChatView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Chat nội bộ')),
+      appBar: AppBar(title: const Text('Chat nội bộ'), automaticallyImplyLeading: true),
       body: Column(
         children: [
           if (_loadingShop)

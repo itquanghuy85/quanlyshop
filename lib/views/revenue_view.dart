@@ -78,6 +78,7 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
       backgroundColor: const Color(0xFFF8FAFF),
       appBar: AppBar(
         title: const Text("QUẢN LÝ TÀI CHÍNH", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        automaticallyImplyLeading: true,
         bottom: TabBar(
           controller: _tabController, isScrollable: true,
           labelColor: const Color(0xFF2962FF), indicatorColor: const Color(0xFF2962FF),

@@ -298,6 +298,7 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
         ),
         backgroundColor: Colors.white,
         elevation: 0,
+        automaticallyImplyLeading: true,
         bottom: TabBar(
           controller: _tabController,
           tabs: const [

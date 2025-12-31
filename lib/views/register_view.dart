@@ -129,6 +129,7 @@ class _RegisterViewState extends State<RegisterView> {
         elevation: 0,
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
+        automaticallyImplyLeading: true,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),

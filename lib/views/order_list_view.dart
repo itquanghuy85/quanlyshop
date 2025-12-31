@@ -124,6 +124,7 @@ class OrderListViewState extends State<OrderListView> {
       appBar: AppBar(
         title: const Text("DANH SÁCH MÁY SỬA", style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Colors.white, elevation: 0,
+        automaticallyImplyLeading: true,
         actions: [
           IconButton(
             onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => GlobalSearchView(role: widget.role))),

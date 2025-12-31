@@ -307,6 +307,7 @@ class _WorkScheduleSettingsViewState extends State<WorkScheduleSettingsView> wit
     return Scaffold(
       appBar: AppBar(
         title: const Text('Cài đặt lịch làm việc'),
+        automaticallyImplyLeading: true,
         bottom: TabBar(
           controller: _tabController,
           tabs: const [

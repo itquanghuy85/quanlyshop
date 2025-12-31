@@ -57,6 +57,7 @@ class _SaleListViewState extends State<SaleListView> {
           message: "Xem, tìm kiếm và theo dõi tất cả đơn bán hàng.",
           child: Text(widget.todayOnly ? "DOANH SỐ HÔM NAY" : "QUẢN LÝ ĐƠN BÁN HÀNG", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
         ),
+        automaticallyImplyLeading: true,
         actions: [
           IconButton(
             onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateSaleView())).then((_) => _refresh()),

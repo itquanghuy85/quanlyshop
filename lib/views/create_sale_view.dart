@@ -263,6 +263,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
       appBar: AppBar(
         title: const Tooltip(message: "Chọn sản phẩm, nhập thông tin khách và hoàn tất đơn bán.", child: Text("TẠO ĐƠN BÁN HÀNG", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))), 
         backgroundColor: Colors.pinkAccent, foregroundColor: Colors.white,
+        automaticallyImplyLeading: true,
         actions: [
           IconButton(onPressed: () { Navigator.push(context, MaterialPageRoute(builder: (_) => const SupplierView())); }, icon: const Icon(Icons.business_center_rounded)),
         ],

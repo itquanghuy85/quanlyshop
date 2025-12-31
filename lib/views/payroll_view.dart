@@ -266,7 +266,7 @@ class _PayrollViewState extends State<PayrollView> {
   Widget build(BuildContext context) {
     final summary = _calc();
     return Scaffold(
-      appBar: AppBar(title: const Text('BẢNG LƯƠNG')),
+      appBar: AppBar(title: const Text('BẢNG LƯƠNG'), automaticallyImplyLeading: true),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : Column(

@@ -145,6 +145,7 @@ class _AttendanceViewState extends State<AttendanceView> with TickerProviderStat
       backgroundColor: const Color(0xFFF8FAFF),
       appBar: AppBar(
         title: const Text("CHẤM CÔNG NHÂN VIÊN", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        automaticallyImplyLeading: true,
         bottom: TabBar(
           controller: _tabController,
           labelColor: const Color(0xFF2962FF),

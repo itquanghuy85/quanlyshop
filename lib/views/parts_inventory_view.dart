@@ -118,6 +118,7 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
         backgroundColor: _primaryColor,
         foregroundColor: Colors.white,
         elevation: 2,
+        automaticallyImplyLeading: true,
       ),
       body: _isLoading
         ? Center(child: CircularProgressIndicator(color: _primaryColor))

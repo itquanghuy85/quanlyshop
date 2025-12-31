@@ -49,6 +49,7 @@ class _QrScanViewState extends State<QrScanView> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Quét QR Code'),
+        automaticallyImplyLeading: true,
         actions: [
           IconButton(
             icon: Icon(

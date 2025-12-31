@@ -775,6 +775,7 @@ class _StaffListViewState extends State<StaffListView> {
       return Scaffold(
         appBar: AppBar(
           title: const Text("QUẢN LÝ NHÂN VIÊN"),
+          automaticallyImplyLeading: true,
         ),
         body: const Center(
           child: Column(
@@ -804,6 +805,7 @@ class _StaffListViewState extends State<StaffListView> {
               Text("Role: $_currentRole", style: const TextStyle(fontSize: 10, color: Colors.white70)),
           ],
         ),
+        automaticallyImplyLeading: true,
         actions: [
           if (_currentRole == 'owner')
             IconButton(

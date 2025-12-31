@@ -595,6 +595,7 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
       return Scaffold(
         appBar: AppBar(
           title: const Text("QUẢN LÝ KHO TỔNG"),
+          automaticallyImplyLeading: true,
         ),
         body: const Center(
           child: Column(
@@ -622,6 +623,7 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
         ),
         backgroundColor: Colors.white,
         elevation: 0,
+        automaticallyImplyLeading: true,
         actions: [
           IconButton(
             onPressed: () { HapticFeedback.mediumImpact(); Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateSaleView())).then((_) => _refresh()); },

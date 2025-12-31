@@ -453,6 +453,7 @@ class _ExpenseViewState extends State<ExpenseView> {
         ),
         backgroundColor: Colors.white,
         elevation: 0,
+        automaticallyImplyLeading: true,
         actions: [
           IconButton(
             onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FastStockInView())),

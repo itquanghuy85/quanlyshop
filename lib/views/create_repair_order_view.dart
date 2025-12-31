@@ -148,6 +148,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
       backgroundColor: const Color(0xFFF8FAFF),
       appBar: AppBar(
         title: const Text("NHẬP ĐƠN SỬA CHỮA", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        automaticallyImplyLeading: true,
         actions: [IconButton(onPressed: _saveAndPrint, icon: const Icon(Icons.print, color: Color(0xFF2962FF)))],
       ),
       body: _saving 

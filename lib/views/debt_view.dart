@@ -244,6 +244,7 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
       backgroundColor: const Color(0xFFF0F4F8),
       appBar: AppBar(
         title: const Text("QUẢN LÝ CÔNG NỢ", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        automaticallyImplyLeading: true,
         bottom: TabBar(
           controller: _tabController,
           labelColor: const Color(0xFF2962FF),

@@ -148,6 +148,7 @@ class _SupplierViewState extends State<SupplierView> {
         backgroundColor: _primaryColor,
         foregroundColor: Colors.white,
         elevation: 2,
+        automaticallyImplyLeading: true,
       ),
       body: _isLoading
         ? Center(child: CircularProgressIndicator(color: _primaryColor))

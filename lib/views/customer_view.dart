@@ -241,6 +241,7 @@ class _CustomerListViewState extends State<CustomerListView> {
         backgroundColor: _primaryColor,
         foregroundColor: Colors.white,
         elevation: 2,
+        automaticallyImplyLeading: true,
         title: Text(
           _isSelectionMode 
             ? "Đã chọn ${_selectedIndices.length} khách hàng"

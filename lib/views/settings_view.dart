@@ -140,7 +140,7 @@ class _SettingsViewState extends State<SettingsView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("CÀI ĐẶT HỆ THỐNG")),
+      appBar: AppBar(title: const Text("CÀI ĐẶT HỆ THỐNG"), automaticallyImplyLeading: true),
       body: _loading ? const Center(child: CircularProgressIndicator()) : ListView(
         padding: const EdgeInsets.all(16),
         children: [

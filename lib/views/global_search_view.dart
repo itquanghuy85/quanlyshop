@@ -196,6 +196,7 @@ class _GlobalSearchViewState extends State<GlobalSearchView> {
         title: const Text('Tìm kiếm toàn app'),
         backgroundColor: Theme.of(context).primaryColor,
         foregroundColor: Colors.white,
+        automaticallyImplyLeading: true,
       ),
       body: Column(
         children: [

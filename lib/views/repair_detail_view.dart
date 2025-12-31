@@ -242,7 +242,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFF),
-      appBar: AppBar(title: const Tooltip(message: "Theo dõi tiến độ sửa chữa và cập nhật trạng thái.", child: Text("CHI TIẾT ĐƠN SỬA", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))), actions: [IconButton(onPressed: _shareToZalo, icon: const Icon(Icons.share_rounded, color: Colors.green)), IconButton(onPressed: _printReceipt, icon: const Icon(Icons.print_rounded, color: Color(0xFF2962FF)))]),
+      appBar: AppBar(title: const Tooltip(message: "Theo dõi tiến độ sửa chữa và cập nhật trạng thái.", child: Text("CHI TIẾT ĐƠN SỬA", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))), automaticallyImplyLeading: true, actions: [IconButton(onPressed: _shareToZalo, icon: const Icon(Icons.share_rounded, color: Colors.green)), IconButton(onPressed: _printReceipt, icon: const Icon(Icons.print_rounded, color: Color(0xFF2962FF)))]),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(children: [_buildStatusCard(), const SizedBox(height: 15), _buildActionButtons(), const SizedBox(height: 20), _buildFinancialSummary(), const SizedBox(height: 20), _buildImageGallery(), const SizedBox(height: 20), _buildCustomerCard(), const SizedBox(height: 100)]),

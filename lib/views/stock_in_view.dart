@@ -552,6 +552,7 @@ class _StockInViewState extends State<StockInView> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Nhập Kho'),
+        automaticallyImplyLeading: true,
       ),
       backgroundColor: const Color(0xFFF0F4F8),
       body: SingleChildScrollView(

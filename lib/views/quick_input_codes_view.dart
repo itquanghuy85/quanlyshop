@@ -41,6 +41,7 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> {
         appBar: AppBar(
           title: const Text('Mã Nhập Nhanh'),
           backgroundColor: Colors.blue.shade700,
+          automaticallyImplyLeading: true,
         ),
         body: const Center(
           child: CircularProgressIndicator(),
@@ -53,6 +54,7 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> {
         appBar: AppBar(
           title: const Text('Mã Nhập Nhanh'),
           backgroundColor: Colors.blue.shade700,
+          automaticallyImplyLeading: true,
         ),
         body: const Center(
           child: Text('Không thể tải dữ liệu shop'),
@@ -65,6 +67,7 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> {
         title: const Text('Mã Nhập Nhanh'),
         backgroundColor: Colors.blue.shade700,
         elevation: 2,
+        automaticallyImplyLeading: true,
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(60),
           child: Padding(
