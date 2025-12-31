@@ -88,6 +88,12 @@ class _ValidatedTextFieldState extends State<ValidatedTextField> {
     else if (widget.label.toLowerCase().contains('tên') || widget.label.toLowerCase().contains('name')) {
       error = UserService.validateName(value);
     }
+    else if (widget.label.toLowerCase().contains('imei') || widget.label.toLowerCase().contains('serial')) {
+      error = UserService.validateIMEI(value);
+    }
+    else if (widget.label.toLowerCase().contains('model')) {
+      error = UserService.validateModel(value);
+    }
     else if (widget.label.toLowerCase().contains('địa chỉ') || widget.label.toLowerCase().contains('address')) {
       error = UserService.validateAddress(value);
     }

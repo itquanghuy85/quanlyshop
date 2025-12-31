@@ -7,6 +7,7 @@ import '../models/sale_order_model.dart';
 import '../services/user_service.dart';
 import '../services/firestore_service.dart';
 import 'repair_detail_view.dart';
+import 'sale_detail_view.dart';
 
 class CustomerListView extends StatefulWidget {
   final String role;
@@ -393,44 +394,153 @@ class _CustomerListViewState extends State<CustomerListView> {
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
         height: MediaQuery.of(context).size.height * 0.85,
-        decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(25))
+        ),
         child: Column(
           children: [
-            Container(margin: const EdgeInsets.only(top: 10), width: 40, height: 5, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(10))),
-            Padding(
+            // Header với drag handle
+            Container(
+              margin: const EdgeInsets.only(top: 10),
+              width: 40,
+              height: 5,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(10)
+              ),
+            ),
+
+            // Customer info header
+            Container(
               padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: _primaryColor.shade50,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
+              ),
               child: Column(
                 children: [
-                  Text(c['customerName'].toString().toUpperCase(), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  Text("Tổng chi tiêu: ${NumberFormat('#,###').format(c['totalSpent'] ?? 0)} đ", style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: _primaryColor,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.person, color: Colors.white, size: 24),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              c['customerName'].toString().toUpperCase(),
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                Icon(Icons.phone, size: 16, color: Colors.grey[600]),
+                                const SizedBox(width: 4),
+                                Text(
+                                  c['phone'].toString(),
+                                  style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                                ),
+                              ],
+                            ),
+                            if (c['address'] != null && c['address'].toString().isNotEmpty) ...[
+                              const SizedBox(height: 2),
+                              Row(
+                                children: [
+                                  Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
+                                  const SizedBox(width: 4),
+                                  Expanded(
+                                    child: Text(
+                                      c['address'].toString(),
+                                      style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        _buildStatItem(
+                          "Tổng chi tiêu",
+                          "${NumberFormat('#,###').format(c['totalSpent'] ?? 0)} đ",
+                          Colors.red,
+                          Icons.attach_money,
+                        ),
+                        _buildStatItem(
+                          "Lần sửa chữa",
+                          "${c['repairCount'] ?? 0}",
+                          Colors.orange,
+                          Icons.build,
+                        ),
+                        _buildStatItem(
+                          "Lần mua hàng",
+                          "${c['saleCount'] ?? 0}",
+                          Colors.blue,
+                          Icons.shopping_cart,
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
-            const Divider(),
+
+            // Tab bar
+            Container(
+              color: Colors.white,
+              child: const TabBar(
+                labelColor: Colors.pink,
+                unselectedLabelColor: Colors.grey,
+                indicatorColor: Colors.pink,
+                indicatorWeight: 3,
+                labelStyle: TextStyle(fontWeight: FontWeight.w600),
+                tabs: [
+                  Tab(text: "LỊCH SỬ SỬA CHỮA"),
+                  Tab(text: "LỊCH SỬ MUA HÀNG"),
+                ],
+              ),
+            ),
+
+            // Tab content
             Expanded(
-              child: DefaultTabController(
-                length: 2,
-                child: Column(
-                  children: [
-                    const TabBar(
-                      labelColor: Colors.blueAccent,
-                      unselectedLabelColor: Colors.grey,
-                      indicatorColor: Colors.blueAccent,
-                      tabs: [
-                        Tab(text: "LỊCH SỬ SỬA MÁY"),
-                        Tab(text: "MÁY ĐÃ MUA"),
-                      ],
-                    ),
-                    Expanded(
-                      child: TabBarView(
-                        children: [
-                          _buildRepairHistoryList(repairHistory),
-                          _buildSaleHistoryList(saleHistory),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+              child: TabBarView(
+                children: [
+                  _buildRepairHistoryList(repairHistory),
+                  _buildSaleHistoryList(saleHistory),
+                ],
               ),
             ),
           ],
@@ -442,18 +552,99 @@ class _CustomerListViewState extends State<CustomerListView> {
   Widget _buildRepairHistoryList(List<Repair> list) {
     if (list.isEmpty) return const Center(child: Text("Chưa có lịch sử sửa chữa"));
     return ListView.builder(
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.all(15),
       itemCount: list.length,
       itemBuilder: (ctx, i) {
         final r = list[i];
-        return ListTile(
-          title: Text(r.model, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-          subtitle: Text("Lỗi: ${r.issue.split('|').first}\nNgày: ${DateFormat('dd/MM/yyyy').format(DateTime.fromMillisecondsSinceEpoch(r.createdAt))}"),
-          trailing: Text("${NumberFormat('#,###').format(r.price)} đ", style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
-          onTap: () {
-            Navigator.pop(ctx);
-            Navigator.push(context, MaterialPageRoute(builder: (_) => RepairDetailView(repair: r)));
-          },
+        return Card(
+          margin: const EdgeInsets.only(bottom: 12),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          elevation: 2,
+          child: InkWell(
+            onTap: () {
+              Navigator.pop(ctx);
+              Navigator.push(context, MaterialPageRoute(builder: (_) => RepairDetailView(repair: r)));
+            },
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade100,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.build, color: Colors.orange, size: 20),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              r.model,
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                            ),
+                            Text(
+                              "Lỗi: ${r.issue.split('|').first}",
+                              style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.green.shade100,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          "${NumberFormat('#,###').format(r.price)} đ",
+                          style: const TextStyle(
+                            color: Colors.green,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(Icons.calendar_today, size: 16, color: Colors.grey[500]),
+                      const SizedBox(width: 4),
+                      Text(
+                        "Ngày: ${DateFormat('dd/MM/yyyy').format(DateTime.fromMillisecondsSinceEpoch(r.createdAt))}",
+                        style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                      ),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: _getStatusColor(r.status).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          _getStatusText(r.status),
+                          style: TextStyle(
+                            color: _getStatusColor(r.status),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
         );
       },
     );
@@ -462,15 +653,96 @@ class _CustomerListViewState extends State<CustomerListView> {
   Widget _buildSaleHistoryList(List<SaleOrder> list) {
     if (list.isEmpty) return const Center(child: Text("Chưa có máy đã mua"));
     return ListView.builder(
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.all(15),
       itemCount: list.length,
       itemBuilder: (ctx, i) {
         final s = list[i];
-        return ListTile(
-          leading: const Icon(Icons.phone_iphone, color: Colors.pink),
-          title: Text(s.productNames, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-          subtitle: Text("IMEI: ${s.productImeis}\nNgày mua: ${DateFormat('dd/MM/yyyy').format(DateTime.fromMillisecondsSinceEpoch(s.soldAt))}"),
-          trailing: Text("${NumberFormat('#,###').format(s.totalPrice)} đ", style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+        return Card(
+          margin: const EdgeInsets.only(bottom: 12),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          elevation: 2,
+          child: InkWell(
+            onTap: () => _showSaleDetail(s),
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.pink.shade100,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.phone_iphone, color: Colors.pink, size: 20),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              s.productNames,
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                            ),
+                            Text(
+                              "IMEI: ${s.productImeis}",
+                              style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade100,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          "${NumberFormat('#,###').format(s.totalPrice)} đ",
+                          style: const TextStyle(
+                            color: Colors.red,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(Icons.calendar_today, size: 16, color: Colors.grey[500]),
+                      const SizedBox(width: 4),
+                      Text(
+                        "Ngày mua: ${DateFormat('dd/MM/yyyy').format(DateTime.fromMillisecondsSinceEpoch(s.soldAt))}",
+                        style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                      ),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.shade100,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          "Đã bán",
+                          style: TextStyle(
+                            color: Colors.blue[700],
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
         );
       },
     );
@@ -518,5 +790,65 @@ class _CustomerListViewState extends State<CustomerListView> {
       );
       _refresh();
     }
+  }
+
+  void _showSaleDetail(SaleOrder sale) {
+    Navigator.pop(context); // Đóng bottom sheet
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => SaleDetailView(sale: sale)),
+    );
+  }
+
+  Color _getStatusColor(int status) {
+    switch (status) {
+      case 1: return Colors.orange; // Đang sửa
+      case 2: return Colors.blue;   // Chờ linh kiện
+      case 3: return Colors.green;  // Hoàn thành
+      case 4: return Colors.red;    // Đã trả máy
+      default: return Colors.grey;
+    }
+  }
+
+  String _getStatusText(int status) {
+    switch (status) {
+      case 1: return "Đang sửa";
+      case 2: return "Chờ linh kiện";
+      case 3: return "Hoàn thành";
+      case 4: return "Đã trả máy";
+      default: return "Không xác định";
+    }
+  }
+
+  Widget _buildStatItem(String label, String value, Color color, IconData icon) {
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: color, size: 20),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 10,
+            color: Colors.grey[600],
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
   }
 }

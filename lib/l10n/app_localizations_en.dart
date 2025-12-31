@@ -399,7 +399,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get version => 'Version';
 
   @override
-  String get versionNumber => '1.0.0+1';
+  String get versionNumber => '2.1.0';
 
   @override
   String get contactSupport => 'Contact Support';
@@ -667,12 +667,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get costPrice => 'COST PRICE';
-
-  @override
-  String get kpkPrice => 'KPK PRICE';
-
-  @override
-  String get pkPrice => 'PK PRICE';
 
   @override
   String get capacity => 'CAPACITY (e.g. 64GB, 128GB)';

@@ -9,6 +9,7 @@ import 'customer_history_view.dart';
 import 'order_list_view.dart';
 import 'revenue_view.dart';
 import 'inventory_view.dart';
+import 'fast_inventory_input_view.dart';
 import 'fast_inventory_check_view.dart';
 import 'sale_list_view.dart';
 import 'expense_view.dart';
@@ -233,7 +234,8 @@ class _HomeViewState extends State<HomeView> {
 
     // NHÓM 2: QUẢN LÝ KHO & BẢO HÀNH
     addModule('allowViewInventory', "Kho hàng", Icons.inventory_rounded, [const Color(0xFFFF6F00), const Color(0xFFFFA726)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => InventoryView(role: widget.role))));
-    addModule('allowViewInventory', "Kiểm kho QR", Icons.qr_code_scanner_rounded, [const Color(0xFF2196F3), const Color(0xFF64B5F6)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FastInventoryCheckView())));
+    addModule('allowViewInventory', "NHẬP KHO SIÊU TỐC", Icons.add_shopping_cart_rounded, [const Color(0xFF4CAF50), const Color(0xFF81C784)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => FastInventoryInputView())));
+    addModule('allowViewInventory', "Kiểm kho QR", Icons.qr_code_scanner_rounded, [const Color(0xFF2196F3), const Color(0xFF64B5F6)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => FastInventoryCheckView())));
     addModule('allowViewWarranty', "Bảo hành", Icons.verified_user_rounded, [const Color(0xFF00C853), const Color(0xFFB2FF59)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WarrantyView())));
 
     // NHÓM 3: NHÂN SỰ & CHAT

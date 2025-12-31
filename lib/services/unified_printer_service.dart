@@ -161,26 +161,12 @@ class UnifiedPrinterService {
         }
       }
 
-      // 3. GIÁ KPK (TO - SIZE 2 nếu fontScale >= 2.0)
-      if (showKPK) {
-        final kpkPrice = product['kpkPrice'] ?? product['price'] ?? 0;
-        final priceStyle = fontScale >= 2.0
-            ? const PosStyles(align: PosAlign.center, bold: true, height: PosTextSize.size2, width: PosTextSize.size1)
-            : const PosStyles(align: PosAlign.center, bold: true, height: PosTextSize.size1, width: PosTextSize.size1);
-        bytes.addAll(generator.text(
-          "GIA KPK: ${NumberFormat('#,###').format(kpkPrice)}",
-          styles: priceStyle,
-        ));
-      }
-
-      // 4. GIÁ CPK (VỪA)
-      if (showCPK) {
-        final cpkPrice = product['price'] ?? 0;
-        bytes.addAll(generator.text(
-          "GIA CPK: ${NumberFormat('#,###').format(cpkPrice)}",
-          styles: const PosStyles(align: PosAlign.center, bold: true),
-        ));
-      }
+      // 3. GIÁ BÁN
+      final price = product['price'] ?? 0;
+      bytes.addAll(generator.text(
+        "GIA BAN: ${NumberFormat('#,###').format(price)}",
+        styles: const PosStyles(align: PosAlign.center, bold: true),
+      ));
 
       // 5. IMEI (VỪA)
       if (showIMEI) {
@@ -193,7 +179,9 @@ class UnifiedPrinterService {
       // 6. QR CODE (NẾU CÓ)
       if (showQR) {
         bytes.addAll(generator.feed(1));
-        bytes.addAll(generator.qrcode("check_inv:${product['firestoreId'] ?? product['id']}", size: QRSize.Size4));
+        // Dùng ID số đơn giản để QR code dễ scan hơn
+        final simpleId = product['id']?.toString() ?? product['firestoreId']?.split('_').last ?? 'unknown';
+        bytes.addAll(generator.qrcode("check_inv:$simpleId", size: QRSize.Size4));
       }
 
       // 7. CHỮ TÙY BIẾN

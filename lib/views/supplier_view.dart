@@ -5,6 +5,7 @@ import '../data/db_helper.dart';
 import '../services/user_service.dart';
 import '../services/firestore_service.dart';
 import 'fast_stock_in_view.dart';
+import 'supplier_details_dialog.dart';
 
 class SupplierView extends StatefulWidget {
   const SupplierView({super.key});
@@ -208,6 +209,19 @@ class _SupplierViewState extends State<SupplierView> {
                                     ),
                                   ),
                                 ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: ElevatedButton.icon(
+                                    onPressed: () => _showSupplierDetails(s),
+                                    icon: const Icon(Icons.history, size: 16),
+                                    label: const Text("LỊCH SỬ", style: TextStyle(fontSize: 12)),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.blue,
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(vertical: 8),
+                                    ),
+                                  ),
+                                ),
                                 if (_isAdmin) ...[
                                   const SizedBox(width: 8),
                                   TextButton.icon(
@@ -241,6 +255,13 @@ class _SupplierViewState extends State<SupplierView> {
   }
 
   Widget _input(TextEditingController ctrl, String hint, bool caps, [TextInputType type = TextInputType.text]) => TextField(controller: ctrl, keyboardType: type, textCapitalization: caps ? TextCapitalization.characters : TextCapitalization.none, decoration: InputDecoration(hintText: hint, border: const OutlineInputBorder()));
+
+  void _showSupplierDetails(Map<String, dynamic> supplier) {
+    showDialog(
+      context: context,
+      builder: (ctx) => SupplierDetailsDialog(supplier: supplier),
+    );
+  }
 
   Widget _infoRowSimple(String label, String? val) {
     return Padding(

@@ -77,7 +77,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
 
   void _calculateTotal() {
     if (!_autoCalcTotal) return;
-    int total = _selectedItems.fold(0, (sum, item) => sum + (item['isGift'] ? 0 : (item['sellPrice'] as int)));
+    int total = _selectedItems.fold(0, (sum, item) => sum + (item['isGift'] ? 0 : ((item['sellPrice'] as int) * (item['quantity'] as int))));
     priceCtrl.text = _formatCurrency(total);
     _calculateInstallment();
   }
@@ -93,12 +93,30 @@ class _CreateSaleViewState extends State<CreateSaleView> {
 
   void _addItem(Product p) {
     if (_selectedItems.any((item) => item['product'].id == p.id)) return;
-    setState(() { _selectedItems.add({'product': p, 'isGift': false, 'sellPrice': p.price}); _calculateTotal(); searchProdCtrl.clear(); _filteredInStock = _allInStock; });
+    setState(() { 
+      _selectedItems.add({
+        'product': p, 
+        'isGift': false, 
+        'sellPrice': p.price,
+        'quantity': 1, // Thêm số lượng mặc định
+      }); 
+      _calculateTotal(); 
+      searchProdCtrl.clear(); 
+      _filteredInStock = _allInStock; 
+    });
   }
 
   void _addProductToSale(Product p) {
     if (_selectedItems.any((item) => item['product'].id == p.id)) return;
-    setState(() { _selectedItems.add({'product': p, 'isGift': false, 'sellPrice': p.price}); _calculateTotal(); });
+    setState(() { 
+      _selectedItems.add({
+        'product': p, 
+        'isGift': false, 
+        'sellPrice': p.price,
+        'quantity': 1, // Thêm số lượng mặc định
+      }); 
+      _calculateTotal(); 
+    });
   }
 
   Future<void> _processSale() async {
@@ -115,25 +133,77 @@ class _CreateSaleViewState extends State<CreateSaleView> {
       if (paidAmount > 0 && paidAmount < 100000) paidAmount *= 1000;
       if (_paymentMethod != "CÔNG NỢ" && _paymentMethod != "TRẢ GÓP (NH)" && paidAmount == 0) paidAmount = totalPrice;
       
-      final sale = SaleOrder(firestoreId: uniqueId, customerName: nameCtrl.text.trim().toUpperCase(), phone: phoneCtrl.text.trim(), address: addressCtrl.text.trim().toUpperCase(), productNames: _selectedItems.map((e) => (e['product'] as Product).name).join(', '), productImeis: _selectedItems.map((e) => (e['product'] as Product).imei ?? "PK").join(', '), totalPrice: totalPrice, totalCost: _selectedItems.fold(0, (sum, item) => sum + (item['product'] as Product).cost), paymentMethod: _paymentMethod, sellerName: seller, soldAt: now, isInstallment: _isInstallment, downPayment: paidAmount, loanAmount: _isInstallment ? _parseCurrency(loanAmountCtrl.text) : 0, bankName: bankCtrl.text.toUpperCase(), notes: noteCtrl.text, warranty: _saleWarranty);
+      final sale = SaleOrder(
+        firestoreId: uniqueId, 
+        customerName: nameCtrl.text.trim().toUpperCase(), 
+        phone: phoneCtrl.text.trim(), 
+        address: addressCtrl.text.trim().toUpperCase(), 
+        productNames: _selectedItems.map((e) => "${(e['product'] as Product).name} x${e['quantity']}").join(', '), 
+        productImeis: _selectedItems.map((e) {
+          final product = e['product'] as Product;
+          final quantity = e['quantity'] as int;
+          final customImei = e['imei'] as String?;
+          if (customImei != null && customImei.isNotEmpty) {
+            return customImei;
+          }
+          // Logic cũ nếu không nhập IMEI tùy chọn
+          if (product.type == 'PHONE') {
+            return product.imei ?? "NO_IMEI";
+          } else {
+            return "PKx${quantity}";
+          }
+        }).join(', '), 
+        totalPrice: totalPrice, 
+        totalCost: _selectedItems.fold(0, (sum, item) => sum + ((item['product'] as Product).cost * (item['quantity'] as int))), 
+        paymentMethod: _paymentMethod, 
+        sellerName: seller, 
+        soldAt: now, 
+        isInstallment: _isInstallment, 
+        downPayment: paidAmount, 
+        loanAmount: _isInstallment ? _parseCurrency(loanAmountCtrl.text) : 0, 
+        bankName: bankCtrl.text.toUpperCase(), 
+        notes: noteCtrl.text, 
+        warranty: _saleWarranty
+      );
       
       if (_paymentMethod == "CÔNG NỢ" || (_paymentMethod != "TRẢ GÓP (NH)" && paidAmount < totalPrice)) {
         await db.insertDebt({'personName': nameCtrl.text.trim().toUpperCase(), 'phone': phoneCtrl.text.trim(), 'totalAmount': totalPrice, 'paidAmount': paidAmount, 'type': "CUSTOMER_OWES", 'status': "unpaid", 'createdAt': now, 'note': "Nợ mua máy: ${sale.productNames}", 'linkedId': uniqueId});
       }
       for (var item in _selectedItems) {
         final p = item['product'] as Product;
-        if (p.imei == null || p.imei!.isEmpty) {
+        final quantity = item['quantity'] as int;
+        
+        // Chỉ kiểm tra IMEI cho sản phẩm PHONE nếu không nhập IMEI tùy chọn
+        final customImei = item['imei'] as String?;
+        if (p.type == 'PHONE' && (customImei == null || customImei.isEmpty) && (p.imei == null || p.imei!.isEmpty)) {
           NotificationService.showSnackBar("Không thể bán máy chưa có IMEI: ${p.name}", color: Colors.red);
           setState(() => _isSaving = false);
           return;
         }
-        if (p.quantity <= 0) {
-          NotificationService.showSnackBar("Sản phẩm hết hàng: ${p.name}", color: Colors.red);
+        
+        // Kiểm tra số lượng tồn kho
+        if (p.quantity < quantity) {
+          NotificationService.showSnackBar("Không đủ hàng trong kho: ${p.name} (còn ${p.quantity}, cần ${quantity})", color: Colors.red);
           setState(() => _isSaving = false);
           return;
         }
-        await db.updateProductStatus(p.id!, 0); await db.deductProductQuantity(p.id!, 1);
-        p.status = 0; p.quantity = 0; await FirestoreService.updateProductCloud(p);
+        
+        // Cập nhật trạng thái và số lượng
+        if (p.type == 'PHONE') {
+          // Phone: đánh dấu đã bán (status = 0)
+          await db.updateProductStatus(p.id!, 0);
+        }
+        // Giảm số lượng cho cả PHONE và ACCESSORY
+        await db.deductProductQuantity(p.id!, quantity);
+        
+        // Cập nhật local object
+        p.quantity -= quantity;
+        if (p.type == 'PHONE') {
+          p.status = 0;
+        }
+        
+        // Sync lên cloud
+        await FirestoreService.updateProductCloud(p);
       }
       await db.upsertSale(sale); await FirestoreService.addSale(sale);
       NotificationService.showSnackBar("ĐÃ BÁN HÀNG THÀNH CÔNG!", color: Colors.green);
@@ -227,7 +297,89 @@ class _CreateSaleViewState extends State<CreateSaleView> {
   }
 
   Widget _buildSelectedItemsList() {
-    return Column(children: _selectedItems.map((item) => Card(margin: const EdgeInsets.symmetric(vertical: 4), child: ListTile(title: Text((item['product'] as Product).name), subtitle: Text("Giá bán: ${NumberFormat('#,###').format(item['sellPrice'])}"), trailing: IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () { setState(() { _selectedItems.remove(item); _calculateTotal(); }); })))).toList());
+    return Column(
+      children: _selectedItems.map((item) {
+        final product = item['product'] as Product;
+        final quantity = item['quantity'] as int? ?? 1;
+        return Card(
+          margin: const EdgeInsets.symmetric(vertical: 4),
+          child: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        product.name,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete, color: Colors.red),
+                      onPressed: () {
+                        setState(() {
+                          _selectedItems.remove(item);
+                          _calculateTotal();
+                        });
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text("Giá bán: ${NumberFormat('#,###').format(item['sellPrice'])}"),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    const Text("Số lượng: "),
+                    SizedBox(
+                      width: 60,
+                      child: TextField(
+                        controller: TextEditingController(text: quantity.toString()),
+                        keyboardType: TextInputType.number,
+                        onChanged: (value) {
+                          final newQuantity = int.tryParse(value) ?? 1;
+                          setState(() {
+                            item['quantity'] = newQuantity;
+                            _calculateTotal();
+                          });
+                        },
+                        decoration: const InputDecoration(
+                          isDense: true,
+                          contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    const Text("IMEI: "),
+                    Expanded(
+                      child: TextField(
+                        controller: TextEditingController(text: item['imei'] ?? ''),
+                        onChanged: (value) {
+                          setState(() {
+                            item['imei'] = value.trim();
+                          });
+                        },
+                        decoration: const InputDecoration(
+                          isDense: true,
+                          contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          hintText: "Nhập IMEI (tùy chọn)",
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
+    );
   }
 
   Widget _buildCustomerSuggestions() {

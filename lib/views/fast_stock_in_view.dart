@@ -38,6 +38,9 @@ class _FastStockInViewState extends State<FastStockInView> {
   bool _isLoading = true;
   String? _loadingError;
 
+  // Current quick input code for price sync
+  QuickInputCode? _currentQuickInputCode;
+
   // Selected values
   String? selectedBrand;
   String? selectedCapacity;
@@ -118,7 +121,16 @@ class _FastStockInViewState extends State<FastStockInView> {
     
     // Pre-fill supplier
     if (code.supplier != null) {
-      selectedSupplier = code.supplier;
+      if (suppliers.any((s) => s['name'] == code.supplier)) {
+        selectedSupplier = code.supplier;
+      } else {
+        // Supplier from QuickInputCode not found in current suppliers list
+        NotificationService.showSnackBar(
+          "Nhà cung cấp '${code.supplier}' từ mã nhập nhanh không có trong danh sách. Vui lòng chọn lại.",
+          color: Colors.orange
+        );
+        selectedSupplier = null;
+      }
     }
     
     // Pre-fill payment method
@@ -144,6 +156,7 @@ class _FastStockInViewState extends State<FastStockInView> {
       
       // Pre-fill form with quick input code data
       if (widget.quickInputCode != null) {
+        _currentQuickInputCode = widget.quickInputCode;
         _preFillFromQuickInputCode(widget.quickInputCode!);
       }
     } catch (e) {
@@ -231,13 +244,6 @@ class _FastStockInViewState extends State<FastStockInView> {
       return;
     }
 
-    // Check if IMEI already exists
-    final existingProduct = await db.getProductByImei(imeiCtrl.text.trim());
-    if (existingProduct != null) {
-      NotificationService.showSnackBar("IMEI đã tồn tại trong kho! Vui lòng nhập IMEI mới.", color: Colors.red);
-      return;
-    }
-
     final cost = _parseMoneyWithK(costCtrl.text);
     if (cost <= 0) {
       NotificationService.showSnackBar("Vui lòng nhập giá nhập hợp lệ!", color: Colors.red);
@@ -276,6 +282,7 @@ class _FastStockInViewState extends State<FastStockInView> {
         firestoreId: fId,
         name: '$selectedBrand ${modelCtrl.text.trim()} $selectedCapacity $selectedColor $selectedCondition'.toUpperCase(),
         brand: selectedBrand!,
+        model: modelCtrl.text.trim(),
         imei: imei,
         cost: cost,
         price: price,
@@ -289,10 +296,52 @@ class _FastStockInViewState extends State<FastStockInView> {
         color: selectedColor!,
         capacity: selectedCapacity!,
         paymentMethod: selectedPaymentMethod,
+        // Không còn đồng bộ giá KPK và CPK nữa
       );
 
       await db.upsertProduct(product);
       await FirestoreService.addProduct(product);
+
+      // Lưu lịch sử nhập hàng từ nhà cung cấp
+      final supplierData = suppliers.firstWhere((s) => s['name'] == selectedSupplier, orElse: () => {});
+      final supplierId = supplierData['id'];
+      if (supplierId != null) {
+        final importHistory = {
+          'firestoreId': "import_${ts}_${imei}",
+          'supplierId': supplierId,
+          'supplierName': selectedSupplier,
+          'productName': product.name,
+          'productBrand': selectedBrand,
+          'productModel': modelCtrl.text.trim(),
+          'imei': imei,
+          'quantity': quantity,
+          'costPrice': cost,
+          'totalAmount': cost * quantity,
+          'paymentMethod': selectedPaymentMethod,
+          'importDate': ts,
+          'importedBy': FirebaseAuth.instance.currentUser?.email?.split('@').first.toUpperCase() ?? "NV",
+          'notes': 'Nhập nhanh từ Fast Stock In',
+          'isSynced': 0,
+        };
+        await db.insertSupplierImportHistory(importHistory);
+
+        // Cập nhật giá nhà cung cấp
+        await db.deactivateSupplierProductPrice(supplierId, product.name, selectedBrand!, modelCtrl.text.trim().isNotEmpty ? modelCtrl.text.trim() : null);
+        final supplierPrice = {
+          'supplierId': supplierId,
+          'productName': product.name,
+          'productBrand': selectedBrand,
+          'productModel': modelCtrl.text.trim().isNotEmpty ? modelCtrl.text.trim() : null,
+          'costPrice': cost,
+          'lastUpdated': ts,
+          'createdAt': ts,
+          'isActive': 1,
+        };
+        await db.insertSupplierProductPrice(supplierPrice);
+
+        // Cập nhật thống kê nhà cung cấp
+        await db.updateSupplierStats(supplierId);
+      }
 
       // If payment method is "Công nợ", create debt for supplier
       if (selectedPaymentMethod == 'CÔNG NỢ') {
@@ -635,6 +684,13 @@ class _FastStockInViewState extends State<FastStockInView> {
         priceCtrl.text = code.price.toString();
       }
       selectedSupplier = code.supplier;
+      if (code.supplier != null && !suppliers.any((s) => s['name'] == code.supplier)) {
+        NotificationService.showSnackBar(
+          "Nhà cung cấp '${code.supplier}' không có trong danh sách. Vui lòng chọn lại.",
+          color: Colors.orange
+        );
+        selectedSupplier = null;
+      }
       selectedPaymentMethod = code.paymentMethod;
 
       // Reset IMEI for new entry
@@ -698,10 +754,10 @@ class _FastStockInViewState extends State<FastStockInView> {
             Text('IMEI/Serial *', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
             TextField(
               controller: imeiCtrl,
-              inputFormatters: [UpperCaseTextFormatter(), LengthLimitingTextInputFormatter(64)],
+              inputFormatters: [UpperCaseTextFormatter(), LengthLimitingTextInputFormatter(5)],
               style: const TextStyle(fontSize: 11),
               decoration: InputDecoration(
-                hintText: 'Nhập IMEI (bắt buộc)',
+                hintText: 'Nhập 5 số cuối IMEI (bắt buộc)',
                 contentPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(4)),
               ),

@@ -177,21 +177,11 @@ class BluetoothPrinterService {
         }
       }
 
-      // 3. GIÁ KPK (TO - SIZE 2)
-      if (showKPK) {
-        bytes.addAll(generator.text(
-          "GIA KPK: ${labelData['price'] ?? '0'}",
-          styles: const PosStyles(align: PosAlign.center, bold: true, height: PosTextSize.size2, width: PosTextSize.size1),
-        ));
-      }
-
-      // 4. GIÁ CPK (VỪA)
-      if (showCPK) {
-        bytes.addAll(generator.text(
-          "GIA CPK: ${labelData['cpkPrice'] ?? '0'}",
-          styles: const PosStyles(align: PosAlign.center, bold: true),
-        ));
-      }
+      // 3. GIÁ BÁN
+      bytes.addAll(generator.text(
+        "GIA BAN: ${labelData['price'] ?? '0'}",
+        styles: const PosStyles(align: PosAlign.center, bold: true),
+      ));
 
       // 5. IMEI (VỪA)
       if (showIMEI) {
@@ -204,7 +194,9 @@ class BluetoothPrinterService {
       // 6. QR CODE (NẾU CÓ)
       if (showQR) {
         bytes.addAll(generator.feed(1));
-        bytes.addAll(generator.qrcode((labelData['imei'] ?? 'N/A').toString(), size: QRSize.Size4));
+        // Generate QR in unified format: type=PHONE&imei=...&code=...
+        final qrData = 'type=PHONE&imei=${labelData['imei'] ?? 'N/A'}&code=${labelData['code'] ?? labelData['name'] ?? 'N/A'}';
+        bytes.addAll(generator.qrcode(qrData, size: QRSize.Size4));
       }
 
       // 7. CHỮ TÙY BIẾN

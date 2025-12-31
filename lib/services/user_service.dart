@@ -22,6 +22,24 @@ class UserService {
       return null;
     }
 
+    static String? validateIMEI(String imei) {
+      if (imei.isEmpty) return null; // IMEI có thể để trống cho phụ kiện
+      if (imei.length != 5) {
+        return 'IMEI phải có đúng 5 chữ số cuối';
+      }
+      if (!RegExp(r'^\d+$').hasMatch(imei)) {
+        return 'IMEI chỉ được chứa số';
+      }
+      return null;
+    }
+
+    static String? validateModel(String model) {
+      if (model.trim().isEmpty) return 'Model không được để trống';
+      if (model.trim().length < 2) return 'Model phải có ít nhất 2 ký tự';
+      if (model.trim().length > 50) return 'Model không được quá 50 ký tự';
+      return null;
+    }
+
   static final _db = FirebaseFirestore.instance;
   static String? _cachedShopId;
 

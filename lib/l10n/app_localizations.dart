@@ -1415,18 +1415,6 @@ abstract class AppLocalizations {
   /// **'COST PRICE'**
   String get costPrice;
 
-  /// No description provided for @kpkPrice.
-  ///
-  /// In en, this message translates to:
-  /// **'KPK PRICE'**
-  String get kpkPrice;
-
-  /// No description provided for @pkPrice.
-  ///
-  /// In en, this message translates to:
-  /// **'PK PRICE'**
-  String get pkPrice;
-
   /// No description provided for @capacity.
   ///
   /// In en, this message translates to:

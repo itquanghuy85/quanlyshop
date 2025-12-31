@@ -3,6 +3,7 @@ class Product {
   String? firestoreId;
   String name;
   String brand; // Trường bắt buộc
+  String? model; // Model máy (ví dụ: iPhone 15 Pro, Galaxy S24, etc.)
   String? imei;
   int cost;
   int price;
@@ -17,8 +18,6 @@ class Product {
   int quantity;
   String? color;
   String? capacity; // Dung lượng (ví dụ: 64GB, 128GB, etc.)
-  int? kpkPrice; // Giá bán kèm phụ kiện
-  int? pkPrice; // Giá phụ kiện
   String? paymentMethod; // Phương thức thanh toán
   bool isSynced;
 
@@ -27,6 +26,7 @@ class Product {
     this.firestoreId,
     required this.name,
     this.brand = "KHÁC",
+    this.model,
     this.imei,
     this.cost = 0,
     this.price = 0,
@@ -41,8 +41,6 @@ class Product {
     this.quantity = 1,
     this.color,
     this.capacity,
-    this.kpkPrice,
-    this.pkPrice,
     this.paymentMethod,
     this.isSynced = false,
   });
@@ -53,6 +51,7 @@ class Product {
       'firestoreId': firestoreId ?? "prod_${createdAt}_$name",
       'name': name,
       'brand': brand,
+      'model': model,
       'imei': imei,
       'cost': cost,
       'price': price,
@@ -67,8 +66,6 @@ class Product {
       'quantity': quantity,
       'color': color,
       'capacity': capacity,
-      'kpkPrice': kpkPrice,
-      'pkPrice': pkPrice,
       'paymentMethod': paymentMethod,
       'isSynced': isSynced ? 1 : 0,
     };
@@ -80,6 +77,7 @@ class Product {
       firestoreId: map['firestoreId'],
       name: map['name'] ?? "",
       brand: map['brand'] ?? "KHÁC",
+      model: map['model'],
       imei: map['imei'],
       cost: (map['cost'] is int ? map['cost'] : 0) < 0 ? 0 : (map['cost'] is int ? map['cost'] : 0),
       price: (map['price'] is int ? map['price'] : 0) < 0 ? 0 : (map['price'] is int ? map['price'] : 0),
@@ -94,8 +92,6 @@ class Product {
       quantity: (map['quantity'] is int ? map['quantity'] : 1) < 0 ? 0 : (map['quantity'] is int ? map['quantity'] : 1),
       color: map['color'],
       capacity: map['capacity'],
-      kpkPrice: map['kpkPrice'] is int ? map['kpkPrice'] : null,
-      pkPrice: map['pkPrice'] is int ? map['pkPrice'] : null,
       paymentMethod: map['paymentMethod'],
       isSynced: map['isSynced'] == 1,
     );
@@ -106,6 +102,7 @@ class Product {
     String? firestoreId,
     String? name,
     String? brand,
+    String? model,
     String? imei,
     int? cost,
     int? price,
@@ -120,8 +117,6 @@ class Product {
     int? quantity,
     String? color,
     String? capacity,
-    int? kpkPrice,
-    int? pkPrice,
     String? paymentMethod,
     bool? isSynced,
     int? updatedAt,
@@ -131,6 +126,7 @@ class Product {
       firestoreId: firestoreId ?? this.firestoreId,
       name: name ?? this.name,
       brand: brand ?? this.brand,
+      model: model ?? this.model,
       imei: imei ?? this.imei,
       cost: cost ?? this.cost,
       price: price ?? this.price,
@@ -145,8 +141,6 @@ class Product {
       quantity: quantity ?? this.quantity,
       color: color ?? this.color,
       capacity: capacity ?? this.capacity,
-      kpkPrice: kpkPrice ?? this.kpkPrice,
-      pkPrice: pkPrice ?? this.pkPrice,
       paymentMethod: paymentMethod ?? this.paymentMethod,
       isSynced: isSynced ?? this.isSynced,
     );

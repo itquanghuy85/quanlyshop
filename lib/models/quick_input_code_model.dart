@@ -11,8 +11,6 @@ class QuickInputCode {
   String? condition; // Tình trạng (cho phone)
   int? cost; // Giá nhập
   int? price; // Giá bán
-  int? kpkPrice; // Giá bán kèm phụ kiện
-  int? pkPrice; // Giá phụ kiện
   String? description; // Mô tả/ghi chú
   String? supplier; // Nhà cung cấp
   String? paymentMethod; // Phương thức thanh toán
@@ -33,8 +31,6 @@ class QuickInputCode {
     this.condition,
     this.cost,
     this.price,
-    this.kpkPrice,
-    this.pkPrice,
     this.description,
     this.supplier,
     this.paymentMethod,
@@ -57,8 +53,6 @@ class QuickInputCode {
       'condition': condition,
       'cost': cost,
       'price': price,
-      'kpkPrice': kpkPrice,
-      'pkPrice': pkPrice,
       'description': description,
       'supplier': supplier,
       'paymentMethod': paymentMethod,
@@ -82,8 +76,6 @@ class QuickInputCode {
       condition: map['condition'],
       cost: map['cost'],
       price: map['price'],
-      kpkPrice: map['kpkPrice'],
-      pkPrice: map['pkPrice'],
       description: map['description'],
       supplier: map['supplier'],
       paymentMethod: map['paymentMethod'],
@@ -105,8 +97,6 @@ class QuickInputCode {
     String? condition,
     int? cost,
     int? price,
-    int? kpkPrice,
-    int? pkPrice,
     String? description,
     String? supplier,
     String? paymentMethod,
@@ -126,8 +116,6 @@ class QuickInputCode {
       condition: condition ?? this.condition,
       cost: cost ?? this.cost,
       price: price ?? this.price,
-      kpkPrice: kpkPrice ?? this.kpkPrice,
-      pkPrice: pkPrice ?? this.pkPrice,
       description: description ?? this.description,
       supplier: supplier ?? this.supplier,
       paymentMethod: paymentMethod ?? this.paymentMethod,

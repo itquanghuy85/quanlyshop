@@ -26,10 +26,10 @@ class DBHelper {
     String path = join(await getDatabasesPath(), 'repair_shop_v22.db'); 
     return await openDatabase(
       path,
-      version: 23, 
+      version: 27, 
       onCreate: (db, version) async {
         await db.execute('CREATE TABLE IF NOT EXISTS repairs(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, customerName TEXT, phone TEXT, model TEXT, issue TEXT, accessories TEXT, address TEXT, imagePath TEXT, deliveredImage TEXT, warranty TEXT, partsUsed TEXT, status INTEGER, price INTEGER, cost INTEGER, paymentMethod TEXT, createdAt INTEGER, startedAt INTEGER, finishedAt INTEGER, deliveredAt INTEGER, createdBy TEXT, repairedBy TEXT, deliveredBy TEXT, lastCaredAt INTEGER, isSynced INTEGER DEFAULT 0, deleted INTEGER DEFAULT 0, color TEXT, imei TEXT, condition TEXT)');
-        await db.execute('CREATE TABLE IF NOT EXISTS products(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, name TEXT, brand TEXT, imei TEXT, cost INTEGER, price INTEGER, condition TEXT, status INTEGER DEFAULT 1, description TEXT, images TEXT, warranty TEXT, createdAt INTEGER, supplier TEXT, type TEXT DEFAULT "PHONE", quantity INTEGER DEFAULT 1, color TEXT, isSynced INTEGER DEFAULT 0, capacity TEXT, kpkPrice INTEGER, pkPrice INTEGER)');
+        await db.execute('CREATE TABLE IF NOT EXISTS products(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, name TEXT, brand TEXT, imei TEXT, cost INTEGER, price INTEGER, condition TEXT, status INTEGER DEFAULT 1, description TEXT, images TEXT, warranty TEXT, createdAt INTEGER, supplier TEXT, type TEXT DEFAULT "PHONE", quantity INTEGER DEFAULT 1, color TEXT, isSynced INTEGER DEFAULT 0, capacity TEXT, paymentMethod TEXT)');
         await db.execute('CREATE TABLE IF NOT EXISTS sales(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, customerName TEXT, phone TEXT, address TEXT, productNames TEXT, productImeis TEXT, totalPrice INTEGER, totalCost INTEGER, paymentMethod TEXT, sellerName TEXT, soldAt INTEGER, notes TEXT, gifts TEXT, isInstallment INTEGER DEFAULT 0, downPayment INTEGER DEFAULT 0, loanAmount INTEGER DEFAULT 0, installmentTerm TEXT, bankName TEXT, warranty TEXT, settlementPlannedAt INTEGER, settlementReceivedAt INTEGER, settlementAmount INTEGER DEFAULT 0, settlementFee INTEGER DEFAULT 0, settlementNote TEXT, settlementCode TEXT, isSynced INTEGER DEFAULT 0)');
         await db.execute('CREATE TABLE IF NOT EXISTS customers(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, name TEXT, phone TEXT UNIQUE, address TEXT, createdAt INTEGER, shopId TEXT, isSynced INTEGER DEFAULT 0)');
         await db.execute('CREATE TABLE IF NOT EXISTS suppliers(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, name TEXT, contactPerson TEXT, phone TEXT, address TEXT, items TEXT, importCount INTEGER DEFAULT 0, totalAmount INTEGER DEFAULT 0, createdAt INTEGER, shopId TEXT, isSynced INTEGER DEFAULT 0)');
@@ -44,7 +44,9 @@ class DBHelper {
         await db.execute('CREATE TABLE IF NOT EXISTS purchase_orders(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, orderCode TEXT UNIQUE, supplierName TEXT, supplierPhone TEXT, supplierAddress TEXT, itemsJson TEXT, totalAmount INTEGER, totalCost INTEGER, createdAt INTEGER, createdBy TEXT, status TEXT DEFAULT "PENDING", paymentMethod TEXT, notes TEXT, isSynced INTEGER DEFAULT 0)');
         await db.execute('CREATE TABLE IF NOT EXISTS work_schedules(id INTEGER PRIMARY KEY AUTOINCREMENT, userId TEXT UNIQUE, startTime TEXT DEFAULT "08:00", endTime TEXT DEFAULT "17:00", breakTime INTEGER DEFAULT 1, maxOtHours INTEGER DEFAULT 4, workDays TEXT DEFAULT "[1,2,3,4,5,6]", updatedAt INTEGER)');
         await db.execute('CREATE TABLE IF NOT EXISTS debt_payments(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, debtId INTEGER, debtFirestoreId TEXT, amount INTEGER, paidAt INTEGER, paymentMethod TEXT, note TEXT, createdBy TEXT, isSynced INTEGER DEFAULT 0)');
-        await db.execute('CREATE TABLE IF NOT EXISTS quick_input_codes(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, shopId TEXT, name TEXT, type TEXT, brand TEXT, model TEXT, capacity TEXT, color TEXT, condition TEXT, cost INTEGER, price INTEGER, kpkPrice INTEGER, pkPrice INTEGER, description TEXT, supplier TEXT, paymentMethod TEXT, isActive INTEGER DEFAULT 1, createdAt INTEGER, isSynced INTEGER DEFAULT 0)');
+        await db.execute('CREATE TABLE IF NOT EXISTS quick_input_codes(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, shopId TEXT, name TEXT, type TEXT, brand TEXT, model TEXT, capacity TEXT, color TEXT, condition TEXT, cost INTEGER, price INTEGER, description TEXT, supplier TEXT, paymentMethod TEXT, isActive INTEGER DEFAULT 1, createdAt INTEGER, isSynced INTEGER DEFAULT 0)');
+        await db.execute('CREATE TABLE IF NOT EXISTS supplier_product_prices(id INTEGER PRIMARY KEY AUTOINCREMENT, supplierId INTEGER, productName TEXT, productBrand TEXT, productModel TEXT, costPrice INTEGER, lastUpdated INTEGER, createdAt INTEGER, isActive INTEGER DEFAULT 1)');
+        await db.execute('CREATE TABLE IF NOT EXISTS supplier_import_history(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, supplierId INTEGER, supplierName TEXT, productName TEXT, productBrand TEXT, productModel TEXT, imei TEXT, quantity INTEGER, costPrice INTEGER, totalAmount INTEGER, paymentMethod TEXT, importDate INTEGER, importedBy TEXT, notes TEXT, isSynced INTEGER DEFAULT 0)');
       },
       onUpgrade: (db, oldV, newV) async {
         debugPrint('Upgrading DB from $oldV to $newV');
@@ -68,7 +70,42 @@ class DBHelper {
         }
         if (oldV < 23) {
           try { await db.execute('ALTER TABLE purchase_orders ADD COLUMN paymentMethod TEXT'); } catch(e) { debugPrint('DB upgrade error (purchase_orders paymentMethod): $e'); }
-          try { await db.execute('CREATE TABLE IF NOT EXISTS quick_input_codes(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, shopId TEXT, name TEXT, type TEXT, brand TEXT, model TEXT, capacity TEXT, color TEXT, condition TEXT, cost INTEGER, price INTEGER, kpkPrice INTEGER, pkPrice INTEGER, description TEXT, supplier TEXT, paymentMethod TEXT, isActive INTEGER DEFAULT 1, createdAt INTEGER, isSynced INTEGER DEFAULT 0)'); } catch(e) { debugPrint('DB upgrade error (quick_input_codes): $e'); }
+          try { await db.execute('CREATE TABLE IF NOT EXISTS quick_input_codes(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, shopId TEXT, name TEXT, type TEXT, brand TEXT, model TEXT, capacity TEXT, color TEXT, condition TEXT, cost INTEGER, price INTEGER, description TEXT, supplier TEXT, paymentMethod TEXT, isActive INTEGER DEFAULT 1, createdAt INTEGER, isSynced INTEGER DEFAULT 0)'); } catch(e) { debugPrint('DB upgrade error (quick_input_codes): $e'); }
+        }
+        if (oldV < 24) {
+          try { await db.execute('ALTER TABLE inventory_checks ADD COLUMN checkedBy TEXT'); } catch(e) { debugPrint('DB upgrade error (inventory_checks checkedBy): $e'); }
+        }
+        if (oldV < 25) {
+          try { await db.execute('ALTER TABLE products ADD COLUMN model TEXT'); } catch(e) { debugPrint('DB upgrade error (products model): $e'); }
+        }
+        if (oldV < 26) {
+          // Migration to remove kpkPrice and pkPrice columns from products and quick_input_codes tables
+          // Since SQLite doesn't support DROP COLUMN, we'll recreate tables without these columns
+          try {
+            // Create new products table without kpkPrice and pkPrice
+            await db.execute('CREATE TABLE products_new(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, name TEXT, brand TEXT, imei TEXT, cost INTEGER, price INTEGER, condition TEXT, status INTEGER DEFAULT 1, description TEXT, images TEXT, warranty TEXT, createdAt INTEGER, supplier TEXT, type TEXT DEFAULT "PHONE", quantity INTEGER DEFAULT 1, color TEXT, isSynced INTEGER DEFAULT 0, capacity TEXT, paymentMethod TEXT, model TEXT)');
+            // Copy data from old table to new table
+            await db.execute('INSERT INTO products_new SELECT id, firestoreId, name, brand, imei, cost, price, condition, status, description, images, warranty, createdAt, supplier, type, quantity, color, isSynced, capacity, paymentMethod, model FROM products');
+            // Drop old table and rename new table
+            await db.execute('DROP TABLE products');
+            await db.execute('ALTER TABLE products_new RENAME TO products');
+            debugPrint('DB upgrade: removed kpkPrice and pkPrice from products table');
+          } catch(e) { debugPrint('DB upgrade error (products remove kpkPrice/pkPrice): $e'); }
+          
+          try {
+            // Create new quick_input_codes table without kpkPrice and pkPrice
+            await db.execute('CREATE TABLE quick_input_codes_new(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, shopId TEXT, name TEXT, type TEXT, brand TEXT, model TEXT, capacity TEXT, color TEXT, condition TEXT, cost INTEGER, price INTEGER, description TEXT, supplier TEXT, paymentMethod TEXT, isActive INTEGER DEFAULT 1, createdAt INTEGER, isSynced INTEGER DEFAULT 0)');
+            // Copy data from old table to new table
+            await db.execute('INSERT INTO quick_input_codes_new SELECT id, firestoreId, shopId, name, type, brand, model, capacity, color, condition, cost, price, description, supplier, paymentMethod, isActive, createdAt, isSynced FROM quick_input_codes');
+            // Drop old table and rename new table
+            await db.execute('DROP TABLE quick_input_codes');
+            await db.execute('ALTER TABLE quick_input_codes_new RENAME TO quick_input_codes');
+            debugPrint('DB upgrade: removed kpkPrice and pkPrice from quick_input_codes table');
+          } catch(e) { debugPrint('DB upgrade error (quick_input_codes remove kpkPrice/pkPrice): $e'); }
+        }
+        if (oldV < 27) {
+          try { await db.execute('CREATE TABLE IF NOT EXISTS supplier_product_prices(id INTEGER PRIMARY KEY AUTOINCREMENT, supplierId INTEGER, productName TEXT, productBrand TEXT, productModel TEXT, costPrice INTEGER, lastUpdated INTEGER, createdAt INTEGER, isActive INTEGER DEFAULT 1)'); } catch(e) { debugPrint('DB upgrade error (supplier_product_prices): $e'); }
+          try { await db.execute('CREATE TABLE IF NOT EXISTS supplier_import_history(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, supplierId INTEGER, supplierName TEXT, productName TEXT, productBrand TEXT, productModel TEXT, imei TEXT, quantity INTEGER, costPrice INTEGER, totalAmount INTEGER, paymentMethod TEXT, importDate INTEGER, importedBy TEXT, notes TEXT, isSynced INTEGER DEFAULT 0)'); } catch(e) { debugPrint('DB upgrade error (supplier_import_history): $e'); }
         }
         debugPrint('DB upgrade completed');
       },
@@ -95,6 +132,30 @@ class DBHelper {
           }
         } catch (e) {
           debugPrint('DB onOpen check error (debts createdBy): $e');
+        }
+
+        // Ensure checkedBy column exists in inventory_checks table
+        try {
+          final cols = await db.rawQuery('PRAGMA table_info(inventory_checks)');
+          final has = cols.any((c) => (c['name'] ?? c['name'.toString()]) == 'checkedBy');
+          if (!has) {
+            await db.execute('ALTER TABLE inventory_checks ADD COLUMN checkedBy TEXT');
+            debugPrint('DB: added checkedBy column to inventory_checks');
+          }
+        } catch (e) {
+          debugPrint('DB onOpen check error (inventory_checks checkedBy): $e');
+        }
+
+        // Ensure model column exists in products table
+        try {
+          final cols = await db.rawQuery('PRAGMA table_info(products)');
+          final has = cols.any((c) => (c['name'] ?? c['name'.toString()]) == 'model');
+          if (!has) {
+            await db.execute('ALTER TABLE products ADD COLUMN model TEXT');
+            debugPrint('DB: added model column to products');
+          }
+        } catch (e) {
+          debugPrint('DB onOpen check error (products model): $e');
         }
       }
     );
@@ -164,6 +225,10 @@ class DBHelper {
   }
   Future<Product?> getProductByFirestoreId(String firestoreId) async {
     final res = await (await database).query('products', where: 'firestoreId = ?', whereArgs: [firestoreId], limit: 1);
+    return res.isNotEmpty ? Product.fromMap(res.first) : null;
+  }
+  Future<Product?> getProductById(int id) async {
+    final res = await (await database).query('products', where: 'id = ?', whereArgs: [id], limit: 1);
     return res.isNotEmpty ? Product.fromMap(res.first) : null;
   }
   Future<int> updateProductStatus(int id, int status) async => await (await database).rawUpdate('UPDATE products SET status = ? WHERE id = ?', [status, id]);
@@ -401,6 +466,14 @@ class DBHelper {
   // Quick Input Codes methods
   Future<List<QuickInputCode>> getQuickInputCodes() async {
     final db = await database;
+    
+    // Ensure table exists (defensive check)
+    try {
+      await db.execute('CREATE TABLE IF NOT EXISTS quick_input_codes(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, shopId TEXT, name TEXT, type TEXT, brand TEXT, model TEXT, capacity TEXT, color TEXT, condition TEXT, cost INTEGER, price INTEGER, description TEXT, supplier TEXT, paymentMethod TEXT, isActive INTEGER DEFAULT 1, createdAt INTEGER, isSynced INTEGER DEFAULT 0)');
+    } catch (e) {
+      debugPrint('DB: ensure quick_input_codes table error: $e');
+    }
+    
     final List<Map<String, dynamic>> maps = await db.query('quick_input_codes', orderBy: 'createdAt DESC');
     return List.generate(maps.length, (i) => QuickInputCode.fromMap(maps[i]));
   }
@@ -428,4 +501,124 @@ class DBHelper {
   Future<int> deleteQuickInputCodeByFirestoreId(String fId) async => (await database).delete('quick_input_codes', where: 'firestoreId = ?', whereArgs: [fId]);
 
   Future<void> upsertQuickInputCode(QuickInputCode code) async => _upsert('quick_input_codes', code.toMap(), code.firestoreId ?? "qic_${code.createdAt}_${code.name}");
+
+  Future<List<QuickInputCode>> getUnsyncedQuickInputCodes() async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query('quick_input_codes', where: 'isSynced = 0');
+    return List.generate(maps.length, (i) => QuickInputCode.fromMap(maps[i]));
+  }
+
+  // Supplier Product Prices methods
+  Future<int> insertSupplierProductPrice(Map<String, dynamic> price) async {
+    final db = await database;
+    return await db.insert('supplier_product_prices', price);
+  }
+
+  Future<int> updateSupplierProductPrice(int id, Map<String, dynamic> price) async {
+    final db = await database;
+    return await db.update('supplier_product_prices', price, where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<List<Map<String, dynamic>>> getSupplierProductPrices(int supplierId) async {
+    final db = await database;
+    return await db.query('supplier_product_prices', where: 'supplierId = ? AND isActive = 1', whereArgs: [supplierId], orderBy: 'lastUpdated DESC');
+  }
+
+  Future<Map<String, dynamic>?> getSupplierProductPrice(int supplierId, String productName, String productBrand, String? productModel) async {
+    final db = await database;
+    final results = await db.query('supplier_product_prices', 
+      where: 'supplierId = ? AND productName = ? AND productBrand = ? AND (productModel = ? OR productModel IS NULL) AND isActive = 1', 
+      whereArgs: [supplierId, productName, productBrand, productModel], 
+      orderBy: 'lastUpdated DESC', 
+      limit: 1);
+    return results.isNotEmpty ? results.first : null;
+  }
+
+  Future<int> deactivateSupplierProductPrice(int supplierId, String productName, String productBrand, String? productModel) async {
+    final db = await database;
+    return await db.update('supplier_product_prices', {'isActive': 0}, 
+      where: 'supplierId = ? AND productName = ? AND productBrand = ? AND (productModel = ? OR productModel IS NULL)', 
+      whereArgs: [supplierId, productName, productBrand, productModel]);
+  }
+
+  // Supplier Import History methods
+  Future<int> insertSupplierImportHistory(Map<String, dynamic> history) async {
+    final db = await database;
+    return await db.insert('supplier_import_history', history);
+  }
+
+  Future<List<Map<String, dynamic>>> getSupplierImportHistory(int supplierId, {int? limit, int? offset}) async {
+    final db = await database;
+    String query = 'supplierId = ?';
+    List<dynamic> args = [supplierId];
+    
+    if (limit != null) {
+      query += ' LIMIT ?';
+      args.add(limit);
+      if (offset != null) {
+        query += ' OFFSET ?';
+        args.add(offset);
+      }
+    }
+    
+    return await db.query('supplier_import_history', where: query, whereArgs: args, orderBy: 'importDate DESC');
+  }
+
+  Future<List<Map<String, dynamic>>> getSupplierImportHistoryByDateRange(int supplierId, int startDate, int endDate) async {
+    final db = await database;
+    return await db.query('supplier_import_history', 
+      where: 'supplierId = ? AND importDate >= ? AND importDate <= ?', 
+      whereArgs: [supplierId, startDate, endDate], 
+      orderBy: 'importDate DESC');
+  }
+
+  Future<Map<String, dynamic>?> getSupplierImportStats(int supplierId) async {
+    final db = await database;
+    final result = await db.rawQuery('''
+      SELECT 
+        COUNT(*) as totalImports,
+        SUM(totalAmount) as totalAmount,
+        AVG(costPrice) as avgPrice,
+        MAX(importDate) as lastImportDate
+      FROM supplier_import_history 
+      WHERE supplierId = ?
+    ''', [supplierId]);
+    return result.isNotEmpty ? result.first : null;
+  }
+
+  Future<List<Map<String, dynamic>>> getUnsyncedSupplierImportHistory() async {
+    final db = await database;
+    return await db.query('supplier_import_history', where: 'isSynced = 0');
+  }
+
+  Future<int> markSupplierImportHistorySynced(String firestoreId) async {
+    final db = await database;
+    return await db.update('supplier_import_history', {'isSynced': 1}, where: 'firestoreId = ?', whereArgs: [firestoreId]);
+  }
+
+  Future<void> updateSupplierStats(int supplierId) async {
+    final db = await database;
+    final stats = await db.rawQuery('''
+      SELECT 
+        COUNT(*) as totalImports,
+        SUM(totalAmount) as totalAmount
+      FROM supplier_import_history 
+      WHERE supplierId = ?
+    ''', [supplierId]);
+    
+    if (stats.isNotEmpty) {
+      final totalImports = stats.first['totalImports'] ?? 0;
+      final totalAmount = stats.first['totalAmount'] ?? 0;
+      
+      await db.update(
+        'suppliers',
+        {
+          'importCount': totalImports,
+          'totalAmount': totalAmount,
+        },
+        where: 'id = ?',
+        whereArgs: [supplierId],
+      );
+    }
+  }
 }

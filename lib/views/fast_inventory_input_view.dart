@@ -3,13 +3,12 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import '../data/db_helper.dart';
+import '../controllers/fast_inventory_input_controller.dart';
 import '../models/product_model.dart';
-import '../services/firestore_service.dart';
 import '../services/notification_service.dart';
-import '../utils/sku_generator.dart';
 import '../widgets/currency_text_field.dart';
 import '../widgets/validated_text_field.dart';
+import 'stock_in_view.dart';
 
 class FastInventoryInputView extends StatefulWidget {
   const FastInventoryInputView({super.key});
@@ -19,7 +18,7 @@ class FastInventoryInputView extends StatefulWidget {
 }
 
 class _FastInventoryInputViewState extends State<FastInventoryInputView> with TickerProviderStateMixin {
-  final db = DBHelper();
+  final FastInventoryInputController _controller = FastInventoryInputController();
   late TabController _tabController;
 
   // Scanner
@@ -30,7 +29,6 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
   final TextEditingController _imeiController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _costController = TextEditingController();
-  final TextEditingController _kpkController = TextEditingController();
   final TextEditingController _retailController = TextEditingController();
   final TextEditingController _detailController = TextEditingController();
   final TextEditingController _quantityController = TextEditingController(text: "1");
@@ -88,9 +86,26 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    _loadSuppliers();
-    _loadSettings();
-    _loadRecentProducts();
+    _loadInitialData();
+  }
+
+  Future<void> _loadInitialData() async {
+    try {
+      final suppliers = await _controller.getSuppliers();
+      final recentProducts = await _controller.loadRecentProducts();
+
+      if (mounted) {
+        setState(() {
+          _suppliers = suppliers;
+          if (_suppliers.isNotEmpty) {
+            _selectedSupplier = _suppliers.first['name'] as String;
+          }
+          _recentProducts = recentProducts;
+        });
+      }
+    } catch (e) {
+      NotificationService.showSnackBar("Lỗi tải dữ liệu: $e", color: Colors.red);
+    }
   }
 
   @override
@@ -100,7 +115,6 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
     _imeiController.dispose();
     _nameController.dispose();
     _costController.dispose();
-    _kpkController.dispose();
     _retailController.dispose();
     _detailController.dispose();
     _quantityController.dispose();
@@ -110,38 +124,13 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
     super.dispose();
   }
 
-  Future<void> _loadSuppliers() async {
-    final suppliers = await db.getSuppliers();
-    if (mounted) {
-      setState(() {
-        _suppliers = suppliers;
-        if (_suppliers.isNotEmpty) {
-          _selectedSupplier = _suppliers.first['name'] as String;
-        }
-      });
-    }
-  }
 
-  Future<void> _loadSettings() async {
-    // Load saved settings from SharedPreferences if needed
-    // TODO: Implement settings loading
-  }
-
-  Future<void> _loadRecentProducts() async {
-    final products = await db.getInStockProducts();
-    // Sort by createdAt descending and take first 10
-    products.sort((a, b) => (b.createdAt ?? 0).compareTo(a.createdAt ?? 0));
-    if (mounted) {
-      setState(() => _recentProducts = products.take(10).toList());
-    }
-  }
 
   void _applyTemplate(Map<String, dynamic> template) {
     setState(() {
       _selectedGroup = template['group'];
       _selectedType = template['type'];
       _costController.text = (template['cost'] ~/ 1000).toString();
-      _kpkController.text = (template['kpk'] ~/ 1000).toString();
       _retailController.text = (template['retail'] ~/ 1000).toString();
     });
     NotificationService.showSnackBar("Đã áp dụng template: ${template['name']}", color: Colors.blue);
@@ -154,12 +143,10 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
     }
 
     try {
-      final generatedSKU = await SKUGenerator.generateSKU(
-        nhom: _selectedGroup,
+      final generatedSKU = await _controller.generateSKU(
+        group: _selectedGroup,
         model: _modelController.text.trim().isNotEmpty ? _modelController.text.trim() : null,
-        thongtin: _infoController.text.trim().isNotEmpty ? _infoController.text.trim() : null,
-        dbHelper: db,
-        firestoreService: null,
+        info: _infoController.text.trim().isNotEmpty ? _infoController.text.trim() : null,
       );
 
       setState(() => _skuController.text = generatedSKU);
@@ -185,12 +172,16 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
   }
 
   Future<void> _saveProduct({bool addToBatch = false}) async {
-    if (_skuController.text.isEmpty) {
-      NotificationService.showSnackBar("Vui lòng tạo mã hàng trước!", color: Colors.red);
-      return;
-    }
-    if (_selectedSupplier.isEmpty) {
-      NotificationService.showSnackBar("Vui lòng chọn Nhà cung cấp!", color: Colors.red);
+    // Pre-validation
+    final validationError = _controller.validateProductData(
+      sku: _skuController.text,
+      supplier: _selectedSupplier,
+      cost: _costController.text,
+      retail: _retailController.text,
+    );
+
+    if (validationError != null) {
+      NotificationService.showSnackBar(validationError, color: Colors.red);
       return;
     }
 
@@ -201,14 +192,15 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
       final productData = {
         'name': _skuController.text.toUpperCase(),
         'imei': _imeiController.text.trim(),
+        'model': _modelController.text.trim(),
         'cost': _parsePrice(_costController.text),
-        'kpkPrice': _parsePrice(_kpkController.text),
         'price': _parsePrice(_retailController.text),
         'capacity': _detailController.text.toUpperCase(),
         'quantity': int.tryParse(_quantityController.text) ?? 1,
         'type': _selectedType,
         'supplier': _selectedSupplier,
         'paymentMethod': _selectedPayment,
+        'importedBy': FirebaseAuth.instance.currentUser?.email?.split('@').first.toUpperCase() ?? "NV",
       };
 
       if (addToBatch) {
@@ -218,8 +210,20 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
         });
         NotificationService.showSnackBar("Đã thêm vào danh sách batch (${_batchItems.length} sản phẩm)", color: Colors.blue);
       } else {
-        await _saveSingleProduct(productData);
-        _clearForm();
+        // Navigate to StockInView with prefilled data instead of saving directly
+        if (mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => StockInView(prefilledData: productData),
+            ),
+          ).then((_) {
+            // Clear form after returning from StockInView
+            _clearForm();
+            // Refresh recent products
+            _refreshRecentProducts();
+          });
+        }
       }
     } catch (e) {
       NotificationService.showSnackBar("Lỗi: $e", color: Colors.red);
@@ -228,68 +232,7 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
     }
   }
 
-  Future<void> _saveSingleProduct(Map<String, dynamic> productData) async {
-    final int ts = DateTime.now().millisecondsSinceEpoch;
-    final String imei = productData['imei'];
-    final String fId = "prod_${ts}_${imei.isNotEmpty ? imei : ts}";
 
-    final p = Product(
-      firestoreId: fId,
-      name: productData['name'],
-      imei: imei,
-      cost: productData['cost'],
-      kpkPrice: productData['kpkPrice'],
-      price: productData['price'],
-      capacity: productData['capacity'],
-      quantity: productData['quantity'],
-      type: productData['type'],
-      createdAt: ts,
-      supplier: productData['supplier'],
-      status: 1,
-    );
-
-    final user = FirebaseAuth.instance.currentUser;
-    final userName = user?.email?.split('@').first.toUpperCase() ?? "NV";
-
-    await db.logAction(
-      userId: user?.uid ?? "0",
-      userName: userName,
-      action: "NHẬP KHO",
-      type: "PRODUCT",
-      targetId: p.imei,
-      desc: "Đã nhập máy ${p.name}",
-    );
-
-    if (productData['paymentMethod'] != "CÔNG NỢ") {
-      await db.insertExpense({
-        'title': "NHẬP HÀNG: ${p.name}",
-        'amount': p.cost * p.quantity,
-        'category': "NHẬP HÀNG",
-        'date': ts,
-        'paymentMethod': productData['paymentMethod'],
-        'note': "Nhập từ ${productData['supplier']}",
-      });
-    } else {
-      await db.insertDebt({
-        'personName': productData['supplier'],
-        'totalAmount': p.cost * p.quantity,
-        'paidAmount': 0,
-        'type': "SHOP_OWES",
-        'status': "unpaid",
-        'createdAt': ts,
-        'note': "Nợ tiền máy ${p.name}",
-      });
-    }
-
-    await db.upsertProduct(p);
-    await FirestoreService.addProduct(p);
-
-    HapticFeedback.lightImpact();
-    NotificationService.showSnackBar("NHẬP KHO THÀNH CÔNG", color: Colors.green);
-
-    // Refresh recent products
-    _loadRecentProducts();
-  }
 
   Future<void> _saveBatch() async {
     if (_batchItems.isEmpty) return;
@@ -297,20 +240,32 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
     setState(() => _isSaving = true);
 
     try {
-      for (final productData in _batchItems) {
-        await _saveSingleProduct(productData);
-      }
+      // Parallel processing for better performance
+      await _controller.saveBatchProducts(_batchItems);
 
       setState(() => _batchItems.clear());
       NotificationService.showSnackBar("Đã nhập kho ${_batchItems.length} sản phẩm thành công!", color: Colors.green);
-      if (mounted) Navigator.of(context).pop();
+      HapticFeedback.lightImpact();
 
-      // Refresh recent products
-      _loadRecentProducts();
+      // Parallel refresh
+      await _refreshRecentProducts();
+
+      if (mounted) Navigator.of(context).pop();
     } catch (e) {
       NotificationService.showSnackBar("Lỗi khi nhập batch: $e", color: Colors.red);
     } finally {
       setState(() => _isSaving = false);
+    }
+  }
+
+  Future<void> _refreshRecentProducts() async {
+    try {
+      final recentProducts = await _controller.loadRecentProducts();
+      if (mounted) {
+        setState(() => _recentProducts = recentProducts);
+      }
+    } catch (e) {
+      // Silent fail for refresh
     }
   }
 
@@ -324,7 +279,6 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
     _imeiController.clear();
     _nameController.clear();
     _costController.clear();
-    _kpkController.clear();
     _retailController.clear();
     _detailController.clear();
     _quantityController.text = "1";
@@ -672,6 +626,7 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
                               label: "IMEI/Serial",
                               icon: Icons.fingerprint,
                               keyboardType: TextInputType.number,
+                              maxLength: 5,
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -710,9 +665,9 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
                           const SizedBox(width: 12),
                           Expanded(
                             child: CurrencyTextField(
-                              controller: _kpkController,
-                              label: "Giá KPK (VNĐ)",
-                              icon: Icons.card_giftcard,
+                              controller: _retailController,
+                              label: "Giá bán (VNĐ)",
+                              icon: Icons.sell,
                             ),
                           ),
                         ],
@@ -720,16 +675,9 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
 
                       const SizedBox(height: 12),
 
+                      // Quantity
                       Row(
                         children: [
-                          Expanded(
-                            child: CurrencyTextField(
-                              controller: _retailController,
-                              label: "Giá lẻ (VNĐ)",
-                              icon: Icons.sell,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
                           Expanded(
                             child: ValidatedTextField(
                               controller: _quantityController,
@@ -738,10 +686,16 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
                               keyboardType: TextInputType.number,
                             ),
                           ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ValidatedTextField(
+                              controller: _detailController,
+                              label: "Chi tiết máy",
+                              icon: Icons.info,
+                            ),
+                          ),
                         ],
                       ),
-
-                      const SizedBox(height: 16),
 
                       // Supplier
                       DropdownButtonFormField<String>(

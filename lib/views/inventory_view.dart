@@ -151,8 +151,7 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
             _detailItem("Chi tiết máy", p.capacity ?? ""),
             _detailItem("IMEI/Serial", p.imei ?? "N/A"),
             _detailItem("Nhà cung cấp", p.supplier ?? "N/A"),
-            _detailItem("Giá CPK (Lẻ)", "${NumberFormat('#,###').format(p.price)} đ", color: Colors.red),
-            _detailItem("Giá KPK", "${NumberFormat('#,###').format(p.kpkPrice ?? 0)} đ", color: Colors.blue),
+            _detailItem("Giá bán", "${NumberFormat('#,###').format(p.price)} đ", color: Colors.red),
             const Divider(height: 30),
             Row(
               children: [
@@ -258,7 +257,6 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
     final supplierCtrl = TextEditingController(text: p.supplier ?? '');
     final costCtrl = TextEditingController(text: p.cost != null ? NumberFormat('#,###').format(p.cost) : '');
     final priceCtrl = TextEditingController(text: p.price != null ? NumberFormat('#,###').format(p.price) : '');
-    final kpkPriceCtrl = TextEditingController(text: p.kpkPrice != null ? NumberFormat('#,###').format(p.kpkPrice) : '');
     final quantityCtrl = TextEditingController(text: (p.quantity ?? 1).toString());
 
     showDialog(
@@ -298,12 +296,7 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
               const SizedBox(height: 12),
               CurrencyTextField(
                 controller: priceCtrl,
-                label: 'Giá bán lẻ (VNĐ)',
-              ),
-              const SizedBox(height: 12),
-              CurrencyTextField(
-                controller: kpkPriceCtrl,
-                label: 'Giá bán kèm phụ kiện (VNĐ)',
+                label: 'Giá bán (VNĐ)',
               ),
               const SizedBox(height: 12),
               ValidatedTextField(
@@ -341,7 +334,6 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
                   supplier: supplierCtrl.text.trim(),
                   cost: int.tryParse(costCtrl.text.replaceAll(',', '')),
                   price: int.tryParse(priceCtrl.text.replaceAll(',', '')),
-                  kpkPrice: int.tryParse(kpkPriceCtrl.text.replaceAll(',', '')),
                   quantity: qty,
                   updatedAt: DateTime.now().millisecondsSinceEpoch,
                   isSynced: false,
@@ -1255,11 +1247,12 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
 
   void _showAddProductDialog() {
     final nameC = TextEditingController(); final imeiC = TextEditingController();
-    final costC = TextEditingController(); final kpkPriceC = TextEditingController();
-    final pkPriceC = TextEditingController(); final detailC = TextEditingController(); 
+    final costC = TextEditingController();
+    final priceC = TextEditingController();
+    final detailC = TextEditingController();
     final qtyC = TextEditingController(text: "1");
     final nameF = FocusNode(); final imeiF = FocusNode(); final costF = FocusNode();
-    final kpkF = FocusNode(); final pkF = FocusNode(); final qtyF = FocusNode();
+    final priceF = FocusNode(); final qtyF = FocusNode();
     
     // SKU fields
     String selectedNhom = 'IP'; // Default nhóm
@@ -1310,7 +1303,7 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
           final int ts = DateTime.now().millisecondsSinceEpoch;
           final String imei = imeiC.text.trim();
           final String fId = "prod_${ts}_${imei.isNotEmpty ? imei : ts}";
-          final p = Product(firestoreId: fId, name: skuC.text.toUpperCase(), imei: imei, cost: parseK(costC.text), kpkPrice: parseK(kpkPriceC.text), price: parseK(pkPriceC.text), capacity: detailC.text.toUpperCase(), quantity: int.tryParse(qtyC.text) ?? 1, type: type, createdAt: ts, supplier: supplier, status: 1);
+          final p = Product(firestoreId: fId, name: skuC.text.toUpperCase(), model: modelC.text.trim().isNotEmpty ? modelC.text.trim() : null, imei: imei, cost: parseK(costC.text), price: parseK(priceC.text), capacity: detailC.text.toUpperCase(), quantity: int.tryParse(qtyC.text) ?? 1, type: type, createdAt: ts, supplier: supplier, status: 1);
           final user = FirebaseAuth.instance.currentUser;
           final userName = user?.email?.split('@').first.toUpperCase() ?? "NV";
           await db.logAction(userId: user?.uid ?? "0", userName: userName, action: "NHẬP KHO", type: "PRODUCT", targetId: p.imei, desc: "Đã nhập máy ${p.name}");
@@ -1320,6 +1313,51 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
             await db.insertDebt({'personName': supplier, 'totalAmount': p.cost * p.quantity, 'paidAmount': 0, 'type': "SHOP_OWES", 'status': "unpaid", 'createdAt': ts, 'note': "Nợ tiền máy ${p.name}"});
           }
           await db.upsertProduct(p); await FirestoreService.addProduct(p);
+
+          // Lưu lịch sử nhập hàng từ nhà cung cấp
+          if (supplier?.isNotEmpty == true) {
+            final suppliers = await db.getSuppliers();
+            final supplierData = suppliers.firstWhere((s) => s['name'] == supplier, orElse: () => {});
+            final supplierId = supplierData['id'];
+            if (supplierId != null) {
+              final importHistory = {
+                'firestoreId': "import_${ts}_${p.imei ?? ts}",
+                'supplierId': supplierId,
+                'supplierName': supplier,
+                'productName': p.name,
+                'productBrand': p.brand ?? '',
+                'productModel': p.model,
+                'imei': p.imei,
+                'quantity': p.quantity,
+                'costPrice': p.cost,
+                'totalAmount': p.cost * p.quantity,
+                'paymentMethod': payMethod,
+                'importDate': ts,
+                'importedBy': userName,
+                'notes': 'Nhập từ Inventory View',
+                'isSynced': 0,
+              };
+              await db.insertSupplierImportHistory(importHistory);
+
+              // Cập nhật giá nhà cung cấp
+              await db.deactivateSupplierProductPrice(supplierId, p.name, p.brand ?? '', p.model);
+              final supplierPrice = {
+                'supplierId': supplierId,
+                'productName': p.name,
+                'productBrand': p.brand ?? '',
+                'productModel': p.model,
+                'costPrice': p.cost,
+                'lastUpdated': ts,
+                'createdAt': ts,
+                'isActive': 1,
+              };
+              await db.insertSupplierProductPrice(supplierPrice);
+
+              // Cập nhật thống kê nhà cung cấp
+              await db.updateSupplierStats(supplierId);
+            }
+          }
+
           HapticFeedback.lightImpact();
           if (next) { imeiC.clear(); setS(() => isSaving = false); if (mounted) { FocusScope.of(context).requestFocus(imeiF); NotificationService.showSnackBar("ĐÃ THÊM MÁY", color: Colors.blue); } }
           else { if (mounted) { Navigator.of(context).pop(); _refresh(); NotificationService.showSnackBar("NHẬP KHO THÀNH CÔNG", color: Colors.green); } }
@@ -1349,13 +1387,10 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
           _input(imeiC, "Số IMEI / Serial", Icons.fingerprint, f: imeiF, next: costF, type: TextInputType.number),
 
           // Giá vốn
-          _input(costC, "Giá vốn (k)", Icons.money, f: costF, next: kpkF, type: TextInputType.number, suffix: "k"),
+          _input(costC, "Giá vốn (k)", Icons.money, f: costF, next: priceF, type: TextInputType.number, suffix: "k"),
 
-          // Giá KPK
-          _input(kpkPriceC, "Giá KPK (k)", Icons.card_giftcard, f: kpkF, next: pkF, type: TextInputType.number, suffix: "k"),
-
-          // Giá CPK - Lẻ
-          _input(pkPriceC, "GIÁ CPK - LẺ (k)", Icons.sell, f: pkF, next: qtyF, type: TextInputType.number, suffix: "k"),
+          // Giá bán
+          _input(priceC, "Giá bán (k)", Icons.sell, f: priceF, next: qtyF, type: TextInputType.number, suffix: "k"),
 
           // Số lượng và Nhà cung cấp
           Row(children: [

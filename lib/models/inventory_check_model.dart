@@ -28,7 +28,7 @@ class InventoryCheck {
       'type': checkType,
       'checkDate': checkDate,
       'checkedBy': checkedBy,
-      'items': items.map((item) => item.toMap()).toList(),
+      'itemsJson': items.map((item) => item.toMap()).toList(),
       'isCompleted': isCompleted ? 1 : 0,
       'isSynced': isSynced ? 1 : 0,
       'createdAt': createdAt,
@@ -42,7 +42,9 @@ class InventoryCheck {
       checkType: map['type'] ?? map['checkType'] ?? 'PHONE',
       checkDate: map['checkDate'] ?? 0,
       checkedBy: map['checkedBy'] ?? '',
-      items: (map['items'] as List<dynamic>?)
+      items: (map['itemsJson'] as List<dynamic>?)
+          ?.map((item) => InventoryCheckItem.fromMap(item as Map<String, dynamic>))
+          .toList() ?? (map['items'] as List<dynamic>?) // fallback for old data
           ?.map((item) => InventoryCheckItem.fromMap(item as Map<String, dynamic>))
           .toList() ?? [],
       isCompleted: map['isCompleted'] == 1 || map['isCompleted'] == true,

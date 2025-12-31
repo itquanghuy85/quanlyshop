@@ -7,6 +7,8 @@ import '../services/notification_service.dart';
 import '../widgets/validated_text_field.dart';
 import '../widgets/currency_text_field.dart';
 import 'fast_stock_in_view.dart';
+import 'quick_input_sync_check_view.dart';
+import 'stock_in_view.dart';
 
 class QuickInputLibraryView extends StatefulWidget {
   const QuickInputLibraryView({super.key});
@@ -36,8 +38,9 @@ class _QuickInputLibraryViewState extends State<QuickInputLibraryView> {
           _isLoading = false;
         });
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       debugPrint('Load quick input codes error: $e');
+      debugPrint('Stack trace: $stackTrace');
       if (mounted) {
         NotificationService.showSnackBar('Lỗi tải thư viện mã nhập nhanh: $e', color: Colors.red);
         setState(() => _isLoading = false);
@@ -90,12 +93,29 @@ class _QuickInputLibraryViewState extends State<QuickInputLibraryView> {
   }
 
   Future<void> _importToInventory(QuickInputCode code) async {
-    // Navigate to FastStockInView with pre-filled data
+    // Create prefilled data from QuickInputCode
+    final prefilledData = {
+      'name': code.name,
+      'type': code.type,
+      'brand': code.brand,
+      'model': code.model,
+      'capacity': code.capacity,
+      'color': code.color,
+      'condition': code.condition,
+      'cost': code.cost,
+      'price': code.price,
+      'supplier': code.supplier,
+      'paymentMethod': code.paymentMethod,
+      'notes': code.description,
+      'quantity': 1, // Default quantity
+    };
+
+    // Navigate to StockInView with prefilled data instead of FastStockInView
     if (mounted) {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => FastStockInView(quickInputCode: code),
+          builder: (_) => StockInView(prefilledData: prefilledData),
         ),
       );
     }
@@ -136,6 +156,14 @@ class _QuickInputLibraryViewState extends State<QuickInputLibraryView> {
         backgroundColor: Colors.white,
         elevation: 0,
         actions: [
+          IconButton(
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const QuickInputSyncCheckView()),
+            ),
+            icon: const Icon(Icons.sync, color: Colors.orange),
+            tooltip: 'Kiểm tra đồng bộ',
+          ),
           IconButton(
             onPressed: _loadCodes,
             icon: const Icon(Icons.refresh, color: Colors.blue),
@@ -271,12 +299,13 @@ class _QuickInputLibraryViewState extends State<QuickInputLibraryView> {
                       _buildDetailRow('Loại phụ kiện', code.description),
                     ],
                     const SizedBox(height: 8),
+                    // Hiển thị 2 giá cho tất cả: vốn và bán
                     Row(
                       children: [
                         if (code.cost != null && code.cost! > 0)
-                          _buildPriceChip('Giá nhập', code.cost!),
+                          _buildPriceChip('Vốn', code.cost!),
                         if (code.price != null && code.price! > 0)
-                          _buildPriceChip('Giá bán', code.price!),
+                          _buildPriceChip('Bán', code.price!),
                       ],
                     ),
                   ],
@@ -416,8 +445,6 @@ class _QuickInputCodeDialogState extends State<_QuickInputCodeDialog> {
   final _conditionCtrl = TextEditingController();
   final _costCtrl = TextEditingController();
   final _priceCtrl = TextEditingController();
-  final _kpkPriceCtrl = TextEditingController();
-  final _pkPriceCtrl = TextEditingController();
   final _descriptionCtrl = TextEditingController();
   final _supplierCtrl = TextEditingController();
 
@@ -438,8 +465,6 @@ class _QuickInputCodeDialogState extends State<_QuickInputCodeDialog> {
       _conditionCtrl.text = code.condition ?? '';
       _costCtrl.text = code.cost?.toString() ?? '';
       _priceCtrl.text = code.price?.toString() ?? '';
-      _kpkPriceCtrl.text = code.kpkPrice?.toString() ?? '';
-      _pkPriceCtrl.text = code.pkPrice?.toString() ?? '';
       _descriptionCtrl.text = code.description ?? '';
       _supplierCtrl.text = code.supplier ?? '';
       _paymentMethod = code.paymentMethod;
@@ -456,8 +481,6 @@ class _QuickInputCodeDialogState extends State<_QuickInputCodeDialog> {
     _conditionCtrl.dispose();
     _costCtrl.dispose();
     _priceCtrl.dispose();
-    _kpkPriceCtrl.dispose();
-    _pkPriceCtrl.dispose();
     _descriptionCtrl.dispose();
     _supplierCtrl.dispose();
     super.dispose();
@@ -478,8 +501,6 @@ class _QuickInputCodeDialogState extends State<_QuickInputCodeDialog> {
       condition: _type == 'PHONE' ? _conditionCtrl.text.trim() : null,
       cost: int.tryParse(_costCtrl.text.replaceAll(',', '')),
       price: int.tryParse(_priceCtrl.text.replaceAll(',', '')),
-      kpkPrice: int.tryParse(_kpkPriceCtrl.text.replaceAll(',', '')),
-      pkPrice: int.tryParse(_pkPriceCtrl.text.replaceAll(',', '')),
       description: _descriptionCtrl.text.trim(),
       supplier: _supplierCtrl.text.trim(),
       paymentMethod: _paymentMethod,
@@ -571,18 +592,6 @@ class _QuickInputCodeDialogState extends State<_QuickInputCodeDialog> {
                 controller: _priceCtrl,
                 label: 'Giá bán (VNĐ)',
               ),
-              if (_type == 'PHONE') ...[
-                const SizedBox(height: 12),
-                CurrencyTextField(
-                  controller: _kpkPriceCtrl,
-                  label: 'Giá bán kèm phụ kiện (VNĐ)',
-                ),
-                const SizedBox(height: 12),
-                CurrencyTextField(
-                  controller: _pkPriceCtrl,
-                  label: 'Giá phụ kiện (VNĐ)',
-                ),
-              ],
               const SizedBox(height: 12),
 
               // Supplier
