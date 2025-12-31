@@ -415,7 +415,7 @@ class _CustomerListViewState extends State<CustomerListView> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: _primaryColor.shade50,
+                color: _primaryColor.withOpacity(0.05),
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
               ),
               child: Column(
