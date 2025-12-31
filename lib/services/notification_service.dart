@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'user_service.dart';
@@ -153,14 +154,29 @@ class NotificationService {
     FirebaseMessaging.instance.onTokenRefresh.listen(_saveFCMToken);
   }
 
+  static Future<void> refreshFCMToken() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      String? token = await _firebaseMessaging.getToken();
+      if (token != null) {
+        await _saveFCMToken(token);
+        debugPrint('FCM token refreshed: $token');
+      }
+    } catch (e) {
+      debugPrint('Error refreshing FCM token: $e');
+    }
+  }
+
   static Future<void> _saveFCMToken(String token) async {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
-        await _db.collection('users').doc(user.uid).update({
+        await _db.collection('users').doc(user.uid).set({
           'fcmToken': token,
           'lastTokenUpdate': FieldValue.serverTimestamp(),
-        });
+        }, SetOptions(merge: true));
       }
     } catch (e) {
       debugPrint('Error saving FCM token: $e');
@@ -323,42 +339,30 @@ class NotificationService {
 
   static Future<void> _sendFCMNotification(Map<String, dynamic> notificationData) async {
     try {
-      final shopId = notificationData['shopId'];
-      final targetUserId = notificationData['targetUserId'];
+      debugPrint('Sending FCM notification: ${notificationData['title']}');
+      final callable = FirebaseFunctions.instanceFor(region: 'asia-southeast1').httpsCallable('sendShopNotification');
+      
+      // Get current shopId
+      final shopId = await UserService.getCurrentShopId();
+      
+      final result = await callable.call({
+        'title': notificationData['title'],
+        'body': notificationData['body'],
+        'type': notificationData['type'],
+        'targetUserId': notificationData['targetUserId'],
+        'shopId': shopId,
+      });
 
-      // Get FCM tokens for the shop
-      QuerySnapshot tokensQuery;
-      if (targetUserId != null) {
-        // Send to specific user
-        tokensQuery = await _db
-            .collection('users')
-            .where('shopId', isEqualTo: shopId)
-            .where(FieldPath.documentId, isEqualTo: targetUserId)
-            .get();
-      } else {
-        // Broadcast to all shop users
-        tokensQuery = await _db
-            .collection('users')
-            .where('shopId', isEqualTo: shopId)
-            .get();
-      }
-
-      final tokens = tokensQuery.docs
-          .map((doc) {
-            final data = doc.data() as Map<String, dynamic>?;
-            return data != null ? data['fcmToken'] as String? : null;
-          })
-          .where((token) => token != null && token.isNotEmpty)
-          .cast<String>()
-          .toList();
-
-      if (tokens.isNotEmpty) {
-        // In production, use Firebase Cloud Functions to send FCM
-        // For now, we'll use Firestore triggers or manual sending
-        debugPrint('Would send FCM to ${tokens.length} devices');
-      }
+      final data = result.data as Map<String, dynamic>;
+      debugPrint('FCM sent successfully: ${data['sentCount']} success, ${data['failedCount']} failed');
     } catch (e) {
-      debugPrint('Error sending FCM: $e');
+      debugPrint('Error sending FCM via Cloud Function: $e');
+      // Fallback: try to send local notification if FCM fails
+      _showLocalNotification(
+        notificationData['title'],
+        notificationData['body'],
+        channelId: _getChannelId(notificationData['type']),
+      );
     }
   }
 

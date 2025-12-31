@@ -9,6 +9,7 @@ import '../models/sale_order_model.dart';
 import '../models/expense_model.dart';
 import '../models/debt_model.dart';
 import '../models/attendance_model.dart';
+import '../models/quick_input_code_model.dart';
 import 'storage_service.dart';
 import 'user_service.dart';
 
@@ -185,6 +186,31 @@ class SyncService {
     } catch (e) {
       debugPrint("Lỗi khởi tạo attendance sync: $e");
     }
+
+    // 9. Đồng bộ QUICK INPUT CODES
+    try {
+      _subscribeToCollection(
+        collection: 'quick_input_codes',
+        shopId: shopId,
+        onChanged: (data, docId) async {
+          try {
+            final db = DBHelper();
+            if (data['deleted'] == true) {
+              await db.deleteQuickInputCodeByFirestoreId(docId);
+            } else {
+              data['firestoreId'] = docId;
+              await db.upsertQuickInputCode(QuickInputCode.fromMap(data));
+            }
+          } catch (e) {
+            debugPrint("Lỗi sync quick_input_code $docId: $e");
+          }
+        },
+        onBatchDone: onDataChanged,
+      );
+    } catch (e) {
+      debugPrint("Lỗi khởi tạo quick_input_codes sync: $e");
+    }
+
     debugPrint("Đã khởi tạo real-time sync cho ${isSuperAdmin ? 'super admin' : 'shop: $shopId'}");
   }
 
@@ -390,6 +416,37 @@ class SyncService {
         debugPrint("Lỗi sync attendance collection: $e");
       }
 
+      // Đồng bộ Quick Input Codes
+      try {
+        final quickInputCodes = await dbHelper.getQuickInputCodes();
+        debugPrint("syncAllToCloud: có ${quickInputCodes.length} quick input codes cần sync");
+        if (quickInputCodes.isNotEmpty) {
+          final WriteBatch quickInputBatch = _db.batch();
+          for (var code in quickInputCodes) {
+            if (code.isSynced) continue;
+
+            try {
+              Map<String, dynamic> data = code.toMap();
+              data['shopId'] = shopId;
+              data.remove('id');
+
+              final docId = code.firestoreId ?? "qic_${code.createdAt}_${code.name.replaceAll(' ', '_')}";
+              quickInputBatch.set(_db.collection('quick_input_codes').doc(docId), data, SetOptions(merge: true));
+
+              code.firestoreId = docId;
+              code.shopId = shopId;
+              code.isSynced = true;
+              await dbHelper.updateQuickInputCode(code);
+            } catch (e) {
+              debugPrint("Lỗi sync quick input code ${code.id}: $e");
+            }
+          }
+          await quickInputBatch.commit();
+        }
+      } catch (e) {
+        debugPrint("Lỗi sync quick input codes collection: $e");
+      }
+
       debugPrint("Đã hoàn thành đồng bộ toàn bộ dữ liệu lên Cloud.");
     } catch (e) {
       debugPrint("Lỗi syncAllToCloud: $e");
@@ -414,7 +471,7 @@ class SyncService {
       final localAttendance = await db.getAllAttendance();
       debugPrint("LOCAL DATA BEFORE SYNC: repairs=${localRepairs.length}, products=${localProducts.length}, sales=${localSales.length}, attendance=${localAttendance.length}");
 
-      final collections = ['repairs', 'products', 'sales', 'expenses', 'debts', 'users', 'shops', 'attendance'];
+      final collections = ['repairs', 'products', 'sales', 'expenses', 'debts', 'users', 'shops', 'attendance', 'quick_input_codes'];
       
       for (var col in collections) {
         try {
@@ -437,8 +494,8 @@ class SyncService {
                   await db.upsertAttendance(Attendance.fromMap(data));
                 } catch (e) {
                   debugPrint("Lỗi upsert attendance ${doc.id}: $e");
-                }
-              }
+                }              } else if (col == 'quick_input_codes') {
+                await db.upsertQuickInputCode(QuickInputCode.fromMap(data));              }
               // Users và shops không cần upsert local vì không có DB local
             } catch (e) {
               debugPrint("Lỗi xử lý document ${doc.id} trong collection $col: $e");

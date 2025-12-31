@@ -129,6 +129,8 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
           ),
 
           const SizedBox(height: 32),
+          _buildRefreshTokenButton(),
+          const SizedBox(height: 16),
           _buildTestNotificationButton(),
           _buildInfoCard(),
         ],
@@ -196,6 +198,25 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
     );
   }
 
+  Widget _buildRefreshTokenButton() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: ElevatedButton.icon(
+        onPressed: _refreshFCMToken,
+        icon: const Icon(Icons.refresh),
+        label: const Text('LÀM MỚI FCM TOKEN'),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.orange,
+          foregroundColor: Colors.white,
+          minimumSize: const Size(double.infinity, 50),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildTestNotificationButton() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -213,6 +234,21 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
         ),
       ),
     );
+  }
+
+  Future<void> _refreshFCMToken() async {
+    try {
+      await NotificationService.refreshFCMToken();
+      NotificationService.showSnackBar(
+        'Đã làm mới FCM token!',
+        color: Colors.green,
+      );
+    } catch (e) {
+      NotificationService.showSnackBar(
+        'Lỗi làm mới token: $e',
+        color: Colors.red,
+      );
+    }
   }
 
   Future<void> _sendTestNotification() async {

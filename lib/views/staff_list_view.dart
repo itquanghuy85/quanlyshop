@@ -1004,37 +1004,45 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter> with SingleT
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
-    
-    // Gán dữ liệu ban đầu
-    nameCtrl.text = widget.fullData['displayName'] ?? widget.name;
-    phoneCtrl.text = widget.fullData['phone'] ?? "";
-    addressCtrl.text = widget.fullData['address'] ?? "";
-    _photoPath = widget.fullData['photoUrl'];
-    _selectedRole = widget.role;
-    _staffShopId = widget.fullData['shopId'];
+    try {
+      _tabController = TabController(length: 4, vsync: this);
+      
+      // Gán dữ liệu ban đầu
+      nameCtrl.text = widget.fullData['displayName'] ?? widget.name;
+      phoneCtrl.text = widget.fullData['phone'] ?? "";
+      addressCtrl.text = widget.fullData['address'] ?? "";
+      _photoPath = widget.fullData['photoUrl'];
+      _selectedRole = widget.role;
+      _staffShopId = widget.fullData['shopId'];
 
-    // Quyền xem nội dung (mặc định: chỉ quản lý thấy toàn bộ tài chính)
-    _canViewSales = widget.fullData['allowViewSales'] == true;
-    _canViewRepairs = widget.fullData['allowViewRepairs'] == true;
-    _canViewInventory = widget.fullData['allowViewInventory'] == true;
-    _canViewParts = widget.fullData['allowViewParts'] == true;
-    _canViewSuppliers = widget.fullData['allowViewSuppliers'] == true;
-    _canViewCustomers = widget.fullData['allowViewCustomers'] == true;
-    _canViewWarranty = widget.fullData['allowViewWarranty'] == true;
-    _canViewChat = widget.fullData['allowViewChat'] == true;
-    _canViewAttendance = widget.fullData['allowViewAttendance'] == true;
-    _canViewPrinter = widget.fullData['allowViewPrinter'] == true;
-    _canViewRevenue = widget.fullData['allowViewRevenue'] == true;
-    _canViewExpenses = widget.fullData['allowViewExpenses'] == true;
-    _canViewDebts = widget.fullData['allowViewDebts'] == true;
+      // Quyền xem nội dung (mặc định: chỉ quản lý thấy toàn bộ tài chính)
+      _canViewSales = widget.fullData['allowViewSales'] == true;
+      _canViewRepairs = widget.fullData['allowViewRepairs'] == true;
+      _canViewInventory = widget.fullData['allowViewInventory'] == true;
+      _canViewParts = widget.fullData['allowViewParts'] == true;
+      _canViewSuppliers = widget.fullData['allowViewSuppliers'] == true;
+      _canViewCustomers = widget.fullData['allowViewCustomers'] == true;
+      _canViewWarranty = widget.fullData['allowViewWarranty'] == true;
+      _canViewChat = widget.fullData['allowViewChat'] == true;
+      _canViewAttendance = widget.fullData['allowViewAttendance'] == true;
+      _canViewPrinter = widget.fullData['allowViewPrinter'] == true;
+      _canViewRevenue = widget.fullData['allowViewRevenue'] == true;
+      _canViewExpenses = widget.fullData['allowViewExpenses'] == true;
+      _canViewDebts = widget.fullData['allowViewDebts'] == true;
 
-    // Đồng bộ permissions với role hiện tại
-    _syncPermissionsWithRole();
+      // Đồng bộ permissions với role hiện tại
+      _syncPermissionsWithRole();
 
-    _loadCurrentShop();
-    _loadAllStaffData();
-    _loadWorkSchedule();
+      _loadCurrentShop();
+      _loadAllStaffData();
+      _loadWorkSchedule();
+    } catch (e) {
+      debugPrint('Error in _StaffActivityCenterState.initState: $e');
+      // Fallback values
+      _tabController = TabController(length: 4, vsync: this);
+      nameCtrl.text = widget.name;
+      _selectedRole = 'employee';
+    }
   }
 
   void _syncPermissionsWithRole() {
@@ -1057,25 +1065,36 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter> with SingleT
   }
 
   Future<void> _loadCurrentShop() async {
-    final id = await UserService.getCurrentShopId();
-    if (!mounted) return;
-    setState(() {
-      _currentUserShopId = id;
-      _loadingShop = false;
-    });
+    try {
+      final id = await UserService.getCurrentShopId();
+      if (!mounted) return;
+      setState(() {
+        _currentUserShopId = id;
+        _loadingShop = false;
+      });
+    } catch (e) {
+      debugPrint('Error loading current shop: $e');
+      if (!mounted) return;
+      setState(() {
+        _currentUserShopId = null;
+        _loadingShop = false;
+      });
+    }
   }
 
   Future<void> _loadAllStaffData() async {
     try {
       final allR = await db.getAllRepairs();
       final allS = await db.getAllSales();
+      if (!mounted) return;
       setState(() {
-        _repairsReceived = allR.where((r) => r.createdBy?.toUpperCase() == widget.name).toList();
-        _repairsDelivered = allR.where((r) => r.deliveredBy?.toUpperCase() == widget.name).toList();
-        _sales = allS.where((s) => s.sellerName.toUpperCase() == widget.name).toList();
+        _repairsReceived = allR.where((r) => r.createdBy?.toUpperCase() == widget.name.toUpperCase()).toList();
+        _repairsDelivered = allR.where((r) => r.deliveredBy?.toUpperCase() == widget.name.toUpperCase()).toList();
+        _sales = allS.where((s) => s.sellerName.toUpperCase() == widget.name.toUpperCase()).toList();
       });
     } catch (e) {
-      // Ignore errors when loading staff data
+      debugPrint('Error loading staff data: $e');
+      if (!mounted) return;
       setState(() {
         _repairsReceived = [];
         _repairsDelivered = [];
@@ -1090,7 +1109,8 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter> with SingleT
       if (!mounted) return;
       setState(() => _workSchedule = schedule);
     } catch (e) {
-      // Ignore errors when loading work schedule
+      debugPrint('Error loading work schedule: $e');
+      if (!mounted) return;
       setState(() => _workSchedule = null);
     }
   }
@@ -1207,10 +1227,12 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter> with SingleT
         allowViewDebts: _canViewDebts,
       );
 
+      if (!mounted) return;
       setState(() => _isEditing = false);
       messenger.showSnackBar(const SnackBar(content: Text("ĐÃ CẬP NHẬT HỒ SƠ NHÂN VIÊN!")));
     } catch (e) {
       print('Error saving staff info: $e');
+      if (!mounted) return;
       messenger.showSnackBar(SnackBar(content: Text("Lỗi khi cập nhật: $e")));
     }
   }
@@ -1224,11 +1246,13 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter> with SingleT
     setState(() => _assigningShop = true);
     try {
       await UserService.assignUserToCurrentShop(widget.uid);
+      if (!mounted) return;
       setState(() {
         _staffShopId = _currentUserShopId;
       });
       messenger.showSnackBar(const SnackBar(content: Text("ĐÃ GÁN NHÂN VIÊN VÀO CỬA HÀNG CỦA BẠN")));
     } catch (e) {
+      if (!mounted) return;
       messenger.showSnackBar(SnackBar(content: Text("Lỗi khi gán cửa hàng: $e")));
     } finally {
       if (mounted) setState(() => _assigningShop = false);
@@ -1672,5 +1696,14 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter> with SingleT
         ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    nameCtrl.dispose();
+    phoneCtrl.dispose();
+    addressCtrl.dispose();
+    super.dispose();
   }
 }

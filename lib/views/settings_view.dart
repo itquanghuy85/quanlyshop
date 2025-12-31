@@ -5,6 +5,7 @@ import '../services/firestore_service.dart';
 import '../services/notification_service.dart';
 import '../data/db_helper.dart';
 import '../services/sync_service.dart';
+import 'staff_permissions_view.dart';
 
 class SettingsView extends StatefulWidget {
   final void Function(Locale)? setLocale;
@@ -29,6 +30,48 @@ class _SettingsViewState extends State<SettingsView> {
     if (user != null) {
       final role = await UserService.getUserRole(user.uid);
       setState(() { _role = role; _loading = false; });
+    }
+  }
+
+  // HÀM XỬ LÝ TẢI TOÀN BỘ DỮ LIỆU SHOP
+  Future<void> _handleDownloadAllData() async {
+    final bool? result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("📥 TẢI DỮ LIỆU SHOP", style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text("Hành động này sẽ tải toàn bộ dữ liệu của shop từ đám mây về máy này."),
+            SizedBox(height: 10),
+            Text("Bao gồm: Đơn sửa chữa, Sản phẩm, Đơn bán hàng, Nợ, Chi phí, Chấm công.", style: TextStyle(fontSize: 12, color: Colors.grey)),
+            SizedBox(height: 15),
+            Text("Quá trình có thể mất vài phút tùy thuộc vào lượng dữ liệu.", style: TextStyle(fontSize: 11, fontStyle: FontStyle.italic)),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("HỦY")),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+            child: const Text("BẮT ĐẦU TẢI", style: TextStyle(color: Colors.white)),
+          )
+        ],
+      ),
+    );
+
+    if (result == true) {
+      setState(() => _loading = true);
+      
+      try {
+        await SyncService.downloadAllFromCloud();
+        NotificationService.showSnackBar("✅ Đã tải xong toàn bộ dữ liệu shop!", color: Colors.green);
+      } catch (e) {
+        NotificationService.showSnackBar("❌ Lỗi tải dữ liệu: $e", color: Colors.red);
+        debugPrint("Download all data error: $e");
+      } finally {
+        if (mounted) setState(() => _loading = false);
+      }
     }
   }
 
@@ -104,9 +147,31 @@ class _SettingsViewState extends State<SettingsView> {
           ),
           
           // NÚT XÓA TRẮNG CHỈ HIỆN CHO CHỦ SHOP
-          if (_role == 'owner' || UserService.isCurrentUserSuperAdmin()) ...[
+          if (_role == 'owner' || _role == 'manager' || UserService.isCurrentUserSuperAdmin()) ...[
             const SizedBox(height: 30),
             _buildSection("QUẢN TRỊ NÂNG CAO"),
+            Card(
+              color: Colors.green.shade50,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15), side: BorderSide(color: Colors.green.shade200)),
+              child: ListTile(
+                leading: const Icon(Icons.admin_panel_settings, color: Colors.green),
+                title: const Text("QUẢN LÝ PHÂN QUYỀN NHÂN VIÊN", style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+                subtitle: const Text("Xem và chỉnh sửa quyền truy cập của từng nhân viên", style: TextStyle(fontSize: 11)),
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StaffPermissionsView())),
+              ),
+            ),
+            const SizedBox(height: 15),
+            Card(
+              color: Colors.blue.shade50,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15), side: BorderSide(color: Colors.blue.shade200)),
+              child: ListTile(
+                leading: const Icon(Icons.cloud_download, color: Colors.blue),
+                title: const Text("TẢI TOÀN BỘ DỮ LIỆU SHOP", style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
+                subtitle: const Text("Đồng bộ toàn bộ dữ liệu từ đám mây về máy cho nhân viên mới", style: TextStyle(fontSize: 11)),
+                onTap: _handleDownloadAllData,
+              ),
+            ),
+            const SizedBox(height: 15),
             Card(
               color: Colors.red.shade50,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15), side: BorderSide(color: Colors.red.shade200)),

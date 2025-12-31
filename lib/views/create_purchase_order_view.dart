@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../data/db_helper.dart';
 import '../models/purchase_order_model.dart';
+import '../models/product_model.dart';
 import '../services/firestore_service.dart';
 import '../services/user_service.dart';
 import '../services/notification_service.dart';
@@ -161,6 +162,12 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
       if (firestoreId != null) {
         order.firestoreId = firestoreId;
         await db.updatePurchaseOrder(order);
+
+        // CẬP NHẬT INVENTORY TRONG LOCAL DB
+        await _updateLocalInventoryFromPurchaseOrder(order);
+
+        // THÊM CHI PHÍ NHẬP HÀNG VÀO TRANG CHI PHÍ
+        await _addPurchaseExpense(order);
       }
 
       if (mounted) {
@@ -415,5 +422,88 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
         ),
       ),
     );
+  }
+
+  // THÊM CHI PHÍ NHẬP HÀNG VÀO TRANG CHI PHÍ
+  Future<void> _addPurchaseExpense(PurchaseOrder order) async {
+    try {
+      final expense = {
+        'amount': order.totalCost,
+        'category': 'NHẬP HÀNG',
+        'description': 'Nhập hàng từ ${order.supplierName} - ${order.orderCode}',
+        'createdAt': DateTime.now().millisecondsSinceEpoch,
+        'createdBy': _currentUserName,
+        'linkedId': order.orderCode,
+        'paymentMethod': order.paymentMethod ?? 'TIỀN MẶT',
+        'isSynced': false,
+      };
+
+      // Thêm vào local DB
+      await db.insertExpense(expense);
+
+      // Sync to Firestore
+      await FirestoreService.addExpenseCloud(expense);
+
+      debugPrint('Đã thêm chi phí nhập hàng: ${order.totalCost} cho đơn ${order.orderCode}');
+    } catch (e) {
+      debugPrint('Lỗi thêm chi phí nhập hàng: $e');
+      // Không throw error để không làm fail purchase order
+    }
+  }
+}
+    try {
+      for (final item in order.items) {
+        // Tìm sản phẩm trong local DB
+        final existingProducts = await db.getProducts(
+          where: 'name = ? AND color = ? AND capacity = ? AND condition = ?',
+          whereArgs: [item.productName, item.color, item.capacity, item.condition],
+        );
+
+        if (existingProducts.isNotEmpty) {
+          // Sản phẩm đã tồn tại - cập nhật số lượng và chi phí trung bình
+          final existingProduct = Product.fromMap(existingProducts.first);
+          final currentQuantity = existingProduct.quantity;
+          final currentCost = existingProduct.cost;
+          final newQuantity = currentQuantity + item.quantity;
+
+          // Tính chi phí trung bình
+          final totalCurrentValue = currentQuantity * currentCost;
+          final totalNewValue = item.quantity * item.unitCost;
+          final averageCost = ((totalCurrentValue + totalNewValue) / newQuantity).round();
+
+          existingProduct.quantity = newQuantity;
+          existingProduct.cost = averageCost;
+          existingProduct.price = item.unitPrice; // Cập nhật giá bán
+
+          await db.upsertProduct(existingProduct);
+          debugPrint('Local: Cập nhật sản phẩm ${item.productName}, SL: $currentQuantity -> $newQuantity, Chi phí TB: $averageCost');
+        } else {
+          // Sản phẩm chưa tồn tại - tạo mới
+          final newProduct = Product(
+            name: item.productName ?? '',
+            brand: 'KHÁC',
+            imei: item.imei,
+            cost: item.unitCost,
+            price: item.unitPrice,
+            condition: item.condition,
+            status: 1,
+            description: 'Nhập từ đơn: ${order.orderCode}',
+            createdAt: DateTime.now().millisecondsSinceEpoch,
+            supplier: order.supplierName,
+            type: 'PHONE',
+            quantity: item.quantity,
+            color: item.color,
+            capacity: item.capacity,
+            isSynced: false,
+          );
+
+          await db.upsertProduct(newProduct);
+          debugPrint('Local: Tạo sản phẩm mới ${item.productName}, SL: ${item.quantity}, Chi phí: ${item.unitCost}');
+        }
+      }
+    } catch (e) {
+      debugPrint('Lỗi cập nhật local inventory: $e');
+      // Không throw error để không làm fail purchase order
+    }
   }
 }

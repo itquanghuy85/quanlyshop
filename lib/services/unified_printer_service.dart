@@ -37,7 +37,7 @@ class UnifiedPrinterService {
         return true;
       }
       if (bluetoothPrinter != null) {
-        final mac = bluetoothPrinter.macAddress;
+        final mac = bluetoothPrinter is Map ? bluetoothPrinter['macAddress'] : bluetoothPrinter.macAddress;
         final ok = await BluetoothPrinterService.connect(mac);
         if (ok) return await BluetoothPrinterService.printBytes(bytes);
       }
@@ -123,16 +123,91 @@ class UnifiedPrinterService {
     return _sendToPrinter(bytes, printerType: printerType, bluetoothPrinter: bluetoothPrinter, wifiIp: wifiIp);
   }
 
-  static Future<bool> printProductQRLabel(Map<String, dynamic> product, {String? customMac}) async {
-    final profile = await CapabilityProfile.load();
-    final generator = Generator(PaperSize.mm80, profile);
-    List<int> bytes = [];
-    bytes.addAll(generator.reset());
-    bytes.addAll(generator.text(_removeDiacritics(product['name'] ?? 'SAN PHAM'), styles: const PosStyles(bold: true, align: PosAlign.center)));
-    // Đã sửa lỗi: Gỡ bỏ tham số size
-    bytes.addAll(generator.qrcode("check_inv:${product['firestoreId'] ?? product['id']}")); 
-    bytes.addAll(generator.cut());
-    return _sendToPrinter(bytes, bluetoothPrinter: customMac != null ? {'macAddress': customMac} : null);
+  static Future<bool> printProductQRLabel(Map<String, dynamic> product, {String? customMac, PrinterType? printerType, String? wifiIp}) async {
+    try {
+      final profile = await CapabilityProfile.load();
+      final generator = Generator(PaperSize.mm80, profile);
+      List<int> bytes = [];
+      bytes.addAll(generator.reset());
+
+      final prefs = await SharedPreferences.getInstance();
+
+      // Lấy cấu hình từ Design View
+      final showName = prefs.getBool('label_show_name') ?? true;
+      final showDetail = prefs.getBool('label_show_detail') ?? true;
+      final showKPK = prefs.getBool('label_show_price_kpk') ?? true;
+      final showCPK = prefs.getBool('label_show_price_cpk') ?? true;
+      final showIMEI = prefs.getBool('label_show_imei') ?? true;
+      final showQR = prefs.getBool('label_show_qr') ?? true;
+      final customText = prefs.getString('label_custom_text') ?? "";
+      final fontScale = prefs.getDouble('label_font_scale') ?? 1.0;
+
+      // 1. TÊN SẢN PHẨM (TO - SIZE 2 nếu fontScale >= 2.0, SIZE 1 nếu < 2.0)
+      if (showName) {
+        final nameStyle = fontScale >= 2.0
+            ? const PosStyles(align: PosAlign.center, bold: true, height: PosTextSize.size2, width: PosTextSize.size2)
+            : const PosStyles(align: PosAlign.center, bold: true, height: PosTextSize.size1, width: PosTextSize.size1);
+        bytes.addAll(generator.text(
+          _removeDiacritics(product['name'] ?? 'N/A').toUpperCase(),
+          styles: nameStyle,
+        ));
+      }
+
+      // 2. CHI TIẾT (VỪA - SIZE 1)
+      if (showDetail) {
+        final detail = "${product['capacity'] ?? ''} ${product['color'] ?? ''} ${product['condition'] ?? ''}".trim();
+        if (detail.isNotEmpty) {
+          bytes.addAll(generator.text(_removeDiacritics(detail).toUpperCase(), styles: const PosStyles(align: PosAlign.center, bold: true)));
+        }
+      }
+
+      // 3. GIÁ KPK (TO - SIZE 2 nếu fontScale >= 2.0)
+      if (showKPK) {
+        final kpkPrice = product['kpkPrice'] ?? product['price'] ?? 0;
+        final priceStyle = fontScale >= 2.0
+            ? const PosStyles(align: PosAlign.center, bold: true, height: PosTextSize.size2, width: PosTextSize.size1)
+            : const PosStyles(align: PosAlign.center, bold: true, height: PosTextSize.size1, width: PosTextSize.size1);
+        bytes.addAll(generator.text(
+          "GIA KPK: ${NumberFormat('#,###').format(kpkPrice)}",
+          styles: priceStyle,
+        ));
+      }
+
+      // 4. GIÁ CPK (VỪA)
+      if (showCPK) {
+        final cpkPrice = product['price'] ?? 0;
+        bytes.addAll(generator.text(
+          "GIA CPK: ${NumberFormat('#,###').format(cpkPrice)}",
+          styles: const PosStyles(align: PosAlign.center, bold: true),
+        ));
+      }
+
+      // 5. IMEI (VỪA)
+      if (showIMEI) {
+        bytes.addAll(generator.text(
+          "IMEI: ${product['imei'] ?? 'N/A'}",
+          styles: const PosStyles(align: PosAlign.center, bold: true),
+        ));
+      }
+
+      // 6. QR CODE (NẾU CÓ)
+      if (showQR) {
+        bytes.addAll(generator.feed(1));
+        bytes.addAll(generator.qrcode("check_inv:${product['firestoreId'] ?? product['id']}", size: QRSize.Size4));
+      }
+
+      // 7. CHỮ TÙY BIẾN
+      if (customText.isNotEmpty) {
+        bytes.addAll(generator.text(_removeDiacritics(customText).toUpperCase(), styles: const PosStyles(align: PosAlign.center, fontType: PosFontType.fontB)));
+      }
+
+      bytes.addAll(generator.feed(2));
+      bytes.addAll(generator.cut());
+      return _sendToPrinter(bytes, printerType: printerType, bluetoothPrinter: customMac != null ? {'macAddress': customMac} : null, wifiIp: wifiIp);
+    } catch (e) {
+      print("Lỗi in tem sản phẩm: $e");
+      return false;
+    }
   }
 
   static Future<bool> printRepairReceiptLegacy(Map<String, dynamic> data, PaperSize paper, {PrinterType? printerType, dynamic bluetoothPrinter, String? wifiIp}) async {

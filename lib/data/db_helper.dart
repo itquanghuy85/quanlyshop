@@ -8,6 +8,7 @@ import '../models/expense_model.dart';
 import '../models/debt_model.dart';
 import '../models/purchase_order_model.dart';
 import '../models/attendance_model.dart';
+import '../models/quick_input_code_model.dart';
 
 class DBHelper {
   static final DBHelper _instance = DBHelper._internal();
@@ -25,7 +26,7 @@ class DBHelper {
     String path = join(await getDatabasesPath(), 'repair_shop_v22.db'); 
     return await openDatabase(
       path,
-      version: 22, 
+      version: 23, 
       onCreate: (db, version) async {
         await db.execute('CREATE TABLE IF NOT EXISTS repairs(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, customerName TEXT, phone TEXT, model TEXT, issue TEXT, accessories TEXT, address TEXT, imagePath TEXT, deliveredImage TEXT, warranty TEXT, partsUsed TEXT, status INTEGER, price INTEGER, cost INTEGER, paymentMethod TEXT, createdAt INTEGER, startedAt INTEGER, finishedAt INTEGER, deliveredAt INTEGER, createdBy TEXT, repairedBy TEXT, deliveredBy TEXT, lastCaredAt INTEGER, isSynced INTEGER DEFAULT 0, deleted INTEGER DEFAULT 0, color TEXT, imei TEXT, condition TEXT)');
         await db.execute('CREATE TABLE IF NOT EXISTS products(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, name TEXT, brand TEXT, imei TEXT, cost INTEGER, price INTEGER, condition TEXT, status INTEGER DEFAULT 1, description TEXT, images TEXT, warranty TEXT, createdAt INTEGER, supplier TEXT, type TEXT DEFAULT "PHONE", quantity INTEGER DEFAULT 1, color TEXT, isSynced INTEGER DEFAULT 0, capacity TEXT, kpkPrice INTEGER, pkPrice INTEGER)');
@@ -43,6 +44,7 @@ class DBHelper {
         await db.execute('CREATE TABLE IF NOT EXISTS purchase_orders(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, orderCode TEXT UNIQUE, supplierName TEXT, supplierPhone TEXT, supplierAddress TEXT, itemsJson TEXT, totalAmount INTEGER, totalCost INTEGER, createdAt INTEGER, createdBy TEXT, status TEXT DEFAULT "PENDING", paymentMethod TEXT, notes TEXT, isSynced INTEGER DEFAULT 0)');
         await db.execute('CREATE TABLE IF NOT EXISTS work_schedules(id INTEGER PRIMARY KEY AUTOINCREMENT, userId TEXT UNIQUE, startTime TEXT DEFAULT "08:00", endTime TEXT DEFAULT "17:00", breakTime INTEGER DEFAULT 1, maxOtHours INTEGER DEFAULT 4, workDays TEXT DEFAULT "[1,2,3,4,5,6]", updatedAt INTEGER)');
         await db.execute('CREATE TABLE IF NOT EXISTS debt_payments(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, debtId INTEGER, debtFirestoreId TEXT, amount INTEGER, paidAt INTEGER, paymentMethod TEXT, note TEXT, createdBy TEXT, isSynced INTEGER DEFAULT 0)');
+        await db.execute('CREATE TABLE IF NOT EXISTS quick_input_codes(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, shopId TEXT, name TEXT, type TEXT, brand TEXT, model TEXT, capacity TEXT, color TEXT, condition TEXT, cost INTEGER, price INTEGER, kpkPrice INTEGER, pkPrice INTEGER, description TEXT, supplier TEXT, paymentMethod TEXT, isActive INTEGER DEFAULT 1, createdAt INTEGER, isSynced INTEGER DEFAULT 0)');
       },
       onUpgrade: (db, oldV, newV) async {
         debugPrint('Upgrading DB from $oldV to $newV');
@@ -66,6 +68,7 @@ class DBHelper {
         }
         if (oldV < 23) {
           try { await db.execute('ALTER TABLE purchase_orders ADD COLUMN paymentMethod TEXT'); } catch(e) { debugPrint('DB upgrade error (purchase_orders paymentMethod): $e'); }
+          try { await db.execute('CREATE TABLE IF NOT EXISTS quick_input_codes(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, shopId TEXT, name TEXT, type TEXT, brand TEXT, model TEXT, capacity TEXT, color TEXT, condition TEXT, cost INTEGER, price INTEGER, kpkPrice INTEGER, pkPrice INTEGER, description TEXT, supplier TEXT, paymentMethod TEXT, isActive INTEGER DEFAULT 1, createdAt INTEGER, isSynced INTEGER DEFAULT 0)'); } catch(e) { debugPrint('DB upgrade error (quick_input_codes): $e'); }
         }
         debugPrint('DB upgrade completed');
       },
@@ -158,6 +161,10 @@ class DBHelper {
   Future<List<Product>> getAllProducts() async {
     final maps = await (await database).query('products');
     return List.generate(maps.length, (i) => Product.fromMap(maps[i]));
+  }
+  Future<Product?> getProductByFirestoreId(String firestoreId) async {
+    final res = await (await database).query('products', where: 'firestoreId = ?', whereArgs: [firestoreId], limit: 1);
+    return res.isNotEmpty ? Product.fromMap(res.first) : null;
   }
   Future<int> updateProductStatus(int id, int status) async => await (await database).rawUpdate('UPDATE products SET status = ? WHERE id = ?', [status, id]);
   Future<void> deductProductQuantity(int id, int amount) async {
@@ -390,4 +397,35 @@ class DBHelper {
       ORDER BY p.paidAt DESC
     ''');
   }
+
+  // Quick Input Codes methods
+  Future<List<QuickInputCode>> getQuickInputCodes() async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query('quick_input_codes', orderBy: 'createdAt DESC');
+    return List.generate(maps.length, (i) => QuickInputCode.fromMap(maps[i]));
+  }
+
+  Future<int> insertQuickInputCode(QuickInputCode code) async {
+    final db = await database;
+    return await db.insert('quick_input_codes', code.toMap());
+  }
+
+  Future<int> updateQuickInputCode(QuickInputCode code) async {
+    final db = await database;
+    return await db.update('quick_input_codes', code.toMap(), where: 'id = ?', whereArgs: [code.id]);
+  }
+
+  Future<int> deleteQuickInputCode(int id) async {
+    final db = await database;
+    return await db.delete('quick_input_codes', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<int> toggleQuickInputCodeActive(int id, bool isActive) async {
+    final db = await database;
+    return await db.update('quick_input_codes', {'isActive': isActive ? 1 : 0}, where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<int> deleteQuickInputCodeByFirestoreId(String fId) async => (await database).delete('quick_input_codes', where: 'firestoreId = ?', whereArgs: [fId]);
+
+  Future<void> upsertQuickInputCode(QuickInputCode code) async => _upsert('quick_input_codes', code.toMap(), code.firestoreId ?? "qic_${code.createdAt}_${code.name}");
 }

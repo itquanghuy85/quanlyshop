@@ -5,6 +5,7 @@ import '../models/product_model.dart';
 import '../models/sale_order_model.dart';
 import '../models/purchase_order_model.dart';
 import '../models/attendance_model.dart';
+import '../models/quick_input_code_model.dart';
 import 'user_service.dart';
 import 'notification_service.dart';
 
@@ -36,24 +37,99 @@ class FirestoreService {
       final shopId = await UserService.getCurrentShopId();
       final docId = order.firestoreId ?? "po_${order.createdAt}_${order.orderCode}";
       final docRef = _db.collection('purchase_orders').doc(docId);
-      
+
       Map<String, dynamic> data = order.toMap();
       data['shopId'] = shopId;
       data['firestoreId'] = docId;
-      
+
       await docRef.set(data, SetOptions(merge: true));
-      
+
+      // CẬP NHẬT INVENTORY SAU KHI NHẬP HÀNG
+      await _updateInventoryFromPurchaseOrder(order, shopId!);
+
       _notifyAll(
-        "📦 ĐƠN NHẬP MỚI", 
+        "📦 ĐƠN NHẬP MỚI",
         "Vừa nhập hàng từ NCC: ${order.supplierName} - Mã: ${order.orderCode}",
         type: 'purchase_order',
         id: docId,
         summary: "${order.supplierName} - ${order.orderCode}"
       );
-      
+
       return docId;
     } catch (e) {
       return null;
+    }
+  }
+
+  // CẬP NHẬT INVENTORY KHI NHẬP HÀNG
+  static Future<void> _updateInventoryFromPurchaseOrder(PurchaseOrder order, String shopId) async {
+    try {
+      for (final item in order.items) {
+        // Tìm sản phẩm trong inventory dựa trên tên, màu, dung lượng
+        final productQuery = await _db
+            .collection('products')
+            .where('shopId', isEqualTo: shopId)
+            .where('name', isEqualTo: item.productName)
+            .get();
+
+        // Tìm sản phẩm khớp với color, capacity, condition
+        final matchingProducts = productQuery.docs.where((doc) {
+          final data = doc.data();
+          return data['color'] == item.color &&
+                 data['capacity'] == item.capacity &&
+                 data['condition'] == item.condition;
+        }).toList();
+
+        if (matchingProducts.isNotEmpty) {
+          // Sản phẩm đã tồn tại - cập nhật số lượng và chi phí trung bình
+          final existingProduct = matchingProducts.first;
+          final productData = existingProduct.data();
+
+          final currentQuantity = productData['quantity'] ?? 0;
+          final currentCost = productData['cost'] ?? 0;
+          final newQuantity = currentQuantity + item.quantity;
+
+          // Tính chi phí trung bình
+          final totalCurrentValue = currentQuantity * currentCost;
+          final totalNewValue = item.quantity * item.unitCost;
+          final averageCost = ((totalCurrentValue + totalNewValue) / newQuantity).round();
+
+          await existingProduct.reference.update({
+            'quantity': newQuantity,
+            'cost': averageCost,
+            'price': item.unitPrice, // Cập nhật giá bán nếu cần
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+
+          debugPrint('Cập nhật sản phẩm: ${item.productName}, SL: $currentQuantity -> $newQuantity, Chi phí TB: $averageCost');
+        } else {
+          // Sản phẩm chưa tồn tại - tạo mới
+          final newProduct = {
+            'name': item.productName ?? '',
+            'brand': 'KHÁC',
+            'imei': item.imei,
+            'cost': item.unitCost,
+            'price': item.unitPrice,
+            'condition': item.condition,
+            'status': 1,
+            'description': 'Nhập từ đơn: ${order.orderCode}',
+            'createdAt': FieldValue.serverTimestamp(),
+            'supplier': order.supplierName,
+            'type': 'PHONE',
+            'quantity': item.quantity,
+            'color': item.color,
+            'capacity': item.capacity,
+            'shopId': shopId,
+            'isSynced': true,
+          };
+
+          await _db.collection('products').add(newProduct);
+          debugPrint('Tạo sản phẩm mới: ${item.productName}, SL: ${item.quantity}, Chi phí: ${item.unitCost}');
+        }
+      }
+    } catch (e) {
+      debugPrint('Lỗi cập nhật inventory: $e');
+      // Không throw error để không làm fail purchase order
     }
   }
 
@@ -337,5 +413,69 @@ class FirestoreService {
 
   static Future<void> deleteSupplier(String firestoreId) async {
     try { await _db.collection('suppliers').doc(firestoreId).delete(); } catch (_) {}
+  }
+
+  // --- QUẢN LÝ MÃ NHẬP NHANH (Đồng bộ giữa các thiết bị trong shop) ---
+  static Future<String?> addQuickInputCode(QuickInputCode code) async {
+    try {
+      final shopId = await UserService.getCurrentShopId();
+      final docId = code.firestoreId ?? "qic_${code.createdAt}_${code.name.replaceAll(' ', '_')}";
+      final docRef = _db.collection('quick_input_codes').doc(docId);
+
+      Map<String, dynamic> data = code.toMap();
+      data['shopId'] = shopId;
+      data['firestoreId'] = docId;
+
+      await docRef.set(data, SetOptions(merge: true));
+      return docId;
+    } catch (e) {
+      debugPrint('Error adding quick input code: $e');
+      return null;
+    }
+  }
+
+  static Future<void> updateQuickInputCode(QuickInputCode code) async {
+    try {
+      if (code.firestoreId == null) return;
+      final docRef = _db.collection('quick_input_codes').doc(code.firestoreId);
+
+      Map<String, dynamic> data = code.toMap();
+      data['updatedAt'] = FieldValue.serverTimestamp();
+
+      await docRef.update(data);
+    } catch (e) {
+      debugPrint('Error updating quick input code: $e');
+    }
+  }
+
+  static Future<void> deleteQuickInputCode(String firestoreId) async {
+    try {
+      await _db.collection('quick_input_codes').doc(firestoreId).delete();
+    } catch (e) {
+      debugPrint('Error deleting quick input code: $e');
+    }
+  }
+
+  static Future<List<QuickInputCode>> getQuickInputCodesForShop() async {
+    try {
+      final shopId = await UserService.getCurrentShopId();
+      if (shopId == null) return [];
+
+      final querySnapshot = await _db
+          .collection('quick_input_codes')
+          .where('shopId', isEqualTo: shopId)
+          .where('isActive', isEqualTo: true)
+          .orderBy('createdAt', descending: true)
+          .get();
+
+      return querySnapshot.docs.map((doc) {
+        final data = doc.data();
+        data['firestoreId'] = doc.id;
+        return QuickInputCode.fromMap(data);
+      }).toList();
+    } catch (e) {
+      debugPrint('Error getting quick input codes: $e');
+      return [];
+    }
   }
 }

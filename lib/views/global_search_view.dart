@@ -3,10 +3,12 @@ import '../data/db_helper.dart';
 import '../models/repair_model.dart';
 import '../models/sale_order_model.dart';
 import '../models/product_model.dart';
+import '../models/quick_input_code_model.dart';
 import 'repair_detail_view.dart';
 import 'sale_detail_view.dart';
 import 'inventory_view.dart';
 import 'customer_history_view.dart';
+import 'quick_input_library_view.dart';
 
 class GlobalSearchView extends StatefulWidget {
   final String role;
@@ -24,7 +26,7 @@ class _GlobalSearchViewState extends State<GlobalSearchView> {
   bool _isLoading = false;
   String _selectedCategory = 'Tất cả';
 
-  final List<String> _categories = ['Tất cả', 'Khách hàng', 'Đơn sửa chữa', 'Đơn bán hàng', 'Sản phẩm'];
+  final List<String> _categories = ['Tất cả', 'Khách hàng', 'Đơn sửa chữa', 'Đơn bán hàng', 'Sản phẩm', 'Mã nhập nhanh'];
 
   @override
   void initState() {
@@ -89,6 +91,16 @@ class _GlobalSearchViewState extends State<GlobalSearchView> {
                (product.capacity ?? '').toLowerCase().contains(lowerQuery);
       }).toList();
 
+      // Search quick input codes
+      final quickInputCodes = await db.getQuickInputCodes();
+      final quickInputCodeResults = quickInputCodes.where((code) {
+        return code.name.toLowerCase().contains(lowerQuery) ||
+               (code.brand ?? '').toLowerCase().contains(lowerQuery) ||
+               (code.model ?? '').toLowerCase().contains(lowerQuery) ||
+               (code.description ?? '').toLowerCase().contains(lowerQuery) ||
+               (code.supplier ?? '').toLowerCase().contains(lowerQuery);
+      }).toList();
+
       // Filter by category
       switch (_selectedCategory) {
         case 'Khách hàng':
@@ -103,8 +115,11 @@ class _GlobalSearchViewState extends State<GlobalSearchView> {
         case 'Sản phẩm':
           allResults = productResults;
           break;
+        case 'Mã nhập nhanh':
+          allResults = quickInputCodeResults;
+          break;
         default:
-          allResults = [...customerResults, ...repairResults, ...saleResults, ...productResults];
+          allResults = [...customerResults, ...repairResults, ...saleResults, ...productResults, ...quickInputCodeResults];
       }
 
       setState(() {
@@ -129,6 +144,8 @@ class _GlobalSearchViewState extends State<GlobalSearchView> {
       Navigator.push(context, MaterialPageRoute(builder: (_) => InventoryView(role: widget.role))).then((_) {
         // Optionally, scroll to the product or something
       });
+    } else if (item is QuickInputCode) {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const QuickInputLibraryView()));
     } else if (item is Map && item.containsKey('customerName')) {
       // Customer from repair
       Navigator.push(context, MaterialPageRoute(builder: (_) => CustomerHistoryView(phone: item['phone'], name: item['customerName'])));
@@ -152,6 +169,12 @@ class _GlobalSearchViewState extends State<GlobalSearchView> {
       title = item.name;
       subtitle = item.imei != null ? 'IMEI: ${item.imei}' : 'Số lượng: ${item.quantity}';
       icon = Icons.inventory;
+    } else if (item is QuickInputCode) {
+      title = item.name;
+      subtitle = item.type == 'PHONE' 
+          ? '${item.brand ?? ''} ${item.model ?? ''}'.trim()
+          : item.description ?? '';
+      icon = item.type == 'PHONE' ? Icons.smartphone : Icons.inventory_2;
     } else if (item is Map) {
       title = item['customerName'];
       subtitle = item['phone'];
@@ -232,6 +255,8 @@ class _GlobalSearchViewState extends State<GlobalSearchView> {
                             type = 'Đơn bán hàng';
                           } else if (item is Product) {
                             type = 'Sản phẩm';
+                          } else if (item is QuickInputCode) {
+                            type = 'Mã nhập nhanh';
                           } else {
                             type = 'Khách hàng';
                           }
@@ -264,6 +289,7 @@ class _GlobalSearchViewState extends State<GlobalSearchView> {
     if (item is Repair) return 'Đơn sửa chữa';
     if (item is SaleOrder) return 'Đơn bán hàng';
     if (item is Product) return 'Sản phẩm';
+    if (item is QuickInputCode) return 'Mã nhập nhanh';
     return 'Khách hàng';
   }
 }

@@ -9,6 +9,9 @@ import 'package:photo_view/photo_view_gallery.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/repair_model.dart';
 import '../services/unified_printer_service.dart';
+import '../services/bluetooth_printer_service.dart';
+import '../models/printer_types.dart';
+import '../widgets/printer_selection_dialog.dart';
 import '../services/notification_service.dart';
 import '../services/firestore_service.dart';
 import '../data/db_helper.dart';
@@ -328,19 +331,41 @@ class _RepairDetailViewState extends State<RepairDetailView> {
   }
 
   Future<void> _printReceipt() async {
+    // Show printer selection dialog giống như in hóa đơn bán hàng
+    final messenger = ScaffoldMessenger.of(context);
+    final printerConfig = await showPrinterSelectionDialog(context);
+    if (printerConfig == null) return; // User cancelled
+
+    // Extract printer configuration
+    final printerType = printerConfig['type'] as PrinterType?;
+    final bluetoothPrinter = printerConfig['bluetoothPrinter'] as BluetoothPrinterConfig?;
+    final wifiIp = printerConfig['wifiIp'] as String?;
+
     if (_isPrinting) return;
     setState(() => _isPrinting = true);
     HapticFeedback.mediumImpact();
     NotificationService.showSnackBar("Đang chuẩn bị lệnh in...", color: Colors.blue);
+
     try {
-      final success = await UnifiedPrinterService.printRepairReceiptFromRepair(r, {'shopName': _shopName, 'shopAddr': _shopAddr, 'shopPhone': _shopPhone});
+      final success = await UnifiedPrinterService.printRepairReceiptFromRepair(
+        r,
+        {
+          'shopName': _shopName,
+          'shopAddr': _shopAddr,
+          'shopPhone': _shopPhone
+        },
+        printerType: printerType,
+        bluetoothPrinter: bluetoothPrinter,
+        wifiIp: wifiIp,
+      );
+
       if (success) {
-        NotificationService.showSnackBar("Đã gửi lệnh in thành công", color: Colors.green);
+        NotificationService.showSnackBar("Đã in phiếu thành công!", color: Colors.green);
       } else {
-        NotificationService.showSnackBar("Lỗi máy in!", color: Colors.red);
+        NotificationService.showSnackBar("In thất bại! Vui lòng kiểm tra cài đặt máy in.", color: Colors.red);
       }
     } catch (e) {
-      NotificationService.showSnackBar("Lỗi: $e", color: Colors.red);
+      NotificationService.showSnackBar("Lỗi khi in: $e", color: Colors.red);
     } finally {
       if (mounted) setState(() => _isPrinting = false);
     }

@@ -14,10 +14,13 @@ import '../services/bluetooth_printer_service.dart';
 import '../services/notification_service.dart';
 import '../services/user_service.dart';
 import '../utils/sku_generator.dart';
+import '../widgets/printer_selection_dialog.dart';
+import '../models/printer_types.dart';
 import 'fast_inventory_input_view.dart';
 import 'stock_in_view.dart';
 import 'global_search_view.dart';
 import 'fast_stock_in_view.dart';
+import 'quick_input_library_view.dart';
 import '../widgets/currency_text_field.dart';
 import '../widgets/validated_text_field.dart';
 
@@ -155,9 +158,42 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
               children: [
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: () {
+                    onPressed: () async {
                       Navigator.pop(ctx);
-                      _printOptions(p);
+                      // Show printer selection dialog directly
+                      try {
+                        final printerConfig = await showPrinterSelectionDialog(context);
+                        if (printerConfig != null) {
+                          final printerType = printerConfig['type'] as PrinterType?;
+                          final bluetoothPrinter = printerConfig['bluetoothPrinter'] as BluetoothPrinterConfig?;
+                          final wifiIp = printerConfig['wifiIp'] as String?;
+                          final success = await UnifiedPrinterService.printProductQRLabel(
+                            p.toMap(),
+                            customMac: bluetoothPrinter?.macAddress,
+                            printerType: printerType,
+                            wifiIp: wifiIp,
+                          );
+                          if (success) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Đã in tem thành công!')),
+                              );
+                            }
+                          } else {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('In tem thất bại!')),
+                              );
+                            }
+                          }
+                        }
+                      } catch (e) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Lỗi: $e')),
+                          );
+                        }
+                      }
                     },
                     icon: const Icon(Icons.qr_code_2, color: Colors.white),
                     label: const Text(
@@ -215,6 +251,117 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
     ).then((_) => _refresh());
   }
 
+  void _showEditProductDialog(Product p) {
+    final nameCtrl = TextEditingController(text: p.name);
+    final capacityCtrl = TextEditingController(text: p.capacity ?? '');
+    final imeiCtrl = TextEditingController(text: p.imei ?? '');
+    final supplierCtrl = TextEditingController(text: p.supplier ?? '');
+    final costCtrl = TextEditingController(text: p.cost != null ? NumberFormat('#,###').format(p.cost) : '');
+    final priceCtrl = TextEditingController(text: p.price != null ? NumberFormat('#,###').format(p.price) : '');
+    final kpkPriceCtrl = TextEditingController(text: p.kpkPrice != null ? NumberFormat('#,###').format(p.kpkPrice) : '');
+    final quantityCtrl = TextEditingController(text: (p.quantity ?? 1).toString());
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Chỉnh sửa sản phẩm'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ValidatedTextField(
+                controller: nameCtrl,
+                label: 'Tên sản phẩm',
+                uppercase: true,
+                customValidator: (val) => val?.isEmpty ?? true ? 'Vui lòng nhập tên sản phẩm' : null,
+              ),
+              const SizedBox(height: 12),
+              ValidatedTextField(
+                controller: capacityCtrl,
+                label: 'Chi tiết máy',
+              ),
+              const SizedBox(height: 12),
+              ValidatedTextField(
+                controller: imeiCtrl,
+                label: 'IMEI/Serial',
+              ),
+              const SizedBox(height: 12),
+              ValidatedTextField(
+                controller: supplierCtrl,
+                label: 'Nhà cung cấp',
+              ),
+              const SizedBox(height: 12),
+              CurrencyTextField(
+                controller: costCtrl,
+                label: 'Giá nhập (VNĐ)',
+              ),
+              const SizedBox(height: 12),
+              CurrencyTextField(
+                controller: priceCtrl,
+                label: 'Giá bán lẻ (VNĐ)',
+              ),
+              const SizedBox(height: 12),
+              CurrencyTextField(
+                controller: kpkPriceCtrl,
+                label: 'Giá bán kèm phụ kiện (VNĐ)',
+              ),
+              const SizedBox(height: 12),
+              ValidatedTextField(
+                controller: quantityCtrl,
+                label: 'Số lượng',
+                keyboardType: TextInputType.number,
+                customValidator: (val) {
+                  final qty = int.tryParse(val ?? '');
+                  if (qty == null || qty < 0) return 'Số lượng phải là số không âm';
+                  return null;
+                },
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Hủy'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              // Validate form
+              final qty = int.tryParse(quantityCtrl.text);
+              if (qty == null || qty < 0) {
+                NotificationService.showSnackBar('Số lượng không hợp lệ', color: Colors.red);
+                return;
+              }
+
+              try {
+                final updatedProduct = p.copyWith(
+                  name: nameCtrl.text.trim().toUpperCase(),
+                  capacity: capacityCtrl.text.trim(),
+                  imei: imeiCtrl.text.trim(),
+                  supplier: supplierCtrl.text.trim(),
+                  cost: int.tryParse(costCtrl.text.replaceAll(',', '')),
+                  price: int.tryParse(priceCtrl.text.replaceAll(',', '')),
+                  kpkPrice: int.tryParse(kpkPriceCtrl.text.replaceAll(',', '')),
+                  quantity: qty,
+                  updatedAt: DateTime.now().millisecondsSinceEpoch,
+                  isSynced: false,
+                );
+
+                await db.updateProduct(updatedProduct);
+                await _refresh();
+                Navigator.pop(ctx);
+                NotificationService.showSnackBar('Đã cập nhật sản phẩm', color: Colors.green);
+              } catch (e) {
+                NotificationService.showSnackBar('Lỗi cập nhật sản phẩm: $e', color: Colors.red);
+              }
+            },
+            child: const Text('Lưu'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _detailItem(String l, String v, {Color? color}) => Padding(padding: const EdgeInsets.symmetric(vertical: 6), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(l, style: const TextStyle(color: Colors.blueGrey, fontSize: 13)), Text(v, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: color))]));
 
   Color _getBrandColor(String name) {
@@ -232,9 +379,7 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
     return const Color(0xFF2962FF);
   }
 
-  void _printOptions(Product p) {
-    showModalBottomSheet(context: context, shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))), builder: (ctx) => SafeArea(child: Column(mainAxisSize: MainAxisSize.min, children: [ListTile(leading: const Icon(Icons.print, color: Colors.blue), title: const Text("In bằng máy in mặc định"), onTap: () { HapticFeedback.mediumImpact(); Navigator.pop(ctx); UnifiedPrinterService.printProductQRLabel(p.toMap()); }), ListTile(leading: const Icon(Icons.bluetooth_searching, color: Colors.orange), title: const Text("Chọn máy in khác"), onTap: () async { HapticFeedback.mediumImpact(); Navigator.pop(ctx); final list = await BluetoothPrinterService.getPairedPrinters(); if (list.isNotEmpty && mounted) { showModalBottomSheet(context: context, builder: (c) => ListView.builder(itemCount: list.length, itemBuilder: (cc, i) => ListTile(title: Text(list[i].name), subtitle: Text(list[i].macAdress), onTap: () { Navigator.pop(c); UnifiedPrinterService.printProductQRLabel(p.toMap(), customMac: list[i].macAdress); }))); } })])));
-  }
+
 
   Widget _buildEmptyState() {
     return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.inventory_2_outlined, size: 80, color: Colors.grey[300]), const SizedBox(height: 10), const Text("KHO HÀNG ĐANG TRỐNG", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold))]));
@@ -500,6 +645,11 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
             label: const Text('NCC', style: TextStyle(fontSize: 12, color: Colors.black87)),
             style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8)),
           ),
+          IconButton(
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const QuickInputLibraryView())),
+            icon: const Icon(Icons.library_books, color: Colors.teal),
+            tooltip: 'Thư viện mã nhập nhanh',
+          ),
           const SizedBox(width: 8),
         ],
       ),
@@ -519,12 +669,12 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Row(
               children: [
-                // Kho hàng button (primary)
+                // Thư viện mã nhập nhanh button (primary)
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: () => _tabController.animateTo(0),
-                    icon: Icon(Icons.inventory, size: _iconSize),
-                    label: Text("KHO HÀNG", style: TextStyle(fontSize: _smallFontSize)),
+                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const QuickInputLibraryView())).then((_) => _refresh()),
+                    icon: Icon(Icons.library_books, size: _iconSize),
+                    label: Text("THƯ VIỆN", style: TextStyle(fontSize: _smallFontSize)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF2962FF),
                       foregroundColor: Colors.white,
@@ -981,7 +1131,12 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
       child: InkWell(
         onLongPress: () {
           HapticFeedback.heavyImpact();
-          _toggleSelection(p.id!);
+          // Check if user is owner or manager for edit functionality
+          if (widget.role == 'owner' || widget.role == 'manager' || UserService.isCurrentUserSuperAdmin()) {
+            _showEditProductDialog(p);
+          } else {
+            _toggleSelection(p.id!);
+          }
         },
         onTap: () => _isSelectionMode ? _toggleSelection(p.id!) : _showProductDetail(p),
         borderRadius: BorderRadius.circular(12),

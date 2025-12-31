@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../data/db_helper.dart';
 import '../models/product_model.dart';
 import '../models/debt_model.dart';
+import '../models/quick_input_code_model.dart';
 import '../services/notification_service.dart';
 import '../services/firestore_service.dart';
 import '../services/event_bus.dart';
 import '../utils/money_utils.dart';
 import '../utils/sku_generator.dart';
+import 'quick_input_library_view.dart';
 
 // Formatter to force uppercase input without triggering controller loops
 class UpperCaseTextFormatter extends TextInputFormatter {
@@ -20,7 +23,10 @@ class UpperCaseTextFormatter extends TextInputFormatter {
 }
 
 class FastStockInView extends StatefulWidget {
-  const FastStockInView({super.key});
+  final String? preselectedSupplier;
+  final QuickInputCode? quickInputCode;
+
+  const FastStockInView({super.key, this.preselectedSupplier, this.quickInputCode});
 
   @override
   State<FastStockInView> createState() => _FastStockInViewState();
@@ -76,11 +82,70 @@ class _FastStockInViewState extends State<FastStockInView> {
     return (value > 0 && value < 100000) ? value * 1000 : value;
   }
 
+  void _preFillFromQuickInputCode(QuickInputCode code) {
+    // Pre-fill brand
+    if (code.brand != null && brands.contains(code.brand!.toUpperCase())) {
+      selectedBrand = code.brand!.toUpperCase();
+    }
+    
+    // Pre-fill model
+    if (code.model != null) {
+      modelCtrl.text = code.model!.toUpperCase();
+    }
+    
+    // Pre-fill capacity
+    if (code.capacity != null && capacities.contains(code.capacity!.toUpperCase())) {
+      selectedCapacity = code.capacity!.toUpperCase();
+    }
+    
+    // Pre-fill color
+    if (code.color != null && colors.contains(code.color!.toUpperCase())) {
+      selectedColor = code.color!.toUpperCase();
+    }
+    
+    // Pre-fill condition
+    if (code.condition != null && conditions.contains(code.condition!.toUpperCase())) {
+      selectedCondition = code.condition!.toUpperCase();
+    }
+    
+    // Pre-fill prices
+    if (code.cost != null) {
+      costCtrl.text = NumberFormat('#,###').format(code.cost!);
+    }
+    if (code.price != null) {
+      priceCtrl.text = NumberFormat('#,###').format(code.price!);
+    }
+    
+    // Pre-fill supplier
+    if (code.supplier != null) {
+      selectedSupplier = code.supplier;
+    }
+    
+    // Pre-fill payment method
+    if (code.paymentMethod != null && paymentMethods.contains(code.paymentMethod!.toUpperCase())) {
+      selectedPaymentMethod = code.paymentMethod!.toUpperCase();
+    }
+    
+    // For accessories, set quantity to 1 by default (user can change)
+    if (code.type == 'ACCESSORY') {
+      quantityCtrl.text = '1';
+    }
+  }
+
   Future<void> _initData() async {
     setState(() { _isLoading = true; _loadingError = null; });
     try {
       // Timeout to prevent permanent loading state
       await _loadSuppliers().timeout(const Duration(seconds: 5));
+      // Set preselected supplier if provided
+      if (widget.preselectedSupplier != null && suppliers.any((s) => s['name'] == widget.preselectedSupplier)) {
+        selectedSupplier = widget.preselectedSupplier;
+      }
+      
+      // Pre-fill form with quick input code data
+      if (widget.quickInputCode != null) {
+        _preFillFromQuickInputCode(widget.quickInputCode!);
+      }
     } catch (e) {
       // Handle timeout or other errors
       debugPrint('FastStockIn: load suppliers error: $e');
@@ -484,12 +549,115 @@ class _FastStockInViewState extends State<FastStockInView> {
     );
   }
 
+  Future<void> _selectFromLibrary() async {
+    final codes = await db.getQuickInputCodes();
+    final activeCodes = codes.where((c) => c.isActive).toList();
+
+    if (activeCodes.isEmpty) {
+      NotificationService.showSnackBar('Không có mã nhập nhanh nào đang hoạt động', color: Colors.orange);
+      return;
+    }
+
+    if (!mounted) return;
+
+    final selectedCode = await showDialog<QuickInputCode>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Chọn mã nhập nhanh'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: activeCodes.length,
+            itemBuilder: (ctx, i) {
+              final code = activeCodes[i];
+              final isPhone = code.type == 'PHONE';
+              return ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: isPhone ? Colors.blue.withAlpha(25) : Colors.orange.withAlpha(25),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    isPhone ? Icons.smartphone : Icons.inventory_2,
+                    color: isPhone ? Colors.blue : Colors.orange,
+                    size: 20,
+                  ),
+                ),
+                title: Text(code.name),
+                subtitle: Text(isPhone
+                  ? "${code.brand ?? ''} ${code.model ?? ''}".trim()
+                  : code.description ?? ''),
+                onTap: () => Navigator.pop(ctx, code),
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Hủy'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const QuickInputLibraryView()),
+            ),
+            child: const Text('Quản lý thư viện'),
+          ),
+        ],
+      ),
+    );
+
+    if (selectedCode != null) {
+      _applyQuickInputCode(selectedCode);
+    }
+  }
+
+  void _applyQuickInputCode(QuickInputCode code) {
+    setState(() {
+      if (code.type == 'PHONE') {
+        selectedBrand = code.brand;
+        modelCtrl.text = code.model ?? '';
+        selectedCapacity = code.capacity;
+        selectedColor = code.color;
+        selectedCondition = code.condition;
+      } else {
+        // For accessories, set description as model
+        modelCtrl.text = code.description ?? '';
+      }
+
+      if (code.cost != null) {
+        costCtrl.text = code.cost.toString();
+      }
+      if (code.price != null) {
+        priceCtrl.text = code.price.toString();
+      }
+      selectedSupplier = code.supplier;
+      selectedPaymentMethod = code.paymentMethod;
+
+      // Reset IMEI for new entry
+      imeiCtrl.clear();
+      quantityCtrl.text = '1';
+    });
+
+    NotificationService.showSnackBar('Đã áp dụng mã nhập nhanh: ${code.name}', color: Colors.green);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Nhập Kho Nhanh'),
         backgroundColor: Theme.of(context).primaryColor,
+        actions: [
+          IconButton(
+            onPressed: _selectFromLibrary,
+            icon: const Icon(Icons.library_books, color: Colors.white),
+            tooltip: 'Chọn từ thư viện',
+          ),
+        ],
       ),
       // Avoid complex nested ternary in the widget tree — build the body explicitly
       body: Builder(

@@ -9,6 +9,7 @@ import '../services/notification_service.dart';
 import '../services/firestore_service.dart';
 import '../widgets/validated_text_field.dart';
 import '../widgets/currency_text_field.dart';
+import 'fast_stock_in_view.dart';
 
 class ExpenseView extends StatefulWidget {
   const ExpenseView({super.key});
@@ -453,6 +454,11 @@ class _ExpenseViewState extends State<ExpenseView> {
         backgroundColor: Colors.white,
         elevation: 0,
         actions: [
+          IconButton(
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FastStockInView())),
+            icon: const Icon(Icons.inventory_2_outlined, color: Colors.green),
+            tooltip: 'Nhập kho',
+          ),
           IconButton(
             onPressed: _refresh,
             icon: const Icon(Icons.refresh, color: Colors.blue),

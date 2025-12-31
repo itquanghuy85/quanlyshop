@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:intl/intl.dart';
 
 import '../data/db_helper.dart';
 import '../models/repair_model.dart';
 import '../models/sale_order_model.dart';
+import '../models/product_model.dart';
 import '../services/user_service.dart';
 import 'repair_detail_view.dart';
 import 'sale_detail_view.dart';
@@ -55,6 +57,27 @@ class _QrScanViewState extends State<QrScanView> {
         return;
       }
 
+      // Kiểm tra QR kiểm tra sản phẩm trong kho
+      if (key.startsWith('check_inv:')) {
+        await _handleInventoryCheckQR(key);
+        if (mounted) setState(() => _handling = false);
+        return;
+      }
+
+      // Kiểm tra QR đơn hàng (có thể là repair_ hoặc sale_)
+      if (key.startsWith('repair_') || key.startsWith('sale_') || key.startsWith('inv_check_')) {
+        await _handleOrderQR(key);
+        if (mounted) setState(() => _handling = false);
+        return;
+      }
+
+      // Kiểm tra xem có phải là ID đơn hàng không (firestoreId)
+      if (key.length > 10 && (key.startsWith('rep_') || key.startsWith('sale_') || key.contains('_'))) {
+        await _handleOrderQR(key);
+        if (mounted) setState(() => _handling = false);
+        return;
+      }
+
       // Ưu tiên tìm đơn sửa, sau đó đến đơn bán
       Repair? r;
       try {
@@ -92,9 +115,16 @@ class _QrScanViewState extends State<QrScanView> {
         return;
       }
 
+      // Nếu không tìm thấy gì, hiển thị thông báo với gợi ý
       if (mounted) {
         messenger.showSnackBar(
-          SnackBar(content: Text('Không tìm thấy đơn tương ứng với QR: $key')),
+          SnackBar(
+            content: Text('Không tìm thấy thông tin tương ứng với QR: ${key.length > 20 ? key.substring(0, 20) + "..." : key}'),
+            action: SnackBarAction(
+              label: 'Đóng',
+              onPressed: () {},
+            ),
+          ),
         );
       }
     } catch (e) {
@@ -322,6 +352,228 @@ class _QrScanViewState extends State<QrScanView> {
     }
   }
 
+  Future<void> _handleInventoryCheckQR(String qrData) async {
+    try {
+      // Parse QR format: check_inv:firestoreId
+      final parts = qrData.split(':');
+      if (parts.length != 2 || parts[0] != 'check_inv') {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('QR kiểm tra kho không hợp lệ')),
+          );
+        }
+        return;
+      }
+
+      final productId = parts[1];
+      final messenger = ScaffoldMessenger.of(context);
+      final navigator = Navigator.of(context);
+
+      // Tìm sản phẩm trong database
+      final product = await _db.getProductByFirestoreId(productId);
+      if (product == null) {
+        if (mounted) {
+          messenger.showSnackBar(
+            SnackBar(content: Text('Không tìm thấy sản phẩm với ID: $productId')),
+          );
+        }
+        return;
+      }
+
+      // Hiển thị thông tin sản phẩm
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('THÔNG TIN SẢN PHẨM'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Tên: ${product.name}', style: const TextStyle(fontWeight: FontWeight.bold)),
+              Text('IMEI: ${product.imei ?? "N/A"}'),
+              Text('Màu: ${product.color ?? "N/A"}'),
+              Text('Giá: ${product.price != null ? "${NumberFormat('#,###').format(product.price)} đ" : "N/A"}'),
+              Text('Tình trạng: ${product.condition ?? "N/A"}'),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('ĐÓNG'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('XEM CHI TIẾT'),
+            ),
+          ],
+        ),
+      );
+
+      if (confirmed == true) {
+        // Chuyển đến trang chi tiết sản phẩm trong kho
+        // Vì không có trang chi tiết sản phẩm riêng, có thể mở dialog xem sản phẩm
+        await showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: Text(product.name),
+            content: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildDetailRow('Tên sản phẩm', product.name),
+                  _buildDetailRow('IMEI/Serial', product.imei ?? 'N/A'),
+                  _buildDetailRow('Màu sắc', product.color ?? 'N/A'),
+                  _buildDetailRow('Dung lượng', product.capacity ?? 'N/A'),
+                  _buildDetailRow('Tình trạng', product.condition ?? 'N/A'),
+                  _buildDetailRow('Giá bán lẻ', '${NumberFormat('#,###').format(product.price)} đ'),
+                  _buildDetailRow('Giá bán buôn', '${NumberFormat('#,###').format(product.kpkPrice ?? 0)} đ'),
+                  _buildDetailRow('Nhà cung cấp', product.supplier ?? 'N/A'),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('ĐÓNG'),
+              ),
+            ],
+          ),
+        );
+      }
+
+      messenger.showSnackBar(
+        SnackBar(content: Text('Đã quét sản phẩm: ${product.name}')),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi xử lý QR kiểm tra kho: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleOrderQR(String qrData) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+
+    try {
+      // Xử lý các loại đơn hàng
+      if (qrData.startsWith('repair_') || qrData.startsWith('rep_')) {
+        // Tìm đơn sửa chữa
+        Repair? repair;
+        try {
+          repair = await _db.getRepairByFirestoreId(qrData);
+        } catch (e) {
+          debugPrint('DB error getting repair: $e');
+        }
+
+        if (repair != null) {
+          await navigator.push(
+            MaterialPageRoute(
+              builder: (_) => RepairDetailView(repair: repair!),
+            ),
+          );
+          return;
+        }
+      }
+
+      if (qrData.startsWith('sale_')) {
+        // Tìm đơn bán hàng
+        SaleOrder? sale;
+        try {
+          sale = await _db.getSaleByFirestoreId(qrData);
+        } catch (e) {
+          debugPrint('DB error getting sale: $e');
+        }
+
+        if (sale != null) {
+          await navigator.push(
+            MaterialPageRoute(
+              builder: (_) => SaleDetailView(sale: sale!),
+            ),
+          );
+          return;
+        }
+      }
+
+      if (qrData.startsWith('inv_check_')) {
+        // Có thể xử lý kiểm tra kho trong tương lai
+        if (mounted) {
+          messenger.showSnackBar(
+            const SnackBar(content: Text('Tính năng kiểm tra kho sẽ được cập nhật')),
+          );
+        }
+        return;
+      }
+
+      // Thử tìm theo ID bất kỳ
+      Repair? r;
+      try {
+        r = await _db.getRepairByFirestoreId(qrData);
+      } catch (e) {
+        r = null;
+      }
+      if (r != null) {
+        await navigator.push(
+          MaterialPageRoute(
+            builder: (_) => RepairDetailView(repair: r!),
+          ),
+        );
+        return;
+      }
+
+      SaleOrder? s;
+      try {
+        s = await _db.getSaleByFirestoreId(qrData);
+      } catch (e) {
+        s = null;
+      }
+      if (s != null) {
+        await navigator.push(
+          MaterialPageRoute(
+            builder: (_) => SaleDetailView(sale: s!),
+          ),
+        );
+        return;
+      }
+
+      // Không tìm thấy
+      if (mounted) {
+        messenger.showSnackBar(
+          SnackBar(content: Text('Không tìm thấy đơn hàng với ID: $qrData')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        messenger.showSnackBar(
+          SnackBar(content: Text('Lỗi xử lý QR đơn hàng: $e')),
+        );
+      }
+    }
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(
+              '$label:',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+          Expanded(
+            child: Text(value),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _onDetect(BarcodeCapture capture) {
     try {
       if (_handling) return;
@@ -345,7 +597,7 @@ class _QrScanViewState extends State<QrScanView> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('QUÉT QR ĐƠN HÀNG & TEM'),
+        title: const Text('QUÉT QR - ĐƠN HÀNG & SẢN PHẨM'),
         actions: [
           IconButton(
             icon: const Icon(Icons.flash_on_rounded),

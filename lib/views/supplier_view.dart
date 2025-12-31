@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../data/db_helper.dart';
 import '../services/user_service.dart';
 import '../services/firestore_service.dart';
+import 'fast_stock_in_view.dart';
 
 class SupplierView extends StatefulWidget {
   const SupplierView({super.key});
@@ -183,18 +184,46 @@ class _SupplierViewState extends State<SupplierView> {
                                 ],
                               ),
                             ),
-                            if (_isAdmin)
-                              Align(
-                                alignment: Alignment.centerRight,
-                                child: TextButton.icon(
-                                  onPressed: () => _confirmDeleteSupplier(s),
-                                  icon: const Icon(Icons.delete_outline, size: 18, color: Colors.redAccent),
-                                  label: const Text(
-                                    "XÓA NHÀ CUNG CẤP",
-                                    style: TextStyle(color: Colors.redAccent, fontSize: 12),
+                            const SizedBox(height: 10),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: ElevatedButton.icon(
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => FastStockInView(
+                                            preselectedSupplier: s['name'],
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    icon: const Icon(Icons.inventory, size: 16),
+                                    label: const Text("NHẬP KHO", style: TextStyle(fontSize: 12)),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.green,
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(vertical: 8),
+                                    ),
                                   ),
                                 ),
-                              ),
+                                if (_isAdmin) ...[
+                                  const SizedBox(width: 8),
+                                  TextButton.icon(
+                                    onPressed: () => _confirmDeleteSupplier(s),
+                                    icon: const Icon(Icons.delete_outline, size: 16),
+                                    label: const Text(
+                                      "XÓA",
+                                      style: TextStyle(fontSize: 12),
+                                    ),
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: Colors.redAccent,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
                           ],
                         ),
                       )
