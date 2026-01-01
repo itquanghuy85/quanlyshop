@@ -477,6 +477,27 @@ class UserService {
   }
 
   /// Dành riêng cho Super Admin: xóa một user (chỉ xóa từ Firestore, không xóa auth)
+  static Future<int> getUnreadChatCount(String uid) async {
+    final shopId = await getCurrentShopId();
+    if (shopId == null) return 0;
+
+    final userDoc = await _db.collection('users').doc(uid).get();
+    final lastRead = userDoc.data()?['lastReadChat'] ?? 0;
+
+    final query = await _db.collection('chat_messages')
+        .where('shopId', isEqualTo: shopId)
+        .where('createdAt', isGreaterThan: lastRead)
+        .get();
+
+    return query.docs.length;
+  }
+
+  static Future<void> markChatAsRead(String uid) async {
+    await _db.collection('users').doc(uid).update({
+      'lastReadChat': FieldValue.serverTimestamp(),
+    });
+  }
+
   static Future<void> deleteUser(String uid) async {
     final currentUser = FirebaseAuth.instance.currentUser;
     if (!_isSuperAdmin(currentUser)) return;

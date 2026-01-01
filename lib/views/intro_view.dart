@@ -16,24 +16,54 @@ class _IntroViewState extends State<IntroView> {
 
   final List<Map<String, String>> _introData = [
     {
-      "title": "QUẢN LÝ KHO THÔNG MINH",
-      "desc": "Nhập kho siêu tốc bằng mã QR và IMEI. Kiểm soát hàng hóa chính xác 100% trong lòng bàn tay.",
+      "title": "Chào mừng đến với Shop Manager",
+      "desc": "Ứng dụng quản lý cửa hàng sửa chữa điện thoại toàn diện. Dễ sử dụng, mạnh mẽ và hiệu quả cho mọi nhu cầu kinh doanh.",
+      "icon": "🏪"
+    },
+    {
+      "title": "Quản lý bán hàng chuyên nghiệp",
+      "desc": "Tạo đơn bán hàng nhanh chóng, theo dõi doanh thu, quản lý khách hàng và bảo hành sản phẩm một cách dễ dàng.",
+      "icon": "🛒"
+    },
+    {
+      "title": "Sửa chữa & Bảo hành",
+      "desc": "Theo dõi tiến độ sửa chữa, quản lý linh kiện, cập nhật trạng thái đơn hàng và xử lý bảo hành hiệu quả.",
+      "icon": "🔧"
+    },
+    {
+      "title": "Quản lý kho thông minh",
+      "desc": "Nhập kho siêu tốc bằng mã QR và IMEI. Kiểm soát hàng hóa chính xác 100% với hệ thống kiểm kho tự động.",
       "icon": "📦"
     },
     {
-      "title": "IN HÓA ĐƠN SIÊU CẤP",
+      "title": "Nhân sự & Chấm công",
+      "desc": "Quản lý nhân viên, theo dõi chấm công bằng selfie, tính lương và đánh giá hiệu suất làm việc.",
+      "icon": "👥"
+    },
+    {
+      "title": "Tài chính & Báo cáo",
+      "desc": "Xem báo cáo doanh thu chi tiết, quản lý chi phí, theo dõi công nợ và phân tích tài chính toàn diện.",
+      "icon": "💰"
+    },
+    {
+      "title": "Chat nội bộ & Thông báo",
+      "desc": "Giao tiếp với nhân viên real-time, nhận thông báo tức thì và quản lý thông tin chung của cửa hàng.",
+      "icon": "💬"
+    },
+    {
+      "title": "In hóa đơn & Kết nối thiết bị",
       "desc": "Kết nối máy in nhiệt Bluetooth/WiFi. In tem nhãn, hóa đơn chuyên nghiệp chỉ với 1 chạm.",
       "icon": "🖨️"
     },
     {
-      "title": "CHẤM CÔNG & TÍNH LƯƠNG",
-      "desc": "Nhân viên chấm công bằng Selfie thực tế. Tự động tính hoa hồng và doanh số minh bạch.",
-      "icon": "🎯"
-    },
-    {
-      "title": "ĐỒNG BỘ ĐÁM MÂY 24/7",
+      "title": "Đồng bộ đám mây 24/7",
       "desc": "Dữ liệu luôn an toàn và đồng bộ tức thì giữa tất cả các máy. Quản trị shop từ xa mọi lúc mọi nơi.",
       "icon": "☁️"
+    },
+    {
+      "title": "Bắt đầu hành trình",
+      "desc": "Khám phá tất cả tính năng và quản lý cửa hàng của bạn một cách hiệu quả. Chúc bạn thành công!",
+      "icon": "🚀"
     }
   ];
 

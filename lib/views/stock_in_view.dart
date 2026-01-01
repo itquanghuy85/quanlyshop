@@ -4,9 +4,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../data/db_helper.dart';
 import '../models/product_model.dart';
 import '../services/notification_service.dart';
+import '../services/user_service.dart';
 import '../services/firestore_service.dart';
 import '../utils/money_utils.dart';
 import '../widgets/validated_text_field.dart';
+import 'fast_stock_in_view.dart';
 
 class StockInView extends StatefulWidget {
   final Map<String, dynamic>? prefilledData;
@@ -287,16 +289,27 @@ class _StockInViewState extends State<StockInView> {
     try {
       final ts = selectedDate.millisecondsSinceEpoch;
       final imei = imeiCtrl.text.trim();
-      final fId = "prod_${ts}_${imei.isNotEmpty ? imei : ts}";
+      // Tạo unique firestoreId để tránh conflict
+      final uniqueSuffix = imei.isNotEmpty ? imei : "${ts}_${DateTime.now().millisecondsSinceEpoch}";
+      final fId = "prod_${ts}_${uniqueSuffix}";
 
       final quantity = int.tryParse(quantityCtrl.text) ?? 0;
 
+      // Validate product name
+      final productName = _isAccessoryOrLinhKien
+          ? '${brandCtrl.text} ${colorCtrl.text}'.trim().toUpperCase()
+          : '${brandCtrl.text} ${modelCtrl.text}'.trim().toUpperCase();
+      
+      if (productName.isEmpty || productName == brandCtrl.text.toUpperCase()) {
+        throw Exception("Tên sản phẩm không hợp lệ. Vui lòng nhập đầy đủ thông tin!");
+      }
+
       final product = Product(
         firestoreId: fId,
-        name: _isAccessoryOrLinhKien
-            ? '${brandCtrl.text} ${colorCtrl.text}'.toUpperCase()
-            : '${brandCtrl.text} ${modelCtrl.text}'.toUpperCase(),
-        brand: brandCtrl.text.toUpperCase(),        model: modelCtrl.text.trim().isNotEmpty ? modelCtrl.text.trim() : null,        imei: (!_isAccessoryOrLinhKien && imei.isNotEmpty) ? imei : null,
+        name: productName,
+        brand: brandCtrl.text.toUpperCase(),
+        model: modelCtrl.text.trim().isNotEmpty ? modelCtrl.text.trim() : null,
+        imei: (!_isAccessoryOrLinhKien && imei.isNotEmpty) ? imei : null,
         cost: _parseMoneyWithK(costCtrl.text),
         price: _parseMoneyWithK(priceCtrl.text),
         condition: conditionCtrl.text,
@@ -311,8 +324,19 @@ class _StockInViewState extends State<StockInView> {
         paymentMethod: selectedPaymentMethod,
       );
 
+      // Validate cost and price
+      if (product.cost <= 0) {
+        throw Exception("Giá nhập phải lớn hơn 0!");
+      }
+      if (product.price < 0) {
+        throw Exception("Giá bán không được âm!");
+      }
+
       await db.upsertProduct(product);
-      await FirestoreService.addProduct(product);
+      final cloudResult = await FirestoreService.addProduct(product);
+      if (cloudResult == null) {
+        throw Exception("Lỗi đồng bộ với cloud. Vui lòng kiểm tra kết nối mạng!");
+      }
 
       // Lưu lịch sử nhập hàng từ nhà cung cấp
       if (supplierCtrl.text.isNotEmpty) {
@@ -323,9 +347,9 @@ class _StockInViewState extends State<StockInView> {
           // Log action
           final user = FirebaseAuth.instance.currentUser;
           final userName = user?.email?.split('@').first.toUpperCase() ?? "NV";
+          final shopId = await UserService.getCurrentShopId();
 
           final importHistory = {
-            'firestoreId': "import_${ts}_${product.imei ?? ts}",
             'supplierId': supplierId,
             'supplierName': supplierCtrl.text,
             'productName': product.name,
@@ -339,6 +363,7 @@ class _StockInViewState extends State<StockInView> {
             'importDate': ts,
             'importedBy': userName,
             'notes': notesCtrl.text.trim(),
+            'shopId': shopId,
             'isSynced': 0,
           };
           await db.insertSupplierImportHistory(importHistory);
@@ -354,6 +379,7 @@ class _StockInViewState extends State<StockInView> {
             'lastUpdated': ts,
             'createdAt': ts,
             'isActive': 1,
+            'shopId': shopId,
           };
           await db.insertSupplierProductPrice(supplierPrice);
 
@@ -553,6 +579,18 @@ class _StockInViewState extends State<StockInView> {
       appBar: AppBar(
         title: const Text('Nhập Kho'),
         automaticallyImplyLeading: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.flash_on),
+            tooltip: 'Nhập kho nhanh từ mã',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const FastStockInView()),
+              );
+            },
+          ),
+        ],
       ),
       backgroundColor: const Color(0xFFF0F4F8),
       body: SingleChildScrollView(

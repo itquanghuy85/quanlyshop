@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../services/notification_service.dart';
+import '../services/user_service.dart';
 
 class NotificationSettingsView extends StatefulWidget {
   const NotificationSettingsView({super.key});
@@ -15,10 +18,15 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
   bool _staffEnabled = false;
   bool _systemEnabled = true;
 
+  String _userRole = 'user';
+  PermissionStatus _notificationPermission = PermissionStatus.denied;
+
   @override
   void initState() {
     super.initState();
     _loadSettings();
+    _loadUserRole();
+    _checkPermissionStatus();
   }
 
   Future<void> _loadSettings() async {
@@ -35,6 +43,31 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
         _inventoryEnabled = inventory;
         _staffEnabled = staff;
         _systemEnabled = system;
+      });
+    }
+  }
+
+  Future<void> _loadUserRole() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final role = await UserService.getUserRole(user.uid);
+        if (mounted) {
+          setState(() {
+            _userRole = role;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading user role: $e');
+    }
+  }
+
+  Future<void> _checkPermissionStatus() async {
+    final status = await NotificationService.getNotificationPermissionStatus();
+    if (mounted) {
+      setState(() {
+        _notificationPermission = status;
       });
     }
   }
@@ -83,6 +116,14 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          // Permission Status Section
+          _buildPermissionStatusCard(),
+          const SizedBox(height: 24),
+
+          // Role Information
+          _buildRoleInfoCard(),
+          const SizedBox(height: 24),
+
           _buildSectionHeader('THÔNG BÁO QUAN TRỌNG'),
           _buildNotificationTile(
             'Đơn hàng mới',
@@ -91,6 +132,7 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
             (value) => _updateSetting('new_order', value),
             Icons.shopping_cart,
             Colors.blue,
+            enabled: _isRoleAllowed('new_order'),
           ),
           _buildNotificationTile(
             'Thanh toán',
@@ -99,6 +141,7 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
             (value) => _updateSetting('payment', value),
             Icons.payment,
             Colors.green,
+            enabled: _isRoleAllowed('payment'),
           ),
 
           const SizedBox(height: 24),
@@ -110,6 +153,7 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
             (value) => _updateSetting('inventory', value),
             Icons.inventory,
             Colors.orange,
+            enabled: _isRoleAllowed('inventory'),
           ),
           _buildNotificationTile(
             'Nhân viên',
@@ -118,6 +162,7 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
             (value) => _updateSetting('staff', value),
             Icons.people,
             Colors.purple,
+            enabled: _isRoleAllowed('staff'),
           ),
           _buildNotificationTile(
             'Hệ thống',
@@ -126,6 +171,7 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
             (value) => _updateSetting('system', value),
             Icons.settings,
             Colors.grey,
+            enabled: _isRoleAllowed('system'),
           ),
 
           const SizedBox(height: 32),
@@ -134,6 +180,110 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
           _buildTestNotificationButton(),
           _buildInfoCard(),
         ],
+      ),
+    );
+  }
+
+  Widget _buildPermissionStatusCard() {
+    final isGranted = _notificationPermission.isGranted;
+    final isDenied = _notificationPermission.isDenied;
+    final isPermanentlyDenied = _notificationPermission.isPermanentlyDenied;
+
+    return Card(
+      color: isGranted ? Colors.green.shade50 : Colors.orange.shade50,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  isGranted ? Icons.notifications_active : Icons.notifications_off,
+                  color: isGranted ? Colors.green : Colors.orange,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Quyền thông báo',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: isGranted ? Colors.green : Colors.orange,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              isGranted
+                ? 'Đã cấp quyền thông báo. Bạn sẽ nhận được thông báo push.'
+                : isPermanentlyDenied
+                  ? 'Quyền thông báo bị từ chối vĩnh viễn. Vui lòng bật trong cài đặt hệ thống.'
+                  : 'Cần cấp quyền thông báo để nhận thông báo push.',
+              style: TextStyle(
+                fontSize: 12,
+                color: isGranted ? Colors.green.shade700 : Colors.orange.shade700,
+              ),
+            ),
+            if (!isGranted) ...[
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: _requestNotificationPermission,
+                  icon: const Icon(Icons.settings),
+                  label: Text(isPermanentlyDenied ? 'Mở cài đặt' : 'Cấp quyền'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isGranted ? Colors.green : Colors.orange,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRoleInfoCard() {
+    final roleDisplayName = _getRoleDisplayName(_userRole);
+
+    return Card(
+      color: Colors.blue.shade50,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.person, color: Colors.blue),
+                const SizedBox(width: 8),
+                Text(
+                  'Vai trò của bạn: $roleDisplayName',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Một số loại thông báo chỉ dành cho vai trò nhất định để đảm bảo bảo mật và tránh spam.',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.blue.shade700,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -159,39 +309,58 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
     bool value,
     ValueChanged<bool> onChanged,
     IconData icon,
-    Color color,
-  ) {
+    Color color, {
+    bool enabled = true,
+  }) {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
       ),
+      color: enabled ? null : Colors.grey.shade100,
       child: ListTile(
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
+            color: enabled ? color.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(icon, color: color),
+          child: Icon(icon, color: enabled ? color : Colors.grey),
         ),
         title: Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontWeight: FontWeight.w600,
             fontSize: 16,
+            color: enabled ? null : Colors.grey,
           ),
         ),
-        subtitle: Text(
-          subtitle,
-          style: const TextStyle(
-            fontSize: 12,
-            color: Colors.grey,
-          ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              subtitle,
+              style: TextStyle(
+                fontSize: 12,
+                color: enabled ? Colors.grey : Colors.grey.shade600,
+              ),
+            ),
+            if (!enabled) ...[
+              const SizedBox(height: 4),
+              Text(
+                'Không khả dụng cho vai trò hiện tại',
+                style: TextStyle(
+                  fontSize: 10,
+                  color: Colors.red.shade600,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ],
+          ],
         ),
         trailing: Switch(
           value: value,
-          onChanged: onChanged,
+          onChanged: enabled ? onChanged : null,
           activeColor: color,
         ),
       ),
@@ -236,19 +405,66 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
     );
   }
 
-  Future<void> _refreshFCMToken() async {
-    try {
-      await NotificationService.refreshFCMToken();
-      NotificationService.showSnackBar(
-        'Đã làm mới FCM token!',
-        color: Colors.green,
-      );
-    } catch (e) {
-      NotificationService.showSnackBar(
-        'Lỗi làm mới token: $e',
-        color: Colors.red,
-      );
+  Future<void> _requestNotificationPermission() async {
+    final status = await Permission.notification.request();
+    if (mounted) {
+      setState(() {
+        _notificationPermission = status;
+      });
     }
+
+    if (status.isGranted) {
+      NotificationService.showSnackBar('Đã cấp quyền thông báo!', color: Colors.green);
+    } else if (status.isPermanentlyDenied) {
+      _showPermissionSettingsDialog();
+    } else {
+      NotificationService.showSnackBar('Cần cấp quyền để nhận thông báo', color: Colors.orange);
+    }
+  }
+
+  Future<void> _showPermissionSettingsDialog() async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Cấp quyền thông báo'),
+        content: const Text(
+          'Ứng dụng cần quyền thông báo để gửi thông báo quan trọng. '
+          'Vui lòng bật quyền trong cài đặt hệ thống.'
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Hủy'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Mở cài đặt'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true) {
+      final opened = await NotificationService.openNotificationSettings();
+      if (opened) {
+        // Refresh permission status after returning from settings
+        Future.delayed(const Duration(seconds: 1), _checkPermissionStatus);
+      }
+    }
+  }
+
+  bool _isRoleAllowed(String notificationType) {
+    // Define role-based permissions
+    final rolePermissions = {
+      'new_order': ['admin', 'owner', 'manager', 'employee'],
+      'payment': ['admin', 'owner', 'manager', 'employee'],
+      'inventory': ['admin', 'owner', 'manager', 'technician'],
+      'staff': ['admin', 'owner', 'manager'],
+      'system': ['admin', 'owner', 'manager', 'employee', 'technician', 'user'],
+    };
+
+    final allowedRoles = rolePermissions[notificationType] ?? [];
+    return allowedRoles.contains(_userRole) || UserService.isCurrentUserSuperAdmin();
   }
 
   Future<void> _sendTestNotification() async {
@@ -268,45 +484,73 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
     }
   }
 
+  Future<void> _refreshFCMToken() async {
+    try {
+      await NotificationService.refreshFCMToken();
+      NotificationService.showSnackBar(
+        'Đã làm mới FCM token!',
+        color: Colors.green,
+      );
+    } catch (e) {
+      NotificationService.showSnackBar(
+        'Lỗi làm mới token: $e',
+        color: Colors.red,
+      );
+    }
+  }
+
   Widget _buildInfoCard() {
     return Card(
-      color: Colors.blue.shade50,
+      color: Colors.grey.shade50,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
       ),
-      child: const Padding(
-        padding: EdgeInsets.all(16),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Icon(Icons.info_outline, color: Colors.blue),
-                SizedBox(width: 8),
+                Icon(Icons.info_outline, color: Colors.blue.shade700),
+                const SizedBox(width: 8),
                 Text(
-                  'Lưu ý',
+                  'THÔNG TIN THÔNG BÁO',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: Colors.blue,
+                    color: Colors.blue.shade700,
                   ),
                 ),
               ],
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 12),
             Text(
-              '• Thông báo quan trọng (đơn hàng, thanh toán) luôn được ưu tiên\n'
-              '• Bạn có thể bật/tắt từng loại thông báo theo nhu cầu\n'
-              '• Thông báo sẽ được gửi ngay cả khi ứng dụng đang đóng\n'
-              '• Kiểm tra cài đặt hệ thống để đảm bảo quyền thông báo được bật',
-              style: const TextStyle(
-                fontSize: 12,
-                color: Color(0xFF1976D2),
-                height: 1.5,
-              ),
+              '• Thông báo được gửi dựa trên vai trò của bạn\n'
+              '• Admin & Owner nhận tất cả thông báo\n'
+              '• Manager & Technician nhận thông báo quan trọng\n'
+              '• Employee chỉ nhận thông báo cá nhân',
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
             ),
           ],
         ),
       ),
     );
+  }
+
+  String _getRoleDisplayName(String role) {
+    switch (role) {
+      case 'owner':
+        return 'CHỦ SHOP';
+      case 'manager':
+        return 'QUẢN LÝ';
+      case 'employee':
+        return 'NHÂN VIÊN';
+      case 'technician':
+        return 'KỸ THUẬT';
+      case 'admin':
+        return 'ADMIN';
+      default:
+        return role.toUpperCase();
+    }
   }
 }

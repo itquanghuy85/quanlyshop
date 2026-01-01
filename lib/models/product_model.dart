@@ -13,6 +13,7 @@ class Product {
   String? images;
   String? warranty;
   int createdAt;
+  int? updatedAt;
   String? supplier;
   String type;
   int quantity;
@@ -36,6 +37,7 @@ class Product {
     this.images,
     this.warranty,
     required this.createdAt,
+    this.updatedAt,
     this.supplier,
     this.type = 'PHONE',
     this.quantity = 1,
@@ -61,6 +63,7 @@ class Product {
       'images': images,
       'warranty': warranty,
       'createdAt': createdAt,
+      'updatedAt': updatedAt,
       'supplier': supplier,
       'type': type,
       'quantity': quantity,
@@ -87,6 +90,7 @@ class Product {
       images: map['images'],
       warranty: map['warranty'],
       createdAt: map['createdAt'] is int ? map['createdAt'] : 0,
+      updatedAt: map['updatedAt'] is int ? map['updatedAt'] : null,
       supplier: map['supplier'],
       type: map['type'] ?? 'PHONE',
       quantity: (map['quantity'] is int ? map['quantity'] : 1) < 0 ? 0 : (map['quantity'] is int ? map['quantity'] : 1),
@@ -136,6 +140,7 @@ class Product {
       images: images ?? this.images,
       warranty: warranty ?? this.warranty,
       createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
       supplier: supplier ?? this.supplier,
       type: type ?? this.type,
       quantity: quantity ?? this.quantity,

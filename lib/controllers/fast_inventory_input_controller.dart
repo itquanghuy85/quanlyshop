@@ -1,5 +1,6 @@
 import '../data/db_helper.dart';
 import '../models/product_model.dart';
+import '../services/user_service.dart';
 import '../services/firestore_service.dart';
 import '../utils/sku_generator.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -184,13 +185,13 @@ class FastInventoryInputController {
       (s) => s['name'] == data['supplier'],
       orElse: () => {},
     );
+    final shopId = await UserService.getCurrentShopId();
 
     if (supplierData.isNotEmpty) {
       final supplierId = supplierData['id'];
 
       // Insert import history
       final importHistory = {
-        'firestoreId': "import_${product.createdAt}_${product.imei ?? product.createdAt}",
         'supplierId': supplierId,
         'supplierName': data['supplier'],
         'productName': product.name,
@@ -204,6 +205,7 @@ class FastInventoryInputController {
         'importDate': product.createdAt,
         'importedBy': data['importedBy'] ?? "NV",
         'notes': 'Nhập từ Fast Inventory Input',
+        'shopId': shopId,
         'isSynced': 0,
       };
       await txn.insert('supplier_import_history', importHistory);
@@ -223,6 +225,7 @@ class FastInventoryInputController {
         'lastUpdated': product.createdAt,
         'createdAt': product.createdAt,
         'isActive': 1,
+        'shopId': shopId,
       };
       await txn.insert('supplier_product_prices', supplierPrice);
 

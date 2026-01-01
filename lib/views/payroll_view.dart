@@ -26,6 +26,7 @@ class _PayrollViewState extends State<PayrollView> {
   final TextEditingController _customStaff = TextEditingController();
   String _role = 'user';
   bool _monthLocked = false;
+  bool _hasPermission = false;
 
   Map<String, double> _basePerDay = {}; // staff -> base per day
   Map<String, double> _hoursPerDay = {}; // staff -> expected hours
@@ -34,10 +35,17 @@ class _PayrollViewState extends State<PayrollView> {
   @override
   void initState() {
     super.initState();
+    _checkPermission();
     _loadRole();
     _load();
     _loadPrefs();
     _refreshLockState();
+  }
+
+  Future<void> _checkPermission() async {
+    final perms = await UserService.getCurrentUserPermissions();
+    if (!mounted) return;
+    setState(() => _hasPermission = perms['allowViewAttendance'] ?? false);
   }
 
   @override
@@ -104,12 +112,36 @@ class _PayrollViewState extends State<PayrollView> {
   Map<String, dynamic> _calc() {
     final staffKey = (_selectedStaff ?? _customStaff.text).trim().toUpperCase();
     final base = _getBase(staffKey);
-    final hoursStd = _getHours(staffKey);
     final otRate = _getOt(staffKey);
 
     double totalHours = 0;
     double otHours = 0;
     int days = 0;
+    double hoursStd = 8.0; // default
+
+    // Get work schedule from first attendance record of this staff
+    final staffAtt = _filteredAtt.where((a) => (a.name ?? '').toString().toUpperCase() == staffKey).toList();
+    if (staffAtt.isNotEmpty) {
+      final firstAtt = staffAtt.first;
+      if (firstAtt.workSchedule != null && firstAtt.workSchedule!.isNotEmpty) {
+        try {
+          final schedule = firstAtt.workSchedule!.split('-');
+          if (schedule.length == 2) {
+            final start = schedule[0].split(':');
+            final end = schedule[1].split(':');
+            final startHour = int.tryParse(start[0]) ?? 8;
+            final startMin = int.tryParse(start[1]) ?? 0;
+            final endHour = int.tryParse(end[0]) ?? 17;
+            final endMin = int.tryParse(end[1]) ?? 0;
+            final duration = (endHour * 60 + endMin) - (startHour * 60 + startMin);
+            hoursStd = duration / 60.0;
+          }
+        } catch (e) {
+          // fallback to default 8 hours
+          hoursStd = 8.0;
+        }
+      }
+    }
 
     for (final a in _filteredAtt) {
       final inMs = a.checkInAt;
@@ -168,7 +200,6 @@ class _PayrollViewState extends State<PayrollView> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) {
           baseCtrl.addListener(() => setS(() {}));
-          hourCtrl.addListener(() => setS(() {}));
           otCtrl.addListener(() => setS(() {}));
           return AlertDialog(
             title: Text('Cài công thức: $staff'),
@@ -176,7 +207,7 @@ class _PayrollViewState extends State<PayrollView> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 ValidatedTextField(controller: baseCtrl, label: 'Lương ngày (đ)', icon: Icons.attach_money, keyboardType: TextInputType.number, required: true),
-                ValidatedTextField(controller: hourCtrl, label: 'Giờ chuẩn/ngày', icon: Icons.schedule, keyboardType: TextInputType.number, required: true), 
+                Text('Giờ chuẩn/ngày: ${_getHours(staff).toStringAsFixed(1)} (từ lịch làm việc)', style: TextStyle(color: Colors.grey)),
                 ValidatedTextField(controller: otCtrl, label: 'Hệ số OT (%)', icon: Icons.trending_up, keyboardType: TextInputType.number, required: true), 
               ],
             ),
@@ -196,7 +227,7 @@ class _PayrollViewState extends State<PayrollView> {
       final prefs = await SharedPreferences.getInstance();
       setState(() {
         _basePerDay[staff] = double.tryParse(baseCtrl.text) ?? 0;
-        _hoursPerDay[staff] = double.tryParse(hourCtrl.text) ?? 8;
+        // _hoursPerDay[staff] = double.tryParse(hourCtrl.text) ?? 8; // Now calculated from workSchedule
         _otRate[staff] = double.tryParse(otCtrl.text) ?? 150;
       });
       await prefs.setString('payroll_base', jsonEncode(_basePerDay));
@@ -264,6 +295,18 @@ class _PayrollViewState extends State<PayrollView> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_hasPermission) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('BẢNG LƯƠNG')),
+        body: const Center(
+          child: Text(
+            "Bạn không có quyền truy cập tính năng này",
+            style: TextStyle(fontSize: 16, color: Colors.grey),
+          ),
+        ),
+      );
+    }
+
     final summary = _calc();
     return Scaffold(
       appBar: AppBar(title: const Text('BẢNG LƯƠNG'), automaticallyImplyLeading: true),

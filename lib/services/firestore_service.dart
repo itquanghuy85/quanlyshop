@@ -1,11 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/repair_model.dart';
 import '../models/product_model.dart';
 import '../models/sale_order_model.dart';
 import '../models/purchase_order_model.dart';
 import '../models/attendance_model.dart';
 import '../models/quick_input_code_model.dart';
+import '../models/repair_partner_model.dart';
+import '../models/partner_repair_history_model.dart';
 import 'user_service.dart';
 import 'notification_service.dart';
 
@@ -476,6 +479,173 @@ class FirestoreService {
     } catch (e) {
       debugPrint('Error getting quick input codes: $e');
       return [];
+    }
+  }
+
+  // --- NOTIFICATIONS ---
+  static Future<void> createNotification({
+    required String title,
+    required String body,
+    required String type,
+    String? userId,
+    Map<String, dynamic>? data,
+    String priority = 'normal',
+  }) async {
+    try {
+      final shopId = await UserService.getCurrentShopId();
+      final currentUser = FirebaseAuth.instance.currentUser;
+
+      if (shopId == null) return;
+
+      final notificationData = {
+        'shopId': shopId,
+        'userId': userId,
+        'title': title,
+        'body': body,
+        'type': type,
+        'priority': priority,
+        'isRead': false,
+        'senderId': currentUser?.uid ?? 'system',
+        'senderName': currentUser?.email?.split('@').first.toUpperCase() ?? 'SYSTEM',
+        'data': data ?? {},
+        'createdAt': FieldValue.serverTimestamp(),
+        'expiresAt': Timestamp.fromDate(DateTime.now().add(const Duration(days: 30))),
+      };
+
+      await _db.collection('notifications').add(notificationData);
+
+      // Đồng thời gửi FCM push
+      await NotificationService.sendCloudNotification(
+        title: title,
+        body: body,
+        type: type,
+        targetUserId: userId,
+      );
+
+    } catch (e) {
+      debugPrint('Error creating notification: $e');
+    }
+  }
+
+  static Stream<List<Map<String, dynamic>>> getUserNotifications() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return Stream.value([]);
+
+    return UserService.getCurrentShopId().asStream().asyncExpand((shopId) {
+      if (shopId == null) return Stream.value([]);
+
+      return _db
+        .collection('notifications')
+        .where('shopId', isEqualTo: shopId)
+        .where(Filter.or(
+          Filter('userId', isEqualTo: user.uid),
+          Filter('userId', isNull: true)
+        ))
+        .orderBy('createdAt', descending: true)
+        .limit(50)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) => {
+          ...doc.data(),
+          'id': doc.id,
+        }).toList())
+        .handleError((error) {
+          debugPrint('Error in notifications stream: $error');
+          return [];
+        });
+    });
+  }
+
+  static Future<void> markNotificationAsRead(String notificationId) async {
+    try {
+      await _db.collection('notifications').doc(notificationId).update({
+        'isRead': true,
+        'readAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      debugPrint('Error marking notification as read: $e');
+    }
+  }
+
+  static Stream<int> getUnreadCount() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return Stream.value(0);
+
+    return UserService.getCurrentShopId().asStream().asyncExpand((shopId) {
+      if (shopId == null) return Stream.value(0);
+
+      return _db
+        .collection('notifications')
+        .where('shopId', isEqualTo: shopId)
+        .where('isRead', isEqualTo: false)
+        .where(Filter.or(
+          Filter('userId', isEqualTo: user.uid),
+          Filter('userId', isNull: true)
+        ))
+        .snapshots()
+        .map((snapshot) => snapshot.docs.length)
+        .handleError((error) {
+          debugPrint('Error in unread count stream: $error');
+          return 0;
+        });
+    });
+  }
+
+  // --- REPAIR PARTNERS ---
+  static Future<String?> addRepairPartner(Map<String, dynamic> partnerData) async {
+    try {
+      final shopId = await UserService.getCurrentShopId();
+      if (shopId == null && !UserService.isCurrentUserSuperAdmin()) {
+        throw Exception('Không tìm thấy thông tin cửa hàng. Vui lòng liên hệ quản trị viên.');
+      }
+      final docId = partnerData['firestoreId'] ?? "partner_${DateTime.now().millisecondsSinceEpoch}";
+      final docRef = _db.collection('repair_partners').doc(docId);
+      partnerData['shopId'] = shopId;
+      partnerData['firestoreId'] = docRef.id;
+      await docRef.set(partnerData, SetOptions(merge: true));
+      return docRef.id;
+    } catch (e) {
+      debugPrint('Firestore addRepairPartner error: $e');
+      return null;
+    }
+  }
+
+  static Future<void> updateRepairPartner(Map<String, dynamic> partnerData) async {
+    try {
+      final firestoreId = partnerData['firestoreId'];
+      if (firestoreId == null) return;
+      await _db.collection('repair_partners').doc(firestoreId).update(partnerData);
+    } catch (e) {
+      debugPrint('Firestore updateRepairPartner error: $e');
+    }
+  }
+
+  static Future<void> deleteRepairPartner(int partnerId) async {
+    try {
+      // Note: We need to get the firestoreId from the local DB first
+      // This method assumes the caller has the firestoreId
+      // In practice, this would be called from the service layer
+      debugPrint('Firestore deleteRepairPartner not implemented - needs firestoreId');
+    } catch (e) {
+      debugPrint('Firestore deleteRepairPartner error: $e');
+    }
+  }
+
+  // --- PARTNER REPAIR HISTORY ---
+  static Future<String?> addPartnerRepairHistory(Map<String, dynamic> historyData) async {
+    try {
+      final shopId = await UserService.getCurrentShopId();
+      if (shopId == null && !UserService.isCurrentUserSuperAdmin()) {
+        throw Exception('Không tìm thấy thông tin cửa hàng. Vui lòng liên hệ quản trị viên.');
+      }
+      final docId = historyData['firestoreId'] ?? "partner_history_${DateTime.now().millisecondsSinceEpoch}";
+      final docRef = _db.collection('partner_repair_history').doc(docId);
+      historyData['shopId'] = shopId;
+      historyData['firestoreId'] = docRef.id;
+      await docRef.set(historyData, SetOptions(merge: true));
+      return docRef.id;
+    } catch (e) {
+      debugPrint('Firestore addPartnerRepairHistory error: $e');
+      return null;
     }
   }
 }

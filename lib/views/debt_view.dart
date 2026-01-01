@@ -7,6 +7,7 @@ import '../services/notification_service.dart';
 import '../services/firestore_service.dart';
 import '../services/sync_service.dart';
 import '../services/event_bus.dart';
+import '../services/user_service.dart';
 import '../widgets/currency_text_field.dart';
 
 class DebtView extends StatefulWidget {
@@ -23,11 +24,13 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
   bool _isSyncing = false;
   String _syncStatus = 'Đã đồng bộ';
   StreamSubscription<String>? _eventSub;
+  bool _hasPermission = false;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _checkPermission();
     _loadRole();
     _refresh();
 
@@ -46,6 +49,12 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
 
   Future<void> _loadRole() async {
     // Role loading not needed for current functionality
+  }
+
+  Future<void> _checkPermission() async {
+    final perms = await UserService.getCurrentUserPermissions();
+    if (!mounted) return;
+    setState(() => _hasPermission = perms['allowViewDebts'] ?? false);
   }
 
   Future<void> _refresh() async {
@@ -214,7 +223,7 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
                   'totalAmount': newDebtAmount,
                   'paidAmount': 0,
                   'type': debt['type'],
-                  'status': 'unpaid',
+                  'status': 'ACTIVE',
                   'createdAt': now,
                   'note': "Dư nợ chuyển sang từ đơn ngày ${DateFormat('dd/MM').format(DateTime.fromMillisecondsSinceEpoch(debt['createdAt']))}",
                   'linkedId': debt['linkedId'],
@@ -250,6 +259,13 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
                     await FirestoreService.addPurchaseOrder(purchase);
                   }
                 }
+              }
+
+              // Clean any potential duplicate data after debt payment
+              try {
+                await db.cleanDuplicateData();
+              } catch (e) {
+                debugPrint('Error cleaning duplicate data: $e');
               }
 
               // 4. Đồng bộ Cloud

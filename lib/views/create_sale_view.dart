@@ -6,10 +6,12 @@ import '../models/product_model.dart';
 import '../models/sale_order_model.dart';
 import '../services/notification_service.dart';
 import '../services/firestore_service.dart';
+import '../services/user_service.dart';
 import '../widgets/validated_text_field.dart';
 import '../widgets/debounced_search_field.dart';
 import '../widgets/currency_text_field.dart';
-import 'supplier_view.dart'; 
+import 'supplier_view.dart';
+import 'stock_in_view.dart'; 
 
 class CreateSaleView extends StatefulWidget {
   final Product? preSelectedProduct; 
@@ -43,6 +45,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
   List<Product> _filteredInStock = [];
   bool _isLoading = true;
   bool _isSaving = false;
+  bool _hasPermission = false;
 
   // Focus management cho IMEI fields
   final Map<String, FocusNode> _imeiFocusNodes = {};
@@ -51,8 +54,15 @@ class _CreateSaleViewState extends State<CreateSaleView> {
   @override
   void initState() {
     super.initState();
+    _checkPermission();
     _loadData();
     downPaymentCtrl.addListener(_calculateInstallment);
+  }
+
+  Future<void> _checkPermission() async {
+    final perms = await UserService.getCurrentUserPermissions();
+    if (!mounted) return;
+    setState(() => _hasPermission = perms['allowViewSales'] ?? false);
   }
 
   @override
@@ -168,6 +178,11 @@ class _CreateSaleViewState extends State<CreateSaleView> {
     if (_isSaving) return;
     if (_selectedItems.isEmpty) { NotificationService.showSnackBar("VUI LÒNG CHỌN SẢN PHẨM", color: Colors.red); return; }
     if (nameCtrl.text.isEmpty || phoneCtrl.text.isEmpty) { NotificationService.showSnackBar("NHẬP ĐỦ THÔNG TIN KHÁCH", color: Colors.red); return; }
+    
+    // Validate phone format
+    final phoneError = UserService.validatePhone(phoneCtrl.text.trim());
+    if (phoneError != null) { NotificationService.showSnackBar(phoneError, color: Colors.red); return; }
+    
     setState(() => _isSaving = true);
     try {
       final now = DateTime.now().millisecondsSinceEpoch;
@@ -177,6 +192,23 @@ class _CreateSaleViewState extends State<CreateSaleView> {
       int paidAmount = _parseCurrency(downPaymentCtrl.text);
       if (paidAmount > 0 && paidAmount < 100000) paidAmount *= 1000;
       if (_paymentMethod != "CÔNG NỢ" && _paymentMethod != "TRẢ GÓP (NH)" && paidAmount == 0) paidAmount = totalPrice;
+      
+      int totalCost = _selectedItems.fold(0, (sum, item) => sum + ((item['product'] as Product).cost * (item['quantity'] as int)));
+      
+      // Debug logging
+      debugPrint("Sale debug - totalPrice: $totalPrice, totalCost: $totalCost, selectedItems: ${_selectedItems.length}");
+      
+      // Validate totals
+      if (totalPrice <= 0) {
+        NotificationService.showSnackBar("TỔNG TIỀN PHẢI LỚN HƠN 0", color: Colors.red);
+        setState(() => _isSaving = false);
+        return;
+      }
+      if (totalCost < 0) {
+        NotificationService.showSnackBar("TỔNG GIÁ VỐN KHÔNG ĐƯỢC ÂM", color: Colors.red);
+        setState(() => _isSaving = false);
+        return;
+      }
       
       final sale = SaleOrder(
         firestoreId: uniqueId, 
@@ -212,7 +244,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
       );
       
       if (_paymentMethod == "CÔNG NỢ" || (_paymentMethod != "TRẢ GÓP (NH)" && paidAmount < totalPrice)) {
-        await db.insertDebt({'personName': nameCtrl.text.trim().toUpperCase(), 'phone': phoneCtrl.text.trim(), 'totalAmount': totalPrice, 'paidAmount': paidAmount, 'type': "CUSTOMER_OWES", 'status': "unpaid", 'createdAt': now, 'note': "Nợ mua máy: ${sale.productNames}", 'linkedId': uniqueId});
+        await db.insertDebt({'personName': nameCtrl.text.trim().toUpperCase(), 'phone': phoneCtrl.text.trim(), 'totalAmount': totalPrice, 'paidAmount': paidAmount, 'type': "CUSTOMER_OWES", 'status': "ACTIVE", 'createdAt': now, 'note': "Nợ mua máy: ${sale.productNames}", 'linkedId': uniqueId});
       }
       for (var item in _selectedItems) {
         final p = item['product'] as Product;
@@ -247,17 +279,59 @@ class _CreateSaleViewState extends State<CreateSaleView> {
           p.status = 0;
         }
         
+        // Check for low inventory after stock reduction
+        try {
+          await NotificationService.checkAndNotifyLowInventory(p.firestoreId ?? p.id.toString(), p.name, p.quantity, 5);
+        } catch (e) {
+          debugPrint('Failed to check low inventory: $e');
+        }
+        
         // Sync lên cloud
         await FirestoreService.updateProductCloud(p);
       }
       await db.upsertSale(sale); await FirestoreService.addSale(sale);
+      
+      // Trigger payment notification if payment is completed
+      if (_paymentMethod != "CÔNG NỢ" && !_isInstallment) {
+        try {
+          await NotificationService.notifyPaymentCompleted(
+            sale.firestoreId ?? 'SALE_${sale.soldAt}_${sale.sellerName}',
+            totalPrice.toDouble(),
+            _paymentMethod
+          );
+        } catch (e) {
+          debugPrint('Failed to send payment notification: $e');
+          // Don't fail the sale if notification fails
+        }
+      }
+      
       NotificationService.showSnackBar("ĐÃ BÁN HÀNG THÀNH CÔNG!", color: Colors.green);
       if (mounted) Navigator.pop(context, true);
-    } catch (e) { setState(() => _isSaving = false); }
+    } catch (e) { 
+      setState(() => _isSaving = false); 
+      NotificationService.showSnackBar("LỖI KHI LƯU ĐƠN BÁN: ${e.toString()}", color: Colors.red);
+      debugPrint("Sale save error: $e");
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (!_hasPermission) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text("TẠO ĐƠN BÁN HÀNG"),
+          backgroundColor: Colors.pinkAccent,
+          foregroundColor: Colors.white,
+        ),
+        body: const Center(
+          child: Text(
+            "Bạn không có quyền truy cập tính năng này",
+            style: TextStyle(fontSize: 16, color: Colors.grey),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFF),
       appBar: AppBar(
@@ -273,6 +347,10 @@ class _CreateSaleViewState extends State<CreateSaleView> {
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           _sectionTitle("1. CHỌN SẢN PHẨM TRONG KHO"),
           DebouncedSearchField(controller: searchProdCtrl, hint: "Tìm máy hoặc IMEI...", onSearch: (v) => setState(() => _filteredInStock = _allInStock.where((p) => p.name.contains(v.toUpperCase()) || (p.imei ?? "").contains(v)).toList())),
+          
+          // Hiển thị hướng dẫn nếu kho trống
+          if (_allInStock.isEmpty) _buildEmptyStockGuidance(),
+          
           if (searchProdCtrl.text.isNotEmpty) _buildSearchResults(),
           _buildSelectedItemsList(),
           const SizedBox(height: 20),
@@ -284,7 +362,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
           _sectionTitle("3. THANH TOÁN & BẢO HÀNH"),
           _buildPaymentSection(),
           const SizedBox(height: 30),
-          SizedBox(width: double.infinity, height: 55, child: ElevatedButton(onPressed: _isSaving ? null : _processSale, style: ElevatedButton.styleFrom(backgroundColor: Colors.green, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))), child: _isSaving ? const CircularProgressIndicator(color: Colors.white) : const Text("HOÀN TẤT ĐƠN HÀNG", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)))),
+          SizedBox(width: double.infinity, height: 55, child: ElevatedButton(onPressed: (_isSaving || _selectedItems.isEmpty) ? null : _processSale, style: ElevatedButton.styleFrom(backgroundColor: _selectedItems.isEmpty ? Colors.grey : Colors.green, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))), child: _isSaving ? const CircularProgressIndicator(color: Colors.white) : Text(_selectedItems.isEmpty ? "CHƯA CHỌN SẢN PHẨM" : "HOÀN TẤT ĐƠN HÀNG", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)))),
         ]),
       ),
     );
@@ -332,11 +410,20 @@ class _CreateSaleViewState extends State<CreateSaleView> {
           trailing: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.add_circle, color: Colors.green),
-              Text("Tồn: ${p.quantity}", style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.orange)),
+              Icon(p.quantity > 0 ? Icons.add_circle : Icons.warning, color: p.quantity > 0 ? Colors.green : Colors.red),
+              Text("Tồn: ${p.quantity}", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: p.quantity > 0 ? Colors.orange : Colors.red)),
             ],
           ),
-          onTap: () => _addItem(p)
+          onTap: () {
+            if (p.quantity == 0) {
+              NotificationService.showSnackBar(
+                "Sản phẩm '${p.name}' chưa có trong kho!\nVui lòng tạo nhà cung cấp và nhập kho trước khi bán.",
+                color: Colors.red
+              );
+              return;
+            }
+            _addItem(p);
+          }
         ); 
       })
     );
@@ -465,5 +552,88 @@ class _CreateSaleViewState extends State<CreateSaleView> {
   Widget _buildCustomerSuggestions() {
     if (_suggestCustomers.isEmpty) return const SizedBox();
     return SizedBox(height: 40, child: ListView.builder(scrollDirection: Axis.horizontal, itemCount: _suggestCustomers.length, itemBuilder: (ctx, i) => Padding(padding: const EdgeInsets.only(right: 8), child: ActionChip(label: Text(_suggestCustomers[i]['customerName']), onPressed: () { nameCtrl.text = _suggestCustomers[i]['customerName']; phoneCtrl.text = _suggestCustomers[i]['phone']; setState(() => _suggestCustomers = []); }))));
+  }
+
+  Widget _buildEmptyStockGuidance() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.symmetric(vertical: 16),
+      decoration: BoxDecoration(
+        color: Colors.orange.shade50,
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: Colors.orange.shade200),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Icon(Icons.inventory_2_outlined, color: Colors.orange.shade700, size: 28),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'KHO HÀNG TRỐNG',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.orange.shade700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Shop của bạn chưa có hàng trong kho. Để bán hàng, vui lòng:',
+            style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SupplierView()),
+                    );
+                  },
+                  icon: const Icon(Icons.business_center, size: 18),
+                  label: const Text('TẠO NHÀ CUNG CẤP'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const StockInView()),
+                    );
+                  },
+                  icon: const Icon(Icons.add_box, size: 18),
+                  label: const Text('NHẬP KHO'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }

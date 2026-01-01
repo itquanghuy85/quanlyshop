@@ -178,13 +178,11 @@ class AuthGate extends StatefulWidget {
 }
 
 class _AuthGateState extends State<AuthGate> {
-  bool _isInitializing = false;
 
   @override
   void initState() {
     super.initState();
     _initNotificationListener();
-    _initSyncService();
   }
 
   void _initNotificationListener() {
@@ -195,17 +193,9 @@ class _AuthGateState extends State<AuthGate> {
     });
   }
 
-  Future<void> _initSyncService() async {
-    if (_isInitializing) return;
-    _isInitializing = true;
-    try {
-      // Khởi tạo sync service khi user đăng nhập
-      await SyncService.initRealTimeSync(() {
-        if (mounted) setState(() {});
-      });
-    } finally {
-      _isInitializing = false;
-    }
+  Future<String> _getRoleAfterSync(String uid, String email) async {
+    await UserService.syncUserInfo(uid, email);
+    return UserService.getUserRole(uid);
   }
 
   @override
@@ -219,7 +209,7 @@ class _AuthGateState extends State<AuthGate> {
         final uid = snap.data!.uid; // Note: snap.data is guaranteed non-null here due to !snap.hasData check above
 
         return FutureBuilder<String>(
-          future: UserService.getUserRole(uid),
+          future: _getRoleAfterSync(uid, snap.data!.email!).timeout(const Duration(seconds: 15)),
           builder: (context, roleSnap) {
             if (roleSnap.connectionState == ConnectionState.waiting) return const Scaffold(body: Center(child: CircularProgressIndicator()));
             if (roleSnap.hasError || !roleSnap.hasData) {

@@ -46,14 +46,15 @@ class Debt {
 
   factory Debt.fromMap(Map<String, dynamic> map) {
     final totalAmount = map['totalAmount'] is int ? map['totalAmount'] : 0;
+    final totalAmountSafe = totalAmount < 0 ? 0 : totalAmount;
     final paidAmountRaw = map['paidAmount'] is int ? map['paidAmount'] : 0;
-    final paidAmount = paidAmountRaw > totalAmount ? totalAmount : paidAmountRaw;
+    final paidAmount = paidAmountRaw > totalAmountSafe ? totalAmountSafe : paidAmountRaw;
     return Debt(
       id: map['id'],
       firestoreId: map['firestoreId'],
       personName: map['personName'] ?? '',
       phone: map['phone'] ?? '',
-      totalAmount: totalAmount,
+      totalAmount: totalAmountSafe,
       paidAmount: paidAmount,
       type: map['type'] ?? 'OWE',
       status: map['status'] ?? 'ACTIVE',

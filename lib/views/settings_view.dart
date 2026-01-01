@@ -6,6 +6,8 @@ import '../services/notification_service.dart';
 import '../data/db_helper.dart';
 import '../services/sync_service.dart';
 import 'staff_permissions_view.dart';
+import 'shop_settings_view.dart';
+import 'repair_partner_list_view.dart';
 
 class SettingsView extends StatefulWidget {
   final void Function(Locale)? setLocale;
@@ -168,6 +170,70 @@ class _SettingsViewState extends State<SettingsView> {
               child: Text(_getRoleDisplayName(_role), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: Colors.blue)),
             ),
           ),
+          const SizedBox(height: 15),
+          Card(
+            color: Colors.red.shade50,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15), side: BorderSide(color: Colors.red.shade200)),
+            child: ListTile(
+              leading: const Icon(Icons.logout, color: Colors.red),
+              title: const Text("ĐĂNG XUẤT TÀI KHOẢN", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+              subtitle: const Text("Đăng xuất khỏi ứng dụng", style: TextStyle(fontSize: 11)),
+              onTap: () async {
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text("Đăng xuất?"),
+                    content: const Text("Bạn có chắc muốn đăng xuất khỏi tài khoản?"),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("HỦY")),
+                      ElevatedButton(
+                        onPressed: () => Navigator.pop(ctx, true),
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                        child: const Text("ĐĂNG XUẤT", style: TextStyle(color: Colors.white)),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirm == true) {
+                  await SyncService.cancelAllSubscriptions();
+                  try {
+                    await FirebaseAuth.instance.signOut();
+                  } catch (e) {
+                    debugPrint('Logout error: $e');
+                  }
+                  if (mounted) Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+                }
+              },
+            ),
+          ),
+          
+          // QUẢN TRỊ SHOP CHO OWNER/MANAGER
+          if (_role == 'owner' || _role == 'manager') ...[
+            const SizedBox(height: 30),
+            _buildSection("QUẢN TRỊ SHOP"),
+            Card(
+              color: Colors.purple.shade50,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15), side: BorderSide(color: Colors.purple.shade200)),
+              child: ListTile(
+                leading: const Icon(Icons.store, color: Colors.purple),
+                title: const Text("THÔNG TIN CỬA HÀNG", style: TextStyle(color: Colors.purple, fontWeight: FontWeight.bold)),
+                subtitle: const Text("Cập nhật logo, thông tin, địa chỉ và quản lý thành viên", style: TextStyle(fontSize: 11)),
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ShopSettingsView())),
+              ),
+            ),
+            const SizedBox(height: 15),
+            Card(
+              color: Colors.orange.shade50,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15), side: BorderSide(color: Colors.orange.shade200)),
+              child: ListTile(
+                leading: const Icon(Icons.business, color: Colors.orange),
+                title: const Text("ĐỐI TÁC SỬA CHỮA", style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
+                subtitle: const Text("Quản lý đối tác ngoài, gửi máy sửa chữa và theo dõi chi phí", style: TextStyle(fontSize: 11)),
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => RepairPartnerListView())),
+              ),
+            ),
+            const SizedBox(height: 15),
+          ],
           
           // NÚT XÓA TRẮNG CHỈ HIỆN CHO SUPER ADMIN
           if (UserService.isCurrentUserSuperAdmin()) ...[

@@ -5,12 +5,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../data/db_helper.dart';
 import '../models/purchase_order_model.dart';
 import '../models/product_model.dart';
+import '../models/debt_model.dart';
 import '../services/firestore_service.dart';
 import '../services/user_service.dart';
-import '../services/notification_service.dart';
-import '../services/logging_service.dart';
-import '../widgets/validated_text_field.dart';
-import '../widgets/currency_text_field.dart';
 
 class CreatePurchaseOrderView extends StatefulWidget {
   const CreatePurchaseOrderView({super.key});
@@ -137,24 +134,31 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
       // Save to local DB
       await db.insertPurchaseOrder(order);
 
-      // If payment method is debt, create a debt record
+      // If payment method is debt, create a debt record - ĐƠN GIẢN
       if (_paymentMethod == 'CÔNG NỢ') {
-        final debt = {
-          'personName': supplierNameCtrl.text.trim(),
-          'personPhone': supplierPhoneCtrl.text.trim(),
-          'amount': order.totalCost,
-          'remainingAmount': order.totalCost,
-          'status': 'UNPAID',
-          'createdAt': DateTime.now().millisecondsSinceEpoch,
-          'createdBy': _currentUserName,
-          'linkedId': order.orderCode, // Link to purchase order
-          'note': 'Đơn nhập hàng ${order.orderCode}',
-        };
-        await db.insertDebt(debt);
+        final supplierData = _suppliers.firstWhere((s) => s['name'] == supplierNameCtrl.text.trim(), orElse: () => {});
+
+        final debt = Debt(
+          personName: supplierNameCtrl.text.trim(),
+          phone: supplierPhoneCtrl.text.trim(),
+          totalAmount: order.totalCost,
+          paidAmount: 0,
+          type: "SHOP_OWES",
+          status: "ACTIVE",
+          createdAt: DateTime.now().millisecondsSinceEpoch,
+          note: 'Đơn nhập hàng ${order.orderCode}',
+          linkedId: order.orderCode,
+        );
+
+        debugPrint('Creating purchase order debt: $debt');
+        await db.upsertDebt(debt);
+        debugPrint('Purchase order debt created successfully');
 
         // Sync to Firestore
-        await FirestoreService.addDebtCloud(debt);
-        await db.updateDebt(debt);
+        await FirestoreService.addDebtCloud(debt.toMap());
+
+        // Notify UI update
+        EventBus().emit('debts_changed');
       }
 
       // Save to Firestore

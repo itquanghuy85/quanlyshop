@@ -7,6 +7,7 @@ import '../models/product_model.dart';
 import '../models/debt_model.dart';
 import '../models/quick_input_code_model.dart';
 import '../services/notification_service.dart';
+import '../services/user_service.dart';
 import '../services/firestore_service.dart';
 import '../services/event_bus.dart';
 import '../utils/money_utils.dart';
@@ -66,7 +67,7 @@ class _FastStockInViewState extends State<FastStockInView> {
 
   // Model suggestions based on brand
   final Map<String, List<String>> modelSuggestions = {
-    'IPHONE': ['15', '14', '13', '12', '11', 'X', '8', 'SE'],
+    'IPHONE': ['16', '17', '15', '14', '13', '12', '11', 'X','XS','XS MAX' '8', 'SE','PRO','PROMAX'],
     'SAMSUNG': ['S24', 'S23', 'S22', 'S21', 'A54', 'A34', 'A14'],
     'OPPO': ['A18', 'A17', 'A16', 'A15', 'F11', 'F9'],
     'REDMI': ['13C', '12C', '11', '10', '9', 'Note 12'],
@@ -305,9 +306,9 @@ class _FastStockInViewState extends State<FastStockInView> {
       // Lưu lịch sử nhập hàng từ nhà cung cấp
       final supplierData = suppliers.firstWhere((s) => s['name'] == selectedSupplier, orElse: () => {});
       final supplierId = supplierData['id'];
+      final shopId = await UserService.getCurrentShopId();
       if (supplierId != null) {
         final importHistory = {
-          'firestoreId': "import_${ts}_${imei}",
           'supplierId': supplierId,
           'supplierName': selectedSupplier,
           'productName': product.name,
@@ -321,6 +322,7 @@ class _FastStockInViewState extends State<FastStockInView> {
           'importDate': ts,
           'importedBy': FirebaseAuth.instance.currentUser?.email?.split('@').first.toUpperCase() ?? "NV",
           'notes': 'Nhập nhanh từ Fast Stock In',
+          'shopId': shopId,
           'isSynced': 0,
         };
         await db.insertSupplierImportHistory(importHistory);
@@ -336,6 +338,7 @@ class _FastStockInViewState extends State<FastStockInView> {
           'lastUpdated': ts,
           'createdAt': ts,
           'isActive': 1,
+          'shopId': shopId,
         };
         await db.insertSupplierProductPrice(supplierPrice);
 
@@ -343,65 +346,43 @@ class _FastStockInViewState extends State<FastStockInView> {
         await db.updateSupplierStats(supplierId);
       }
 
-      // If payment method is "Công nợ", create debt for supplier
+      // Xử lý công nợ nhà cung cấp - ĐƠN GIẢN VÀ TRỰC TIẾP
       if (selectedPaymentMethod == 'CÔNG NỢ') {
-        // Find supplier phone gracefully
-        final sup = suppliers.firstWhere((s) => s['name'] == selectedSupplier, orElse: () => {});
-        final supPhone = (sup.isNotEmpty ? (sup['phone'] ?? '').toString() : '');
+        final supplierData = suppliers.firstWhere((s) => s['name'] == selectedSupplier, orElse: () => {});
+        final supplierPhone = supplierData['phone']?.toString() ?? '';
 
+        // Tạo debt record đơn giản
         final debt = Debt(
           personName: selectedSupplier!,
-          phone: supPhone,
+          phone: supplierPhone,
           totalAmount: cost * quantity,
           paidAmount: 0,
-          type: 'SHOP_OWES', // mark as shop owes (supplier debt)
-          status: 'unpaid',
+          type: 'SHOP_OWES',
+          status: 'ACTIVE',
           createdAt: ts,
           note: 'Công nợ nhập hàng ${product.name}',
           linkedId: product.firestoreId,
         );
 
-        // Ensure a deterministic firestoreId so local insert and cloud doc use same id and avoid duplicates
-        debt.firestoreId = "debt_${ts}_${supPhone.isNotEmpty ? supPhone : 'ncc'}";
-
         try {
-          // Defensive: check if a similar debt already exists for this linked product to avoid duplicates
-          final existingDebts = await db.getAllDebts();
-          final dup = existingDebts.firstWhere((d) => d['linkedId'] == product.firestoreId && (d['totalAmount'] ?? 0) == (cost * quantity), orElse: () => {});
-          if (dup.isNotEmpty) {
-            debugPrint('FastStockIn: duplicate debt detected, skipping create for linkedId=${product.firestoreId}');
-            EventBus().emit('debts_changed');
-            NotificationService.showSnackBar("Khoản nợ đã tồn tại, bỏ qua tạo mới.", color: Colors.orange);
-            if (mounted) { Navigator.pop(context, true); return; }
-          }
-
-          debugPrint('FastStockIn: creating local debt with firestoreId=${debt.firestoreId}');
+          debugPrint('FastStockIn: Creating debt for supplier $selectedSupplier, amount: ${cost * quantity}');
           await db.upsertDebt(debt);
-          // Send full map including firestoreId to Firestore so server doc uses same id
-          try {
-            debugPrint('FastStockIn: pushing debt to cloud id=${debt.firestoreId}');
-            await FirestoreService.addDebtCloud(debt.toMap());
-          } catch (e) {
-            debugPrint('FastStockIn: addDebtCloud failed: $e');
-            // Don't block user; debt is saved locally and will sync later
-          }
+          debugPrint('FastStockIn: Debt created successfully, firestoreId: ${debt.firestoreId}');
 
-          // Notify other UI that debts changed (DebtView listens and will refresh)
+          // Sync to Firestore
+          await FirestoreService.addDebtCloud(debt.toMap());
+
+          // Notify UI update
           EventBus().emit('debts_changed');
 
-          // Inform user and close
-          NotificationService.showSnackBar("Đã tạo công nợ cho nhà cung cấp", color: Colors.green);
-          if (mounted) {
-            Navigator.pop(context, true);
-            return;
-          }
+          NotificationService.showSnackBar("Đã tạo công nợ cho nhà cung cấp!", color: Colors.green);
         } catch (e) {
-          debugPrint('FastStockIn: upsertDebt error: $e');
-          NotificationService.showSnackBar("Không thể tạo công nợ: $e", color: Colors.red);
-          // continue so product was already saved; user can retry debt creation separately
+          debugPrint('FastStockIn: Debt creation error: $e');
+          NotificationService.showSnackBar("Lỗi tạo công nợ: $e", color: Colors.red);
+          return; // Don't continue if debt creation fails
         }
-      } else if (selectedPaymentMethod == 'TIỀN MẶT' || selectedPaymentMethod == 'CHUYỂN KHOẢN') {
-        // Create an expense record for cash/transfer payments so costs are tracked
+      } else {
+        // Xử lý thanh toán tiền mặt/chuyển khoản - tạo expense record
         final exp = {
           'title': 'Nhập hàng - $selectedSupplier',
           'amount': cost * quantity,
@@ -414,7 +395,10 @@ class _FastStockInViewState extends State<FastStockInView> {
         try {
           await db.insertExpense(exp);
           await FirestoreService.addExpenseCloud(exp);
-        } catch (_) {}
+        } catch (e) {
+          debugPrint('FastStockIn: Failed to create expense: $e');
+          NotificationService.showSnackBar("Lỗi tạo chi phí: $e", color: Colors.red);
+        }
       }
 
       // Log action

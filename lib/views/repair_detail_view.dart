@@ -15,6 +15,7 @@ import '../models/printer_types.dart';
 import '../widgets/printer_selection_dialog.dart';
 import '../services/notification_service.dart';
 import '../services/firestore_service.dart';
+import '../services/user_service.dart';
 import '../data/db_helper.dart';
 import '../widgets/validated_text_field.dart';
 
@@ -32,12 +33,20 @@ class _RepairDetailViewState extends State<RepairDetailView> {
   bool _isUpdating = false;
   bool _isPrinting = false;
   String _shopName = ""; String _shopAddr = ""; String _shopPhone = "";
+  bool _hasPermission = false;
 
   @override
   void initState() {
     super.initState();
     r = widget.repair;
+    _checkPermission();
     _loadShopInfo();
+  }
+
+  Future<void> _checkPermission() async {
+    final perms = await UserService.getCurrentUserPermissions();
+    if (!mounted) return;
+    setState(() => _hasPermission = perms['allowViewRepairs'] ?? false);
   }
 
   Future<void> _loadShopInfo() async {
@@ -136,7 +145,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
           'totalAmount': r.price,
           'paidAmount': 0,
           'type': "CUSTOMER_OWES",
-          'status': "unpaid",
+          'status': "ACTIVE",
           'createdAt': DateTime.now().millisecondsSinceEpoch,
           'note': "Nợ tiền sửa máy: ${r.model}",
         });
@@ -174,25 +183,11 @@ class _RepairDetailViewState extends State<RepairDetailView> {
           // Update existing debt
           linkedDebt['amount'] = debtAmount;
           linkedDebt['remainingAmount'] = debtAmount - (linkedDebt['paidAmount'] ?? 0);
-          linkedDebt['status'] = linkedDebt['remainingAmount'] > 0 ? 'UNPAID' : 'PAID';
+          linkedDebt['status'] = linkedDebt['remainingAmount'] > 0 ? 'ACTIVE' : 'PAID';
           await db.updateDebt(linkedDebt);
           await FirestoreService.addDebtCloud(linkedDebt);
-        } else {
-          // Create new debt if not exists
-          final newDebt = {
-            'personName': r.customerName,
-            'personPhone': r.phone,
-            'amount': debtAmount,
-            'remainingAmount': debtAmount,
-            'status': 'UNPAID',
-            'createdAt': r.deliveredAt ?? r.createdAt,
-            'createdBy': r.createdBy,
-            'linkedId': r.firestoreId,
-            'note': 'Đơn sửa ${r.firestoreId}',
-          };
-          await db.insertDebt(newDebt);
-          await FirestoreService.addDebtCloud(newDebt);
         }
+        // Removed create new debt logic to avoid duplicates
       }
 
       NotificationService.showSnackBar("ĐÃ LƯU THAY ĐỔI ĐƠN HÀNG", color: Colors.green);
@@ -240,6 +235,20 @@ class _RepairDetailViewState extends State<RepairDetailView> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_hasPermission) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text("CHI TIẾT ĐƠN SỬA"),
+        ),
+        body: const Center(
+          child: Text(
+            "Bạn không có quyền truy cập tính năng này",
+            style: TextStyle(fontSize: 16, color: Colors.grey),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFF),
       appBar: AppBar(title: const Tooltip(message: "Theo dõi tiến độ sửa chữa và cập nhật trạng thái.", child: Text("CHI TIẾT ĐƠN SỬA", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))), automaticallyImplyLeading: true, actions: [IconButton(onPressed: _shareToZalo, icon: const Icon(Icons.share_rounded, color: Colors.green)), IconButton(onPressed: _printReceipt, icon: const Icon(Icons.print_rounded, color: Color(0xFF2962FF)))]),

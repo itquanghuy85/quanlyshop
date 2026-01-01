@@ -26,7 +26,9 @@ class _ChatViewState extends State<ChatView> {
   @override
   void initState() {
     super.initState();
-    _loadShop();
+    _loadShop().then((_) {
+      UserService.markChatAsRead(FirebaseAuth.instance.currentUser!.uid);
+    });
   }
 
   Future<void> _loadShop() async {

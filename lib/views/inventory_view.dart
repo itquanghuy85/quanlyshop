@@ -115,8 +115,9 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
     }
   }
 
-  void _showProductDetail(Product p) {
+  void _showProductDetail(Product p) async {
     HapticFeedback.lightImpact();
+    final repairs = await db.getRepairsByImei(p.imei ?? '');
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -152,7 +153,33 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
             _detailItem("Chi tiết máy", p.capacity ?? ""),
             _detailItem("IMEI/Serial", p.imei ?? "N/A"),
             _detailItem("Nhà cung cấp", p.supplier ?? "N/A"),
+            _detailItem("Giá nhập", "${NumberFormat('#,###').format(p.cost ?? 0)} đ"),
             _detailItem("Giá bán", "${NumberFormat('#,###').format(p.price)} đ", color: Colors.red),
+            _detailItem("Thanh toán", p.paymentMethod ?? "N/A"),
+            _detailItem("Cập nhật cuối", p.updatedAt != null ? DateFormat('dd/MM/yyyy HH:mm').format(DateTime.fromMillisecondsSinceEpoch(p.updatedAt!)) : "N/A", color: Colors.grey),
+            if (repairs.isNotEmpty) ...[
+              const Divider(height: 30),
+              const Text("LỊCH SỬ SỬA CHỮA", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF2962FF))),
+              const SizedBox(height: 10),
+              ...repairs.map((r) => Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey[300]!)
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text("Khách: ${r.customerName}", style: const TextStyle(fontWeight: FontWeight.bold)),
+                    Text("Vấn đề: ${r.issue}"),
+                    Text("Trạng thái: ${_getStatusText(r.status)}", style: TextStyle(color: _getStatusColor(r.status))),
+                    Text("Ngày nhận: ${DateFormat('dd/MM/yyyy').format(DateTime.fromMillisecondsSinceEpoch(r.createdAt))}", style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                  ]
+                )
+              )),
+            ],
             const Divider(height: 30),
             Row(
               children: [
@@ -198,11 +225,29 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
                     icon: const Icon(Icons.qr_code_2, color: Colors.white),
                     label: const Text(
                       "IN TEM QR",
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,
-                      padding: const EdgeInsets.symmetric(vertical: 15)
+                      padding: const EdgeInsets.symmetric(vertical: 8)
+                    )
+                  )
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      _editProduct(p);
+                    },
+                    icon: const Icon(Icons.edit, color: Colors.white),
+                    label: const Text(
+                      "CHỈNH SỬA",
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orange,
+                      padding: const EdgeInsets.symmetric(vertical: 8)
                     )
                   )
                 ),
@@ -216,11 +261,11 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
                     icon: const Icon(Icons.shopping_cart, color: Colors.white),
                     label: const Text(
                       "TẠO ĐƠN HÀNG",
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF2962FF),
-                      padding: const EdgeInsets.symmetric(vertical: 15)
+                      padding: const EdgeInsets.symmetric(vertical: 8)
                     )
                   )
                 ),
@@ -229,9 +274,9 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
                   child: OutlinedButton.icon(
                     onPressed: () => Navigator.pop(ctx),
                     icon: const Icon(Icons.close),
-                    label: const Text("ĐÓNG"),
+                    label: const Text("ĐÓNG", style: TextStyle(fontSize: 11)),
                     style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 15)
+                      padding: const EdgeInsets.symmetric(vertical: 8)
                     )
                   )
                 )
@@ -247,7 +292,7 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
     HapticFeedback.mediumImpact();
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const CreateSaleView()),
+      MaterialPageRoute(builder: (_) => CreateSaleView(preSelectedProduct: p)),
     ).then((_) => _refresh());
   }
 
@@ -355,6 +400,111 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
     );
   }
 
+  void _showProductActionDialog(Product p) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Chọn hành động'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.edit, color: Colors.blue),
+              title: const Text('Chỉnh sửa'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _showEditProductDialog(p);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete, color: Colors.red),
+              title: const Text('Xóa hàng trong kho'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _showDeleteConfirmation(p);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showDeleteConfirmation(Product p) {
+    final passwordCtrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Xác nhận xóa'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Nhập mật khẩu tài khoản để xóa sản phẩm này:'),
+            const SizedBox(height: 10),
+            TextField(
+              controller: passwordCtrl,
+              obscureText: true,
+              decoration: const InputDecoration(
+                labelText: 'Mật khẩu tài khoản',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Hủy'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (passwordCtrl.text.isEmpty) {
+                NotificationService.showSnackBar('Vui lòng nhập mật khẩu', color: Colors.red);
+                return;
+              }
+              
+              try {
+                final user = FirebaseAuth.instance.currentUser;
+                if (user?.email != null) {
+                  // Re-authenticate với mật khẩu tài khoản
+                  AuthCredential credential = EmailAuthProvider.credential(
+                    email: user!.email!,
+                    password: passwordCtrl.text,
+                  );
+                  await user.reauthenticateWithCredential(credential);
+                  
+                  Navigator.pop(ctx);
+                  await _deleteProduct(p);
+                }
+              } catch (e) {
+                NotificationService.showSnackBar('Mật khẩu không đúng', color: Colors.red);
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Xóa', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _deleteProduct(Product p) async {
+    try {
+      // Set quantity to 0 to "delete" from stock
+      final updatedProduct = p.copyWith(
+        quantity: 0,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+        isSynced: false,
+      );
+      await db.updateProduct(updatedProduct);
+      await FirestoreService.updateProductCloud(updatedProduct);
+      await _refresh();
+      NotificationService.showSnackBar('Đã xóa sản phẩm khỏi kho', color: Colors.green);
+    } catch (e) {
+      NotificationService.showSnackBar('Lỗi xóa sản phẩm: $e', color: Colors.red);
+    }
+  }
+
   Widget _detailItem(String l, String v, {Color? color}) => Padding(padding: const EdgeInsets.symmetric(vertical: 6), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(l, style: const TextStyle(color: Colors.blueGrey, fontSize: 13)), Text(v, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: color))]));
 
   Color _getBrandColor(String name) {
@@ -413,14 +563,56 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
 
   Future<void> _deleteSelected() async {
     if (_selectedIds.isEmpty) return;
+    
+    final passwordCtrl = TextEditingController();
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text("XÁC NHẬN XÓA"),
-        content: Text("Bạn có chắc chắn muốn xóa ${_selectedIds.length} mặt hàng đã chọn không?"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text("Bạn có chắc chắn muốn xóa ${_selectedIds.length} mặt hàng đã chọn không?"),
+            const SizedBox(height: 15),
+            const Text('Nhập mật khẩu tài khoản để xóa:'),
+            const SizedBox(height: 10),
+            TextField(
+              controller: passwordCtrl,
+              obscureText: true,
+              decoration: const InputDecoration(
+                labelText: 'Mật khẩu tài khoản',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("HỦY")),
-          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), style: ElevatedButton.styleFrom(backgroundColor: Colors.red), child: const Text("XÓA NGAY", style: TextStyle(color: Colors.white))),
+          ElevatedButton(
+            onPressed: () async {
+              if (passwordCtrl.text.isEmpty) {
+                NotificationService.showSnackBar('Vui lòng nhập mật khẩu', color: Colors.red);
+                return;
+              }
+              
+              try {
+                final user = FirebaseAuth.instance.currentUser;
+                if (user?.email != null) {
+                  AuthCredential credential = EmailAuthProvider.credential(
+                    email: user!.email!,
+                    password: passwordCtrl.text,
+                  );
+                  await user.reauthenticateWithCredential(credential);
+                  
+                  Navigator.pop(ctx, true);
+                }
+              } catch (e) {
+                NotificationService.showSnackBar('Mật khẩu không đúng', color: Colors.red);
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red), 
+            child: const Text("XÓA NGAY", style: TextStyle(color: Colors.white))
+          ),
         ],
       ),
     );
@@ -1161,9 +1353,8 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
       child: InkWell(
         onLongPress: () {
           HapticFeedback.heavyImpact();
-          // Check if user is owner or manager for edit functionality
-          if (widget.role == 'owner' || widget.role == 'manager' || UserService.isCurrentUserSuperAdmin()) {
-            _showEditProductDialog(p);
+          if (widget.role == 'owner' || widget.role == 'admin' || UserService.isCurrentUserSuperAdmin()) {
+            _showProductActionDialog(p);
           } else {
             _toggleSelection(p.id!);
           }
@@ -1362,7 +1553,7 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
           if (payMethod != "CÔNG NỢ") {
             await db.insertExpense({'title': "NHẬP HÀNG: ${p.name}", 'amount': p.cost * p.quantity, 'category': "NHẬP HÀNG", 'date': ts, 'paymentMethod': payMethod, 'note': "Nhập từ $supplier"});
           } else {
-            await db.insertDebt({'personName': supplier, 'totalAmount': p.cost * p.quantity, 'paidAmount': 0, 'type': "SHOP_OWES", 'status': "unpaid", 'createdAt': ts, 'note': "Nợ tiền máy ${p.name}"});
+            await db.insertDebt({'personName': supplier, 'totalAmount': p.cost * p.quantity, 'paidAmount': 0, 'type': "SHOP_OWES", 'status': "ACTIVE", 'createdAt': ts, 'note': "Nợ tiền máy ${p.name}"});
           }
           await db.upsertProduct(p); await FirestoreService.addProduct(p);
 
@@ -1371,9 +1562,9 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
             final suppliers = await db.getSuppliers();
             final supplierData = suppliers.firstWhere((s) => s['name'] == supplier, orElse: () => {});
             final supplierId = supplierData['id'];
+            final shopId = await UserService.getCurrentShopId();
             if (supplierId != null) {
               final importHistory = {
-                'firestoreId': "import_${ts}_${p.imei ?? ts}",
                 'supplierId': supplierId,
                 'supplierName': supplier,
                 'productName': p.name,
@@ -1387,6 +1578,7 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
                 'importDate': ts,
                 'importedBy': userName,
                 'notes': 'Nhập từ Inventory View',
+                'shopId': shopId,
                 'isSynced': 0,
               };
               await db.insertSupplierImportHistory(importHistory);
@@ -1402,6 +1594,7 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
                 'lastUpdated': ts,
                 'createdAt': ts,
                 'isActive': 1,
+                'shopId': shopId,
               };
               await db.insertSupplierProductPrice(supplierPrice);
 
@@ -1504,5 +1697,130 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
         actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("HỦY")), OutlinedButton(onPressed: isSaving ? null : () => saveProcess(next: true), child: const Text("NHẬP TIẾP")), ElevatedButton(onPressed: isSaving ? null : () => saveProcess(), style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2962FF)), child: const Text("HOÀN TẤT", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)))],
       );
     }));
+  }
+
+  void _editProduct(Product p) {
+    final nameC = TextEditingController(text: p.name);
+    final imeiC = TextEditingController(text: p.imei ?? '');
+    final costC = TextEditingController(text: (p.cost / 1000).toStringAsFixed(0));
+    final priceC = TextEditingController(text: (p.price / 1000).toStringAsFixed(0));
+    final detailC = TextEditingController(text: p.capacity ?? '');
+    final qtyC = TextEditingController(text: p.quantity.toString());
+    final modelC = TextEditingController(text: p.model ?? '');
+    
+    String type = p.type ?? "PHONE";
+    String? supplier = p.supplier;
+    bool isSaving = false;
+
+    showDialog(context: context, barrierDismissible: false, builder: (ctx) => StatefulBuilder(builder: (ctx, setS) {
+      Future<void> saveProcess() async {
+        if (supplier == null) { 
+          NotificationService.showSnackBar("Vui lòng chọn Nhà cung cấp!", color: Colors.red); 
+          return; 
+        }
+        if (isSaving) return; setS(() => isSaving = true);
+        try {
+          int parseK(String t) { final c = t.replaceAll('.', '').replaceAll(RegExp(r'[^\d]'), ''); int v = int.tryParse(c) ?? 0; return (v > 0 && v < 100000) ? v * 1000 : v; }
+          final int ts = DateTime.now().millisecondsSinceEpoch;
+          final updatedP = Product(
+            firestoreId: p.firestoreId,
+            name: nameC.text.trim().toUpperCase(),
+            model: modelC.text.trim().isNotEmpty ? modelC.text.trim() : null,
+            imei: imeiC.text.trim(),
+            cost: parseK(costC.text),
+            price: parseK(priceC.text),
+            capacity: detailC.text.trim().toUpperCase(),
+            quantity: int.tryParse(qtyC.text) ?? 1,
+            type: type,
+            createdAt: p.createdAt,
+            supplier: supplier,
+            status: p.status,
+            updatedAt: ts,
+          );
+          final user = FirebaseAuth.instance.currentUser;
+          final userName = user?.email?.split('@').first.toUpperCase() ?? "NV";
+          await db.logAction(userId: user?.uid ?? "0", userName: userName, action: "CHỈNH SỬA", type: "PRODUCT", targetId: p.imei, desc: "Đã chỉnh sửa máy ${p.name}");
+          await db.upsertProduct(updatedP);
+          await FirestoreService.updateProductCloud(updatedP);
+
+          HapticFeedback.lightImpact();
+          if (mounted) { Navigator.of(context).pop(); _refresh(); NotificationService.showSnackBar("CẬP NHẬT THÀNH CÔNG", color: Colors.green); }
+        } catch (e) { setS(() => isSaving = false); NotificationService.showSnackBar("Lỗi: $e", color: Colors.red); }
+      }
+      return AlertDialog(
+        title: const Text("CHỈNH SỬA SẢN PHẨM", style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2962FF))),
+        content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
+          // Loại hàng
+          DropdownButtonFormField<String>(
+            value: type,
+            items: const [
+              DropdownMenuItem(value: "PHONE", child: Text("ĐIỆN THOẠI")),
+              DropdownMenuItem(value: "ACCESSORY", child: Text("PHỤ KIỆN"))
+            ],
+            onChanged: (v) => setS(() => type = v!),
+            decoration: const InputDecoration(labelText: "Loại hàng")
+          ),
+
+          // Tên máy
+          _input(nameC, "Tên máy *", Icons.phone_android, caps: true),
+
+          // Chi tiết
+          _input(detailC, "Chi tiết (Dung lượng - Màu...)", Icons.info_outline, caps: true),
+
+          // IMEI/Serial (read-only)
+          _input(imeiC, "Số IMEI / Serial", Icons.fingerprint, readOnly: true),
+
+          // Model
+          _input(modelC, "Model", Icons.smartphone, caps: true),
+
+          // Giá vốn
+          _input(costC, "Giá vốn (k)", Icons.money, type: TextInputType.number, suffix: "k"),
+
+          // Giá bán
+          _input(priceC, "Giá bán (k)", Icons.sell, type: TextInputType.number, suffix: "k"),
+
+          // Số lượng và Nhà cung cấp
+          Row(children: [
+            Expanded(flex: 1, child: _input(qtyC, "SL", Icons.add_box, type: TextInputType.number)),
+            const SizedBox(width: 8),
+            Expanded(flex: 2, child: DropdownButtonFormField<String>(
+              value: supplier,
+              isExpanded: true,
+              decoration: const InputDecoration(labelText: "Nhà cung cấp *"),
+              items: _suppliers.map((s) => DropdownMenuItem(value: s['name'] as String, child: Text(s['name']))).toList(),
+              onChanged: (v) => setS(() => supplier = v)
+            ))
+          ]),
+        ])),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("HỦY")),
+          ElevatedButton(
+            onPressed: isSaving ? null : () => saveProcess(),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2962FF)),
+            child: const Text("CẬP NHẬT", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
+          )
+        ],
+      );
+    }));
+  }
+
+  String _getStatusText(int status) {
+    switch (status) {
+      case 1: return "Đã nhận";
+      case 2: return "Đang sửa";
+      case 3: return "Hoàn thành";
+      case 4: return "Đã giao";
+      default: return "Không rõ";
+    }
+  }
+
+  Color _getStatusColor(int status) {
+    switch (status) {
+      case 1: return Colors.orange;
+      case 2: return Colors.blue;
+      case 3: return Colors.green;
+      case 4: return Colors.grey;
+      default: return Colors.black;
+    }
   }
 }

@@ -13,6 +13,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models/sale_order_model.dart';
 import '../data/db_helper.dart';
 import '../services/firestore_service.dart';
+import '../services/event_bus.dart';
 import '../services/user_service.dart';
 import '../services/audit_service.dart';
 import '../services/unified_printer_service.dart';
@@ -322,39 +323,41 @@ class _SaleDetailViewState extends State<SaleDetailView> {
     if (s.paymentMethod == 'CÔNG NỢ') {
       final existingDebts = await db.getAllDebts();
       final linkedDebt = existingDebts.where((d) => d['linkedId'] == s.firestoreId).firstOrNull;
-      final debtAmount = s.totalPrice - s.totalCost; // Assuming debt is profit amount
+      final debtAmount = s.totalPrice; // Debt is the full sale price owed by customer
       if (linkedDebt != null) {
         // Update existing debt
-        linkedDebt['amount'] = debtAmount;
-        linkedDebt['remainingAmount'] = debtAmount - (linkedDebt['paidAmount'] ?? 0);
-        linkedDebt['status'] = linkedDebt['remainingAmount'] > 0 ? 'UNPAID' : 'PAID';
+        linkedDebt['totalAmount'] = debtAmount;
+        linkedDebt['status'] = (debtAmount - (linkedDebt['paidAmount'] ?? 0)) > 0 ? 'UNPAID' : 'PAID';
         await db.updateDebt(linkedDebt);
         await FirestoreService.addDebtCloud(linkedDebt);
+        EventBus().emit('debts_changed');
       } else {
         // Create new debt
         final newDebt = {
           'personName': s.customerName,
-          'personPhone': s.phone,
-          'amount': debtAmount,
-          'remainingAmount': debtAmount,
+          'phone': s.phone,
+          'totalAmount': debtAmount,
+          'paidAmount': 0,
           'status': 'UNPAID',
           'createdAt': s.soldAt,
-          'createdBy': s.sellerName,
-          'linkedId': s.firestoreId,
           'note': 'Đơn bán ${s.firestoreId}',
+          'linkedId': s.firestoreId,
+          'type': 'CUSTOMER_OWES', // Customer owes shop
         };
         await db.insertDebt(newDebt);
         await FirestoreService.addDebtCloud(newDebt);
+        EventBus().emit('debts_changed');
       }
     } else {
-      // If payment method changed from debt to something else, mark debt as paid or delete
+      // If payment method changed from debt to something else, mark debt as paid
       final existingDebts = await db.getAllDebts();
       final linkedDebt = existingDebts.where((d) => d['linkedId'] == s.firestoreId).firstOrNull;
       if (linkedDebt != null) {
         linkedDebt['status'] = 'PAID';
-        linkedDebt['remainingAmount'] = 0;
+        linkedDebt['paidAmount'] = linkedDebt['totalAmount'];
         await db.updateDebt(linkedDebt);
         await FirestoreService.addDebtCloud(linkedDebt);
+        EventBus().emit('debts_changed');
       }
     }
   }

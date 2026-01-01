@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:fl_chart/fl_chart.dart';
+import '../services/event_bus.dart';
 import 'customer_history_view.dart';
 import 'order_list_view.dart';
 import 'revenue_view.dart';
@@ -25,7 +27,9 @@ import 'qr_scan_view.dart';
 import 'attendance_view.dart';
 import 'staff_performance_view.dart';
 import 'audit_log_view.dart';
+import 'notifications_view.dart';
 import 'notification_settings_view.dart';
+import 'supplier_view.dart';
 import 'global_search_view.dart';
 import 'work_schedule_settings_view.dart';
 import 'debt_analysis_view.dart';
@@ -34,8 +38,10 @@ import 'customer_view.dart';
 import 'stock_in_view.dart';
 import 'parts_inventory_view.dart';
 import 'create_repair_order_view.dart';
+import 'repair_partner_list_view.dart';
 import 'about_developer_view.dart';
 import '../data/db_helper.dart';
+import '../widgets/notification_badge.dart';
 import '../widgets/perpetual_calendar.dart';
 import '../services/sync_service.dart';
 import '../services/user_service.dart';
@@ -58,21 +64,24 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
   int todaySaleCount = 0;
   int _currentIndex = 0; // Bottom navigation index
   
-  // Controllers for each tab
+  // Tab configurations with permissions
+  late List<Map<String, dynamic>> _tabConfigs;
   late List<BottomNavigationBarItem> _navItems;
-  
+  late List<Widget> _tabWidgets;
+
+  // Missing variable declarations
+  Timer? _autoSyncTimer;
+  Map<String, bool> _permissions = {};
+  bool _shopLocked = false;
+  final TextEditingController _phoneSearchCtrl = TextEditingController();
+  bool _isSyncing = false;
   int todayRepairDone = 0;
   int revenueToday = 0;
   int todayNewRepairs = 0;
   int todayExpense = 0;
   int totalDebtRemain = 0;
   int expiringWarranties = 0;
-
-  bool _isSyncing = false;
-  Timer? _autoSyncTimer;
-  bool _shopLocked = false;
-  final TextEditingController _phoneSearchCtrl = TextEditingController();
-  Map<String, bool> _permissions = {};
+  int unreadChatCount = 0;
 
   final bool _isSuperAdmin = UserService.isCurrentUserSuperAdmin();
   bool get hasFullAccess => widget.role == 'admin' || widget.role == 'owner' || _isSuperAdmin;
@@ -80,10 +89,15 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    _initializeTabs();
+    _initializeTabConfigs();
     _initialSetup();
     SyncService.initRealTimeSync(() { if (mounted) _loadStats(); });
     _autoSyncTimer = Timer.periodic(const Duration(seconds: 60), (_) => _syncNow(silent: true));
+    
+    // Listen to debt changes to update stats
+    EventBus().stream.listen((event) {
+      if (event == 'debts_changed' && mounted) _loadStats();
+    });
     
     // Listen to notifications for snackbars
     NotificationService.listenToNotifications((title, body) {
@@ -93,17 +107,60 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
     });
   }
 
-  void _initializeTabs() {
-    _navItems = [
-      const BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-      const BottomNavigationBarItem(icon: Icon(Icons.shopping_cart), label: 'Bán hàng'),
-      const BottomNavigationBarItem(icon: Icon(Icons.build), label: 'Sửa chữa'),
-      const BottomNavigationBarItem(icon: Icon(Icons.inventory), label: 'Kho'),
-      const BottomNavigationBarItem(icon: Icon(Icons.people), label: 'Nhân sự'),
-      const BottomNavigationBarItem(icon: Icon(Icons.account_balance_wallet), label: 'Tài chính'),
-      const BottomNavigationBarItem(icon: Icon(Icons.chat), label: 'Chat'),
-      const BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Cài đặt'),
+  void _initializeTabConfigs() {
+    _tabConfigs = [
+      {
+        'permission': null, // Home always accessible
+        'item': const BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+        'widget': _buildHomeTab(),
+      },
+      {
+        'permission': 'allowViewSales',
+        'item': const BottomNavigationBarItem(icon: Icon(Icons.shopping_cart), label: 'Bán hàng'),
+        'widget': _buildSalesTab(),
+      },
+      {
+        'permission': 'allowViewRepairs',
+        'item': const BottomNavigationBarItem(icon: Icon(Icons.build), label: 'Sửa chữa'),
+        'widget': _buildRepairsTab(),
+      },
+      {
+        'permission': 'allowViewInventory',
+        'item': const BottomNavigationBarItem(icon: Icon(Icons.inventory), label: 'Kho'),
+        'widget': _buildInventoryTab(),
+      },
+      {
+        'permission': 'allowManageStaff', // Staff tab requires manage staff permission
+        'item': const BottomNavigationBarItem(icon: Icon(Icons.people), label: 'Nhân sự'),
+        'widget': _buildStaffTab(),
+      },
+      {
+        'permission': 'allowViewRevenue', // Finance tab requires revenue permission
+        'item': const BottomNavigationBarItem(icon: Icon(Icons.account_balance_wallet), label: 'Tài chính'),
+        'widget': _buildFinanceTab(),
+      },
+      {
+        'permission': 'allowViewSettings',
+        'item': const BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Cài đặt'),
+        'widget': _buildSettingsTab(),
+      },
     ];
+    _updateAvailableTabs();
+  }
+
+  void _updateAvailableTabs() {
+    final availableConfigs = _tabConfigs.where((config) {
+      final permission = config['permission'] as String?;
+      return permission == null || (_permissions[permission] == true);
+    }).toList();
+
+    _navItems = availableConfigs.map((config) => config['item'] as BottomNavigationBarItem).toList();
+    _tabWidgets = availableConfigs.map((config) => config['widget'] as Widget).toList();
+
+    // Adjust current index if it's out of bounds
+    if (_currentIndex >= _navItems.length) {
+      _currentIndex = 0;
+    }
   }
 
   @override
@@ -129,6 +186,7 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
     setState(() {
       _shopLocked = perms['shopAppLocked'] == true;
       _permissions = perms.map((key, value) => MapEntry(key, value == true));
+      _updateAvailableTabs();
     });
     debugPrint('HomeView permissions updated: $_permissions');
   }
@@ -182,6 +240,10 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
       else if (remain < 0) debugPrint('Debt with negative remain: id=${d['id']}, total=$total, paid=$paid');
     }
     if (mounted) setState(() { totalPendingRepair = pendingR; todayRepairDone = doneT; todaySaleCount = soldT; revenueToday = revT; todayNewRepairs = newRT; todayExpense = expT; totalDebtRemain = debtR; expiringWarranties = expW; });
+    
+    // Load unread chat count
+    final unread = await UserService.getUnreadChatCount(FirebaseAuth.instance.currentUser!.uid);
+    if (mounted) setState(() => unreadChatCount = unread);
   }
 
   @override
@@ -201,10 +263,17 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
             Expanded(child: Text(_getTabTitle(_currentIndex), style: const TextStyle(color: Colors.black, fontSize: 15, fontWeight: FontWeight.bold))),
           ]),
           actions: [
+            NotificationBadge(
+              unreadCount: FirestoreService.getUnreadCount(),
+              child: IconButton(
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsView())),
+                icon: const Icon(Icons.notifications, color: Color(0xFFFF9800)),
+                tooltip: 'Thông báo',
+              ),
+            ),
             IconButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => QrScanView(role: widget.role))), icon: const Icon(Icons.qr_code_scanner_rounded, color: Color(0xFF2962FF))),
             IconButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => GlobalSearchView(role: widget.role))), icon: const Icon(Icons.search, color: Color(0xFF9C27B0), size: 28), tooltip: 'Tìm kiếm toàn app'),
             IconButton(onPressed: () => _syncNow(), icon: _isSyncing ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.sync, color: Colors.green, size: 28)),
-            IconButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => SettingsView(setLocale: widget.setLocale))), icon: const Icon(Icons.settings_rounded, color: Colors.black54), tooltip: 'Cài đặt'),
             IconButton(onPressed: () async {
               await SyncService.cancelAllSubscriptions();
               try {
@@ -217,16 +286,7 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
         ),
         body: IndexedStack(
           index: _currentIndex,
-          children: [
-            _buildHomeTab(),
-            _buildSalesTab(),
-            _buildRepairsTab(),
-            _buildInventoryTab(),
-            _buildStaffTab(),
-            _buildFinanceTab(),
-            _buildChatTab(),
-            _buildSettingsTab(),
-          ],
+          children: _tabWidgets,
         ),
         bottomNavigationBar: BottomNavigationBar(
           currentIndex: _currentIndex,
@@ -267,6 +327,8 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
             ),
             _buildTodaySummary(),
             const SizedBox(height: 20),
+            _buildFinancialChart(),
+            const SizedBox(height: 20),
             _buildQuickActions(),
             const SizedBox(height: 20),
             const PerpetualCalendar(),
@@ -284,7 +346,7 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text("THAO TÁC NHANH", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+        //const Text("THAO TÁC NHANH", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
         const SizedBox(height: 12),
         Row(
           children: [
@@ -301,11 +363,27 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
             Expanded(child: _quickActionButton("Kiểm kho", Icons.qr_code_scanner, Colors.orange, () => Navigator.push(context, MaterialPageRoute(builder: (_) => FastInventoryCheckView())))),
           ],
         ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(child: _quickActionButton("Báo cáo DT", Icons.bar_chart, Colors.purple, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RevenueView())))),
+            const SizedBox(width: 8),
+            Expanded(child: _quickActionButton("Chấm công", Icons.access_time, Colors.teal, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AttendanceView())))),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(child: _quickActionButton("Chat", Icons.chat, Colors.indigo, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChatView())), badgeCount: unreadChatCount)),
+            const SizedBox(width: 8),
+            Expanded(child: _quickActionButton("Bảo hành", Icons.shield, Colors.amber, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WarrantyView())))),
+          ],
+        ),
       ],
     );
   }
 
-  Widget _quickActionButton(String title, IconData icon, Color color, VoidCallback onTap) {
+  Widget _quickActionButton(String title, IconData icon, Color color, VoidCallback onTap, {int? badgeCount}) {
     return InkWell(
       onTap: onTap,
       child: Container(
@@ -317,7 +395,36 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
         ),
         child: Column(
           children: [
-            Icon(icon, color: color, size: 24),
+            Stack(
+              children: [
+                Icon(icon, color: color, size: 24),
+                if (badgeCount != null && badgeCount > 0)
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 16,
+                        minHeight: 16,
+                      ),
+                      child: Text(
+                        badgeCount > 99 ? '99+' : badgeCount.toString(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
             const SizedBox(height: 4),
             Text(title, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w500), textAlign: TextAlign.center),
           ],
@@ -364,6 +471,88 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
     );
   }
 
+  Widget _buildFinancialChart() {
+    String fmt(int v) => NumberFormat('#,###').format(v);
+    int revenue = revenueToday;
+    int expense = todayExpense;
+    int debt = totalDebtRemain;
+    int total = revenue + expense + debt;
+    if (total == 0) total = 1; // avoid division by zero
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: Colors.black.withAlpha(8), blurRadius: 10)],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text("BIỂU ĐỒ TÀI CHÍNH", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+          const SizedBox(height: 10),
+          SizedBox(
+            height: 120,
+            child: PieChart(
+              PieChartData(
+                sections: [
+                  PieChartSectionData(
+                    value: revenue.toDouble(),
+                    color: Colors.green,
+                    title: '${(revenue / total * 100).toStringAsFixed(1)}%',
+                    radius: 40,
+                    titleStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
+                  ),
+                  PieChartSectionData(
+                    value: expense.toDouble(),
+                    color: Colors.red,
+                    title: '${(expense / total * 100).toStringAsFixed(1)}%',
+                    radius: 40,
+                    titleStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
+                  ),
+                  PieChartSectionData(
+                    value: debt.toDouble(),
+                    color: Colors.orange,
+                    title: '${(debt / total * 100).toStringAsFixed(1)}%',
+                    radius: 40,
+                    titleStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
+                  ),
+                ],
+                sectionsSpace: 2,
+                centerSpaceRadius: 20,
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _chartLegend(Colors.green, "Doanh thu", "${fmt(revenue)} đ"),
+              _chartLegend(Colors.red, "Chi phí", "${fmt(expense)} đ"),
+              _chartLegend(Colors.orange, "Công nợ", "${fmt(debt)} đ"),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _chartLegend(Color color, String label, String value) {
+    return Column(
+      children: [
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(height: 4),
+        Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+        Text(value, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black)),
+      ],
+    );
+  }
+
   Widget _buildSalesTab() {
     return ListView(
       padding: const EdgeInsets.all(20),
@@ -386,6 +575,7 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
         const SizedBox(height: 20),
         _tabMenuItem("Danh sách đơn sửa", Icons.list_alt, Colors.blue, () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderListView(role: widget.role))), subtitle: "Xem, tìm kiếm và theo dõi tất cả đơn sửa chữa."),
         _tabMenuItem("Tạo đơn sửa mới", Icons.add_circle, Colors.green, () => Navigator.push(context, MaterialPageRoute(builder: (_) => CreateRepairOrderView(role: widget.role))), subtitle: "Tạo đơn sửa chữa mới với thông tin máy và khách."),
+        _tabMenuItem("Đối tác sửa chữa", Icons.business, Colors.purple, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RepairPartnerListView())), subtitle: "Quản lý danh sách đối tác sửa chữa bên ngoài."),
         _tabMenuItem("Kho phụ tùng", Icons.build, Colors.orange, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PartsInventoryView())), subtitle: "Quản lý tồn kho phụ tùng cho sửa chữa."),
       ],
     );
@@ -398,7 +588,7 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
         const Text("QUẢN LÝ KHO", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
         const SizedBox(height: 20),
         _tabMenuItem("Danh sách sản phẩm", Icons.inventory, Colors.blue, () => Navigator.push(context, MaterialPageRoute(builder: (_) => InventoryView(role: widget.role))), subtitle: "Xem và quản lý danh sách sản phẩm trong kho."),
-        _tabMenuItem("Nhập kho thủ công", Icons.add_shopping_cart, Colors.green, () => Navigator.push(context, MaterialPageRoute(builder: (_) => StockInView())), subtitle: "Thêm sản phẩm vào kho bằng cách nhập thủ công."),
+        _tabMenuItem("Nhà cung cấp", Icons.business, Colors.red, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SupplierView())), subtitle: "Quản lý danh sách nhà cung cấp."),
         _tabMenuItem("Nhập kho siêu tốc", Icons.flash_on, Colors.orange, () => Navigator.push(context, MaterialPageRoute(builder: (_) => FastInventoryInputView())), subtitle: "Nhập nhiều sản phẩm vào kho nhanh bằng mã QR."),
         _tabMenuItem("Danh sách mã nhập nhanh", Icons.qr_code, Colors.teal, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const QuickInputCodesView())), subtitle: "Xem và quản lý danh sách mã nhập nhanh đã tạo."),
         _tabMenuItem("Kiểm kho QR", Icons.qr_code_scanner, Colors.purple, () => Navigator.push(context, MaterialPageRoute(builder: (_) => FastInventoryCheckView())), subtitle: "Kiểm tra tồn kho bằng cách quét mã QR."),
@@ -424,11 +614,77 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
   }
 
   Widget _buildFinanceTab() {
+    String fmt(int v) => NumberFormat('#,###').format(v);
+    int revenue = revenueToday;
+    int expense = todayExpense;
+    int debt = totalDebtRemain;
+    int total = revenue + expense + debt;
+    if (total == 0) total = 1;
+
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
         const Text("QUẢN LÝ TÀI CHÍNH", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
         const SizedBox(height: 20),
+        // TỔNG QUAN TÀI CHÍNH
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [BoxShadow(color: Colors.black.withAlpha(8), blurRadius: 10)],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text("TỔNG QUAN TÀI CHÍNH HÔM NAY", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+              const SizedBox(height: 15),
+              SizedBox(
+                height: 200,
+                child: PieChart(
+                  PieChartData(
+                    sections: [
+                      PieChartSectionData(
+                        value: revenue.toDouble(),
+                        color: Colors.green,
+                        title: 'Doanh thu\n${fmt(revenue)} đ',
+                        radius: 60,
+                        titleStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
+                      PieChartSectionData(
+                        value: expense.toDouble(),
+                        color: Colors.red,
+                        title: 'Chi phí\n${fmt(expense)} đ',
+                        radius: 60,
+                        titleStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
+                      PieChartSectionData(
+                        value: debt.toDouble(),
+                        color: Colors.orange,
+                        title: 'Công nợ\n${fmt(debt)} đ',
+                        radius: 60,
+                        titleStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
+                    ],
+                    sectionsSpace: 2,
+                    centerSpaceRadius: 30,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 15),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _chartLegend(Colors.green, "Doanh thu", "${fmt(revenue)} đ"),
+                  _chartLegend(Colors.red, "Chi phí", "${fmt(expense)} đ"),
+                  _chartLegend(Colors.orange, "Công nợ", "${fmt(debt)} đ"),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 30),
         _tabMenuItem("Báo cáo doanh thu", Icons.trending_up, Colors.blue, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RevenueView())), subtitle: "Xem báo cáo doanh thu và lợi nhuận theo thời gian."),
         _tabMenuItem("Quản lý chi phí", Icons.money_off, Colors.red, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ExpenseView())), subtitle: "Thêm và theo dõi các khoản chi phí của cửa hàng."),
         _tabMenuItem("Công nợ", Icons.receipt_long, Colors.purple, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DebtView())), subtitle: "Quản lý các khoản nợ và thu nợ từ khách hàng."),
@@ -454,10 +710,6 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildChatTab() {
-    return const ChatView();
-  }
-
   Widget _tabMenuItem(String title, IconData icon, Color color, VoidCallback onTap, {String? subtitle}) {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
@@ -472,17 +724,19 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
   }
 
   String _getTabTitle(int index) {
-    switch (index) {
-      case 0: return hasFullAccess ? "QUẢN TRỊ SHOP" : "NHÂN VIÊN";
-      case 1: return "BÁN HÀNG";
-      case 2: return "SỬA CHỮA";
-      case 3: return "QUẢN LÝ KHO";
-      case 4: return "NHÂN SỰ";
-      case 5: return "TÀI CHÍNH";
-      case 6: return "CHAT NỘI BỘ";
-      case 7: return "CÀI ĐẶT";
-      default: return "SHOP MANAGER";
+    if (index < _tabWidgets.length) {
+      // Get the corresponding config from the original configs
+      final availableConfigs = _tabConfigs.where((config) {
+        final permission = config['permission'] as String?;
+        return permission == null || (_permissions[permission] == true);
+      }).toList();
+      
+      if (index < availableConfigs.length) {
+        final item = availableConfigs[index]['item'] as BottomNavigationBarItem;
+        return item.label?.toUpperCase() ?? 'TAB';
+      }
     }
+    return "SHOP MANAGER";
   }
 
   Widget _buildAlerts() {

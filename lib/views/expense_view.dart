@@ -8,6 +8,7 @@ import '../data/db_helper.dart';
 import '../services/notification_service.dart';
 import '../services/firestore_service.dart';
 import '../services/sync_service.dart';
+import '../services/user_service.dart';
 import '../widgets/validated_text_field.dart';
 import '../widgets/currency_text_field.dart';
 import 'fast_stock_in_view.dart';
@@ -26,6 +27,7 @@ class _ExpenseViewState extends State<ExpenseView> {
   bool _isSaving = false;
   bool _isSyncing = false;
   String _syncStatus = 'Đã đồng bộ'; // 'Đã đồng bộ', 'Đang đồng bộ...', 'Lỗi đồng bộ'
+  bool _hasPermission = false;
   
   // Filter options
   String _filterType = 'THÁNG'; // NGÀY, TUẦN, THÁNG
@@ -34,7 +36,14 @@ class _ExpenseViewState extends State<ExpenseView> {
   @override
   void initState() {
     super.initState();
+    _checkPermission();
     _refresh();
+  }
+
+  Future<void> _checkPermission() async {
+    final perms = await UserService.getCurrentUserPermissions();
+    if (!mounted) return;
+    setState(() => _hasPermission = perms['allowViewExpenses'] ?? false);
   }
 
   Future<void> _refresh() async {
@@ -476,6 +485,22 @@ class _ExpenseViewState extends State<ExpenseView> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_hasPermission) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text("QUẢN LÝ CHI PHÍ"),
+          backgroundColor: Colors.white,
+          elevation: 0,
+        ),
+        body: const Center(
+          child: Text(
+            "Bạn không có quyền truy cập tính năng này",
+            style: TextStyle(fontSize: 16, color: Colors.grey),
+          ),
+        ),
+      );
+    }
+
     int totalAmount = _filteredExpenses.fold(
       0,
       (sum, e) => sum + (e['amount'] as int),

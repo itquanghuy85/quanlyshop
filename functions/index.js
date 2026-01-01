@@ -310,6 +310,23 @@ function getChannelId(type) {
   }
 }
 
+// Role-based notification permissions
+function getAllowedRolesForNotificationType(type) {
+  switch (type) {
+    case 'new_order':
+      return ['admin', 'owner', 'manager', 'employee'];
+    case 'payment':
+      return ['admin', 'owner', 'manager', 'employee'];
+    case 'inventory':
+      return ['admin', 'owner', 'manager', 'technician'];
+    case 'staff':
+      return ['admin', 'owner', 'manager'];
+    case 'system':
+    default:
+      return ['admin', 'owner', 'manager', 'employee', 'technician', 'user'];
+  }
+}
+
 // 📢 GỬI THÔNG BÁO PUSH CHO SHOP
 exports.sendShopNotification = onCall(async (request) => {
   const data = request.data || {};
@@ -336,7 +353,7 @@ exports.sendShopNotification = onCall(async (request) => {
   }
 
   try {
-    // Get FCM tokens for the shop
+    // Get FCM tokens for the shop with role-based filtering
     let query = admin.firestore()
       .collection('users')
       .where('shopId', '==', shopId);
@@ -347,16 +364,22 @@ exports.sendShopNotification = onCall(async (request) => {
 
     const userDocs = await query.get();
     const tokens = [];
+    const allowedRoles = getAllowedRolesForNotificationType(type);
 
     userDocs.forEach(doc => {
       const userData = doc.data();
-      if (userData.fcmToken && userData.fcmToken.trim() !== '') {
-        tokens.push(userData.fcmToken);
+      const userRole = userData.role || 'user';
+
+      // Check if user has permission for this notification type
+      if (allowedRoles.includes(userRole) || userRole === 'admin') { // Super admin always gets notifications
+        if (userData.fcmToken && userData.fcmToken.trim() !== '') {
+          tokens.push(userData.fcmToken);
+        }
       }
     });
 
     if (tokens.length === 0) {
-      console.log('No FCM tokens found for shop:', shopId);
+      console.log(`No FCM tokens found for shop ${shopId} with permission for notification type: ${type}`);
       return { success: true, sentCount: 0 };
     }
 
@@ -403,5 +426,78 @@ exports.sendShopNotification = onCall(async (request) => {
   } catch (error) {
     console.error('Error sending notification:', error);
     throw new HttpsError("internal", "Lỗi gửi thông báo: " + error.message);
+  }
+});
+
+// 🧹 CLEANUP FCM TOKENS - Xóa tokens cũ và không hợp lệ
+exports.cleanupFCMTokens = onSchedule("every 7 days", async (event) => {
+  try {
+    console.log('Starting FCM token cleanup...');
+
+    const batch = admin.firestore().batch();
+    let cleanupCount = 0;
+    const maxCleanup = 500; // Giới hạn số lượng cleanup mỗi lần
+
+    // 1. Xóa tokens cũ hơn 30 ngày
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const oldTokensQuery = admin.firestore()
+      .collection('users')
+      .where('fcmTokenUpdatedAt', '<', admin.firestore.Timestamp.fromDate(thirtyDaysAgo))
+      .limit(maxCleanup);
+
+    const oldTokensSnapshot = await oldTokensQuery.get();
+    console.log(`Found ${oldTokensSnapshot.size} old FCM tokens to clean up`);
+
+    oldTokensSnapshot.forEach(doc => {
+      const userData = doc.data();
+      if (userData.fcmToken) {
+        batch.update(doc.ref, {
+          fcmToken: admin.firestore.FieldValue.delete(),
+          fcmTokenUpdatedAt: admin.firestore.FieldValue.delete(),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        cleanupCount++;
+      }
+    });
+
+    // 2. Xóa tokens trùng lặp (giữ lại token mới nhất cho mỗi user)
+    if (cleanupCount < maxCleanup) {
+      const allTokensQuery = admin.firestore()
+        .collection('users')
+        .where('fcmToken', '!=', null)
+        .orderBy('fcmToken')
+        .orderBy('fcmTokenUpdatedAt', 'desc')
+        .limit(maxCleanup - cleanupCount);
+
+      const allTokensSnapshot = await allTokensQuery.get();
+      const seenTokens = new Set();
+
+      allTokensSnapshot.forEach(doc => {
+        const userData = doc.data();
+        const token = userData.fcmToken;
+
+        if (token && seenTokens.has(token)) {
+          // Token này đã thấy trước đó, xóa
+          batch.update(doc.ref, {
+            fcmToken: admin.firestore.FieldValue.delete(),
+            fcmTokenUpdatedAt: admin.firestore.FieldValue.delete(),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+          });
+          cleanupCount++;
+        } else if (token) {
+          seenTokens.add(token);
+        }
+      });
+    }
+
+    if (cleanupCount > 0) {
+      await batch.commit();
+      console.log(`Cleaned up ${cleanupCount} FCM tokens`);
+    } else {
+      console.log('No FCM tokens to clean up');
+    }
+
+  } catch (error) {
+    console.error('Error in FCM token cleanup:', error);
   }
 });

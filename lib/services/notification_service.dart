@@ -6,6 +6,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:intl/intl.dart';
 import 'user_service.dart';
 
 class NotificationService {
@@ -67,12 +68,17 @@ class NotificationService {
   }
 
   static Future<void> _requestPermissions() async {
-    // Request notification permission
-    if (await Permission.notification.isDenied) {
-      await Permission.notification.request();
+    // Request notification permission with Android 13+ support
+    if (await Permission.notification.isDenied || await Permission.notification.isPermanentlyDenied) {
+      final status = await Permission.notification.request();
+      if (status.isPermanentlyDenied) {
+        // Show dialog to guide user to settings
+        debugPrint('Notification permission permanently denied, user needs to enable in settings');
+        // Note: UI dialog should be handled by calling widget
+      }
     }
 
-    // Request FCM permissions
+    // Request FCM permissions with enhanced options
     NotificationSettings settings = await _firebaseMessaging.requestPermission(
       alert: true,
       badge: true,
@@ -84,6 +90,23 @@ class NotificationService {
     );
 
     debugPrint('User granted permission: ${settings.authorizationStatus}');
+
+    // Handle Android 13+ specific permission states
+    if (settings.authorizationStatus == AuthorizationStatus.denied) {
+      debugPrint('FCM permission denied - notifications may not work');
+    } else if (settings.authorizationStatus == AuthorizationStatus.provisional) {
+      debugPrint('FCM provisional permission - limited notifications');
+    }
+  }
+
+  // Check notification permission status (for UI feedback)
+  static Future<PermissionStatus> getNotificationPermissionStatus() async {
+    return await Permission.notification.status;
+  }
+
+  // Guide user to enable notifications in settings
+  static Future<bool> openNotificationSettings() async {
+    return await openAppSettings();
   }
 
   static Future<void> _createNotificationChannels() async {
@@ -180,15 +203,71 @@ class NotificationService {
   static Future<void> _saveFCMToken(String token) async {
     try {
       final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        await _db.collection('users').doc(user.uid).set({
-          'fcmToken': token,
-          'lastTokenUpdate': FieldValue.serverTimestamp(),
-        }, SetOptions(merge: true));
+      if (user == null) {
+        debugPrint('Cannot save FCM token: no authenticated user');
+        return;
       }
+
+      final shopId = await UserService.getCurrentShopId();
+      if (shopId == null) {
+        debugPrint('Cannot save FCM token: no shop ID available');
+        return;
+      }
+
+      // Check for duplicate tokens with better error handling
+      try {
+        final existingTokens = await _db
+          .collection('users')
+          .where('fcmToken', isEqualTo: token)
+          .where('shopId', isEqualTo: shopId)
+          .get();
+
+        // Remove duplicate tokens from other users
+        final batch = _db.batch();
+        bool hasDuplicates = false;
+
+        for (final doc in existingTokens.docs) {
+          if (doc.id != user.uid) {
+            batch.update(doc.reference, {
+              'fcmToken': FieldValue.delete(),
+              'fcmTokenUpdatedAt': FieldValue.delete(),
+              'updatedAt': FieldValue.serverTimestamp()
+            });
+            hasDuplicates = true;
+            debugPrint('Removing duplicate FCM token from user: ${doc.id}');
+          }
+        }
+
+        if (hasDuplicates) {
+          await batch.commit();
+          debugPrint('Cleaned up duplicate FCM tokens');
+        }
+
+      } catch (e) {
+        debugPrint('Error checking for duplicate tokens: $e');
+        // Continue with token save even if duplicate check fails
+      }
+
+      // Save the new token
+      await _db.collection('users').doc(user.uid).set({
+        'fcmToken': token,
+        'fcmTokenUpdatedAt': FieldValue.serverTimestamp(),
+        'devicePlatform': _getDevicePlatform(),
+        'lastTokenUpdate': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      debugPrint('FCM token saved successfully for user: ${user.uid}');
+
     } catch (e) {
       debugPrint('Error saving FCM token: $e');
+      // Don't throw - token save failure shouldn't crash the app
     }
+  }
+
+  static String _getDevicePlatform() {
+    // Simple platform detection
+    // In a real app, you might use device_info_plus for more accurate detection
+    return 'flutter_app'; // Generic identifier
   }
 
   static void _handleForegroundMessage(RemoteMessage message) {
@@ -332,6 +411,13 @@ class NotificationService {
     String? targetUserId,
   }) async {
     try {
+      // Kiểm tra settings trước khi gửi
+      final shouldSend = await _shouldSendNotification(type, targetUserId);
+      if (!shouldSend) {
+        debugPrint('Notification $type blocked by user settings');
+        return;
+      }
+
       final user = FirebaseAuth.instance.currentUser;
       final shopId = await UserService.getCurrentShopId();
       if (shopId == null) return;
@@ -359,32 +445,77 @@ class NotificationService {
   }
 
   static Future<void> _sendFCMNotification(Map<String, dynamic> notificationData) async {
-    try {
-      debugPrint('Sending FCM notification: ${notificationData['title']}');
-      final callable = FirebaseFunctions.instanceFor(region: 'asia-southeast1').httpsCallable('sendShopNotification');
-      
-      // Get current shopId
-      final shopId = await UserService.getCurrentShopId();
-      
-      final result = await callable.call({
-        'title': notificationData['title'],
-        'body': notificationData['body'],
-        'type': notificationData['type'],
-        'targetUserId': notificationData['targetUserId'],
-        'shopId': shopId,
-      });
+    const int maxRetries = 3;
+    int retryCount = 0;
 
-      final data = result.data as Map<String, dynamic>;
-      debugPrint('FCM sent successfully: ${data['sentCount']} success, ${data['failedCount']} failed');
-    } catch (e) {
-      debugPrint('Error sending FCM via Cloud Function: $e');
-      // Fallback: try to send local notification if FCM fails
-      _showLocalNotification(
-        notificationData['title'],
-        notificationData['body'],
-        channelId: _getChannelId(notificationData['type']),
-      );
+    while (retryCount < maxRetries) {
+      try {
+        debugPrint('Sending FCM notification (attempt ${retryCount + 1}): ${notificationData['title']}');
+
+        final callable = FirebaseFunctions.instanceFor(region: 'asia-southeast1').httpsCallable('sendShopNotification');
+
+        final shopId = await UserService.getCurrentShopId();
+
+        final result = await callable.call({
+          'title': notificationData['title'],
+          'body': notificationData['body'],
+          'type': notificationData['type'],
+          'targetUserId': notificationData['targetUserId'],
+          'shopId': shopId,
+        }).timeout(const Duration(seconds: 30)); // Add timeout
+
+        final data = result.data as Map<String, dynamic>;
+        debugPrint('FCM sent successfully: ${data['sentCount']} success, ${data['failedCount']} failed');
+
+        // If some messages failed, log but don't retry (Cloud Function handles individual failures)
+        if (data['failedCount'] > 0) {
+          debugPrint('Warning: ${data['failedCount']} FCM messages failed to send');
+        }
+
+        return; // Success, exit retry loop
+
+      } on FirebaseFunctionsException catch (e) {
+        debugPrint('Firebase Functions error (attempt ${retryCount + 1}): ${e.code} - ${e.message}');
+
+        // Don't retry for certain errors
+        if (e.code == 'functions/cancelled' || e.code == 'functions/invalid-argument') {
+          debugPrint('Non-retryable error, giving up');
+          break;
+        }
+
+        retryCount++;
+        if (retryCount < maxRetries) {
+          // Exponential backoff
+          final delay = Duration(seconds: 1 << retryCount); // 2, 4, 8 seconds
+          debugPrint('Retrying FCM send in ${delay.inSeconds} seconds...');
+          await Future.delayed(delay);
+        }
+
+      } catch (e) {
+        debugPrint('General FCM error (attempt ${retryCount + 1}): $e');
+
+        retryCount++;
+        if (retryCount < maxRetries) {
+          final delay = Duration(seconds: 1 << retryCount);
+          debugPrint('Retrying FCM send in ${delay.inSeconds} seconds...');
+          await Future.delayed(delay);
+        }
+      }
     }
+
+    // All retries failed, fallback to local notification
+    debugPrint('FCM failed after $maxRetries attempts, falling back to local notification');
+    _showLocalNotification(
+      notificationData['title'],
+      notificationData['body'],
+      channelId: _getChannelId(notificationData['type']),
+    );
+
+    // Show user-friendly error message
+    showSnackBar(
+      'Không thể gửi thông báo push, đã hiển thị thông báo local',
+      color: Colors.orange,
+    );
   }
 
   static Future<void> _showLocalNotification(
@@ -537,20 +668,73 @@ class NotificationService {
     return type == 'new_order' || type == 'payment' || type == 'system';
   }
 
-  // Critical Business Events
-  static Future<void> sendNewOrderNotification(String orderId, String customerName, double amount) async {
-    final title = 'ĐƠN HÀNG MỚI';
-    final body = 'Khách hàng $customerName - ${amount.toStringAsFixed(0)}đ';
+  // Business Logic Integration Methods
+
+  // Inventory monitoring - called when stock levels change
+  static Future<void> checkAndNotifyLowInventory(String productId, String productName, int currentStock, int minStock) async {
+    if (currentStock <= minStock) {
+      await sendLowInventoryNotification(productName, currentStock, minStock);
+    }
+  }
+
+  // Attendance tracking - called when staff check in/out
+  static Future<void> notifyStaffAttendance(String staffName, String action, DateTime timestamp) async {
+    final timeString = '${timestamp.hour.toString().padLeft(2, '0')}:${timestamp.minute.toString().padLeft(2, '0')}';
+    final status = action == 'check_in' ? 'đã check-in' : 'đã check-out';
+
+    await sendAttendanceNotification(staffName, status, timeString);
+  }
+
+  // Payment processing - called when payment is completed
+  static Future<void> notifyPaymentCompleted(String orderId, double amount, String paymentMethod) async {
+    await sendPaymentNotification(orderId, amount, paymentMethod);
+  }
+
+  // New repair order notifications - Admin & Technician roles
+  static Future<void> sendNewOrderNotification(String orderId, String customerName, int price) async {
+    final title = 'ĐƠN SỬA MỚI';
+    final body = 'Khách $customerName - ${NumberFormat('#,###').format(price)}đ';
+
+    // Check role-based permission
+    if (!await _hasRolePermission('repair', ['admin', 'owner', 'manager', 'technician'])) {
+      debugPrint('Repair notification blocked by role permissions');
+      return;
+    }
+
     await sendCloudNotification(
       title: title,
       body: body,
-      type: 'new_order',
+      type: 'repair',
     );
   }
 
+  // System maintenance notifications
+  static Future<void> notifySystemMaintenance(String message) async {
+    await sendSystemAlert(message);
+  }
+
+  // Critical alerts for all users
+  static Future<void> notifyCriticalAlert(String title, String message) async {
+    await sendCloudNotification(
+      title: title,
+      body: message,
+      type: 'system',
+    );
+  }
+
+  // Business Logic Notifications with Role-based Permissions
+
+  // Payment notifications - Admin & Sales roles
   static Future<void> sendPaymentNotification(String orderId, double amount, String paymentMethod) async {
     final title = 'THANH TOÁN THÀNH CÔNG';
     final body = '${amount.toStringAsFixed(0)}đ qua $paymentMethod';
+
+    // Check role-based permission
+    if (!await _hasRolePermission('payment', ['admin', 'owner', 'manager', 'employee'])) {
+      debugPrint('Payment notification blocked by role permissions');
+      return;
+    }
+
     await sendCloudNotification(
       title: title,
       body: body,
@@ -558,14 +742,71 @@ class NotificationService {
     );
   }
 
-  static Future<void> sendLowInventoryNotification(String productName, int currentStock) async {
-    final title = 'CẢNH BÁO KHO';
-    final body = '$productName chỉ còn $currentStock sản phẩm';
+  // Low inventory notifications - Admin & Technician roles
+  static Future<void> sendLowInventoryNotification(String productName, int currentStock, int minStock) async {
+    final title = 'CẢNH BÁO KHO HÀNG';
+    final body = '$productName chỉ còn $currentStock sản phẩm (tối thiểu: $minStock)';
+
+    // Check role-based permission
+    if (!await _hasRolePermission('inventory', ['admin', 'owner', 'manager', 'technician'])) {
+      debugPrint('Inventory notification blocked by role permissions');
+      return;
+    }
+
     await sendCloudNotification(
       title: title,
       body: body,
       type: 'inventory',
     );
+  }
+
+  // Attendance notifications - Admin & Manager roles
+  static Future<void> sendAttendanceNotification(String staffName, String status, String time) async {
+    final title = 'ĐIỂM DANH NHÂN VIÊN';
+    final body = '$staffName đã $status lúc $time';
+
+    // Check role-based permission
+    if (!await _hasRolePermission('staff', ['admin', 'owner', 'manager'])) {
+      debugPrint('Attendance notification blocked by role permissions');
+      return;
+    }
+
+    await sendCloudNotification(
+      title: title,
+      body: body,
+      type: 'staff',
+    );
+  }
+
+  // Critical system alerts - All roles
+  static Future<void> sendSystemAlert(String message, {String? targetUserId}) async {
+    final title = 'CẢNH BÁO HỆ THỐNG';
+
+    // System alerts go to all users regardless of role
+    await sendCloudNotification(
+      title: title,
+      body: message,
+      type: 'system',
+      targetUserId: targetUserId,
+    );
+  }
+
+  // Role-based permission checker
+  static Future<bool> _hasRolePermission(String notificationType, List<String> allowedRoles) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return false;
+
+      final userRole = await UserService.getUserRole(user.uid);
+
+      // Super admin always has permission
+      if (UserService.isCurrentUserSuperAdmin()) return true;
+
+      return allowedRoles.contains(userRole);
+    } catch (e) {
+      debugPrint('Error checking role permission: $e');
+      return false;
+    }
   }
 
   static Future<void> sendStaffNotification(String message, {String? targetUserId}) async {
@@ -585,6 +826,55 @@ class NotificationService {
       body: message,
       type: 'system',
     );
+  }
+
+  static Future<bool> _shouldSendNotification(String type, String? targetUserId) async {
+    // Nếu là broadcast, kiểm tra settings của từng user
+    if (targetUserId == null) {
+      // Cho broadcast, chỉ gửi nếu type được bật mặc định
+      return _getDefaultNotificationSetting(type);
+    }
+
+    // Nếu target specific user, kiểm tra settings của họ
+    // Note: Trong implementation thực tế, cần lưu settings trên server
+    // Hiện tại dùng local settings của current user
+    final prefs = await SharedPreferences.getInstance();
+    final key = _getNotificationSettingKey(type);
+    return prefs.getBool(key) ?? _getDefaultNotificationSetting(type);
+  }
+
+  // Cleanup dead tokens (gọi định kỳ)
+  static Future<void> cleanupDeadTokens() async {
+    try {
+      final shopId = await UserService.getCurrentShopId();
+      if (shopId == null) return;
+
+      // Lấy tất cả users có token trong shop
+      final usersWithTokens = await _db
+        .collection('users')
+        .where('shopId', isEqualTo: shopId)
+        .where('fcmToken', isNotEqualTo: null)
+        .get();
+
+      for (final doc in usersWithTokens.docs) {
+        final userData = doc.data();
+        final lastUpdate = userData['lastTokenUpdate'] as Timestamp?;
+
+        // Xóa token nếu không update quá 30 ngày
+        if (lastUpdate != null) {
+          final daysSinceUpdate = DateTime.now().difference(lastUpdate.toDate()).inDays;
+          if (daysSinceUpdate > 30) {
+            await doc.reference.update({
+              'fcmToken': FieldValue.delete(),
+              'lastTokenUpdate': FieldValue.serverTimestamp(),
+            });
+            debugPrint('Cleaned up dead token for user: ${doc.id}');
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error cleaning up dead tokens: $e');
+    }
   }
 
   static void showSnackBar(String message, {Color color = Colors.blueAccent}) {

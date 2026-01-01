@@ -22,6 +22,7 @@ class _AttendanceViewState extends State<AttendanceView> with TickerProviderStat
   Attendance? _today;
   String _role = 'employee'; 
   late TabController _tabController;
+  bool _hasPermission = false;
 
   Map<String, dynamic> _workSchedule = {};
   List<Attendance> _history = [];
@@ -46,8 +47,12 @@ class _AttendanceViewState extends State<AttendanceView> with TickerProviderStat
     int tabCount = (r == 'owner' || r == 'manager') ? 3 : 2;
     _tabController = TabController(length: tabCount, vsync: this);
 
+    final perms = await UserService.getCurrentUserPermissions();
     if (!mounted) return;
-    setState(() { _role = r; });
+    setState(() { 
+      _role = r; 
+      _hasPermission = perms['allowViewAttendance'] ?? false;
+    });
     _refreshAttendanceData();
   }
 
@@ -129,6 +134,18 @@ class _AttendanceViewState extends State<AttendanceView> with TickerProviderStat
       await db.upsertAttendance(attendance);
       await _refreshAttendanceData();
 
+      // Send attendance notification
+      try {
+        await NotificationService.notifyStaffAttendance(
+          attendance.name,
+          isIn ? 'check-in' : 'check-out',
+          now
+        );
+      } catch (e) {
+        // Don't fail the attendance process if notification fails
+        debugPrint('Attendance notification failed: $e');
+      }
+
       NotificationService.showSnackBar(isIn ? "CHECK-IN THÀNH CÔNG!" : "CHECK-OUT THÀNH CÔNG!", color: Colors.green);
     } catch (e) {
       NotificationService.showSnackBar("Lỗi: $e", color: Colors.red);
@@ -140,6 +157,20 @@ class _AttendanceViewState extends State<AttendanceView> with TickerProviderStat
   @override
   Widget build(BuildContext context) {
     if (_loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+
+    if (!_hasPermission) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text("CHẤM CÔNG NHÂN VIÊN"),
+        ),
+        body: const Center(
+          child: Text(
+            "Bạn không có quyền truy cập tính năng này",
+            style: TextStyle(fontSize: 16, color: Colors.grey),
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFF),

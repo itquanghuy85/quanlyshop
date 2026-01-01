@@ -11,6 +11,8 @@ import '../services/storage_service.dart';
 import '../services/unified_printer_service.dart';
 import '../utils/money_utils.dart';
 import '../widgets/validated_text_field.dart';
+import '../models/repair_partner_model.dart';
+import '../services/repair_partner_service.dart';
 
 class CreateRepairOrderView extends StatefulWidget {
   final String role;
@@ -45,10 +47,17 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
   final appearanceF = FocusNode();
   final accF = FocusNode();
 
+  // Partner selection
+  bool _sendToPartner = false;
+  RepairPartner? _selectedPartner;
+  final partnerCostCtrl = TextEditingController();
+  final repairContentCtrl = TextEditingController();
+  List<RepairPartner> _partners = [];
+
   final List<String> brands = ["IPHONE", "SAMSUNG", "OPPO", "REDMI", "VIVO"];
   final List<String> commonIssues = ["THAY PIN", "ÉP KÍNH", "THAY MÀN", "MẤT NGUỒN", "LOA/MIC", "SẠC", "PHẦN MỀM"];
   
-  final List<String> quickAccs = ["SẠC", "CÁP", "SIM", "ỐP LƯNG", "THẺ NHỚ", "CƯỜNG LỰC", "KO PHỤ KIỆN"];
+  final List<String> quickAccs = [ "SIM", "ỐP LƯNG",  "KO PHỤ KIỆN"];
   final Set<String> _selectedAccs = {};
 
   @override
@@ -57,6 +66,19 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
     phoneCtrl.addListener(() {
       if (phoneCtrl.text.length == 10) _smartFill();
     });
+    _loadPartners();
+  }
+
+  void _loadPartners() async {
+    try {
+      final service = RepairPartnerService();
+      final partners = await service.getRepairPartners();
+      setState(() {
+        _partners = partners.where((p) => p.active).toList();
+      });
+    } catch (e) {
+      debugPrint('Error loading partners: $e');
+    }
   }
 
   void _smartFill() async {
@@ -79,6 +101,18 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
     if (phoneCtrl.text.isEmpty || modelCtrl.text.isEmpty) {
       NotificationService.showSnackBar("Vui lòng nhập SĐT và Model máy", color: Colors.red);
       return null;
+    }
+    
+    // Validate partner fields if outsourcing is selected
+    if (_sendToPartner) {
+      if (_selectedPartner == null) {
+        NotificationService.showSnackBar("Vui lòng chọn đối tác sửa chữa", color: Colors.red);
+        return null;
+      }
+      if (partnerCostCtrl.text.isEmpty) {
+        NotificationService.showSnackBar("Vui lòng nhập chi phí đối tác", color: Colors.red);
+        return null;
+      }
     }
 
     setState(() { _saving = true; _uploadStatus = "Đang đồng bộ dữ liệu đám mây..."; });
@@ -113,6 +147,33 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
       final cloudDocId = await FirestoreService.addRepair(r);
       if (cloudDocId == null) throw Exception('Lỗi đồng bộ đám mây');
       await db.logAction(userId: FirebaseAuth.instance.currentUser?.uid ?? "0", userName: r.createdBy ?? "NV", action: "NHẬP ĐƠN SỬA", type: "REPAIR", targetId: r.firestoreId, desc: "Đã nhập đơn sửa ${r.model} cho khách ${r.customerName}");
+      
+      // Handle partner outsourcing if selected
+      if (_sendToPartner && _selectedPartner != null) {
+        final service = RepairPartnerService();
+        final success = await service.createPartnerHistoryForRepair(
+          repairOrderId: cloudDocId,
+          partnerId: _selectedPartner!.id!,
+          partnerCost: _parseFinalPrice(partnerCostCtrl.text),
+          customerName: r.customerName,
+          deviceModel: r.model,
+          issue: r.issue,
+          repairContent: repairContentCtrl.text.trim().isNotEmpty ? repairContentCtrl.text.trim() : null,
+        );
+        
+        if (!success) {
+          // Log warning but don't fail the repair creation
+          debugPrint('Warning: Partner history creation failed, but repair was created');
+        }
+      }
+      
+      // Trigger new order notification
+      try {
+        await NotificationService.sendNewOrderNotification(cloudDocId, r.customerName, r.price);
+      } catch (e) {
+        debugPrint('Failed to send new order notification: $e');
+        // Don't fail the repair creation if notification fails
+      }
       
       return r;
     } catch (e) {
@@ -170,6 +231,54 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
                 _quick(commonIssues, issueCtrl, priceF),
                 _input(issueCtrl, "LỖI MÁY *", Icons.build, caps: true, f: issueF, next: priceF),
                 _input(priceCtrl, "GIÁ DỰ KIẾN (k)", Icons.monetization_on, type: TextInputType.number, f: priceF, next: passF, suffix: "k"),
+                
+                const SizedBox(height: 15),
+                _sectionTitle("GỬI ĐỐI TÁC SỬA CHỮA"),
+                CheckboxListTile(
+                  title: Text("Gửi đối tác ngoài sửa chữa", style: TextStyle(fontWeight: FontWeight.bold)),
+                  value: _sendToPartner,
+                  onChanged: (value) {
+                    setState(() {
+                      _sendToPartner = value ?? false;
+                      if (!_sendToPartner) {
+                        _selectedPartner = null;
+                        partnerCostCtrl.clear();
+                        repairContentCtrl.clear();
+                      }
+                    });
+                  },
+                  controlAffinity: ListTileControlAffinity.leading,
+                ),
+                
+                if (_sendToPartner) ...[
+                  const SizedBox(height: 10),
+                  DropdownButtonFormField<RepairPartner>(
+                    decoration: InputDecoration(
+                      labelText: "Chọn đối tác *",
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.business),
+                    ),
+                    value: _selectedPartner,
+                    items: _partners.map((partner) {
+                      return DropdownMenuItem(
+                        value: partner,
+                        child: Text("${partner.name} ${partner.phone?.isNotEmpty == true ? '(${partner.phone})' : ''}"),
+                      );
+                    }).toList(),
+                    onChanged: (partner) {
+                      setState(() {
+                        _selectedPartner = partner;
+                      });
+                    },
+                  ),
+                  
+                  const SizedBox(height: 10),
+                  _input(partnerCostCtrl, "Chi phí đối tác (k)", Icons.monetization_on, type: TextInputType.number, suffix: "k"),
+                  
+                  const SizedBox(height: 10),
+                  _input(repairContentCtrl, "Nội dung sửa chữa", Icons.description, caps: true, maxLines: 2),
+                ],
+                
                 _input(passCtrl, "MẬT KHẨU MÀN HÌNH", Icons.lock, f: passF),
                 
                 const SizedBox(height: 15),
@@ -186,7 +295,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
                 ),
                 const SizedBox(height: 10),
                 _buildQuickAccs(),
-                _input(accCtrl, "GÕ THÊM PHỤ KIỆN KHÁC", Icons.add_box_outlined, caps: true),
+                _input(accCtrl, "PHỤ KIỆN KHÁC", Icons.add_box_outlined, caps: true),
 
                 const SizedBox(height: 20),
                 const Text("HÌNH ẢNH HIỆN TRẠNG", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.blueGrey)),
@@ -194,9 +303,9 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
                 _imageRow(),
                 const SizedBox(height: 40),
                 Row(children: [
-                  Expanded(child: OutlinedButton.icon(onPressed: _saving ? null : _onlySave, icon: const Icon(Icons.save_rounded), label: const Text("CHỈ LƯU ĐƠN", style: TextStyle(fontWeight: FontWeight.bold)), style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))))),
+                  Expanded(child: OutlinedButton.icon(onPressed: _saving ? null : _onlySave, icon: const Icon(Icons.save_rounded), label: const Text("LƯU ĐƠN", style: TextStyle(fontWeight: FontWeight.bold)), style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))))),
                   const SizedBox(width: 12),
-                  Expanded(flex: 2, child: ElevatedButton.icon(onPressed: _saving ? null : _saveAndPrint, icon: const Icon(Icons.print_rounded), label: const Text("LƯU & IN PHIẾU", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2962FF), elevation: 4, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)), padding: const EdgeInsets.symmetric(vertical: 16)))),
+                  Expanded(flex: 2, child: ElevatedButton.icon(onPressed: _saving ? null : _saveAndPrint, icon: const Icon(Icons.print_rounded), label: const Text("LƯU & IN", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), style: ElevatedButton.styleFrom(backgroundColor: const Color.fromARGB(255, 4, 12, 247), elevation: 4, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)), padding: const EdgeInsets.symmetric(vertical: 16)))),
                 ]),
               ],
             ),
@@ -243,8 +352,8 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
 
   Widget _sectionTitle(String title) => Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey, fontSize: 11)));
 
-  Widget _input(TextEditingController c, String l, IconData i, {bool caps = false, TextInputType type = TextInputType.text, FocusNode? f, FocusNode? next, String? suffix}) {
-    return Padding(padding: const EdgeInsets.only(bottom: 12), child: ValidatedTextField(controller: c, label: l.replaceAll(' *', ''), icon: i, keyboardType: type, uppercase: caps, required: l.contains('*'), onSubmitted: () { if (next != null) FocusScope.of(context).requestFocus(next); }));
+  Widget _input(TextEditingController c, String l, IconData i, {bool caps = false, TextInputType type = TextInputType.text, FocusNode? f, FocusNode? next, String? suffix, int? maxLines}) {
+    return Padding(padding: const EdgeInsets.only(bottom: 12), child: ValidatedTextField(controller: c, label: l.replaceAll(' *', ''), icon: i, keyboardType: type, uppercase: caps, required: l.contains('*'), maxLines: maxLines, onSubmitted: () { if (next != null) FocusScope.of(context).requestFocus(next); }));
   }
 
   Widget _quick(List<String> items, TextEditingController target, FocusNode? nextF) {

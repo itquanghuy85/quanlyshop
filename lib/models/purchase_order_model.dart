@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class PurchaseItem {
   String? productName;
   String? imei;
@@ -86,7 +88,9 @@ class PurchaseOrder {
       'supplierName': supplierName,
       'supplierPhone': supplierPhone,
       'supplierAddress': supplierAddress,
-      'items': items.map((item) => item.toMap()).toList(),
+      'itemsJson': jsonEncode(items.map((item) => item.toMap()).toList()),
+      'totalAmount': totalAmount,
+      'totalCost': totalCost,
       'createdAt': createdAt,
       'createdBy': createdBy,
       'notes': notes,
@@ -102,9 +106,11 @@ class PurchaseOrder {
       supplierName: map['supplierName'] ?? '',
       supplierPhone: map['supplierPhone'],
       supplierAddress: map['supplierAddress'],
-      items: (map['items'] as List<dynamic>?)
-          ?.map((item) => PurchaseItem.fromMap(item as Map<String, dynamic>))
-          .toList() ?? [],
+      items: map['itemsJson'] != null
+          ? (jsonDecode(map['itemsJson']) as List<dynamic>)
+              .map((item) => PurchaseItem.fromMap(item as Map<String, dynamic>))
+              .toList()
+          : [],
       createdAt: map['createdAt'] ?? 0,
       createdBy: map['createdBy'] ?? '',
       notes: map['notes'],

@@ -471,7 +471,7 @@ class SyncService {
       final localAttendance = await db.getAllAttendance();
       debugPrint("LOCAL DATA BEFORE SYNC: repairs=${localRepairs.length}, products=${localProducts.length}, sales=${localSales.length}, attendance=${localAttendance.length}");
 
-      final collections = ['repairs', 'products', 'sales', 'expenses', 'debts', 'users', 'shops', 'attendance', 'quick_input_codes'];
+      final collections = ['repairs', 'products', 'sales', 'expenses', 'debts', 'users', 'shops', 'attendance', 'quick_input_codes', 'supplier_import_history', 'supplier_product_prices'];
       
       for (var col in collections) {
         try {
@@ -495,8 +495,14 @@ class SyncService {
                 } catch (e) {
                   debugPrint("Lỗi upsert attendance ${doc.id}: $e");
                 }              } else if (col == 'quick_input_codes') {
-                await db.upsertQuickInputCode(QuickInputCode.fromMap(data));              }
-              // Users và shops không cần upsert local vì không có DB local
+                await db.upsertQuickInputCode(QuickInputCode.fromMap(data));
+              } else if (col == 'supplier_import_history') {
+                // Handle supplier import history - these are raw data, skip for now as they are managed locally
+                continue;
+              } else if (col == 'supplier_product_prices') {
+                // Handle supplier product prices - these are raw data, skip for now as they are managed locally
+                continue;
+              }
             } catch (e) {
               debugPrint("Lỗi xử lý document ${doc.id} trong collection $col: $e");
               // Tiếp tục với document tiếp theo

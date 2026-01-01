@@ -249,13 +249,195 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
     int totalIn = fSales.fold<int>(0, (sum, s) => sum + s.totalPrice) + fRepairs.fold<int>(0, (sum, r) => sum + r.price);
     int totalOut = fExpenses.fold<int>(0, (sum, e) => sum + (e['amount'] as int));
     int profit = totalIn - totalOut - fSales.fold<int>(0, (sum, s) => sum + s.totalCost) - fRepairs.fold<int>(0, (sum, r) => sum + r.cost);
-    return ListView(padding: const EdgeInsets.all(16), children: [Row(children: [_miniCard("THU HÔM NAY", totalIn, Colors.green), const SizedBox(width: 12), _miniCard("CHI HÔM NAY", totalOut, Colors.redAccent)]), const SizedBox(height: 16), _mainProfitCard(profit)]);
+    
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          const Text(
+            "TỔNG QUAN HÔM NAY",
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF2962FF),
+            ),
+          ),
+          const SizedBox(height: 16),
+          
+          // Revenue Cards Row
+          Row(
+            children: [
+              Expanded(child: _miniCard("THU HÔM NAY", totalIn, Colors.green.shade700)),
+              const SizedBox(width: 12),
+              Expanded(child: _miniCard("CHI HÔM NAY", totalOut, Colors.red.shade700)),
+            ],
+          ),
+          const SizedBox(height: 16),
+          
+          // Profit Card
+          _mainProfitCard(profit),
+          
+          const SizedBox(height: 24),
+          
+          // Quick Stats
+          const Text(
+            "THỐNG KÊ NHANH",
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey,
+            ),
+          ),
+          const SizedBox(height: 12),
+          
+          Row(
+            children: [
+              Expanded(
+                child: _statCard(
+                  "Đơn bán hàng",
+                  fSales.length.toString(),
+                  Icons.shopping_cart,
+                  Colors.blue.shade700,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _statCard(
+                  "Đơn sửa chữa",
+                  fRepairs.length.toString(),
+                  Icons.build,
+                  Colors.orange.shade700,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _statCard(
+                  "Chi phí",
+                  fExpenses.length.toString(),
+                  Icons.receipt,
+                  Colors.purple.shade700,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
-  Widget _miniCard(String l, int v, Color c) => Expanded(child: Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), border: Border.all(color: c.withAlpha(51))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(l, style: const TextStyle(fontSize: 10, color: Colors.grey)), Text(NumberFormat('#,###').format(v), style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: c))])));
-  Widget _mainProfitCard(int p) => Container(width: double.infinity, padding: const EdgeInsets.all(24), decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF2962FF), Color(0xFF00B0FF)]), borderRadius: BorderRadius.circular(20)), child: Column(children: [const Text("LỢI NHUẬN RÒNG HÔM NAY", style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold)), const SizedBox(height: 8), Text("${NumberFormat('#,###').format(p)} đ", style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold))]));
+  Widget _miniCard(String l, int v, Color c) => Expanded(
+    child: Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: c.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: c.withOpacity(0.3), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: c.withOpacity(0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l,
+            style: TextStyle(
+              fontSize: 10,
+              color: c.withOpacity(0.8),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            NumberFormat('#,###').format(v),
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: c,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );  Widget _mainProfitCard(int p) => Container(
+    width: double.infinity,
+    padding: const EdgeInsets.all(20),
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        colors: p >= 0
+            ? [Colors.green.shade600, Colors.green.shade400]
+            : [Colors.red.shade600, Colors.red.shade400],
+      ),
+      borderRadius: BorderRadius.circular(16),
+      boxShadow: [
+        BoxShadow(
+          color: (p >= 0 ? Colors.green : Colors.red).withOpacity(0.3),
+          blurRadius: 8,
+          offset: const Offset(0, 4),
+        ),
+      ],
+    ),
+    child: Column(
+      children: [
+        Text(
+          "LỢI NHUẬN RÒNG HÔM NAY",
+          style: TextStyle(
+            color: Colors.white.withOpacity(0.9),
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          "${NumberFormat('#,###').format(p)} đ",
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
+    ),
+  );
   Widget _buildSaleDetail() { final list = _sales.where((s) => _isSameDay(s.soldAt, DateTime.now())).toList(); return ListView.builder(padding: const EdgeInsets.all(16), itemCount: list.length, itemBuilder: (ctx, i) => Card(child: ListTile(title: Text(list[i].productNames), subtitle: Text("Khách: ${list[i].customerName}"), trailing: Text("+${NumberFormat('#,###').format(list[i].totalPrice)}", style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold))))); }
   Widget _buildRepairDetail() { final list = _repairs.where((r) => r.status >= 3 && _isSameDay(r.deliveredAt ?? r.createdAt, DateTime.now())).toList(); return ListView.builder(padding: const EdgeInsets.all(16), itemCount: list.length, itemBuilder: (ctx, i) => Card(child: ListTile(title: Text(list[i].model), subtitle: Text("Khách: ${list[i].customerName}"), trailing: Text("+${NumberFormat('#,###').format(list[i].price)}", style: const TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold))))); }
   Widget _buildExpenseDetail() { final list = _expenses.where((e) => _isSameDay(e['date'] as int, DateTime.now())).toList(); return ListView.builder(padding: const EdgeInsets.all(16), itemCount: list.length, itemBuilder: (ctx, i) => Card(child: ListTile(title: Text(list[i]['title'] ?? 'Chi phí'), subtitle: Text(list[i]['category'] ?? 'Khác'), trailing: Text("-${NumberFormat('#,###').format(list[i]['amount'])}", style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold))))); }
+
+  Widget _statCard(String title, String value, IconData icon, Color color) => Container(
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      color: color.withOpacity(0.1),
+      borderRadius: BorderRadius.circular(10),
+      border: Border.all(color: color.withOpacity(0.3), width: 1),
+    ),
+    child: Column(
+      children: [
+        Icon(icon, color: color, size: 20),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 9,
+            color: color.withOpacity(0.7),
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    ),
+  );
 }
 
 class _TransactionItem {
