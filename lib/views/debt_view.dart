@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../data/db_helper.dart';
 import '../services/notification_service.dart';
 import '../services/firestore_service.dart';
+import '../services/sync_service.dart';
 import '../services/event_bus.dart';
 import '../widgets/currency_text_field.dart';
 
@@ -19,6 +20,8 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
   late TabController _tabController;
   List<Map<String, dynamic>> _debts = [];
   bool _isLoading = true;
+  bool _isSyncing = false;
+  String _syncStatus = 'Đã đồng bộ';
   StreamSubscription<String>? _eventSub;
 
   @override
@@ -50,6 +53,40 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
     final data = await db.getAllDebts();
     if (!mounted) return;
     setState(() { _debts = data; _isLoading = false; });
+  }
+
+  Future<void> _syncWithFirebase() async {
+    if (_isSyncing) return;
+    
+    setState(() {
+      _isSyncing = true;
+      _syncStatus = 'Đang đồng bộ...';
+    });
+
+    try {
+      await SyncService.syncAllToCloud();
+      await SyncService.downloadAllFromCloud();
+      
+      // Reload data after sync
+      await _refresh();
+      
+      if (mounted) {
+        setState(() {
+          _syncStatus = 'Đã đồng bộ';
+        });
+      }
+    } catch (e) {
+      print('DEBUG: Sync error: $e');
+      if (mounted) {
+        setState(() {
+          _syncStatus = 'Lỗi đồng bộ';
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSyncing = false);
+      }
+    }
   }
 
   void _showDebtHistory(Map<String, dynamic> debt) async {
@@ -245,6 +282,30 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
       appBar: AppBar(
         title: const Text("QUẢN LÝ CÔNG NỢ", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
         automaticallyImplyLeading: true,
+        actions: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                _syncStatus,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: _syncStatus == 'Lỗi đồng bộ' ? Colors.red : Colors.grey[600],
+                  fontWeight: _isSyncing ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                onPressed: _isSyncing ? null : _syncWithFirebase,
+                icon: Icon(
+                  _isSyncing ? Icons.sync : Icons.sync_outlined,
+                  color: _isSyncing ? Colors.orange : Colors.blue,
+                ),
+                tooltip: 'Đồng bộ với Firebase',
+              ),
+            ],
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           labelColor: const Color(0xFF2962FF),

@@ -7,6 +7,7 @@ import '../models/repair_model.dart';
 import '../models/sale_order_model.dart';
 import '../services/notification_service.dart';
 import '../services/user_service.dart';
+import '../services/sync_service.dart';
 import '../widgets/currency_text_field.dart';
 import 'debt_view.dart';
 import 'warranty_view.dart';
@@ -28,6 +29,8 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
   List<Map<String, dynamic>> _debtPayments = []; 
   bool _hasRevenueAccess = false;
   bool _isLoading = true;
+  bool _isSyncing = false;
+  String _syncStatus = 'Đã đồng bộ';
   final String _selectedPeriod = 'Tháng này';
 
   final cashEndCtrl = TextEditingController();
@@ -65,6 +68,40 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
     });
   }
 
+  Future<void> _syncWithFirebase() async {
+    if (_isSyncing) return;
+    
+    setState(() {
+      _isSyncing = true;
+      _syncStatus = 'Đang đồng bộ...';
+    });
+
+    try {
+      await SyncService.syncAllToCloud();
+      await SyncService.downloadAllFromCloud();
+      
+      // Reload data after sync
+      await _loadAllData();
+      
+      if (mounted) {
+        setState(() {
+          _syncStatus = 'Đã đồng bộ';
+        });
+      }
+    } catch (e) {
+      print('DEBUG: Sync error: $e');
+      if (mounted) {
+        setState(() {
+          _syncStatus = 'Lỗi đồng bộ';
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSyncing = false);
+      }
+    }
+  }
+
   bool _isSameDay(int ms, DateTime day) {
     final dt = DateTime.fromMillisecondsSinceEpoch(ms);
     return dt.day == day.day && dt.month == day.month && dt.year == day.year;
@@ -79,6 +116,30 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
       appBar: AppBar(
         title: const Text("QUẢN LÝ TÀI CHÍNH", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
         automaticallyImplyLeading: true,
+        actions: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                _syncStatus,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: _syncStatus == 'Lỗi đồng bộ' ? Colors.red : Colors.grey[600],
+                  fontWeight: _isSyncing ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                onPressed: _isSyncing ? null : _syncWithFirebase,
+                icon: Icon(
+                  _isSyncing ? Icons.sync : Icons.sync_outlined,
+                  color: _isSyncing ? Colors.orange : Colors.blue,
+                ),
+                tooltip: 'Đồng bộ với Firebase',
+              ),
+            ],
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController, isScrollable: true,
           labelColor: const Color(0xFF2962FF), indicatorColor: const Color(0xFF2962FF),

@@ -7,6 +7,7 @@ import 'package:fl_chart/fl_chart.dart';
 import '../data/db_helper.dart';
 import '../services/notification_service.dart';
 import '../services/firestore_service.dart';
+import '../services/sync_service.dart';
 import '../widgets/validated_text_field.dart';
 import '../widgets/currency_text_field.dart';
 import 'fast_stock_in_view.dart';
@@ -23,6 +24,8 @@ class _ExpenseViewState extends State<ExpenseView> {
   List<Map<String, dynamic>> _filteredExpenses = [];
   bool _isLoading = true;
   bool _isSaving = false;
+  bool _isSyncing = false;
+  String _syncStatus = 'Đã đồng bộ'; // 'Đã đồng bộ', 'Đang đồng bộ...', 'Lỗi đồng bộ'
   
   // Filter options
   String _filterType = 'THÁNG'; // NGÀY, TUẦN, THÁNG
@@ -74,6 +77,40 @@ class _ExpenseViewState extends State<ExpenseView> {
       print('DEBUG: Error loading expenses: $e');
       if (mounted) {
         setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _syncWithFirebase() async {
+    if (_isSyncing) return;
+    
+    setState(() {
+      _isSyncing = true;
+      _syncStatus = 'Đang đồng bộ...';
+    });
+
+    try {
+      await SyncService.syncAllToCloud();
+      await SyncService.downloadAllFromCloud();
+      
+      // Reload data after sync
+      await _refresh();
+      
+      if (mounted) {
+        setState(() {
+          _syncStatus = 'Đã đồng bộ';
+        });
+      }
+    } catch (e) {
+      print('DEBUG: Sync error: $e');
+      if (mounted) {
+        setState(() {
+          _syncStatus = 'Lỗi đồng bộ';
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSyncing = false);
       }
     }
   }
@@ -460,9 +497,27 @@ class _ExpenseViewState extends State<ExpenseView> {
             icon: const Icon(Icons.inventory_2_outlined, color: Colors.green),
             tooltip: 'Nhập kho',
           ),
-          IconButton(
-            onPressed: _refresh,
-            icon: const Icon(Icons.refresh, color: Colors.blue),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                _syncStatus,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: _syncStatus == 'Lỗi đồng bộ' ? Colors.red : Colors.grey[600],
+                  fontWeight: _isSyncing ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                onPressed: _isSyncing ? null : _syncWithFirebase,
+                icon: Icon(
+                  _isSyncing ? Icons.sync : Icons.sync_outlined,
+                  color: _isSyncing ? Colors.orange : Colors.blue,
+                ),
+                tooltip: 'Đồng bộ với Firebase',
+              ),
+            ],
           ),
         ],
       ),

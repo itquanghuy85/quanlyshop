@@ -126,7 +126,11 @@ class _SettingsViewState extends State<SettingsView> {
       final successCloud = await FirestoreService.resetEntireShopData();
       await DBHelper().clearAllData();
       
-      NotificationService.showSnackBar("ĐÃ XÓA SẠCH DỮ LIỆU SHOP!", color: Colors.green);
+      if (successCloud) {
+        NotificationService.showSnackBar("ĐÃ XÓA SẠCH DỮ LIỆU SHOP!", color: Colors.green);
+      } else {
+        NotificationService.showSnackBar("LỖI KHI XÓA DỮ LIỆU ĐÁM MÂY!", color: Colors.red);
+      }
       await SyncService.cancelAllSubscriptions();
       try {
         await FirebaseAuth.instance.signOut();
@@ -165,8 +169,8 @@ class _SettingsViewState extends State<SettingsView> {
             ),
           ),
           
-          // NÚT XÓA TRẮNG CHỈ HIỆN CHO CHỦ SHOP
-          if (_role == 'owner' || _role == 'manager' || UserService.isCurrentUserSuperAdmin()) ...[
+          // NÚT XÓA TRẮNG CHỈ HIỆN CHO SUPER ADMIN
+          if (UserService.isCurrentUserSuperAdmin()) ...[
             const SizedBox(height: 30),
             _buildSection("QUẢN TRỊ NÂNG CAO"),
             Card(
@@ -197,7 +201,7 @@ class _SettingsViewState extends State<SettingsView> {
               child: ListTile(
                 leading: const Icon(Icons.delete_forever, color: Colors.red),
                 title: const Text("XÓA TRẮNG DỮ LIỆU SHOP", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-                subtitle: const Text("Dùng khi muốn khởi tạo lại toàn bộ dữ liệu cửa hàng", style: TextStyle(fontSize: 11)),
+                subtitle: const Text("Dùng khi muốn khởi tạo lại toàn bộ dữ liệu cửa hàng (CHỈ SUPER ADMIN)", style: TextStyle(fontSize: 11)),
                 onTap: _handleResetShop,
               ),
             ),

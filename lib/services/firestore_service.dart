@@ -394,7 +394,7 @@ class FirestoreService {
     try {
       final shopId = await UserService.getCurrentShopId();
       if (shopId == null) return false;
-      final collections = ['repairs', 'sales', 'products', 'debts', 'expenses', 'audit_logs', 'attendance', 'chats', 'inventory_checks', 'cash_closings', 'purchase_orders'];
+      final collections = ['repairs', 'sales', 'products', 'debts', 'expenses', 'audit_logs', 'attendance', 'chats', 'inventory_checks', 'cash_closings', 'purchase_orders', 'quick_input_codes', 'debt_payments', 'payroll_settings', 'work_schedules', 'suppliers', 'customers'];
       for (var colName in collections) {
         final snapshots = await _db.collection(colName).where('shopId', isEqualTo: shopId).get();
         final batch = _db.batch();
