@@ -55,6 +55,89 @@ class _ChatViewState extends State<ChatView> {
     _msgCtrl.clear();
   }
 
+  Future<void> _pinRepairOrder() async {
+    if (_shopId == null) return;
+
+    try {
+      // Lấy danh sách đơn sửa chữa gần đây
+      final repairs = await _db.getAllRepairs();
+      
+      if (!mounted) return;
+      
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Chọn đơn sửa chữa để gim'),
+          content: SizedBox(
+            width: double.maxFinite,
+            height: 300,
+            child: ListView.builder(
+              itemCount: repairs.length,
+              itemBuilder: (context, index) {
+                final repair = repairs[index];
+                return ListTile(
+                  leading: const Icon(Icons.build, color: Colors.orange),
+                  title: Text('Đơn #${repair.id} - ${repair.customerName}'),
+                  subtitle: Text('${repair.model} - ${repair.issue}'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _sendRepairOrderMessage(repair);
+                  },
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Hủy'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      debugPrint('Error loading repair orders: $e');
+    }
+  }
+
+  Future<void> _sendRepairOrderMessage(Repair repair) async {
+    String getStatusText(int status) {
+      switch (status) {
+        case 1: return 'Đã nhận';
+        case 2: return 'Đang sửa';
+        case 3: return 'Hoàn thành';
+        case 4: return 'Đã giao';
+        default: return 'Không xác định';
+      }
+    }
+
+    final message = '''
+🛠️ ĐƠN SỬA CHỮA #${repair.id}
+
+👤 Khách hàng: ${repair.customerName}
+📱 Model: ${repair.model}
+🔧 Vấn đề: ${repair.issue}
+📍 Địa chỉ: ${repair.address ?? 'N/A'}
+📞 SĐT: ${repair.phone}
+💰 Giá: ${repair.price != null && repair.price > 0 ? '${repair.price}đ' : 'Chưa báo giá'}
+📊 Trạng thái: ${getStatusText(repair.status)}
+📝 Ghi chú: ${repair.accessories ?? 'Không có'}
+''';
+
+    final user = FirebaseAuth.instance.currentUser;
+    final senderId = user?.uid ?? 'guest';
+    final senderName = user?.email?.split('@').first.toUpperCase() ?? 'KHACH';
+    
+    await FirestoreService.sendChat(
+      message: message.trim(),
+      senderId: senderId,
+      senderName: senderName,
+      linkedType: 'repair',
+      linkedKey: repair.id.toString(),
+      linkedSummary: 'Đơn sửa chữa #${repair.id} - ${repair.customerName}',
+    );
+  }
+
   Widget _bubble(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data();
     final userId = FirebaseAuth.instance.currentUser?.uid;
@@ -197,6 +280,15 @@ class _ChatViewState extends State<ChatView> {
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                       ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  CircleAvatar(
+                    backgroundColor: Colors.orangeAccent,
+                    child: IconButton(
+                      icon: const Icon(Icons.build, color: Colors.white),
+                      tooltip: 'Gim đơn sửa chữa',
+                      onPressed: _pinRepairOrder,
                     ),
                   ),
                   const SizedBox(width: 8),

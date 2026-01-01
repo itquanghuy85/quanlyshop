@@ -2,6 +2,7 @@ class QuickInputCode {
   int? id;
   String? firestoreId;
   String? shopId; // Shop ID để đồng bộ giữa các thiết bị
+  String? code; // Mã code (có thể là firestoreId hoặc custom)
   String name; // Tên template
   String type; // 'PHONE' hoặc 'linh-phụ kiện'
   String? brand; // Thương hiệu (cho phone)
@@ -22,6 +23,7 @@ class QuickInputCode {
     this.id,
     this.firestoreId,
     this.shopId,
+    this.code,
     required this.name,
     required this.type,
     this.brand,
@@ -44,6 +46,7 @@ class QuickInputCode {
       'id': id,
       'firestoreId': firestoreId,
       'shopId': shopId,
+      'code': code,
       'name': name,
       'type': type,
       'brand': brand,
@@ -64,9 +67,10 @@ class QuickInputCode {
 
   factory QuickInputCode.fromMap(Map<String, dynamic> map) {
     return QuickInputCode(
-      id: map['id'],
+      id: map['id'] is int ? map['id'] : int.tryParse(map['id']?.toString() ?? ''),
       firestoreId: map['firestoreId'],
       shopId: map['shopId'],
+      code: map['code'],
       name: map['name'] ?? '',
       type: map['type'] ?? 'PHONE',
       brand: map['brand'],
@@ -74,20 +78,21 @@ class QuickInputCode {
       capacity: map['capacity'],
       color: map['color'],
       condition: map['condition'],
-      cost: map['cost'],
-      price: map['price'],
+      cost: map['cost'] is int ? map['cost'] : int.tryParse(map['cost']?.toString() ?? '0'),
+      price: map['price'] is int ? map['price'] : int.tryParse(map['price']?.toString() ?? '0'),
       description: map['description'],
       supplier: map['supplier'],
       paymentMethod: map['paymentMethod'],
-      isActive: map['isActive'] == 1,
-      createdAt: map['createdAt'] ?? DateTime.now().millisecondsSinceEpoch,
-      isSynced: map['isSynced'] == 1,
+      isActive: map['isActive'] is int ? map['isActive'] == 1 : (map['isActive'] == true || map['isActive'] == 1),
+      createdAt: map['createdAt'] is int ? map['createdAt'] : int.tryParse(map['createdAt']?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString()) ?? DateTime.now().millisecondsSinceEpoch,
+      isSynced: map['isSynced'] is int ? map['isSynced'] == 1 : (map['isSynced'] == true || map['isSynced'] == 1),
     );
   }
 
   QuickInputCode copyWith({
     int? id,
     String? firestoreId,
+    String? code,
     String? name,
     String? type,
     String? brand,
@@ -107,6 +112,7 @@ class QuickInputCode {
     return QuickInputCode(
       id: id ?? this.id,
       firestoreId: firestoreId ?? this.firestoreId,
+      code: code ?? this.code,
       name: name ?? this.name,
       type: type ?? this.type,
       brand: brand ?? this.brand,

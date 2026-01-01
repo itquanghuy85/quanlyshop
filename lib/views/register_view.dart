@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/user_service.dart';
+import '../services/notification_service.dart';
 
 class RegisterView extends StatefulWidget {
   final Function(Locale)? setLocale;
@@ -82,7 +83,9 @@ class _RegisterViewState extends State<RegisterView> {
     if (err.contains('email-already-in-use')) return "Email này đã được đăng ký bởi người khác.";
     if (err.contains('weak-password')) return "Mật khẩu quá yếu, ít nhất 6 ký tự.";
     if (err.contains('invalid-email')) return "Địa chỉ email không đúng định dạng.";
-    return err.replaceAll("Exception: ", "");
+    if (err.contains('network-request-failed')) return "Lỗi kết nối mạng. Vui lòng kiểm tra internet và thử lại.";
+    if (err.contains('too-many-requests')) return "Quá nhiều yêu cầu. Vui lòng thử lại sau.";
+    return err.replaceAll("Exception: ", "").replaceAll("PlatformException(", "").replaceAll(")", "");
   }
 
   Future<void> _register() async {
@@ -115,7 +118,9 @@ class _RegisterViewState extends State<RegisterView> {
       if (!mounted) return;
       Navigator.pop(context, true);
     } catch (e) {
-      setState(() { _error = _formatError(e); _loading = false; });
+      final errorMsg = _formatError(e);
+      setState(() { _error = errorMsg; _loading = false; });
+      NotificationService.showSnackBar(errorMsg, color: Colors.red);
     }
   }
 
@@ -248,7 +253,7 @@ class _RegisterViewState extends State<RegisterView> {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  "Để nhận mã mời tham gia shop, vui lòng yêu cầu chủ shop thực hiện các bước sau:",
+                  "Để tham gia shop, vui lòng yêu cầu chủ shop thực hiện các bước sau:",
                   style: TextStyle(
                     fontSize: 13,
                     color: Colors.grey.shade700,
@@ -259,10 +264,11 @@ class _RegisterViewState extends State<RegisterView> {
                 _buildInstructionStep(1, "Chủ shop đăng nhập vào ứng dụng"),
                 _buildInstructionStep(2, "Chọn tab 'Nhân sự' ở bottom navigation"),
                 _buildInstructionStep(3, "Chọn 'Danh sách nhân viên'"),
-                _buildInstructionStep(4, "Chọn nút 'Thêm nhân viên' để tạo tk và pass cho nhân viên"),
+                _buildInstructionStep(4, "Chọn đăng ký tài khoản thuộc shop  nhân viên"),
+                _buildInstructionStep(5, "Chủ shop cung cấp tài khoản và mật khẩu cho bạn"),
                 const SizedBox(height: 8),
                 Text(
-                  "Chủ shop sẽ cung cấp email đăng nhập và password cho bạn đăng nhập vào app.",
+                  "Sau khi có tài khoản và mật khẩu  bạn có thể đăng nhập và tham gia shop.",
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.grey.shade600,

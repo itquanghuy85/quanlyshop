@@ -153,26 +153,30 @@ class _QuickInputLibraryViewState extends State<QuickInputLibraryView> {
   }
 
   void _showAddEditDialog([QuickInputCode? code]) {
-    showDialog(
-      context: context,
-      builder: (ctx) => _QuickInputCodeDialog(
-        code: code,
-        onSave: (newCode) async {
-          try {
-            if (code == null) {
-              await db.insertQuickInputCode(newCode);
-              NotificationService.showSnackBar('Đã thêm mã nhập nhanh', color: Colors.green);
-            } else {
-              await db.updateQuickInputCode(newCode);
-              NotificationService.showSnackBar('Đã cập nhật mã nhập nhanh', color: Colors.green);
+    try {
+      showDialog(
+        context: context,
+        builder: (ctx) => _QuickInputCodeDialog(
+          code: code,
+          onSave: (newCode) async {
+            try {
+              if (code == null) {
+                await db.insertQuickInputCode(newCode);
+                NotificationService.showSnackBar('Đã thêm mã nhập nhanh', color: Colors.green);
+              } else {
+                await db.updateQuickInputCode(newCode);
+                NotificationService.showSnackBar('Đã cập nhật mã nhập nhanh', color: Colors.green);
+              }
+              await _loadCodes();
+            } catch (e) {
+              NotificationService.showSnackBar('Lỗi lưu mã nhập nhanh: $e', color: Colors.red);
             }
-            await _loadCodes();
-          } catch (e) {
-            NotificationService.showSnackBar('Lỗi lưu mã nhập nhanh: $e', color: Colors.red);
-          }
-        },
-      ),
-    );
+          },
+        ),
+      );
+    } catch (e) {
+      NotificationService.showSnackBar('Lỗi mở dialog: $e', color: Colors.red);
+    }
   }
 
   @override

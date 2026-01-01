@@ -101,6 +101,7 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
       const BottomNavigationBarItem(icon: Icon(Icons.inventory), label: 'Kho'),
       const BottomNavigationBarItem(icon: Icon(Icons.people), label: 'Nhân sự'),
       const BottomNavigationBarItem(icon: Icon(Icons.account_balance_wallet), label: 'Tài chính'),
+      const BottomNavigationBarItem(icon: Icon(Icons.chat), label: 'Chat'),
       const BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Cài đặt'),
     ];
   }
@@ -223,6 +224,7 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
             _buildInventoryTab(),
             _buildStaffTab(),
             _buildFinanceTab(),
+            _buildChatTab(),
             _buildSettingsTab(),
           ],
         ),
@@ -444,13 +446,16 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
         _tabMenuItem("Thông báo", Icons.notifications, Colors.blue, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationSettingsView())), subtitle: "Cấu hình cài đặt thông báo và cảnh báo."),
         _tabMenuItem("Máy in", Icons.print, Colors.green, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ThermalPrinterDesignView())), subtitle: "Thiết kế mẫu in cho máy in nhiệt."),
         _tabMenuItem("Tìm kiếm toàn cục", Icons.search, Colors.orange, () => Navigator.push(context, MaterialPageRoute(builder: (_) => GlobalSearchView(role: widget.role))), subtitle: "Tìm kiếm thông tin trên toàn bộ ứng dụng."),
-        _tabMenuItem("Chat nội bộ", Icons.chat, Colors.purple, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChatView())), subtitle: "Trò chuyện với nhân viên trong cửa hàng."),
         if (hasFullAccess) _tabMenuItem("Cài đặt hệ thống", Icons.settings, Colors.grey, () => Navigator.push(context, MaterialPageRoute(builder: (_) => SettingsView(setLocale: widget.setLocale))), subtitle: "Thay đổi cài đặt chung của ứng dụng."),
         if (_isSuperAdmin) _tabMenuItem("Trung tâm Admin", Icons.admin_panel_settings, Colors.red, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const admin_view.SuperAdminView())), subtitle: "Quản lý toàn bộ hệ thống cho admin cấp cao."),
         if (hasFullAccess) _tabMenuItem("Nhật ký hệ thống", Icons.history, Colors.teal, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AuditLogView())), subtitle: "Xem lịch sử hoạt động và thay đổi trong hệ thống."),
         _tabMenuItem("Về nhà phát triển", Icons.info, Colors.indigo, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AboutDeveloperView())), subtitle: "Thông tin về nhà phát triển và ứng dụng."),
       ],
     );
+  }
+
+  Widget _buildChatTab() {
+    return const ChatView();
   }
 
   Widget _tabMenuItem(String title, IconData icon, Color color, VoidCallback onTap, {String? subtitle}) {
@@ -474,7 +479,8 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
       case 3: return "QUẢN LÝ KHO";
       case 4: return "NHÂN SỰ";
       case 5: return "TÀI CHÍNH";
-      case 6: return "CÀI ĐẶT";
+      case 6: return "CHAT NỘI BỘ";
+      case 7: return "CÀI ĐẶT";
       default: return "SHOP MANAGER";
     }
   }

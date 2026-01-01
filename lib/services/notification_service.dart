@@ -146,6 +146,9 @@ class NotificationService {
     // Handle when app is opened from notification
     FirebaseMessaging.onMessageOpenedApp.listen(_handleMessageOpenedApp);
 
+    // Subscribe to staff topic for business notifications
+    await _firebaseMessaging.subscribeToTopic('staff');
+
     // Get FCM token
     String? token = await _firebaseMessaging.getToken();
     debugPrint('FCM Token: $token');
@@ -191,12 +194,17 @@ class NotificationService {
   static void _handleForegroundMessage(RemoteMessage message) {
     debugPrint('Foreground message received: ${message.notification?.title}');
 
+    // Show in-app snackbar notification
+    final title = message.notification?.title ?? 'Thông báo mới';
+    final body = message.notification?.body ?? '';
+    showSnackBar('$title: $body', color: Colors.blueAccent);
+
     // Check if notifications are enabled for this type
     _shouldShowNotification(message.data['type']).then((shouldShow) {
       if (shouldShow) {
         _showLocalNotification(
-          message.notification?.title ?? 'Thông báo mới',
-          message.notification?.body ?? '',
+          title,
+          body,
           channelId: _getChannelId(message.data['type']),
           payload: message.data.toString(),
         );
@@ -289,21 +297,27 @@ class NotificationService {
         .where('shopId', isEqualTo: shopId)
         .where('createdAt', isGreaterThan: Timestamp.fromDate(_appStartTime))
         .snapshots().listen((snapshot) {
+          debugPrint('Received ${snapshot.docChanges.length} notification changes');
           for (var change in snapshot.docChanges) {
             if (change.type == DocumentChangeType.added) {
               final data = change.doc.data() as Map<String, dynamic>;
-              if (data['senderId'] != user.uid) {
+              debugPrint('New notification: ${data['title']} from ${data['senderId']} (current user: ${user.uid})');
+              // Hiển thị thông báo nếu không phải do chính mình gửi, HOẶC là thông báo hệ thống test
+              if (data['senderId'] != user.uid || data['type'] == 'system') {
                 String title = data['title'] ?? "THÔNG BÁO MỚI";
                 String body = data['body'] ?? "";
                 String type = data['type'] ?? 'system';
 
                 // Check if notification should be shown
                 _shouldShowNotification(type).then((shouldShow) {
+                  debugPrint('Should show notification for type $type: $shouldShow');
                   if (shouldShow) {
                     _showLocalNotification(title, body, channelId: _getChannelId(type));
                     onMessageReceived(title, body);
                   }
                 });
+              } else {
+                debugPrint('Skipping notification from self');
               }
             }
           }
@@ -333,7 +347,9 @@ class NotificationService {
         'targetUserId': targetUserId, // null = broadcast to all shop users
       };
 
+      debugPrint('Creating shop notification: $notificationData');
       await _db.collection('shop_notifications').add(notificationData);
+      debugPrint('Shop notification created successfully');
 
       // Send FCM push notification
       await _sendFCMNotification(notificationData);
