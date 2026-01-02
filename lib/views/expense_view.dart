@@ -212,7 +212,7 @@ class _ExpenseViewState extends State<ExpenseView> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              "Bạn đang xóa khoản chi: ${exp['title']}\nSố tiền: ${NumberFormat('#,###').format(exp['amount'])}đ",
+              "Bạn đang xóa khoản chi: ${exp['title']}\nSố tiền: ${NumberFormat('#,###').format(exp['amount'])}.000đ",
             ),
             const SizedBox(height: 15),
             TextField(

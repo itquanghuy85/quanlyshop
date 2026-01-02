@@ -1013,7 +1013,7 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
                       margin: const EdgeInsets.only(bottom: 8),
                       child: ListTile(
                         title: Text(item['name']),
-                        subtitle: Text("IMEI: ${item['imei']} • Giá: ${NumberFormat('#,###').format(item['price'])}đ"),
+                        subtitle: Text("IMEI: ${item['imei']} • Giá: ${NumberFormat('#,###').format(item['price'])}.000đ"),
                         trailing: IconButton(
                           onPressed: () => setState(() => _batchItems.removeAt(index)),
                           icon: const Icon(Icons.delete, color: Colors.red),

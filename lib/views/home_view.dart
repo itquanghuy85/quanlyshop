@@ -105,6 +105,14 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
         NotificationService.showSnackBar('$title: $body');
       }
     });
+
+    // Fallback: if permissions not loaded after 5 seconds, force update
+    Future.delayed(const Duration(seconds: 5), () {
+      if (mounted && _permissions.isEmpty) {
+        debugPrint('Permissions not loaded, forcing update');
+        _updatePermissions();
+      }
+    });
   }
 
   void _initializeTabConfigs() {
@@ -145,7 +153,9 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
         'widget': _buildSettingsTab(),
       },
     ];
-    _updateAvailableTabs();
+    // Initially show all tabs until permissions are loaded
+    _navItems = _tabConfigs.map((config) => config['item'] as BottomNavigationBarItem).toList();
+    _tabWidgets = _tabConfigs.map((config) => config['widget'] as Widget).toList();
   }
 
   void _updateAvailableTabs() {
@@ -167,28 +177,45 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
   void dispose() { _autoSyncTimer?.cancel(); _phoneSearchCtrl.dispose(); super.dispose(); }
 
   Future<void> _initialSetup() async {
-    final prefs = await SharedPreferences.getInstance();
-    final currentUser = FirebaseAuth.instance.currentUser;
-    final lastUserId = prefs.getString('lastUserId');
-    if (currentUser != null && currentUser.uid != lastUserId) {
-      await db.clearAllData();
-      await prefs.setString('lastUserId', currentUser.uid);
-      if (currentUser.email != null) await UserService.syncUserInfo(currentUser.uid, currentUser.email!);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final currentUser = FirebaseAuth.instance.currentUser;
+      final lastUserId = prefs.getString('lastUserId');
+      if (currentUser != null && currentUser.uid != lastUserId) {
+        await db.clearAllData();
+        await prefs.setString('lastUserId', currentUser.uid);
+        if (currentUser.email != null) await UserService.syncUserInfo(currentUser.uid, currentUser.email!);
+      }
+      await db.cleanDuplicateData();
+      await _loadStats();
+      await _updatePermissions();
+    } catch (e) {
+      debugPrint('Error in _initialSetup: $e');
+      // Still try to load permissions
+      await _updatePermissions();
     }
-    await db.cleanDuplicateData();
-    await _loadStats();
-    await _updatePermissions();
   }
 
   Future<void> _updatePermissions() async {
-    final perms = await UserService.getCurrentUserPermissions();
-    if (!mounted) return;
-    setState(() {
-      _shopLocked = perms['shopAppLocked'] == true;
-      _permissions = perms.map((key, value) => MapEntry(key, value == true));
-      _updateAvailableTabs();
-    });
-    debugPrint('HomeView permissions updated: $_permissions');
+    try {
+      final perms = await UserService.getCurrentUserPermissions();
+      if (!mounted) return;
+      setState(() {
+        _shopLocked = perms['shopAppLocked'] == true;
+        _permissions = perms.map((key, value) => MapEntry(key, value == true));
+        _updateAvailableTabs();
+      });
+      debugPrint('HomeView permissions updated: $_permissions');
+    } catch (e) {
+      debugPrint('Error updating permissions: $e');
+      // Fallback to default permissions
+      final defaultPerms = await UserService.getCurrentUserPermissions(); // Wait, no, if error, use default
+      if (!mounted) return;
+      setState(() {
+        _permissions = {'allowViewSettings': true}; // Minimal permissions
+        _updateAvailableTabs();
+      });
+    }
   }
 
   Future<void> _syncNow({bool silent = false}) async {
@@ -288,7 +315,7 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
           index: _currentIndex,
           children: _tabWidgets,
         ),
-        bottomNavigationBar: BottomNavigationBar(
+        bottomNavigationBar: _navItems.isEmpty ? null : BottomNavigationBar(
           currentIndex: _currentIndex,
           onTap: (index) => setState(() => _currentIndex = index),
           items: _navItems,
@@ -379,6 +406,7 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
             Expanded(child: _quickActionButton("Bảo hành", Icons.shield, Colors.amber, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WarrantyView())))),
           ],
         ),
+        // Removed the row with "Đối tác sửa chữa" as it's now in the Repairs tab
       ],
     );
   }
@@ -453,7 +481,7 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
   }
   
   Widget _buildTodaySummary() {
-    String fmt(int v) => NumberFormat('#,###').format(v);
+    String fmt(int v) => "${NumberFormat('#,###').format(v)}.000";
     return Container(
       width: double.infinity, padding: const EdgeInsets.all(18), 
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withAlpha(8), blurRadius: 10)]), 
@@ -472,7 +500,7 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
   }
 
   Widget _buildFinancialChart() {
-    String fmt(int v) => NumberFormat('#,###').format(v);
+    String fmt(int v) => "${NumberFormat('#,###').format(v)}.000";
     int revenue = revenueToday;
     int expense = todayExpense;
     int debt = totalDebtRemain;
@@ -573,6 +601,15 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
       children: [
         const Text("SỬA CHỮA", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
         const SizedBox(height: 20),
+        // Quick Actions for Repairs
+        Row(
+          children: [
+            Expanded(child: _quickActionButton("Tạo đơn sửa", Icons.build_circle, Colors.blue, () => Navigator.push(context, MaterialPageRoute(builder: (_) => CreateRepairOrderView(role: widget.role))))),
+            const SizedBox(width: 8),
+            Expanded(child: _quickActionButton("Đối tác sửa chữa", Icons.business, Colors.purple, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RepairPartnerListView())))),
+          ],
+        ),
+        const SizedBox(height: 20),
         _tabMenuItem("Danh sách đơn sửa", Icons.list_alt, Colors.blue, () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderListView(role: widget.role))), subtitle: "Xem, tìm kiếm và theo dõi tất cả đơn sửa chữa."),
         _tabMenuItem("Tạo đơn sửa mới", Icons.add_circle, Colors.green, () => Navigator.push(context, MaterialPageRoute(builder: (_) => CreateRepairOrderView(role: widget.role))), subtitle: "Tạo đơn sửa chữa mới với thông tin máy và khách."),
         _tabMenuItem("Đối tác sửa chữa", Icons.business, Colors.purple, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RepairPartnerListView())), subtitle: "Quản lý danh sách đối tác sửa chữa bên ngoài."),
@@ -614,7 +651,7 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
   }
 
   Widget _buildFinanceTab() {
-    String fmt(int v) => NumberFormat('#,###').format(v);
+    String fmt(int v) => "${NumberFormat('#,###').format(v)}.000";
     int revenue = revenueToday;
     int expense = todayExpense;
     int debt = totalDebtRemain;

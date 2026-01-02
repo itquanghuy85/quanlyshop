@@ -1067,6 +1067,9 @@ class DBHelper {
         'purchase_orders',
         'work_schedules',
         'debt_payments',
+        'quick_input_codes',
+        'supplier_import_history',
+        'supplier_product_prices',
       ];
       for (var t in tables) {
         await txn.delete(t);
@@ -1340,30 +1343,12 @@ class DBHelper {
     );
   }
 
-  Future<void> updateSupplierStats(int supplierId) async {
+  Future<void> updateSupplierStats(int supplierId, int addAmount, int addCount) async {
     final db = await database;
-    final stats = await db.rawQuery(
-      '''
-      SELECT 
-        COUNT(*) as totalImports,
-        SUM(totalAmount) as totalAmount
-      FROM supplier_import_history 
-      WHERE supplierId = ?
-    ''',
-      [supplierId],
+    await db.rawUpdate(
+      'UPDATE suppliers SET importCount = importCount + ?, totalAmount = totalAmount + ? WHERE id = ?',
+      [addCount, addAmount, supplierId],
     );
-
-    if (stats.isNotEmpty) {
-      final totalImports = stats.first['totalImports'] ?? 0;
-      final totalAmount = stats.first['totalAmount'] ?? 0;
-
-      await db.update(
-        'suppliers',
-        {'importCount': totalImports, 'totalAmount': totalAmount},
-        where: 'id = ?',
-        whereArgs: [supplierId],
-      );
-    }
   }
 
   // Repair Partner methods

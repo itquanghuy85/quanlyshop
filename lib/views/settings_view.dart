@@ -125,13 +125,13 @@ class _SettingsViewState extends State<SettingsView> {
 
     if (result == true) {
       setState(() => _loading = true);
-      final successCloud = await FirestoreService.resetEntireShopData();
+      final errorMessage = await FirestoreService.resetEntireShopData();
       await DBHelper().clearAllData();
       
-      if (successCloud) {
+      if (errorMessage == null) {
         NotificationService.showSnackBar("ĐÃ XÓA SẠCH DỮ LIỆU SHOP!", color: Colors.green);
       } else {
-        NotificationService.showSnackBar("LỖI KHI XÓA DỮ LIỆU ĐÁM MÂY!", color: Colors.red);
+        NotificationService.showSnackBar("LỖI KHI XÓA DỮ LIỆU ĐÁM MÂY: $errorMessage", color: Colors.red);
       }
       await SyncService.cancelAllSubscriptions();
       try {

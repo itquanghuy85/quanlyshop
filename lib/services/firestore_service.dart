@@ -393,21 +393,41 @@ class FirestoreService {
     }
   }
 
-  static Future<bool> resetEntireShopData() async {
+  static Future<String?> resetEntireShopData() async {
     try {
       final shopId = await UserService.getCurrentShopId();
-      if (shopId == null) return false;
+      if (shopId == null) {
+        return 'Không tìm thấy shopId. Vui lòng đăng xuất và đăng nhập lại để đồng bộ dữ liệu shop.';
+      }
       final collections = ['repairs', 'sales', 'products', 'debts', 'expenses', 'audit_logs', 'attendance', 'chats', 'inventory_checks', 'cash_closings', 'purchase_orders', 'quick_input_codes', 'debt_payments', 'payroll_settings', 'work_schedules', 'suppliers', 'customers'];
       for (var colName in collections) {
-        final snapshots = await _db.collection(colName).where('shopId', isEqualTo: shopId).get();
-        final batch = _db.batch();
-        for (var doc in snapshots.docs) {
-          batch.delete(doc.reference);
+        try {
+          final snapshots = await _db.collection(colName).where('shopId', isEqualTo: shopId).get();
+          if (snapshots.docs.isNotEmpty) {
+            // Delete in batches of 400 to stay under Firestore limit of 500
+            const batchSize = 400;
+            for (int i = 0; i < snapshots.docs.length; i += batchSize) {
+              final batch = _db.batch();
+              final end = (i + batchSize < snapshots.docs.length) ? i + batchSize : snapshots.docs.length;
+              for (int j = i; j < end; j++) {
+                batch.delete(snapshots.docs[j].reference);
+              }
+              await batch.commit();
+            }
+            debugPrint('Deleted ${snapshots.docs.length} docs from $colName');
+          } else {
+            debugPrint('No docs to delete in $colName');
+          }
+        } catch (e) {
+          debugPrint('Error deleting from $colName: $e');
+          return 'Lỗi khi xóa collection $colName: $e';
         }
-        await batch.commit();
       }
-      return true;
-    } catch (e) { return false; }
+      return null; // Success
+    } catch (e) {
+      debugPrint('Reset shop data error: $e');
+      return 'Lỗi tổng quát: $e';
+    }
   }
 
   static Future<void> deleteCustomer(String firestoreId) async {

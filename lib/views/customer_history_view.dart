@@ -161,7 +161,7 @@ class _CustomerHistoryViewState extends State<CustomerHistoryView> {
                         subtitle: m.Column(
                           crossAxisAlignment: m.CrossAxisAlignment.start,
                           children: [
-                            m.Text("${item['subtitle']} - ${NumberFormat('#,###').format(item['amount'])}đ", style: const m.TextStyle(fontSize: 13)),
+                            m.Text("${item['subtitle']} - ${NumberFormat('#,###').format(item['amount'])}.000đ", style: const m.TextStyle(fontSize: 13)),
                             m.Text(_fmtDate(item['time']), style: const m.TextStyle(fontSize: 11, color: m.Colors.grey)),
                           ],
                         ),

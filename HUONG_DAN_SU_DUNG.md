@@ -94,6 +94,7 @@ Quản trị nhân sự bằng công nghệ AI và hình ảnh.
 ### 🕒 CÀI ĐẶT THỜI GIAN LÀM VIỆC
 **Bước 1:** Từ màn hình chính → **Cài đặt** → **Lịch làm việc**
 
+
 **Bước 2:** Cấu hình thời gian làm việc:
 - **Giờ bắt đầu:** 08:00 (mặc định)
 - **Giờ kết thúc:** 17:00 (mặc định)  

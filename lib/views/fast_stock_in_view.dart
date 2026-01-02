@@ -114,10 +114,10 @@ class _FastStockInViewState extends State<FastStockInView> {
     
     // Pre-fill prices
     if (code.cost != null) {
-      costCtrl.text = NumberFormat('#,###').format(code.cost!);
+      costCtrl.text = "${NumberFormat('#,###').format(code.cost!)}.000";
     }
     if (code.price != null) {
-      priceCtrl.text = NumberFormat('#,###').format(code.price!);
+      priceCtrl.text = "${NumberFormat('#,###').format(code.price!)}.000";
     }
     
     // Pre-fill supplier

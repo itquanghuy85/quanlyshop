@@ -337,7 +337,7 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
                       ],
                     ),
                     const SizedBox(height: 4),
-                    Text("Giá nhập: ${NumberFormat('#,###').format(item.unitCost)}đ"),
+                    Text("Giá nhập: ${NumberFormat('#,###').format(item.unitCost)}.000đ"),
                     const SizedBox(height: 4),
                     Row(
                       children: [
@@ -410,7 +410,7 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      "Thành tiền: ${NumberFormat('#,###').format(item.quantity * item.unitCost)}đ",
+                      "Thành tiền: ${NumberFormat('#,###').format(item.quantity * item.unitCost)}.000đ",
                       style: const TextStyle(fontWeight: FontWeight.w500),
                     ),
                   ],
@@ -421,7 +421,7 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
           Padding(
             padding: const EdgeInsets.all(16),
             child: Text(
-              "Tổng: ${_items.fold(0, (sum, item) => sum + item.quantity)} sản phẩm - ${NumberFormat('#,###').format(_items.fold(0, (sum, item) => sum + (item.unitCost * item.quantity)))}đ",
+              "Tổng: ${_items.fold(0, (sum, item) => sum + item.quantity)} sản phẩm - ${NumberFormat('#,###').format(_items.fold(0, (sum, item) => sum + (item.unitCost * item.quantity)))}.000đ",
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
           ),

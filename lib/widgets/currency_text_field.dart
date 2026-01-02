@@ -29,15 +29,33 @@ class CurrencyTextField extends StatefulWidget {
 
 class _CurrencyTextFieldState extends State<CurrencyTextField> {
   String? _errorText;
+  final FocusNode _focusNode = FocusNode();
+  bool _isEditing = false;
 
   @override
   void initState() {
     super.initState();
     widget.controller.addListener(_validate);
+    _focusNode.addListener(() {
+      if (_focusNode.hasFocus) {
+        _isEditing = true;
+        // Khi focus, hiển thị số thô nếu có
+        final text = widget.controller.text;
+        final digitsOnly = text.replaceAll(RegExp(r'[^0-9]'), '');
+        if (digitsOnly != text) {
+          widget.controller.value = TextEditingValue(text: digitsOnly, selection: TextSelection.collapsed(offset: digitsOnly.length));
+        }
+      } else {
+        if (_isEditing) {
+          _finalizeInput();
+        }
+      }
+    });
   }
 
   @override
   void dispose() {
+    _focusNode.dispose();
     widget.controller.removeListener(_validate);
     super.dispose();
   }
@@ -52,26 +70,36 @@ class _CurrencyTextFieldState extends State<CurrencyTextField> {
   }
 
   void _onChanged(String value) {
+    // Chỉ giữ nguyên số nhập, không format
     String digitsOnly = value.replaceAll(RegExp(r'[^0-9]'), '');
-    if (digitsOnly.isNotEmpty) {
-      int baseAmount = int.tryParse(digitsOnly) ?? 0;
+    if (digitsOnly != value) {
+      widget.controller.value = TextEditingValue(text: digitsOnly, selection: TextSelection.collapsed(offset: digitsOnly.length));
+    }
+    _validate();
+  }
+
+  void _finalizeInput() {
+    _isEditing = false;
+    final text = widget.controller.text.trim();
+    if (text.isNotEmpty) {
+      int baseAmount = int.tryParse(text) ?? 0;
       if (baseAmount > 0) {
         int actualAmount = baseAmount * 1000;
         String formatted = _formatNumber(baseAmount);
-        widget.controller.value = TextEditingValue(
-          text: formatted,
-          selection: TextSelection.collapsed(offset: formatted.length),
-        );
+        widget.controller.value = TextEditingValue(text: formatted, selection: TextSelection.collapsed(offset: formatted.length));
         widget.onChanged?.call(actualAmount.toString());
       } else {
-        widget.controller.value = const TextEditingValue(text: '', selection: TextSelection.collapsed(offset: 0));
+        widget.controller.clear();
         widget.onChanged?.call('0');
       }
     } else {
-      widget.controller.value = const TextEditingValue(text: '', selection: TextSelection.collapsed(offset: 0));
       widget.onChanged?.call('0');
     }
-    _validate();
+  }
+
+  void _onSubmitted(String value) {
+    _finalizeInput();
+    widget.onSubmitted?.call();
   }
 
   String _formatNumber(int number) {
@@ -83,7 +111,7 @@ class _CurrencyTextFieldState extends State<CurrencyTextField> {
       count++;
       if (count % 3 == 0 && i > 0) result = '.$result';
     }
-    return result;
+    return result + '.000';
   }
 
   @override
@@ -93,10 +121,12 @@ class _CurrencyTextFieldState extends State<CurrencyTextField> {
       children: [
         TextField(
           controller: widget.controller,
+          focusNode: _focusNode,
           keyboardType: TextInputType.number,
           enabled: widget.enabled,
           onChanged: _onChanged,
-          onSubmitted: widget.onSubmitted != null ? (_) => widget.onSubmitted!() : null,
+          onEditingComplete: _finalizeInput,
+          onSubmitted: _onSubmitted,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           decoration: InputDecoration(
             labelText: widget.required ? '${widget.label} *' : widget.label,
@@ -149,6 +179,7 @@ class _EnhancedCurrencyInputState extends State<EnhancedCurrencyInput> {
   String? _errorText;
   bool _showQuickAmounts = false;
   final FocusNode _focusNode = FocusNode();
+  bool _isEditing = false;
 
   @override
   void initState() {
@@ -156,12 +187,26 @@ class _EnhancedCurrencyInputState extends State<EnhancedCurrencyInput> {
     widget.controller.addListener(_validate);
     _focusNode.addListener(() {
       setState(() => _showQuickAmounts = _focusNode.hasFocus);
+      if (_focusNode.hasFocus) {
+        _isEditing = true;
+        // Khi focus, hiển thị số thô nếu có
+        final text = widget.controller.text;
+        final digitsOnly = text.replaceAll(RegExp(r'[^0-9]'), '');
+        if (digitsOnly != text) {
+          widget.controller.value = TextEditingValue(text: digitsOnly, selection: TextSelection.collapsed(offset: digitsOnly.length));
+        }
+      } else {
+        if (_isEditing) {
+          _finalizeInput();
+        }
+      }
     });
   }
 
   @override
   void dispose() {
     _focusNode.dispose();
+    widget.controller.removeListener(_validate);
     super.dispose();
   }
 
@@ -175,28 +220,39 @@ class _EnhancedCurrencyInputState extends State<EnhancedCurrencyInput> {
   }
 
   void _onChanged(String value) {
+    // Chỉ giữ nguyên số nhập, không format
     String digitsOnly = value.replaceAll(RegExp(r'[^0-9]'), '');
-    if (digitsOnly.isNotEmpty) {
-      int amount = int.tryParse(digitsOnly) ?? 0;
+    if (digitsOnly != value) {
+      widget.controller.value = TextEditingValue(text: digitsOnly, selection: TextSelection.collapsed(offset: digitsOnly.length));
+    }
+    _validate();
+  }
+
+  void _finalizeInput() {
+    _isEditing = false;
+    final text = widget.controller.text.trim();
+    if (text.isNotEmpty) {
+      int amount = int.tryParse(text) ?? 0;
       if (amount > 0) {
         String formatted = _formatCurrency(amount);
-        widget.controller.value = TextEditingValue(
-          text: formatted,
-          selection: TextSelection.collapsed(offset: formatted.length),
-        );
+        widget.controller.value = TextEditingValue(text: formatted, selection: TextSelection.collapsed(offset: formatted.length));
         widget.onChanged?.call(amount.toString());
       } else {
         widget.controller.clear();
         widget.onChanged?.call('0');
       }
     } else {
-      widget.controller.clear();
       widget.onChanged?.call('0');
     }
-    _validate();
+  }
+
+  void _onSubmitted(String value) {
+    _finalizeInput();
+    widget.onSubmitted?.call();
   }
 
   void _selectQuickAmount(int amount) {
+    _isEditing = false;
     widget.controller.text = _formatCurrency(amount);
     widget.onChanged?.call(amount.toString());
     _focusNode.unfocus();
@@ -212,7 +268,7 @@ class _EnhancedCurrencyInputState extends State<EnhancedCurrencyInput> {
       count++;
       if (count % 3 == 0 && i > 0) result = '.$result';
     }
-    return result;
+    return result + '.000';
   }
 
   @override
@@ -228,6 +284,8 @@ class _EnhancedCurrencyInputState extends State<EnhancedCurrencyInput> {
           keyboardType: TextInputType.number,
           enabled: widget.enabled,
           onChanged: _onChanged,
+          onEditingComplete: _finalizeInput,
+          onSubmitted: _onSubmitted,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           decoration: InputDecoration(
             labelText: widget.required ? '${widget.label} *' : widget.label,

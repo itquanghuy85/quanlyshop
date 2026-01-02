@@ -693,7 +693,7 @@ class NotificationService {
   // New repair order notifications - Admin & Technician roles
   static Future<void> sendNewOrderNotification(String orderId, String customerName, int price) async {
     final title = 'ĐƠN SỬA MỚI';
-    final body = 'Khách $customerName - ${NumberFormat('#,###').format(price)}đ';
+    final body = 'Khách $customerName - ${NumberFormat('#,###').format(price)}.000đ';
 
     // Check role-based permission
     if (!await _hasRolePermission('repair', ['admin', 'owner', 'manager', 'technician'])) {

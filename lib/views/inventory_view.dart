@@ -153,8 +153,8 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
             _detailItem("Chi tiết máy", p.capacity ?? ""),
             _detailItem("IMEI/Serial", p.imei ?? "N/A"),
             _detailItem("Nhà cung cấp", p.supplier ?? "N/A"),
-            _detailItem("Giá nhập", "${NumberFormat('#,###').format(p.cost ?? 0)} đ"),
-            _detailItem("Giá bán", "${NumberFormat('#,###').format(p.price)} đ", color: Colors.red),
+            _detailItem("Giá nhập", "${NumberFormat('#,###').format(p.cost ?? 0)}.000 đ"),
+            _detailItem("Giá bán", "${NumberFormat('#,###').format(p.price)}.000 đ", color: Colors.red),
             _detailItem("Thanh toán", p.paymentMethod ?? "N/A"),
             _detailItem("Cập nhật cuối", p.updatedAt != null ? DateFormat('dd/MM/yyyy HH:mm').format(DateTime.fromMillisecondsSinceEpoch(p.updatedAt!)) : "N/A", color: Colors.grey),
             if (repairs.isNotEmpty) ...[
@@ -1582,6 +1582,9 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
                 'isSynced': 0,
               };
               await db.insertSupplierImportHistory(importHistory);
+
+              // Cập nhật thống kê nhà cung cấp
+              await db.updateSupplierStats(supplierId, p.cost * p.quantity, 1);
 
               // Cập nhật giá nhà cung cấp
               await db.deactivateSupplierProductPrice(supplierId, p.name, p.brand ?? '', p.model);

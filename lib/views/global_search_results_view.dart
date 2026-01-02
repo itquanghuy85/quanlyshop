@@ -284,7 +284,7 @@ class _GlobalSearchResultsViewState extends State<GlobalSearchResultsView> {
           children: [
             Text('SĐT: ${sale.phone}'),
             Text(
-              'Tổng: ${NumberFormat('#,###').format(sale.totalPrice)}đ',
+              'Tổng: ${NumberFormat('#,###').format(sale.totalPrice)}.000đ',
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ],
@@ -325,7 +325,7 @@ class _GlobalSearchResultsViewState extends State<GlobalSearchResultsView> {
           ),
         ),
         subtitle: Text(
-          'Giá: ${NumberFormat('#,###').format(product.price)}đ - Tồn: ${product.quantity}',
+          'Giá: ${NumberFormat('#,###').format(product.price)}.000đ - Tồn: ${product.quantity}',
         ),
         trailing: Icon(
           Icons.arrow_forward_ios_rounded,
