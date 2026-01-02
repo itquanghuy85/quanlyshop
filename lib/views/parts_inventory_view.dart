@@ -67,9 +67,9 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                   ValidatedTextField(controller: nameC, label: "Tên linh kiện (VD: PIN IPHONE 11)", icon: Icons.inventory, uppercase: true, required: true),
                   ValidatedTextField(controller: modelC, label: "Dòng máy tương thích", icon: Icons.phone_android, uppercase: true),
                   Row(children: [
-                    Expanded(child: ValidatedTextField(controller: costC, label: "Giá vốn (.000)", icon: Icons.attach_money, keyboardType: TextInputType.number)),
+                    Expanded(child: ValidatedTextField(controller: costC, label: "Giá vốn", icon: Icons.attach_money, keyboardType: TextInputType.number)),
                     const SizedBox(width: 10),
-                    Expanded(child: ValidatedTextField(controller: priceC, label: "Giá bán (.000)", icon: Icons.sell, keyboardType: TextInputType.number)),
+                    Expanded(child: ValidatedTextField(controller: priceC, label: "Giá bán", icon: Icons.sell, keyboardType: TextInputType.number)),
                   ]),
                   ValidatedTextField(controller: qtyC, label: "Số lượng nhập", icon: Icons.numbers, keyboardType: TextInputType.number),
                 ],

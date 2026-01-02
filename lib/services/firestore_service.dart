@@ -408,6 +408,28 @@ class FirestoreService {
         return 'Không tìm thấy shopId. Vui lòng đăng xuất và đăng nhập lại để đồng bộ dữ liệu shop.';
       }
       final collections = ['repairs', 'sales', 'products', 'debts', 'expenses', 'audit_logs', 'attendance', 'chats', 'inventory_checks', 'cash_closings', 'purchase_orders', 'quick_input_codes', 'debt_payments', 'payroll_settings', 'work_schedules', 'suppliers', 'customers'];
+      
+      // Nếu là super admin, xóa thêm debts không có shopId (dữ liệu cũ)
+      if (UserService.isCurrentUserSuperAdmin()) {
+        try {
+          final orphanDebts = await _db.collection('debts').where('shopId', isNull: true).get();
+          if (orphanDebts.docs.isNotEmpty) {
+            const batchSize = 400;
+            for (int i = 0; i < orphanDebts.docs.length; i += batchSize) {
+              final batch = _db.batch();
+              final end = (i + batchSize < orphanDebts.docs.length) ? i + batchSize : orphanDebts.docs.length;
+              for (int j = i; j < end; j++) {
+                batch.delete(orphanDebts.docs[j].reference);
+              }
+              await batch.commit();
+            }
+            debugPrint('Deleted ${orphanDebts.docs.length} orphan debts');
+          }
+        } catch (e) {
+          debugPrint('Error deleting orphan debts: $e');
+        }
+      }
+      
       for (var colName in collections) {
         try {
           final snapshots = await _db.collection(colName).where('shopId', isEqualTo: shopId).get();

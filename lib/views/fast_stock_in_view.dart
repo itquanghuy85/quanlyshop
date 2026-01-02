@@ -116,7 +116,7 @@ class _FastStockInViewState extends State<FastStockInView> {
     
     // Pre-fill prices
     if (code.cost != null) {
-      costCtrl.text = "${NumberFormat('#,###').format(code.cost!)}.000";
+      costCtrl.text = NumberFormat('#,###').format(code.cost!);
     }
     if (code.price != null) {
       priceCtrl.text = "${NumberFormat('#,###').format(code.price!)}.000";
@@ -196,11 +196,11 @@ class _FastStockInViewState extends State<FastStockInView> {
     final clean = text.replaceAll(',', '').split('.').first;
     final num = int.tryParse(clean);
     if (num != null) {
-      final formatted = "${NumberFormat('#,###').format(num)}.000";
+      final formatted = NumberFormat('#,###').format(num);
       if (formatted != text) {
         costCtrl.value = TextEditingValue(
           text: formatted,
-          selection: TextSelection.collapsed(offset: formatted.length - 4),
+          selection: TextSelection.collapsed(offset: formatted.length),
         );
       }
     }
@@ -212,11 +212,11 @@ class _FastStockInViewState extends State<FastStockInView> {
     final clean = text.replaceAll(',', '').split('.').first;
     final num = int.tryParse(clean);
     if (num != null) {
-      final formatted = "${NumberFormat('#,###').format(num)}.000";
+      final formatted = NumberFormat('#,###').format(num);
       if (formatted != text) {
         priceCtrl.value = TextEditingValue(
           text: formatted,
-          selection: TextSelection.collapsed(offset: formatted.length - 4),
+          selection: TextSelection.collapsed(offset: formatted.length),
         );
       }
     }

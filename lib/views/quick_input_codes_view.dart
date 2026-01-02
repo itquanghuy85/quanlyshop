@@ -7,6 +7,8 @@ import '../services/firestore_service.dart';
 import '../services/user_service.dart';
 import '../services/notification_service.dart';
 import '../data/db_helper.dart';
+import '../services/sync_service.dart';
+import 'stock_in_view.dart';
 
 class QuickInputCodesView extends StatefulWidget {
   const QuickInputCodesView({super.key});
@@ -15,17 +17,33 @@ class QuickInputCodesView extends StatefulWidget {
   State<QuickInputCodesView> createState() => _QuickInputCodesViewState();
 }
 
-class _QuickInputCodesViewState extends State<QuickInputCodesView> {
+class _QuickInputCodesViewState extends State<QuickInputCodesView> with TickerProviderStateMixin {
   String? shopId;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   bool _isLoading = true;
   List<QuickInputCode> _localCodes = [];
+  late TabController _tabController;
+
+  // For management tab
+  List<QuickInputCode> _codes = [];
+  bool _isSyncing = false;
+  final TextEditingController _searchController2 = TextEditingController();
+  String _searchQuery2 = '';
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
     _loadShopId();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    _searchController.dispose();
+    _searchController2.dispose();
+    super.dispose();
   }
 
   Future<void> _loadShopId() async {
@@ -37,6 +55,7 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> {
       });
       // Load local data after getting shopId
       await _loadLocalCodes();
+      await _loadCodes();
     }
   }
 
@@ -54,6 +73,69 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> {
     } catch (e) {
       debugPrint('Error loading local codes: $e');
     }
+  }
+
+  Future<void> _loadCodes() async {
+    if (shopId == null) return;
+    try {
+      final db = DBHelper();
+      final codes = await db.getQuickInputCodes();
+      if (mounted) {
+        setState(() {
+          _codes = codes.where((code) => code.shopId == shopId).toList();
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading codes: $e');
+    }
+  }
+
+  Future<void> _syncCodes() async {
+    if (shopId == null) return;
+    setState(() => _isSyncing = true);
+    try {
+      await SyncService.syncQuickInputCodesToCloud();
+      await _loadCodes();
+      NotificationService.showSnackBar("Đồng bộ thành công!", color: Colors.green);
+    } catch (e) {
+      NotificationService.showSnackBar("Lỗi đồng bộ: $e", color: Colors.red);
+    } finally {
+      setState(() => _isSyncing = false);
+    }
+  }
+
+  Future<void> _deleteCode(QuickInputCode code) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("XÓA MÃ NHẬP NHANH"),
+        content: Text("Bạn có chắc muốn xóa mã '${code.code}'?"),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("HỦY")),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text("XÓA")),
+        ],
+      ),
+    );
+    if (confirm == true) {
+      try {
+        final db = DBHelper();
+        await db.deleteQuickInputCode(code.id!);
+        if (code.firestoreId != null) {
+          await FirebaseFirestore.instance.collection('quick_input_codes').doc(code.firestoreId).delete();
+        }
+        await _loadCodes();
+        NotificationService.showSnackBar("Đã xóa mã nhập nhanh!", color: Colors.green);
+      } catch (e) {
+        NotificationService.showSnackBar("Lỗi xóa: $e", color: Colors.red);
+      }
+    }
+  }
+
+  void _addOrEditCode({QuickInputCode? code}) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => StockInView(prefilledData: code?.toMap())),
+    ).then((_) => _loadCodes());
   }
 
   List<QuickInputCode> _combineData(List<QuickInputCode> cloudCodes) {
@@ -322,71 +404,84 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> {
         backgroundColor: Colors.blue.shade700,
         elevation: 2,
         automaticallyImplyLeading: true,
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(60),
-          child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Tìm kiếm mã nhập nhanh...',
-                prefixIcon: const Icon(Icons.search),
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide.none,
-                ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              ),
-              onChanged: (value) {
-                setState(() {
-                  _searchQuery = value.toLowerCase();
-                });
-              },
-            ),
-          ),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [
+            Tab(text: 'Chọn Mã'),
+            Tab(text: 'Quản Lý'),
+          ],
         ),
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('quick_input_codes')
-            .where('shopId', isEqualTo: shopId)
-            .orderBy('createdAt', descending: true)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            // Even if there's an error, show local data
-            final combinedCodes = _combineData([]);
-            return _buildListView(combinedCodes);
-          }
-
-          if (snapshot.connectionState == ConnectionState.waiting && _localCodes.isEmpty) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
-          }
-
-          final docs = snapshot.data?.docs ?? [];
-          final cloudCodes = docs.map((doc) {
-            final data = doc.data() as Map<String, dynamic>;
-            return QuickInputCode.fromMap(data)..firestoreId = doc.id;
-          }).toList();
-
-          final combinedCodes = _combineData(cloudCodes);
-          return _buildListView(combinedCodes);
-        },
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showCreateQuickInputCodeDialog,
-        icon: const Icon(Icons.add),
-        label: const Text('Tạo Mã Mới'),
-        backgroundColor: Colors.blue.shade700,
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _buildSelectTab(),
+          _buildManageTab(),
+        ],
       ),
     );
   }
 
+  Widget _buildSelectTab() {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: TextField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              hintText: 'Tìm kiếm mã nhập nhanh...',
+              prefixIcon: const Icon(Icons.search),
+              filled: true,
+              fillColor: Colors.white,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+            onChanged: (value) {
+              setState(() {
+                _searchQuery = value.toLowerCase();
+              });
+            },
+          ),
+        ),
+        Expanded(
+          child: StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('quick_input_codes')
+                .where('shopId', isEqualTo: shopId)
+                .orderBy('createdAt', descending: true)
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                debugPrint('Firestore error: ${snapshot.error}');
+                // Even if there's an error, show local data
+                final combinedCodes = _combineData([]);
+                return _buildListView(combinedCodes);
+              }
 
+              if (snapshot.connectionState == ConnectionState.waiting && _localCodes.isEmpty) {
+                return const Center(
+                  child: CircularProgressIndicator(),
+                );
+              }
+
+              final docs = snapshot.data?.docs ?? [];
+              final cloudCodes = docs.map((doc) {
+                final data = doc.data() as Map<String, dynamic>;
+                return QuickInputCode.fromMap(data)..firestoreId = doc.id;
+              }).toList();
+
+              final combinedCodes = _combineData(cloudCodes);
+              return _buildListView(combinedCodes);
+            },
+          ),
+        ),
+      ],
+    );
+  }
 
   void _showQuickInputCodeDetailsFromModel(QuickInputCode code) {
     showDialog(
@@ -492,6 +587,100 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> {
     } catch (e) {
       NotificationService.showSnackBar('Lỗi tạo mẫu dữ liệu: $e', color: Colors.red);
     }
+  }
+
+  Widget _buildManageTab() {
+    final filteredCodes = _codes.where((code) {
+      final name = code.name?.toLowerCase() ?? '';
+      final codeStr = code.code?.toLowerCase() ?? '';
+      return name.contains(_searchQuery2) || codeStr.contains(_searchQuery2);
+    }).toList();
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _searchController2,
+                  decoration: InputDecoration(
+                    hintText: 'Tìm kiếm mã nhập nhanh...',
+                    prefixIcon: const Icon(Icons.search),
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  ),
+                  onChanged: (value) {
+                    setState(() {
+                      _searchQuery2 = value.toLowerCase();
+                    });
+                  },
+                ),
+              ),
+              if (_isSyncing)
+                const Padding(
+                  padding: EdgeInsets.all(8.0),
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                )
+              else
+                IconButton(
+                  icon: const Icon(Icons.sync),
+                  onPressed: _syncCodes,
+                  tooltip: 'Đồng bộ',
+                ),
+              IconButton(
+                icon: const Icon(Icons.add),
+                onPressed: _showCreateQuickInputCodeDialog,
+                tooltip: 'Thêm mới',
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: filteredCodes.isEmpty
+              ? const Center(
+                  child: Text('Chưa có mã nhập nhanh nào'),
+                )
+              : ListView.builder(
+                  itemCount: filteredCodes.length,
+                  itemBuilder: (context, index) {
+                    final code = filteredCodes[index];
+                    return Card(
+                      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      child: ListTile(
+                        title: Text(code.name ?? 'N/A'),
+                        subtitle: Text('${code.code ?? 'N/A'} - ${code.type ?? 'N/A'}'),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.edit),
+                              onPressed: () => _addOrEditCode(code: code),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete),
+                              onPressed: () => _deleteCode(code),
+                            ),
+                          ],
+                        ),
+                        onTap: () => _showQuickInputCodeDetailsFromModel(code),
+                      ),
+                    );
+                  },
+                ),
+        ),
+      ],
+    );
   }
 
   void _showCreateQuickInputCodeDialog() {
@@ -613,7 +802,7 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> {
             }
 
             // Reload local data
-            await _loadLocalCodes();
+            await _loadCodes();
             NotificationService.showSnackBar('Đã xóa mã nhập nhanh');
           } catch (e) {
             NotificationService.showSnackBar('Lỗi khi xóa: $e', color: Colors.red);

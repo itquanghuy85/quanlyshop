@@ -79,11 +79,11 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
     final clean = text.replaceAll(',', '').split('.').first;
     final num = int.tryParse(clean);
     if (num != null) {
-      final formatted = "${NumberFormat('#,###').format(num)}.000";
+      final formatted = NumberFormat('#,###').format(num);
       if (formatted != text) {
         itemCostCtrl.value = TextEditingValue(
           text: formatted,
-          selection: TextSelection.collapsed(offset: formatted.length - 4),
+          selection: TextSelection.collapsed(offset: formatted.length),
         );
       }
     }
@@ -95,11 +95,11 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
     final clean = text.replaceAll(',', '').split('.').first;
     final num = int.tryParse(clean);
     if (num != null) {
-      final formatted = "${NumberFormat('#,###').format(num)}.000";
+      final formatted = NumberFormat('#,###').format(num);
       if (formatted != text) {
         itemPriceCtrl.value = TextEditingValue(
           text: formatted,
-          selection: TextSelection.collapsed(offset: formatted.length - 4),
+          selection: TextSelection.collapsed(offset: formatted.length),
         );
       }
     }
@@ -392,7 +392,7 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
                       ],
                     ),
                     const SizedBox(height: 4),
-                    Text("Giá nhập: ${NumberFormat('#,###').format(item.unitCost)}.000đ"),
+                    Text("Giá nhập: ${NumberFormat('#,###').format(item.unitCost)}đ"),
                     const SizedBox(height: 4),
                     Row(
                       children: [
@@ -465,7 +465,7 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      "Thành tiền: ${NumberFormat('#,###').format(item.quantity * item.unitCost)}.000đ",
+                      "Thành tiền: ${NumberFormat('#,###').format(item.quantity * item.unitCost)}đ",
                       style: const TextStyle(fontWeight: FontWeight.w500),
                     ),
                   ],
@@ -476,7 +476,7 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
           Padding(
             padding: const EdgeInsets.all(16),
             child: Text(
-              "Tổng: ${_items.fold(0, (sum, item) => sum + item.quantity)} sản phẩm - ${NumberFormat('#,###').format(_items.fold(0, (sum, item) => sum + (item.unitCost * item.quantity)))}.000đ",
+              "Tổng: ${_items.fold(0, (sum, item) => sum + item.quantity)} sản phẩm - ${NumberFormat('#,###').format(_items.fold(0, (sum, item) => sum + (item.unitCost * item.quantity)))}đ",
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
           ),

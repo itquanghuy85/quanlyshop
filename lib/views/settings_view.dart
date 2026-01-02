@@ -98,6 +98,12 @@ class _SettingsViewState extends State<SettingsView> {
 
   // HÀM XỬ LÝ XÓA TRẮNG SHOP (BẢO MẬT TUYỆT ĐỐI)
   Future<void> _handleResetShop() async {
+    // Chỉ super admin mới được xóa dữ liệu shop
+    if (!UserService.isCurrentUserSuperAdmin()) {
+      NotificationService.showSnackBar("CHỈ SUPER ADMIN MỚI ĐƯỢC XÓA DỮ LIỆU SHOP!", color: Colors.red);
+      return;
+    }
+
     final confirmTextC = TextEditingController();
     final bool? result = await showDialog<bool>(
       context: context,

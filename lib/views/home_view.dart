@@ -481,7 +481,7 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
   }
   
   Widget _buildTodaySummary() {
-    String fmt(int v) => "${NumberFormat('#,###').format(v)}.000";
+    String fmt(int v) => NumberFormat('#,###').format(v);
     return Container(
       width: double.infinity, padding: const EdgeInsets.all(18), 
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withAlpha(8), blurRadius: 10)]), 
@@ -500,7 +500,7 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
   }
 
   Widget _buildFinancialChart() {
-    String fmt(int v) => "${NumberFormat('#,###').format(v)}.000";
+    String fmt(int v) => NumberFormat('#,###').format(v);
     int revenue = revenueToday;
     int expense = todayExpense;
     int debt = totalDebtRemain;
@@ -651,7 +651,7 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
   }
 
   Widget _buildFinanceTab() {
-    String fmt(int v) => "${NumberFormat('#,###').format(v)}.000";
+    String fmt(int v) => NumberFormat('#,###').format(v);
     int revenue = revenueToday;
     int expense = todayExpense;
     int debt = totalDebtRemain;

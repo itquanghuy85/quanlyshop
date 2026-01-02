@@ -60,7 +60,7 @@ class _PartsSelectionDialogState extends State<PartsSelectionDialog> {
               children: [
                 Expanded(
                   child: Text(
-                    "Tổng chi phí: ${NumberFormat('#,###').format(_selectedParts.fold<int>(0, (sum, p) => sum + ((p['cost'] as int) * (p['quantity'] as int))))}.000đ",
+                    "Tổng chi phí: ${NumberFormat('#,###').format(_selectedParts.fold<int>(0, (sum, p) => sum + ((p['cost'] as int) * (p['quantity'] as int))))}đ",
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                 ),
@@ -79,7 +79,7 @@ class _PartsSelectionDialogState extends State<PartsSelectionDialog> {
                   final isSelected = _selectedParts.any((p) => p['product'] == product);
                   return ListTile(
                     title: Text(product.name),
-                    subtitle: Text("${NumberFormat('#,###').format(product.price)}.000đ"),
+                    subtitle: Text("${NumberFormat('#,###').format(product.price)}đ"),
                     trailing: isSelected
                         ? IconButton(
                             icon: const Icon(Icons.remove),
