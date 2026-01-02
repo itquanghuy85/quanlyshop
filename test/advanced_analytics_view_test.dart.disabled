@@ -1,0 +1,219 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:mockito/mockito.dart';
+import 'package:mockito/annotations.dart';
+import 'package:fl_chart/fl_chart.dart';
+import 'package:quanlyshop/views/advanced_analytics_view.dart';
+import 'package:quanlyshop/data/db_helper.dart';
+import 'package:quanlyshop/models/repair_model.dart';
+import 'package:quanlyshop/models/sale_order_model.dart';
+import 'package:quanlyshop/models/product_model.dart';
+import 'package:quanlyshop/services/sync_service.dart';
+
+// Generate mocks
+@GenerateMocks([DBHelper])
+import 'advanced_analytics_view_test.mocks.dart';
+
+void main() {
+  late MockDBHelper mockDBHelper;
+
+  setUp(() {
+    mockDBHelper = MockDBHelper();
+  });
+
+  group('AdvancedAnalyticsView', () {
+    testWidgets('should display loading state initially', (WidgetTester tester) async {
+      // Mock empty data
+      when(mockDBHelper.getAllRepairs()).thenAnswer((_) async => []);
+      when(mockDBHelper.getAllSales()).thenAnswer((_) async => []);
+      when(mockDBHelper.getAllProducts()).thenAnswer((_) async => []);
+      when(mockDBHelper.getAllExpenses()).thenAnswer((_) async => []);
+      when(mockDBHelper.getAllDebts()).thenAnswer((_) async => []);
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: AdvancedAnalyticsView(),
+        ),
+      );
+
+      // Should show loading indicator
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.text('Đang tải dữ liệu phân tích...'), findsOneWidget);
+    });
+
+    testWidgets('should display tab bar with 4 tabs', (WidgetTester tester) async {
+      // Mock data
+      when(mockDBHelper.getAllRepairs()).thenAnswer((_) async => []);
+      when(mockDBHelper.getAllSales()).thenAnswer((_) async => []);
+      when(mockDBHelper.getAllProducts()).thenAnswer((_) async => []);
+      when(mockDBHelper.getAllExpenses()).thenAnswer((_) async => []);
+      when(mockDBHelper.getAllDebts()).thenAnswer((_) async => []);
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: AdvancedAnalyticsView(),
+        ),
+      );
+
+      // Wait for data to load
+      await tester.pumpAndSettle();
+
+      // Should have TabBar with 4 tabs
+      expect(find.byType(TabBar), findsOneWidget);
+      expect(find.text('Doanh thu'), findsOneWidget);
+      expect(find.text('Khách hàng'), findsOneWidget);
+      expect(find.text('Kho hàng'), findsOneWidget);
+      expect(find.text('Bảo hành'), findsOneWidget);
+    });
+
+    testWidgets('should display revenue chart when data is available', (WidgetTester tester) async {
+      // Mock sample data
+      final mockRepairs = [
+        Repair(
+          id: 1,
+          customerName: 'Test Customer',
+          phone: '0123456789',
+          model: 'iPhone 12',
+          issue: 'Màn hình vỡ',
+          status: 3, // Completed
+          price: 5000000,
+          cost: 2000000,
+          createdAt: DateTime.now().millisecondsSinceEpoch,
+          deliveredAt: DateTime.now().millisecondsSinceEpoch,
+          warranty: '12 tháng',
+        ),
+      ];
+
+      final mockSales = [
+        SaleOrder(
+          id: 1,
+          customerName: 'Test Customer',
+          phone: '0123456789',
+          productNames: 'iPhone 12',
+          productImeis: '123456789',
+          totalPrice: 3000000,
+          totalCost: 2500000,
+          sellerName: 'Test Seller',
+          soldAt: DateTime.now().millisecondsSinceEpoch,
+          warranty: '12 tháng',
+        ),
+      ];
+
+      when(mockDBHelper.getAllRepairs()).thenAnswer((_) async => mockRepairs as List<Repair>);
+      when(mockDBHelper.getAllSales()).thenAnswer((_) async => mockSales);
+      when(mockDBHelper.getAllProducts()).thenAnswer((_) async => []);
+      when(mockDBHelper.getAllExpenses()).thenAnswer((_) async => []);
+      when(mockDBHelper.getAllDebts()).thenAnswer((_) async => []);
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: AdvancedAnalyticsView(),
+        ),
+      );
+
+      // Wait for data to load
+      await tester.pumpAndSettle();
+
+      // Should display revenue chart
+      expect(find.byType(LineChart), findsOneWidget);
+      expect(find.text('Biểu đồ doanh thu theo thời gian'), findsOneWidget);
+    });
+
+    testWidgets('should display customer analytics', (WidgetTester tester) async {
+      // Mock customer data
+      final mockRepairs = [
+        Repair(
+          id: 1,
+          customerName: 'VIP Customer',
+          phone: '0123456789',
+          model: 'iPhone 12',
+          issue: 'Màn hình vỡ',
+          status: 3,
+          price: 5000000,
+          cost: 2000000,
+          createdAt: DateTime.now().millisecondsSinceEpoch,
+          deliveredAt: DateTime.now().millisecondsSinceEpoch,
+          warranty: '12 tháng',
+        ),
+        Repair(
+          id: 2,
+          customerName: 'VIP Customer',
+          phone: '0123456789',
+          model: 'iPhone 13',
+          issue: 'Pin yếu',
+          status: 3,
+          price: 3000000,
+          cost: 1500000,
+          createdAt: DateTime.now().millisecondsSinceEpoch,
+          deliveredAt: DateTime.now().millisecondsSinceEpoch,
+          warranty: '12 tháng',
+        ),
+      ];
+
+      when(mockDBHelper.getAllRepairs()).thenAnswer((_) async => mockRepairs);
+      when(mockDBHelper.getAllSales()).thenAnswer((_) async => []);
+      when(mockDBHelper.getAllProducts()).thenAnswer((_) async => []);
+      when(mockDBHelper.getAllExpenses()).thenAnswer((_) async => []);
+      when(mockDBHelper.getAllDebts()).thenAnswer((_) async => []);
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: AdvancedAnalyticsView(),
+        ),
+      );
+
+      // Wait for data to load
+      await tester.pumpAndSettle();
+
+      // Switch to customer tab
+      await tester.tap(find.text('Khách hàng'));
+      await tester.pumpAndSettle();
+
+      // Should display customer chart
+      expect(find.byType(PieChart), findsOneWidget);
+      expect(find.text('Phân loại khách hàng'), findsOneWidget);
+    });
+
+    testWidgets('should display maintenance alerts', (WidgetTester tester) async {
+      // Mock repair with expiring warranty
+      final thirtyDaysFromNow = DateTime.now().add(const Duration(days: 30));
+      final mockRepairs = [
+        Repair(
+          id: 1,
+          customerName: 'Test Customer',
+          phone: '0123456789',
+          model: 'iPhone 12',
+          issue: 'Màn hình vỡ',
+          status: 3,
+          price: 5000000,
+          cost: 2000000,
+          createdAt: DateTime.now().millisecondsSinceEpoch,
+          deliveredAt: thirtyDaysFromNow.subtract(const Duration(days: 335)).millisecondsSinceEpoch, // 11 months ago
+          warranty: '12 tháng',
+        ),
+      ];
+
+      when(mockDBHelper.getAllRepairs()).thenAnswer((_) async => mockRepairs);
+      when(mockDBHelper.getAllSales()).thenAnswer((_) async => []);
+      when(mockDBHelper.getAllProducts()).thenAnswer((_) async => []);
+      when(mockDBHelper.getAllExpenses()).thenAnswer((_) async => []);
+      when(mockDBHelper.getAllDebts()).thenAnswer((_) async => []);
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: AdvancedAnalyticsView(),
+        ),
+      );
+
+      // Wait for data to load
+      await tester.pumpAndSettle();
+
+      // Switch to maintenance tab
+      await tester.tap(find.text('Bảo hành'));
+      await tester.pumpAndSettle();
+
+      // Should display maintenance alerts
+      expect(find.textContaining('Cảnh báo bảo hành'), findsOneWidget);
+    });
+  });
+}

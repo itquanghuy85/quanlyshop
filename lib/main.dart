@@ -1,0 +1,199 @@
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'l10n/app_localizations.dart';
+import 'package:intl/date_symbol_data_local.dart';
+
+import 'firebase_options.dart';
+import 'views/home_view.dart';
+import 'views/login_view.dart';
+import 'views/splash_view.dart'; // Import màn hình Splash mới
+import 'views/currency_input_demo.dart'; // Import demo currency input
+import 'services/user_service.dart';
+import 'services/notification_service.dart';
+import 'services/theme_service.dart';
+import 'services/connectivity_service.dart';
+import 'widgets/offline_indicator.dart';
+
+// Background message handler (must be top-level function)
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  // Initialize Firebase if needed
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  // Handle background message
+  await NotificationService.handleBackgroundMessage(message);
+}
+
+Future<void> main() async {
+  await runZonedGuarded<Future<void>>(() async {
+    WidgetsFlutterBinding.ensureInitialized();
+    await initializeDateFormatting('vi_VN');
+    try {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+
+      // Set up Firebase Messaging background handler
+      FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+    } catch (e) {
+      debugPrint('Firebase initialization failed: $e');
+      rethrow;
+    }
+    try {
+      await NotificationService.init();
+    } catch (e) {
+      debugPrint('NotificationService initialization failed: $e');
+      // Continue, as notifications are not critical for launch
+    }
+    try {
+      await ConnectivityService.instance.initialize();
+    } catch (e) {
+      debugPrint('ConnectivityService initialization failed: $e');
+      // Continue, as connectivity monitoring is not critical for launch
+    }
+    runApp(const MyApp());
+  }, (error, stack) {
+    debugPrint('GLOBAL ERROR: $error');
+  });
+}
+
+class MyApp extends StatefulWidget {
+  const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  Locale? _locale;
+  final ThemeService _themeService = ThemeService();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedLocale();
+    _themeService.init();
+  }
+
+  Future<void> _loadSavedLocale() async {
+    final prefs = await SharedPreferences.getInstance();
+    final languageCode = prefs.getString('app_language');
+    final supportedCodes = ['vi', 'en'];
+    final code = supportedCodes.contains(languageCode) ? languageCode : 'vi';
+    setState(() {
+      _locale = Locale(code!);
+    });
+  }
+
+  void setLocale(Locale locale) {
+    setState(() {
+      _locale = locale;
+    });
+    SharedPreferences.getInstance().then((p) => p.setString('app_language', locale.languageCode));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _themeService,
+      builder: (context, child) {
+        return Directionality(
+          textDirection: TextDirection.ltr,
+          child: OfflineIndicator(
+            child: MaterialApp(
+              title: 'Quan Ly Shop',
+              debugShowCheckedModeBanner: false,
+              scaffoldMessengerKey: NotificationService.messengerKey,
+              theme: _themeService.getCurrentTheme(context),
+              darkTheme: ThemeService.darkTheme,
+              themeMode: _themeService.themeMode,
+        locale: _locale,
+        supportedLocales: const [Locale('vi'), Locale('en')],
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        localeResolutionCallback: (locale, supportedLocales) {
+          for (var supportedLocale in supportedLocales) {
+            if (supportedLocale.languageCode == locale?.languageCode) {
+              return supportedLocale;
+            }
+          }
+          return supportedLocales.first;
+        },
+              routes: {
+                '/currency-demo': (context) => const CurrencyInputDemo(),
+              },
+              home: SplashView(setLocale: setLocale),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class AuthGate extends StatefulWidget {
+  final void Function(Locale)? setLocale;
+  const AuthGate({super.key, this.setLocale});
+
+  @override
+  State<AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends State<AuthGate> {
+
+  @override
+  void initState() {
+    super.initState();
+    _initNotificationListener();
+  }
+
+  void _initNotificationListener() {
+    NotificationService.listenToNotifications((title, body) {
+      if (mounted) {
+        NotificationService.showSnackBar("$title: $body", color: const Color(0xFF2962FF));
+      }
+    });
+  }
+
+  Future<String> _getRoleAfterSync(String uid, String email) async {
+    await UserService.syncUserInfo(uid, email);
+    return UserService.getUserRole(uid);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snap) {
+        if (snap.connectionState == ConnectionState.waiting) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        if (snap.hasError || !snap.hasData) return LoginView(setLocale: widget.setLocale);
+
+        final uid = snap.data!.uid; // Note: snap.data is guaranteed non-null here due to !snap.hasData check above
+
+        return FutureBuilder<String>(
+          future: _getRoleAfterSync(uid, snap.data!.email!).timeout(const Duration(seconds: 15)),
+          builder: (context, roleSnap) {
+            if (roleSnap.connectionState == ConnectionState.waiting) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+            if (roleSnap.hasError || !roleSnap.hasData) {
+              debugPrint('AuthGate: role sync failed: ${roleSnap.error}, using default role');
+              return HomeView(role: 'user', setLocale: widget.setLocale); // Use default role instead of logout
+            }
+            return HomeView(role: roleSnap.data!, setLocale: widget.setLocale);
+          },
+        );
+      },
+    );
+  }
+}
