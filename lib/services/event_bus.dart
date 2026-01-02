@@ -10,4 +10,12 @@ class EventBus {
   Stream<String> get stream => _ctrl.stream;
   void emit(String event) => _ctrl.add(event);
   void dispose() { _ctrl.close(); }
+
+  StreamSubscription<String> on(String event, void Function(String) callback) {
+    return stream.where((e) => e == event).listen(callback);
+  }
+
+  void off(StreamSubscription<String> subscription) {
+    subscription.cancel();
+  }
 }

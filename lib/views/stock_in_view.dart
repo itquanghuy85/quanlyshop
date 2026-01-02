@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../data/db_helper.dart';
 import '../models/product_model.dart';
 import '../services/notification_service.dart';
 import '../services/user_service.dart';
 import '../services/firestore_service.dart';
+import '../services/event_bus.dart';
 import '../utils/money_utils.dart';
 import '../widgets/validated_text_field.dart';
 import 'fast_stock_in_view.dart';
@@ -89,6 +91,8 @@ class _StockInViewState extends State<StockInView> {
     quantityCtrl.addListener(() => _onFieldChanged(quantityCtrl, (changed) => _quantityChanged = changed));
     costCtrl.addListener(() => _onFieldChanged(costCtrl, (changed) => _costChanged = changed));
     priceCtrl.addListener(() => _onFieldChanged(priceCtrl, (changed) => _priceChanged = changed));
+    costCtrl.addListener(_formatCost);
+    priceCtrl.addListener(_formatPrice);
     supplierCtrl.addListener(() => _onFieldChanged(supplierCtrl, (changed) => _supplierChanged = changed));
     notesCtrl.addListener(() => _onFieldChanged(notesCtrl, (changed) => _notesChanged = changed));
 
@@ -147,6 +151,38 @@ class _StockInViewState extends State<StockInView> {
     return (value > 0 && value < 100000) ? value * 1000 : value;
   }
 
+  void _formatCost() {
+    final text = costCtrl.text;
+    if (text.isEmpty) return;
+    final clean = text.replaceAll(',', '').split('.').first;
+    final num = int.tryParse(clean);
+    if (num != null) {
+      final formatted = "${NumberFormat('#,###').format(num)}.000";
+      if (formatted != text) {
+        costCtrl.value = TextEditingValue(
+          text: formatted,
+          selection: TextSelection.collapsed(offset: formatted.length - 4),
+        );
+      }
+    }
+  }
+
+  void _formatPrice() {
+    final text = priceCtrl.text;
+    if (text.isEmpty) return;
+    final clean = text.replaceAll(',', '').split('.').first;
+    final num = int.tryParse(clean);
+    if (num != null) {
+      final formatted = "${NumberFormat('#,###').format(num)}.000";
+      if (formatted != text) {
+        priceCtrl.value = TextEditingValue(
+          text: formatted,
+          selection: TextSelection.collapsed(offset: formatted.length - 4),
+        );
+      }
+    }
+  }
+
   void _onFieldChanged(TextEditingController controller, Function(bool) setChanged) {
     final hasText = controller.text.trim().isNotEmpty;
     if (hasText != setChanged) { // Only update if state actually changed
@@ -167,6 +203,8 @@ class _StockInViewState extends State<StockInView> {
     quantityCtrl.removeListener(() => _onFieldChanged(quantityCtrl, (changed) => _quantityChanged = changed));
     costCtrl.removeListener(() => _onFieldChanged(costCtrl, (changed) => _costChanged = changed));
     priceCtrl.removeListener(() => _onFieldChanged(priceCtrl, (changed) => _priceChanged = changed));
+    costCtrl.removeListener(_formatCost);
+    priceCtrl.removeListener(_formatPrice);
     supplierCtrl.removeListener(() => _onFieldChanged(supplierCtrl, (changed) => _supplierChanged = changed));
     notesCtrl.removeListener(() => _onFieldChanged(notesCtrl, (changed) => _notesChanged = changed));
     // Dispose controllers and focus nodes
@@ -412,11 +450,51 @@ class _StockInViewState extends State<StockInView> {
         linkedSummary: product.name,
       );
 
+      // Thêm chi phí nhập kho nếu thanh toán bằng tiền
+      if (selectedPaymentMethod == 'TIỀN MẶT' || selectedPaymentMethod == 'CHUYỂN KHOẢN') {
+        await _addStockInExpense(product);
+      }
+
+      // Notify UI update for suppliers
+      EventBus().emit('suppliers_changed');
       Navigator.of(context).pop();
     } catch (e) {
       NotificationService.showSnackBar("Lỗi khi nhập kho: $e", color: Colors.red);
     } finally {
       setState(() => _saving = false);
+    }
+  }
+
+  // THÊM CHI PHÍ NHẬP KHO VÀO TRANG CHI PHÍ
+  Future<void> _addStockInExpense(Product product) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      final userName = user?.email?.split('@').first.toUpperCase() ?? "NV";
+
+      final expense = {
+        'amount': product.cost * product.quantity,
+        'category': 'NHẬP HÀNG',
+        'description': 'Nhập kho thủ công: ${product.name} - SL: ${product.quantity}',
+        'createdAt': DateTime.now().millisecondsSinceEpoch,
+        'createdBy': userName,
+        'linkedId': product.firestoreId,
+        'paymentMethod': selectedPaymentMethod,
+        'isSynced': false,
+      };
+
+      // Thêm vào local DB
+      await db.insertExpense(expense);
+
+      // Sync to Firestore
+      await FirestoreService.addExpenseCloud(expense);
+
+      // Notify expense change
+      EventBus().emit('expenses_changed');
+
+      debugPrint('Đã thêm chi phí nhập kho: ${product.cost * product.quantity} cho ${product.name}');
+    } catch (e) {
+      debugPrint('Lỗi thêm chi phí nhập kho: $e');
+      // Không throw error để không làm fail stock in
     }
   }
 

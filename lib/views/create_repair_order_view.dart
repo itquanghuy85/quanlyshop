@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../data/db_helper.dart';
@@ -66,6 +67,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
     phoneCtrl.addListener(() {
       if (phoneCtrl.text.length == 10) _smartFill();
     });
+    priceCtrl.addListener(_formatPrice);
     _loadPartners();
   }
 
@@ -78,6 +80,22 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
       });
     } catch (e) {
       debugPrint('Error loading partners: $e');
+    }
+  }
+
+  void _formatPrice() {
+    final text = priceCtrl.text;
+    if (text.isEmpty) return;
+    final clean = text.replaceAll(',', '').split('.').first;
+    final num = int.tryParse(clean);
+    if (num != null) {
+      final formatted = "${NumberFormat('#,###').format(num)}.000";
+      if (formatted != text) {
+        priceCtrl.value = TextEditingValue(
+          text: formatted,
+          selection: TextSelection.collapsed(offset: formatted.length - 4),
+        );
+      }
     }
   }
 
@@ -362,5 +380,11 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
 
   Widget _imageRow() {
     return SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children: [..._images.map((f) => Container(margin: const EdgeInsets.only(right: 10), width: 80, height: 80, decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade300)), child: ClipRRect(borderRadius: BorderRadius.circular(12), child: Image.file(f, fit: BoxFit.cover)))), GestureDetector(onTap: () async { final f = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 40); if (f != null) setState(() => _images.add(File(f.path))); }, child: Container(width: 80, height: 80, decoration: BoxDecoration(color: Colors.blue.withAlpha(13), borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.add_a_photo, color: Colors.blue)))]));
+  }
+
+  @override
+  void dispose() {
+    priceCtrl.removeListener(_formatPrice);
+    super.dispose();
   }
 }

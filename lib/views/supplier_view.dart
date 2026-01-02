@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../data/db_helper.dart';
 import '../services/user_service.dart';
 import '../services/firestore_service.dart';
+import '../services/event_bus.dart';
 import 'fast_stock_in_view.dart';
 import 'supplier_details_dialog.dart';
 
@@ -15,6 +17,7 @@ class SupplierView extends StatefulWidget {
 }
 
 class _SupplierViewState extends State<SupplierView> {
+  StreamSubscription<String>? _subscription;
   final db = DBHelper();
   List<Map<String, dynamic>> _suppliers = [];
   bool _isLoading = true;
@@ -29,6 +32,17 @@ class _SupplierViewState extends State<SupplierView> {
   void initState() {
     super.initState();
     _loadRole();
+    _refresh();
+    _subscription = EventBus().on('suppliers_changed', _onSuppliersChanged);
+  }
+
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
+  }
+
+  void _onSuppliersChanged(dynamic data) {
     _refresh();
   }
 

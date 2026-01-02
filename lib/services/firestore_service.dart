@@ -206,6 +206,14 @@ class FirestoreService {
     }
   }
 
+  static Future<void> deleteSale(String firestoreId) async {
+    try {
+      await _db.collection('sales').doc(firestoreId).update({'deleted': true});
+    } catch (e) {
+      debugPrint('Firestore deleteSale error: $e');
+    }
+  }
+
   static Future<String?> addProduct(Product p) async {
     try {
       final shopId = await UserService.getCurrentShopId();

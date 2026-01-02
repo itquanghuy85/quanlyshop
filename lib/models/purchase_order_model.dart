@@ -46,6 +46,28 @@ class PurchaseItem {
       condition: map['condition'] ?? 'Mới',
     );
   }
+
+  PurchaseItem copyWith({
+    String? productName,
+    String? imei,
+    int? quantity,
+    int? unitCost,
+    int? unitPrice,
+    String? color,
+    String? capacity,
+    String? condition,
+  }) {
+    return PurchaseItem(
+      productName: productName ?? this.productName,
+      imei: imei ?? this.imei,
+      quantity: quantity ?? this.quantity,
+      unitCost: unitCost ?? this.unitCost,
+      unitPrice: unitPrice ?? this.unitPrice,
+      color: color ?? this.color,
+      capacity: capacity ?? this.capacity,
+      condition: condition ?? this.condition,
+    );
+  }
 }
 
 class PurchaseOrder {

@@ -344,6 +344,8 @@ class _SaleDetailViewState extends State<SaleDetailView> {
           'linkedId': s.firestoreId,
           'type': 'CUSTOMER_OWES', // Customer owes shop
         };
+        // Set firestoreId to prevent duplicates
+        newDebt['firestoreId'] = "debt_${s.soldAt}_${s.phone}";
         await db.insertDebt(newDebt);
         await FirestoreService.addDebtCloud(newDebt);
         EventBus().emit('debts_changed');
@@ -378,6 +380,9 @@ class _SaleDetailViewState extends State<SaleDetailView> {
 
     if (ok == true) {
       await db.deleteSale(s.id!);
+      if (s.firestoreId != null) {
+        await FirestoreService.deleteSale(s.firestoreId!);
+      }
       AuditService.logAction(
         action: 'DELETE_SALE',
         entityType: 'sale',

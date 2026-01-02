@@ -181,6 +181,9 @@ class _CustomerListViewState extends State<CustomerListView> {
       for (final customer in selectedCustomers) {
         // Xóa tất cả repairs và sales của customer này
         await db.deleteCustomerData(customer['customerName'], customer['phone']);
+        if (customer['firestoreId'] != null) {
+          await FirestoreService.deleteCustomer(customer['firestoreId']);
+        }
       }
 
       await _refresh();

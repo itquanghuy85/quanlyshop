@@ -474,6 +474,11 @@ class SyncService {
       final collections = ['repairs', 'products', 'sales', 'expenses', 'debts', 'users', 'shops', 'attendance', 'quick_input_codes', 'supplier_import_history', 'supplier_product_prices'];
       
       for (var col in collections) {
+        // Skip products if local already has products to avoid downloading old data
+        if (col == 'products' && localProducts.isNotEmpty) {
+          debugPrint("Skip downloading products because local has ${localProducts.length} products");
+          continue;
+        }
         try {
           final snap = await _db.collection(col).where('shopId', isEqualTo: shopId).get();
           debugPrint("downloadAllFromCloud: collection $col có ${snap.docs.length} documents");

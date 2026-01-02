@@ -79,6 +79,8 @@ class _FastStockInViewState extends State<FastStockInView> {
     _initData();
     imeiCtrl.addListener(_updateConfirmButton);
     modelCtrl.addListener(_updateConfirmButton);
+    costCtrl.addListener(_formatCost);
+    priceCtrl.addListener(_formatPrice);
   }
 
   int _parseMoneyWithK(String text) {
@@ -174,6 +176,8 @@ class _FastStockInViewState extends State<FastStockInView> {
   void dispose() {
     imeiCtrl.removeListener(_updateConfirmButton);
     modelCtrl.removeListener(_updateConfirmButton);
+    costCtrl.removeListener(_formatCost);
+    priceCtrl.removeListener(_formatPrice);
     modelCtrl.dispose();
     imeiCtrl.dispose();
     quantityCtrl.dispose();
@@ -184,6 +188,38 @@ class _FastStockInViewState extends State<FastStockInView> {
 
   void _updateConfirmButton() {
     setState(() {});
+  }
+
+  void _formatCost() {
+    final text = costCtrl.text;
+    if (text.isEmpty) return;
+    final clean = text.replaceAll(',', '').split('.').first;
+    final num = int.tryParse(clean);
+    if (num != null) {
+      final formatted = "${NumberFormat('#,###').format(num)}.000";
+      if (formatted != text) {
+        costCtrl.value = TextEditingValue(
+          text: formatted,
+          selection: TextSelection.collapsed(offset: formatted.length - 4),
+        );
+      }
+    }
+  }
+
+  void _formatPrice() {
+    final text = priceCtrl.text;
+    if (text.isEmpty) return;
+    final clean = text.replaceAll(',', '').split('.').first;
+    final num = int.tryParse(clean);
+    if (num != null) {
+      final formatted = "${NumberFormat('#,###').format(num)}.000";
+      if (formatted != text) {
+        priceCtrl.value = TextEditingValue(
+          text: formatted,
+          selection: TextSelection.collapsed(offset: formatted.length - 4),
+        );
+      }
+    }
   }
 
   Future<void> _loadSuppliers() async {
@@ -364,6 +400,9 @@ class _FastStockInViewState extends State<FastStockInView> {
           linkedId: product.firestoreId,
         );
 
+        // Set firestoreId to prevent duplicates
+        debt.firestoreId = "debt_${ts}_${supplierPhone}";
+
         try {
           debugPrint('FastStockIn: Creating debt for supplier $selectedSupplier, amount: ${cost * quantity}');
           await db.upsertDebt(debt);
@@ -395,6 +434,7 @@ class _FastStockInViewState extends State<FastStockInView> {
         try {
           await db.insertExpense(exp);
           await FirestoreService.addExpenseCloud(exp);
+          EventBus().emit('expenses_changed');
         } catch (e) {
           debugPrint('FastStockIn: Failed to create expense: $e');
           NotificationService.showSnackBar("Lỗi tạo chi phí: $e", color: Colors.red);
@@ -424,6 +464,9 @@ class _FastStockInViewState extends State<FastStockInView> {
         linkedKey: product.imei,
         linkedSummary: product.name,
       );
+
+      // Notify UI update for suppliers
+      EventBus().emit('suppliers_changed');
 
       // Reset form
       _resetForm();

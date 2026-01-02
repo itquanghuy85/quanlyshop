@@ -13,6 +13,7 @@ import '../services/unified_printer_service.dart';
 import '../services/bluetooth_printer_service.dart';
 import '../services/notification_service.dart';
 import '../services/user_service.dart';
+import '../services/event_bus.dart';
 import '../utils/sku_generator.dart';
 import '../widgets/printer_selection_dialog.dart';
 import '../models/printer_types.dart';
@@ -1608,7 +1609,7 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
 
           HapticFeedback.lightImpact();
           if (next) { imeiC.clear(); setS(() => isSaving = false); if (mounted) { FocusScope.of(context).requestFocus(imeiF); NotificationService.showSnackBar("ĐÃ THÊM MÁY", color: Colors.blue); } }
-          else { if (mounted) { Navigator.of(context).pop(); _refresh(); NotificationService.showSnackBar("NHẬP KHO THÀNH CÔNG", color: Colors.green); } }
+          else { if (mounted) { EventBus().emit('suppliers_changed'); Navigator.of(context).pop(); _refresh(); NotificationService.showSnackBar("NHẬP KHO THÀNH CÔNG", color: Colors.green); } }
         } catch (e) { setS(() => isSaving = false); }
       }
       return AlertDialog(

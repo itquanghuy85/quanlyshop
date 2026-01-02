@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../data/db_helper.dart';
+import '../services/event_bus.dart';
 
 class SupplierDetailsDialog extends StatefulWidget {
   final Map<String, dynamic> supplier;
@@ -19,18 +21,25 @@ class _SupplierDetailsDialogState extends State<SupplierDetailsDialog> with Sing
   List<Map<String, dynamic>> _productPrices = [];
   Map<String, dynamic>? _stats;
   bool _isLoading = true;
+  StreamSubscription<String>? _subscription;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     _loadData();
+    _subscription = EventBus().on('suppliers_changed', _onSuppliersChanged);
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _subscription?.cancel();
     super.dispose();
+  }
+
+  void _onSuppliersChanged(dynamic data) {
+    _loadData();
   }
 
   Future<void> _loadData() async {

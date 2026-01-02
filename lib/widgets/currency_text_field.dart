@@ -111,7 +111,7 @@ class _CurrencyTextFieldState extends State<CurrencyTextField> {
       count++;
       if (count % 3 == 0 && i > 0) result = '.$result';
     }
-    return result + '.000';
+    return result;
   }
 
   @override
@@ -268,7 +268,7 @@ class _EnhancedCurrencyInputState extends State<EnhancedCurrencyInput> {
       count++;
       if (count % 3 == 0 && i > 0) result = '.$result';
     }
-    return result + '.000';
+    return result;
   }
 
   @override

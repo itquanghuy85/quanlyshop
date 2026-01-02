@@ -18,6 +18,7 @@ import '../services/firestore_service.dart';
 import '../services/user_service.dart';
 import '../data/db_helper.dart';
 import '../widgets/validated_text_field.dart';
+import '../services/event_bus.dart';
 
 class RepairDetailView extends StatefulWidget {
   final Repair repair;
@@ -225,10 +226,28 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       ),
     );
     if (result == true) {
+      final oldCost = r.cost;
+      final oldPrice = r.price;
       setState(() {
         r.price = (int.tryParse(priceC.text) ?? 0) * 1000;
         r.cost = (int.tryParse(costC.text) ?? 0) * 1000;
       });
+      // If cost increased, create expense for the additional cost
+      if (r.cost > oldCost) {
+        final additionalCost = r.cost - oldCost;
+        final exp = {
+          'title': 'Chi phí linh kiện bổ sung - ${r.model}',
+          'amount': additionalCost,
+          'category': 'REPAIR_PARTS',
+          'date': DateTime.now().millisecondsSinceEpoch,
+          'note': 'Chi phí linh kiện bổ sung cho đơn sửa ${r.firestoreId}',
+          'paymentMethod': 'TIỀN MẶT', // Assume cash for now
+          'createdAt': DateTime.now().millisecondsSinceEpoch,
+        };
+        await db.insertExpense(exp);
+        await FirestoreService.addExpenseCloud(exp);
+        EventBus().emit('expenses_changed');
+      }
       _saveData();
     }
   }

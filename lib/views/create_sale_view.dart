@@ -57,6 +57,8 @@ class _CreateSaleViewState extends State<CreateSaleView> {
     _checkPermission();
     _loadData();
     downPaymentCtrl.addListener(_calculateInstallment);
+    priceCtrl.addListener(_formatPrice);
+    loanAmountCtrl.addListener(_formatLoanAmount);
   }
 
   Future<void> _checkPermission() async {
@@ -67,6 +69,9 @@ class _CreateSaleViewState extends State<CreateSaleView> {
 
   @override
   void dispose() {
+    downPaymentCtrl.removeListener(_calculateInstallment);
+    priceCtrl.removeListener(_formatPrice);
+    loanAmountCtrl.removeListener(_formatLoanAmount);
     nameCtrl.dispose(); phoneCtrl.dispose(); addressCtrl.dispose();
     priceCtrl.dispose(); noteCtrl.dispose(); searchProdCtrl.dispose();
     downPaymentCtrl.dispose(); loanAmountCtrl.dispose(); bankCtrl.dispose();
@@ -76,6 +81,38 @@ class _CreateSaleViewState extends State<CreateSaleView> {
     _imeiFocusNodes.forEach((_, focusNode) => focusNode.dispose());
     
     super.dispose();
+  }
+
+  void _formatPrice() {
+    final text = priceCtrl.text;
+    if (text.isEmpty) return;
+    final clean = text.replaceAll(',', '').split('.').first;
+    final num = int.tryParse(clean);
+    if (num != null) {
+      final formatted = "${NumberFormat('#,###').format(num)}.000";
+      if (formatted != text) {
+        priceCtrl.value = TextEditingValue(
+          text: formatted,
+          selection: TextSelection.collapsed(offset: formatted.length - 4),
+        );
+      }
+    }
+  }
+
+  void _formatLoanAmount() {
+    final text = loanAmountCtrl.text;
+    if (text.isEmpty) return;
+    final clean = text.replaceAll(',', '').split('.').first;
+    final num = int.tryParse(clean);
+    if (num != null) {
+      final formatted = "${NumberFormat('#,###').format(num)}.000";
+      if (formatted != text) {
+        loanAmountCtrl.value = TextEditingValue(
+          text: formatted,
+          selection: TextSelection.collapsed(offset: formatted.length - 4),
+        );
+      }
+    }
   }
 
   Future<void> _loadData() async {

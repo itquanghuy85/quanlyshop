@@ -49,7 +49,7 @@ class UserService {
   }
 
   static bool _isSuperAdmin(User? user) {
-    return user?.email == 'admin@huluca.com';
+    return user?.email?.toLowerCase() == 'admin@huluca.com';
   }
 
   static bool isCurrentUserSuperAdmin() {
@@ -105,18 +105,8 @@ class UserService {
       return null;
     }
     if (_isSuperAdmin(currentUser)) {
-      // Super admin vẫn cần shopId để filter dữ liệu
-      try {
-        final doc = await _db.collection('users').doc(currentUser.uid).get();
-        final data = doc.data();
-        final shopId = data != null ? data['shopId'] as String? : null;
-        _cachedShopId = shopId;
-        debugPrint("getCurrentShopId: super admin shopId = $shopId");
-        return shopId;
-      } catch (e) {
-        debugPrint("getCurrentShopId: lỗi lấy shopId super admin $e");
-        return null;
-      }
+      debugPrint("getCurrentShopId: super admin, trả về null");
+      return null; // Super admin không bị khóa bởi shopId
     }
 
     try {
@@ -225,14 +215,14 @@ class UserService {
     final bool isSuperAdmin = email == 'admin@huluca.com';
     String? shopId = data['shopId'];
 
-    // Nếu chưa có shopId => tạo 1 shop trùng với uid (cả super admin cũng cần shop để quản lý)
-    if (shopId == null || shopId.trim().isEmpty) {
+    // Nếu chưa có shopId và không phải super admin => tạo 1 shop trùng với uid
+    if (!isSuperAdmin && (shopId == null || shopId.trim().isEmpty)) {
       shopId = uid;
       await _db.collection('shops').doc(shopId).set({
         'shopId': shopId, // Add shopId field for querying
         'ownerUid': uid,
         'ownerEmail': email,
-        'name': isSuperAdmin ? 'Super Admin Shop' : (extra?['shopName'] ?? 'Cửa hàng mới'),
+        'name': extra?['shopName'] ?? 'Cửa hàng mới',
         'createdAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
     }
@@ -328,6 +318,7 @@ class UserService {
           final shopData = shopSnap.data() ?? {};
           final appLocked = shopData['appLocked'] == true;
           final adminFinanceLocked = shopData['adminFinanceLocked'] == true;
+          debugPrint('UserService: shop appLocked=$appLocked, adminFinanceLocked=$adminFinanceLocked');
 
           if (appLocked) {
             // Khóa toàn bộ app cho shop này
@@ -350,6 +341,7 @@ class UserService {
         }
       }
 
+      debugPrint('UserService: final perms = $perms');
       return perms;
     } catch (_) {
       return _defaultPermissionsForRole('user');

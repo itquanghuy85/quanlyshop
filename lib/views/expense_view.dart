@@ -1,6 +1,7 @@
-import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 // BỔ SUNG THƯ VIỆN BỊ THIẾU
 import 'package:fl_chart/fl_chart.dart';
@@ -10,6 +11,7 @@ import '../services/firestore_service.dart';
 import '../services/sync_service.dart';
 import '../services/user_service.dart';
 import '../widgets/validated_text_field.dart';
+import '../services/event_bus.dart';
 import '../widgets/currency_text_field.dart';
 import 'fast_stock_in_view.dart';
 
@@ -33,11 +35,24 @@ class _ExpenseViewState extends State<ExpenseView> {
   String _filterType = 'THÁNG'; // NGÀY, TUẦN, THÁNG
   DateTime _selectedDate = DateTime.now();
 
+  StreamSubscription<String>? _eventSubscription;
+
   @override
   void initState() {
     super.initState();
     _checkPermission();
     _refresh();
+    _eventSubscription = EventBus().stream.listen((event) {
+      if (event == 'expenses_changed') {
+        _refresh();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _eventSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> _checkPermission() async {
@@ -518,7 +533,7 @@ class _ExpenseViewState extends State<ExpenseView> {
         automaticallyImplyLeading: true,
         actions: [
           IconButton(
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FastStockInView())),
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => FastStockInView())),
             icon: const Icon(Icons.inventory_2_outlined, color: Colors.green),
             tooltip: 'Nhập kho',
           ),

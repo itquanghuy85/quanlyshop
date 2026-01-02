@@ -8,6 +8,10 @@ import '../models/product_model.dart';
 import '../models/debt_model.dart';
 import '../services/firestore_service.dart';
 import '../services/user_service.dart';
+import '../services/notification_service.dart';
+import '../services/event_bus.dart';
+import '../widgets/validated_text_field.dart';
+import '../widgets/currency_text_field.dart';
 
 class CreatePurchaseOrderView extends StatefulWidget {
   const CreatePurchaseOrderView({super.key});
@@ -48,6 +52,8 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
   void initState() {
     super.initState();
     _loadData();
+    itemCostCtrl.addListener(_formatCost);
+    itemPriceCtrl.addListener(_formatPrice);
   }
 
   Future<void> _loadData() async {
@@ -62,8 +68,40 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
         _isLoading = false;
       });
     } catch (e) {
-      LoggingService.logError("Lỗi load data: $e", null);
+      debugPrint("Lỗi load data: $e");
       setState(() => _isLoading = false);
+    }
+  }
+
+  void _formatCost() {
+    final text = itemCostCtrl.text;
+    if (text.isEmpty) return;
+    final clean = text.replaceAll(',', '').split('.').first;
+    final num = int.tryParse(clean);
+    if (num != null) {
+      final formatted = "${NumberFormat('#,###').format(num)}.000";
+      if (formatted != text) {
+        itemCostCtrl.value = TextEditingValue(
+          text: formatted,
+          selection: TextSelection.collapsed(offset: formatted.length - 4),
+        );
+      }
+    }
+  }
+
+  void _formatPrice() {
+    final text = itemPriceCtrl.text;
+    if (text.isEmpty) return;
+    final clean = text.replaceAll(',', '').split('.').first;
+    final num = int.tryParse(clean);
+    if (num != null) {
+      final formatted = "${NumberFormat('#,###').format(num)}.000";
+      if (formatted != text) {
+        itemPriceCtrl.value = TextEditingValue(
+          text: formatted,
+          selection: TextSelection.collapsed(offset: formatted.length - 4),
+        );
+      }
     }
   }
 
@@ -150,6 +188,9 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
           linkedId: order.orderCode,
         );
 
+        // Set firestoreId to prevent duplicates
+        debt.firestoreId = "debt_${debt.createdAt}_${supplierPhoneCtrl.text.trim()}";
+
         debugPrint('Creating purchase order debt: $debt');
         await db.upsertDebt(debt);
         debugPrint('Purchase order debt created successfully');
@@ -159,6 +200,20 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
 
         // Notify UI update
         EventBus().emit('debts_changed');
+      } else {
+        // If payment method is cash/bank transfer, create expense record
+        final exp = {
+          'title': 'Đơn nhập hàng ${order.orderCode}',
+          'amount': order.totalCost,
+          'category': 'PURCHASE',
+          'date': DateTime.now().millisecondsSinceEpoch,
+          'note': 'Thanh toán đơn nhập hàng từ ${supplierNameCtrl.text.trim()}',
+          'paymentMethod': _paymentMethod,
+          'createdAt': DateTime.now().millisecondsSinceEpoch,
+        };
+        await db.insertExpense(exp);
+        await FirestoreService.addExpenseCloud(exp);
+        EventBus().emit('expenses_changed');
       }
 
       // Save to Firestore
@@ -168,7 +223,7 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
         await db.updatePurchaseOrder(order);
 
         // CẬP NHẬT INVENTORY TRONG LOCAL DB
-        await _updateLocalInventoryFromPurchaseOrder(order);
+        // await _updateLocalInventoryFromPurchaseOrder(order);
 
         // THÊM CHI PHÍ NHẬP HÀNG VÀO TRANG CHI PHÍ
         await _addPurchaseExpense(order);
@@ -179,7 +234,7 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
         NotificationService.showSnackBar("Đã tạo đơn nhập hàng: ${order.orderCode}", color: Colors.green);
       }
     } catch (e) {
-      LoggingService.logError("Lỗi tạo đơn nhập: $e", null);
+      debugPrint("Lỗi tạo đơn nhập: $e");
       NotificationService.showSnackBar("Lỗi tạo đơn nhập hàng!", color: Colors.red);
     } finally {
       setState(() => _isSaving = false);
@@ -548,60 +603,68 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
       // Không throw error để không làm fail purchase order
     }
   }
-}
-    try {
-      for (final item in order.items) {
-        // Tìm sản phẩm trong local DB
-        final existingProducts = await db.getProducts(
-          where: 'name = ? AND color = ? AND capacity = ? AND condition = ?',
-          whereArgs: [item.productName, item.color, item.capacity, item.condition],
-        );
 
-        if (existingProducts.isNotEmpty) {
-          // Sản phẩm đã tồn tại - cập nhật số lượng và chi phí trung bình
-          final existingProduct = Product.fromMap(existingProducts.first);
-          final currentQuantity = existingProduct.quantity;
-          final currentCost = existingProduct.cost;
-          final newQuantity = currentQuantity + item.quantity;
+  // Future<void> _updateLocalInventoryFromPurchaseOrder(PurchaseOrder order) async {
+  //   try {
+  //     for (final item in order.items) {
+  //       // Tìm sản phẩm trong local DB
+  //       final existingProducts = await db.rawQuery(
+  //         'SELECT * FROM products WHERE name = ? AND color = ? AND capacity = ? AND condition = ?',
+  //         [item.productName, item.color, item.capacity, item.condition],
+  //       );
 
-          // Tính chi phí trung bình
-          final totalCurrentValue = currentQuantity * currentCost;
-          final totalNewValue = item.quantity * item.unitCost;
-          final averageCost = ((totalCurrentValue + totalNewValue) / newQuantity).round();
+  //       if (existingProducts.isNotEmpty) {
+  //         // Sản phẩm đã tồn tại - cập nhật số lượng và chi phí trung bình
+  //         final existingProduct = Product.fromMap(existingProducts.first);
+  //         final currentQuantity = existingProduct.quantity;
+  //         final currentCost = existingProduct.cost;
+  //         final newQuantity = currentQuantity + item.quantity;
 
-          existingProduct.quantity = newQuantity;
-          existingProduct.cost = averageCost;
-          existingProduct.price = item.unitPrice; // Cập nhật giá bán
+  //         // Tính chi phí trung bình
+  //         final totalCurrentValue = currentQuantity * currentCost;
+  //         final totalNewValue = item.quantity * item.unitCost;
+  //         final averageCost = ((totalCurrentValue + totalNewValue) / newQuantity).round();
 
-          await db.upsertProduct(existingProduct);
-          debugPrint('Local: Cập nhật sản phẩm ${item.productName}, SL: $currentQuantity -> $newQuantity, Chi phí TB: $averageCost');
-        } else {
-          // Sản phẩm chưa tồn tại - tạo mới
-          final newProduct = Product(
-            name: item.productName ?? '',
-            brand: 'KHÁC',
-            imei: item.imei,
-            cost: item.unitCost,
-            price: item.unitPrice,
-            condition: item.condition,
-            status: 1,
-            description: 'Nhập từ đơn: ${order.orderCode}',
-            createdAt: DateTime.now().millisecondsSinceEpoch,
-            supplier: order.supplierName,
-            type: 'PHONE',
-            quantity: item.quantity,
-            color: item.color,
-            capacity: item.capacity,
-            isSynced: false,
-          );
+  //         existingProduct.quantity = newQuantity;
+  //         existingProduct.cost = averageCost;
+  //         existingProduct.price = item.unitPrice; // Cập nhật giá bán
 
-          await db.upsertProduct(newProduct);
-          debugPrint('Local: Tạo sản phẩm mới ${item.productName}, SL: ${item.quantity}, Chi phí: ${item.unitCost}');
-        }
-      }
-    } catch (e) {
-      debugPrint('Lỗi cập nhật local inventory: $e');
-      // Không throw error để không làm fail purchase order
-    }
+  //         await db.upsertProduct(existingProduct.toMap());
+  //         debugPrint('Local: Cập nhật sản phẩm ${item.productName}, SL: $currentQuantity -> $newQuantity, Chi phí TB: $averageCost');
+  //       } else {
+  //         // Sản phẩm chưa tồn tại - tạo mới
+  //         final newProduct = Product(
+  //           name: item.productName ?? '',
+  //           brand: 'KHÁC',
+  //           imei: item.imei,
+  //           cost: item.unitCost,
+  //           price: item.unitPrice,
+  //           condition: item.condition,
+  //           status: 1,
+  //           description: 'Nhập từ đơn: ${order.orderCode}',
+  //           createdAt: DateTime.now().millisecondsSinceEpoch,
+  //           supplier: order.supplierName,
+  //           type: 'PHONE',
+  //           quantity: item.quantity,
+  //           color: item.color,
+  //           capacity: item.capacity,
+  //           isSynced: false,
+  //         );
+
+  //         await db.upsertProduct(newProduct.toMap());
+  //         debugPrint('Local: Tạo sản phẩm mới ${item.productName}, SL: ${item.quantity}, Chi phí: ${item.unitCost}');
+  //       }
+  //     }
+  //   } catch (e) {
+  //     debugPrint('Lỗi cập nhật local inventory: $e');
+  //     // Không throw error để không làm fail purchase order
+  //   }
+  // }
+
+  @override
+  void dispose() {
+    itemCostCtrl.removeListener(_formatCost);
+    itemPriceCtrl.removeListener(_formatPrice);
+    super.dispose();
   }
 }
