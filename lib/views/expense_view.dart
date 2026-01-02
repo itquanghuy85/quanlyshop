@@ -1,17 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+<<<<<<< HEAD
 import 'package:flutter/foundation.dart';
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 // BỔ SUNG THƯ VIỆN BỊ THIẾU
 import 'package:fl_chart/fl_chart.dart';
 import '../data/db_helper.dart';
 import '../services/notification_service.dart';
 import '../services/firestore_service.dart';
+<<<<<<< HEAD
 import '../services/sync_service.dart';
 import '../services/user_service.dart';
 import '../widgets/validated_text_field.dart';
 import '../widgets/currency_text_field.dart';
 import 'fast_stock_in_view.dart';
+=======
+import '../widgets/validated_text_field.dart';
+import '../widgets/currency_text_field.dart';
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 
 class ExpenseView extends StatefulWidget {
   const ExpenseView({super.key});
@@ -22,6 +30,7 @@ class ExpenseView extends StatefulWidget {
 class _ExpenseViewState extends State<ExpenseView> {
   final db = DBHelper();
   List<Map<String, dynamic>> _expenses = [];
+<<<<<<< HEAD
   List<Map<String, dynamic>> _filteredExpenses = [];
   bool _isLoading = true;
   bool _isSaving = false;
@@ -47,10 +56,15 @@ class _ExpenseViewState extends State<ExpenseView> {
     if (amount > 0 && amount < 100000) amount *= 1000;
     return amount;
   }
+=======
+  bool _isLoading = true;
+  bool _isSaving = false;
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 
   @override
   void initState() {
     super.initState();
+<<<<<<< HEAD
     _checkPermission();
     _refresh();
   }
@@ -203,14 +217,29 @@ class _ExpenseViewState extends State<ExpenseView> {
     setState(() {
       _selectedDate = newDate;
       _filterExpenses();
+=======
+    _refresh();
+  }
+
+  Future<void> _refresh() async {
+    setState(() => _isLoading = true);
+    final data = await db.getAllExpenses();
+    if (!mounted) return;
+    setState(() {
+      _expenses = data;
+      _isLoading = false;
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
     });
   }
 
   Future<void> _handleDeleteExpense(Map<String, dynamic> exp) async {
+<<<<<<< HEAD
     if (exp['isPurchaseDebt'] == true) {
       NotificationService.showSnackBar("Không thể xóa chi phí từ đơn nhập hàng!", color: Colors.red);
       return;
     }
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
     final passC = TextEditingController();
     final bool? result = await showDialog<bool>(
       context: context,
@@ -419,7 +448,13 @@ class _ExpenseViewState extends State<ExpenseView> {
                           return;
                         setS(() => _isSaving = true);
 
+<<<<<<< HEAD
                         final int amount = _parseVndAmountFromText(amountC.text);
+=======
+                        int amount =
+                            int.tryParse(amountC.text.replaceAll('.', '')) ?? 0;
+                        if (amount > 0 && amount < 100000) amount *= 1000;
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 
                         final String fId =
                             "exp_${DateTime.now().millisecondsSinceEpoch}_${titleC.text.hashCode}";
@@ -451,7 +486,11 @@ class _ExpenseViewState extends State<ExpenseView> {
 
                         if (!mounted) return;
                         navigator.pop();
+<<<<<<< HEAD
                         await _refresh(); // Load lại data từ DB thay vì chỉ filter
+=======
+                        _refresh();
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
                         setState(() {
                           _isSaving = false;
                         });
@@ -486,7 +525,11 @@ class _ExpenseViewState extends State<ExpenseView> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: type == TextInputType.number
+<<<<<<< HEAD
           ? ThousandCurrencyTextField(controller: c, label: l, icon: i)
+=======
+          ? CurrencyTextField(controller: c, label: l, icon: i)
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
           : ValidatedTextField(
               controller: c,
               label: l,
@@ -498,6 +541,7 @@ class _ExpenseViewState extends State<ExpenseView> {
 
   @override
   Widget build(BuildContext context) {
+<<<<<<< HEAD
     if (!_hasPermission) {
       return Scaffold(
         appBar: AppBar(
@@ -515,6 +559,18 @@ class _ExpenseViewState extends State<ExpenseView> {
     }
 
     int totalAmount = _filteredExpenses.fold(0, (sum, e) => sum + _safeInt(e['amount']));
+=======
+    final now = DateTime.now();
+    final todayExpenses = _expenses.where((e) {
+      final d = DateTime.fromMillisecondsSinceEpoch(e['date']);
+      return d.day == now.day && d.month == now.month && d.year == now.year;
+    }).toList();
+
+    int totalToday = todayExpenses.fold(
+      0,
+      (sum, e) => sum + (e['amount'] as int),
+    );
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFF),
@@ -525,6 +581,7 @@ class _ExpenseViewState extends State<ExpenseView> {
         ),
         backgroundColor: Colors.white,
         elevation: 0,
+<<<<<<< HEAD
         automaticallyImplyLeading: true,
         actions: [
           IconButton(
@@ -553,11 +610,18 @@ class _ExpenseViewState extends State<ExpenseView> {
                 tooltip: 'Đồng bộ với Firebase',
               ),
             ],
+=======
+        actions: [
+          IconButton(
+            onPressed: _refresh,
+            icon: const Icon(Icons.refresh, color: Colors.blue),
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
           ),
         ],
       ),
       body: Column(
         children: [
+<<<<<<< HEAD
           _buildFilterBar(),
           _buildProfessionalHeader(totalAmount, _filteredExpenses),
           Expanded(
@@ -570,11 +634,28 @@ class _ExpenseViewState extends State<ExpenseView> {
                     itemCount: _filteredExpenses.length,
                     itemBuilder: (ctx, i) =>
                         _expenseProfessionalCard(_filteredExpenses[i]),
+=======
+          _buildProfessionalHeader(totalToday, todayExpenses),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _expenses.isEmpty
+                ? _buildEmpty()
+                : ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _expenses.length,
+                    itemBuilder: (ctx, i) =>
+                        _expenseProfessionalCard(_expenses[i]),
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
                   ),
           ),
         ],
       ),
+<<<<<<< HEAD
       floatingActionButton: kIsWeb ? null : FloatingActionButton.extended(
+=======
+      floatingActionButton: FloatingActionButton.extended(
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
         onPressed: _showAddExpenseDialog,
         label: const Text(
           "CHI PHÍ MỚI",
@@ -586,6 +667,7 @@ class _ExpenseViewState extends State<ExpenseView> {
     );
   }
 
+<<<<<<< HEAD
   Widget _buildFilterBar() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -724,6 +806,8 @@ class _ExpenseViewState extends State<ExpenseView> {
     );
   }
 
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   Widget _buildProfessionalHeader(int total, List<Map<String, dynamic>> list) {
     int coDinh = list
         .where((e) => e['category'] == 'CỐ ĐỊNH')
@@ -735,9 +819,12 @@ class _ExpenseViewState extends State<ExpenseView> {
         .where((e) => e['category'] == 'KHÁC')
         .fold(0, (sum, e) => sum + (e['amount'] as int));
 
+<<<<<<< HEAD
     String headerTitle = _filterType == 'NGÀY' ? 'TỔNG CHI HÔM NAY' :
                         _filterType == 'TUẦN' ? 'TỔNG CHI TUẦN NÀY' : 'TỔNG CHI THÁNG NÀY';
 
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.all(16),
@@ -761,9 +848,15 @@ class _ExpenseViewState extends State<ExpenseView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+<<<<<<< HEAD
                 Text(
                   headerTitle,
                   style: const TextStyle(
+=======
+                const Text(
+                  "TỔNG CHI HÔM NAY",
+                  style: TextStyle(
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
                     color: Colors.white70,
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
@@ -880,7 +973,11 @@ class _ExpenseViewState extends State<ExpenseView> {
           ),
         ),
         subtitle: Text(
+<<<<<<< HEAD
           "${DateFormat('HH:mm - dd/MM').format(DateTime.fromMillisecondsSinceEpoch(e['date']))} | ${e['isPurchaseDebt'] == true ? 'CÔNG NỢ' : (e['paymentMethod'] ?? 'TIỀN MẶT')}",
+=======
+          "${DateFormat('HH:mm - dd/MM').format(DateTime.fromMillisecondsSinceEpoch(e['date']))} | ${e['paymentMethod']}",
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
           style: const TextStyle(fontSize: 10, color: Colors.grey),
         ),
         trailing: Row(
@@ -901,7 +998,11 @@ class _ExpenseViewState extends State<ExpenseView> {
                 color: Colors.grey,
                 size: 20,
               ),
+<<<<<<< HEAD
               onPressed: e['isPurchaseDebt'] == true ? null : () => _handleDeleteExpense(e),
+=======
+              onPressed: () => _handleDeleteExpense(e),
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
             ),
           ],
         ),
@@ -914,6 +1015,7 @@ class _ExpenseViewState extends State<ExpenseView> {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Icon(Icons.money_off_rounded, size: 80, color: Colors.grey[200]),
+<<<<<<< HEAD
         const SizedBox(height: 16),
         Text(
           kIsWeb 
@@ -921,6 +1023,11 @@ class _ExpenseViewState extends State<ExpenseView> {
             : "Không có chi phí nào trong ${_filterType.toLowerCase()} này",
           style: const TextStyle(color: Colors.grey),
           textAlign: TextAlign.center,
+=======
+        const Text(
+          "Chưa ghi nhận chi phí nào",
+          style: TextStyle(color: Colors.grey),
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
         ),
       ],
     ),

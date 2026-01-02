@@ -88,12 +88,15 @@ class _ValidatedTextFieldState extends State<ValidatedTextField> {
     else if (widget.label.toLowerCase().contains('tên') || widget.label.toLowerCase().contains('name')) {
       error = UserService.validateName(value);
     }
+<<<<<<< HEAD
     else if (widget.label.toLowerCase().contains('imei') || widget.label.toLowerCase().contains('serial')) {
       error = UserService.validateIMEI(value);
     }
     else if (widget.label.toLowerCase().contains('model')) {
       error = UserService.validateModel(value);
     }
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
     else if (widget.label.toLowerCase().contains('địa chỉ') || widget.label.toLowerCase().contains('address')) {
       error = UserService.validateAddress(value);
     }
@@ -165,11 +168,19 @@ class _ValidatedTextFieldState extends State<ValidatedTextField> {
           errorStyle: const TextStyle(color: Colors.red, fontSize: 12),
           counterText: widget.maxLength != null ? null : '',
           filled: true,
+<<<<<<< HEAD
           fillColor: widget.enabled ? Theme.of(context).colorScheme.surface : Theme.of(context).colorScheme.surfaceVariant,
         ),
         style: TextStyle(
           fontSize: 16,
           color: widget.enabled ? Theme.of(context).colorScheme.onSurface : Theme.of(context).colorScheme.onSurfaceVariant,
+=======
+          fillColor: widget.enabled ? Colors.white : Colors.grey.shade100,
+        ),
+        style: TextStyle(
+          fontSize: 16,
+          color: widget.enabled ? Colors.black87 : Colors.grey,
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
         ),
       ),
     );

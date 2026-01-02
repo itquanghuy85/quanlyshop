@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/user_service.dart';
+<<<<<<< HEAD
 import '../services/notification_service.dart';
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 
 class RegisterView extends StatefulWidget {
   final Function(Locale)? setLocale;
@@ -36,6 +39,10 @@ class _RegisterViewState extends State<RegisterView> {
   }
 
   void _updateEmail() {
+<<<<<<< HEAD
+=======
+    if (_isJoinShop) return;
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
     final name = _nameC.text.trim();
     final shopName = _shopNameC.text.trim();
     if (name.isNotEmpty && shopName.isNotEmpty) {
@@ -83,9 +90,13 @@ class _RegisterViewState extends State<RegisterView> {
     if (err.contains('email-already-in-use')) return "Email này đã được đăng ký bởi người khác.";
     if (err.contains('weak-password')) return "Mật khẩu quá yếu, ít nhất 6 ký tự.";
     if (err.contains('invalid-email')) return "Địa chỉ email không đúng định dạng.";
+<<<<<<< HEAD
     if (err.contains('network-request-failed')) return "Lỗi kết nối mạng. Vui lòng kiểm tra internet và thử lại.";
     if (err.contains('too-many-requests')) return "Quá nhiều yêu cầu. Vui lòng thử lại sau.";
     return err.replaceAll("Exception: ", "").replaceAll("PlatformException(", "").replaceAll(")", "");
+=======
+    return err.replaceAll("Exception: ", "");
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   }
 
   Future<void> _register() async {
@@ -93,12 +104,16 @@ class _RegisterViewState extends State<RegisterView> {
     try {
       final email = _emailC.text.trim();
       final pass = _passC.text.trim();
+<<<<<<< HEAD
       final shopName = _shopNameC.text.trim();
       final name = _nameC.text.trim();
 
       if (shopName.isEmpty) throw "Vui lòng nhập tên cửa hàng.";
       if (name.isEmpty) throw "Vui lòng nhập họ và tên.";
       if (email.isEmpty || pass.isEmpty) throw "Vui lòng điền các thông tin bắt buộc.";
+=======
+      if (email.isEmpty || pass.isEmpty || _nameC.text.isEmpty) throw "Vui lòng điền các thông tin bắt buộc.";
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
       if (pass != _confirmPassC.text.trim()) throw "Mật khẩu xác nhận không khớp.";
 
       final cred = await FirebaseAuth.instance.createUserWithEmailAndPassword(email: email, password: pass);
@@ -108,19 +123,30 @@ class _RegisterViewState extends State<RegisterView> {
           if (!success) throw "Mã mời không chính xác hoặc đã hết hạn.";
         } else {
           await UserService.syncUserInfo(cred.user!.uid, email, extra: {
+<<<<<<< HEAD
             'displayName': name.toUpperCase(),
             'phone': _phoneC.text.trim(),
             'address': _addressC.text.trim().toUpperCase(),
             'shopName': shopName.toUpperCase(),
+=======
+            'displayName': _nameC.text.trim().toUpperCase(),
+            'phone': _phoneC.text.trim(),
+            'address': _addressC.text.trim().toUpperCase(),
+            'shopName': _shopNameC.text.trim().toUpperCase(),
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
           });
         }
       }
       if (!mounted) return;
       Navigator.pop(context, true);
     } catch (e) {
+<<<<<<< HEAD
       final errorMsg = _formatError(e);
       setState(() { _error = errorMsg; _loading = false; });
       NotificationService.showSnackBar(errorMsg, color: Colors.red);
+=======
+      setState(() { _error = _formatError(e); _loading = false; });
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
     }
   }
 
@@ -134,7 +160,10 @@ class _RegisterViewState extends State<RegisterView> {
         elevation: 0,
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
+<<<<<<< HEAD
         automaticallyImplyLeading: true,
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -217,6 +246,7 @@ class _RegisterViewState extends State<RegisterView> {
   Widget _stepInputInfo() {
     return Column(
       children: [
+<<<<<<< HEAD
         _input(_shopNameC, "Tên cửa hàng", Icons.shop),
         _input(_nameC, "Họ và tên", Icons.person),
         _input(_phoneC, "Số điện thoại", Icons.phone, type: TextInputType.phone),
@@ -279,6 +309,16 @@ class _RegisterViewState extends State<RegisterView> {
             ),
           ),
         ],
+=======
+        if (!_isJoinShop) _input(_shopNameC, "Tên cửa hàng", Icons.shop),
+        _input(_nameC, "Họ và tên", Icons.person),
+        _input(_phoneC, "Số điện thoại", Icons.phone, type: TextInputType.phone),
+        _input(_emailC, "Email đăng nhập", Icons.email, readOnly: !_isJoinShop),
+        _input(_passC, "Mật khẩu", Icons.lock, obscure: _obscurePass, suffix: IconButton(icon: Icon(_obscurePass ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => _obscurePass = !_obscurePass))),
+        _input(_confirmPassC, "Xác nhận mật khẩu", Icons.lock_clock, obscure: _obscureConfirm, suffix: IconButton(icon: Icon(_obscureConfirm ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm))),
+        _input(_addressC, "Địa chỉ", Icons.map),
+        if (_isJoinShop) _input(_inviteCodeC, "Mã mời từ Shop", Icons.qr_code),
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
         
         if (_error != null) Text(_error!, style: const TextStyle(color: Colors.red, fontSize: 13)),
         const SizedBox(height: 24),
@@ -293,20 +333,28 @@ class _RegisterViewState extends State<RegisterView> {
     );
   }
 
+<<<<<<< HEAD
   Widget _input(TextEditingController c, String l, IconData i, {bool obscure = false, TextInputType type = TextInputType.text, bool readOnly = false, Widget? suffix, String? helperText}) {
+=======
+  Widget _input(TextEditingController c, String l, IconData i, {bool obscure = false, TextInputType type = TextInputType.text, bool readOnly = false, Widget? suffix}) {
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: TextField(
         controller: c, obscureText: obscure, keyboardType: type, readOnly: readOnly,
         decoration: InputDecoration(
           labelText: l, prefixIcon: Icon(i, size: 20), suffixIcon: suffix,
+<<<<<<< HEAD
           helperText: helperText, helperStyle: const TextStyle(fontSize: 12, color: Colors.grey),
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           filled: true, fillColor: Colors.white,
         ),
       ),
     );
   }
+<<<<<<< HEAD
 
   Widget _buildInstructionStep(int step, String instruction) {
     return Padding(
@@ -347,4 +395,6 @@ class _RegisterViewState extends State<RegisterView> {
       ),
     );
   }
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 }

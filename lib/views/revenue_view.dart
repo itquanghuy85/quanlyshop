@@ -7,7 +7,10 @@ import '../models/repair_model.dart';
 import '../models/sale_order_model.dart';
 import '../services/notification_service.dart';
 import '../services/user_service.dart';
+<<<<<<< HEAD
 import '../services/sync_service.dart';
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 import '../widgets/currency_text_field.dart';
 import 'debt_view.dart';
 import 'warranty_view.dart';
@@ -29,14 +32,20 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
   List<Map<String, dynamic>> _debtPayments = []; 
   bool _hasRevenueAccess = false;
   bool _isLoading = true;
+<<<<<<< HEAD
   bool _isSyncing = false;
   String _syncStatus = 'Đã đồng bộ';
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   final String _selectedPeriod = 'Tháng này';
 
   final cashEndCtrl = TextEditingController();
   final bankEndCtrl = TextEditingController();
+<<<<<<< HEAD
   int? cashAmount; // Lưu giá trị đã nhân 1000 từ widget
   int? bankAmount; // Lưu giá trị đã nhân 1000 từ widget
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 
   @override
   void initState() {
@@ -70,6 +79,7 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
     });
   }
 
+<<<<<<< HEAD
   Future<void> _syncWithFirebase() async {
     if (_isSyncing) return;
     
@@ -104,6 +114,8 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
     }
   }
 
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   bool _isSameDay(int ms, DateTime day) {
     final dt = DateTime.fromMillisecondsSinceEpoch(ms);
     return dt.day == day.day && dt.month == day.month && dt.year == day.year;
@@ -117,6 +129,7 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
       backgroundColor: const Color(0xFFF8FAFF),
       appBar: AppBar(
         title: const Text("QUẢN LÝ TÀI CHÍNH", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+<<<<<<< HEAD
         automaticallyImplyLeading: true,
         actions: [
           Row(
@@ -142,6 +155,8 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
             ],
           ),
         ],
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
         bottom: TabBar(
           controller: _tabController, isScrollable: true,
           labelColor: const Color(0xFF2962FF), indicatorColor: const Color(0xFF2962FF),
@@ -213,6 +228,7 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
       child: Column(children: [
         const Text("ĐỐI SOÁT THỰC TẾ CUỐI NGÀY", style: TextStyle(fontWeight: FontWeight.bold)),
         const SizedBox(height: 15),
+<<<<<<< HEAD
         ThousandCurrencyTextField(
           controller: cashEndCtrl,
           label: "TIỀN MẶT ĐẾM ĐƯỢC",
@@ -226,6 +242,11 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
           icon: Icons.account_balance,
           onCompleted: (value) => bankAmount = value,
         ),
+=======
+        CurrencyTextField(controller: cashEndCtrl, label: "TIỀN MẶT ĐẾM ĐƯỢC", icon: Icons.payments),
+        const SizedBox(height: 12),
+        CurrencyTextField(controller: bankEndCtrl, label: "SỐ DƯ NGÂN HÀNG THỰC TẾ", icon: Icons.account_balance),
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
         const SizedBox(height: 20),
         SizedBox(
           width: double.infinity, 
@@ -241,14 +262,23 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
   }
 
   Future<void> _saveClosing() async {
+<<<<<<< HEAD
     final cash = cashAmount ?? 0;
     final bank = bankAmount ?? 0;
+=======
+    final cash = int.tryParse(cashEndCtrl.text.replaceAll('.', '')) ?? 0;
+    final bank = int.tryParse(bankEndCtrl.text.replaceAll('.', '')) ?? 0;
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
     if (cash == 0 && bank == 0) return;
     await db.upsertClosing({'dateKey': DateFormat('yyyy-MM-dd').format(DateTime.now()), 'cashEnd': cash, 'bankEnd': bank, 'createdAt': DateTime.now().millisecondsSinceEpoch});
     final user = FirebaseAuth.instance.currentUser;
     await db.logAction(userId: user?.uid ?? "0", userName: user?.email?.split('@').first.toUpperCase() ?? "ADMIN", action: "CHỐT QUỸ", type: "FINANCE", desc: "Tiền mặt: ${NumberFormat('#,###').format(cash)}đ, Ngân hàng: ${NumberFormat('#,###').format(bank)}đ");
     NotificationService.showSnackBar("Đã chốt quỹ thành công!", color: Colors.green);
+<<<<<<< HEAD
     HapticFeedback.mediumImpact(); _loadAllData(); cashEndCtrl.clear(); bankEndCtrl.clear(); cashAmount = null; bankAmount = null;
+=======
+    HapticFeedback.mediumImpact(); _loadAllData(); cashEndCtrl.clear(); bankEndCtrl.clear();
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   }
 
   Widget _balanceCard(String l, int v, Color c) => Expanded(child: Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: c.withAlpha(25), borderRadius: BorderRadius.circular(15), border: Border.all(color: c.withAlpha(51))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(l, style: TextStyle(fontSize: 9, color: c, fontWeight: FontWeight.bold)), Text(NumberFormat('#,###').format(v), style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: c))])));
@@ -261,6 +291,7 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
     int totalIn = fSales.fold<int>(0, (sum, s) => sum + s.totalPrice) + fRepairs.fold<int>(0, (sum, r) => sum + r.price);
     int totalOut = fExpenses.fold<int>(0, (sum, e) => sum + (e['amount'] as int));
     int profit = totalIn - totalOut - fSales.fold<int>(0, (sum, s) => sum + s.totalCost) - fRepairs.fold<int>(0, (sum, r) => sum + r.cost);
+<<<<<<< HEAD
     
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -450,6 +481,15 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
       ],
     ),
   );
+=======
+    return ListView(padding: const EdgeInsets.all(16), children: [Row(children: [_miniCard("THU HÔM NAY", totalIn, Colors.green), const SizedBox(width: 12), _miniCard("CHI HÔM NAY", totalOut, Colors.redAccent)]), const SizedBox(height: 16), _mainProfitCard(profit)]);
+  }
+  Widget _miniCard(String l, int v, Color c) => Expanded(child: Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), border: Border.all(color: c.withAlpha(51))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(l, style: const TextStyle(fontSize: 10, color: Colors.grey)), Text(NumberFormat('#,###').format(v), style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: c))])));
+  Widget _mainProfitCard(int p) => Container(width: double.infinity, padding: const EdgeInsets.all(24), decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF2962FF), Color(0xFF00B0FF)]), borderRadius: BorderRadius.circular(20)), child: Column(children: [const Text("LỢI NHUẬN RÒNG HÔM NAY", style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold)), const SizedBox(height: 8), Text("${NumberFormat('#,###').format(p)} đ", style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold))]));
+  Widget _buildSaleDetail() { final list = _sales.where((s) => _isSameDay(s.soldAt, DateTime.now())).toList(); return ListView.builder(padding: const EdgeInsets.all(16), itemCount: list.length, itemBuilder: (ctx, i) => Card(child: ListTile(title: Text(list[i].productNames), subtitle: Text("Khách: ${list[i].customerName}"), trailing: Text("+${NumberFormat('#,###').format(list[i].totalPrice)}", style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold))))); }
+  Widget _buildRepairDetail() { final list = _repairs.where((r) => r.status >= 3 && _isSameDay(r.deliveredAt ?? r.createdAt, DateTime.now())).toList(); return ListView.builder(padding: const EdgeInsets.all(16), itemCount: list.length, itemBuilder: (ctx, i) => Card(child: ListTile(title: Text(list[i].model), subtitle: Text("Khách: ${list[i].customerName}"), trailing: Text("+${NumberFormat('#,###').format(list[i].price)}", style: const TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold))))); }
+  Widget _buildExpenseDetail() { final list = _expenses.where((e) => _isSameDay(e['date'] as int, DateTime.now())).toList(); return ListView.builder(padding: const EdgeInsets.all(16), itemCount: list.length, itemBuilder: (ctx, i) => Card(child: ListTile(title: Text(list[i]['title'] ?? 'Chi phí'), subtitle: Text(list[i]['category'] ?? 'Khác'), trailing: Text("-${NumberFormat('#,###').format(list[i]['amount'])}", style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold))))); }
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 }
 
 class _TransactionItem {

@@ -100,8 +100,13 @@ class SaleOrder {
       address: map['address'] ?? "",
       productNames: map['productNames'] ?? "",
       productImeis: map['productImeis'] ?? "",
+<<<<<<< HEAD
       totalPrice: map['totalPrice'] is int ? (map['totalPrice'] < 0 ? 0 : map['totalPrice']) : 0,
       totalCost: map['totalCost'] is int ? (map['totalCost'] < 0 ? 0 : map['totalCost']) : 0,
+=======
+      totalPrice: map['totalPrice'] is int ? map['totalPrice'] : 0,
+      totalCost: map['totalCost'] is int ? map['totalCost'] : 0,
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
       paymentMethod: map['paymentMethod'] ?? "TIỀN MẶT",
       sellerName: map['sellerName'] ?? "",
       soldAt: map['soldAt'] is int ? map['soldAt'] : 0,

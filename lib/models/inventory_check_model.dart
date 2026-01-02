@@ -25,10 +25,17 @@ class InventoryCheck {
     return {
       'id': id,
       'firestoreId': firestoreId ?? "inv_check_$createdAt",
+<<<<<<< HEAD
       'type': checkType,
       'checkDate': checkDate,
       'checkedBy': checkedBy,
       'itemsJson': items.map((item) => item.toMap()).toList(),
+=======
+      'checkType': checkType,
+      'checkDate': checkDate,
+      'checkedBy': checkedBy,
+      'items': items.map((item) => item.toMap()).toList(),
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
       'isCompleted': isCompleted ? 1 : 0,
       'isSynced': isSynced ? 1 : 0,
       'createdAt': createdAt,
@@ -39,12 +46,19 @@ class InventoryCheck {
     return InventoryCheck(
       id: map['id'],
       firestoreId: map['firestoreId'],
+<<<<<<< HEAD
       checkType: map['type'] ?? map['checkType'] ?? 'PHONE',
       checkDate: map['checkDate'] ?? 0,
       checkedBy: map['checkedBy'] ?? '',
       items: (map['itemsJson'] as List<dynamic>?)
           ?.map((item) => InventoryCheckItem.fromMap(item as Map<String, dynamic>))
           .toList() ?? (map['items'] as List<dynamic>?) // fallback for old data
+=======
+      checkType: map['checkType'] ?? 'PHONE',
+      checkDate: map['checkDate'] ?? 0,
+      checkedBy: map['checkedBy'] ?? '',
+      items: (map['items'] as List<dynamic>?)
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
           ?.map((item) => InventoryCheckItem.fromMap(item as Map<String, dynamic>))
           .toList() ?? [],
       isCompleted: map['isCompleted'] == 1 || map['isCompleted'] == true,

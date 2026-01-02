@@ -81,8 +81,13 @@ class _CustomerHistoryViewState extends State<CustomerHistoryView> {
     if (validImages.isEmpty) return;
 
     m.Navigator.push(context, m.MaterialPageRoute(builder: (_) => m.Scaffold(
+<<<<<<< HEAD
       appBar: m.AppBar(backgroundColor: m.Theme.of(context).colorScheme.surface, iconTheme: m.IconThemeData(color: m.Theme.of(context).colorScheme.onSurface)),
       backgroundColor: m.Theme.of(context).colorScheme.background,
+=======
+      appBar: m.AppBar(backgroundColor: m.Colors.black, iconTheme: const m.IconThemeData(color: m.Colors.white)),
+      backgroundColor: m.Colors.black,
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
       body: PhotoViewGallery.builder(
         itemCount: validImages.length,
         builder: (context, i) => PhotoViewGalleryPageOptions(
@@ -130,9 +135,15 @@ class _CustomerHistoryViewState extends State<CustomerHistoryView> {
                     return m.Container(
                       margin: const m.EdgeInsets.only(bottom: 12),
                       decoration: m.BoxDecoration(
+<<<<<<< HEAD
                         color: m.Theme.of(context).colorScheme.surface,
                         borderRadius: m.BorderRadius.circular(15),
                         boxShadow: [m.BoxShadow(color: m.Theme.of(context).colorScheme.shadow.withOpacity(0.1), blurRadius: 10)]
+=======
+                        color: m.Colors.white,
+                        borderRadius: m.BorderRadius.circular(15),
+                        boxShadow: [m.BoxShadow(color: m.Colors.black.withAlpha(5), blurRadius: 10)]
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
                       ),
                       child: m.ListTile(
                         contentPadding: const m.EdgeInsets.all(12),

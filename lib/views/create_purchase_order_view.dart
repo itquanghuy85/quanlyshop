@@ -4,10 +4,19 @@ import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../data/db_helper.dart';
 import '../models/purchase_order_model.dart';
+<<<<<<< HEAD
 import '../models/product_model.dart';
 import '../models/debt_model.dart';
 import '../services/firestore_service.dart';
 import '../services/user_service.dart';
+=======
+import '../services/firestore_service.dart';
+import '../services/user_service.dart';
+import '../services/notification_service.dart';
+import '../services/logging_service.dart';
+import '../widgets/validated_text_field.dart';
+import '../widgets/currency_text_field.dart';
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 
 class CreatePurchaseOrderView extends StatefulWidget {
   const CreatePurchaseOrderView({super.key});
@@ -32,7 +41,10 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
   bool _isLoading = true;
   bool _isSaving = false;
   String _currentUserName = '';
+<<<<<<< HEAD
   String _paymentMethod = 'TIỀN MẶT';
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 
   // Item form
   final itemNameCtrl = TextEditingController();
@@ -43,8 +55,11 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
   final itemColorCtrl = TextEditingController();
   final itemCapacityCtrl = TextEditingController();
   String itemCondition = 'Mới';
+<<<<<<< HEAD
   int? itemUnitCost; // Lưu giá trị đã nhân 1000 từ widget
   int? itemUnitPrice; // Lưu giá trị đã nhân 1000 từ widget
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 
   @override
   void initState() {
@@ -71,7 +86,11 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
 
   void _addItem() {
     if (itemNameCtrl.text.isEmpty || itemQuantityCtrl.text.isEmpty ||
+<<<<<<< HEAD
         itemUnitCost == null || itemUnitPrice == null) {
+=======
+        itemCostCtrl.text.isEmpty || itemPriceCtrl.text.isEmpty) {
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
       NotificationService.showSnackBar("Vui lòng nhập đầy đủ thông tin sản phẩm!", color: Colors.red);
       return;
     }
@@ -80,8 +99,13 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
       productName: itemNameCtrl.text.trim(),
       imei: itemImeiCtrl.text.isNotEmpty ? itemImeiCtrl.text.trim() : null,
       quantity: int.tryParse(itemQuantityCtrl.text) ?? 0,
+<<<<<<< HEAD
       unitCost: itemUnitCost!,
       unitPrice: itemUnitPrice!,
+=======
+      unitCost: int.tryParse(itemCostCtrl.text) ?? 0,
+      unitPrice: int.tryParse(itemPriceCtrl.text) ?? 0,
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
       color: itemColorCtrl.text.isNotEmpty ? itemColorCtrl.text.trim() : null,
       capacity: itemCapacityCtrl.text.isNotEmpty ? itemCapacityCtrl.text.trim() : null,
       condition: itemCondition,
@@ -102,8 +126,11 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
     itemColorCtrl.clear();
     itemCapacityCtrl.clear();
     itemCondition = 'Mới';
+<<<<<<< HEAD
     itemUnitCost = null;
     itemUnitPrice = null;
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   }
 
   void _removeItem(int index) {
@@ -130,7 +157,10 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
         createdAt: DateTime.now().millisecondsSinceEpoch,
         createdBy: _currentUserName,
         notes: notesCtrl.text.isNotEmpty ? notesCtrl.text.trim() : null,
+<<<<<<< HEAD
         paymentMethod: _paymentMethod,
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
       );
 
       order.calculateTotals();
@@ -138,6 +168,7 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
       // Save to local DB
       await db.insertPurchaseOrder(order);
 
+<<<<<<< HEAD
       // If payment method is debt, create a debt record - ĐƠN GIẢN
       if (_paymentMethod == 'CÔNG NỢ') {
         final supplierData = _suppliers.firstWhere((s) => s['name'] == supplierNameCtrl.text.trim(), orElse: () => {});
@@ -165,17 +196,22 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
         EventBus().emit('debts_changed');
       }
 
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
       // Save to Firestore
       final firestoreId = await FirestoreService.addPurchaseOrder(order);
       if (firestoreId != null) {
         order.firestoreId = firestoreId;
         await db.updatePurchaseOrder(order);
+<<<<<<< HEAD
 
         // CẬP NHẬT INVENTORY TRONG LOCAL DB
         await _updateLocalInventoryFromPurchaseOrder(order);
 
         // THÊM CHI PHÍ NHẬP HÀNG VÀO TRANG CHI PHÍ
         await _addPurchaseExpense(order);
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
       }
 
       if (mounted) {
@@ -228,12 +264,19 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
+<<<<<<< HEAD
                   child: ThousandCurrencyTextField(
+=======
+                  child: CurrencyTextField(
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
                     controller: itemCostCtrl,
                     label: "ĐƠN GIÁ NHẬP",
                     icon: Icons.attach_money,
                     required: true,
+<<<<<<< HEAD
                     onCompleted: (value) => itemUnitCost = value,
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
                   ),
                 ),
               ],
@@ -242,12 +285,19 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
             Row(
               children: [
                 Expanded(
+<<<<<<< HEAD
                   child: ThousandCurrencyTextField(
+=======
+                  child: CurrencyTextField(
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
                     controller: itemPriceCtrl,
                     label: "ĐƠN GIÁ BÁN",
                     icon: Icons.sell,
                     required: true,
+<<<<<<< HEAD
                     onCompleted: (value) => itemUnitPrice = value,
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -321,6 +371,7 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
           ..._items.asMap().entries.map((entry) {
             final index = entry.key;
             final item = entry.value;
+<<<<<<< HEAD
             return Card(
               margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               child: Padding(
@@ -421,6 +472,14 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
                     ),
                   ],
                 ),
+=======
+            return ListTile(
+              title: Text(item.productName ?? ''),
+              subtitle: Text("${item.quantity} x ${NumberFormat('#,###').format(item.unitCost)}đ = ${NumberFormat('#,###').format(item.quantity * item.unitCost)}đ"),
+              trailing: IconButton(
+                icon: const Icon(Icons.delete, color: Colors.red),
+                onPressed: () => _removeItem(index),
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
               ),
             );
           }),
@@ -491,6 +550,7 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
                       decoration: const InputDecoration(labelText: "Ghi chú", border: OutlineInputBorder()),
                       maxLines: 2,
                     ),
+<<<<<<< HEAD
                     const SizedBox(height: 8),
                     DropdownButtonFormField<String>(
                       value: _paymentMethod,
@@ -502,6 +562,8 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
                       ],
                       onChanged: (v) => setState(() => _paymentMethod = v!),
                     ),
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
                   ],
                 ),
               ),
@@ -527,6 +589,7 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
       ),
     );
   }
+<<<<<<< HEAD
 
   // THÊM CHI PHÍ NHẬP HÀNG VÀO TRANG CHI PHÍ
   Future<void> _addPurchaseExpense(PurchaseOrder order) async {
@@ -610,4 +673,6 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
       // Không throw error để không làm fail purchase order
     }
   }
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 }

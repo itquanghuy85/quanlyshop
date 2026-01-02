@@ -3,12 +3,22 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+<<<<<<< HEAD
 import '../controllers/fast_inventory_input_controller.dart';
 import '../models/product_model.dart';
 import '../services/notification_service.dart';
 import '../widgets/currency_text_field.dart';
 import '../widgets/validated_text_field.dart';
 import 'stock_in_view.dart';
+=======
+import '../data/db_helper.dart';
+import '../models/product_model.dart';
+import '../services/firestore_service.dart';
+import '../services/notification_service.dart';
+import '../utils/sku_generator.dart';
+import '../widgets/currency_text_field.dart';
+import '../widgets/validated_text_field.dart';
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 
 class FastInventoryInputView extends StatefulWidget {
   const FastInventoryInputView({super.key});
@@ -18,7 +28,11 @@ class FastInventoryInputView extends StatefulWidget {
 }
 
 class _FastInventoryInputViewState extends State<FastInventoryInputView> with TickerProviderStateMixin {
+<<<<<<< HEAD
   final FastInventoryInputController _controller = FastInventoryInputController();
+=======
+  final db = DBHelper();
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   late TabController _tabController;
 
   // Scanner
@@ -29,6 +43,10 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
   final TextEditingController _imeiController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _costController = TextEditingController();
+<<<<<<< HEAD
+=======
+  final TextEditingController _kpkController = TextEditingController();
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   final TextEditingController _retailController = TextEditingController();
   final TextEditingController _detailController = TextEditingController();
   final TextEditingController _quantityController = TextEditingController(text: "1");
@@ -82,6 +100,7 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
   List<Product> _recentProducts = [];
   bool _showRecent = false;
 
+<<<<<<< HEAD
   // Manual input variables from StockInView
   final TextEditingController typeCtrl = TextEditingController();
   final TextEditingController brandCtrl = TextEditingController();
@@ -127,10 +146,13 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
 
   bool get _isAccessoryOrLinhKien => typeCtrl.text == 'ACCESSORY' || typeCtrl.text == 'LINHKIEN';
 
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+<<<<<<< HEAD
     _loadInitialData();
   }
 
@@ -151,6 +173,11 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
     } catch (e) {
       NotificationService.showSnackBar("Lỗi tải dữ liệu: $e", color: Colors.red);
     }
+=======
+    _loadSuppliers();
+    _loadSettings();
+    _loadRecentProducts();
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   }
 
   @override
@@ -160,12 +187,17 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
     _imeiController.dispose();
     _nameController.dispose();
     _costController.dispose();
+<<<<<<< HEAD
+=======
+    _kpkController.dispose();
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
     _retailController.dispose();
     _detailController.dispose();
     _quantityController.dispose();
     _modelController.dispose();
     _infoController.dispose();
     _skuController.dispose();
+<<<<<<< HEAD
 
     // Dispose manual input controllers
     typeCtrl.dispose();
@@ -188,10 +220,13 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
     costF.dispose();
     priceF.dispose();
     notesF.dispose();
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
     super.dispose();
   }
 
   Future<void> _loadSuppliers() async {
+<<<<<<< HEAD
     try {
       suppliers = await _controller.getSuppliers();
       setState(() {});
@@ -321,10 +356,20 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
     if (picked != null && picked != selectedDate) {
       setState(() {
         selectedDate = picked;
+=======
+    final suppliers = await db.getSuppliers();
+    if (mounted) {
+      setState(() {
+        _suppliers = suppliers;
+        if (_suppliers.isNotEmpty) {
+          _selectedSupplier = _suppliers.first['name'] as String;
+        }
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
       });
     }
   }
 
+<<<<<<< HEAD
   Widget _buildDropdownField({
     required String label,
     required TextEditingController controller,
@@ -443,6 +488,20 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
         }
       },
     );
+=======
+  Future<void> _loadSettings() async {
+    // Load saved settings from SharedPreferences if needed
+    // TODO: Implement settings loading
+  }
+
+  Future<void> _loadRecentProducts() async {
+    final products = await db.getInStockProducts();
+    // Sort by createdAt descending and take first 10
+    products.sort((a, b) => (b.createdAt ?? 0).compareTo(a.createdAt ?? 0));
+    if (mounted) {
+      setState(() => _recentProducts = products.take(10).toList());
+    }
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   }
 
   void _applyTemplate(Map<String, dynamic> template) {
@@ -450,6 +509,10 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
       _selectedGroup = template['group'];
       _selectedType = template['type'];
       _costController.text = (template['cost'] ~/ 1000).toString();
+<<<<<<< HEAD
+=======
+      _kpkController.text = (template['kpk'] ~/ 1000).toString();
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
       _retailController.text = (template['retail'] ~/ 1000).toString();
     });
     NotificationService.showSnackBar("Đã áp dụng template: ${template['name']}", color: Colors.blue);
@@ -462,10 +525,19 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
     }
 
     try {
+<<<<<<< HEAD
       final generatedSKU = await _controller.generateSKU(
         group: _selectedGroup,
         model: _modelController.text.trim().isNotEmpty ? _modelController.text.trim() : null,
         info: _infoController.text.trim().isNotEmpty ? _infoController.text.trim() : null,
+=======
+      final generatedSKU = await SKUGenerator.generateSKU(
+        nhom: _selectedGroup,
+        model: _modelController.text.trim().isNotEmpty ? _modelController.text.trim() : null,
+        thongtin: _infoController.text.trim().isNotEmpty ? _infoController.text.trim() : null,
+        dbHelper: db,
+        firestoreService: null,
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
       );
 
       setState(() => _skuController.text = generatedSKU);
@@ -490,9 +562,118 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
     }
   }
 
+<<<<<<< HEAD
 
 
 
+=======
+  Future<void> _saveProduct({bool addToBatch = false}) async {
+    if (_skuController.text.isEmpty) {
+      NotificationService.showSnackBar("Vui lòng tạo mã hàng trước!", color: Colors.red);
+      return;
+    }
+    if (_selectedSupplier.isEmpty) {
+      NotificationService.showSnackBar("Vui lòng chọn Nhà cung cấp!", color: Colors.red);
+      return;
+    }
+
+    if (_isSaving) return;
+    setState(() => _isSaving = true);
+
+    try {
+      final productData = {
+        'name': _skuController.text.toUpperCase(),
+        'imei': _imeiController.text.trim(),
+        'cost': _parsePrice(_costController.text),
+        'kpkPrice': _parsePrice(_kpkController.text),
+        'price': _parsePrice(_retailController.text),
+        'capacity': _detailController.text.toUpperCase(),
+        'quantity': int.tryParse(_quantityController.text) ?? 1,
+        'type': _selectedType,
+        'supplier': _selectedSupplier,
+        'paymentMethod': _selectedPayment,
+      };
+
+      if (addToBatch) {
+        setState(() {
+          _batchItems.add(productData);
+          _clearForm();
+        });
+        NotificationService.showSnackBar("Đã thêm vào danh sách batch (${_batchItems.length} sản phẩm)", color: Colors.blue);
+      } else {
+        await _saveSingleProduct(productData);
+        _clearForm();
+      }
+    } catch (e) {
+      NotificationService.showSnackBar("Lỗi: $e", color: Colors.red);
+    } finally {
+      setState(() => _isSaving = false);
+    }
+  }
+
+  Future<void> _saveSingleProduct(Map<String, dynamic> productData) async {
+    final int ts = DateTime.now().millisecondsSinceEpoch;
+    final String imei = productData['imei'];
+    final String fId = "prod_${ts}_${imei.isNotEmpty ? imei : ts}";
+
+    final p = Product(
+      firestoreId: fId,
+      name: productData['name'],
+      imei: imei,
+      cost: productData['cost'],
+      kpkPrice: productData['kpkPrice'],
+      price: productData['price'],
+      capacity: productData['capacity'],
+      quantity: productData['quantity'],
+      type: productData['type'],
+      createdAt: ts,
+      supplier: productData['supplier'],
+      status: 1,
+    );
+
+    final user = FirebaseAuth.instance.currentUser;
+    final userName = user?.email?.split('@').first.toUpperCase() ?? "NV";
+
+    await db.logAction(
+      userId: user?.uid ?? "0",
+      userName: userName,
+      action: "NHẬP KHO",
+      type: "PRODUCT",
+      targetId: p.imei,
+      desc: "Đã nhập máy ${p.name}",
+    );
+
+    if (productData['paymentMethod'] != "CÔNG NỢ") {
+      await db.insertExpense({
+        'title': "NHẬP HÀNG: ${p.name}",
+        'amount': p.cost * p.quantity,
+        'category': "NHẬP HÀNG",
+        'date': ts,
+        'paymentMethod': productData['paymentMethod'],
+        'note': "Nhập từ ${productData['supplier']}",
+      });
+    } else {
+      await db.insertDebt({
+        'personName': productData['supplier'],
+        'totalAmount': p.cost * p.quantity,
+        'paidAmount': 0,
+        'type': "SHOP_OWES",
+        'status': "unpaid",
+        'createdAt': ts,
+        'note': "Nợ tiền máy ${p.name}",
+      });
+    }
+
+    await db.upsertProduct(p);
+    await FirestoreService.addProduct(p);
+
+    HapticFeedback.lightImpact();
+    NotificationService.showSnackBar("NHẬP KHO THÀNH CÔNG", color: Colors.green);
+
+    // Refresh recent products
+    _loadRecentProducts();
+  }
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 
   Future<void> _saveBatch() async {
     if (_batchItems.isEmpty) return;
@@ -500,6 +681,7 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
     setState(() => _isSaving = true);
 
     try {
+<<<<<<< HEAD
       // Parallel processing for better performance
       await _controller.saveBatchProducts(_batchItems);
 
@@ -511,6 +693,18 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
       await _refreshRecentProducts();
 
       if (mounted) Navigator.of(context).pop();
+=======
+      for (final productData in _batchItems) {
+        await _saveSingleProduct(productData);
+      }
+
+      setState(() => _batchItems.clear());
+      NotificationService.showSnackBar("Đã nhập kho ${_batchItems.length} sản phẩm thành công!", color: Colors.green);
+      if (mounted) Navigator.of(context).pop();
+
+      // Refresh recent products
+      _loadRecentProducts();
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
     } catch (e) {
       NotificationService.showSnackBar("Lỗi khi nhập batch: $e", color: Colors.red);
     } finally {
@@ -518,6 +712,7 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
     }
   }
 
+<<<<<<< HEAD
   Future<void> _refreshRecentProducts() async {
     try {
       final recentProducts = await _controller.loadRecentProducts();
@@ -529,6 +724,8 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
     }
   }
 
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   int _parsePrice(String text) {
     final cleaned = text.replaceAll('.', '').replaceAll(RegExp(r'[^\d]'), '');
     final value = int.tryParse(cleaned) ?? 0;
@@ -539,6 +736,10 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
     _imeiController.clear();
     _nameController.clear();
     _costController.clear();
+<<<<<<< HEAD
+=======
+    _kpkController.clear();
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
     _retailController.clear();
     _detailController.clear();
     _quantityController.text = "1";
@@ -558,7 +759,10 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
         ),
         backgroundColor: Colors.white,
         elevation: 0,
+<<<<<<< HEAD
         automaticallyImplyLeading: true,
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
@@ -607,6 +811,7 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
+<<<<<<< HEAD
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Loại hàng
@@ -833,10 +1038,34 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
                       onChanged: (value) => setState(() => selectedPaymentMethod = value!),
                       dense: true,
                       contentPadding: EdgeInsets.zero,
+=======
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header with batch mode indicator
+          if (_isBatchMode)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: Colors.blue.withAlpha(25),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.blue.withAlpha(77)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.batch_prediction, color: Colors.blue),
+                  const SizedBox(width: 8),
+                  Text(
+                    "Chế độ Batch: ${_batchItems.length} sản phẩm",
+                    style: const TextStyle(
+                      color: Colors.blue,
+                      fontWeight: FontWeight.bold,
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
                     ),
                   ),
                 ],
               ),
+<<<<<<< HEAD
             ],
           ),
           const SizedBox(height: 16),
@@ -881,6 +1110,572 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
             child: _saving
                 ? const CircularProgressIndicator(color: Colors.white)
                 : const Text('LƯU', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+=======
+            ),
+
+          // Expandable Sections
+          ExpansionPanelList(
+            expansionCallback: (int index, bool isExpanded) {
+              setState(() {
+                // We can add state to control expansion if needed
+              });
+            },
+            children: [
+              // Templates Section
+              ExpansionPanel(
+                headerBuilder: (BuildContext context, bool isExpanded) {
+                  return const ListTile(
+                    leading: Icon(Icons.inventory, color: Color(0xFF2962FF)),
+                    title: Text(
+                      "CHỌN TEMPLATE SẢN PHẨM",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF2962FF),
+                      ),
+                    ),
+                    subtitle: Text("Áp dụng mẫu sản phẩm nhanh"),
+                  );
+                },
+                body: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: SizedBox(
+                    height: 70,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _productTemplates.length,
+                      itemBuilder: (context, index) {
+                        final template = _productTemplates[index];
+                        return Container(
+                          width: 120,
+                          margin: const EdgeInsets.only(right: 12),
+                          child: ElevatedButton(
+                            onPressed: () => _applyTemplate(template),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              foregroundColor: const Color(0xFF2962FF),
+                              elevation: 3,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  template['group'] == 'IP' ? Icons.phone_iphone :
+                                  template['group'] == 'SS' ? Icons.phone_android :
+                                  Icons.devices_other,
+                                  size: 20,
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  template['name'].split(' ')[0], // Short name
+                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                isExpanded: true, // Keep templates expanded by default
+              ),
+
+              // Product Type & SKU Section
+              ExpansionPanel(
+                headerBuilder: (BuildContext context, bool isExpanded) {
+                  return ListTile(
+                    leading: const Icon(Icons.qr_code, color: Color(0xFF2962FF)),
+                    title: const Text(
+                      "LOẠI SẢN PHẨM & MÃ HÀNG",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF2962FF),
+                      ),
+                    ),
+                    subtitle: Text(_skuController.text.isEmpty ? "Chưa tạo mã hàng" : "Mã: ${_skuController.text}"),
+                  );
+                },
+                body: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Product Type
+                      DropdownButtonFormField<String>(
+                        initialValue: _selectedType,
+                        decoration: InputDecoration(
+                          labelText: "Loại sản phẩm",
+                          prefixIcon: const Icon(Icons.category),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        items: const [
+                          DropdownMenuItem(value: "PHONE", child: Text("📱 Điện thoại")),
+                          DropdownMenuItem(value: "ACCESSORY", child: Text("🔧 Phụ kiện")),
+                        ],
+                        onChanged: (value) => setState(() => _selectedType = value!),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // SKU Generation Card
+                      Card(
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                "TẠO MÃ HÀNG TỰ ĐỘNG",
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF2962FF),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+
+                              // Group selection
+                              DropdownButtonFormField<String>(
+                                initialValue: _selectedGroup,
+                                decoration: InputDecoration(
+                                  labelText: "Nhóm sản phẩm",
+                                  prefixIcon: const Icon(Icons.group_work, size: 18),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                                items: const [
+                                  DropdownMenuItem(value: "IP", child: Text("🍎 IP - iPhone")),
+                                  DropdownMenuItem(value: "SS", child: Text("🤖 SS - Samsung")),
+                                  DropdownMenuItem(value: "PIN", child: Text("🔌 PIN - Pin sạc")),
+                                  DropdownMenuItem(value: "MH", child: Text("📺 MH - Màn hình")),
+                                  DropdownMenuItem(value: "PK", child: Text("🔧 PK - Phụ kiện")),
+                                ],
+                                onChanged: (value) => setState(() => _selectedGroup = value!),
+                              ),
+
+                              const SizedBox(height: 12),
+
+                              // Model and Info
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: ValidatedTextField(
+                                      controller: _modelController,
+                                      label: "Model",
+                                      icon: Icons.smartphone,
+                                      uppercase: true,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: ValidatedTextField(
+                                      controller: _infoController,
+                                      label: "Thông tin bổ sung",
+                                      icon: Icons.info,
+                                      uppercase: true,
+                                    ),
+                                  ),
+                                ],
+                              ),
+
+                              const SizedBox(height: 12),
+
+                              // SKU generation
+                              Row(
+                                children: [
+                                  Expanded(
+                                    flex: 3,
+                                    child: ValidatedTextField(
+                                      controller: _skuController,
+                                      label: "Mã hàng được tạo",
+                                      icon: Icons.qr_code,
+                                      uppercase: true,
+                                      enabled: false,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    flex: 2,
+                                    child: ElevatedButton.icon(
+                                      onPressed: _generateSKU,
+                                      icon: const Icon(Icons.auto_fix_high, size: 18),
+                                      label: const Text("TẠO MÃ"),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(0xFF2962FF),
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(vertical: 16),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                isExpanded: true,
+              ),
+
+              // Product Details Section
+              ExpansionPanel(
+                headerBuilder: (BuildContext context, bool isExpanded) {
+                  return const ListTile(
+                    leading: Icon(Icons.inventory, color: Color(0xFF2962FF)),
+                    title: Text(
+                      "THÔNG TIN CHI TIẾT",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF2962FF),
+                      ),
+                    ),
+                    subtitle: Text("IMEI, giá cả, nhà cung cấp"),
+                  );
+                },
+                body: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // IMEI and Details
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ValidatedTextField(
+                              controller: _imeiController,
+                              label: "IMEI/Serial",
+                              icon: Icons.fingerprint,
+                              keyboardType: TextInputType.number,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ValidatedTextField(
+                              controller: _detailController,
+                              label: "Chi tiết (dung lượng, màu...)",
+                              icon: Icons.info_outline,
+                              uppercase: true,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Prices
+                      Text(
+                        "THÔNG TIN GIÁ BÁN",
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey.shade700,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: CurrencyTextField(
+                              controller: _costController,
+                              label: "Giá vốn (VNĐ)",
+                              icon: Icons.money,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: CurrencyTextField(
+                              controller: _kpkController,
+                              label: "Giá KPK (VNĐ)",
+                              icon: Icons.card_giftcard,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      Row(
+                        children: [
+                          Expanded(
+                            child: CurrencyTextField(
+                              controller: _retailController,
+                              label: "Giá lẻ (VNĐ)",
+                              icon: Icons.sell,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ValidatedTextField(
+                              controller: _quantityController,
+                              label: "Số lượng",
+                              icon: Icons.add_box,
+                              keyboardType: TextInputType.number,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Supplier
+                      DropdownButtonFormField<String>(
+                        initialValue: _selectedSupplier,
+                        decoration: InputDecoration(
+                          labelText: "Nhà cung cấp",
+                          prefixIcon: const Icon(Icons.business),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        items: _suppliers.map((supplier) => DropdownMenuItem(
+                          value: supplier['name'] as String,
+                          child: Text(supplier['name']),
+                        )).toList(),
+                        onChanged: (value) => setState(() => _selectedSupplier = value!),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Payment Method
+                      Text(
+                        "PHƯƠNG THỨC THANH TOÁN",
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey.shade700,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: ["TIỀN MẶT", "CHUYỂN KHOẢN", "CÔNG NỢ"].map((method) {
+                          final isSelected = _selectedPayment == method;
+                          return ChoiceChip(
+                            label: Text(
+                              method,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: isSelected ? Colors.white : Colors.black87,
+                              ),
+                            ),
+                            selected: isSelected,
+                            onSelected: (selected) => setState(() => _selectedPayment = method),
+                            selectedColor: const Color(0xFF2962FF),
+                            backgroundColor: Colors.grey[200],
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ),
+                ),
+                isExpanded: true,
+              ),
+
+              // Recent Products Section
+              if (_showRecent && _recentProducts.isNotEmpty)
+                ExpansionPanel(
+                  headerBuilder: (BuildContext context, bool isExpanded) {
+                    return ListTile(
+                      leading: const Icon(Icons.history, color: Color(0xFF2962FF)),
+                      title: const Text(
+                        "SẢN PHẨM ĐÃ NHẬP GẦN ĐÂY",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF2962FF),
+                        ),
+                      ),
+                      subtitle: Text("${_recentProducts.length} sản phẩm"),
+                    );
+                  },
+                  body: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: SizedBox(
+                      height: 140,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: _recentProducts.length,
+                        itemBuilder: (context, index) {
+                          final product = _recentProducts[index];
+                          return Container(
+                            width: 220,
+                            margin: const EdgeInsets.only(right: 12),
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[50],
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.grey[300]!),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withAlpha(13),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(
+                                      product.type == 'PHONE' ? Icons.phone_iphone : Icons.devices_other,
+                                      size: 16,
+                                      color: const Color(0xFF2962FF),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Expanded(
+                                      child: Text(
+                                        product.name,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  "IMEI: ${product.imei ?? 'N/A'}",
+                                  style: const TextStyle(fontSize: 11, color: Colors.grey),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const Spacer(),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.green.withAlpha(25),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    "${NumberFormat('#,###').format(product.price)}đ",
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.green,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                  isExpanded: false,
+                ),
+            ],
+          ),
+
+          const SizedBox(height: 24),
+
+          // Action Buttons
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha(13),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    if (_isBatchMode)
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: _isSaving ? null : () => _saveProduct(addToBatch: true),
+                          icon: const Icon(Icons.add_to_queue),
+                          label: const Text("THÊM VÀO BATCH"),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            side: const BorderSide(color: Colors.blue),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        ),
+                      )
+                    else
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: _isSaving ? null : () => _saveProduct(),
+                          icon: const Icon(Icons.save, color: Colors.white),
+                          label: _isSaving
+                              ? const Text("ĐANG LƯU...")
+                              : const Text("NHẬP KHO NGAY"),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF2962FF),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        ),
+                      ),
+                    const SizedBox(width: 12),
+                    Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey[300]!),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: IconButton(
+                        onPressed: _clearForm,
+                        icon: const Icon(Icons.clear, color: Colors.grey),
+                        tooltip: "Xóa tất cả thông tin",
+                      ),
+                    ),
+                  ],
+                ),
+                if (_isBatchMode && _batchItems.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    "Batch hiện tại: ${_batchItems.length} sản phẩm",
+                    style: const TextStyle(
+                      color: Colors.blue,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
           ),
         ],
       ),

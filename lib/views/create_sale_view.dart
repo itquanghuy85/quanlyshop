@@ -6,12 +6,19 @@ import '../models/product_model.dart';
 import '../models/sale_order_model.dart';
 import '../services/notification_service.dart';
 import '../services/firestore_service.dart';
+<<<<<<< HEAD
 import '../services/user_service.dart';
 import '../widgets/validated_text_field.dart';
 import '../widgets/debounced_search_field.dart';
 import '../widgets/currency_text_field.dart';
 import 'supplier_view.dart';
 import 'stock_in_view.dart'; 
+=======
+import '../widgets/validated_text_field.dart';
+import '../widgets/debounced_search_field.dart';
+import '../widgets/currency_text_field.dart';
+import 'supplier_view.dart'; 
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 
 class CreateSaleView extends StatefulWidget {
   final Product? preSelectedProduct; 
@@ -39,6 +46,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
   String _saleWarranty = "12 THÁNG";
   bool _autoCalcTotal = true; 
 
+<<<<<<< HEAD
   List<Map<String, dynamic>> _selectedItems = []; 
   List<Map<String, dynamic>> _suggestCustomers = [];
   List<Product> _allInStock = [];
@@ -50,31 +58,48 @@ class _CreateSaleViewState extends State<CreateSaleView> {
   // Focus management cho IMEI fields
   final Map<String, FocusNode> _imeiFocusNodes = {};
   final Map<String, TextEditingController> _imeiControllers = {};
+=======
+  List<Product> _allInStock = [];
+  List<Product> _filteredInStock = []; 
+  final List<Map<String, dynamic>> _selectedItems = []; 
+  List<Map<String, dynamic>> _suggestCustomers = [];
+  bool _isLoading = true;
+  bool _isSaving = false;
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 
   @override
   void initState() {
     super.initState();
+<<<<<<< HEAD
     _checkPermission();
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
     _loadData();
     downPaymentCtrl.addListener(_calculateInstallment);
   }
 
+<<<<<<< HEAD
   Future<void> _checkPermission() async {
     final perms = await UserService.getCurrentUserPermissions();
     if (!mounted) return;
     setState(() => _hasPermission = perms['allowViewSales'] ?? false);
   }
 
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   @override
   void dispose() {
     nameCtrl.dispose(); phoneCtrl.dispose(); addressCtrl.dispose();
     priceCtrl.dispose(); noteCtrl.dispose(); searchProdCtrl.dispose();
     downPaymentCtrl.dispose(); loanAmountCtrl.dispose(); bankCtrl.dispose();
+<<<<<<< HEAD
     
     // Dispose IMEI controllers và focus nodes
     _imeiControllers.forEach((_, controller) => controller.dispose());
     _imeiFocusNodes.forEach((_, focusNode) => focusNode.dispose());
     
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
     super.dispose();
   }
 
@@ -83,9 +108,13 @@ class _CreateSaleViewState extends State<CreateSaleView> {
     final suggests = await db.getCustomerSuggestions();
     if (!mounted) return;
     setState(() { _allInStock = prods; _filteredInStock = prods; _suggestCustomers = suggests; _isLoading = false; });
+<<<<<<< HEAD
     if (widget.preSelectedProduct != null) { 
       _addProductToSale(widget.preSelectedProduct!); 
     }
+=======
+    if (widget.preSelectedProduct != null) { _addProductToSale(widget.preSelectedProduct!); }
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   }
 
   void _calculateInstallment() {
@@ -98,7 +127,11 @@ class _CreateSaleViewState extends State<CreateSaleView> {
 
   void _calculateTotal() {
     if (!_autoCalcTotal) return;
+<<<<<<< HEAD
     int total = _selectedItems.fold(0, (sum, item) => sum + (item['isGift'] ? 0 : ((item['sellPrice'] as int) * (item['quantity'] as int))));
+=======
+    int total = _selectedItems.fold(0, (sum, item) => sum + (item['isGift'] ? 0 : (item['sellPrice'] as int)));
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
     priceCtrl.text = _formatCurrency(total);
     _calculateInstallment();
   }
@@ -114,6 +147,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
 
   void _addItem(Product p) {
     if (_selectedItems.any((item) => item['product'].id == p.id)) return;
+<<<<<<< HEAD
     
     final productId = p.id;
     final imeiController = TextEditingController(text: p.imei ?? '');
@@ -142,10 +176,14 @@ class _CreateSaleViewState extends State<CreateSaleView> {
         FocusScope.of(context).requestFocus(_imeiFocusNodes[productId.toString()]);
       }
     });
+=======
+    setState(() { _selectedItems.add({'product': p, 'isGift': false, 'sellPrice': p.price}); _calculateTotal(); searchProdCtrl.clear(); _filteredInStock = _allInStock; });
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   }
 
   void _addProductToSale(Product p) {
     if (_selectedItems.any((item) => item['product'].id == p.id)) return;
+<<<<<<< HEAD
     
     final productId = p.id;
     final imeiController = TextEditingController(text: p.imei ?? '');
@@ -172,17 +210,23 @@ class _CreateSaleViewState extends State<CreateSaleView> {
         FocusScope.of(context).requestFocus(_imeiFocusNodes[productId.toString()]);
       }
     });
+=======
+    setState(() { _selectedItems.add({'product': p, 'isGift': false, 'sellPrice': p.price}); _calculateTotal(); });
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   }
 
   Future<void> _processSale() async {
     if (_isSaving) return;
     if (_selectedItems.isEmpty) { NotificationService.showSnackBar("VUI LÒNG CHỌN SẢN PHẨM", color: Colors.red); return; }
     if (nameCtrl.text.isEmpty || phoneCtrl.text.isEmpty) { NotificationService.showSnackBar("NHẬP ĐỦ THÔNG TIN KHÁCH", color: Colors.red); return; }
+<<<<<<< HEAD
     
     // Validate phone format
     final phoneError = UserService.validatePhone(phoneCtrl.text.trim());
     if (phoneError != null) { NotificationService.showSnackBar(phoneError, color: Colors.red); return; }
     
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
     setState(() => _isSaving = true);
     try {
       final now = DateTime.now().millisecondsSinceEpoch;
@@ -193,6 +237,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
       if (paidAmount > 0 && paidAmount < 100000) paidAmount *= 1000;
       if (_paymentMethod != "CÔNG NỢ" && _paymentMethod != "TRẢ GÓP (NH)" && paidAmount == 0) paidAmount = totalPrice;
       
+<<<<<<< HEAD
       int totalCost = _selectedItems.fold(0, (sum, item) => sum + ((item['product'] as Product).cost * (item['quantity'] as int)));
       
       // Debug logging
@@ -312,10 +357,27 @@ class _CreateSaleViewState extends State<CreateSaleView> {
       NotificationService.showSnackBar("LỖI KHI LƯU ĐƠN BÁN: ${e.toString()}", color: Colors.red);
       debugPrint("Sale save error: $e");
     }
+=======
+      final sale = SaleOrder(firestoreId: uniqueId, customerName: nameCtrl.text.trim().toUpperCase(), phone: phoneCtrl.text.trim(), address: addressCtrl.text.trim().toUpperCase(), productNames: _selectedItems.map((e) => (e['product'] as Product).name).join(', '), productImeis: _selectedItems.map((e) => (e['product'] as Product).imei ?? "PK").join(', '), totalPrice: totalPrice, totalCost: _selectedItems.fold(0, (sum, item) => sum + (item['product'] as Product).cost), paymentMethod: _paymentMethod, sellerName: seller, soldAt: now, isInstallment: _isInstallment, downPayment: paidAmount, loanAmount: _isInstallment ? _parseCurrency(loanAmountCtrl.text) : 0, bankName: bankCtrl.text.toUpperCase(), notes: noteCtrl.text, warranty: _saleWarranty);
+      
+      if (_paymentMethod == "CÔNG NỢ" || (_paymentMethod != "TRẢ GÓP (NH)" && paidAmount < totalPrice)) {
+        await db.insertDebt({'personName': nameCtrl.text.trim().toUpperCase(), 'phone': phoneCtrl.text.trim(), 'totalAmount': totalPrice, 'paidAmount': paidAmount, 'type': "CUSTOMER_OWES", 'status': "unpaid", 'createdAt': now, 'note': "Nợ mua máy: ${sale.productNames}", 'linkedId': uniqueId});
+      }
+      for (var item in _selectedItems) {
+        final p = item['product'] as Product;
+        await db.updateProductStatus(p.id!, 0); await db.deductProductQuantity(p.id!, 1);
+        p.status = 0; p.quantity = 0; await FirestoreService.updateProductCloud(p);
+      }
+      await db.upsertSale(sale); await FirestoreService.addSale(sale);
+      NotificationService.showSnackBar("ĐÃ BÁN HÀNG THÀNH CÔNG!", color: Colors.green);
+      if (mounted) Navigator.pop(context, true);
+    } catch (e) { setState(() => _isSaving = false); }
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   }
 
   @override
   Widget build(BuildContext context) {
+<<<<<<< HEAD
     if (!_hasPermission) {
       return Scaffold(
         appBar: AppBar(
@@ -338,6 +400,13 @@ class _CreateSaleViewState extends State<CreateSaleView> {
         title: const Tooltip(message: "Chọn sản phẩm, nhập thông tin khách và hoàn tất đơn bán.", child: Text("TẠO ĐƠN BÁN HÀNG", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))), 
         backgroundColor: Colors.pinkAccent, foregroundColor: Colors.white,
         automaticallyImplyLeading: true,
+=======
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFF),
+      appBar: AppBar(
+        title: const Text("TẠO ĐƠN BÁN HÀNG", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)), 
+        backgroundColor: Colors.pinkAccent, foregroundColor: Colors.white,
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
         actions: [
           IconButton(onPressed: () { Navigator.push(context, MaterialPageRoute(builder: (_) => const SupplierView())); }, icon: const Icon(Icons.business_center_rounded)),
         ],
@@ -347,10 +416,13 @@ class _CreateSaleViewState extends State<CreateSaleView> {
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           _sectionTitle("1. CHỌN SẢN PHẨM TRONG KHO"),
           DebouncedSearchField(controller: searchProdCtrl, hint: "Tìm máy hoặc IMEI...", onSearch: (v) => setState(() => _filteredInStock = _allInStock.where((p) => p.name.contains(v.toUpperCase()) || (p.imei ?? "").contains(v)).toList())),
+<<<<<<< HEAD
           
           // Hiển thị hướng dẫn nếu kho trống
           if (_allInStock.isEmpty) _buildEmptyStockGuidance(),
           
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
           if (searchProdCtrl.text.isNotEmpty) _buildSearchResults(),
           _buildSelectedItemsList(),
           const SizedBox(height: 20),
@@ -362,7 +434,11 @@ class _CreateSaleViewState extends State<CreateSaleView> {
           _sectionTitle("3. THANH TOÁN & BẢO HÀNH"),
           _buildPaymentSection(),
           const SizedBox(height: 30),
+<<<<<<< HEAD
           SizedBox(width: double.infinity, height: 55, child: ElevatedButton(onPressed: (_isSaving || _selectedItems.isEmpty) ? null : _processSale, style: ElevatedButton.styleFrom(backgroundColor: _selectedItems.isEmpty ? Colors.grey : Colors.green, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))), child: _isSaving ? const CircularProgressIndicator(color: Colors.white) : Text(_selectedItems.isEmpty ? "CHƯA CHỌN SẢN PHẨM" : "HOÀN TẤT ĐƠN HÀNG", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)))),
+=======
+          SizedBox(width: double.infinity, height: 55, child: ElevatedButton(onPressed: _isSaving ? null : _processSale, style: ElevatedButton.styleFrom(backgroundColor: Colors.green, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))), child: _isSaving ? const CircularProgressIndicator(color: Colors.white) : const Text("HOÀN TẤT ĐƠN HÀNG", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)))),
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
         ]),
       ),
     );
@@ -410,6 +486,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
           trailing: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+<<<<<<< HEAD
               Icon(p.quantity > 0 ? Icons.add_circle : Icons.warning, color: p.quantity > 0 ? Colors.green : Colors.red),
               Text("Tồn: ${p.quantity}", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: p.quantity > 0 ? Colors.orange : Colors.red)),
             ],
@@ -424,12 +501,20 @@ class _CreateSaleViewState extends State<CreateSaleView> {
             }
             _addItem(p);
           }
+=======
+              const Icon(Icons.add_circle, color: Colors.green),
+              Text("Tồn: ${p.quantity}", style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.orange)),
+            ],
+          ),
+          onTap: () => _addItem(p)
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
         ); 
       })
     );
   }
 
   Widget _buildSelectedItemsList() {
+<<<<<<< HEAD
     return Column(
       children: _selectedItems.map((item) {
         final product = item['product'] as Product;
@@ -547,12 +632,16 @@ class _CreateSaleViewState extends State<CreateSaleView> {
         );
       }).toList(),
     );
+=======
+    return Column(children: _selectedItems.map((item) => Card(margin: const EdgeInsets.symmetric(vertical: 4), child: ListTile(title: Text((item['product'] as Product).name), subtitle: Text("Giá bán: ${NumberFormat('#,###').format(item['sellPrice'])}"), trailing: IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () { setState(() { _selectedItems.remove(item); _calculateTotal(); }); })))).toList());
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   }
 
   Widget _buildCustomerSuggestions() {
     if (_suggestCustomers.isEmpty) return const SizedBox();
     return SizedBox(height: 40, child: ListView.builder(scrollDirection: Axis.horizontal, itemCount: _suggestCustomers.length, itemBuilder: (ctx, i) => Padding(padding: const EdgeInsets.only(right: 8), child: ActionChip(label: Text(_suggestCustomers[i]['customerName']), onPressed: () { nameCtrl.text = _suggestCustomers[i]['customerName']; phoneCtrl.text = _suggestCustomers[i]['phone']; setState(() => _suggestCustomers = []); }))));
   }
+<<<<<<< HEAD
 
   Widget _buildEmptyStockGuidance() {
     return Container(
@@ -636,4 +725,6 @@ class _CreateSaleViewState extends State<CreateSaleView> {
       ),
     );
   }
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 }

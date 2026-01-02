@@ -250,6 +250,11 @@
   "productName": "Tên máy/Linh kiện",
   "imeiNumber": "Số IMEI (Nếu có)",
   "costPrice": "Giá vốn",
+<<<<<<< HEAD
+=======
+  "kpkPrice": "Giá KPK",
+  "pkPrice": "Giá PK",
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   "capacity": "Dung lượng (ví dụ: 64GB, 128GB)",
   "quantity": "Số lượng",
   "supplierRequired": "Nhà cung cấp (bắt buộc)",

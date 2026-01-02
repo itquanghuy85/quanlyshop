@@ -8,7 +8,10 @@ import '../models/repair_model.dart';
 import '../models/printer_types.dart';
 import '../widgets/validated_text_field.dart';
 import '../widgets/printer_selection_dialog.dart';
+<<<<<<< HEAD
 import '../widgets/currency_text_field.dart';
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 
 class RepairReceiptView extends StatefulWidget {
   const RepairReceiptView({super.key});
@@ -29,7 +32,10 @@ class _RepairReceiptViewState extends State<RepairReceiptView> {
 
   bool _isLoading = false;
   String _receiptCode = '';
+<<<<<<< HEAD
   int? _estimatedCostAmount; // Lưu giá trị đã nhân 1000 từ widget
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 
   @override
   void initState() {
@@ -58,7 +64,11 @@ class _RepairReceiptViewState extends State<RepairReceiptView> {
         issue: _issueController.text.trim(),
         accessories: _accessoriesController.text.trim(),
         address: _addressController.text.trim(),
+<<<<<<< HEAD
         price: _estimatedCostAmount ?? 0,
+=======
+        price: int.tryParse(_estimatedCostController.text.replaceAll(',', '')) ?? 0,
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
         status: 0, // Received
         createdAt: DateTime.now().millisecondsSinceEpoch,
         lastCaredAt: DateTime.now().millisecondsSinceEpoch,
@@ -250,11 +260,19 @@ class _RepairReceiptViewState extends State<RepairReceiptView> {
 
               const SizedBox(height: 12),
 
+<<<<<<< HEAD
               ThousandCurrencyTextField(
                 controller: _estimatedCostController,
                 label: 'Giá dự kiến',
                 hint: 'Để trống nếu chưa xác định',
                 onCompleted: (value) => _estimatedCostAmount = value,
+=======
+              ValidatedTextField(
+                controller: _estimatedCostController,
+                label: 'Giá dự kiến (VNĐ)',
+                keyboardType: TextInputType.number,
+                hint: 'Để trống nếu chưa xác định',
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
               ),
 
               const SizedBox(height: 32),

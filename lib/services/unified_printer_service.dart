@@ -37,7 +37,11 @@ class UnifiedPrinterService {
         return true;
       }
       if (bluetoothPrinter != null) {
+<<<<<<< HEAD
         final mac = bluetoothPrinter is Map ? bluetoothPrinter['macAddress'] : bluetoothPrinter.macAddress;
+=======
+        final mac = bluetoothPrinter.macAddress;
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
         final ok = await BluetoothPrinterService.connect(mac);
         if (ok) return await BluetoothPrinterService.printBytes(bytes);
       }
@@ -123,6 +127,7 @@ class UnifiedPrinterService {
     return _sendToPrinter(bytes, printerType: printerType, bluetoothPrinter: bluetoothPrinter, wifiIp: wifiIp);
   }
 
+<<<<<<< HEAD
   static Future<bool> printProductQRLabel(Map<String, dynamic> product, {String? customMac, PrinterType? printerType, String? wifiIp}) async {
     try {
       final profile = await CapabilityProfile.load();
@@ -196,6 +201,18 @@ class UnifiedPrinterService {
       print("Lỗi in tem sản phẩm: $e");
       return false;
     }
+=======
+  static Future<bool> printProductQRLabel(Map<String, dynamic> product, {String? customMac}) async {
+    final profile = await CapabilityProfile.load();
+    final generator = Generator(PaperSize.mm80, profile);
+    List<int> bytes = [];
+    bytes.addAll(generator.reset());
+    bytes.addAll(generator.text(_removeDiacritics(product['name'] ?? 'SAN PHAM'), styles: const PosStyles(bold: true, align: PosAlign.center)));
+    // Đã sửa lỗi: Gỡ bỏ tham số size
+    bytes.addAll(generator.qrcode("check_inv:${product['firestoreId'] ?? product['id']}")); 
+    bytes.addAll(generator.cut());
+    return _sendToPrinter(bytes, bluetoothPrinter: customMac != null ? {'macAddress': customMac} : null);
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   }
 
   static Future<bool> printRepairReceiptLegacy(Map<String, dynamic> data, PaperSize paper, {PrinterType? printerType, dynamic bluetoothPrinter, String? wifiIp}) async {

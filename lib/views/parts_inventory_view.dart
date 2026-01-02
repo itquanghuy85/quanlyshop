@@ -3,7 +3,10 @@ import 'package:intl/intl.dart';
 import '../data/db_helper.dart';
 import '../services/user_service.dart';
 import '../widgets/validated_text_field.dart';
+<<<<<<< HEAD
 import '../widgets/currency_text_field.dart';
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 
 class PartsInventoryView extends StatefulWidget {
   const PartsInventoryView({super.key});
@@ -50,11 +53,17 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
   void _showAddPartDialog({Map<String, dynamic>? part}) {
     final nameC = TextEditingController(text: part?['partName']);
     final modelC = TextEditingController(text: part?['compatibleModels']);
+<<<<<<< HEAD
     final costC = TextEditingController(text: part != null ? (part['cost'] ~/ 1000).toString() : "");
     final priceC = TextEditingController(text: part != null ? (part['price'] ~/ 1000).toString() : "");
     final qtyC = TextEditingController(text: part != null ? part['quantity'].toString() : "1");
     int? costAmount; // Lưu giá trị đã nhân 1000 từ widget
     int? priceAmount; // Lưu giá trị đã nhân 1000 từ widget
+=======
+    final costC = TextEditingController(text: part != null ? (part['cost'] / 1000).toStringAsFixed(0) : "");
+    final priceC = TextEditingController(text: part != null ? (part['price'] / 1000).toStringAsFixed(0) : "");
+    final qtyC = TextEditingController(text: part != null ? part['quantity'].toString() : "1");
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 
     showDialog(
       context: context,
@@ -70,6 +79,7 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                   ValidatedTextField(controller: nameC, label: "Tên linh kiện (VD: PIN IPHONE 11)", icon: Icons.inventory, uppercase: true, required: true),
                   ValidatedTextField(controller: modelC, label: "Dòng máy tương thích", icon: Icons.phone_android, uppercase: true),
                   Row(children: [
+<<<<<<< HEAD
                     Expanded(child: ThousandCurrencyTextField(
                       controller: costC,
                       label: "Giá vốn",
@@ -81,6 +91,11 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                       label: "Giá bán",
                       onCompleted: (value) => priceAmount = value,
                     )),
+=======
+                    Expanded(child: ValidatedTextField(controller: costC, label: "Giá vốn (.000)", icon: Icons.attach_money, keyboardType: TextInputType.number)),
+                    const SizedBox(width: 10),
+                    Expanded(child: ValidatedTextField(controller: priceC, label: "Giá bán (.000)", icon: Icons.sell, keyboardType: TextInputType.number)),
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
                   ]),
                   ValidatedTextField(controller: qtyC, label: "Số lượng nhập", icon: Icons.numbers, keyboardType: TextInputType.number),
                 ],
@@ -91,6 +106,7 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
               ElevatedButton(
                 onPressed: nameC.text.isNotEmpty ? () async {
                   if (nameC.text.isEmpty) return;
+<<<<<<< HEAD
                   try {
                     final data = {
                       'partName': nameC.text.toUpperCase(),
@@ -111,6 +127,24 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                   } catch (e) {
                     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi: $e'), backgroundColor: Colors.red));
                   }
+=======
+                  final data = {
+                    'partName': nameC.text.toUpperCase(),
+                    'compatibleModels': modelC.text.toUpperCase(),
+                    'cost': (int.tryParse(costC.text) ?? 0) * 1000,
+                    'price': (int.tryParse(priceC.text) ?? 0) * 1000,
+                    'quantity': int.tryParse(qtyC.text) ?? 0,
+                    'updatedAt': DateTime.now().millisecondsSinceEpoch,
+                  };
+                  if (part == null) {
+                    await db.insertPart(data);
+                  } else {
+                    await (await db.database).update('repair_parts', data, where: 'id = ?', whereArgs: [part['id']]);
+                  }
+                  if (!mounted) return;
+                  Navigator.of(context).pop();
+                  _refreshParts();
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
                 } : null,
                 child: const Text("XÁC NHẬN")),
             ],
@@ -129,7 +163,10 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
         backgroundColor: _primaryColor,
         foregroundColor: Colors.white,
         elevation: 2,
+<<<<<<< HEAD
         automaticallyImplyLeading: true,
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
       ),
       body: _isLoading
         ? Center(child: CircularProgressIndicator(color: _primaryColor))

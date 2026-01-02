@@ -51,7 +51,10 @@ class _PrinterSettingViewState extends State<PrinterSettingView> {
       appBar: AppBar(
         title: const Text("CẤU HÌNH MÁY IN", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
         backgroundColor: Colors.white, elevation: 0,
+<<<<<<< HEAD
         automaticallyImplyLeading: true,
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),

@@ -96,7 +96,10 @@ class _ThermalPrinterDesignViewState extends State<ThermalPrinterDesignView> wit
       backgroundColor: const Color(0xFFF0F4F8),
       appBar: AppBar(
         title: const Text("CẤU HÌNH IN SIÊU CẤP", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+<<<<<<< HEAD
         automaticallyImplyLeading: true,
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,

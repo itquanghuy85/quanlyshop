@@ -1,6 +1,11 @@
 {
+<<<<<<< HEAD
     "name": "quanlyshop",
     "short_name": "quanlyshop",
+=======
+    "name": "shop_new",
+    "short_name": "shop_new",
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

@@ -5,7 +5,10 @@ import '../data/db_helper.dart';
 import '../models/sale_order_model.dart';
 import 'sale_detail_view.dart';
 import 'create_sale_view.dart';
+<<<<<<< HEAD
 import 'global_search_view.dart';
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 
 class SaleListView extends StatefulWidget {
   final bool todayOnly;
@@ -53,22 +56,29 @@ class _SaleListViewState extends State<SaleListView> {
     return Scaffold(
       backgroundColor: const Color(0xFFF0F4F8),
       appBar: AppBar(
+<<<<<<< HEAD
         title: Tooltip(
           message: "Xem, tìm kiếm và theo dõi tất cả đơn bán hàng.",
           child: Text(widget.todayOnly ? "DOANH SỐ HÔM NAY" : "QUẢN LÝ ĐƠN BÁN HÀNG", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
         ),
         automaticallyImplyLeading: true,
+=======
+        title: Text(widget.todayOnly ? "DOANH SỐ HÔM NAY" : "QUẢN LÝ ĐƠN BÁN HÀNG", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
         actions: [
           IconButton(
             onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateSaleView())).then((_) => _refresh()),
             icon: const Icon(Icons.add_shopping_cart, color: Colors.green),
             tooltip: "Tạo đơn bán hàng mới",
           ),
+<<<<<<< HEAD
           IconButton(
             onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GlobalSearchView(role: 'user'))),
             icon: const Icon(Icons.search, color: Color(0xFF9C27B0)),
             tooltip: 'Tìm kiếm toàn app',
           ),
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
           IconButton(onPressed: _refresh, icon: const Icon(Icons.refresh, color: Colors.blue)),
         ],
         bottom: PreferredSize(

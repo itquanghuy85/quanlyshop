@@ -11,8 +11,11 @@ import '../services/storage_service.dart';
 import '../services/unified_printer_service.dart';
 import '../utils/money_utils.dart';
 import '../widgets/validated_text_field.dart';
+<<<<<<< HEAD
 import '../models/repair_partner_model.dart';
 import '../services/repair_partner_service.dart';
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 
 class CreateRepairOrderView extends StatefulWidget {
   final String role;
@@ -47,6 +50,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
   final appearanceF = FocusNode();
   final accF = FocusNode();
 
+<<<<<<< HEAD
   // Partner selection
   bool _sendToPartner = false;
   RepairPartner? _selectedPartner;
@@ -58,6 +62,12 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
   final List<String> commonIssues = ["THAY PIN", "ÉP KÍNH", "THAY MÀN", "MẤT NGUỒN", "LOA/MIC", "SẠC", "PHẦN MỀM"];
   
   final List<String> quickAccs = [ "SIM", "ỐP LƯNG",  "KO PHỤ KIỆN"];
+=======
+  final List<String> brands = ["IPHONE", "SAMSUNG", "OPPO", "REDMI", "VIVO"];
+  final List<String> commonIssues = ["THAY PIN", "ÉP KÍNH", "THAY MÀN", "MẤT NGUỒN", "LOA/MIC", "SẠC", "PHẦN MỀM"];
+  
+  final List<String> quickAccs = ["SẠC", "CÁP", "SIM", "ỐP LƯNG", "THẺ NHỚ", "CƯỜNG LỰC", "KO PHỤ KIỆN"];
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   final Set<String> _selectedAccs = {};
 
   @override
@@ -66,6 +76,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
     phoneCtrl.addListener(() {
       if (phoneCtrl.text.length == 10) _smartFill();
     });
+<<<<<<< HEAD
     _loadPartners();
   }
 
@@ -79,6 +90,8 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
     } catch (e) {
       debugPrint('Error loading partners: $e');
     }
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   }
 
   void _smartFill() async {
@@ -102,6 +115,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
       NotificationService.showSnackBar("Vui lòng nhập SĐT và Model máy", color: Colors.red);
       return null;
     }
+<<<<<<< HEAD
     
     // Validate partner fields if outsourcing is selected
     if (_sendToPartner) {
@@ -114,6 +128,8 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
         return null;
       }
     }
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 
     setState(() { _saving = true; _uploadStatus = "Đang đồng bộ dữ liệu đám mây..."; });
     try {
@@ -144,6 +160,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
       );
 
       await db.upsertRepair(r);
+<<<<<<< HEAD
       debugPrint('CreateRepairOrderView: Saved repair to local DB with firestoreId: ${r.firestoreId}');
       final cloudDocId = await FirestoreService.addRepair(r);
       if (cloudDocId == null) throw Exception('Lỗi đồng bộ đám mây');
@@ -186,6 +203,12 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
         // Don't fail the repair creation if notification fails
       }
       
+=======
+      final cloudDocId = await FirestoreService.addRepair(r);
+      if (cloudDocId == null) throw Exception('Lỗi đồng bộ đám mây');
+      await db.logAction(userId: FirebaseAuth.instance.currentUser?.uid ?? "0", userName: r.createdBy ?? "NV", action: "NHẬP ĐƠN SỬA", type: "REPAIR", targetId: r.firestoreId, desc: "Đã nhập đơn sửa ${r.model} cho khách ${r.customerName}");
+      
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
       return r;
     } catch (e) {
       NotificationService.showSnackBar("Lỗi: $e", color: Colors.red);
@@ -220,7 +243,10 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
       backgroundColor: const Color(0xFFF8FAFF),
       appBar: AppBar(
         title: const Text("NHẬP ĐƠN SỬA CHỮA", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+<<<<<<< HEAD
         automaticallyImplyLeading: true,
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
         actions: [IconButton(onPressed: _saveAndPrint, icon: const Icon(Icons.print, color: Color(0xFF2962FF)))],
       ),
       body: _saving 
@@ -242,6 +268,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
                 _quick(commonIssues, issueCtrl, priceF),
                 _input(issueCtrl, "LỖI MÁY *", Icons.build, caps: true, f: issueF, next: priceF),
                 _input(priceCtrl, "GIÁ DỰ KIẾN (k)", Icons.monetization_on, type: TextInputType.number, f: priceF, next: passF, suffix: "k"),
+<<<<<<< HEAD
                 
                 const SizedBox(height: 15),
                 _sectionTitle("GỬI ĐỐI TÁC SỬA CHỮA"),
@@ -290,6 +317,8 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
                   _input(repairContentCtrl, "Nội dung sửa chữa", Icons.description, caps: true, maxLines: 2),
                 ],
                 
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
                 _input(passCtrl, "MẬT KHẨU MÀN HÌNH", Icons.lock, f: passF),
                 
                 const SizedBox(height: 15),
@@ -306,7 +335,11 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
                 ),
                 const SizedBox(height: 10),
                 _buildQuickAccs(),
+<<<<<<< HEAD
                 _input(accCtrl, "PHỤ KIỆN KHÁC", Icons.add_box_outlined, caps: true),
+=======
+                _input(accCtrl, "GÕ THÊM PHỤ KIỆN KHÁC", Icons.add_box_outlined, caps: true),
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 
                 const SizedBox(height: 20),
                 const Text("HÌNH ẢNH HIỆN TRẠNG", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.blueGrey)),
@@ -314,9 +347,15 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
                 _imageRow(),
                 const SizedBox(height: 40),
                 Row(children: [
+<<<<<<< HEAD
                   Expanded(child: OutlinedButton.icon(onPressed: _saving ? null : _onlySave, icon: const Icon(Icons.save_rounded), label: const Text("LƯU ĐƠN", style: TextStyle(fontWeight: FontWeight.bold)), style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))))),
                   const SizedBox(width: 12),
                   Expanded(flex: 2, child: ElevatedButton.icon(onPressed: _saving ? null : _saveAndPrint, icon: const Icon(Icons.print_rounded), label: Text("LƯU & IN", style: TextStyle(color: Theme.of(context).colorScheme.onPrimary, fontWeight: FontWeight.bold)), style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primary, elevation: 4, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)), padding: const EdgeInsets.symmetric(vertical: 16)))),
+=======
+                  Expanded(child: OutlinedButton.icon(onPressed: _saving ? null : _onlySave, icon: const Icon(Icons.save_rounded), label: const Text("CHỈ LƯU ĐƠN", style: TextStyle(fontWeight: FontWeight.bold)), style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))))),
+                  const SizedBox(width: 12),
+                  Expanded(flex: 2, child: ElevatedButton.icon(onPressed: _saving ? null : _saveAndPrint, icon: const Icon(Icons.print_rounded), label: const Text("LƯU & IN PHIẾU", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2962FF), elevation: 4, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)), padding: const EdgeInsets.symmetric(vertical: 16)))),
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
                 ]),
               ],
             ),
@@ -327,7 +366,11 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
   Widget _priorityChip(String label, VoidCallback onTap) {
     return Expanded(
       child: ActionChip(
+<<<<<<< HEAD
         label: Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onPrimary)),
+=======
+        label: Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white)),
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
         backgroundColor: Colors.orange.shade700,
         padding: const EdgeInsets.all(0),
         onPressed: () {
@@ -346,14 +389,22 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
         children: quickAccs.map((acc) {
           final isSelected = _selectedAccs.contains(acc);
           return FilterChip(
+<<<<<<< HEAD
             label: Text(acc, style: TextStyle(fontSize: 11, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal, color: isSelected ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).colorScheme.onSurface)),
+=======
+            label: Text(acc, style: TextStyle(fontSize: 11, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal, color: isSelected ? Colors.white : Colors.black87)),
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
             selected: isSelected,
             onSelected: (v) {
               HapticFeedback.lightImpact();
               setState(() { v ? _selectedAccs.add(acc) : _selectedAccs.remove(acc); });
             },
             selectedColor: const Color(0xFF2962FF),
+<<<<<<< HEAD
             checkmarkColor: Theme.of(context).colorScheme.onPrimary,
+=======
+            checkmarkColor: Colors.white,
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           );
         }).toList(),
@@ -363,8 +414,13 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
 
   Widget _sectionTitle(String title) => Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey, fontSize: 11)));
 
+<<<<<<< HEAD
   Widget _input(TextEditingController c, String l, IconData i, {bool caps = false, TextInputType type = TextInputType.text, FocusNode? f, FocusNode? next, String? suffix, int? maxLines}) {
     return Padding(padding: const EdgeInsets.only(bottom: 12), child: ValidatedTextField(controller: c, label: l.replaceAll(' *', ''), icon: i, keyboardType: type, uppercase: caps, required: l.contains('*'), maxLines: maxLines, onSubmitted: () { if (next != null) FocusScope.of(context).requestFocus(next); }));
+=======
+  Widget _input(TextEditingController c, String l, IconData i, {bool caps = false, TextInputType type = TextInputType.text, FocusNode? f, FocusNode? next, String? suffix}) {
+    return Padding(padding: const EdgeInsets.only(bottom: 12), child: ValidatedTextField(controller: c, label: l.replaceAll(' *', ''), icon: i, keyboardType: type, uppercase: caps, required: l.contains('*'), onSubmitted: () { if (next != null) FocusScope.of(context).requestFocus(next); }));
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   }
 
   Widget _quick(List<String> items, TextEditingController target, FocusNode? nextF) {

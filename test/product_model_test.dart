@@ -1,5 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
+<<<<<<< HEAD
 import 'package:quanlyshop/models/product_model.dart';
+=======
+import 'package:QuanLyShop/models/product_model.dart';
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 
 void main() {
   group('Product.fromMap', () {
@@ -21,6 +25,7 @@ void main() {
       expect(product.createdAt, 0);
     });
   });
+<<<<<<< HEAD
 
   group('Product model field', () {
     test('Product with model field', () {
@@ -73,4 +78,6 @@ void main() {
       expect(product.imei, '12345');
     });
   });
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 }

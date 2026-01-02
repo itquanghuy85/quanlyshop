@@ -26,9 +26,13 @@ class _ChatViewState extends State<ChatView> {
   @override
   void initState() {
     super.initState();
+<<<<<<< HEAD
     _loadShop().then((_) {
       UserService.markChatAsRead(FirebaseAuth.instance.currentUser!.uid);
     });
+=======
+    _loadShop();
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   }
 
   Future<void> _loadShop() async {
@@ -57,6 +61,7 @@ class _ChatViewState extends State<ChatView> {
     _msgCtrl.clear();
   }
 
+<<<<<<< HEAD
   Future<void> _pinRepairOrder() async {
     if (_shopId == null) return;
 
@@ -140,6 +145,8 @@ class _ChatViewState extends State<ChatView> {
     );
   }
 
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   Widget _bubble(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data();
     final userId = FirebaseAuth.instance.currentUser?.uid;
@@ -243,7 +250,11 @@ class _ChatViewState extends State<ChatView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+<<<<<<< HEAD
       appBar: AppBar(title: const Text('Chat nội bộ'), automaticallyImplyLeading: true),
+=======
+      appBar: AppBar(title: const Text('Chat nội bộ')),
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
       body: Column(
         children: [
           if (_loadingShop)
@@ -286,6 +297,7 @@ class _ChatViewState extends State<ChatView> {
                   ),
                   const SizedBox(width: 8),
                   CircleAvatar(
+<<<<<<< HEAD
                     backgroundColor: Colors.orangeAccent,
                     child: IconButton(
                       icon: const Icon(Icons.build, color: Colors.white),
@@ -295,6 +307,8 @@ class _ChatViewState extends State<ChatView> {
                   ),
                   const SizedBox(width: 8),
                   CircleAvatar(
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
                     backgroundColor: Colors.blueAccent,
                     child: IconButton(
                       icon: const Icon(Icons.send, color: Colors.white),

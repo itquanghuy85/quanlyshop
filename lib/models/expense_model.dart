@@ -40,7 +40,11 @@ class Expense {
       id: map['id'],
       firestoreId: map['firestoreId'],
       title: map['title'],
+<<<<<<< HEAD
       amount: map['amount'] is int ? (map['amount'] < 0 ? 0 : map['amount']) : 0,
+=======
+      amount: map['amount'],
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
       category: map['category'],
       date: map['date'],
       note: map['note'],

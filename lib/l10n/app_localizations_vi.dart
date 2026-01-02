@@ -399,7 +399,11 @@ class AppLocalizationsVi extends AppLocalizations {
   String get version => 'Phiên bản';
 
   @override
+<<<<<<< HEAD
   String get versionNumber => '2.1.0';
+=======
+  String get versionNumber => '1.0.0+1';
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 
   @override
   String get contactSupport => 'Liên hệ hỗ trợ';
@@ -669,6 +673,15 @@ class AppLocalizationsVi extends AppLocalizations {
   String get costPrice => 'Giá vốn';
 
   @override
+<<<<<<< HEAD
+=======
+  String get kpkPrice => 'Giá KPK';
+
+  @override
+  String get pkPrice => 'Giá PK';
+
+  @override
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   String get capacity => 'Dung lượng (ví dụ: 64GB, 128GB)';
 
   @override

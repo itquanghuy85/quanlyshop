@@ -13,7 +13,11 @@ class SKUGenerator {
     FirestoreService? firestoreService,
   }) async {
     // 1. Validate đầu vào
+<<<<<<< HEAD
     if (!['IP', 'SS', 'OP', 'RD', 'PIN', 'MH', 'PK'].contains(nhom.toUpperCase())) {
+=======
+    if (!['IP', 'SS', 'PIN', 'MH', 'PK'].contains(nhom.toUpperCase())) {
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
       throw ArgumentError('NHOM không hợp lệ');
     }
 

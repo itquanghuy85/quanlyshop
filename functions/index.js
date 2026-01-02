@@ -31,6 +31,7 @@ exports.notifyNewRepair = onDocumentCreated("repairs/{repairId}", async (event) 
   }
 });
 
+<<<<<<< HEAD
 // 🔔 Thông báo khi CÓ TIN NHẮN CHAT MỚI
 exports.notifyNewChat = onDocumentCreated("chats/{chatId}", async (event) => {
   const data = event.data?.data();
@@ -99,6 +100,8 @@ exports.notifyNewChat = onDocumentCreated("chats/{chatId}", async (event) => {
   }
 });
 
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 // 🔔 Thông báo khi ĐỔI TRẠNG THÁI (đã sửa / đã giao)
 exports.notifyStatusChange = onDocumentUpdated("repairs/{repairId}", async (event) => {
   const before = event.data?.before.data();
@@ -258,6 +261,7 @@ exports.cleanupDeletedRepairs = onSchedule("every 24 hours", async (event) => {
         console.error(`Failed to delete repair ${doc.id}:`, e);
       }
     }
+<<<<<<< HEAD
   } catch (error) {
     console.error('Error in cleanupDeletedRepairs:', error);
   }
@@ -499,5 +503,9 @@ exports.cleanupFCMTokens = onSchedule("every 7 days", async (event) => {
 
   } catch (error) {
     console.error('Error in FCM token cleanup:', error);
+=======
+  } catch (e) {
+    console.error('Cleanup job failed:', e);
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   }
 });

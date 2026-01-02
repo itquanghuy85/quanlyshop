@@ -22,7 +22,10 @@ class _AttendanceViewState extends State<AttendanceView> with TickerProviderStat
   Attendance? _today;
   String _role = 'employee'; 
   late TabController _tabController;
+<<<<<<< HEAD
   bool _hasPermission = false;
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 
   Map<String, dynamic> _workSchedule = {};
   List<Attendance> _history = [];
@@ -47,12 +50,17 @@ class _AttendanceViewState extends State<AttendanceView> with TickerProviderStat
     int tabCount = (r == 'owner' || r == 'manager') ? 3 : 2;
     _tabController = TabController(length: tabCount, vsync: this);
 
+<<<<<<< HEAD
     final perms = await UserService.getCurrentUserPermissions();
     if (!mounted) return;
     setState(() { 
       _role = r; 
       _hasPermission = perms['allowViewAttendance'] ?? false;
     });
+=======
+    if (!mounted) return;
+    setState(() { _role = r; });
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
     _refreshAttendanceData();
   }
 
@@ -103,6 +111,7 @@ class _AttendanceViewState extends State<AttendanceView> with TickerProviderStat
       String startStr = _workSchedule['startTime'] ?? '08:00';
       String endStr = _workSchedule['endTime'] ?? '17:00';
       
+<<<<<<< HEAD
       final startHour = int.tryParse(startStr.split(':')[0]) ?? 8;
       final startMinute = int.tryParse(startStr.split(':')[1]) ?? 0;
       final endHour = int.tryParse(endStr.split(':')[0]) ?? 17;
@@ -110,6 +119,10 @@ class _AttendanceViewState extends State<AttendanceView> with TickerProviderStat
       
       final startTime = DateTime(now.year, now.month, now.day, startHour, startMinute);
       final endTime = DateTime(now.year, now.month, now.day, endHour, endMinute);
+=======
+      final startTime = DateTime(now.year, now.month, now.day, int.parse(startStr.split(':')[0]), int.parse(startStr.split(':')[1]));
+      final endTime = DateTime(now.year, now.month, now.day, int.parse(endStr.split(':')[0]), int.parse(endStr.split(':')[1]));
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 
       if (isIn && now.isAfter(startTime.add(const Duration(minutes: 15)))) isLate = true;
       if (!isIn && now.isBefore(endTime)) isEarly = true;
@@ -134,6 +147,7 @@ class _AttendanceViewState extends State<AttendanceView> with TickerProviderStat
       await db.upsertAttendance(attendance);
       await _refreshAttendanceData();
 
+<<<<<<< HEAD
       // Send attendance notification
       try {
         await NotificationService.notifyStaffAttendance(
@@ -146,6 +160,8 @@ class _AttendanceViewState extends State<AttendanceView> with TickerProviderStat
         debugPrint('Attendance notification failed: $e');
       }
 
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
       NotificationService.showSnackBar(isIn ? "CHECK-IN THÀNH CÔNG!" : "CHECK-OUT THÀNH CÔNG!", color: Colors.green);
     } catch (e) {
       NotificationService.showSnackBar("Lỗi: $e", color: Colors.red);
@@ -158,6 +174,7 @@ class _AttendanceViewState extends State<AttendanceView> with TickerProviderStat
   Widget build(BuildContext context) {
     if (_loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
 
+<<<<<<< HEAD
     if (!_hasPermission) {
       return Scaffold(
         appBar: AppBar(
@@ -172,11 +189,16 @@ class _AttendanceViewState extends State<AttendanceView> with TickerProviderStat
       );
     }
 
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFF),
       appBar: AppBar(
         title: const Text("CHẤM CÔNG NHÂN VIÊN", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+<<<<<<< HEAD
         automaticallyImplyLeading: true,
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
         bottom: TabBar(
           controller: _tabController,
           labelColor: const Color(0xFF2962FF),

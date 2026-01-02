@@ -115,8 +115,13 @@ class Repair {
       warranty: map['warranty'] ?? "Không bảo hành",
       partsUsed: map['partsUsed'] ?? "",
       status: map['status'] ?? 1,
+<<<<<<< HEAD
       price: map['price'] is int ? (map['price'] < 0 ? 0 : map['price']) : 0,
       cost: map['cost'] is int ? (map['cost'] < 0 ? 0 : map['cost']) : 0,
+=======
+      price: map['price'] ?? 0,
+      cost: map['cost'] ?? 0,
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
       paymentMethod: map['paymentMethod'] ?? "TIỀN MẶT",
       createdAt: map['createdAt'] ?? 0,
       startedAt: map['startedAt'],

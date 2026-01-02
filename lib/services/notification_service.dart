@@ -2,17 +2,22 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+<<<<<<< HEAD
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
+=======
+import 'package:permission_handler/permission_handler.dart';
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 import 'user_service.dart';
 
 class NotificationService {
   static final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
   static final GlobalKey<ScaffoldMessengerState> messengerKey = GlobalKey<ScaffoldMessengerState>();
   static final _db = FirebaseFirestore.instance;
+<<<<<<< HEAD
   static final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
   static final DateTime _appStartTime = DateTime.now().subtract(const Duration(minutes: 1));
 
@@ -361,6 +366,29 @@ class NotificationService {
       default:
         return 'system_channel';
     }
+=======
+  static final DateTime _appStartTime = DateTime.now().subtract(const Duration(minutes: 1)); // Lùi 1 phút để tránh sót tin
+
+  static Future<void> init() async {
+    if (await Permission.notification.isDenied) {
+      await Permission.notification.request();
+    }
+
+    const AndroidInitializationSettings androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const InitializationSettings initSettings = InitializationSettings(android: androidInit);
+    
+    await _localNotifications.initialize(initSettings);
+
+    const AndroidNotificationChannel channel = AndroidNotificationChannel(
+      'shop_channel', 'Thông báo cửa hàng',
+      description: 'Thông báo về đơn hàng và tin nhắn mới',
+      importance: Importance.max,
+    );
+
+    await _localNotifications
+        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(channel);
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   }
 
   // MẠCH LẮNG NGHE GIA CỐ (KHÓA CHẶT SHOP ID)
@@ -376,6 +404,7 @@ class NotificationService {
         .where('shopId', isEqualTo: shopId)
         .where('createdAt', isGreaterThan: Timestamp.fromDate(_appStartTime))
         .snapshots().listen((snapshot) {
+<<<<<<< HEAD
           debugPrint('Received ${snapshot.docChanges.length} notification changes');
           for (var change in snapshot.docChanges) {
             if (change.type == DocumentChangeType.added) {
@@ -397,6 +426,16 @@ class NotificationService {
                 });
               } else {
                 debugPrint('Skipping notification from self');
+=======
+          for (var change in snapshot.docChanges) {
+            if (change.type == DocumentChangeType.added) {
+              final data = change.doc.data() as Map<String, dynamic>;
+              if (data['senderId'] != user.uid) {
+                String title = data['title'] ?? "THÔNG BÁO MỚI";
+                String body = data['body'] ?? "";
+                _showLocalNotification(title, body);
+                onMessageReceived(title, body);
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
               }
             }
           }
@@ -404,6 +443,7 @@ class NotificationService {
     });
   }
 
+<<<<<<< HEAD
   static Future<void> sendCloudNotification({
     required String title,
     required String body,
@@ -418,10 +458,15 @@ class NotificationService {
         return;
       }
 
+=======
+  static Future<void> sendCloudNotification({required String title, required String body}) async {
+    try {
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
       final user = FirebaseAuth.instance.currentUser;
       final shopId = await UserService.getCurrentShopId();
       if (shopId == null) return;
 
+<<<<<<< HEAD
       final notificationData = {
         'shopId': shopId,
         'title': title,
@@ -439,11 +484,22 @@ class NotificationService {
 
       // Send FCM push notification
       await _sendFCMNotification(notificationData);
+=======
+      await _db.collection('shop_notifications').add({
+        'shopId': shopId,
+        'title': title,
+        'body': body,
+        'senderId': user?.uid,
+        'senderName': user?.email?.split('@').first.toUpperCase() ?? "NV",
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
     } catch (e) {
       debugPrint("LỖI GỬI: $e");
     }
   }
 
+<<<<<<< HEAD
   static Future<void> _sendFCMNotification(Map<String, dynamic> notificationData) async {
     const int maxRetries = 3;
     int retryCount = 0;
@@ -875,6 +931,19 @@ class NotificationService {
     } catch (e) {
       debugPrint('Error cleaning up dead tokens: $e');
     }
+=======
+  static Future<void> _showLocalNotification(String title, String body) async {
+    final int id = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+      'shop_channel', 'Thông báo cửa hàng',
+      channelDescription: 'Thông báo về đơn hàng và tin nhắn mới',
+      importance: Importance.max,
+      priority: Priority.high,
+      showWhen: true,
+      icon: '@mipmap/ic_launcher',
+    );
+    await _localNotifications.show(id, title, body, const NotificationDetails(android: androidDetails));
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   }
 
   static void showSnackBar(String message, {Color color = Colors.blueAccent}) {

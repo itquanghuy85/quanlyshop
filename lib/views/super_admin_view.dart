@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/user_service.dart';
 
+<<<<<<< HEAD
 String getRoleDisplayName(String role) {
   switch (role) {
     case 'owner':
@@ -21,6 +22,8 @@ String getRoleDisplayName(String role) {
   }
 }
 
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 class SuperAdminView extends StatelessWidget {
   const SuperAdminView({super.key});
 
@@ -267,7 +270,11 @@ class UsersTab extends StatelessWidget {
                     Text('Tên: $displayName', style: const TextStyle(fontSize: 12)),
                     Text('SĐT: $phone', style: const TextStyle(fontSize: 12)),
                     Text('Địa chỉ: $address', style: const TextStyle(fontSize: 12)),
+<<<<<<< HEAD
                     Text('Vai trò: ${getRoleDisplayName(role)}', style: const TextStyle(fontSize: 12)),
+=======
+                    Text('Vai trò: $role', style: const TextStyle(fontSize: 12)),
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
                     Text('Shop ID: $shopId', style: const TextStyle(fontSize: 12, color: Colors.grey)),
                   ],
                 ),

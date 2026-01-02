@@ -4,8 +4,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../data/db_helper.dart';
 import '../services/user_service.dart';
 import '../services/firestore_service.dart';
+<<<<<<< HEAD
 import 'fast_stock_in_view.dart';
 import 'supplier_details_dialog.dart';
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 
 class SupplierView extends StatefulWidget {
   const SupplierView({super.key});
@@ -45,6 +48,7 @@ class _SupplierViewState extends State<SupplierView> {
   Future<void> _refresh() async {
     setState(() => _isLoading = true);
     final data = await db.getSuppliers();
+<<<<<<< HEAD
     
     // Load debt amount for each supplier
     for (var supplier in data) {
@@ -52,6 +56,8 @@ class _SupplierViewState extends State<SupplierView> {
       supplier['debtAmount'] = debtAmount;
     }
     
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
     setState(() {
       _suppliers = data;
       _isLoading = false;
@@ -155,7 +161,10 @@ class _SupplierViewState extends State<SupplierView> {
         backgroundColor: _primaryColor,
         foregroundColor: Colors.white,
         elevation: 2,
+<<<<<<< HEAD
         automaticallyImplyLeading: true,
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
       ),
       body: _isLoading
         ? Center(child: CircularProgressIndicator(color: _primaryColor))
@@ -188,6 +197,7 @@ class _SupplierViewState extends State<SupplierView> {
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
+<<<<<<< HEAD
                                   const Text("CÔNG NỢ:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                                   Text("${NumberFormat('#,###').format(s['debtAmount'] ?? 0)} đ", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.red)),
                                 ],
@@ -256,6 +266,25 @@ class _SupplierViewState extends State<SupplierView> {
                                 ],
                               ],
                             ),
+=======
+                                  const Text("TỔNG TIỀN NHẬP:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                                  Text("${NumberFormat('#,###').format(s['totalAmount'])} đ", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.red)),
+                                ],
+                              ),
+                            ),
+                            if (_isAdmin)
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: TextButton.icon(
+                                  onPressed: () => _confirmDeleteSupplier(s),
+                                  icon: const Icon(Icons.delete_outline, size: 18, color: Colors.redAccent),
+                                  label: const Text(
+                                    "XÓA NHÀ CUNG CẤP",
+                                    style: TextStyle(color: Colors.redAccent, fontSize: 12),
+                                  ),
+                                ),
+                              ),
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
                           ],
                         ),
                       )
@@ -274,6 +303,7 @@ class _SupplierViewState extends State<SupplierView> {
 
   Widget _input(TextEditingController ctrl, String hint, bool caps, [TextInputType type = TextInputType.text]) => TextField(controller: ctrl, keyboardType: type, textCapitalization: caps ? TextCapitalization.characters : TextCapitalization.none, decoration: InputDecoration(hintText: hint, border: const OutlineInputBorder()));
 
+<<<<<<< HEAD
   void _showSupplierDetails(Map<String, dynamic> supplier) {
     showDialog(
       context: context,
@@ -281,6 +311,8 @@ class _SupplierViewState extends State<SupplierView> {
     );
   }
 
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   Widget _infoRowSimple(String label, String? val) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),

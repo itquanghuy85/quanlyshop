@@ -253,6 +253,11 @@
   "productName": "PRODUCT NAME",
   "imeiNumber": "IMEI NUMBER (IF ANY)",
   "costPrice": "COST PRICE",
+<<<<<<< HEAD
+=======
+  "kpkPrice": "KPK PRICE",
+  "pkPrice": "PK PRICE",
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   "capacity": "CAPACITY (e.g. 64GB, 128GB)",
   "quantity": "QUANTITY",
   "supplierRequired": "SUPPLIER (REQUIRED)",

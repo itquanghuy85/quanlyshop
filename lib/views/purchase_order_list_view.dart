@@ -110,7 +110,10 @@ class _PurchaseOrderListViewState extends State<PurchaseOrderListView> {
             Text("NCC: ${order.supplierName}"),
             Text("Người tạo: ${order.createdBy} - ${DateFormat('dd/MM/yyyy HH:mm').format(DateTime.fromMillisecondsSinceEpoch(order.createdAt))}"),
             Text("${order.totalAmount} sản phẩm - ${NumberFormat('#,###').format(order.totalCost)}đ"),
+<<<<<<< HEAD
             if (order.paymentMethod != null) Text("Thanh toán: ${order.paymentMethod}"),
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
           ],
         ),
         trailing: _buildStatusChip(order.status),

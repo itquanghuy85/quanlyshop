@@ -5,7 +5,11 @@ import 'package:flutter/foundation.dart';
 import '../services/user_service.dart';
 import 'sync_service.dart';
 
+<<<<<<< HEAD
 class ConnectivityService extends ChangeNotifier {
+=======
+class ConnectivityService {
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   static final ConnectivityService _instance = ConnectivityService._internal();
   static ConnectivityService get instance => _instance;
 
@@ -67,7 +71,10 @@ class ConnectivityService extends ChangeNotifier {
 
     if (wasOnline != _isOnline) {
       debugPrint('Online status changed: $_isOnline');
+<<<<<<< HEAD
       notifyListeners();
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
     }
   }
 

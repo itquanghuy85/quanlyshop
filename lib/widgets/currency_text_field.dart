@@ -57,7 +57,11 @@ class _CurrencyTextFieldState extends State<CurrencyTextField> {
       int baseAmount = int.tryParse(digitsOnly) ?? 0;
       if (baseAmount > 0) {
         int actualAmount = baseAmount * 1000;
+<<<<<<< HEAD
         String formatted = _formatNumber(baseAmount) + '.000';
+=======
+        String formatted = _formatNumber(baseAmount);
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
         widget.controller.value = TextEditingValue(
           text: formatted,
           selection: TextSelection.collapsed(offset: formatted.length),
@@ -100,16 +104,28 @@ class _CurrencyTextFieldState extends State<CurrencyTextField> {
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           decoration: InputDecoration(
             labelText: widget.required ? '${widget.label} *' : widget.label,
+<<<<<<< HEAD
             hintText: widget.hint ?? 'Nhập số nghìn (VD: 100 = 100.000 VNĐ)',
             prefixIcon: widget.icon != null ? Icon(widget.icon) : null,
             suffixText: 'VNĐ',
+=======
+            hintText: widget.hint ?? 'Nhập số tiền',
+            prefixIcon: widget.icon != null ? Icon(widget.icon) : null,
+            suffixText: 'x1k',
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
             suffixStyle: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold, fontSize: 12),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             errorText: _errorText,
             filled: true,
+<<<<<<< HEAD
             fillColor: widget.enabled ? Theme.of(context).colorScheme.surface : Theme.of(context).colorScheme.surfaceVariant,
           ),
           style: TextStyle(fontSize: 16, color: widget.enabled ? Theme.of(context).colorScheme.onSurface : Theme.of(context).colorScheme.onSurfaceVariant, fontWeight: FontWeight.w500),
+=======
+            fillColor: widget.enabled ? Colors.white : Colors.grey.shade100,
+          ),
+          style: TextStyle(fontSize: 16, color: widget.enabled ? Colors.black87 : Colors.grey, fontWeight: FontWeight.w500),
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
         ),
       ],
     );
@@ -237,9 +253,15 @@ class _EnhancedCurrencyInputState extends State<EnhancedCurrencyInput> {
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             errorText: _errorText,
             filled: true,
+<<<<<<< HEAD
             fillColor: widget.enabled ? Theme.of(context).colorScheme.surface : Theme.of(context).colorScheme.surfaceVariant,
           ),
           style: TextStyle(fontSize: 16, color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.w500),
+=======
+            fillColor: widget.enabled ? Colors.white : Colors.grey.shade100,
+          ),
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
         ),
         if (_showQuickAmounts) ...[
           const SizedBox(height: 8),
@@ -255,6 +277,7 @@ class _EnhancedCurrencyInputState extends State<EnhancedCurrencyInput> {
     );
   }
 }
+<<<<<<< HEAD
 
 // WIDGET MỚI CHO QUY TẮC NHẬP TIỀN THEO ĐƠN VỊ NGHÌN ĐỒNG
 class ThousandCurrencyTextField extends StatefulWidget {
@@ -365,3 +388,5 @@ class _ThousandCurrencyTextFieldState extends State<ThousandCurrencyTextField> {
     );
   }
 }
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6

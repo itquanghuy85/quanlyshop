@@ -26,7 +26,10 @@ class _PayrollViewState extends State<PayrollView> {
   final TextEditingController _customStaff = TextEditingController();
   String _role = 'user';
   bool _monthLocked = false;
+<<<<<<< HEAD
   bool _hasPermission = false;
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 
   Map<String, double> _basePerDay = {}; // staff -> base per day
   Map<String, double> _hoursPerDay = {}; // staff -> expected hours
@@ -35,19 +38,25 @@ class _PayrollViewState extends State<PayrollView> {
   @override
   void initState() {
     super.initState();
+<<<<<<< HEAD
     _checkPermission();
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
     _loadRole();
     _load();
     _loadPrefs();
     _refreshLockState();
   }
 
+<<<<<<< HEAD
   Future<void> _checkPermission() async {
     final perms = await UserService.getCurrentUserPermissions();
     if (!mounted) return;
     setState(() => _hasPermission = perms['allowViewAttendance'] ?? false);
   }
 
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   @override
   void dispose() {
     _customStaff.dispose();
@@ -112,11 +121,16 @@ class _PayrollViewState extends State<PayrollView> {
   Map<String, dynamic> _calc() {
     final staffKey = (_selectedStaff ?? _customStaff.text).trim().toUpperCase();
     final base = _getBase(staffKey);
+<<<<<<< HEAD
+=======
+    final hoursStd = _getHours(staffKey);
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
     final otRate = _getOt(staffKey);
 
     double totalHours = 0;
     double otHours = 0;
     int days = 0;
+<<<<<<< HEAD
     double hoursStd = 8.0; // default
 
     // Get work schedule from first attendance record of this staff
@@ -142,6 +156,8 @@ class _PayrollViewState extends State<PayrollView> {
         }
       }
     }
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 
     for (final a in _filteredAtt) {
       final inMs = a.checkInAt;
@@ -200,6 +216,10 @@ class _PayrollViewState extends State<PayrollView> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) {
           baseCtrl.addListener(() => setS(() {}));
+<<<<<<< HEAD
+=======
+          hourCtrl.addListener(() => setS(() {}));
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
           otCtrl.addListener(() => setS(() {}));
           return AlertDialog(
             title: Text('Cài công thức: $staff'),
@@ -207,7 +227,11 @@ class _PayrollViewState extends State<PayrollView> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 ValidatedTextField(controller: baseCtrl, label: 'Lương ngày (đ)', icon: Icons.attach_money, keyboardType: TextInputType.number, required: true),
+<<<<<<< HEAD
                 Text('Giờ chuẩn/ngày: ${_getHours(staff).toStringAsFixed(1)} (từ lịch làm việc)', style: TextStyle(color: Colors.grey)),
+=======
+                ValidatedTextField(controller: hourCtrl, label: 'Giờ chuẩn/ngày', icon: Icons.schedule, keyboardType: TextInputType.number, required: true), 
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
                 ValidatedTextField(controller: otCtrl, label: 'Hệ số OT (%)', icon: Icons.trending_up, keyboardType: TextInputType.number, required: true), 
               ],
             ),
@@ -227,7 +251,11 @@ class _PayrollViewState extends State<PayrollView> {
       final prefs = await SharedPreferences.getInstance();
       setState(() {
         _basePerDay[staff] = double.tryParse(baseCtrl.text) ?? 0;
+<<<<<<< HEAD
         // _hoursPerDay[staff] = double.tryParse(hourCtrl.text) ?? 8; // Now calculated from workSchedule
+=======
+        _hoursPerDay[staff] = double.tryParse(hourCtrl.text) ?? 8;
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
         _otRate[staff] = double.tryParse(otCtrl.text) ?? 150;
       });
       await prefs.setString('payroll_base', jsonEncode(_basePerDay));
@@ -295,6 +323,7 @@ class _PayrollViewState extends State<PayrollView> {
 
   @override
   Widget build(BuildContext context) {
+<<<<<<< HEAD
     if (!_hasPermission) {
       return Scaffold(
         appBar: AppBar(title: const Text('BẢNG LƯƠNG')),
@@ -310,6 +339,11 @@ class _PayrollViewState extends State<PayrollView> {
     final summary = _calc();
     return Scaffold(
       appBar: AppBar(title: const Text('BẢNG LƯƠNG'), automaticallyImplyLeading: true),
+=======
+    final summary = _calc();
+    return Scaffold(
+      appBar: AppBar(title: const Text('BẢNG LƯƠNG')),
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : Column(

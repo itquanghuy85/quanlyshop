@@ -112,8 +112,13 @@ class _StaffListViewState extends State<StaffListView> {
       
       if (query.docs.isNotEmpty) {
         final inviteData = query.docs.first.data();
+<<<<<<< HEAD
         final expiresAt = DateTime.tryParse(inviteData['expiresAt']);
         if (expiresAt != null && expiresAt.isAfter(DateTime.now())) {
+=======
+        final expiresAt = DateTime.parse(inviteData['expiresAt']);
+        if (expiresAt.isAfter(DateTime.now())) {
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
           setState(() => _currentInviteCode = query.docs.first.id);
         }
       }
@@ -775,7 +780,10 @@ class _StaffListViewState extends State<StaffListView> {
       return Scaffold(
         appBar: AppBar(
           title: const Text("QUẢN LÝ NHÂN VIÊN"),
+<<<<<<< HEAD
           automaticallyImplyLeading: true,
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
         ),
         body: const Center(
           child: Column(
@@ -805,7 +813,10 @@ class _StaffListViewState extends State<StaffListView> {
               Text("Role: $_currentRole", style: const TextStyle(fontSize: 10, color: Colors.white70)),
           ],
         ),
+<<<<<<< HEAD
         automaticallyImplyLeading: true,
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
         actions: [
           if (_currentRole == 'owner')
             IconButton(
@@ -897,6 +908,7 @@ class _StaffListViewState extends State<StaffListView> {
                           children: [
                             Text(email, style: const TextStyle(fontSize: 11, color: Colors.grey)),
                             Text("SĐT: $phone", style: const TextStyle(fontSize: 11, color: Colors.grey)),
+<<<<<<< HEAD
                             role == 'admin' 
                               ? Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -907,6 +919,9 @@ class _StaffListViewState extends State<StaffListView> {
                                   child: Text("Vai trò: Admin", style: const TextStyle(fontSize: 11, color: Colors.yellow, fontWeight: FontWeight.bold)),
                                 )
                               : Text("Vai trò: ${role == 'owner' ? 'Chủ shop' : role == 'manager' ? 'Quản lý' : role == 'employee' ? 'Nhân viên' : role == 'technician' ? 'Kỹ thuật' : role == 'admin' ? 'Admin' : role == 'user' ? 'Người dùng' : role}", style: const TextStyle(fontSize: 11, color: Colors.grey)),
+=======
+                            Text("Vai trò: ${role == 'owner' ? 'Chủ shop' : role == 'manager' ? 'Quản lý' : role == 'employee' ? 'Nhân viên' : role == 'technician' ? 'Kỹ thuật' : role == 'admin' ? 'Admin' : role}", style: const TextStyle(fontSize: 11, color: Colors.grey)),
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
                             if (shopId != null)
                               FutureBuilder<DocumentSnapshot>(
                                 future: FirebaseFirestore.instance.collection('shops').doc(shopId).get(),
@@ -1006,6 +1021,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter> with SingleT
   @override
   void initState() {
     super.initState();
+<<<<<<< HEAD
     try {
       _tabController = TabController(length: 4, vsync: this);
       
@@ -1082,12 +1098,52 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter> with SingleT
         _loadingShop = false;
       });
     }
+=======
+    _tabController = TabController(length: 4, vsync: this);
+    
+    // Gán dữ liệu ban đầu
+    nameCtrl.text = widget.fullData['displayName'] ?? widget.name;
+    phoneCtrl.text = widget.fullData['phone'] ?? "";
+    addressCtrl.text = widget.fullData['address'] ?? "";
+    _photoPath = widget.fullData['photoUrl'];
+    _selectedRole = widget.role;
+    _staffShopId = widget.fullData['shopId'];
+
+    // Quyền xem nội dung (mặc định: chỉ quản lý thấy toàn bộ tài chính)
+    _canViewSales = widget.fullData['allowViewSales'] == true;
+    _canViewRepairs = widget.fullData['allowViewRepairs'] == true;
+    _canViewInventory = widget.fullData['allowViewInventory'] == true;
+    _canViewParts = widget.fullData['allowViewParts'] == true;
+    _canViewSuppliers = widget.fullData['allowViewSuppliers'] == true;
+    _canViewCustomers = widget.fullData['allowViewCustomers'] == true;
+    _canViewWarranty = widget.fullData['allowViewWarranty'] == true;
+    _canViewChat = widget.fullData['allowViewChat'] == true;
+    _canViewAttendance = widget.fullData['allowViewAttendance'] == true;
+    _canViewPrinter = widget.fullData['allowViewPrinter'] == true;
+    _canViewRevenue = widget.fullData['allowViewRevenue'] == true;
+    _canViewExpenses = widget.fullData['allowViewExpenses'] == true;
+    _canViewDebts = widget.fullData['allowViewDebts'] == true;
+
+    _loadCurrentShop();
+    _loadAllStaffData();
+    _loadWorkSchedule();
+  }
+
+  Future<void> _loadCurrentShop() async {
+    final id = await UserService.getCurrentShopId();
+    if (!mounted) return;
+    setState(() {
+      _currentUserShopId = id;
+      _loadingShop = false;
+    });
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   }
 
   Future<void> _loadAllStaffData() async {
     try {
       final allR = await db.getAllRepairs();
       final allS = await db.getAllSales();
+<<<<<<< HEAD
       if (!mounted) return;
       setState(() {
         _repairsReceived = allR.where((r) => r.createdBy?.toUpperCase() == widget.name.toUpperCase()).toList();
@@ -1097,6 +1153,15 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter> with SingleT
     } catch (e) {
       debugPrint('Error loading staff data: $e');
       if (!mounted) return;
+=======
+      setState(() {
+        _repairsReceived = allR.where((r) => r.createdBy?.toUpperCase() == widget.name).toList();
+        _repairsDelivered = allR.where((r) => r.deliveredBy?.toUpperCase() == widget.name).toList();
+        _sales = allS.where((s) => s.sellerName.toUpperCase() == widget.name).toList();
+      });
+    } catch (e) {
+      // Ignore errors when loading staff data
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
       setState(() {
         _repairsReceived = [];
         _repairsDelivered = [];
@@ -1111,8 +1176,12 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter> with SingleT
       if (!mounted) return;
       setState(() => _workSchedule = schedule);
     } catch (e) {
+<<<<<<< HEAD
       debugPrint('Error loading work schedule: $e');
       if (!mounted) return;
+=======
+      // Ignore errors when loading work schedule
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
       setState(() => _workSchedule = null);
     }
   }
@@ -1224,17 +1293,28 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter> with SingleT
         allowViewChat: _canViewChat,
         allowViewAttendance: _canViewAttendance,
         allowViewPrinter: _canViewPrinter,
+<<<<<<< HEAD
         allowViewRevenue: _canViewRevenue,
         allowViewExpenses: _canViewExpenses,
         allowViewDebts: _canViewDebts,
       );
 
       if (!mounted) return;
+=======
+        allowViewRevenue: _selectedRole == 'owner' || _selectedRole == 'manager' ? true : _canViewRevenue,
+        allowViewExpenses: _selectedRole == 'owner' || _selectedRole == 'manager' ? true : _canViewExpenses,
+        allowViewDebts: _selectedRole == 'owner' || _selectedRole == 'manager' ? true : _canViewDebts,
+      );
+
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
       setState(() => _isEditing = false);
       messenger.showSnackBar(const SnackBar(content: Text("ĐÃ CẬP NHẬT HỒ SƠ NHÂN VIÊN!")));
     } catch (e) {
       print('Error saving staff info: $e');
+<<<<<<< HEAD
       if (!mounted) return;
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
       messenger.showSnackBar(SnackBar(content: Text("Lỗi khi cập nhật: $e")));
     }
   }
@@ -1248,13 +1328,19 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter> with SingleT
     setState(() => _assigningShop = true);
     try {
       await UserService.assignUserToCurrentShop(widget.uid);
+<<<<<<< HEAD
       if (!mounted) return;
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
       setState(() {
         _staffShopId = _currentUserShopId;
       });
       messenger.showSnackBar(const SnackBar(content: Text("ĐÃ GÁN NHÂN VIÊN VÀO CỬA HÀNG CỦA BẠN")));
     } catch (e) {
+<<<<<<< HEAD
       if (!mounted) return;
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
       messenger.showSnackBar(SnackBar(content: Text("Lỗi khi gán cửa hàng: $e")));
     } finally {
       if (mounted) setState(() => _assigningShop = false);
@@ -1334,12 +1420,16 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter> with SingleT
                               DropdownMenuItem(value: 'employee', child: Text("NHÂN VIÊN")),
                               DropdownMenuItem(value: 'technician', child: Text("KỸ THUẬT")),
                             ],
+<<<<<<< HEAD
                             onChanged: (v) {
                               setState(() {
                                 _selectedRole = v!;
                                 _syncPermissionsWithRole();
                               });
                             },
+=======
+                            onChanged: (v) => setState(() => _selectedRole = v!),
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
                           ),
                         ],
                       ),
@@ -1699,6 +1789,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter> with SingleT
       ),
     );
   }
+<<<<<<< HEAD
 
   @override
   void dispose() {
@@ -1708,4 +1799,6 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter> with SingleT
     addressCtrl.dispose();
     super.dispose();
   }
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 }

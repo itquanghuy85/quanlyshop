@@ -4,6 +4,7 @@ import '../services/user_service.dart';
 import '../services/firestore_service.dart';
 import '../services/notification_service.dart';
 import '../data/db_helper.dart';
+<<<<<<< HEAD
 import '../services/theme_service.dart';
 import '../services/connectivity_service.dart';
 import '../widgets/offline_indicator.dart';
@@ -11,6 +12,9 @@ import '../services/sync_service.dart';
 import 'repair_partner_list_view.dart';
 import 'shop_settings_view.dart';
 import 'staff_permissions_view.dart';
+=======
+import '../services/sync_service.dart';
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 
 class SettingsView extends StatefulWidget {
   final void Function(Locale)? setLocale;
@@ -23,7 +27,10 @@ class SettingsView extends StatefulWidget {
 class _SettingsViewState extends State<SettingsView> {
   String _role = 'user';
   bool _loading = true;
+<<<<<<< HEAD
   final ThemeService _themeService = ThemeService();
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 
   @override
   void initState() {
@@ -31,6 +38,7 @@ class _SettingsViewState extends State<SettingsView> {
     _loadRole();
   }
 
+<<<<<<< HEAD
   String _getRoleDisplayName(String role) {
     switch (role) {
       case 'owner':
@@ -50,6 +58,8 @@ class _SettingsViewState extends State<SettingsView> {
     }
   }
 
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   Future<void> _loadRole() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
@@ -58,6 +68,7 @@ class _SettingsViewState extends State<SettingsView> {
     }
   }
 
+<<<<<<< HEAD
   // HÀM XỬ LÝ TẢI TOÀN BỘ DỮ LIỆU SHOP
   Future<void> _handleDownloadAllData() async {
     final bool? result = await showDialog<bool>(
@@ -100,6 +111,8 @@ class _SettingsViewState extends State<SettingsView> {
     }
   }
 
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   // HÀM XỬ LÝ XÓA TRẮNG SHOP (BẢO MẬT TUYỆT ĐỐI)
   Future<void> _handleResetShop() async {
     final confirmTextC = TextEditingController();
@@ -132,11 +145,15 @@ class _SettingsViewState extends State<SettingsView> {
       final successCloud = await FirestoreService.resetEntireShopData();
       await DBHelper().clearAllData();
       
+<<<<<<< HEAD
       if (successCloud) {
         NotificationService.showSnackBar("ĐÃ XÓA SẠCH DỮ LIỆU SHOP!", color: Colors.green);
       } else {
         NotificationService.showSnackBar("LỖI KHI XÓA DỮ LIỆU ĐÁM MÂY!", color: Colors.red);
       }
+=======
+      NotificationService.showSnackBar("ĐÃ XÓA SẠCH DỮ LIỆU SHOP!", color: Colors.green);
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
       await SyncService.cancelAllSubscriptions();
       try {
         await FirebaseAuth.instance.signOut();
@@ -150,7 +167,11 @@ class _SettingsViewState extends State<SettingsView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+<<<<<<< HEAD
       appBar: AppBar(title: const Text("CÀI ĐẶT HỆ THỐNG"), automaticallyImplyLeading: true),
+=======
+      appBar: AppBar(title: const Text("CÀI ĐẶT HỆ THỐNG")),
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
       body: _loading ? const Center(child: CircularProgressIndicator()) : ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -163,6 +184,7 @@ class _SettingsViewState extends State<SettingsView> {
               if (widget.setLocale != null) widget.setLocale!(const Locale('vi'));
             },
           ),
+<<<<<<< HEAD
           AnimatedBuilder(
             animation: _themeService,
             builder: (context, child) {
@@ -189,6 +211,8 @@ class _SettingsViewState extends State<SettingsView> {
             ),
             onTap: () => _showConnectivityInfo(),
           ),
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
           const Divider(),
           _buildSection("TÀI KHOẢN & BẢO MẬT"),
           ListTile(
@@ -197,6 +221,7 @@ class _SettingsViewState extends State<SettingsView> {
             trailing: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(color: Colors.blue.shade50, borderRadius: BorderRadius.circular(10)),
+<<<<<<< HEAD
               child: Text(_getRoleDisplayName(_role), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: Colors.blue)),
             ),
           ),
@@ -292,12 +317,27 @@ class _SettingsViewState extends State<SettingsView> {
             ),
             const SizedBox(height: 15),
             Card(
+=======
+              child: Text(_role.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: Colors.blue)),
+            ),
+          ),
+          
+          // NÚT XÓA TRẮNG CHỈ HIỆN CHO CHỦ SHOP
+          if (_role == 'owner' || UserService.isCurrentUserSuperAdmin()) ...[
+            const SizedBox(height: 30),
+            _buildSection("QUẢN TRỊ NÂNG CAO"),
+            Card(
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
               color: Colors.red.shade50,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15), side: BorderSide(color: Colors.red.shade200)),
               child: ListTile(
                 leading: const Icon(Icons.delete_forever, color: Colors.red),
                 title: const Text("XÓA TRẮNG DỮ LIỆU SHOP", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+<<<<<<< HEAD
                 subtitle: const Text("Dùng khi muốn khởi tạo lại toàn bộ dữ liệu cửa hàng (CHỈ SUPER ADMIN)", style: TextStyle(fontSize: 11)),
+=======
+                subtitle: const Text("Dùng khi muốn khởi tạo lại toàn bộ dữ liệu cửa hàng", style: TextStyle(fontSize: 11)),
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
                 onTap: _handleResetShop,
               ),
             ),
@@ -310,6 +350,7 @@ class _SettingsViewState extends State<SettingsView> {
     );
   }
 
+<<<<<<< HEAD
   void _showThemeDialog() {
     showDialog(
       context: context,
@@ -404,5 +445,7 @@ class _SettingsViewState extends State<SettingsView> {
     );
   }
 
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   Widget _buildSection(String title) => Padding(padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 5), child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.blueGrey)));
 }

@@ -3,7 +3,10 @@ class Product {
   String? firestoreId;
   String name;
   String brand; // Trường bắt buộc
+<<<<<<< HEAD
   String? model; // Model máy (ví dụ: iPhone 15 Pro, Galaxy S24, etc.)
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   String? imei;
   int cost;
   int price;
@@ -13,13 +16,21 @@ class Product {
   String? images;
   String? warranty;
   int createdAt;
+<<<<<<< HEAD
   int? updatedAt;
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   String? supplier;
   String type;
   int quantity;
   String? color;
   String? capacity; // Dung lượng (ví dụ: 64GB, 128GB, etc.)
+<<<<<<< HEAD
   String? paymentMethod; // Phương thức thanh toán
+=======
+  int? kpkPrice; // Giá bán kèm phụ kiện
+  int? pkPrice; // Giá phụ kiện
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   bool isSynced;
 
   Product({
@@ -27,7 +38,10 @@ class Product {
     this.firestoreId,
     required this.name,
     this.brand = "KHÁC",
+<<<<<<< HEAD
     this.model,
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
     this.imei,
     this.cost = 0,
     this.price = 0,
@@ -37,13 +51,21 @@ class Product {
     this.images,
     this.warranty,
     required this.createdAt,
+<<<<<<< HEAD
     this.updatedAt,
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
     this.supplier,
     this.type = 'PHONE',
     this.quantity = 1,
     this.color,
     this.capacity,
+<<<<<<< HEAD
     this.paymentMethod,
+=======
+    this.kpkPrice,
+    this.pkPrice,
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
     this.isSynced = false,
   });
 
@@ -53,7 +75,10 @@ class Product {
       'firestoreId': firestoreId ?? "prod_${createdAt}_$name",
       'name': name,
       'brand': brand,
+<<<<<<< HEAD
       'model': model,
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
       'imei': imei,
       'cost': cost,
       'price': price,
@@ -63,13 +88,21 @@ class Product {
       'images': images,
       'warranty': warranty,
       'createdAt': createdAt,
+<<<<<<< HEAD
       'updatedAt': updatedAt,
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
       'supplier': supplier,
       'type': type,
       'quantity': quantity,
       'color': color,
       'capacity': capacity,
+<<<<<<< HEAD
       'paymentMethod': paymentMethod,
+=======
+      'kpkPrice': kpkPrice,
+      'pkPrice': pkPrice,
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
       'isSynced': isSynced ? 1 : 0,
     };
   }
@@ -80,7 +113,10 @@ class Product {
       firestoreId: map['firestoreId'],
       name: map['name'] ?? "",
       brand: map['brand'] ?? "KHÁC",
+<<<<<<< HEAD
       model: map['model'],
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
       imei: map['imei'],
       cost: (map['cost'] is int ? map['cost'] : 0) < 0 ? 0 : (map['cost'] is int ? map['cost'] : 0),
       price: (map['price'] is int ? map['price'] : 0) < 0 ? 0 : (map['price'] is int ? map['price'] : 0),
@@ -90,12 +126,16 @@ class Product {
       images: map['images'],
       warranty: map['warranty'],
       createdAt: map['createdAt'] is int ? map['createdAt'] : 0,
+<<<<<<< HEAD
       updatedAt: map['updatedAt'] is int ? map['updatedAt'] : null,
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
       supplier: map['supplier'],
       type: map['type'] ?? 'PHONE',
       quantity: (map['quantity'] is int ? map['quantity'] : 1) < 0 ? 0 : (map['quantity'] is int ? map['quantity'] : 1),
       color: map['color'],
       capacity: map['capacity'],
+<<<<<<< HEAD
       paymentMethod: map['paymentMethod'],
       isSynced: map['isSynced'] == 1,
     );
@@ -150,4 +190,11 @@ class Product {
       isSynced: isSynced ?? this.isSynced,
     );
   }
+=======
+      kpkPrice: map['kpkPrice'] is int ? map['kpkPrice'] : null,
+      pkPrice: map['pkPrice'] is int ? map['pkPrice'] : null,
+      isSynced: map['isSynced'] == 1,
+    );
+  }
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 }

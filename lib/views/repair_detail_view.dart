@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+<<<<<<< HEAD
 import 'package:url_launcher/url_launcher.dart';
 import '../models/repair_model.dart';
 import '../services/unified_printer_service.dart';
@@ -19,6 +20,14 @@ import '../services/user_service.dart';
 import '../data/db_helper.dart';
 import '../widgets/validated_text_field.dart';
 import '../widgets/currency_text_field.dart';
+=======
+import '../models/repair_model.dart';
+import '../services/unified_printer_service.dart';
+import '../services/notification_service.dart';
+import '../services/firestore_service.dart';
+import '../data/db_helper.dart';
+import '../widgets/validated_text_field.dart';
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 
 class RepairDetailView extends StatefulWidget {
   final Repair repair;
@@ -34,12 +43,16 @@ class _RepairDetailViewState extends State<RepairDetailView> {
   bool _isUpdating = false;
   bool _isPrinting = false;
   String _shopName = ""; String _shopAddr = ""; String _shopPhone = "";
+<<<<<<< HEAD
   bool _hasPermission = false;
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 
   @override
   void initState() {
     super.initState();
     r = widget.repair;
+<<<<<<< HEAD
     _checkPermission();
     _loadShopInfo();
   }
@@ -50,6 +63,11 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     setState(() => _hasPermission = perms['allowViewRepairs'] ?? false);
   }
 
+=======
+    _loadShopInfo();
+  }
+
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   Future<void> _loadShopInfo() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
@@ -73,10 +91,13 @@ class _RepairDetailViewState extends State<RepairDetailView> {
   }
 
   Future<void> _updateStatus(int newStatus) async {
+<<<<<<< HEAD
     if (newStatus <= r.status) {
       NotificationService.showSnackBar("Không thể quay lại trạng thái trước!", color: Colors.red);
       return;
     }
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
     if (newStatus == 4) { // GIAO MÁY
       String payMethod = "TIỀN MẶT";
       String selectedWarranty = r.warranty.isEmpty ? "1 THÁNG" : r.warranty;
@@ -146,7 +167,11 @@ class _RepairDetailViewState extends State<RepairDetailView> {
           'totalAmount': r.price,
           'paidAmount': 0,
           'type': "CUSTOMER_OWES",
+<<<<<<< HEAD
           'status': "ACTIVE",
+=======
+          'status': "unpaid",
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
           'createdAt': DateTime.now().millisecondsSinceEpoch,
           'note': "Nợ tiền sửa máy: ${r.model}",
         });
@@ -174,6 +199,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     try {
       await db.upsertRepair(r);
       await FirestoreService.upsertRepair(r);
+<<<<<<< HEAD
 
       // Update debt if payment method is debt and repair is delivered
       if (r.paymentMethod == 'CÔNG NỢ' && r.status == 4) {
@@ -191,6 +217,8 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         // Removed create new debt logic to avoid duplicates
       }
 
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
       NotificationService.showSnackBar("ĐÃ LƯU THAY ĐỔI ĐƠN HÀNG", color: Colors.green);
     } catch (e) {
       NotificationService.showSnackBar("Lỗi khi lưu: $e", color: Colors.red);
@@ -205,8 +233,13 @@ class _RepairDetailViewState extends State<RepairDetailView> {
   }
 
   Future<void> _editFinancials() async {
+<<<<<<< HEAD
     final priceC = TextEditingController(text: (r.price ~/ 1000).toString());
     final costC = TextEditingController(text: (r.cost ~/ 1000).toString());
+=======
+    final priceC = TextEditingController(text: (r.price / 1000).toStringAsFixed(0));
+    final costC = TextEditingController(text: (r.cost / 1000).toStringAsFixed(0));
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
     final result = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -214,6 +247,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+<<<<<<< HEAD
             ThousandCurrencyTextField(
               controller: priceC,
               label: "Giá thu khách",
@@ -229,21 +263,38 @@ class _RepairDetailViewState extends State<RepairDetailView> {
               required: true,
               onCompleted: (value) => setState(() => r.cost = value),
             ),
+=======
+            ValidatedTextField(controller: priceC, label: "Giá thu khách (k)", icon: Icons.attach_money, keyboardType: TextInputType.number),
+            const SizedBox(height: 12),
+            ValidatedTextField(controller: costC, label: "Giá vốn linh kiện (k)", icon: Icons.inventory, keyboardType: TextInputType.number),
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
           ],
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("HỦY")),
+<<<<<<< HEAD
           ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text("LƯU")),
+=======
+          ElevatedButton(onPressed: _isValidFinancialInput(priceC.text, costC.text) ? () => Navigator.pop(ctx, true) : null, child: const Text("LƯU")),
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
         ],
       ),
     );
     if (result == true) {
+<<<<<<< HEAD
+=======
+      setState(() {
+        r.price = (int.tryParse(priceC.text) ?? 0) * 1000;
+        r.cost = (int.tryParse(costC.text) ?? 0) * 1000;
+      });
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
       _saveData();
     }
   }
 
   @override
   Widget build(BuildContext context) {
+<<<<<<< HEAD
     if (!_hasPermission) {
       return Scaffold(
         appBar: AppBar(
@@ -261,6 +312,11 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFF),
       appBar: AppBar(title: const Tooltip(message: "Theo dõi tiến độ sửa chữa và cập nhật trạng thái.", child: Text("CHI TIẾT ĐƠN SỬA", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))), automaticallyImplyLeading: true, actions: [IconButton(onPressed: _shareToZalo, icon: const Icon(Icons.share_rounded, color: Colors.green)), IconButton(onPressed: _printReceipt, icon: const Icon(Icons.print_rounded, color: Color(0xFF2962FF)))]),
+=======
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFF),
+      appBar: AppBar(title: const Text("CHI TIẾT ĐƠN SỬA", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)), actions: [IconButton(onPressed: _shareToZalo, icon: const Icon(Icons.share_rounded, color: Colors.green)), IconButton(onPressed: _printReceipt, icon: const Icon(Icons.print_rounded, color: Color(0xFF2962FF)))]),
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(children: [_buildStatusCard(), const SizedBox(height: 15), _buildActionButtons(), const SizedBox(height: 20), _buildFinancialSummary(), const SizedBox(height: 20), _buildImageGallery(), const SizedBox(height: 20), _buildCustomerCard(), const SizedBox(height: 100)]),
@@ -300,11 +356,16 @@ class _RepairDetailViewState extends State<RepairDetailView> {
   }
 
   Widget _buildCustomerCard() {
+<<<<<<< HEAD
     return Container(padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)), child: Column(children: [_infoRow("Khách hàng", r.customerName), _phoneRow("Số điện thoại", r.phone), _infoRow("Tình trạng lỗi", r.issue), _infoRow("Phụ kiện kèm", r.accessories.isEmpty ? "Không có" : r.accessories), _infoRow("Bảo hành", r.warranty.isEmpty ? "Chưa có" : r.warranty), if (r.deliveredAt != null) _infoRow("Ngày giao", DateFormat('dd/MM/yyyy HH:mm').format(DateTime.fromMillisecondsSinceEpoch(r.deliveredAt!)))]));
+=======
+    return Container(padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)), child: Column(children: [_infoRow("Khách hàng", r.customerName), _infoRow("Số điện thoại", r.phone), _infoRow("Tình trạng lỗi", r.issue), _infoRow("Phụ kiện kèm", r.accessories.isEmpty ? "Không có" : r.accessories), _infoRow("Bảo hành", r.warranty.isEmpty ? "Chưa có" : r.warranty), if (r.deliveredAt != null) _infoRow("Ngày giao", DateFormat('dd/MM/yyyy HH:mm').format(DateTime.fromMillisecondsSinceEpoch(r.deliveredAt!)))]));
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   }
 
   Widget _infoRow(String l, String v) => Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(l, style: const TextStyle(color: Colors.grey, fontSize: 13)), Text(v, style: const TextStyle(fontWeight: FontWeight.bold))]));
 
+<<<<<<< HEAD
   Widget _phoneRow(String label, String phone) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 8),
     child: Row(
@@ -338,6 +399,8 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     }
   }
 
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   Widget _buildBottomActions() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -383,6 +446,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
   }
 
   Future<void> _printReceipt() async {
+<<<<<<< HEAD
     // Show printer selection dialog giống như in hóa đơn bán hàng
     final messenger = ScaffoldMessenger.of(context);
     final printerConfig = await showPrinterSelectionDialog(context);
@@ -393,10 +457,13 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     final bluetoothPrinter = printerConfig['bluetoothPrinter'] as BluetoothPrinterConfig?;
     final wifiIp = printerConfig['wifiIp'] as String?;
 
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
     if (_isPrinting) return;
     setState(() => _isPrinting = true);
     HapticFeedback.mediumImpact();
     NotificationService.showSnackBar("Đang chuẩn bị lệnh in...", color: Colors.blue);
+<<<<<<< HEAD
 
     try {
       final success = await UnifiedPrinterService.printRepairReceiptFromRepair(
@@ -418,6 +485,17 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       }
     } catch (e) {
       NotificationService.showSnackBar("Lỗi khi in: $e", color: Colors.red);
+=======
+    try {
+      final success = await UnifiedPrinterService.printRepairReceiptFromRepair(r, {'shopName': _shopName, 'shopAddr': _shopAddr, 'shopPhone': _shopPhone});
+      if (success) {
+        NotificationService.showSnackBar("Đã gửi lệnh in thành công", color: Colors.green);
+      } else {
+        NotificationService.showSnackBar("Lỗi máy in!", color: Colors.red);
+      }
+    } catch (e) {
+      NotificationService.showSnackBar("Lỗi: $e", color: Colors.red);
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
     } finally {
       if (mounted) setState(() => _isPrinting = false);
     }

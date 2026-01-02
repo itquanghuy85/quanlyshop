@@ -5,15 +5,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+<<<<<<< HEAD
 import 'package:fl_chart/fl_chart.dart';
 import '../services/event_bus.dart';
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 import 'customer_history_view.dart';
 import 'order_list_view.dart';
 import 'revenue_view.dart';
 import 'inventory_view.dart';
+<<<<<<< HEAD
 import 'fast_inventory_input_view.dart';
 import 'fast_inventory_check_view.dart';
 import 'quick_input_codes_view.dart';
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 import 'sale_list_view.dart';
 import 'expense_view.dart';
 import 'debt_view.dart';
@@ -21,12 +27,17 @@ import 'warranty_view.dart';
 import 'settings_view.dart';
 import 'chat_view.dart';
 import 'thermal_printer_design_view.dart';
+<<<<<<< HEAD
+=======
+import 'purchase_order_list_view.dart';
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 import 'super_admin_view.dart' as admin_view;
 import 'staff_list_view.dart';
 import 'qr_scan_view.dart';
 import 'attendance_view.dart';
 import 'staff_performance_view.dart';
 import 'audit_log_view.dart';
+<<<<<<< HEAD
 import 'notifications_view.dart';
 import 'notification_settings_view.dart';
 import 'supplier_view.dart';
@@ -51,6 +62,14 @@ import '../services/user_service.dart';
 import '../services/firestore_service.dart';
 import '../services/notification_service.dart';
 import '../services/subscription_service.dart';
+=======
+import 'work_schedule_settings_view.dart';
+import '../data/db_helper.dart';
+import '../widgets/perpetual_calendar.dart';
+import '../services/sync_service.dart';
+import '../services/user_service.dart';
+import '../services/firestore_service.dart';
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 
 class HomeView extends StatefulWidget {
   final String role;
@@ -62,6 +81,7 @@ class HomeView extends StatefulWidget {
   State<HomeView> createState() => _HomeViewState();
 }
 
+<<<<<<< HEAD
 class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
   final db = DBHelper(); // Temporarily use regular DBHelper
   int totalPendingRepair = 0;
@@ -79,13 +99,28 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
   bool _shopLocked = false;
   final TextEditingController _phoneSearchCtrl = TextEditingController();
   bool _isSyncing = false;
+=======
+class _HomeViewState extends State<HomeView> {
+  final db = DBHelper();
+  int totalPendingRepair = 0;
+  int todaySaleCount = 0;
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   int todayRepairDone = 0;
   int revenueToday = 0;
   int todayNewRepairs = 0;
   int todayExpense = 0;
   int totalDebtRemain = 0;
   int expiringWarranties = 0;
+<<<<<<< HEAD
   int unreadChatCount = 0;
+=======
+
+  bool _isSyncing = false;
+  Timer? _autoSyncTimer;
+  bool _shopLocked = false;
+  final TextEditingController _phoneSearchCtrl = TextEditingController();
+  Map<String, bool> _permissions = {};
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 
   final bool _isSuperAdmin = UserService.isCurrentUserSuperAdmin();
   bool get hasFullAccess => widget.role == 'admin' || widget.role == 'owner' || _isSuperAdmin;
@@ -93,6 +128,7 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+<<<<<<< HEAD
     _initializeTabConfigs();
     _initialSetup();
     SyncService.initRealTimeSync(() { if (mounted) _loadStats(); });
@@ -178,6 +214,11 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
     if (_currentIndex >= _navItems.length) {
       _currentIndex = 0;
     }
+=======
+    _initialSetup();
+    SyncService.initRealTimeSync(() { if (mounted) _loadStats(); });
+    _autoSyncTimer = Timer.periodic(const Duration(seconds: 60), (_) => _syncNow(silent: true));
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   }
 
   @override
@@ -203,9 +244,13 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
     setState(() {
       _shopLocked = perms['shopAppLocked'] == true;
       _permissions = perms.map((key, value) => MapEntry(key, value == true));
+<<<<<<< HEAD
       _updateAvailableTabs();
     });
     debugPrint('HomeView permissions updated: $_permissions');
+=======
+    });
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   }
 
   Future<void> _syncNow({bool silent = false}) async {
@@ -235,20 +280,29 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
     final now = DateTime.now();
     for (var r in repairs) {
       if (_isSameDay(r.createdAt)) newRT++;
+<<<<<<< HEAD
       if (r.status >= 3 && r.deliveredAt != null && _isSameDay(r.deliveredAt!)) { doneT++; revT += ((r.price as int) - (r.cost as int)); }
+=======
+      if (r.status >= 3 && r.deliveredAt != null && _isSameDay(r.deliveredAt!)) { doneT++; revT += (r.price - r.cost); }
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
       if (r.deliveredAt != null && r.warranty.isNotEmpty && r.warranty != "KO BH") {
         int m = int.tryParse(r.warranty.split(' ').first) ?? 0;
         if (m > 0) { DateTime d = DateTime.fromMillisecondsSinceEpoch(r.deliveredAt!); DateTime e = DateTime(d.year, d.month + m, d.day); if (e.isAfter(now) && e.difference(now).inDays <= 7) expW++; }
       }
     }
     for (var s in sales) {
+<<<<<<< HEAD
       if (_isSameDay(s.soldAt)) { soldT++; revT += ((s.totalPrice as int) - (s.totalCost as int)); }
+=======
+      if (_isSameDay(s.soldAt)) { soldT++; revT += (s.totalPrice - s.totalCost); }
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
       if (s.warranty.isNotEmpty && s.warranty != "KO BH") {
         int m = int.tryParse(s.warranty.split(' ').first) ?? 12;
         DateTime d = DateTime.fromMillisecondsSinceEpoch(s.soldAt); DateTime e = DateTime(d.year, d.month + m, d.day); if (e.isAfter(now) && e.difference(now).inDays <= 7) expW++;
       }
     }
     for (var e in expenses) { if (_isSameDay(e['date'] as int)) expT += (e['amount'] as int); }
+<<<<<<< HEAD
     for (var d in debts) { 
       final int total = d['totalAmount'] ?? 0; 
       final int paid = d['paidAmount'] ?? 0; 
@@ -261,6 +315,10 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
     // Load unread chat count
     final unread = await UserService.getUnreadChatCount(FirebaseAuth.instance.currentUser!.uid);
     if (mounted) setState(() => unreadChatCount = unread);
+=======
+    for (var d in debts) { final int total = d['totalAmount'] ?? 0; final int paid = d['paidAmount'] ?? 0; if (total > paid) debtR += (total - paid); }
+    if (mounted) setState(() { totalPendingRepair = pendingR; todayRepairDone = doneT; todaySaleCount = soldT; revenueToday = revT; todayNewRepairs = newRT; todayExpense = expT; totalDebtRemain = debtR; expiringWarranties = expW; });
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   }
 
   @override
@@ -271,6 +329,7 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
         return ok ?? false;
       },
       child: Scaffold(
+<<<<<<< HEAD
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         appBar: ResponsiveAppBar(
           title: _getTabTitle(_currentIndex),
@@ -288,6 +347,20 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
             IconButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => QrScanView(role: widget.role))), icon: const Icon(Icons.qr_code_scanner_rounded, color: Color(0xFF2962FF))),
             IconButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => GlobalSearchView(role: widget.role))), icon: const Icon(Icons.search, color: Color(0xFF9C27B0), size: 28), tooltip: 'Tìm kiếm toàn app'),
             IconButton(onPressed: () => _syncNow(), icon: _isSyncing ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.sync, color: Colors.green, size: 28)),
+=======
+        backgroundColor: const Color(0xFFF8FAFF),
+        appBar: AppBar(
+          backgroundColor: Colors.white, elevation: 0,
+          title: Row(children: [
+            const Icon(Icons.store_rounded, color: Color(0xFF2962FF), size: 22),
+            const SizedBox(width: 8),
+            Expanded(child: Text(hasFullAccess ? "QUẢN TRỊ SHOP" : "NHÂN VIÊN", style: const TextStyle(color: Colors.black, fontSize: 15, fontWeight: FontWeight.bold))),
+          ]),
+          actions: [
+            IconButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => QrScanView(role: widget.role))), icon: const Icon(Icons.qr_code_scanner_rounded, color: Color(0xFF2962FF))),
+            IconButton(onPressed: () => _syncNow(), icon: _isSyncing ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.sync, color: Colors.green, size: 28)),
+            IconButton(onPressed: _openSettingsCenter, icon: const Icon(Icons.settings_rounded, color: Colors.black54), tooltip: 'Cài đặt'),
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
             IconButton(onPressed: () async {
               await SyncService.cancelAllSubscriptions();
               try {
@@ -298,6 +371,7 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
             }, icon: const Icon(Icons.logout_rounded, color: Colors.redAccent)),
           ],
         ),
+<<<<<<< HEAD
         body: IndexedStack(
           index: _currentIndex,
           children: _tabWidgets,
@@ -334,11 +408,23 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
             _buildFinancialChart(),
             const SizedBox(height: 20),
             _buildQuickActions(),
+=======
+        body: RefreshIndicator(
+          onRefresh: () => _syncNow(),
+          child: SingleChildScrollView(padding: const EdgeInsets.all(20), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            if (_shopLocked) Container(padding: const EdgeInsets.all(12), margin: const EdgeInsets.only(bottom: 12), decoration: BoxDecoration(color: Colors.red.shade50, border: Border.all(color: Colors.redAccent), borderRadius: BorderRadius.circular(10)), child: const Text("CỬA HÀNG BỊ KHÓA", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold))),
+            _buildTodaySummary(),
+            const SizedBox(height: 20),
+            _buildModuleGrid(),
+            const SizedBox(height: 20),
+            TextField(controller: _phoneSearchCtrl, decoration: InputDecoration(hintText: "Tìm nhanh khách theo SĐT", prefixIcon: const Icon(Icons.search), border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)), filled: true, fillColor: Colors.white), onSubmitted: (v) { if(v.isNotEmpty) { HapticFeedback.lightImpact(); Navigator.push(context, MaterialPageRoute(builder: (_) => CustomerHistoryView(phone: v, name: v))); } }),
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
             const SizedBox(height: 20),
             const PerpetualCalendar(),
             const SizedBox(height: 25),
             _buildAlerts(),
             const SizedBox(height: 50),
+<<<<<<< HEAD
           ]
         )
       ),
@@ -432,11 +518,15 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
             const SizedBox(height: 4),
             Text(title, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w500), textAlign: TextAlign.center),
           ],
+=======
+          ])),
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
         ),
       ),
     );
   }
 
+<<<<<<< HEAD
   Widget _summaryRow(IconData icon, Color color, String title, String value, VoidCallback onTap, {bool isBold = false}) {
     return InkWell(
       onTap: onTap,
@@ -456,6 +546,8 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
     );
   }
   
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   Widget _buildTodaySummary() {
     String fmt(int v) => NumberFormat('#,###').format(v);
     return Container(
@@ -475,6 +567,7 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
     );
   }
 
+<<<<<<< HEAD
   Widget _buildFinancialChart() {
     String fmt(int v) => NumberFormat('#,###').format(v);
     int revenue = revenueToday;
@@ -745,6 +838,68 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
       }
     }
     return "SHOP MANAGER";
+=======
+  Widget _summaryRow(IconData i, Color c, String l, String v, VoidCallback t, {bool isBold = false}) => InkWell(onTap: t, child: Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Row(children: [Icon(i, size: 18, color: c), const SizedBox(width: 12), Expanded(child: Text(l, style: TextStyle(fontSize: 13, color: isBold ? Colors.black : Colors.grey, fontWeight: isBold ? FontWeight.bold : FontWeight.normal))), Text(v, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: isBold ? c : Colors.black)), const Icon(Icons.chevron_right, size: 14, color: Colors.grey)])));
+
+  Widget _buildModuleGrid() {
+    final perms = _permissions;
+    final modules = <Widget>[];
+    void addModule(String permKey, String title, IconData icon, List<Color> colors, VoidCallback onTap, {Widget? badge}) {
+      if (hasFullAccess || (perms[permKey] ?? true)) { modules.add(_menuTile(title, icon, colors, onTap, badge: badge)); }
+    }
+    
+    // NHÓM 1: KINH DOANH CỐT LÕI
+    addModule('allowViewSales', "Bán hàng", Icons.shopping_cart_checkout_rounded, [const Color(0xFFFF4081), const Color(0xFFFF80AB)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SaleListView())));
+    addModule('allowViewRepairs', "Sửa chữa", Icons.build_circle_rounded, [const Color(0xFF2979FF), const Color(0xFF448AFF)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderListView(role: widget.role))));
+    addModule('allowViewPurchaseOrders', "Đơn nhập", Icons.receipt_long_rounded, [const Color(0xFF4CAF50), const Color(0xFF81C784)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PurchaseOrderListView())));
+
+    // NHÓM 2: QUẢN LÝ KHO & BẢO HÀNH
+    addModule('allowViewInventory', "Kho hàng", Icons.inventory_rounded, [const Color(0xFFFF6F00), const Color(0xFFFFA726)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => InventoryView(role: widget.role))));
+    // 'Kiểm kho QR' removed from Home screen as requested
+    addModule('allowViewWarranty', "Bảo hành", Icons.verified_user_rounded, [const Color(0xFF00C853), const Color(0xFFB2FF59)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WarrantyView())));
+
+    // NHÓM 3: NHÂN SỰ & CHAT
+    addModule('allowViewChat', "Chat", Icons.chat_bubble_rounded, [const Color(0xFF7C4DFF), const Color(0xFFB388FF)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChatView())), badge: _buildChatBadge());
+    addModule('allowViewAttendance', "Chấm công", Icons.fingerprint_rounded, [const Color(0xFF009688), const Color(0xFF4DB6AC)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AttendanceView())));
+    if (hasFullAccess) addModule('allowManageStaff', "Lịch làm", Icons.schedule_rounded, [const Color(0xFF0097A7), const Color(0xFF26C6DA)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WorkScheduleSettingsView())));
+
+    // NHÓM 4: QUẢN TRỊ & TÀI CHÍNH
+    if (hasFullAccess) addModule('allowManageStaff', "Nhật ký", Icons.history_edu_rounded, [const Color(0xFF455A64), const Color(0xFF78909C)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AuditLogView())));
+    if (hasFullAccess) addModule('allowViewRevenue', "DS & Lương", Icons.assessment_rounded, [const Color(0xFF6200EA), const Color(0xFF7C4DFF)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StaffPerformanceView())));
+    addModule('allowViewRevenue', "Báo cáo DT", Icons.leaderboard_rounded, [const Color(0xFF304FFE), const Color(0xFF536DFE)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RevenueView())));
+
+    // NHÓM 5: CÔNG CỤ & HỆ THỐNG
+    addModule('allowViewDebts', "Công nợ", Icons.receipt_long_rounded, [const Color(0xFF9C27B0), const Color(0xFFE1BEE7)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DebtView())));
+    addModule('allowViewExpenses', "Chi phí", Icons.money_off_rounded, [const Color(0xFFFF5722), const Color(0xFFFFAB91)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ExpenseView())));
+    addModule('allowViewPrinter', "Máy in", Icons.print_rounded, [const Color(0xFF607D8B), const Color(0xFF90A4AE)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ThermalPrinterDesignView())));
+
+    return GridView.count(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), crossAxisCount: 3, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 0.9, children: modules);
+  }
+
+  Widget _buildChatBadge() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirestoreService.chatStream(),
+      builder: (context, snap) {
+        if (!snap.hasData) return const SizedBox();
+        final userId = FirebaseAuth.instance.currentUser?.uid;
+        final count = snap.data!.docs.where((doc) { final data = doc.data() as Map<String, dynamic>; final List readBy = data['readBy'] ?? []; return !readBy.contains(userId); }).length;
+        if (count == 0) return const SizedBox();
+        return Positioned(right: 5, top: 5, child: Container(padding: const EdgeInsets.all(4), decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle), constraints: const BoxConstraints(minWidth: 16, minHeight: 16), child: Text("$count", style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold), textAlign: TextAlign.center)));
+      }
+    );
+  }
+
+  Widget _menuTile(String title, IconData icon, List<Color> colors, VoidCallback onTap, {Widget? badge}) {
+    return InkWell(onTap: () { HapticFeedback.mediumImpact(); onTap(); }, child: Stack(children: [Container(width: double.infinity, height: double.infinity, decoration: BoxDecoration(gradient: LinearGradient(colors: colors, begin: Alignment.topLeft, end: Alignment.bottomRight), borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: colors[0].withAlpha(77), blurRadius: 6, offset: const Offset(0, 3))]), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(icon, color: Colors.white, size: 28), const SizedBox(height: 6), Text(title, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10))])), if (badge != null) badge]));
+  }
+
+  void _openSettingsCenter() {
+    showModalBottomSheet(context: context, shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))), builder: (ctx) => SafeArea(child: Padding(padding: const EdgeInsets.all(16), child: Column(mainAxisSize: MainAxisSize.min, children: [
+      ListTile(leading: const Icon(Icons.settings_rounded, color: Colors.blueGrey), title: const Text("CÀI ĐẶT HỆ THỐNG"), onTap: () { Navigator.pop(ctx); Navigator.push(context, MaterialPageRoute(builder: (_) => SettingsView(setLocale: widget.setLocale))); }),
+      if (hasFullAccess) ListTile(leading: const Icon(Icons.group_rounded, color: Colors.indigo), title: const Text("QUẢN LÝ NHÂN VIÊN"), onTap: () { Navigator.pop(ctx); Navigator.push(context, MaterialPageRoute(builder: (_) => const StaffListView())); }),
+      if (_isSuperAdmin) ListTile(leading: const Icon(Icons.admin_panel_settings_rounded, color: Colors.deepPurple), title: const Text("TRUNG TÂM SUPER ADMIN"), onTap: () { Navigator.pop(ctx); Navigator.push(context, MaterialPageRoute(builder: (_) => const admin_view.SuperAdminView())); }),
+    ]))));
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   }
 
   Widget _buildAlerts() {

@@ -18,6 +18,7 @@ class WorkScheduleSettingsView extends StatefulWidget {
 class _WorkScheduleSettingsViewState extends State<WorkScheduleSettingsView> with TickerProviderStateMixin {
   late TabController _tabController;
 
+<<<<<<< HEAD
   String _getShortRoleName(String role) {
     switch (role) {
       case 'owner':
@@ -37,6 +38,8 @@ class _WorkScheduleSettingsViewState extends State<WorkScheduleSettingsView> wit
     }
   }
 
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   // Work Schedule Settings
   final startTimeCtrl = TextEditingController(text: '08:00');
   final endTimeCtrl = TextEditingController(text: '17:00');
@@ -307,7 +310,10 @@ class _WorkScheduleSettingsViewState extends State<WorkScheduleSettingsView> wit
     return Scaffold(
       appBar: AppBar(
         title: const Text('Cài đặt lịch làm việc'),
+<<<<<<< HEAD
         automaticallyImplyLeading: true,
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
@@ -702,7 +708,11 @@ class _WorkScheduleSettingsViewState extends State<WorkScheduleSettingsView> wit
                     items: staffList.map((staff) {
                       return DropdownMenuItem<String>(
                         value: staff['id'] as String,
+<<<<<<< HEAD
                         child: Text('${staff['name']} (${_getShortRoleName(staff['role'])})'),
+=======
+                        child: Text('${staff['name']} (${staff['role']})'),
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
                       );
                     }).toList(),
                     onChanged: (value) async {
@@ -799,8 +809,11 @@ class _WorkScheduleSettingsViewState extends State<WorkScheduleSettingsView> wit
               ),
             ),
           ],
+<<<<<<< HEAD
 
           const SizedBox(height: 16), // Add bottom padding to prevent overflow
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
         ],
       ),
     );

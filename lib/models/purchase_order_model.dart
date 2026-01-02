@@ -1,5 +1,8 @@
+<<<<<<< HEAD
 import 'dart:convert';
 
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 class PurchaseItem {
   String? productName;
   String? imei;
@@ -58,7 +61,10 @@ class PurchaseOrder {
   String createdBy;
   String? notes;
   String status;
+<<<<<<< HEAD
   String? paymentMethod;
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   String? firestoreId;
 
   int get totalAmount => items.fold(0, (sum, item) => sum + item.quantity);
@@ -74,7 +80,10 @@ class PurchaseOrder {
     required this.createdBy,
     this.notes,
     this.status = 'PENDING',
+<<<<<<< HEAD
     this.paymentMethod,
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
     this.firestoreId,
   });
 
@@ -88,14 +97,21 @@ class PurchaseOrder {
       'supplierName': supplierName,
       'supplierPhone': supplierPhone,
       'supplierAddress': supplierAddress,
+<<<<<<< HEAD
       'itemsJson': jsonEncode(items.map((item) => item.toMap()).toList()),
       'totalAmount': totalAmount,
       'totalCost': totalCost,
+=======
+      'items': items.map((item) => item.toMap()).toList(),
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
       'createdAt': createdAt,
       'createdBy': createdBy,
       'notes': notes,
       'status': status,
+<<<<<<< HEAD
       'paymentMethod': paymentMethod,
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
       'firestoreId': firestoreId,
     };
   }
@@ -106,16 +122,25 @@ class PurchaseOrder {
       supplierName: map['supplierName'] ?? '',
       supplierPhone: map['supplierPhone'],
       supplierAddress: map['supplierAddress'],
+<<<<<<< HEAD
       items: map['itemsJson'] != null
           ? (jsonDecode(map['itemsJson']) as List<dynamic>)
               .map((item) => PurchaseItem.fromMap(item as Map<String, dynamic>))
               .toList()
           : [],
+=======
+      items: (map['items'] as List<dynamic>?)
+          ?.map((item) => PurchaseItem.fromMap(item as Map<String, dynamic>))
+          .toList() ?? [],
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
       createdAt: map['createdAt'] ?? 0,
       createdBy: map['createdBy'] ?? '',
       notes: map['notes'],
       status: map['status'] ?? 'PENDING',
+<<<<<<< HEAD
       paymentMethod: map['paymentMethod'],
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
       firestoreId: map['firestoreId'],
     );
   }

@@ -9,7 +9,10 @@ import '../models/sale_order_model.dart';
 import '../models/expense_model.dart';
 import '../models/debt_model.dart';
 import '../models/attendance_model.dart';
+<<<<<<< HEAD
 import '../models/quick_input_code_model.dart';
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 import 'storage_service.dart';
 import 'user_service.dart';
 
@@ -186,6 +189,7 @@ class SyncService {
     } catch (e) {
       debugPrint("Lỗi khởi tạo attendance sync: $e");
     }
+<<<<<<< HEAD
 
     // 9. Đồng bộ QUICK INPUT CODES
     try {
@@ -211,6 +215,8 @@ class SyncService {
       debugPrint("Lỗi khởi tạo quick_input_codes sync: $e");
     }
 
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
     debugPrint("Đã khởi tạo real-time sync cho ${isSuperAdmin ? 'super admin' : 'shop: $shopId'}");
   }
 
@@ -416,6 +422,7 @@ class SyncService {
         debugPrint("Lỗi sync attendance collection: $e");
       }
 
+<<<<<<< HEAD
       // Đồng bộ Quick Input Codes
       try {
         final quickInputCodes = await dbHelper.getUnsyncedQuickInputCodes();
@@ -446,6 +453,8 @@ class SyncService {
         debugPrint("Lỗi sync quick input codes collection: $e");
       }
 
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
       debugPrint("Đã hoàn thành đồng bộ toàn bộ dữ liệu lên Cloud.");
     } catch (e) {
       debugPrint("Lỗi syncAllToCloud: $e");
@@ -470,7 +479,11 @@ class SyncService {
       final localAttendance = await db.getAllAttendance();
       debugPrint("LOCAL DATA BEFORE SYNC: repairs=${localRepairs.length}, products=${localProducts.length}, sales=${localSales.length}, attendance=${localAttendance.length}");
 
+<<<<<<< HEAD
       final collections = ['repairs', 'products', 'sales', 'expenses', 'debts', 'users', 'shops', 'attendance', 'quick_input_codes', 'supplier_import_history', 'supplier_product_prices'];
+=======
+      final collections = ['repairs', 'products', 'sales', 'expenses', 'debts', 'users', 'shops', 'attendance'];
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
       
       for (var col in collections) {
         try {
@@ -493,6 +506,7 @@ class SyncService {
                   await db.upsertAttendance(Attendance.fromMap(data));
                 } catch (e) {
                   debugPrint("Lỗi upsert attendance ${doc.id}: $e");
+<<<<<<< HEAD
                 }              } else if (col == 'quick_input_codes') {
                 await db.upsertQuickInputCode(QuickInputCode.fromMap(data));
               } else if (col == 'supplier_import_history') {
@@ -502,6 +516,11 @@ class SyncService {
                 // Handle supplier product prices - these are raw data, skip for now as they are managed locally
                 continue;
               }
+=======
+                }
+              }
+              // Users và shops không cần upsert local vì không có DB local
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
             } catch (e) {
               debugPrint("Lỗi xử lý document ${doc.id} trong collection $col: $e");
               // Tiếp tục với document tiếp theo
@@ -525,6 +544,7 @@ class SyncService {
       debugPrint("Lỗi downloadAllFromCloud: $e");
     }
   }
+<<<<<<< HEAD
 
   /// Đồng bộ Quick Input Codes từ Local lên Cloud
   static Future<void> syncQuickInputCodesToCloud() async {
@@ -572,4 +592,6 @@ class SyncService {
       rethrow;
     }
   }
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 }

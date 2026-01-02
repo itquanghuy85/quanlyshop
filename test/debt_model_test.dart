@@ -1,5 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
+<<<<<<< HEAD
 import 'package:quanlyshop/models/debt_model.dart';
+=======
+import 'package:QuanLyShop/models/debt_model.dart';
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 
 void main() {
   group('Debt.fromMap', () {
@@ -21,6 +25,7 @@ void main() {
       expect(debt.paidAmount, 0);
     });
   });
+<<<<<<< HEAD
 
   group('Debt calculations', () {
     test('calculate total debt remain correctly', () {
@@ -40,4 +45,6 @@ void main() {
       expect(totalRemain, 100); // 50 + 0 + 50 = 100
     });
   });
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 }

@@ -7,7 +7,10 @@ import '../models/sale_order_model.dart';
 import '../services/user_service.dart';
 import '../services/firestore_service.dart';
 import 'repair_detail_view.dart';
+<<<<<<< HEAD
 import 'sale_detail_view.dart';
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 
 class CustomerListView extends StatefulWidget {
   final String role;
@@ -241,7 +244,10 @@ class _CustomerListViewState extends State<CustomerListView> {
         backgroundColor: _primaryColor,
         foregroundColor: Colors.white,
         elevation: 2,
+<<<<<<< HEAD
         automaticallyImplyLeading: true,
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
         title: Text(
           _isSelectionMode 
             ? "Đã chọn ${_selectedIndices.length} khách hàng"
@@ -393,6 +399,7 @@ class _CustomerListViewState extends State<CustomerListView> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+<<<<<<< HEAD
       builder: (ctx) => DefaultTabController(
         length: 2,
         child: Container(
@@ -514,12 +521,50 @@ class _CustomerListViewState extends State<CustomerListView> {
                             Colors.blue,
                             Icons.shopping_cart,
                           ),
+=======
+      builder: (ctx) => Container(
+        height: MediaQuery.of(context).size.height * 0.85,
+        decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
+        child: Column(
+          children: [
+            Container(margin: const EdgeInsets.only(top: 10), width: 40, height: 5, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(10))),
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  Text(c['customerName'].toString().toUpperCase(), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  Text("Tổng chi tiêu: ${NumberFormat('#,###').format(c['totalSpent'] ?? 0)} đ", style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                ],
+              ),
+            ),
+            const Divider(),
+            Expanded(
+              child: DefaultTabController(
+                length: 2,
+                child: Column(
+                  children: [
+                    const TabBar(
+                      labelColor: Colors.blueAccent,
+                      unselectedLabelColor: Colors.grey,
+                      indicatorColor: Colors.blueAccent,
+                      tabs: [
+                        Tab(text: "LỊCH SỬ SỬA MÁY"),
+                        Tab(text: "MÁY ĐÃ MUA"),
+                      ],
+                    ),
+                    Expanded(
+                      child: TabBarView(
+                        children: [
+                          _buildRepairHistoryList(repairHistory),
+                          _buildSaleHistoryList(saleHistory),
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
                         ],
                       ),
                     ),
                   ],
                 ),
               ),
+<<<<<<< HEAD
 
               // Tab bar
               Container(
@@ -548,6 +593,10 @@ class _CustomerListViewState extends State<CustomerListView> {
               ),
             ],
           ),
+=======
+            ),
+          ],
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
         ),
       ),
     );
@@ -556,6 +605,7 @@ class _CustomerListViewState extends State<CustomerListView> {
   Widget _buildRepairHistoryList(List<Repair> list) {
     if (list.isEmpty) return const Center(child: Text("Chưa có lịch sử sửa chữa"));
     return ListView.builder(
+<<<<<<< HEAD
       padding: const EdgeInsets.all(15),
       itemCount: list.length,
       itemBuilder: (ctx, i) {
@@ -649,6 +699,20 @@ class _CustomerListViewState extends State<CustomerListView> {
               ),
             ),
           ),
+=======
+      padding: const EdgeInsets.all(10),
+      itemCount: list.length,
+      itemBuilder: (ctx, i) {
+        final r = list[i];
+        return ListTile(
+          title: Text(r.model, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+          subtitle: Text("Lỗi: ${r.issue.split('|').first}\nNgày: ${DateFormat('dd/MM/yyyy').format(DateTime.fromMillisecondsSinceEpoch(r.createdAt))}"),
+          trailing: Text("${NumberFormat('#,###').format(r.price)} đ", style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+          onTap: () {
+            Navigator.pop(ctx);
+            Navigator.push(context, MaterialPageRoute(builder: (_) => RepairDetailView(repair: r)));
+          },
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
         );
       },
     );
@@ -657,6 +721,7 @@ class _CustomerListViewState extends State<CustomerListView> {
   Widget _buildSaleHistoryList(List<SaleOrder> list) {
     if (list.isEmpty) return const Center(child: Text("Chưa có máy đã mua"));
     return ListView.builder(
+<<<<<<< HEAD
       padding: const EdgeInsets.all(15),
       itemCount: list.length,
       itemBuilder: (ctx, i) {
@@ -747,6 +812,17 @@ class _CustomerListViewState extends State<CustomerListView> {
               ),
             ),
           ),
+=======
+      padding: const EdgeInsets.all(10),
+      itemCount: list.length,
+      itemBuilder: (ctx, i) {
+        final s = list[i];
+        return ListTile(
+          leading: const Icon(Icons.phone_iphone, color: Colors.pink),
+          title: Text(s.productNames, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+          subtitle: Text("IMEI: ${s.productImeis}\nNgày mua: ${DateFormat('dd/MM/yyyy').format(DateTime.fromMillisecondsSinceEpoch(s.soldAt))}"),
+          trailing: Text("${NumberFormat('#,###').format(s.totalPrice)} đ", style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
         );
       },
     );
@@ -795,6 +871,7 @@ class _CustomerListViewState extends State<CustomerListView> {
       _refresh();
     }
   }
+<<<<<<< HEAD
 
   void _showSaleDetail(SaleOrder sale) {
     Navigator.pop(context); // Đóng bottom sheet
@@ -855,4 +932,6 @@ class _CustomerListViewState extends State<CustomerListView> {
       ],
     );
   }
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 }

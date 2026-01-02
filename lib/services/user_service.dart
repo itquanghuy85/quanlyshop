@@ -22,6 +22,7 @@ class UserService {
       return null;
     }
 
+<<<<<<< HEAD
     static String? validateIMEI(String imei) {
       if (imei.isEmpty) return null; // IMEI có thể để trống cho phụ kiện
       if (imei.length != 5) {
@@ -40,6 +41,8 @@ class UserService {
       return null;
     }
 
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   static final _db = FirebaseFirestore.instance;
   static String? _cachedShopId;
 
@@ -453,11 +456,18 @@ class UserService {
   static Future<Map<String, dynamic>?> getInvite(String code) async {
     final doc = await _db.collection('invites').doc(code).get();
     if (!doc.exists) return null;
+<<<<<<< HEAD
     final data = doc.data();
     if (data == null) return null;
     if (data['used'] == true) return null;
     final expiresAt = DateTime.tryParse(data['expiresAt']);
     if (expiresAt == null || expiresAt.isBefore(DateTime.now())) return null;
+=======
+    final data = doc.data()!;
+    if (data['used'] == true) return null;
+    final expiresAt = DateTime.parse(data['expiresAt']);
+    if (expiresAt.isBefore(DateTime.now())) return null;
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
     return data;
   }
 
@@ -477,6 +487,7 @@ class UserService {
   }
 
   /// Dành riêng cho Super Admin: xóa một user (chỉ xóa từ Firestore, không xóa auth)
+<<<<<<< HEAD
   static Future<int> getUnreadChatCount(String uid) async {
     final shopId = await getCurrentShopId();
     if (shopId == null) return 0;
@@ -498,6 +509,8 @@ class UserService {
     });
   }
 
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   static Future<void> deleteUser(String uid) async {
     final currentUser = FirebaseAuth.instance.currentUser;
     if (!_isSuperAdmin(currentUser)) return;

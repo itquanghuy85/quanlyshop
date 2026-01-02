@@ -16,6 +16,7 @@ class _IntroViewState extends State<IntroView> {
 
   final List<Map<String, String>> _introData = [
     {
+<<<<<<< HEAD
       "title": "Chào mừng đến với Shop Manager",
       "desc": "Ứng dụng quản lý cửa hàng sửa chữa điện thoại toàn diện. Dễ sử dụng, mạnh mẽ và hiệu quả cho mọi nhu cầu kinh doanh.",
       "icon": "🏪"
@@ -52,10 +53,19 @@ class _IntroViewState extends State<IntroView> {
     },
     {
       "title": "In hóa đơn & Kết nối thiết bị",
+=======
+      "title": "QUẢN LÝ KHO THÔNG MINH",
+      "desc": "Nhập kho siêu tốc bằng mã QR và IMEI. Kiểm soát hàng hóa chính xác 100% trong lòng bàn tay.",
+      "icon": "📦"
+    },
+    {
+      "title": "IN HÓA ĐƠN SIÊU CẤP",
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
       "desc": "Kết nối máy in nhiệt Bluetooth/WiFi. In tem nhãn, hóa đơn chuyên nghiệp chỉ với 1 chạm.",
       "icon": "🖨️"
     },
     {
+<<<<<<< HEAD
       "title": "Đồng bộ đám mây 24/7",
       "desc": "Dữ liệu luôn an toàn và đồng bộ tức thì giữa tất cả các máy. Quản trị shop từ xa mọi lúc mọi nơi.",
       "icon": "☁️"
@@ -64,6 +74,16 @@ class _IntroViewState extends State<IntroView> {
       "title": "Bắt đầu hành trình",
       "desc": "Khám phá tất cả tính năng và quản lý cửa hàng của bạn một cách hiệu quả. Chúc bạn thành công!",
       "icon": "🚀"
+=======
+      "title": "CHẤM CÔNG & TÍNH LƯƠNG",
+      "desc": "Nhân viên chấm công bằng Selfie thực tế. Tự động tính hoa hồng và doanh số minh bạch.",
+      "icon": "🎯"
+    },
+    {
+      "title": "ĐỒNG BỘ ĐÁM MÂY 24/7",
+      "desc": "Dữ liệu luôn an toàn và đồng bộ tức thì giữa tất cả các máy. Quản trị shop từ xa mọi lúc mọi nơi.",
+      "icon": "☁️"
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
     }
   ];
 

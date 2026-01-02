@@ -14,6 +14,7 @@ import '../services/bluetooth_printer_service.dart';
 import '../services/notification_service.dart';
 import '../services/user_service.dart';
 import '../utils/sku_generator.dart';
+<<<<<<< HEAD
 import '../widgets/printer_selection_dialog.dart';
 import '../models/printer_types.dart';
 import 'fast_inventory_input_view.dart';
@@ -21,6 +22,9 @@ import 'stock_in_view.dart';
 import 'global_search_view.dart';
 import 'fast_stock_in_view.dart';
 import 'quick_input_codes_view.dart';
+=======
+import 'fast_inventory_input_view.dart';
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 import '../widgets/currency_text_field.dart';
 import '../widgets/validated_text_field.dart';
 
@@ -36,7 +40,10 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
   List<Product> _products = [];
   List<Map<String, dynamic>> _suppliers = [];
   bool _isLoading = true;
+<<<<<<< HEAD
   int _unsyncedCount = 0;
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   bool _isAdmin = false;
   bool _hasInventoryAccess = false;
   String _searchQuery = "";
@@ -70,11 +77,17 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
   @override
   void initState() {
     super.initState();
+<<<<<<< HEAD
     _tabController = TabController(length: 1, vsync: this);
     // ensure UI updates when user switches tabs
     _tabController.addListener(() { 
       if (mounted) setState(() {}); 
     });
+=======
+    _tabController = TabController(length: 2, vsync: this);
+    // ensure UI updates when user switches tabs
+    _tabController.addListener(() { setState(() {}); });
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
     _init();
     // Re-enable inventory check initialization for QR check
     _initCheckData();
@@ -89,10 +102,17 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
 
   Widget _input(TextEditingController c, String l, IconData i, {FocusNode? f, FocusNode? next, TextInputType type = TextInputType.text, String? suffix, bool caps = false, bool isBig = false, bool readOnly = false}) {
     if (type == TextInputType.number && (l.contains('GIÁ') || l.contains('TIỀN') || suffix == 'k')) {
+<<<<<<< HEAD
       // Use ThousandCurrencyTextField for price fields
       return Padding(
         padding: const EdgeInsets.only(bottom: 10),
         child: ThousandCurrencyTextField(
+=======
+      // Use CurrencyTextField for price fields
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: CurrencyTextField(
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
           controller: c,
           label: l,
           icon: i,
@@ -115,9 +135,14 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
     }
   }
 
+<<<<<<< HEAD
   void _showProductDetail(Product p) async {
     HapticFeedback.lightImpact();
     final repairs = await db.getRepairsByImei(p.imei ?? '');
+=======
+  void _showProductDetail(Product p) {
+    HapticFeedback.lightImpact();
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -153,6 +178,7 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
             _detailItem("Chi tiết máy", p.capacity ?? ""),
             _detailItem("IMEI/Serial", p.imei ?? "N/A"),
             _detailItem("Nhà cung cấp", p.supplier ?? "N/A"),
+<<<<<<< HEAD
             _detailItem("Giá nhập", "${NumberFormat('#,###').format(p.cost ?? 0)} đ"),
             _detailItem("Giá bán", "${NumberFormat('#,###').format(p.price)} đ", color: Colors.red),
             _detailItem("Thanh toán", p.paymentMethod ?? "N/A"),
@@ -180,11 +206,16 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
                 )
               )),
             ],
+=======
+            _detailItem("Giá CPK (Lẻ)", "${NumberFormat('#,###').format(p.price)} đ", color: Colors.red),
+            _detailItem("Giá KPK", "${NumberFormat('#,###').format(p.kpkPrice ?? 0)} đ", color: Colors.blue),
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
             const Divider(height: 30),
             Row(
               children: [
                 Expanded(
                   child: ElevatedButton.icon(
+<<<<<<< HEAD
                     onPressed: () async {
                       Navigator.pop(ctx);
                       // Show printer selection dialog directly
@@ -221,10 +252,16 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
                           );
                         }
                       }
+=======
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      _printOptions(p);
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
                     },
                     icon: const Icon(Icons.qr_code_2, color: Colors.white),
                     label: const Text(
                       "IN TEM QR",
+<<<<<<< HEAD
                       style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)
                     ),
                     style: ElevatedButton.styleFrom(
@@ -248,6 +285,13 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.orange,
                       padding: const EdgeInsets.symmetric(vertical: 8)
+=======
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      padding: const EdgeInsets.symmetric(vertical: 15)
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
                     )
                   )
                 ),
@@ -261,11 +305,19 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
                     icon: const Icon(Icons.shopping_cart, color: Colors.white),
                     label: const Text(
                       "TẠO ĐƠN HÀNG",
+<<<<<<< HEAD
                       style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF2962FF),
                       padding: const EdgeInsets.symmetric(vertical: 8)
+=======
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF2962FF),
+                      padding: const EdgeInsets.symmetric(vertical: 15)
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
                     )
                   )
                 ),
@@ -274,9 +326,15 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
                   child: OutlinedButton.icon(
                     onPressed: () => Navigator.pop(ctx),
                     icon: const Icon(Icons.close),
+<<<<<<< HEAD
                     label: const Text("ĐÓNG", style: TextStyle(fontSize: 11)),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 8)
+=======
+                    label: const Text("ĐÓNG"),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 15)
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
                     )
                   )
                 )
@@ -292,6 +350,7 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
     HapticFeedback.mediumImpact();
     Navigator.push(
       context,
+<<<<<<< HEAD
       MaterialPageRoute(builder: (_) => CreateSaleView(preSelectedProduct: p)),
     ).then((_) => _refresh());
   }
@@ -505,6 +564,12 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
     }
   }
 
+=======
+      MaterialPageRoute(builder: (_) => const CreateSaleView()),
+    ).then((_) => _refresh());
+  }
+
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   Widget _detailItem(String l, String v, {Color? color}) => Padding(padding: const EdgeInsets.symmetric(vertical: 6), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(l, style: const TextStyle(color: Colors.blueGrey, fontSize: 13)), Text(v, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: color))]));
 
   Color _getBrandColor(String name) {
@@ -522,7 +587,13 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
     return const Color(0xFF2962FF);
   }
 
+<<<<<<< HEAD
 
+=======
+  void _printOptions(Product p) {
+    showModalBottomSheet(context: context, shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))), builder: (ctx) => SafeArea(child: Column(mainAxisSize: MainAxisSize.min, children: [ListTile(leading: const Icon(Icons.print, color: Colors.blue), title: const Text("In bằng máy in mặc định"), onTap: () { HapticFeedback.mediumImpact(); Navigator.pop(ctx); UnifiedPrinterService.printProductQRLabel(p.toMap()); }), ListTile(leading: const Icon(Icons.bluetooth_searching, color: Colors.orange), title: const Text("Chọn máy in khác"), onTap: () async { HapticFeedback.mediumImpact(); Navigator.pop(ctx); final list = await BluetoothPrinterService.getPairedPrinters(); if (list.isNotEmpty && mounted) { showModalBottomSheet(context: context, builder: (c) => ListView.builder(itemCount: list.length, itemBuilder: (cc, i) => ListTile(title: Text(list[i].name), subtitle: Text(list[i].macAdress), onTap: () { Navigator.pop(c); UnifiedPrinterService.printProductQRLabel(p.toMap(), customMac: list[i].macAdress); }))); } })])));
+  }
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 
   Widget _buildEmptyState() {
     return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.inventory_2_outlined, size: 80, color: Colors.grey[300]), const SizedBox(height: 10), const Text("KHO HÀNG ĐANG TRỐNG", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold))]));
@@ -551,6 +622,7 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
     });
     final data = await db.getInStockProducts();
     final suppliers = await db.getSuppliers();
+<<<<<<< HEAD
     final unsyncedCount = await db.getUnsyncedQuickInputCodesCount();
     if (!mounted) return;
     setState(() { 
@@ -559,16 +631,24 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
       _unsyncedCount = unsyncedCount;
       _isLoading = false; 
     });
+=======
+    if (!mounted) return;
+    setState(() { _products = data; _suppliers = suppliers; _isLoading = false; });
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   }
 
   Future<void> _deleteSelected() async {
     if (_selectedIds.isEmpty) return;
+<<<<<<< HEAD
     
     final passwordCtrl = TextEditingController();
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text("XÁC NHẬN XÓA"),
+<<<<<<< HEAD
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -613,6 +693,12 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red), 
             child: const Text("XÓA NGAY", style: TextStyle(color: Colors.white))
           ),
+=======
+        content: Text("Bạn có chắc chắn muốn xóa ${_selectedIds.length} mặt hàng đã chọn không?"),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("HỦY")),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), style: ElevatedButton.styleFrom(backgroundColor: Colors.red), child: const Text("XÓA NGAY", style: TextStyle(color: Colors.white))),
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
         ],
       ),
     );
@@ -787,7 +873,10 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
       return Scaffold(
         appBar: AppBar(
           title: const Text("QUẢN LÝ KHO TỔNG"),
+<<<<<<< HEAD
           automaticallyImplyLeading: true,
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
         ),
         body: const Center(
           child: Column(
@@ -811,11 +900,18 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
       appBar: AppBar(
         title: Text(
           "QUẢN LÝ KHO",
+<<<<<<< HEAD
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: _titleFontSize, color: Colors.black),
         ),
         backgroundColor: Colors.white,
         elevation: 0,
         automaticallyImplyLeading: true,
+=======
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: _titleFontSize),
+        ),
+        backgroundColor: Colors.white,
+        elevation: 0,
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
         actions: [
           IconButton(
             onPressed: () { HapticFeedback.mediumImpact(); Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateSaleView())).then((_) => _refresh()); },
@@ -823,11 +919,14 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
             tooltip: 'Bán hàng nhanh',
           ),
           IconButton(
+<<<<<<< HEAD
             onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => GlobalSearchView(role: widget.role))),
             icon: const Icon(Icons.search, color: Color(0xFF9C27B0)),
             tooltip: 'Tìm kiếm toàn app',
           ),
           IconButton(
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
             onPressed: _refresh,
             icon: const Icon(Icons.refresh, color: Colors.blue),
             tooltip: 'Làm mới',
@@ -838,11 +937,14 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
             label: const Text('NCC', style: TextStyle(fontSize: 12, color: Colors.black87)),
             style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8)),
           ),
+<<<<<<< HEAD
           IconButton(
             onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => QuickInputCodesView())),
             icon: const Icon(Icons.library_books, color: Colors.teal),
             tooltip: 'Thư viện mã nhập nhanh',
           ),
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
           const SizedBox(width: 8),
         ],
       ),
@@ -862,6 +964,7 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Row(
               children: [
+<<<<<<< HEAD
                 // Thư viện mã nhập nhanh button (primary)
                 Expanded(
                   child: Stack(
@@ -906,6 +1009,23 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
                           ),
                         ),
                     ],
+=======
+                // Kho hàng button (primary)
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () => _tabController.animateTo(0),
+                    icon: Icon(Icons.inventory, size: _iconSize),
+                    label: Text("KHO HÀNG", style: TextStyle(fontSize: _smallFontSize)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF2962FF),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+                      minimumSize: Size(double.infinity, _btnMinHeight),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -913,7 +1033,11 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
                 SizedBox(
                   width: 84,
                   child: ElevatedButton(
+<<<<<<< HEAD
                     onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StockInView())).then((_) => _refresh()),
+=======
+                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FastInventoryInputView())).then((_) => _refresh()),
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF2962FF),
                       foregroundColor: Colors.white,
@@ -933,6 +1057,7 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
                     ),
                   ),
                 ),
+<<<<<<< HEAD
                 const SizedBox(width: 8),
                 // Nhập nhanh button
                 SizedBox(
@@ -958,6 +1083,8 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
                     ),
                   ),
                 ),
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
               ],
             ),
           ),
@@ -1353,11 +1480,15 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
       child: InkWell(
         onLongPress: () {
           HapticFeedback.heavyImpact();
+<<<<<<< HEAD
           if (widget.role == 'owner' || widget.role == 'admin' || UserService.isCurrentUserSuperAdmin()) {
             _showProductActionDialog(p);
           } else {
             _toggleSelection(p.id!);
           }
+=======
+          _toggleSelection(p.id!);
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
         },
         onTap: () => _isSelectionMode ? _toggleSelection(p.id!) : _showProductDetail(p),
         borderRadius: BorderRadius.circular(12),
@@ -1421,6 +1552,7 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
                         ),
                       ],
                     ),
+<<<<<<< HEAD
                     const SizedBox(height: 2),
                     Row(
                       children: [
@@ -1435,6 +1567,8 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
                         ),
                       ],
                     ),
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
                   ],
                 ),
               ),
@@ -1490,12 +1624,20 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
 
   void _showAddProductDialog() {
     final nameC = TextEditingController(); final imeiC = TextEditingController();
+<<<<<<< HEAD
     final costC = TextEditingController();
     final priceC = TextEditingController();
     final detailC = TextEditingController();
     final qtyC = TextEditingController(text: "1");
     final nameF = FocusNode(); final imeiF = FocusNode(); final costF = FocusNode();
     final priceF = FocusNode(); final qtyF = FocusNode();
+=======
+    final costC = TextEditingController(); final kpkPriceC = TextEditingController();
+    final pkPriceC = TextEditingController(); final detailC = TextEditingController(); 
+    final qtyC = TextEditingController(text: "1");
+    final nameF = FocusNode(); final imeiF = FocusNode(); final costF = FocusNode();
+    final kpkF = FocusNode(); final pkF = FocusNode(); final qtyF = FocusNode();
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
     
     // SKU fields
     String selectedNhom = 'IP'; // Default nhóm
@@ -1546,13 +1688,18 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
           final int ts = DateTime.now().millisecondsSinceEpoch;
           final String imei = imeiC.text.trim();
           final String fId = "prod_${ts}_${imei.isNotEmpty ? imei : ts}";
+<<<<<<< HEAD
           final p = Product(firestoreId: fId, name: skuC.text.toUpperCase(), model: modelC.text.trim().isNotEmpty ? modelC.text.trim() : null, imei: imei, cost: parseK(costC.text), price: parseK(priceC.text), capacity: detailC.text.toUpperCase(), quantity: int.tryParse(qtyC.text) ?? 1, type: type, createdAt: ts, supplier: supplier, status: 1);
+=======
+          final p = Product(firestoreId: fId, name: skuC.text.toUpperCase(), imei: imei, cost: parseK(costC.text), kpkPrice: parseK(kpkPriceC.text), price: parseK(pkPriceC.text), capacity: detailC.text.toUpperCase(), quantity: int.tryParse(qtyC.text) ?? 1, type: type, createdAt: ts, supplier: supplier, status: 1);
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
           final user = FirebaseAuth.instance.currentUser;
           final userName = user?.email?.split('@').first.toUpperCase() ?? "NV";
           await db.logAction(userId: user?.uid ?? "0", userName: userName, action: "NHẬP KHO", type: "PRODUCT", targetId: p.imei, desc: "Đã nhập máy ${p.name}");
           if (payMethod != "CÔNG NỢ") {
             await db.insertExpense({'title': "NHẬP HÀNG: ${p.name}", 'amount': p.cost * p.quantity, 'category': "NHẬP HÀNG", 'date': ts, 'paymentMethod': payMethod, 'note': "Nhập từ $supplier"});
           } else {
+<<<<<<< HEAD
             await db.insertDebt({'personName': supplier, 'totalAmount': p.cost * p.quantity, 'paidAmount': 0, 'type': "SHOP_OWES", 'status': "ACTIVE", 'createdAt': ts, 'note': "Nợ tiền máy ${p.name}"});
           }
           await db.upsertProduct(p); await FirestoreService.addProduct(p);
@@ -1603,6 +1750,11 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
             }
           }
 
+=======
+            await db.insertDebt({'personName': supplier, 'totalAmount': p.cost * p.quantity, 'paidAmount': 0, 'type': "SHOP_OWES", 'status': "unpaid", 'createdAt': ts, 'note': "Nợ tiền máy ${p.name}"});
+          }
+          await db.upsertProduct(p); await FirestoreService.addProduct(p);
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
           HapticFeedback.lightImpact();
           if (next) { imeiC.clear(); setS(() => isSaving = false); if (mounted) { FocusScope.of(context).requestFocus(imeiF); NotificationService.showSnackBar("ĐÃ THÊM MÁY", color: Colors.blue); } }
           else { if (mounted) { Navigator.of(context).pop(); _refresh(); NotificationService.showSnackBar("NHẬP KHO THÀNH CÔNG", color: Colors.green); } }
@@ -1632,10 +1784,20 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
           _input(imeiC, "Số IMEI / Serial", Icons.fingerprint, f: imeiF, next: costF, type: TextInputType.number),
 
           // Giá vốn
+<<<<<<< HEAD
           _input(costC, "Giá vốn (k)", Icons.money, f: costF, next: priceF, type: TextInputType.number, suffix: "k"),
 
           // Giá bán
           _input(priceC, "Giá bán (k)", Icons.sell, f: priceF, next: qtyF, type: TextInputType.number, suffix: "k"),
+=======
+          _input(costC, "Giá vốn (k)", Icons.money, f: costF, next: kpkF, type: TextInputType.number, suffix: "k"),
+
+          // Giá KPK
+          _input(kpkPriceC, "Giá KPK (k)", Icons.card_giftcard, f: kpkF, next: pkF, type: TextInputType.number, suffix: "k"),
+
+          // Giá CPK - Lẻ
+          _input(pkPriceC, "GIÁ CPK - LẺ (k)", Icons.sell, f: pkF, next: qtyF, type: TextInputType.number, suffix: "k"),
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 
           // Số lượng và Nhà cung cấp
           Row(children: [
@@ -1698,6 +1860,7 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
       );
     }));
   }
+<<<<<<< HEAD
 
   void _editProduct(Product p) {
     final nameC = TextEditingController(text: p.name);
@@ -1823,4 +1986,6 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
       default: return Colors.black;
     }
   }
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 }

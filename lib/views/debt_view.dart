@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+<<<<<<< HEAD
 import 'dart:async';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -8,6 +9,14 @@ import '../services/firestore_service.dart';
 import '../services/sync_service.dart';
 import '../services/event_bus.dart';
 import '../services/user_service.dart';
+=======
+import 'package:intl/intl.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../data/db_helper.dart';
+import '../services/user_service.dart';
+import '../services/notification_service.dart';
+import '../services/firestore_service.dart';
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 import '../widgets/currency_text_field.dart';
 
 class DebtView extends StatefulWidget {
@@ -21,14 +30,19 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
   late TabController _tabController;
   List<Map<String, dynamic>> _debts = [];
   bool _isLoading = true;
+<<<<<<< HEAD
   bool _isSyncing = false;
   String _syncStatus = 'Đã đồng bộ';
   StreamSubscription<String>? _eventSub;
   bool _hasPermission = false;
+=======
+  bool _isAdmin = false;
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 
   @override
   void initState() {
     super.initState();
+<<<<<<< HEAD
     _tabController = TabController(length: 3, vsync: this);
     _checkPermission();
     _loadRole();
@@ -38,16 +52,25 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
     _eventSub = EventBus().stream.where((e) => e == 'debts_changed').listen((_) {
       if (mounted) _refresh();
     });
+=======
+    _tabController = TabController(length: 2, vsync: this);
+    _loadRole();
+    _refresh();
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+<<<<<<< HEAD
     _eventSub?.cancel();
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
     super.dispose();
   }
 
   Future<void> _loadRole() async {
+<<<<<<< HEAD
     // Role loading not needed for current functionality
   }
 
@@ -55,6 +78,11 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
     final perms = await UserService.getCurrentUserPermissions();
     if (!mounted) return;
     setState(() => _hasPermission = perms['allowViewDebts'] ?? false);
+=======
+    final perms = await UserService.getCurrentUserPermissions();
+    if (!mounted) return;
+    setState(() => _isAdmin = perms['allowViewDebts'] ?? false);
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   }
 
   Future<void> _refresh() async {
@@ -64,6 +92,7 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
     setState(() { _debts = data; _isLoading = false; });
   }
 
+<<<<<<< HEAD
   Future<void> _syncWithFirebase() async {
     if (_isSyncing) return;
     
@@ -98,6 +127,8 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
     }
   }
 
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
   void _showDebtHistory(Map<String, dynamic> debt) async {
     final payments = await db.getDebtPayments(debt['id']);
     if (!mounted) return;
@@ -151,7 +182,11 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
             ElevatedButton(
               onPressed: () { Navigator.pop(ctx); _payDebt(debt); },
               style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2962FF)),
+<<<<<<< HEAD
               child: Text("THU TIỀN TRẢ NỢ", style: TextStyle(color: Theme.of(context).colorScheme.onPrimary, fontWeight: FontWeight.bold)),
+=======
+              child: const Text("THU TIỀN TRẢ NỢ", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
             ),
           ],
         ),
@@ -162,8 +197,11 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
   void _payDebt(Map<String, dynamic> debt) {
     final payC = TextEditingController();
     String method = "TIỀN MẶT";
+<<<<<<< HEAD
     int? payAmount; // Lưu giá trị đã nhân 1000 từ widget
 
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
@@ -172,12 +210,16 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+<<<<<<< HEAD
               ThousandCurrencyTextField(
                 controller: payC,
                 label: "SỐ TIỀN THU",
                 required: true,
                 onCompleted: (value) => payAmount = value,
               ),
+=======
+              CurrencyTextField(controller: payC, label: "SỐ TIỀN THU (Ví dụ: 500 = 500k)"),
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
               const SizedBox(height: 15),
               Wrap(spacing: 8, children: ["TIỀN MẶT", "CHUYỂN KHOẢN"].map((m) => ChoiceChip(
                 label: Text(m, style: const TextStyle(fontSize: 10)), selected: method == m,
@@ -188,10 +230,19 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("HỦY")),
             ElevatedButton(onPressed: () async {
+<<<<<<< HEAD
               if (payAmount == null || payAmount! <= 0) {
                 NotificationService.showSnackBar("Vui lòng nhập số tiền hợp lệ!", color: Colors.red);
                 return;
               }
+=======
+              // --- XỬ LÝ QUY ƯỚC NHẬP NHANH (x1000) ---
+              int rawAmount = int.tryParse(payC.text.replaceAll('.', '')) ?? 0;
+              if (rawAmount <= 0) return;
+              
+              // Nếu nhập số nhỏ (dưới 100k) thì tự động nhân 1000
+              int payAmount = (rawAmount > 0 && rawAmount < 100000) ? rawAmount * 1000 : rawAmount;
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 
               final user = FirebaseAuth.instance.currentUser;
               final userName = user?.email?.split('@').first.toUpperCase() ?? "NV";
@@ -201,11 +252,14 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
               int alreadyPaid = debt['paidAmount'] ?? 0;
               int remain = total - alreadyPaid;
 
+<<<<<<< HEAD
               if (payAmount! > remain) {
                 NotificationService.showSnackBar("Số tiền trả không được vượt số nợ còn lại!", color: Colors.red);
                 return;
               }
 
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
               // 1. Lưu lịch sử chi tiết
               await db.insertDebtPayment({
                 'firestoreId': "pay_${now}_${user?.uid}",
@@ -217,6 +271,7 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
                 'createdBy': userName,
               });
 
+<<<<<<< HEAD
               // 2. Update paid amount: always apply the actual payment amount.
               await db.updateDebtPaid(debt['id'], payAmount!);
 
@@ -252,6 +307,33 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
                 await db.cleanDuplicateData();
               } catch (e) {
                 debugPrint('Error cleaning duplicate data: $e');
+=======
+              // 2. LOGIC TỰ TẠO ĐƠN NỢ MỚI NẾU CHƯA HẾT
+              if (payAmount < remain) {
+                await db.updateDebtPaid(debt['id'], remain);
+                int newDebtAmount = remain - payAmount;
+                final newDebtData = {
+                  'firestoreId': "debt_${now}_carried",
+                  'personName': debt['personName'],
+                  'phone': debt['phone'],
+                  'totalAmount': newDebtAmount,
+                  'paidAmount': 0,
+                  'type': debt['type'],
+                  'status': 'unpaid',
+                  'createdAt': now,
+                  'note': "Dư nợ chuyển sang từ đơn ngày ${DateFormat('dd/MM').format(DateTime.fromMillisecondsSinceEpoch(debt['createdAt']))}",
+                  'linkedId': debt['linkedId'],
+                };
+                await db.insertDebt(newDebtData);
+                await FirestoreService.addDebtCloud(newDebtData);
+              } else {
+                await db.updateDebtPaid(debt['id'], payAmount);
+              }
+
+              // 3. Cập nhật đơn hàng liên kết (nếu có)
+              if (debt['linkedId'] != null) {
+                await db.updateOrderStatusFromDebt(debt['linkedId'], alreadyPaid + payAmount);
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
               }
 
               // 4. Đồng bộ Cloud
@@ -283,6 +365,7 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
       backgroundColor: const Color(0xFFF0F4F8),
       appBar: AppBar(
         title: const Text("QUẢN LÝ CÔNG NỢ", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+<<<<<<< HEAD
         automaticallyImplyLeading: true,
         actions: [
           Row(
@@ -308,15 +391,22 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
             ],
           ),
         ],
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
         bottom: TabBar(
           controller: _tabController,
           labelColor: const Color(0xFF2962FF),
           indicatorColor: const Color(0xFF2962FF),
+<<<<<<< HEAD
           tabs: const [Tab(text: "KHÁCH NỢ"), Tab(text: "SHOP NỢ NCC"), Tab(text: "CÔNG NỢ KHÁC")],
+=======
+          tabs: const [Tab(text: "KHÁCH NỢ"), Tab(text: "SHOP NỢ NCC")],
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
         ),
       ),
       body: _isLoading ? const Center(child: CircularProgressIndicator()) : TabBarView(
         controller: _tabController,
+<<<<<<< HEAD
         children: [_buildDebtList('CUSTOMER_OWES'), _buildDebtList('SHOP_OWES'), _buildDebtList('OTHER')],
       ),
       floatingActionButton: FloatingActionButton(
@@ -332,11 +422,15 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
         backgroundColor: _tabController.index == 0 ? Colors.redAccent : _tabController.index == 1 ? Colors.blueAccent : Colors.purpleAccent,
         child: Icon(Icons.add, color: Theme.of(context).colorScheme.onPrimary),
         tooltip: _tabController.index == 0 ? 'Tạo nợ khách hàng' : _tabController.index == 1 ? 'Tạo nợ nhà cung cấp' : 'Tạo công nợ khác',
+=======
+        children: [_buildDebtList('CUSTOMER_OWES'), _buildDebtList('SHOP_OWES')],
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
       ),
     );
   }
 
   Widget _buildDebtList(String type) {
+<<<<<<< HEAD
     List<Map<String, dynamic>> list;
     if (type == 'OTHER') {
       list = _debts
@@ -358,10 +452,14 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
           .toList();
     }
 
+=======
+    final list = _debts.where((d) => d['type'] == type && (d['status'] != 'paid')).toList();
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
     if (list.isEmpty) {
       return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.receipt_long_outlined, size: 80, color: Colors.grey[300]), const SizedBox(height: 10), const Text("Hiện tại không có khoản nợ nào", style: TextStyle(color: Colors.grey))]));
     }
 
+<<<<<<< HEAD
     if (type == 'OTHER') {
       // For OTHER tab, separate into receivable and payable debts
       final receivableDebts = list.where((d) => d['type'] == 'OTHER_CUSTOMER_OWES').toList();
@@ -460,6 +558,9 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
       final int remain = total - paid;
       return remain > 0 ? sum + remain : sum;
     });
+=======
+    int totalRemain = list.fold(0, (sum, d) => sum + (d['totalAmount'] as int) - (d['paidAmount'] as int? ?? 0));
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 
     return Column(
       children: [
@@ -520,6 +621,7 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
   }
 
   Widget _miniValue(String l, int v, Color c) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(l, style: const TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: Colors.grey)), Text(NumberFormat('#,###').format(v), style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: c))]);
+<<<<<<< HEAD
 
   void _createOtherDebt() {
     final nameC = TextEditingController();
@@ -805,4 +907,6 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
       ),
     );
   }
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 }

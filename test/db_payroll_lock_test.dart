@@ -1,6 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+<<<<<<< HEAD
 import 'package:quanlyshop/data/db_helper.dart';
+=======
+import 'package:QuanLyShop/data/db_helper.dart';
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 
 void main() {
   // Initialize sqflite for ffi (tests)

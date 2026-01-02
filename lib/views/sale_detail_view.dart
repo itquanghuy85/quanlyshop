@@ -13,12 +13,18 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models/sale_order_model.dart';
 import '../data/db_helper.dart';
 import '../services/firestore_service.dart';
+<<<<<<< HEAD
 import '../services/event_bus.dart';
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 import '../services/user_service.dart';
 import '../services/audit_service.dart';
 import '../services/unified_printer_service.dart';
 import '../services/bluetooth_printer_service.dart';
+<<<<<<< HEAD
 import '../widgets/currency_text_field.dart';
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 import '../models/printer_types.dart';
 import '../widgets/printer_selection_dialog.dart';
 
@@ -181,11 +187,17 @@ class _SaleDetailViewState extends State<SaleDetailView> {
   }
 
   Future<void> _openSettlementDialog() async {
+<<<<<<< HEAD
     final amountCtrl = TextEditingController(text: ((s.settlementAmount > 0 ? s.settlementAmount : s.loanAmount) ~/ 1000).toString());
     final feeCtrl = TextEditingController(text: (s.settlementFee > 0 ? (s.settlementFee ~/ 1000).toString() : "0"));
     final noteCtrl = TextEditingController(text: s.settlementNote ?? "");
     int? receivedAmount; // Lưu giá trị đã nhân 1000 từ widget
     int? feeAmount; // Lưu giá trị đã nhân 1000 từ widget
+=======
+    final amountCtrl = TextEditingController(text: ((s.settlementAmount > 0 ? s.settlementAmount : s.loanAmount) / 1000).toStringAsFixed(0));
+    final feeCtrl = TextEditingController(text: (s.settlementFee > 0 ? (s.settlementFee / 1000).toStringAsFixed(0) : "0"));
+    final noteCtrl = TextEditingController(text: s.settlementNote ?? "");
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 
     final ok = await showDialog<bool>(
       context: context,
@@ -194,6 +206,7 @@ class _SaleDetailViewState extends State<SaleDetailView> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+<<<<<<< HEAD
             ThousandCurrencyTextField(
               controller: amountCtrl,
               label: "Số tiền nhận",
@@ -208,6 +221,11 @@ class _SaleDetailViewState extends State<SaleDetailView> {
               icon: Icons.money_off,
               onCompleted: (value) => feeAmount = value,
             ),
+=======
+            TextField(controller: amountCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "Số tiền nhận (.000đ)", prefixText: "Đ ", suffixText: ".000")),
+            const SizedBox(height: 8),
+            TextField(controller: feeCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "Phí NH giữ lại (.000đ)", prefixText: "Đ ", suffixText: ".000")),
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
             const SizedBox(height: 8),
             TextField(controller: noteCtrl, decoration: const InputDecoration(labelText: "Ghi chú")),
           ],
@@ -221,8 +239,13 @@ class _SaleDetailViewState extends State<SaleDetailView> {
 
     if (ok != true) return;
 
+<<<<<<< HEAD
     final received = receivedAmount ?? 0;
     final fee = feeAmount ?? 0;
+=======
+    final received = (int.tryParse(amountCtrl.text) ?? 0) * 1000;
+    final fee = (int.tryParse(feeCtrl.text) ?? 0) * 1000;
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
     final nowMs = DateTime.now().millisecondsSinceEpoch;
 
     setState(() {
@@ -264,14 +287,22 @@ class _SaleDetailViewState extends State<SaleDetailView> {
     final address = TextEditingController(text: s.address);
     final products = TextEditingController(text: s.productNames);
     final imeis = TextEditingController(text: s.productImeis);
+<<<<<<< HEAD
     final totalPrice = TextEditingController(text: (s.totalPrice ~/ 1000).toString());
     final totalCost = TextEditingController(text: (s.totalCost ~/ 1000).toString());
+=======
+    final totalPrice = TextEditingController(text: (s.totalPrice / 1000).toStringAsFixed(0));
+    final totalCost = TextEditingController(text: (s.totalCost / 1000).toStringAsFixed(0));
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
     final notes = TextEditingController(text: s.notes ?? "");
     final warranties = ["KO BH", "1 THÁNG", "3 THÁNG", "6 THÁNG", "12 THÁNG"];
     String warranty = s.warranty ?? "KO BH";
     String payment = s.paymentMethod;
+<<<<<<< HEAD
     int? totalPriceAmount; // Lưu giá trị đã nhân 1000 từ widget
     int? totalCostAmount; // Lưu giá trị đã nhân 1000 từ widget
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
 
     final ok = await showDialog<bool>(
       context: context,
@@ -286,6 +317,7 @@ class _SaleDetailViewState extends State<SaleDetailView> {
               TextField(controller: address, decoration: const InputDecoration(labelText: "Địa chỉ")),
               TextField(controller: products, decoration: const InputDecoration(labelText: "Sản phẩm")),
               TextField(controller: imeis, decoration: const InputDecoration(labelText: "IMEI/Serial")),
+<<<<<<< HEAD
               ThousandCurrencyTextField(
                 controller: totalPrice,
                 label: "Tổng tiền",
@@ -298,6 +330,10 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                 required: true,
                 onCompleted: (value) => totalCostAmount = value,
               ),
+=======
+              TextField(controller: totalPrice, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "Tổng tiền (.000)")),
+              TextField(controller: totalCost, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "Giá vốn (.000)")),
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
               DropdownButtonFormField<String>(initialValue: warranty, decoration: const InputDecoration(labelText: "Bảo hành"), items: warranties.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(), onChanged: (v) => warranty = v ?? warranty),
               DropdownButtonFormField<String>(
                 initialValue: payment,
@@ -326,8 +362,13 @@ class _SaleDetailViewState extends State<SaleDetailView> {
       s.address = address.text.trim().toUpperCase();
       s.productNames = products.text.trim().toUpperCase();
       s.productImeis = imeis.text.trim().toUpperCase();
+<<<<<<< HEAD
       s.totalPrice = totalPriceAmount ?? s.totalPrice;
       s.totalCost = totalCostAmount ?? s.totalCost;
+=======
+      s.totalPrice = (int.tryParse(totalPrice.text) ?? 0) * 1000;
+      s.totalCost = (int.tryParse(totalCost.text) ?? 0) * 1000;
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
       s.warranty = warranty;
       s.paymentMethod = payment;
       if (payment != 'TRẢ GÓP (NH)') {
@@ -344,6 +385,7 @@ class _SaleDetailViewState extends State<SaleDetailView> {
     });
 
     await db.updateSale(s);
+<<<<<<< HEAD
 
     // Update debt if payment method is debt
     if (s.paymentMethod == 'CÔNG NỢ') {
@@ -385,6 +427,17 @@ class _SaleDetailViewState extends State<SaleDetailView> {
         await FirestoreService.addDebtCloud(linkedDebt);
         EventBus().emit('debts_changed');
       }
+=======
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ĐÃ CẬP NHẬT ĐƠN BÁN")));
+      AuditService.logAction(
+        action: 'UPDATE_SALE',
+        entityType: 'sale',
+        entityId: s.firestoreId ?? "sale_${s.soldAt}",
+        summary: s.customerName,
+        payload: {'paymentMethod': s.paymentMethod, 'totalPrice': s.totalPrice},
+      );
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
     }
   }
 
@@ -480,7 +533,10 @@ class _SaleDetailViewState extends State<SaleDetailView> {
         backgroundColor: _primaryColor,
         foregroundColor: Colors.white,
         elevation: 2,
+<<<<<<< HEAD
         automaticallyImplyLeading: true,
+=======
+>>>>>>> b5bd6ff7fc4a5fad82eac68e9a8c1a891e5415b6
         title: const Text("CHI TIẾT ĐƠN BÁN", style: TextStyle(fontWeight: FontWeight.bold)),
         actions: [
           if (_checkingManager)
