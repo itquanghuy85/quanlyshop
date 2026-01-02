@@ -343,7 +343,7 @@ class _FastStockInViewState extends State<FastStockInView> {
         await db.insertSupplierProductPrice(supplierPrice);
 
         // Cập nhật thống kê nhà cung cấp
-        await db.updateSupplierStats(supplierId);
+        await db.updateSupplierStats(supplierId, cost * quantity, quantity);
       }
 
       // Xử lý công nợ nhà cung cấp - ĐƠN GIẢN VÀ TRỰC TIẾP

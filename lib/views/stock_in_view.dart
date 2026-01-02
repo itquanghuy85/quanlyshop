@@ -384,7 +384,7 @@ class _StockInViewState extends State<StockInView> {
           await db.insertSupplierProductPrice(supplierPrice);
 
           // Cập nhật thống kê nhà cung cấp
-          await db.updateSupplierStats(supplierId);
+          await db.updateSupplierStats(supplierId, product.cost * quantity, quantity);
         }
       }
 

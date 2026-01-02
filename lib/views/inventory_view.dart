@@ -1602,7 +1602,7 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
               await db.insertSupplierProductPrice(supplierPrice);
 
               // Cập nhật thống kê nhà cung cấp
-              await db.updateSupplierStats(supplierId);
+              await db.updateSupplierStats(supplierId, p.cost * p.quantity, p.quantity);
             }
           }
 
