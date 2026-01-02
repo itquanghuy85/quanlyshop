@@ -799,6 +799,8 @@ class _WorkScheduleSettingsViewState extends State<WorkScheduleSettingsView> wit
               ),
             ),
           ],
+
+          const SizedBox(height: 16), // Add bottom padding to prevent overflow
         ],
       ),
     );

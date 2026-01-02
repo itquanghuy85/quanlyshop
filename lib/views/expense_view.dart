@@ -33,6 +33,21 @@ class _ExpenseViewState extends State<ExpenseView> {
   String _filterType = 'THÁNG'; // NGÀY, TUẦN, THÁNG
   DateTime _selectedDate = DateTime.now();
 
+  int _safeInt(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value) ?? 0;
+    return 0;
+  }
+
+  int _parseVndAmountFromText(String text) {
+    // Keep existing business rule: if parsed amount is < 100000, treat as x1000.
+    final digitsOnly = text.replaceAll(RegExp(r'[^0-9]'), '');
+    int amount = int.tryParse(digitsOnly) ?? 0;
+    if (amount > 0 && amount < 100000) amount *= 1000;
+    return amount;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -66,8 +81,8 @@ class _ExpenseViewState extends State<ExpenseView> {
       final purchaseExpenses = purchaseDebts.map((po) => {
         'id': 'po_${po['id']}',
         'title': 'Đơn nhập: ${po['orderCode']} - ${po['supplierName']}',
-        'amount': po['totalCost'],
-        'date': po['createdAt'],
+        'amount': _safeInt(po['totalCost']),
+        'date': _safeInt(po['createdAt']),
         'category': 'ĐƠN NHẬP HÀNG',
         'createdBy': po['createdBy'],
         'note': po['notes'],
@@ -131,7 +146,7 @@ class _ExpenseViewState extends State<ExpenseView> {
     switch (_filterType) {
       case 'NGÀY':
         filtered = _expenses.where((e) {
-          final d = DateTime.fromMillisecondsSinceEpoch(e['date']);
+          final d = DateTime.fromMillisecondsSinceEpoch(_safeInt(e['date']));
           return d.day == _selectedDate.day && 
                  d.month == _selectedDate.month && 
                  d.year == _selectedDate.year;
@@ -142,21 +157,21 @@ class _ExpenseViewState extends State<ExpenseView> {
         DateTime startOfWeek = _selectedDate.subtract(Duration(days: _selectedDate.weekday - 1));
         DateTime endOfWeek = startOfWeek.add(const Duration(days: 6));
         filtered = _expenses.where((e) {
-          final d = DateTime.fromMillisecondsSinceEpoch(e['date']);
+          final d = DateTime.fromMillisecondsSinceEpoch(_safeInt(e['date']));
           return d.isAfter(startOfWeek.subtract(const Duration(days: 1))) && 
                  d.isBefore(endOfWeek.add(const Duration(days: 1)));
         }).toList();
         break;
       case 'THÁNG':
         filtered = _expenses.where((e) {
-          final d = DateTime.fromMillisecondsSinceEpoch(e['date']);
+          final d = DateTime.fromMillisecondsSinceEpoch(_safeInt(e['date']));
           return d.month == _selectedDate.month && d.year == _selectedDate.year;
         }).toList();
         break;
       default:
         // Default to current month if no filter
         filtered = _expenses.where((e) {
-          final d = DateTime.fromMillisecondsSinceEpoch(e['date']);
+          final d = DateTime.fromMillisecondsSinceEpoch(_safeInt(e['date']));
           return d.month == now.month && d.year == now.year;
         }).toList();
         break;
@@ -404,9 +419,7 @@ class _ExpenseViewState extends State<ExpenseView> {
                           return;
                         setS(() => _isSaving = true);
 
-                        int amount =
-                            int.tryParse(amountC.text.replaceAll('.', '')) ?? 0;
-                        if (amount > 0 && amount < 100000) amount *= 1000;
+                        final int amount = _parseVndAmountFromText(amountC.text);
 
                         final String fId =
                             "exp_${DateTime.now().millisecondsSinceEpoch}_${titleC.text.hashCode}";
@@ -473,7 +486,7 @@ class _ExpenseViewState extends State<ExpenseView> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: type == TextInputType.number
-          ? CurrencyTextField(controller: c, label: l, icon: i)
+          ? ThousandCurrencyTextField(controller: c, label: l, icon: i)
           : ValidatedTextField(
               controller: c,
               label: l,
@@ -501,10 +514,7 @@ class _ExpenseViewState extends State<ExpenseView> {
       );
     }
 
-    int totalAmount = _filteredExpenses.fold(
-      0,
-      (sum, e) => sum + (e['amount'] as int),
-    );
+    int totalAmount = _filteredExpenses.fold(0, (sum, e) => sum + _safeInt(e['amount']));
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFF),

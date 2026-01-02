@@ -89,10 +89,10 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
 
   Widget _input(TextEditingController c, String l, IconData i, {FocusNode? f, FocusNode? next, TextInputType type = TextInputType.text, String? suffix, bool caps = false, bool isBig = false, bool readOnly = false}) {
     if (type == TextInputType.number && (l.contains('GIÁ') || l.contains('TIỀN') || suffix == 'k')) {
-      // Use CurrencyTextField for price fields
+      // Use ThousandCurrencyTextField for price fields
       return Padding(
         padding: const EdgeInsets.only(bottom: 10),
-        child: CurrencyTextField(
+        child: ThousandCurrencyTextField(
           controller: c,
           label: l,
           icon: i,
@@ -335,12 +335,12 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
                 label: 'Nhà cung cấp',
               ),
               const SizedBox(height: 12),
-              CurrencyTextField(
+              ThousandCurrencyTextField(
                 controller: costCtrl,
                 label: 'Giá nhập (VNĐ)',
               ),
               const SizedBox(height: 12),
-              CurrencyTextField(
+              ThousandCurrencyTextField(
                 controller: priceCtrl,
                 label: 'Giá bán (VNĐ)',
               ),

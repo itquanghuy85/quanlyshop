@@ -217,31 +217,12 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
                 'createdBy': userName,
               });
 
-              // 2. LOGIC TỰ TẠO ĐƠN NỢ MỚI NẾU CHƯA HẾT
-              if (payAmount! < remain) {
-                await db.updateDebtPaid(debt['id'], remain);
-                int newDebtAmount = remain - payAmount!;
-                final newDebtData = {
-                  'firestoreId': "debt_${now}_carried",
-                  'personName': debt['personName'],
-                  'phone': debt['phone'],
-                  'totalAmount': newDebtAmount,
-                  'paidAmount': 0,
-                  'type': debt['type'],
-                  'status': 'ACTIVE',
-                  'createdAt': now,
-                  'note': "Dư nợ chuyển sang từ đơn ngày ${DateFormat('dd/MM').format(DateTime.fromMillisecondsSinceEpoch(debt['createdAt']))}",
-                  'linkedId': debt['linkedId'],
-                };
-                await db.insertDebt(newDebtData);
-                await FirestoreService.addDebtCloud(newDebtData);
-              } else {
-                await db.updateDebtPaid(debt['id'], payAmount!);
-              }
+              // 2. Update paid amount: always apply the actual payment amount.
+              await db.updateDebtPaid(debt['id'], payAmount!);
 
               // 3. Cập nhật đơn hàng liên kết (nếu có)
               if (debt['linkedId'] != null) {
-                await db.updateOrderStatusFromDebt(debt['linkedId'], alreadyPaid + payAmount);
+                await db.updateOrderStatusFromDebt(debt['linkedId'], alreadyPaid + (payAmount ?? 0));
                 // Cập nhật Cloud cho order
                 if (debt['linkedId'].startsWith('sale_')) {
                   final sales = await db.getAllSales();
@@ -358,9 +339,23 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
   Widget _buildDebtList(String type) {
     List<Map<String, dynamic>> list;
     if (type == 'OTHER') {
-      list = _debts.where((d) => d['type'].toString().startsWith('OTHER_') && (d['status'] != 'paid')).toList();
+      list = _debts
+          .where((d) {
+            if (!d['type'].toString().startsWith('OTHER_')) return false;
+            final int total = (d['totalAmount'] as int?) ?? 0;
+            final int paid = (d['paidAmount'] as int?) ?? 0;
+            return (total - paid) > 0;
+          })
+          .toList();
     } else {
-      list = _debts.where((d) => d['type'] == type && (d['status'] != 'paid')).toList();
+      list = _debts
+          .where((d) {
+            if (d['type'] != type) return false;
+            final int total = (d['totalAmount'] as int?) ?? 0;
+            final int paid = (d['paidAmount'] as int?) ?? 0;
+            return (total - paid) > 0;
+          })
+          .toList();
     }
 
     if (list.isEmpty) {
@@ -654,6 +649,7 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
                 return;
               }
 
+              try {
                 final user = FirebaseAuth.instance.currentUser;
                 final userName = user?.email?.split('@').first.toUpperCase() ?? "NV";
                 final now = DateTime.now().millisecondsSinceEpoch;
@@ -730,6 +726,7 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
                 return;
               }
 
+              try {
                 final user = FirebaseAuth.instance.currentUser;
                 final userName = user?.email?.split('@').first.toUpperCase() ?? "NV";
                 final now = DateTime.now().millisecondsSinceEpoch;

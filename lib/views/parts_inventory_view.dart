@@ -50,9 +50,11 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
   void _showAddPartDialog({Map<String, dynamic>? part}) {
     final nameC = TextEditingController(text: part?['partName']);
     final modelC = TextEditingController(text: part?['compatibleModels']);
-    final costC = TextEditingController(text: part != null ? (part['cost'] / 1000).toStringAsFixed(0) : "");
-    final priceC = TextEditingController(text: part != null ? (part['price'] / 1000).toStringAsFixed(0) : "");
+    final costC = TextEditingController(text: part != null ? (part['cost'] ~/ 1000).toString() : "");
+    final priceC = TextEditingController(text: part != null ? (part['price'] ~/ 1000).toString() : "");
     final qtyC = TextEditingController(text: part != null ? part['quantity'].toString() : "1");
+    int? costAmount; // Lưu giá trị đã nhân 1000 từ widget
+    int? priceAmount; // Lưu giá trị đã nhân 1000 từ widget
 
     showDialog(
       context: context,
@@ -68,9 +70,17 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                   ValidatedTextField(controller: nameC, label: "Tên linh kiện (VD: PIN IPHONE 11)", icon: Icons.inventory, uppercase: true, required: true),
                   ValidatedTextField(controller: modelC, label: "Dòng máy tương thích", icon: Icons.phone_android, uppercase: true),
                   Row(children: [
-                    Expanded(child: CurrencyTextField(controller: costC, label: "Giá vốn")),
+                    Expanded(child: ThousandCurrencyTextField(
+                      controller: costC,
+                      label: "Giá vốn",
+                      onCompleted: (value) => costAmount = value,
+                    )),
                     const SizedBox(width: 10),
-                    Expanded(child: CurrencyTextField(controller: priceC, label: "Giá bán")),
+                    Expanded(child: ThousandCurrencyTextField(
+                      controller: priceC,
+                      label: "Giá bán",
+                      onCompleted: (value) => priceAmount = value,
+                    )),
                   ]),
                   ValidatedTextField(controller: qtyC, label: "Số lượng nhập", icon: Icons.numbers, keyboardType: TextInputType.number),
                 ],
@@ -85,8 +95,8 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                     final data = {
                       'partName': nameC.text.toUpperCase(),
                       'compatibleModels': modelC.text.toUpperCase(),
-                      'cost': (int.tryParse(costC.text) ?? 0) * 1000,
-                      'price': (int.tryParse(priceC.text) ?? 0) * 1000,
+                      'cost': costAmount ?? 0,
+                      'price': priceAmount ?? 0,
                       'quantity': int.tryParse(qtyC.text) ?? 0,
                       'updatedAt': DateTime.now().millisecondsSinceEpoch,
                     };

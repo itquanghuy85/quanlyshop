@@ -719,16 +719,62 @@ class DBHelper {
   // --- FINANCE ---
   Future<void> upsertExpense(Expense e) async =>
       _upsert('expenses', e.toMap(), e.firestoreId ?? "exp_${e.date}");
+  int _safeInt(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value) ?? 0;
+    return 0;
+  }
+
+  String _normalizeDebtStatus(dynamic status, {int? totalAmount, int? paidAmount}) {
+    final raw = (status ?? '').toString().trim();
+    if (raw.isEmpty) {
+      if (totalAmount != null && paidAmount != null) {
+        return paidAmount >= totalAmount ? 'PAID' : 'ACTIVE';
+      }
+      return 'ACTIVE';
+    }
+    final s = raw.toUpperCase();
+    if (s == 'PAID' || s == 'DONE' || s == 'SETTLED') return 'PAID';
+    if (s == 'UNPAID' || s == 'ACTIVE' || s == 'PENDING' || s == 'OPEN') return 'ACTIVE';
+    // Legacy lowercase values
+    if (s == 'PAID') return 'PAID';
+    if (s == 'UNPAID') return 'ACTIVE';
+    return 'ACTIVE';
+  }
+
+  Map<String, dynamic> _normalizeDebtMap(Map<String, dynamic> input) {
+    final out = Map<String, dynamic>.from(input);
+    final total = _safeInt(out['totalAmount']);
+    final totalSafe = total < 0 ? 0 : total;
+    int paid = _safeInt(out['paidAmount']);
+    if (paid < 0) paid = 0;
+    if (paid > totalSafe) paid = totalSafe;
+    out['totalAmount'] = totalSafe;
+    out['paidAmount'] = paid;
+    out['status'] = _normalizeDebtStatus(out['status'], totalAmount: totalSafe, paidAmount: paid);
+    return out;
+  }
+
+  Map<String, dynamic> _normalizeExpenseMap(Map<String, dynamic> input) {
+    final out = Map<String, dynamic>.from(input);
+    out['amount'] = _safeInt(out['amount']);
+    out['date'] = _safeInt(out['date']);
+    return out;
+  }
+
   Future<int> insertExpense(Map<String, dynamic> e) async =>
-      (await database).insert('expenses', e);
-  Future<List<Map<String, dynamic>>> getAllExpenses() async =>
-      (await database).query('expenses', orderBy: 'date DESC');
+      (await database).insert('expenses', _normalizeExpenseMap(e));
+  Future<List<Map<String, dynamic>>> getAllExpenses() async {
+    final rows = await (await database).query('expenses', orderBy: 'date DESC');
+    return rows.map(_normalizeExpenseMap).toList();
+  }
   Future<int> deleteExpenseByFirestoreId(String fId) async => (await database)
       .delete('expenses', where: 'firestoreId = ?', whereArgs: [fId]);
   Future<void> upsertDebt(Debt d) async =>
       _upsert('debts', d.toMap(), d.firestoreId ?? "debt_${d.createdAt}");
   Future<int> insertDebt(Map<String, dynamic> d) async =>
-      (await database).insert('debts', d);
+      (await database).insert('debts', _normalizeDebtMap(d));
   Future<List<Map<String, dynamic>>> getAllDebts() async =>
       (await database).query('debts', orderBy: 'status ASC, createdAt DESC');
   Future<List<Map<String, dynamic>>> getPurchaseDebts() async =>
@@ -742,13 +788,20 @@ class DBHelper {
     int id,
     int pay,
   ) async => await (await database).rawUpdate(
-    'UPDATE debts SET paidAmount = paidAmount + ?, status = CASE WHEN (paidAmount + ?) >= totalAmount THEN "paid" ELSE "unpaid" END WHERE id = ?',
-    [pay, pay, id],
+    'UPDATE debts '
+    'SET paidAmount = CASE '
+    '  WHEN (paidAmount + ?) >= totalAmount THEN totalAmount '
+    '  WHEN (paidAmount + ?) < 0 THEN 0 '
+    '  ELSE (paidAmount + ?) '
+    'END, '
+    'status = CASE WHEN (paidAmount + ?) >= totalAmount THEN "PAID" ELSE "ACTIVE" END '
+    'WHERE id = ?',
+    [pay, pay, pay, pay, id],
   );
   Future<int> updateDebt(Map<String, dynamic> debt) async =>
       await (await database).update(
         'debts',
-        debt,
+        _normalizeDebtMap(debt),
         where: 'id = ?',
         whereArgs: [debt['id']],
       );
@@ -1551,7 +1604,7 @@ class DBHelper {
       '''
       SELECT SUM(totalAmount - paidAmount) as totalDebt
       FROM debts
-      WHERE personName = ? AND type = ? AND status != ?
+      WHERE personName = ? AND type = ? AND UPPER(status) != ?
       ''',
       [supplierName, 'OWE', 'PAID'],
     );
@@ -1576,7 +1629,7 @@ class DBHelper {
     // Lấy thông tin nợ từ debts
     final debts = await db.query(
       'debts',
-      where: 'personName = ? AND type = ? AND status != ?',
+      where: 'personName = ? AND type = ? AND UPPER(status) != ?',
       whereArgs: [supplierName, 'OWE', 'PAID'],
       orderBy: 'createdAt DESC',
     );

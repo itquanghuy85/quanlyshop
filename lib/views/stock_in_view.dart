@@ -8,6 +8,7 @@ import '../services/user_service.dart';
 import '../services/firestore_service.dart';
 import '../utils/money_utils.dart';
 import '../widgets/validated_text_field.dart';
+import '../widgets/currency_text_field.dart';
 import 'fast_stock_in_view.dart';
 
 class StockInView extends StatefulWidget {
@@ -64,6 +65,10 @@ class _StockInViewState extends State<StockInView> {
   bool _priceChanged = false;
   bool _supplierChanged = false;
   bool _notesChanged = false;
+
+  // Stored amounts from ThousandCurrencyTextField
+  int? _costAmount;
+  int? _priceAmount;
 
   // Dropdown options
   final List<String> types = ['PHONE', 'ACCESSORY', 'LINH KIỆN'];
@@ -263,12 +268,12 @@ class _StockInViewState extends State<StockInView> {
       NotificationService.showSnackBar("Số lượng phải là số dương!", color: Colors.red);
       return false;
     }
-    final cost = _parseMoneyWithK(costCtrl.text);
+    final cost = _costAmount ?? 0;
     if (cost <= 0) {
       NotificationService.showSnackBar("Giá nhập phải lớn hơn 0!", color: Colors.red);
       return false;
     }
-    final price = _parseMoneyWithK(priceCtrl.text);
+    final price = _priceAmount ?? 0;
     if (price < 0) {
       NotificationService.showSnackBar("Giá bán không được âm!", color: Colors.red);
       return false;
@@ -310,8 +315,8 @@ class _StockInViewState extends State<StockInView> {
         brand: brandCtrl.text.toUpperCase(),
         model: modelCtrl.text.trim().isNotEmpty ? modelCtrl.text.trim() : null,
         imei: (!_isAccessoryOrLinhKien && imei.isNotEmpty) ? imei : null,
-        cost: _parseMoneyWithK(costCtrl.text),
-        price: _parseMoneyWithK(priceCtrl.text),
+        cost: _costAmount ?? 0,
+        price: _priceAmount ?? 0,
         condition: conditionCtrl.text,
         status: 1,
         description: notesCtrl.text.trim(),
@@ -693,42 +698,40 @@ class _StockInViewState extends State<StockInView> {
             const SizedBox(height: 8),
 
             // Giá nhập
-            _buildTextField(
-              controller: costCtrl,
-              label: 'Giá nhập (VNĐ) *',
-              focusNode: costF,
-              nextFocus: priceF,
-              keyboardType: TextInputType.number,
-              icon: Icons.attach_money,
-              suffix: 'x1k',
-              hasChanged: _costChanged,
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: ThousandCurrencyTextField(
+                controller: costCtrl,
+                label: 'Giá nhập',
+                icon: Icons.attach_money,
+                required: true,
+                onCompleted: (value) => _costAmount = value,
+              ),
             ),
             const SizedBox(height: 8),
 
             // Giá bán (cho accessory) hoặc Giá thay (cho linh kiện)
             if (_isAccessoryOrLinhKien) ...[
-              _buildTextField(
-                controller: priceCtrl,
-                label: typeCtrl.text == 'ACCESSORY' ? 'Giá (VNĐ)' : 'Giá thay (VNĐ)',
-                focusNode: priceF,
-                nextFocus: notesF,
-                keyboardType: TextInputType.number,
-                icon: Icons.sell,
-                suffix: 'x1k',
-                hasChanged: _priceChanged,
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: ThousandCurrencyTextField(
+                  controller: priceCtrl,
+                  label: typeCtrl.text == 'ACCESSORY' ? 'Giá' : 'Giá thay',
+                  icon: Icons.sell,
+                  onCompleted: (value) => _priceAmount = value,
+                ),
               ),
               const SizedBox(height: 8),
             ] else ...[
               // Giá bán không phụ kiện (cho phone)
-              _buildTextField(
-                controller: priceCtrl,
-                label: 'Giá bán (VNĐ)',
-                focusNode: priceF,
-                nextFocus: notesF,
-                keyboardType: TextInputType.number,
-                icon: Icons.sell,
-                suffix: 'x1k',
-                hasChanged: _priceChanged,
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: ThousandCurrencyTextField(
+                  controller: priceCtrl,
+                  label: 'Giá bán',
+                  icon: Icons.sell,
+                  onCompleted: (value) => _priceAmount = value,
+                ),
               ),
               const SizedBox(height: 8),
             ],

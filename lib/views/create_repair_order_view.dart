@@ -144,8 +144,19 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
       );
 
       await db.upsertRepair(r);
+      debugPrint('CreateRepairOrderView: Saved repair to local DB with firestoreId: ${r.firestoreId}');
       final cloudDocId = await FirestoreService.addRepair(r);
       if (cloudDocId == null) throw Exception('Lỗi đồng bộ đám mây');
+      debugPrint('CreateRepairOrderView: Cloud sync successful, cloudDocId: $cloudDocId');
+      
+      // Update firestoreId if cloud returned different ID
+      if (cloudDocId != r.firestoreId) {
+        debugPrint('CreateRepairOrderView: Updating firestoreId from ${r.firestoreId} to $cloudDocId');
+        r.firestoreId = cloudDocId;
+        await db.upsertRepair(r);
+        debugPrint('CreateRepairOrderView: Updated repair in local DB with new firestoreId');
+      }
+      
       await db.logAction(userId: FirebaseAuth.instance.currentUser?.uid ?? "0", userName: r.createdBy ?? "NV", action: "NHẬP ĐƠN SỬA", type: "REPAIR", targetId: r.firestoreId, desc: "Đã nhập đơn sửa ${r.model} cho khách ${r.customerName}");
       
       // Handle partner outsourcing if selected

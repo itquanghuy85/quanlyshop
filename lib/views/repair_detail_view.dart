@@ -205,8 +205,8 @@ class _RepairDetailViewState extends State<RepairDetailView> {
   }
 
   Future<void> _editFinancials() async {
-    final priceC = TextEditingController(text: (r.price / 1000).toStringAsFixed(0));
-    final costC = TextEditingController(text: (r.cost / 1000).toStringAsFixed(0));
+    final priceC = TextEditingController(text: (r.price ~/ 1000).toString());
+    final costC = TextEditingController(text: (r.cost ~/ 1000).toString());
     final result = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -214,14 +214,26 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            CurrencyTextField(controller: priceC, label: "Giá thu khách", icon: Icons.attach_money, onChanged: (value) => setState(() => r.price = int.tryParse(value) ?? 0)),
+            ThousandCurrencyTextField(
+              controller: priceC,
+              label: "Giá thu khách",
+              icon: Icons.attach_money,
+              required: true,
+              onCompleted: (value) => setState(() => r.price = value),
+            ),
             const SizedBox(height: 12),
-            CurrencyTextField(controller: costC, label: "Giá vốn linh kiện", icon: Icons.inventory, onChanged: (value) => setState(() => r.cost = int.tryParse(value) ?? 0)),
+            ThousandCurrencyTextField(
+              controller: costC,
+              label: "Giá vốn linh kiện",
+              icon: Icons.inventory,
+              required: true,
+              onCompleted: (value) => setState(() => r.cost = value),
+            ),
           ],
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("HỦY")),
-          ElevatedButton(onPressed: _isValidFinancialInput(priceC.text, costC.text) ? () => Navigator.pop(ctx, true) : null, child: const Text("LƯU")),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text("LƯU")),
         ],
       ),
     );

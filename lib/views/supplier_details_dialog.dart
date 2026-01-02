@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../data/db_helper.dart';
+import '../widgets/currency_text_field.dart';
 
 class SupplierDetailsDialog extends StatefulWidget {
   final Map<String, dynamic> supplier;
@@ -748,6 +749,7 @@ class _SupplierDetailsDialogState extends State<SupplierDetailsDialog> with Sing
   void _payPurchaseOrderDebt(Map<String, dynamic> order) {
     final payController = TextEditingController();
     String paymentMethod = 'TIỀN MẶT';
+    int? payAmount; // Lưu giá trị đã nhân 1000 từ widget
 
     showDialog(
       context: context,
@@ -757,13 +759,11 @@ class _SupplierDetailsDialogState extends State<SupplierDetailsDialog> with Sing
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(
+              ThousandCurrencyTextField(
                 controller: payController,
-                decoration: const InputDecoration(
-                  labelText: 'Số tiền thanh toán (đ)',
-                  hintText: 'Nhập số tiền',
-                ),
-                keyboardType: TextInputType.number,
+                label: 'Số tiền thanh toán',
+                required: true,
+                onCompleted: (value) => payAmount = value,
               ),
               const SizedBox(height: 16),
               const Text('Phương thức thanh toán:'),
@@ -788,8 +788,7 @@ class _SupplierDetailsDialogState extends State<SupplierDetailsDialog> with Sing
             ),
             ElevatedButton(
               onPressed: () async {
-                final amount = int.tryParse(payController.text.replaceAll('.', '')) ?? 0;
-                if (amount <= 0) {
+                if (payAmount == null || payAmount! <= 0) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Vui lòng nhập số tiền hợp lệ')),
                   );
@@ -797,7 +796,7 @@ class _SupplierDetailsDialogState extends State<SupplierDetailsDialog> with Sing
                 }
 
                 final orderTotal = order['totalCost'] as int? ?? 0;
-                if (amount != orderTotal) {
+                if (payAmount! != orderTotal) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Số tiền phải bằng tổng đơn: ${NumberFormat('#,###').format(orderTotal)} đ')),
                   );
@@ -820,7 +819,7 @@ class _SupplierDetailsDialogState extends State<SupplierDetailsDialog> with Sing
                     'firestoreId': 'pay_po_${DateTime.now().millisecondsSinceEpoch}',
                     'debtId': null, // No specific debt ID for purchase orders
                     'debtFirestoreId': order['firestoreId'],
-                    'amount': amount,
+                    'amount': payAmount,
                     'paidAt': DateTime.now().millisecondsSinceEpoch,
                     'paymentMethod': paymentMethod,
                     'note': 'Thanh toán đơn nhập: ${order['orderCode']}',
@@ -850,6 +849,7 @@ class _SupplierDetailsDialogState extends State<SupplierDetailsDialog> with Sing
   void _paySupplierDebt(Map<String, dynamic> debt) {
     final payController = TextEditingController();
     String paymentMethod = 'TIỀN MẶT';
+    int? payAmount; // Lưu giá trị đã nhân 1000 từ widget
 
     showDialog(
       context: context,
@@ -859,13 +859,11 @@ class _SupplierDetailsDialogState extends State<SupplierDetailsDialog> with Sing
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(
+              ThousandCurrencyTextField(
                 controller: payController,
-                decoration: const InputDecoration(
-                  labelText: 'Số tiền thanh toán (đ)',
-                  hintText: 'Nhập số tiền',
-                ),
-                keyboardType: TextInputType.number,
+                label: 'Số tiền thanh toán',
+                required: true,
+                onCompleted: (value) => payAmount = value,
               ),
               const SizedBox(height: 16),
               const Text('Phương thức thanh toán:'),
@@ -890,8 +888,7 @@ class _SupplierDetailsDialogState extends State<SupplierDetailsDialog> with Sing
             ),
             ElevatedButton(
               onPressed: () async {
-                final amount = int.tryParse(payController.text.replaceAll('.', '')) ?? 0;
-                if (amount <= 0) {
+                if (payAmount == null || payAmount! <= 0) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Vui lòng nhập số tiền hợp lệ')),
                   );
@@ -899,7 +896,7 @@ class _SupplierDetailsDialogState extends State<SupplierDetailsDialog> with Sing
                 }
 
                 final remaining = (debt['totalAmount'] as int? ?? 0) - (debt['paidAmount'] as int? ?? 0);
-                if (amount > remaining) {
+                if (payAmount! > remaining) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Số tiền không được vượt quá nợ còn lại: ${NumberFormat('#,###').format(remaining)} đ')),
                   );
@@ -912,7 +909,7 @@ class _SupplierDetailsDialogState extends State<SupplierDetailsDialog> with Sing
                     'firestoreId': 'pay_debt_${DateTime.now().millisecondsSinceEpoch}',
                     'debtId': debt['id'],
                     'debtFirestoreId': debt['firestoreId'],
-                    'amount': amount,
+                    'amount': payAmount,
                     'paidAt': DateTime.now().millisecondsSinceEpoch,
                     'paymentMethod': paymentMethod,
                     'note': 'Thanh toán nợ NCC: ${debt['note'] ?? ''}',
@@ -920,7 +917,7 @@ class _SupplierDetailsDialogState extends State<SupplierDetailsDialog> with Sing
                   });
 
                   // Update debt paid amount
-                  await db.updateDebtPaid(debt['id'], amount);
+                  await db.updateDebtPaid(debt['id'], payAmount!);
 
                   Navigator.pop(ctx);
                   _loadData(); // Refresh data

@@ -35,6 +35,8 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
 
   final cashEndCtrl = TextEditingController();
   final bankEndCtrl = TextEditingController();
+  int? cashAmount; // Lưu giá trị đã nhân 1000 từ widget
+  int? bankAmount; // Lưu giá trị đã nhân 1000 từ widget
 
   @override
   void initState() {
@@ -211,9 +213,19 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
       child: Column(children: [
         const Text("ĐỐI SOÁT THỰC TẾ CUỐI NGÀY", style: TextStyle(fontWeight: FontWeight.bold)),
         const SizedBox(height: 15),
-        CurrencyTextField(controller: cashEndCtrl, label: "TIỀN MẶT ĐẾM ĐƯỢC", icon: Icons.payments),
+        ThousandCurrencyTextField(
+          controller: cashEndCtrl,
+          label: "TIỀN MẶT ĐẾM ĐƯỢC",
+          icon: Icons.payments,
+          onCompleted: (value) => cashAmount = value,
+        ),
         const SizedBox(height: 12),
-        CurrencyTextField(controller: bankEndCtrl, label: "SỐ DƯ NGÂN HÀNG THỰC TẾ", icon: Icons.account_balance),
+        ThousandCurrencyTextField(
+          controller: bankEndCtrl,
+          label: "SỐ DƯ NGÂN HÀNG THỰC TẾ",
+          icon: Icons.account_balance,
+          onCompleted: (value) => bankAmount = value,
+        ),
         const SizedBox(height: 20),
         SizedBox(
           width: double.infinity, 
@@ -229,14 +241,14 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
   }
 
   Future<void> _saveClosing() async {
-    final cash = int.tryParse(cashEndCtrl.text.replaceAll('.', '')) ?? 0;
-    final bank = int.tryParse(bankEndCtrl.text.replaceAll('.', '')) ?? 0;
+    final cash = cashAmount ?? 0;
+    final bank = bankAmount ?? 0;
     if (cash == 0 && bank == 0) return;
     await db.upsertClosing({'dateKey': DateFormat('yyyy-MM-dd').format(DateTime.now()), 'cashEnd': cash, 'bankEnd': bank, 'createdAt': DateTime.now().millisecondsSinceEpoch});
     final user = FirebaseAuth.instance.currentUser;
     await db.logAction(userId: user?.uid ?? "0", userName: user?.email?.split('@').first.toUpperCase() ?? "ADMIN", action: "CHỐT QUỸ", type: "FINANCE", desc: "Tiền mặt: ${NumberFormat('#,###').format(cash)}đ, Ngân hàng: ${NumberFormat('#,###').format(bank)}đ");
     NotificationService.showSnackBar("Đã chốt quỹ thành công!", color: Colors.green);
-    HapticFeedback.mediumImpact(); _loadAllData(); cashEndCtrl.clear(); bankEndCtrl.clear();
+    HapticFeedback.mediumImpact(); _loadAllData(); cashEndCtrl.clear(); bankEndCtrl.clear(); cashAmount = null; bankAmount = null;
   }
 
   Widget _balanceCard(String l, int v, Color c) => Expanded(child: Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: c.withAlpha(25), borderRadius: BorderRadius.circular(15), border: Border.all(color: c.withAlpha(51))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(l, style: TextStyle(fontSize: 9, color: c, fontWeight: FontWeight.bold)), Text(NumberFormat('#,###').format(v), style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: c))])));

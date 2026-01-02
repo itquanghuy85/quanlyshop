@@ -43,6 +43,8 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
   final itemColorCtrl = TextEditingController();
   final itemCapacityCtrl = TextEditingController();
   String itemCondition = 'Mới';
+  int? itemUnitCost; // Lưu giá trị đã nhân 1000 từ widget
+  int? itemUnitPrice; // Lưu giá trị đã nhân 1000 từ widget
 
   @override
   void initState() {
@@ -69,7 +71,7 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
 
   void _addItem() {
     if (itemNameCtrl.text.isEmpty || itemQuantityCtrl.text.isEmpty ||
-        itemCostCtrl.text.isEmpty || itemPriceCtrl.text.isEmpty) {
+        itemUnitCost == null || itemUnitPrice == null) {
       NotificationService.showSnackBar("Vui lòng nhập đầy đủ thông tin sản phẩm!", color: Colors.red);
       return;
     }
@@ -78,8 +80,8 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
       productName: itemNameCtrl.text.trim(),
       imei: itemImeiCtrl.text.isNotEmpty ? itemImeiCtrl.text.trim() : null,
       quantity: int.tryParse(itemQuantityCtrl.text) ?? 0,
-      unitCost: int.tryParse(itemCostCtrl.text) ?? 0,
-      unitPrice: int.tryParse(itemPriceCtrl.text) ?? 0,
+      unitCost: itemUnitCost!,
+      unitPrice: itemUnitPrice!,
       color: itemColorCtrl.text.isNotEmpty ? itemColorCtrl.text.trim() : null,
       capacity: itemCapacityCtrl.text.isNotEmpty ? itemCapacityCtrl.text.trim() : null,
       condition: itemCondition,
@@ -100,6 +102,8 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
     itemColorCtrl.clear();
     itemCapacityCtrl.clear();
     itemCondition = 'Mới';
+    itemUnitCost = null;
+    itemUnitPrice = null;
   }
 
   void _removeItem(int index) {
@@ -224,11 +228,12 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: CurrencyTextField(
+                  child: ThousandCurrencyTextField(
                     controller: itemCostCtrl,
                     label: "ĐƠN GIÁ NHẬP",
                     icon: Icons.attach_money,
                     required: true,
+                    onCompleted: (value) => itemUnitCost = value,
                   ),
                 ),
               ],
@@ -237,11 +242,12 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
             Row(
               children: [
                 Expanded(
-                  child: CurrencyTextField(
+                  child: ThousandCurrencyTextField(
                     controller: itemPriceCtrl,
                     label: "ĐƠN GIÁ BÁN",
                     icon: Icons.sell,
                     required: true,
+                    onCompleted: (value) => itemUnitPrice = value,
                   ),
                 ),
                 const SizedBox(width: 8),
