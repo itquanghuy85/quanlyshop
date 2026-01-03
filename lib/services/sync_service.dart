@@ -36,15 +36,15 @@ class SyncService {
       shopId: shopId,
       onChanged: (data, docId) async {
         try {
-          debugPrint("SYNC_TRACE: Received repair data from Firestore - docId: $docId, status: ${data['status']}, price: ${data['price']}, totalCost: ${data['totalCost']}, createdAt: ${data['createdAt']}, deliveredAt: ${data['deliveredAt']}");
+          debugPrint("SYNC_TRACE: Received repair data from Firestore - docId: $docId, status: ${data['status']}, price: ${data['price']}, totalCost: ${data['totalCost']}, createdAt: ${data['createdAt']}, deliveredAt: ${data['deliveredAt']}, deleted: ${data['deleted']}");
           final db = DBHelper();
           if (data['deleted'] == true) {
             await db.deleteRepairByFirestoreId(docId);
-            debugPrint("SYNC_TRACE: Deleted repair $docId from local DB");
+            debugPrint("SYNC_TRACE: Deleted repair $docId from local DB (deleted=true in Firestore)");
           } else {
             data['firestoreId'] = docId;
             await db.upsertRepair(Repair.fromMap(data));
-            debugPrint("SYNC_TRACE: Upserted repair $docId to local DB");
+            debugPrint("SYNC_TRACE: Upserted repair $docId to local DB SUCCESSFULLY");
           }
         } catch (e) {
           debugPrint("SYNC_TRACE: Error syncing repair $docId: $e");
@@ -59,15 +59,15 @@ class SyncService {
       shopId: shopId,
       onChanged: (data, docId) async {
         try {
-          debugPrint("SYNC_TRACE: Received sale data from Firestore - docId: $docId, totalPrice: ${data['totalPrice']}, totalCost: ${data['totalCost']}, soldAt: ${data['soldAt']}, customerName: ${data['customerName']}");
+          debugPrint("SYNC_TRACE: Received sale data from Firestore - docId: $docId, totalPrice: ${data['totalPrice']}, totalCost: ${data['totalCost']}, soldAt: ${data['soldAt']}, customerName: ${data['customerName']}, deleted: ${data['deleted']}");
           final db = DBHelper();
           if (data['deleted'] == true) {
             await db.deleteSaleByFirestoreId(docId);
-            debugPrint("SYNC_TRACE: Deleted sale $docId from local DB");
+            debugPrint("SYNC_TRACE: Deleted sale $docId from local DB (deleted=true in Firestore)");
           } else {
             data['firestoreId'] = docId;
             await db.upsertSale(SaleOrder.fromMap(data));
-            debugPrint("SYNC_TRACE: Upserted sale $docId to local DB");
+            debugPrint("SYNC_TRACE: Upserted sale $docId to local DB SUCCESSFULLY");
           }
         } catch (e) {
           debugPrint("SYNC_TRACE: Error syncing sale $docId: $e");
@@ -561,17 +561,26 @@ class SyncService {
         try {
           final snap = await _db.collection(col).where('shopId', isEqualTo: shopId).get();
           debugPrint("downloadAllFromCloud: collection $col có ${snap.docs.length} documents");
+          int skippedDeleted = 0;
+          int processed = 0;
           for (var doc in snap.docs) {
             try {
               final data = doc.data();
-              if (data['deleted'] == true) continue;
+              if (data['deleted'] == true) {
+                skippedDeleted++;
+                debugPrint("DOWNLOAD_TRACE: Skipped deleted doc ${doc.id} in $col");
+                continue;
+              }
               
+              processed++;
               data['firestoreId'] = doc.id;
               if (col == 'repairs') {
+                debugPrint("DOWNLOAD_TRACE: Upserting repair ${doc.id} with status=${data['status']}, price=${data['price']}");
                 await db.upsertRepair(Repair.fromMap(data));
               } else if (col == 'products') {
                 await db.upsertProduct(Product.fromMap(data));
               } else if (col == 'sales') {
+                debugPrint("DOWNLOAD_TRACE: Upserting sale ${doc.id} with totalPrice=${data['totalPrice']}, soldAt=${data['soldAt']}");
                 await db.upsertSale(SaleOrder.fromMap(data));
               } else if (col == 'expenses') {
                 await db.upsertExpense(Expense.fromMap(data));
@@ -599,6 +608,7 @@ class SyncService {
               // Tiếp tục với document tiếp theo
             }
           }
+          debugPrint("DOWNLOAD_TRACE: Collection $col - processed: $processed, skipped deleted: $skippedDeleted");
         } catch (e) {
           debugPrint("Lỗi tải collection $col: $e");
           // Tiếp tục với collection tiếp theo

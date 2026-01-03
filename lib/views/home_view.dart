@@ -185,15 +185,15 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
       return hasPermission;
     }).toList();
 
-    // Limit to 5 tabs max for BottomNavigationBar compatibility
-    if (availableConfigs.length > 5) {
-      // Prioritize: Home, Sales, Repairs, Inventory, Settings
-      final priorityTabs = ['Home', 'Bán hàng', 'Sửa chữa', 'Kho', 'Cài đặt'];
+    // Limit to 7 tabs max for BottomNavigationBar compatibility
+    if (availableConfigs.length > 7) {
+      // Prioritize: Home, Sales, Repairs, Inventory, Staff, Finance, Settings
+      final priorityTabs = ['Home', 'Bán hàng', 'Sửa chữa', 'Kho', 'Nhân sự', 'Tài chính', 'Cài đặt'];
       final prioritized = availableConfigs.where((config) => priorityTabs.contains(config['item'].label)).toList();
       final remaining = availableConfigs.where((config) => !priorityTabs.contains(config['item'].label)).toList();
       availableConfigs.clear();
       availableConfigs.addAll(prioritized);
-      availableConfigs.addAll(remaining.take(5 - prioritized.length));
+      availableConfigs.addAll(remaining.take(7 - prioritized.length));
     }
 
     _navItems = availableConfigs.map((config) => config['item'] as BottomNavigationBarItem).toList();
@@ -271,7 +271,9 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
   bool _isSameDay(int timestamp) {
     final date = DateTime.fromMillisecondsSinceEpoch(timestamp).toLocal();
     final now = DateTime.now();
-    return date.year == now.year && date.month == now.month && date.day == now.day;
+    final result = date.year == now.year && date.month == now.month && date.day == now.day;
+    debugPrint('DATE_TRACE: _isSameDay($timestamp) -> date: $date, now: $now, result: $result');
+    return result;
   }
 
   void _debouncedLoadStats() {

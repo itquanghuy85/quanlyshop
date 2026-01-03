@@ -525,7 +525,9 @@ class DBHelper {
     final repairs = List.generate(maps.length, (i) => Repair.fromMap(maps[i]));
     debugPrint("DB_TRACE: getAllRepairs returned ${repairs.length} repairs");
     for (var r in repairs) {
-      debugPrint("DB_TRACE: Repair - id: ${r.id}, firestoreId: ${r.firestoreId}, status: ${r.status}, price: ${r.price}, totalCost: ${r.totalCost}, createdAt: ${r.createdAt}, deliveredAt: ${r.deliveredAt}");
+      final createdDate = DateTime.fromMillisecondsSinceEpoch(r.createdAt).toLocal();
+      final deliveredDate = r.deliveredAt != null ? DateTime.fromMillisecondsSinceEpoch(r.deliveredAt!).toLocal() : null;
+      debugPrint("DB_TRACE: Repair - id: ${r.id}, firestoreId: ${r.firestoreId}, status: ${r.status}, price: ${r.price}, totalCost: ${r.totalCost}, createdAt: ${r.createdAt} (${createdDate}), deliveredAt: ${r.deliveredAt} (${deliveredDate})");
     }
     return repairs;
   }
@@ -583,7 +585,8 @@ class DBHelper {
     final sales = List.generate(maps.length, (i) => SaleOrder.fromMap(maps[i]));
     debugPrint("DB_TRACE: getAllSales returned ${sales.length} sales");
     for (var s in sales) {
-      debugPrint("DB_TRACE: Sale - id: ${s.id}, firestoreId: ${s.firestoreId}, totalPrice: ${s.totalPrice}, totalCost: ${s.totalCost}, soldAt: ${s.soldAt}, customerName: ${s.customerName}");
+      final soldDate = DateTime.fromMillisecondsSinceEpoch(s.soldAt).toLocal();
+      debugPrint("DB_TRACE: Sale - id: ${s.id}, firestoreId: ${s.firestoreId}, totalPrice: ${s.totalPrice}, totalCost: ${s.totalCost}, soldAt: ${s.soldAt} (${soldDate}), customerName: ${s.customerName}");
     }
     return sales;
   }
