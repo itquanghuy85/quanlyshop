@@ -26,9 +26,11 @@ class SyncService {
 
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
-    
+
     final bool isSuperAdmin = UserService.isCurrentUserSuperAdmin();
-    final String? shopId = isSuperAdmin ? null : await UserService.getCurrentShopId();
+    final String? shopId = isSuperAdmin
+        ? null
+        : await UserService.getCurrentShopId();
 
     // 1. Đồng bộ REPAIRS
     _subscribeToCollection(
@@ -36,15 +38,21 @@ class SyncService {
       shopId: shopId,
       onChanged: (data, docId) async {
         try {
-          debugPrint("SYNC_TRACE: Received repair data from Firestore - docId: $docId, status: ${data['status']}, price: ${data['price']}, totalCost: ${data['totalCost']}, createdAt: ${data['createdAt']}, deliveredAt: ${data['deliveredAt']}, deleted: ${data['deleted']}");
+          debugPrint(
+            "SYNC_TRACE: Received repair data from Firestore - docId: $docId, status: ${data['status']}, price: ${data['price']}, totalCost: ${data['totalCost']}, createdAt: ${data['createdAt']}, deliveredAt: ${data['deliveredAt']}, deleted: ${data['deleted']}",
+          );
           final db = DBHelper();
           if (data['deleted'] == true) {
             await db.deleteRepairByFirestoreId(docId);
-            debugPrint("SYNC_TRACE: Deleted repair $docId from local DB (deleted=true in Firestore)");
+            debugPrint(
+              "SYNC_TRACE: Deleted repair $docId from local DB (deleted=true in Firestore)",
+            );
           } else {
             data['firestoreId'] = docId;
             await db.upsertRepair(Repair.fromMap(data));
-            debugPrint("SYNC_TRACE: Upserted repair $docId to local DB SUCCESSFULLY");
+            debugPrint(
+              "SYNC_TRACE: Upserted repair $docId to local DB SUCCESSFULLY",
+            );
           }
         } catch (e) {
           debugPrint("SYNC_TRACE: Error syncing repair $docId: $e");
@@ -59,15 +67,21 @@ class SyncService {
       shopId: shopId,
       onChanged: (data, docId) async {
         try {
-          debugPrint("SYNC_TRACE: Received sale data from Firestore - docId: $docId, totalPrice: ${data['totalPrice']}, totalCost: ${data['totalCost']}, soldAt: ${data['soldAt']}, customerName: ${data['customerName']}, deleted: ${data['deleted']}");
+          debugPrint(
+            "SYNC_TRACE: Received sale data from Firestore - docId: $docId, totalPrice: ${data['totalPrice']}, totalCost: ${data['totalCost']}, soldAt: ${data['soldAt']}, customerName: ${data['customerName']}, deleted: ${data['deleted']}",
+          );
           final db = DBHelper();
           if (data['deleted'] == true) {
             await db.deleteSaleByFirestoreId(docId);
-            debugPrint("SYNC_TRACE: Deleted sale $docId from local DB (deleted=true in Firestore)");
+            debugPrint(
+              "SYNC_TRACE: Deleted sale $docId from local DB (deleted=true in Firestore)",
+            );
           } else {
             data['firestoreId'] = docId;
             await db.upsertSale(SaleOrder.fromMap(data));
-            debugPrint("SYNC_TRACE: Upserted sale $docId to local DB SUCCESSFULLY");
+            debugPrint(
+              "SYNC_TRACE: Upserted sale $docId to local DB SUCCESSFULLY",
+            );
           }
         } catch (e) {
           debugPrint("SYNC_TRACE: Error syncing sale $docId: $e");
@@ -290,14 +304,17 @@ class SyncService {
       debugPrint("Lỗi khởi tạo customers sync: $e");
     }
 
-    debugPrint("Đã khởi tạo real-time sync cho ${isSuperAdmin ? 'super admin' : 'shop: $shopId'}");
+    debugPrint(
+      "Đã khởi tạo real-time sync cho ${isSuperAdmin ? 'super admin' : 'shop: $shopId'}",
+    );
   }
 
   /// Hàm helper để quản lý subscription an toàn
   static void _subscribeToCollection({
     required String collection,
     String? shopId,
-    required Future<void> Function(Map<String, dynamic> data, String docId) onChanged,
+    required Future<void> Function(Map<String, dynamic> data, String docId)
+    onChanged,
     required VoidCallback onBatchDone,
   }) {
     Query<Map<String, dynamic>> query = _db.collection(collection);
@@ -309,7 +326,9 @@ class SyncService {
       for (var change in snapshot.docChanges) {
         final data = change.doc.data();
         if (data == null) continue;
-        debugPrint("Real-time change in $collection: ${change.doc.id}, type: ${change.type}");
+        debugPrint(
+          "Real-time change in $collection: ${change.doc.id}, type: ${change.type}",
+        );
         await onChanged(data, change.doc.id);
       }
       onBatchDone();
@@ -334,7 +353,7 @@ class SyncService {
         debugPrint("Không có user, bỏ qua syncAllToCloud");
         return;
       }
-      
+
       final String? shopId = await UserService.getCurrentShopId();
       final dbHelper = DBHelper();
 
@@ -351,23 +370,42 @@ class SyncService {
           data.remove('id');
 
           // Xử lý upload ảnh nếu là ảnh local với timeout
-          if (r.imagePath != null && r.imagePath!.isNotEmpty && !r.imagePath!.startsWith('http')) {
-            List<String> urls = await StorageService.uploadMultipleImages(
-              r.imagePath!.split(',').where((path) => !path.startsWith('http')).toList(), 
-              'repairs/${r.createdAt}'
-            ).timeout(const Duration(seconds: 30), onTimeout: () {
-              debugPrint("Upload ảnh repair ${r.id} quá thời gian, bỏ qua");
-              return <String>[];
-            });
+          if (r.imagePath != null &&
+              r.imagePath!.isNotEmpty &&
+              !r.imagePath!.startsWith('http')) {
+            List<String> urls =
+                await StorageService.uploadMultipleImages(
+                  r.imagePath!
+                      .split(',')
+                      .where((path) => !path.startsWith('http'))
+                      .toList(),
+                  'repairs/${r.createdAt}',
+                ).timeout(
+                  const Duration(seconds: 30),
+                  onTimeout: () {
+                    debugPrint(
+                      "Upload ảnh repair ${r.id} quá thời gian, bỏ qua",
+                    );
+                    return <String>[];
+                  },
+                );
             // Giữ lại các ảnh cũ là URL và thêm ảnh mới
-            List<String> allUrls = r.imagePath!.split(',').where((path) => path.startsWith('http')).toList();
+            List<String> allUrls = r.imagePath!
+                .split(',')
+                .where((path) => path.startsWith('http'))
+                .toList();
             allUrls.addAll(urls);
             data['imagePath'] = allUrls.join(',');
           }
 
-          final docId = r.firestoreId ?? "repair_${r.createdAt}_${r.phone}_${r.id ?? 0}";
-          repairBatch.set(_db.collection('repairs').doc(docId), data, SetOptions(merge: true));
-          
+          final docId =
+              r.firestoreId ?? "repair_${r.createdAt}_${r.phone}_${r.id ?? 0}";
+          repairBatch.set(
+            _db.collection('repairs').doc(docId),
+            data,
+            SetOptions(merge: true),
+          );
+
           r.isSynced = true;
           r.firestoreId = docId;
           r.imagePath = data['imagePath'];
@@ -391,9 +429,14 @@ class SyncService {
           data['shopId'] = shopId;
           data.remove('id');
 
-          final docId = s.firestoreId ?? "sale_${s.soldAt}_${s.phone}_${s.id ?? 0}";
-          saleBatch.set(_db.collection('sales').doc(docId), data, SetOptions(merge: true));
-          
+          final docId =
+              s.firestoreId ?? "sale_${s.soldAt}_${s.phone}_${s.id ?? 0}";
+          saleBatch.set(
+            _db.collection('sales').doc(docId),
+            data,
+            SetOptions(merge: true),
+          );
+
           s.isSynced = true;
           s.firestoreId = docId;
           await dbHelper.updateSale(s);
@@ -417,20 +460,37 @@ class SyncService {
           data.remove('id');
 
           // Xử lý upload ảnh nếu là ảnh local với timeout
-          if (p.images != null && p.images!.isNotEmpty && !p.images!.startsWith('http')) {
-            List<String> urls = await StorageService.uploadMultipleImages(
-              p.images!.split(',').where((path) => !path.startsWith('http')).toList(), 
-              'products/${p.createdAt}'
-            ).timeout(const Duration(seconds: 30), onTimeout: () {
-              debugPrint("Upload ảnh product ${p.id} quá thời gian, bỏ qua");
-              return <String>[];
-            });
+          if (p.images != null &&
+              p.images!.isNotEmpty &&
+              !p.images!.startsWith('http')) {
+            List<String> urls =
+                await StorageService.uploadMultipleImages(
+                  p.images!
+                      .split(',')
+                      .where((path) => !path.startsWith('http'))
+                      .toList(),
+                  'products/${p.createdAt}',
+                ).timeout(
+                  const Duration(seconds: 30),
+                  onTimeout: () {
+                    debugPrint(
+                      "Upload ảnh product ${p.id} quá thời gian, bỏ qua",
+                    );
+                    return <String>[];
+                  },
+                );
             data['images'] = urls.join(',');
           }
 
-          final docId = p.firestoreId ?? "product_${p.createdAt}_${p.imei ?? 'noimei'}_${p.id ?? 0}";
-          productBatch.set(_db.collection('products').doc(docId), data, SetOptions(merge: true));
-          
+          final docId =
+              p.firestoreId ??
+              "product_${p.createdAt}_${p.imei ?? 'noimei'}_${p.id ?? 0}";
+          productBatch.set(
+            _db.collection('products').doc(docId),
+            data,
+            SetOptions(merge: true),
+          );
+
           p.isSynced = true;
           p.firestoreId = docId;
           p.images = data['images'];
@@ -445,10 +505,13 @@ class SyncService {
       // Sync ATTENDANCE
       try {
         final attendance = await dbHelper.getAllAttendance();
-        debugPrint("syncAllToCloud: có ${attendance.length} attendance cần sync");
+        debugPrint(
+          "syncAllToCloud: có ${attendance.length} attendance cần sync",
+        );
         final WriteBatch attendanceBatch = _db.batch();
         for (var a in attendance) {
-          if (a.firestoreId != null && a.firestoreId!.isNotEmpty) continue; // Đã sync rồi
+          if (a.firestoreId != null && a.firestoreId!.isNotEmpty)
+            continue; // Đã sync rồi
 
           try {
             Map<String, dynamic> data = a.toMap();
@@ -456,30 +519,49 @@ class SyncService {
             data.remove('id');
 
             // Xử lý upload ảnh check-in/out nếu là ảnh local
-            if (a.photoIn != null && a.photoIn!.isNotEmpty && !a.photoIn!.startsWith('http')) {
-              List<String> urls = await StorageService.uploadMultipleImages(
-                [a.photoIn!],
-                'attendance/${a.dateKey}_${a.userId}_in'
-              ).timeout(const Duration(seconds: 30), onTimeout: () {
-                debugPrint("Upload ảnh check-in ${a.id} quá thời gian, bỏ qua");
-                return <String>[];
-              });
+            if (a.photoIn != null &&
+                a.photoIn!.isNotEmpty &&
+                !a.photoIn!.startsWith('http')) {
+              List<String> urls =
+                  await StorageService.uploadMultipleImages([
+                    a.photoIn!,
+                  ], 'attendance/${a.dateKey}_${a.userId}_in').timeout(
+                    const Duration(seconds: 30),
+                    onTimeout: () {
+                      debugPrint(
+                        "Upload ảnh check-in ${a.id} quá thời gian, bỏ qua",
+                      );
+                      return <String>[];
+                    },
+                  );
               if (urls.isNotEmpty) data['photoIn'] = urls.first;
             }
 
-            if (a.photoOut != null && a.photoOut!.isNotEmpty && !a.photoOut!.startsWith('http')) {
-              List<String> urls = await StorageService.uploadMultipleImages(
-                [a.photoOut!],
-                'attendance/${a.dateKey}_${a.userId}_out'
-              ).timeout(const Duration(seconds: 30), onTimeout: () {
-                debugPrint("Upload ảnh check-out ${a.id} quá thời gian, bỏ qua");
-                return <String>[];
-              });
+            if (a.photoOut != null &&
+                a.photoOut!.isNotEmpty &&
+                !a.photoOut!.startsWith('http')) {
+              List<String> urls =
+                  await StorageService.uploadMultipleImages([
+                    a.photoOut!,
+                  ], 'attendance/${a.dateKey}_${a.userId}_out').timeout(
+                    const Duration(seconds: 30),
+                    onTimeout: () {
+                      debugPrint(
+                        "Upload ảnh check-out ${a.id} quá thời gian, bỏ qua",
+                      );
+                      return <String>[];
+                    },
+                  );
               if (urls.isNotEmpty) data['photoOut'] = urls.first;
             }
 
-            final docId = a.firestoreId ?? "attendance_${a.userId}_${a.dateKey}";
-            attendanceBatch.set(_db.collection('attendance').doc(docId), data, SetOptions(merge: true));
+            final docId =
+                a.firestoreId ?? "attendance_${a.userId}_${a.dateKey}";
+            attendanceBatch.set(
+              _db.collection('attendance').doc(docId),
+              data,
+              SetOptions(merge: true),
+            );
 
             a.firestoreId = docId;
             a.photoIn = data['photoIn'];
@@ -498,7 +580,9 @@ class SyncService {
       // Đồng bộ Quick Input Codes
       try {
         final quickInputCodes = await dbHelper.getQuickInputCodes();
-        debugPrint("syncAllToCloud: có ${quickInputCodes.length} quick input codes cần sync");
+        debugPrint(
+          "syncAllToCloud: có ${quickInputCodes.length} quick input codes cần sync",
+        );
         if (quickInputCodes.isNotEmpty) {
           final WriteBatch quickInputBatch = _db.batch();
           for (var code in quickInputCodes) {
@@ -509,8 +593,14 @@ class SyncService {
               data['shopId'] = shopId;
               data.remove('id');
 
-              final docId = code.firestoreId ?? "qic_${code.createdAt}_${code.name.replaceAll(' ', '_')}";
-              quickInputBatch.set(_db.collection('quick_input_codes').doc(docId), data, SetOptions(merge: true));
+              final docId =
+                  code.firestoreId ??
+                  "qic_${code.createdAt}_${code.name.replaceAll(' ', '_')}";
+              quickInputBatch.set(
+                _db.collection('quick_input_codes').doc(docId),
+                data,
+                SetOptions(merge: true),
+              );
 
               code.firestoreId = docId;
               code.shopId = shopId;
@@ -548,44 +638,60 @@ class SyncService {
       final localProducts = await db.getInStockProducts();
       final localSales = await db.getAllSales();
       final localAttendance = await db.getAllAttendance();
-      debugPrint("LOCAL DATA BEFORE SYNC: repairs=${localRepairs.length}, products=${localProducts.length}, sales=${localSales.length}, attendance=${localAttendance.length}");
+      debugPrint(
+        "LOCAL DATA BEFORE SYNC: repairs=${localRepairs.length}, products=${localProducts.length}, sales=${localSales.length}, attendance=${localAttendance.length}",
+      );
 
-      final collections = ['repairs', 'products', 'sales', 'expenses', 'debts', 'users', 'shops', 'attendance', 'quick_input_codes', 'supplier_import_history', 'supplier_product_prices', 'supplier_payments', 'repair_partner_payments', 'customers'];
-      
+      final collections = [
+        'repairs',
+        'products',
+        'sales',
+        'expenses',
+        'debts',
+        'debt_payments',
+        'users',
+        'shops',
+        'attendance',
+        'quick_input_codes',
+        'supplier_import_history',
+        'supplier_product_prices',
+        'supplier_payments',
+        'repair_partner_payments',
+        'customers',
+      ];
+
       for (var col in collections) {
         // Skip products if local already has products to avoid downloading old data
         if (col == 'products' && localProducts.isNotEmpty) {
-          debugPrint("Skip downloading products because local has ${localProducts.length} products");
+          debugPrint(
+            "Skip downloading products because local has ${localProducts.length} products",
+          );
           continue;
         }
         try {
-          final snap = await _db.collection(col).where('shopId', isEqualTo: shopId).get();
-          debugPrint("downloadAllFromCloud: collection $col có ${snap.docs.length} documents");
-          int skippedDeleted = 0;
-          int processed = 0;
+          final snap = await _db
+              .collection(col)
+              .where('shopId', isEqualTo: shopId)
+              .get();
           for (var doc in snap.docs) {
             try {
               final data = doc.data();
-              if (data['deleted'] == true) {
-                skippedDeleted++;
-                debugPrint("DOWNLOAD_TRACE: Skipped deleted doc ${doc.id} in $col");
-                continue;
-              }
-              
-              processed++;
+              if (data['deleted'] == true)
+                continue; // Skip soft-deleted documents
+
               data['firestoreId'] = doc.id;
               if (col == 'repairs') {
-                debugPrint("DOWNLOAD_TRACE: Upserting repair ${doc.id} with status=${data['status']}, price=${data['price']}");
                 await db.upsertRepair(Repair.fromMap(data));
               } else if (col == 'products') {
                 await db.upsertProduct(Product.fromMap(data));
               } else if (col == 'sales') {
-                debugPrint("DOWNLOAD_TRACE: Upserting sale ${doc.id} with totalPrice=${data['totalPrice']}, soldAt=${data['soldAt']}");
                 await db.upsertSale(SaleOrder.fromMap(data));
               } else if (col == 'expenses') {
                 await db.upsertExpense(Expense.fromMap(data));
               } else if (col == 'debts') {
                 await db.upsertDebt(Debt.fromMap(data));
+              } else if (col == 'debt_payments') {
+                await db.upsertDebtPayment(data);
               } else if (col == 'attendance') {
                 try {
                   await db.upsertAttendance(Attendance.fromMap(data));
@@ -595,23 +701,18 @@ class SyncService {
               } else if (col == 'quick_input_codes') {
                 await db.upsertQuickInputCode(QuickInputCode.fromMap(data));
               } else if (col == 'supplier_import_history') {
-                // Handle supplier import history - these are raw data, skip for now as they are managed locally
-                continue;
+                continue; // Managed locally
               } else if (col == 'supplier_product_prices') {
-                // Handle supplier product prices - these are raw data, skip for now as they are managed locally
-                continue;
+                continue; // Managed locally
               } else if (col == 'customers') {
                 await db.upsertCustomer(data);
               }
             } catch (e) {
-              debugPrint("Lỗi xử lý document ${doc.id} trong collection $col: $e");
-              // Tiếp tục với document tiếp theo
+              debugPrint("Lỗi xử lý document ${doc.id}: $e");
             }
           }
-          debugPrint("DOWNLOAD_TRACE: Collection $col - processed: $processed, skipped deleted: $skippedDeleted");
         } catch (e) {
           debugPrint("Lỗi tải collection $col: $e");
-          // Tiếp tục với collection tiếp theo
         }
       }
 
@@ -620,7 +721,9 @@ class SyncService {
       final localProductsAfter = await db.getInStockProducts();
       final localSalesAfter = await db.getAllSales();
       final localAttendanceAfter = await db.getAllAttendance();
-      debugPrint("LOCAL DATA AFTER SYNC: repairs=${localRepairsAfter.length}, products=${localProductsAfter.length}, sales=${localSalesAfter.length}, attendance=${localAttendanceAfter.length}");
+      debugPrint(
+        "LOCAL DATA AFTER SYNC: repairs=${localRepairsAfter.length}, products=${localProductsAfter.length}, sales=${localSalesAfter.length}, attendance=${localAttendanceAfter.length}",
+      );
 
       debugPrint("Đã hoàn thành downloadAllFromCloud.");
     } catch (e) {
@@ -643,7 +746,9 @@ class SyncService {
 
       // Đồng bộ Quick Input Codes
       final quickInputCodes = await dbHelper.getUnsyncedQuickInputCodes();
-      debugPrint("syncQuickInputCodesToCloud: có ${quickInputCodes.length} quick input codes cần sync");
+      debugPrint(
+        "syncQuickInputCodesToCloud: có ${quickInputCodes.length} quick input codes cần sync",
+      );
 
       if (quickInputCodes.isNotEmpty) {
         final WriteBatch quickInputBatch = _db.batch();
@@ -653,8 +758,14 @@ class SyncService {
             data['shopId'] = shopId;
             data.remove('id');
 
-            final docId = code.firestoreId ?? "qic_${code.createdAt}_${code.name.replaceAll(' ', '_')}";
-            quickInputBatch.set(_db.collection('quick_input_codes').doc(docId), data, SetOptions(merge: true));
+            final docId =
+                code.firestoreId ??
+                "qic_${code.createdAt}_${code.name.replaceAll(' ', '_')}";
+            quickInputBatch.set(
+              _db.collection('quick_input_codes').doc(docId),
+              data,
+              SetOptions(merge: true),
+            );
 
             code.firestoreId = docId;
             code.shopId = shopId;
@@ -665,7 +776,9 @@ class SyncService {
           }
         }
         await quickInputBatch.commit();
-        debugPrint("Đã đồng bộ thành công ${quickInputCodes.length} mã nhập nhanh lên Cloud");
+        debugPrint(
+          "Đã đồng bộ thành công ${quickInputCodes.length} mã nhập nhanh lên Cloud",
+        );
       } else {
         debugPrint("Không có mã nhập nhanh nào cần đồng bộ");
       }
@@ -686,8 +799,12 @@ class SyncService {
       }
 
       final bool isSuperAdmin = UserService.isCurrentUserSuperAdmin();
-      final String? shopId = isSuperAdmin ? null : await UserService.getCurrentShopId();
-      debugPrint("syncCustomersFromCloud: shopId = $shopId, isSuperAdmin = $isSuperAdmin");
+      final String? shopId = isSuperAdmin
+          ? null
+          : await UserService.getCurrentShopId();
+      debugPrint(
+        "syncCustomersFromCloud: shopId = $shopId, isSuperAdmin = $isSuperAdmin",
+      );
 
       final dbHelper = DBHelper();
 
@@ -698,7 +815,9 @@ class SyncService {
       }
 
       final querySnapshot = await query.get();
-      debugPrint("syncCustomersFromCloud: Tìm thấy ${querySnapshot.docs.length} customers từ cloud");
+      debugPrint(
+        "syncCustomersFromCloud: Tìm thấy ${querySnapshot.docs.length} customers từ cloud",
+      );
 
       // Upsert từng customer vào local DB
       for (var doc in querySnapshot.docs) {
@@ -710,13 +829,19 @@ class SyncService {
           // Chuyển đổi thành Customer model và upsert
           final customer = Customer.fromMap(data);
           await dbHelper.upsertCustomer(customer.toMap());
-          debugPrint("syncCustomersFromCloud: Đã upsert customer ${customer.name} (${doc.id})");
+          debugPrint(
+            "syncCustomersFromCloud: Đã upsert customer ${customer.name} (${doc.id})",
+          );
         } catch (e) {
-          debugPrint("syncCustomersFromCloud: Lỗi upsert customer ${doc.id}: $e");
+          debugPrint(
+            "syncCustomersFromCloud: Lỗi upsert customer ${doc.id}: $e",
+          );
         }
       }
 
-      debugPrint("syncCustomersFromCloud: Hoàn thành, đã sync ${querySnapshot.docs.length} customers");
+      debugPrint(
+        "syncCustomersFromCloud: Hoàn thành, đã sync ${querySnapshot.docs.length} customers",
+      );
     } catch (e) {
       debugPrint("syncCustomersFromCloud: Lỗi: $e");
       rethrow;

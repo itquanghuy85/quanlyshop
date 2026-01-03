@@ -48,7 +48,19 @@ class Debt {
     final totalAmount = map['totalAmount'] is int ? map['totalAmount'] : 0;
     final totalAmountSafe = totalAmount < 0 ? 0 : totalAmount;
     final paidAmountRaw = map['paidAmount'] is int ? map['paidAmount'] : 0;
-    final paidAmount = paidAmountRaw > totalAmountSafe ? totalAmountSafe : paidAmountRaw;
+    // Đảm bảo paidAmount không âm và không vượt quá totalAmount
+    final paidAmountSafe = paidAmountRaw < 0 ? 0 : paidAmountRaw;
+    final paidAmount = paidAmountSafe > totalAmountSafe ? totalAmountSafe : paidAmountSafe;
+    
+    // Validate type: chỉ chấp nhận 'OWE' hoặc 'OWED'
+    final typeRaw = map['type']?.toString().toUpperCase() ?? 'OWE';
+    final type = (typeRaw == 'OWE' || typeRaw == 'OWED') ? typeRaw : 'OWE';
+    
+    // Validate status: chỉ chấp nhận 'ACTIVE', 'PAID', 'CANCELLED'  
+    final statusRaw = map['status']?.toString().toUpperCase() ?? 'ACTIVE';
+    final validStatuses = ['ACTIVE', 'PAID', 'CANCELLED'];
+    final status = validStatuses.contains(statusRaw) ? statusRaw : 'ACTIVE';
+    
     return Debt(
       id: map['id'],
       firestoreId: map['firestoreId'],
@@ -56,12 +68,12 @@ class Debt {
       phone: map['phone'] ?? '',
       totalAmount: totalAmountSafe,
       paidAmount: paidAmount,
-      type: map['type'] ?? 'OWE',
-      status: map['status'] ?? 'ACTIVE',
+      type: type,
+      status: status,
       createdAt: map['createdAt'] is int ? map['createdAt'] : 0,
       note: map['note'],
       linkedId: map['linkedId'],
-      isSynced: map['isSynced'] == 1,
+      isSynced: map['isSynced'] == 1 || map['isSynced'] == true,
     );
   }
 

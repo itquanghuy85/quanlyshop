@@ -9,10 +9,10 @@ void main() {
       expect(sale.totalPrice, 0);
     });
 
-    test('fromMap with negative totalPrice', () {
+    test('fromMap with negative totalPrice - should normalize to 0', () {
       final map = {'totalPrice': -100, 'totalCost': 50, 'customerName': 'Test', 'phone': '123', 'productNames': 'Phone', 'productImeis': 'IMEI', 'sellerName': 'Seller', 'soldAt': 1234567890};
       final sale = SaleOrder.fromMap(map);
-      expect(sale.totalPrice, -100);
+      expect(sale.totalPrice, 0); // Normalized from negative
     });
 
     test('fromMap with null soldAt', () {

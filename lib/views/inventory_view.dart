@@ -103,7 +103,7 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
           controller: c,
           label: l,
           icon: i,
-          multiplyBy1000: multiply,
+          autoMultiply1000: multiply,
           onSubmitted: () { if (next != null) FocusScope.of(context).requestFocus(next); },
         ),
       );

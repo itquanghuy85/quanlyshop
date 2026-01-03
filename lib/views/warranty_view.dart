@@ -41,6 +41,16 @@ class _WarrantyViewState extends State<WarrantyView> {
     final sales = await db.getAllSales();
     final now = DateTime.now();
     
+    // DEBUG: Log total counts
+    debugPrint("WARRANTY_DEBUG: Total repairs in local DB: ${repairs.length}");
+    debugPrint("WARRANTY_DEBUG: Total sales in local DB: ${sales.length}");
+    for (var r in repairs) {
+      debugPrint("WARRANTY_DEBUG: Repair - id:${r.id}, firestoreId:${r.firestoreId}, warranty:${r.warranty}, status:${r.status}, deleted:${r.deleted}, customerName:${r.customerName}");
+    }
+    for (var s in sales) {
+      debugPrint("WARRANTY_DEBUG: Sale - id:${s.id}, firestoreId:${s.firestoreId}, warranty:${s.warranty}, customerName:${s.customerName}");
+    }
+    
     List<Map<String, dynamic>> results = [];
 
     // 1. BẢO HÀNH MÁY SỬA

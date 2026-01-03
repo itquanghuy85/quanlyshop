@@ -32,9 +32,10 @@ class _ExpenseViewState extends State<ExpenseView> {
   bool _isLoading = true;
   bool _isSaving = false;
   bool _isSyncing = false;
-  String _syncStatus = 'Đã đồng bộ'; // 'Đã đồng bộ', 'Đang đồng bộ...', 'Lỗi đồng bộ'
+  String _syncStatus =
+      'Đã đồng bộ'; // 'Đã đồng bộ', 'Đang đồng bộ...', 'Lỗi đồng bộ'
   bool _hasPermission = false;
-  
+
   // Filter options
   String _filterType = 'THÁNG'; // NGÀY, TUẦN, THÁNG
   DateTime _selectedDate = DateTime.now();
@@ -78,29 +79,35 @@ class _ExpenseViewState extends State<ExpenseView> {
         print('DEBUG: Web platform detected, skipping local DB');
         return;
       }
-      
+
       final expenses = await db.getAllExpenses();
       final purchaseDebts = await db.getPurchaseDebts();
       // Convert purchase debts to expense-like format
-      final purchaseExpenses = purchaseDebts.map((po) => {
-        'id': 'po_${po['id']}',
-        'title': 'Đơn nhập: ${po['orderCode']} - ${po['supplierName']}',
-        'amount': po['totalCost'],
-        'date': po['createdAt'],
-        'category': 'ĐƠN NHẬP HÀNG',
-        'createdBy': po['createdBy'],
-        'note': po['notes'],
-        'isPurchaseDebt': true,
-      }).toList();
+      final purchaseExpenses = purchaseDebts
+          .map(
+            (po) => {
+              'id': 'po_${po['id']}',
+              'title': 'Đơn nhập: ${po['orderCode']} - ${po['supplierName']}',
+              'amount': po['totalCost'],
+              'date': po['createdAt'],
+              'category': 'ĐƠN NHẬP HÀNG',
+              'createdBy': po['createdBy'],
+              'note': po['notes'],
+              'isPurchaseDebt': true,
+            },
+          )
+          .toList();
       if (!mounted) return;
       setState(() {
         _expenses = [...expenses, ...purchaseExpenses];
         _filterExpenses();
         _isLoading = false;
       });
-      
+
       // Debug logging
-      print('DEBUG: Loaded ${_expenses.length} expenses, filtered: ${_filteredExpenses.length}');
+      print(
+        'DEBUG: Loaded ${_expenses.length} expenses, filtered: ${_filteredExpenses.length}',
+      );
     } catch (e) {
       print('DEBUG: Error loading expenses: $e');
       if (mounted) {
@@ -111,7 +118,7 @@ class _ExpenseViewState extends State<ExpenseView> {
 
   Future<void> _syncWithFirebase() async {
     if (_isSyncing) return;
-    
+
     setState(() {
       _isSyncing = true;
       _syncStatus = 'Đang đồng bộ...';
@@ -120,10 +127,10 @@ class _ExpenseViewState extends State<ExpenseView> {
     try {
       await SyncService.syncAllToCloud();
       await SyncService.downloadAllFromCloud();
-      
+
       // Reload data after sync
       await _refresh();
-      
+
       if (mounted) {
         setState(() {
           _syncStatus = 'Đã đồng bộ';
@@ -151,19 +158,21 @@ class _ExpenseViewState extends State<ExpenseView> {
       case 'NGÀY':
         filtered = _expenses.where((e) {
           final d = DateTime.fromMillisecondsSinceEpoch(e['date']);
-          return d.day == _selectedDate.day && 
-                 d.month == _selectedDate.month && 
-                 d.year == _selectedDate.year;
+          return d.day == _selectedDate.day &&
+              d.month == _selectedDate.month &&
+              d.year == _selectedDate.year;
         }).toList();
         break;
       case 'TUẦN':
         // Get start of week (Monday)
-        DateTime startOfWeek = _selectedDate.subtract(Duration(days: _selectedDate.weekday - 1));
+        DateTime startOfWeek = _selectedDate.subtract(
+          Duration(days: _selectedDate.weekday - 1),
+        );
         DateTime endOfWeek = startOfWeek.add(const Duration(days: 6));
         filtered = _expenses.where((e) {
           final d = DateTime.fromMillisecondsSinceEpoch(e['date']);
-          return d.isAfter(startOfWeek.subtract(const Duration(days: 1))) && 
-                 d.isBefore(endOfWeek.add(const Duration(days: 1)));
+          return d.isAfter(startOfWeek.subtract(const Duration(days: 1))) &&
+              d.isBefore(endOfWeek.add(const Duration(days: 1)));
         }).toList();
         break;
       case 'THÁNG':
@@ -184,9 +193,11 @@ class _ExpenseViewState extends State<ExpenseView> {
     setState(() {
       _filteredExpenses = filtered;
     });
-    
+
     // Debug logging
-    print('DEBUG: Filtered to ${_filteredExpenses.length} expenses for $_filterType');
+    print(
+      'DEBUG: Filtered to ${_filteredExpenses.length} expenses for $_filterType',
+    );
   }
 
   void _changeFilterType(String type) {
@@ -212,7 +223,10 @@ class _ExpenseViewState extends State<ExpenseView> {
 
   Future<void> _handleDeleteExpense(Map<String, dynamic> exp) async {
     if (exp['isPurchaseDebt'] == true) {
-      NotificationService.showSnackBar("Không thể xóa chi phí từ đơn nhập hàng!", color: AppColors.error);
+      NotificationService.showSnackBar(
+        "Không thể xóa chi phí từ đơn nhập hàng!",
+        color: AppColors.error,
+      );
       return;
     }
     final passC = TextEditingController();
@@ -221,7 +235,10 @@ class _ExpenseViewState extends State<ExpenseView> {
       builder: (ctx) => AlertDialog(
         title: Text(
           "XÁC NHẬN XÓA CHI PHÍ",
-          style: AppTextStyles.headline5.copyWith(color: AppColors.error, fontWeight: FontWeight.bold),
+          style: AppTextStyles.headline5.copyWith(
+            color: AppColors.error,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -324,7 +341,10 @@ class _ExpenseViewState extends State<ExpenseView> {
             ),
             title: Text(
               "GHI CHÉP CHI PHÍ",
-              style: AppTextStyles.headline5.copyWith(color: AppColors.error, fontWeight: FontWeight.bold),
+              style: AppTextStyles.headline5.copyWith(
+                color: AppColors.error,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             content: SingleChildScrollView(
               child: Column(
@@ -333,7 +353,9 @@ class _ExpenseViewState extends State<ExpenseView> {
                 children: [
                   Text(
                     "PHÂN LOẠI",
-                    style: AppTextStyles.overline.copyWith(color: AppColors.onSurface.withOpacity(0.6)),
+                    style: AppTextStyles.overline.copyWith(
+                      color: AppColors.onSurface.withOpacity(0.6),
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Wrap(
@@ -341,10 +363,7 @@ class _ExpenseViewState extends State<ExpenseView> {
                     children: ["CỐ ĐỊNH", "PHÁT SINH", "KHÁC"]
                         .map(
                           (c) => ChoiceChip(
-                            label: Text(
-                              c,
-                              style: AppTextStyles.caption,
-                            ),
+                            label: Text(c, style: AppTextStyles.caption),
                             selected: category == c,
                             onSelected: (v) => setS(() => category = c),
                             selectedColor: AppColors.error.withOpacity(0.1),
@@ -363,7 +382,9 @@ class _ExpenseViewState extends State<ExpenseView> {
                   _input(noteC, "Ghi chú thêm", Icons.description),
                   Text(
                     "THANH TOÁN BẰNG",
-                    style: AppTextStyles.overline.copyWith(color: AppColors.onSurface.withOpacity(0.6)),
+                    style: AppTextStyles.overline.copyWith(
+                      color: AppColors.onSurface.withOpacity(0.6),
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Row(
@@ -373,10 +394,7 @@ class _ExpenseViewState extends State<ExpenseView> {
                             child: Padding(
                               padding: const EdgeInsets.only(right: 4),
                               child: ChoiceChip(
-                                label: Text(
-                                  m,
-                                  style: AppTextStyles.caption,
-                                ),
+                                label: Text(m, style: AppTextStyles.caption),
                                 selected: payMethod == m,
                                 onSelected: (v) => setS(() => payMethod = m),
                               ),
@@ -408,9 +426,8 @@ class _ExpenseViewState extends State<ExpenseView> {
                           return;
                         setS(() => _isSaving = true);
 
-                        int amount =
-                            int.tryParse(amountC.text.replaceAll('.', '')) ?? 0;
-                        if (amount > 0 && amount < 100000) amount *= 1000;
+                        // Lấy giá trị đã được CurrencyTextField xử lý
+                        int amount = CurrencyTextField.parseValue(amountC.text);
 
                         final String fId =
                             "exp_${DateTime.now().millisecondsSinceEpoch}_${titleC.text.hashCode}";
@@ -436,8 +453,7 @@ class _ExpenseViewState extends State<ExpenseView> {
                               "NV",
                           action: "CHI PHÍ",
                           type: "FINANCE",
-                          desc:
-                              "Đã chi ${MoneyUtils.formatVND(amount)}đ",
+                          desc: "Đã chi ${MoneyUtils.formatVND(amount)}đ",
                         );
 
                         if (!mounted) return;
@@ -454,7 +470,10 @@ class _ExpenseViewState extends State<ExpenseView> {
                     : null,
                 child: Text(
                   "LƯU CHI PHÍ",
-                  style: AppTextStyles.button.copyWith(color: AppColors.onSuccess, fontWeight: FontWeight.bold),
+                  style: AppTextStyles.button.copyWith(
+                    color: AppColors.onSuccess,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],
@@ -496,7 +515,9 @@ class _ExpenseViewState extends State<ExpenseView> {
         body: Center(
           child: Text(
             "Bạn không có quyền truy cập tính năng này",
-            style: AppTextStyles.body1.copyWith(color: AppColors.onSurface.withOpacity(0.6)),
+            style: AppTextStyles.body1.copyWith(
+              color: AppColors.onSurface.withOpacity(0.6),
+            ),
           ),
         ),
       );
@@ -519,7 +540,10 @@ class _ExpenseViewState extends State<ExpenseView> {
         automaticallyImplyLeading: true,
         actions: [
           IconButton(
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => FastStockInView())),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => FastStockInView()),
+            ),
             icon: Icon(Icons.inventory_2_outlined, color: AppColors.success),
             tooltip: 'Nhập kho',
           ),
@@ -529,7 +553,9 @@ class _ExpenseViewState extends State<ExpenseView> {
               Text(
                 _syncStatus,
                 style: AppTextStyles.caption.copyWith(
-                  color: _syncStatus == 'Lỗi đồng bộ' ? AppColors.error : AppColors.onSurface.withOpacity(0.6),
+                  color: _syncStatus == 'Lỗi đồng bộ'
+                      ? AppColors.error
+                      : AppColors.onSurface.withOpacity(0.6),
                   fontWeight: _isSyncing ? FontWeight.bold : FontWeight.normal,
                 ),
               ),
@@ -564,15 +590,17 @@ class _ExpenseViewState extends State<ExpenseView> {
           ),
         ],
       ),
-      floatingActionButton: kIsWeb ? null : FloatingActionButton.extended(
-        onPressed: _showAddExpenseDialog,
-        label: const Text(
-          "CHI PHÍ MỚI",
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        icon: const Icon(Icons.add_circle_outline),
-        backgroundColor: const Color(0xFFD32F2F),
-      ),
+      floatingActionButton: kIsWeb
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: _showAddExpenseDialog,
+              label: const Text(
+                "CHI PHÍ MỚI",
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              icon: const Icon(Icons.add_circle_outline),
+              backgroundColor: const Color(0xFFD32F2F),
+            ),
     );
   }
 
@@ -583,7 +611,9 @@ class _ExpenseViewState extends State<ExpenseView> {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [BoxShadow(color: AppColors.shadow.withOpacity(0.1), blurRadius: 8)],
+        boxShadow: [
+          BoxShadow(color: AppColors.shadow.withOpacity(0.1), blurRadius: 8),
+        ],
       ),
       child: Column(
         children: [
@@ -611,7 +641,9 @@ class _ExpenseViewState extends State<ExpenseView> {
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
-                              color: _filterType == type ? Colors.white : Colors.grey[700],
+                              color: _filterType == type
+                                  ? Colors.white
+                                  : Colors.grey[700],
                             ),
                           ),
                           selected: _filterType == type,
@@ -620,7 +652,10 @@ class _ExpenseViewState extends State<ExpenseView> {
                           },
                           selectedColor: const Color(0xFFD32F2F),
                           backgroundColor: Colors.grey[100],
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 6,
+                          ),
                         ),
                       ),
                     );
@@ -634,8 +669,11 @@ class _ExpenseViewState extends State<ExpenseView> {
           Row(
             children: [
               Icon(
-                _filterType == 'NGÀY' ? Icons.calendar_today :
-                _filterType == 'TUẦN' ? Icons.calendar_view_week : Icons.calendar_month,
+                _filterType == 'NGÀY'
+                    ? Icons.calendar_today
+                    : _filterType == 'TUẦN'
+                    ? Icons.calendar_view_week
+                    : Icons.calendar_month,
                 size: 16,
                 color: Colors.grey,
               ),
@@ -667,7 +705,10 @@ class _ExpenseViewState extends State<ExpenseView> {
                     }
                   },
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       border: Border.all(color: Colors.grey[300]!),
                       borderRadius: BorderRadius.circular(8),
@@ -694,7 +735,9 @@ class _ExpenseViewState extends State<ExpenseView> {
       case 'NGÀY':
         return DateFormat('dd/MM/yyyy').format(_selectedDate);
       case 'TUẦN':
-        DateTime startOfWeek = _selectedDate.subtract(Duration(days: _selectedDate.weekday - 1));
+        DateTime startOfWeek = _selectedDate.subtract(
+          Duration(days: _selectedDate.weekday - 1),
+        );
         DateTime endOfWeek = startOfWeek.add(const Duration(days: 6));
         return '${DateFormat('dd/MM').format(startOfWeek)} - ${DateFormat('dd/MM/yyyy').format(endOfWeek)}';
       case 'THÁNG':
@@ -725,8 +768,11 @@ class _ExpenseViewState extends State<ExpenseView> {
         .where((e) => e['category'] == 'KHÁC')
         .fold(0, (sum, e) => sum + (e['amount'] as int));
 
-    String headerTitle = _filterType == 'NGÀY' ? 'TỔNG CHI HÔM NAY' :
-                        _filterType == 'TUẦN' ? 'TỔNG CHI TUẦN NÀY' : 'TỔNG CHI THÁNG NÀY';
+    String headerTitle = _filterType == 'NGÀY'
+        ? 'TỔNG CHI HÔM NAY'
+        : _filterType == 'TUẦN'
+        ? 'TỔNG CHI TUẦN NÀY'
+        : 'TỔNG CHI THÁNG NÀY';
 
     return Container(
       width: double.infinity,
@@ -891,7 +937,9 @@ class _ExpenseViewState extends State<ExpenseView> {
                 color: Colors.grey,
                 size: 20,
               ),
-              onPressed: e['isPurchaseDebt'] == true ? null : () => _handleDeleteExpense(e),
+              onPressed: e['isPurchaseDebt'] == true
+                  ? null
+                  : () => _handleDeleteExpense(e),
             ),
           ],
         ),
@@ -906,9 +954,9 @@ class _ExpenseViewState extends State<ExpenseView> {
         Icon(Icons.money_off_rounded, size: 80, color: Colors.grey[200]),
         const SizedBox(height: 16),
         Text(
-          kIsWeb 
-            ? "Tính năng quản lý chi phí không khả dụng trên trình duyệt web.\nVui lòng sử dụng ứng dụng di động."
-            : "Không có chi phí nào trong ${_filterType.toLowerCase()} này",
+          kIsWeb
+              ? "Tính năng quản lý chi phí không khả dụng trên trình duyệt web.\nVui lòng sử dụng ứng dụng di động."
+              : "Không có chi phí nào trong ${_filterType.toLowerCase()} này",
           style: const TextStyle(color: Colors.grey),
           textAlign: TextAlign.center,
         ),

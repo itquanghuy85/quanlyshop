@@ -1150,6 +1150,11 @@ class DBHelper {
   }
 
   // --- LỊCH SỬ TRẢ NỢ ---
+  Future<void> upsertDebtPayment(Map<String, dynamic> p) async {
+    final firestoreId = p['firestoreId'] ?? "debt_payment_${p['paidAt']}";
+    await _upsert('debt_payments', p, firestoreId);
+  }
+
   Future<int> insertDebtPayment(Map<String, dynamic> p) async {
     final db = await database;
     return await db.insert('debt_payments', p);

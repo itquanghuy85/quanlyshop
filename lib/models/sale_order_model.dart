@@ -92,6 +92,22 @@ class SaleOrder {
   }
 
   factory SaleOrder.fromMap(Map<String, dynamic> map) {
+    // Validate và sanitize các giá trị số
+    final totalPriceRaw = map['totalPrice'] is int ? map['totalPrice'] : 0;
+    final totalCostRaw = map['totalCost'] is int ? map['totalCost'] : 0;
+    final downPaymentRaw = map['downPayment'] is int ? map['downPayment'] : 0;
+    final loanAmountRaw = map['loanAmount'] is int ? map['loanAmount'] : 0;
+    final settlementAmountRaw = map['settlementAmount'] is int ? map['settlementAmount'] : 0;
+    final settlementFeeRaw = map['settlementFee'] is int ? map['settlementFee'] : 0;
+    
+    // Đảm bảo các giá trị không âm
+    final totalPrice = totalPriceRaw < 0 ? 0 : totalPriceRaw;
+    final totalCost = totalCostRaw < 0 ? 0 : totalCostRaw;
+    final downPayment = downPaymentRaw < 0 ? 0 : downPaymentRaw;
+    final loanAmount = loanAmountRaw < 0 ? 0 : loanAmountRaw;
+    final settlementAmount = settlementAmountRaw < 0 ? 0 : settlementAmountRaw;
+    final settlementFee = settlementFeeRaw < 0 ? 0 : settlementFeeRaw;
+    
     return SaleOrder(
       id: map['id'],
       firestoreId: map['firestoreId'],
@@ -100,26 +116,26 @@ class SaleOrder {
       address: map['address'] ?? "",
       productNames: map['productNames'] ?? "",
       productImeis: map['productImeis'] ?? "",
-      totalPrice: map['totalPrice'] is int ? map['totalPrice'] : 0,
-      totalCost: map['totalCost'] is int ? map['totalCost'] : 0,
+      totalPrice: totalPrice,
+      totalCost: totalCost,
       paymentMethod: map['paymentMethod'] ?? "TIỀN MẶT",
       sellerName: map['sellerName'] ?? "",
       soldAt: map['soldAt'] is int ? map['soldAt'] : 0,
       notes: map['notes'],
       gifts: map['gifts'],
       warranty: map['warranty'] ?? "KO BH",
-      isInstallment: map['isInstallment'] == 1,
-      downPayment: map['downPayment'] is int ? map['downPayment'] : 0,
-      loanAmount: map['loanAmount'] is int ? map['loanAmount'] : 0,
+      isInstallment: map['isInstallment'] == 1 || map['isInstallment'] == true,
+      downPayment: downPayment,
+      loanAmount: loanAmount,
       installmentTerm: map['installmentTerm'],
       bankName: map['bankName'],
       settlementPlannedAt: map['settlementPlannedAt'],
       settlementReceivedAt: map['settlementReceivedAt'],
-      settlementAmount: map['settlementAmount'] is int ? map['settlementAmount'] : 0,
-      settlementFee: map['settlementFee'] is int ? map['settlementFee'] : 0,
+      settlementAmount: settlementAmount,
+      settlementFee: settlementFee,
       settlementNote: map['settlementNote'],
       settlementCode: map['settlementCode'],
-      isSynced: map['isSynced'] == 1,
+      isSynced: map['isSynced'] == 1 || map['isSynced'] == true,
     );
   }
 }
