@@ -52,13 +52,19 @@ class Debt {
     final paidAmountSafe = paidAmountRaw < 0 ? 0 : paidAmountRaw;
     final paidAmount = paidAmountSafe > totalAmountSafe ? totalAmountSafe : paidAmountSafe;
     
-    // Validate type: chỉ chấp nhận 'OWE' hoặc 'OWED'
-    final typeRaw = map['type']?.toString().toUpperCase() ?? 'OWE';
-    final type = (typeRaw == 'OWE' || typeRaw == 'OWED') ? typeRaw : 'OWE';
+    // Validate type: chấp nhận các type hợp lệ
+    // - CUSTOMER_OWES: Khách nợ shop (phải thu)
+    // - SHOP_OWES: Shop nợ nhà cung cấp (phải trả)
+    // - OTHER_CUSTOMER_OWES: Nợ khác - phải thu
+    // - OTHER_SHOP_OWES: Nợ khác - phải trả
+    // - OWE/OWED: Legacy types (backward compatibility)
+    final typeRaw = map['type']?.toString() ?? 'CUSTOMER_OWES';
+    final validTypes = ['CUSTOMER_OWES', 'SHOP_OWES', 'OTHER_CUSTOMER_OWES', 'OTHER_SHOP_OWES', 'OWE', 'OWED'];
+    final type = validTypes.contains(typeRaw) ? typeRaw : 'CUSTOMER_OWES';
     
-    // Validate status: chỉ chấp nhận 'ACTIVE', 'PAID', 'CANCELLED'  
+    // Validate status: chấp nhận 'ACTIVE', 'PAID', 'CANCELLED', 'paid', 'unpaid'  
     final statusRaw = map['status']?.toString().toUpperCase() ?? 'ACTIVE';
-    final validStatuses = ['ACTIVE', 'PAID', 'CANCELLED'];
+    final validStatuses = ['ACTIVE', 'PAID', 'CANCELLED', 'UNPAID'];
     final status = validStatuses.contains(statusRaw) ? statusRaw : 'ACTIVE';
     
     return Debt(

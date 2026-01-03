@@ -12,6 +12,7 @@ import '../services/firestore_service.dart';
 import '../services/event_bus.dart';
 import '../core/utils/money_utils.dart';
 import '../utils/sku_generator.dart';
+import '../widgets/currency_text_field.dart';
 import 'quick_input_library_view.dart';
 
 // Formatter to force uppercase input without triggering controller loops
@@ -84,8 +85,8 @@ class _FastStockInViewState extends State<FastStockInView> {
   }
 
   int _parseMoneyWithK(String text) {
-    final value = MoneyUtils.parseMoney(text);
-    return (value > 0 && value < 100000) ? value * 1000 : value;
+    // MoneyUtils.parseMoney already handles auto-multiply for values < 100000
+    return MoneyUtils.parseMoney(text);
   }
 
   void _preFillFromQuickInputCode(QuickInputCode code) {

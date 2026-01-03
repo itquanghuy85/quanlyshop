@@ -18,6 +18,7 @@ import '../services/firestore_service.dart';
 import '../services/user_service.dart';
 import '../data/db_helper.dart';
 import '../widgets/validated_text_field.dart';
+import '../widgets/currency_text_field.dart';
 import '../services/event_bus.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
@@ -208,8 +209,8 @@ class _RepairDetailViewState extends State<RepairDetailView> {
   }
 
   Future<void> _editFinancials() async {
-    final priceC = TextEditingController(text: (r.price / 1000).toStringAsFixed(0));
-    final costC = TextEditingController(text: (r.cost / 1000).toStringAsFixed(0));
+    final priceC = TextEditingController(text: CurrencyTextField.formatDisplay(r.price));
+    final costC = TextEditingController(text: CurrencyTextField.formatDisplay(r.cost));
     final result = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -217,9 +218,9 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ValidatedTextField(controller: priceC, label: "Giá thu khách (k)", icon: Icons.attach_money, keyboardType: TextInputType.number),
+            CurrencyTextField(controller: priceC, label: "Giá thu khách", icon: Icons.attach_money),
             const SizedBox(height: 12),
-            ValidatedTextField(controller: costC, label: "Giá vốn linh kiện (k)", icon: Icons.inventory, keyboardType: TextInputType.number),
+            CurrencyTextField(controller: costC, label: "Giá vốn linh kiện", icon: Icons.inventory),
           ],
         ),
         actions: [
@@ -232,8 +233,8 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       final oldCost = r.cost;
       final oldPrice = r.price;
       setState(() {
-        r.price = (int.tryParse(priceC.text) ?? 0) * 1000;
-        r.cost = (int.tryParse(costC.text) ?? 0) * 1000;
+        r.price = CurrencyTextField.parseValue(priceC.text);
+        r.cost = CurrencyTextField.parseValue(costC.text);
       });
       // If cost increased, create expense for the additional cost
       if (r.cost > oldCost) {

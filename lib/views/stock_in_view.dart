@@ -10,6 +10,7 @@ import '../services/firestore_service.dart';
 import '../services/event_bus.dart';
 import '../utils/money_utils.dart';
 import '../widgets/validated_text_field.dart';
+import '../widgets/currency_text_field.dart';
 import 'fast_stock_in_view.dart';
 
 class StockInView extends StatefulWidget {
@@ -113,8 +114,8 @@ class _StockInViewState extends State<StockInView> {
       conditionCtrl.text = data['condition'] ?? 'Mới';
       imeiCtrl.text = data['imei'] ?? '';
       quantityCtrl.text = data['quantity']?.toString() ?? '1';
-      costCtrl.text = data['cost'] != null ? (data['cost'] ~/ 1000).toString() : '';
-      priceCtrl.text = data['price'] != null ? (data['price'] ~/ 1000).toString() : '';
+      costCtrl.text = data['cost'] != null ? CurrencyTextField.formatDisplay(data['cost'] as int) : '';
+      priceCtrl.text = data['price'] != null ? CurrencyTextField.formatDisplay(data['price'] as int) : '';
       supplierCtrl.text = data['supplier'] ?? '';
       selectedPaymentMethod = data['paymentMethod'] ?? 'Công nợ';
       notesCtrl.text = data['notes'] ?? '';
@@ -147,8 +148,9 @@ class _StockInViewState extends State<StockInView> {
   }
 
   int _parseMoneyWithK(String text) {
-    final value = MoneyUtils.parseMoney(text);
-    return (value > 0 && value < 100000) ? value * 1000 : value;
+    // CurrencyTextField stores formatted value (e.g., "500.000" for 500000 VND)
+    // parseValue removes formatting and returns the integer
+    return CurrencyTextField.parseValue(text);
   }
 
   void _formatCost() {
@@ -770,43 +772,43 @@ class _StockInViewState extends State<StockInView> {
             ),
             const SizedBox(height: 8),
 
-            // Giá nhập
-            _buildTextField(
-              controller: costCtrl,
-              label: 'Giá nhập (VNĐ) *',
-              focusNode: costF,
-              nextFocus: priceF,
-              keyboardType: TextInputType.number,
-              icon: Icons.attach_money,
-              suffix: 'x1k',
-              hasChanged: _costChanged,
+            // Giá nhập - sử dụng CurrencyTextField chuẩn hóa
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: CurrencyTextField(
+                controller: costCtrl,
+                label: 'Giá nhập (VNĐ) *',
+                icon: Icons.attach_money,
+                autoMultiply1000: true,
+                onSubmitted: () => FocusScope.of(context).requestFocus(priceF),
+              ),
             ),
             const SizedBox(height: 8),
 
             // Giá bán (cho accessory) hoặc Giá thay (cho linh kiện)
             if (_isAccessoryOrLinhKien) ...[
-              _buildTextField(
-                controller: priceCtrl,
-                label: typeCtrl.text == 'ACCESSORY' ? 'Giá (VNĐ)' : 'Giá thay (VNĐ)',
-                focusNode: priceF,
-                nextFocus: notesF,
-                keyboardType: TextInputType.number,
-                icon: Icons.sell,
-                suffix: 'x1k',
-                hasChanged: _priceChanged,
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: CurrencyTextField(
+                  controller: priceCtrl,
+                  label: typeCtrl.text == 'ACCESSORY' ? 'Giá (VNĐ)' : 'Giá thay (VNĐ)',
+                  icon: Icons.sell,
+                  autoMultiply1000: true,
+                  onSubmitted: () => FocusScope.of(context).requestFocus(notesF),
+                ),
               ),
               const SizedBox(height: 8),
             ] else ...[
               // Giá bán không phụ kiện (cho phone)
-              _buildTextField(
-                controller: priceCtrl,
-                label: 'Giá bán (VNĐ)',
-                focusNode: priceF,
-                nextFocus: notesF,
-                keyboardType: TextInputType.number,
-                icon: Icons.sell,
-                suffix: 'x1k',
-                hasChanged: _priceChanged,
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: CurrencyTextField(
+                  controller: priceCtrl,
+                  label: 'Giá bán (VNĐ)',
+                  icon: Icons.sell,
+                  autoMultiply1000: true,
+                  onSubmitted: () => FocusScope.of(context).requestFocus(notesF),
+                ),
               ),
               const SizedBox(height: 8),
             ],

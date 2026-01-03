@@ -1622,11 +1622,10 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
         }
         if (isSaving) return; setS(() => isSaving = true);
         try {
-          int parseK(String t) { final c = t.replaceAll('.', '').replaceAll(RegExp(r'[^\d]'), ''); int v = int.tryParse(c) ?? 0; return (v > 0 && v < 100000) ? v * 1000 : v; }
           final int ts = DateTime.now().millisecondsSinceEpoch;
           final String imei = imeiC.text.trim();
           final String fId = "prod_${ts}_${imei.isNotEmpty ? imei : ts}";
-          final p = Product(firestoreId: fId, name: skuC.text.toUpperCase(), model: modelC.text.trim().isNotEmpty ? modelC.text.trim() : null, imei: imei, cost: parseK(costC.text), price: parseK(priceC.text), capacity: detailC.text.toUpperCase(), quantity: int.tryParse(qtyC.text) ?? 1, type: type, createdAt: ts, supplier: supplier, status: 1);
+          final p = Product(firestoreId: fId, name: skuC.text.toUpperCase(), model: modelC.text.trim().isNotEmpty ? modelC.text.trim() : null, imei: imei, cost: CurrencyTextField.parseValue(costC.text), price: CurrencyTextField.parseValue(priceC.text), capacity: detailC.text.toUpperCase(), quantity: int.tryParse(qtyC.text) ?? 1, type: type, createdAt: ts, supplier: supplier, status: 1);
           final user = FirebaseAuth.instance.currentUser;
           final userName = user?.email?.split('@').first.toUpperCase() ?? "NV";
           await db.logAction(userId: user?.uid ?? "0", userName: userName, action: "NHẬP KHO", type: "PRODUCT", targetId: p.imei, desc: "Đã nhập máy ${p.name}");
@@ -1785,8 +1784,8 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
   void _editProduct(Product p) {
     final nameC = TextEditingController(text: p.name);
     final imeiC = TextEditingController(text: p.imei ?? '');
-    final costC = TextEditingController(text: (p.cost / 1000).toStringAsFixed(0));
-    final priceC = TextEditingController(text: (p.price / 1000).toStringAsFixed(0));
+    final costC = TextEditingController(text: CurrencyTextField.formatDisplay(p.cost));
+    final priceC = TextEditingController(text: CurrencyTextField.formatDisplay(p.price));
     final detailC = TextEditingController(text: p.capacity ?? '');
     final qtyC = TextEditingController(text: p.quantity.toString());
     final modelC = TextEditingController(text: p.model ?? '');
@@ -1803,15 +1802,14 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
         }
         if (isSaving) return; setS(() => isSaving = true);
         try {
-          int parseK(String t) { final c = t.replaceAll('.', '').replaceAll(RegExp(r'[^\d]'), ''); int v = int.tryParse(c) ?? 0; return (v > 0 && v < 100000) ? v * 1000 : v; }
           final int ts = DateTime.now().millisecondsSinceEpoch;
           final updatedP = Product(
             firestoreId: p.firestoreId,
             name: nameC.text.trim().toUpperCase(),
             model: modelC.text.trim().isNotEmpty ? modelC.text.trim() : null,
             imei: imeiC.text.trim(),
-            cost: parseK(costC.text),
-            price: parseK(priceC.text),
+            cost: CurrencyTextField.parseValue(costC.text),
+            price: CurrencyTextField.parseValue(priceC.text),
             capacity: detailC.text.trim().toUpperCase(),
             quantity: int.tryParse(qtyC.text) ?? 1,
             type: type,

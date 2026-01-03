@@ -150,10 +150,10 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
   }
 
   int _parseFinalPrice(String text) {
-    // Dùng CurrencyTextField.parseValue để parse giá trị đã format
-    int v = CurrencyTextField.parseValue(text);
-    // Nếu số < 100000 thì nhân 1000 (quy ước nhập nhanh)
-    return (v > 0 && v < 100000) ? v * 1000 : v;
+    // _formatPrice() đã dùng MoneyUtils.inputToVND để format
+    // Nên giá trị trong controller đã là full VNĐ (e.g., "500.000" = 500000đ)
+    // Chỉ cần parse ra số, không cần nhân 1000 nữa
+    return CurrencyTextField.parseValue(text);
   }
 
   Future<Repair?> _saveOrderProcess() async {

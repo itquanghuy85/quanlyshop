@@ -263,6 +263,75 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
     }
   }
 
+  /// Rebuild all tab widgets to reflect updated state variables
+  /// This is necessary because IndexedStack caches child widgets
+  void _rebuildTabWidgets() {
+    debugPrint('HomeView: _rebuildTabWidgets called - rebuilding all tabs with fresh data');
+    // Rebuild tab configs with current data values
+    _tabConfigs = [
+      {
+        'permission': null,
+        'item': const BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+        'widget': _buildHomeTab(),
+      },
+      {
+        'permission': 'allowViewSales',
+        'item': const BottomNavigationBarItem(icon: Icon(Icons.shopping_cart), label: 'Bán hàng'),
+        'widget': _buildSalesTab(),
+      },
+      {
+        'permission': 'allowViewRepairs',
+        'item': const BottomNavigationBarItem(icon: Icon(Icons.build), label: 'Sửa chữa'),
+        'widget': _buildRepairsTab(),
+      },
+      {
+        'permission': 'allowViewInventory',
+        'item': const BottomNavigationBarItem(icon: Icon(Icons.inventory), label: 'Kho'),
+        'widget': _buildInventoryTab(),
+      },
+      {
+        'permission': 'allowManageStaff',
+        'item': const BottomNavigationBarItem(icon: Icon(Icons.people), label: 'Nhân sự'),
+        'widget': _buildStaffTab(),
+      },
+      {
+        'permission': 'allowManageFinance',
+        'item': const BottomNavigationBarItem(icon: Icon(Icons.attach_money), label: 'Tài chính'),
+        'widget': _buildFinanceTab(),
+      },
+      {
+        'permission': 'allowViewSettings',
+        'item': const BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Cài đặt'),
+        'widget': _buildSettingsTab(),
+      },
+    ];
+    
+    // Re-apply permissions filter
+    final availableConfigs = _tabConfigs.where((config) {
+      final permission = config['permission'] as String?;
+      return permission == null || (_permissions[permission] == true);
+    }).toList();
+    
+    // Limit to 7 tabs max
+    if (availableConfigs.length > 7) {
+      final priorityTabs = ['Home', 'Bán hàng', 'Sửa chữa', 'Kho', 'Nhân sự', 'Tài chính', 'Cài đặt'];
+      final prioritized = availableConfigs.where((config) => priorityTabs.contains(config['item'].label)).toList();
+      final remaining = availableConfigs.where((config) => !priorityTabs.contains(config['item'].label)).toList();
+      availableConfigs.clear();
+      availableConfigs.addAll(prioritized);
+      availableConfigs.addAll(remaining.take(7 - prioritized.length));
+    }
+    
+    _navItems = availableConfigs.map((config) => config['item'] as BottomNavigationBarItem).toList();
+    _tabWidgets = availableConfigs.map((config) => config['widget'] as Widget).toList();
+    
+    if (_currentIndex >= _navItems.length) {
+      _currentIndex = 0;
+    }
+    
+    debugPrint('HomeView: Rebuilt ${_tabWidgets.length} tabs');
+  }
+
   @override
   void dispose() {
     _autoSyncTimer?.cancel();
@@ -283,6 +352,17 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
           await UserService.syncUserInfo(currentUser.uid, currentUser.email!);
       }
       await db.cleanDuplicateData();
+      
+      // QUAN TRỌNG: Sync với Firebase TRƯỚC KHI load stats
+      // để đảm bảo data hiển thị giống như trong Quản lý tài chính
+      debugPrint('HomeView: Syncing with Firebase before loading stats...');
+      try {
+        await SyncService.downloadAllFromCloud();
+        debugPrint('HomeView: Sync completed successfully');
+      } catch (syncError) {
+        debugPrint('HomeView: Sync failed, using local data: $syncError');
+      }
+      
       debugPrint('About to call _loadStats in initState');
       await _loadStats();
       debugPrint('After _loadStats in initState');
@@ -335,9 +415,6 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
     final now = DateTime.now();
     final result =
         date.year == now.year && date.month == now.month && date.day == now.day;
-    debugPrint(
-      'DATE_TRACE: _isSameDay($timestamp) -> date: $date, now: $now, result: $result',
-    );
     return result;
   }
 
@@ -370,6 +447,7 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
     // === TÍNH TOÁN CHÍNH XÁC NHƯ REVENUE_VIEW.DART ===
     // Lọc sales hôm nay
     final fSales = sales.where((s) => _isSameDay(s.soldAt)).toList();
+    
     // Lọc repairs đã giao (status == 4) và deliveredAt hôm nay
     final fRepairs = repairs
         .where(
@@ -379,6 +457,7 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
               _isSameDay(r.deliveredAt!),
         )
         .toList();
+    
     // Lọc expenses hôm nay
     final fExpenses = expenses
         .where((e) => _isSameDay(e['date'] as int))
@@ -456,6 +535,9 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
         _todaySaleOrderCount = fSales.length;
         _todayExpenseCount = fExpenses.length;
         _rebuildCounter++;
+        // QUAN TRỌNG: Rebuild _tabWidgets để cập nhật các giá trị mới
+        // Các widget trong IndexedStack được cache nên cần tạo lại
+        _rebuildTabWidgets();
       });
     }
 

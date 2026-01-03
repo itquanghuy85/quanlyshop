@@ -20,6 +20,7 @@ import '../services/unified_printer_service.dart';
 import '../services/bluetooth_printer_service.dart';
 import '../models/printer_types.dart';
 import '../widgets/printer_selection_dialog.dart';
+import '../widgets/currency_text_field.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 import 'create_sale_view.dart';
@@ -183,8 +184,8 @@ class _SaleDetailViewState extends State<SaleDetailView> {
   }
 
   Future<void> _openSettlementDialog() async {
-    final amountCtrl = TextEditingController(text: ((s.settlementAmount > 0 ? s.settlementAmount : s.loanAmount) / 1000).toStringAsFixed(0));
-    final feeCtrl = TextEditingController(text: (s.settlementFee > 0 ? (s.settlementFee / 1000).toStringAsFixed(0) : "0"));
+    final amountCtrl = TextEditingController(text: CurrencyTextField.formatDisplay(s.settlementAmount > 0 ? s.settlementAmount : s.loanAmount));
+    final feeCtrl = TextEditingController(text: CurrencyTextField.formatDisplay(s.settlementFee));
     final noteCtrl = TextEditingController(text: s.settlementNote ?? "");
 
     final ok = await showDialog<bool>(
@@ -194,9 +195,9 @@ class _SaleDetailViewState extends State<SaleDetailView> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(controller: amountCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "Số tiền nhận ", prefixText: "Đ ", suffixText: null)),
+            CurrencyTextField(controller: amountCtrl, label: "Số tiền nhận", icon: Icons.attach_money, autoMultiply1000: false),
             const SizedBox(height: 8),
-            TextField(controller: feeCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "Phí NH giữ lại ", prefixText: "Đ ", suffixText: null)),
+            CurrencyTextField(controller: feeCtrl, label: "Phí NH giữ lại", icon: Icons.money_off, autoMultiply1000: false),
             const SizedBox(height: 8),
             TextField(controller: noteCtrl, decoration: const InputDecoration(labelText: "Ghi chú")),
           ],
@@ -210,8 +211,8 @@ class _SaleDetailViewState extends State<SaleDetailView> {
 
     if (ok != true) return;
 
-    final received = (int.tryParse(amountCtrl.text) ?? 0) * 1000;
-    final fee = (int.tryParse(feeCtrl.text) ?? 0) * 1000;
+    final received = CurrencyTextField.parseValue(amountCtrl.text);
+    final fee = CurrencyTextField.parseValue(feeCtrl.text);
     final nowMs = DateTime.now().millisecondsSinceEpoch;
 
     setState(() {
@@ -253,8 +254,8 @@ class _SaleDetailViewState extends State<SaleDetailView> {
     final address = TextEditingController(text: s.address);
     final products = TextEditingController(text: s.productNames);
     final imeis = TextEditingController(text: s.productImeis);
-    final totalPrice = TextEditingController(text: (s.totalPrice / 1000).toStringAsFixed(0));
-    final totalCost = TextEditingController(text: (s.totalCost / 1000).toStringAsFixed(0));
+    final totalPrice = TextEditingController(text: CurrencyTextField.formatDisplay(s.totalPrice));
+    final totalCost = TextEditingController(text: CurrencyTextField.formatDisplay(s.totalCost));
     final notes = TextEditingController(text: s.notes ?? "");
     final warranties = ["KO BH", "1 THÁNG", "3 THÁNG", "6 THÁNG", "12 THÁNG"];
     String warranty = s.warranty ?? "KO BH";
@@ -273,8 +274,8 @@ class _SaleDetailViewState extends State<SaleDetailView> {
               TextField(controller: address, decoration: const InputDecoration(labelText: "Địa chỉ")),
               TextField(controller: products, decoration: const InputDecoration(labelText: "Sản phẩm")),
               TextField(controller: imeis, decoration: const InputDecoration(labelText: "IMEI/Serial")),
-              TextField(controller: totalPrice, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "Tổng tiền ")),
-              TextField(controller: totalCost, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "Giá vốn ")),
+              CurrencyTextField(controller: totalPrice, label: "Tổng tiền", autoMultiply1000: false),
+              CurrencyTextField(controller: totalCost, label: "Giá vốn", autoMultiply1000: false),
               DropdownButtonFormField<String>(initialValue: warranty, decoration: const InputDecoration(labelText: "Bảo hành"), items: warranties.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(), onChanged: (v) => warranty = v ?? warranty),
               DropdownButtonFormField<String>(
                 initialValue: payment,
@@ -303,8 +304,8 @@ class _SaleDetailViewState extends State<SaleDetailView> {
       s.address = address.text.trim().toUpperCase();
       s.productNames = products.text.trim().toUpperCase();
       s.productImeis = imeis.text.trim().toUpperCase();
-      s.totalPrice = (int.tryParse(totalPrice.text) ?? 0) * 1000;
-      s.totalCost = (int.tryParse(totalCost.text) ?? 0) * 1000;
+      s.totalPrice = CurrencyTextField.parseValue(totalPrice.text);
+      s.totalCost = CurrencyTextField.parseValue(totalCost.text);
       s.warranty = warranty;
       s.paymentMethod = payment;
       if (payment != 'TRẢ GÓP (NH)') {

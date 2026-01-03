@@ -229,7 +229,7 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
       NotificationService.showSnackBar("Vui lòng nhập số lượng hợp lệ!", color: AppColors.error);
       return false;
     }
-    if (costCtrl.text.isEmpty || int.tryParse(costCtrl.text) == null) {
+    if (costCtrl.text.isEmpty || CurrencyTextField.parseValue(costCtrl.text) <= 0) {
       NotificationService.showSnackBar("Vui lòng nhập giá nhập hợp lệ!", color: AppColors.error);
       return false;
     }
@@ -255,8 +255,8 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
         'condition': conditionCtrl.text,
         'imei': imeiCtrl.text,
         'quantity': int.parse(quantityCtrl.text),
-        'cost': int.parse(costCtrl.text) * 1000,
-        'price': priceCtrl.text.isNotEmpty ? int.parse(priceCtrl.text) * 1000 : null,
+        'cost': CurrencyTextField.parseValue(costCtrl.text),
+        'price': priceCtrl.text.isNotEmpty ? CurrencyTextField.parseValue(priceCtrl.text) : null,
         'supplier': supplierCtrl.text,
         'paymentMethod': selectedPaymentMethod,
         'notes': notesCtrl.text,
@@ -449,8 +449,8 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
     setState(() {
       _selectedGroup = template['group'];
       _selectedType = template['type'];
-      _costController.text = (template['cost'] ~/ 1000).toString();
-      _retailController.text = (template['retail'] ~/ 1000).toString();
+      _costController.text = CurrencyTextField.formatDisplay(template['cost'] as int? ?? 0);
+      _retailController.text = CurrencyTextField.formatDisplay(template['retail'] as int? ?? 0);
     });
     NotificationService.showSnackBar("Đã áp dụng template: ${template['name']}", color: Colors.blue);
   }
@@ -527,12 +527,6 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
     } catch (e) {
       // Silent fail for refresh
     }
-  }
-
-  int _parsePrice(String text) {
-    final cleaned = text.replaceAll('.', '').replaceAll(RegExp(r'[^\d]'), '');
-    final value = int.tryParse(cleaned) ?? 0;
-    return (value > 0 && value < 100000) ? value * 1000 : value;
   }
 
   void _clearForm() {
