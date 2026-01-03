@@ -20,6 +20,8 @@ import '../services/unified_printer_service.dart';
 import '../services/bluetooth_printer_service.dart';
 import '../models/printer_types.dart';
 import '../widgets/printer_selection_dialog.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_text_styles.dart';
 import 'create_sale_view.dart';
 
 class SaleDetailView extends StatefulWidget {
@@ -373,21 +375,93 @@ class _SaleDetailViewState extends State<SaleDetailView> {
       ),
     );
     if (result == true && mounted) {
-      // Refresh the sale data if edited
-      Navigator.pop(context, true); // Close detail view to refresh list
+      // Reload the sale data from database after successful edit
+      final updatedSale = await db.getSaleByFirestoreId(s.firestoreId!);
+      if (updatedSale != null) {
+        setState(() {
+          s = updatedSale;
+        });
+      }
+      // Also refresh the list view
+      Navigator.pop(context, true);
     }
   }
 
   Future<void> _deleteSale() async {
     if (s.id == null) return;
+
+    // Thử khôi phục inventory dựa trên IMEI
+    bool inventoryRestored = false;
+    try {
+      final imeis = s.productImeis.split(', ');
+      for (final imei in imeis) {
+        if (imei.isNotEmpty && imei != "NO_IMEI" && !imei.startsWith("PKx")) {
+          // Tìm sản phẩm theo IMEI
+          final product = await db.getProductByImei(imei);
+          if (product != null) {
+            // Tăng quantity cho sản phẩm này
+            await db.addProductQuantity(product.id!, 1);
+            // Sync lên cloud
+            product.quantity += 1;
+            if (product.type == 'PHONE' && product.status == 0 && product.quantity > 0) {
+              product.status = 1; // Đánh dấu là available
+            }
+            await FirestoreService.updateProductCloud(product);
+            inventoryRestored = true;
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Lỗi khi khôi phục inventory: $e');
+    }
+
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text("XÓA ĐƠN BÁN"),
-        content: const Text("Bạn chắc chắn muốn xóa đơn này?"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text("Bạn chắc chắn muốn xóa đơn này?"),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: inventoryRestored ? AppColors.success.withOpacity(0.1) : AppColors.warning.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: inventoryRestored ? AppColors.success.withOpacity(0.3) : AppColors.warning.withOpacity(0.3)),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    inventoryRestored ? Icons.check_circle : Icons.warning_amber_rounded,
+                    color: inventoryRestored ? AppColors.success : AppColors.warning,
+                    size: 20
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      inventoryRestored
+                        ? "Số lượng sản phẩm đã được khôi phục tự động trong kho."
+                        : "Không thể khôi phục tự động số lượng trong kho. Bạn cần cập nhật inventory thủ công.",
+                      style: AppTextStyles.caption.copyWith(
+                        color: inventoryRestored ? AppColors.success : AppColors.warning,
+                        fontWeight: FontWeight.w500
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("HỦY")),
-          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text("XÓA")),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text("XÓA"),
+          ),
         ],
       ),
     );
@@ -402,7 +476,7 @@ class _SaleDetailViewState extends State<SaleDetailView> {
         entityType: 'sale',
         entityId: s.firestoreId ?? "sale_${s.soldAt}",
         summary: s.customerName,
-        payload: {'totalPrice': s.totalPrice},
+        payload: {'totalPrice': s.totalPrice, 'inventoryRestored': inventoryRestored},
       );
       if (mounted) {
         Navigator.pop(context, true);

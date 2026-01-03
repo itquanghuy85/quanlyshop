@@ -12,7 +12,9 @@ class QrScanView extends StatefulWidget {
 }
 
 class _QrScanViewState extends State<QrScanView> {
-  final MobileScannerController _controller = MobileScannerController();
+  final MobileScannerController _controller = MobileScannerController(
+    detectionTimeoutMs: 2000, // Giảm chu kỳ quét xuống 2 giây
+  );
   bool _handling = false;
 
   Future<void> _handleBarcode(String raw) async {

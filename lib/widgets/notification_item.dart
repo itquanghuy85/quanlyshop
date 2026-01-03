@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../theme/app_text_styles.dart';
+import '../theme/app_colors.dart';
 
 class NotificationItem extends StatelessWidget {
   final Map<String, dynamic> notification;
@@ -26,7 +28,7 @@ class NotificationItem extends StatelessWidget {
       ),
       title: Text(
         notification['title'] ?? '',
-        style: TextStyle(
+        style: AppTextStyles.body1.copyWith(
           fontWeight: isRead ? FontWeight.normal : FontWeight.bold,
         ),
       ),
@@ -37,7 +39,7 @@ class NotificationItem extends StatelessWidget {
           if (createdAt != null)
             Text(
               _formatTime(createdAt.toDate()),
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
+              style: AppTextStyles.caption.copyWith(color: AppColors.onSurface.withOpacity(0.6)),
             ),
         ],
       ),

@@ -7,6 +7,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
+import '../core/utils/money_utils.dart';
 import 'user_service.dart';
 
 class NotificationService {
@@ -693,7 +694,7 @@ class NotificationService {
   // New repair order notifications - Admin & Technician roles
   static Future<void> sendNewOrderNotification(String orderId, String customerName, int price) async {
     final title = 'ĐƠN SỬA MỚI';
-    final body = 'Khách $customerName - ${NumberFormat('#,###').format(price)}đ';
+    final body = 'Khách $customerName - ${MoneyUtils.formatVND(price)}đ';
 
     // Check role-based permission
     if (!await _hasRolePermission('repair', ['admin', 'owner', 'manager', 'technician'])) {

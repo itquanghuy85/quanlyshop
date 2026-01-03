@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:QuanLyShop/utils/money_utils.dart';
+import 'package:quanlyshop/core/utils/money_utils.dart';
 
 void main() {
   group('MoneyUtils', () {
@@ -8,7 +8,7 @@ void main() {
     });
 
     test('parseMoney with integer', () {
-      expect(MoneyUtils.parseMoney('123'), 123);
+      expect(MoneyUtils.parseMoney('123'), 123000);
     });
 
     test('parseMoney with dots and spaces', () {
@@ -16,11 +16,11 @@ void main() {
     });
 
     test('parseMoney with mixed characters', () {
-      expect(MoneyUtils.parseMoney('abc123def'), 123);
+      expect(MoneyUtils.parseMoney('abc123def'), 123000);
     });
 
     test('parseMoney with negative', () {
-      expect(MoneyUtils.parseMoney('-123'), 123); // since RegExp removes -
+      expect(MoneyUtils.parseMoney('-123'), 123000); // since RegExp removes -
     });
   });
 }

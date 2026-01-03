@@ -10,7 +10,7 @@ import '../services/notification_service.dart';
 import '../services/user_service.dart';
 import '../services/firestore_service.dart';
 import '../services/event_bus.dart';
-import '../utils/money_utils.dart';
+import '../core/utils/money_utils.dart';
 import '../utils/sku_generator.dart';
 import 'quick_input_library_view.dart';
 
@@ -116,10 +116,10 @@ class _FastStockInViewState extends State<FastStockInView> {
     
     // Pre-fill prices
     if (code.cost != null) {
-      costCtrl.text = NumberFormat('#,###').format(code.cost!);
+      costCtrl.text = MoneyUtils.formatVND(code.cost!);
     }
     if (code.price != null) {
-      priceCtrl.text = "${NumberFormat('#,###').format(code.price!)}";
+      priceCtrl.text = MoneyUtils.formatVND(code.price!);
     }
     
     // Pre-fill supplier
@@ -196,7 +196,7 @@ class _FastStockInViewState extends State<FastStockInView> {
     final clean = text.replaceAll(',', '').split('.').first;
     final num = int.tryParse(clean);
     if (num != null) {
-      final formatted = NumberFormat('#,###').format(num);
+      final formatted = MoneyUtils.formatVND(MoneyUtils.inputToVND(num));
       if (formatted != text) {
         costCtrl.value = TextEditingValue(
           text: formatted,
@@ -212,7 +212,7 @@ class _FastStockInViewState extends State<FastStockInView> {
     final clean = text.replaceAll(',', '').split('.').first;
     final num = int.tryParse(clean);
     if (num != null) {
-      final formatted = NumberFormat('#,###').format(num);
+      final formatted = MoneyUtils.formatVND(MoneyUtils.inputToVND(num));
       if (formatted != text) {
         priceCtrl.value = TextEditingValue(
           text: formatted,
@@ -806,8 +806,8 @@ class _FastStockInViewState extends State<FastStockInView> {
             ),
             const SizedBox(height: 8),
 
-            _buildPresetRow('Giá nhập (VNĐ)', costCtrl, suffix: 'x1k'),
-            _buildPresetRow('Giá bán (VNĐ)', priceCtrl, suffix: 'x1k'),
+            _buildPresetRow('Giá nhập (VNĐ)', costCtrl, suffix: ''),
+            _buildPresetRow('Giá bán (VNĐ)', priceCtrl, suffix: ''),
 
             const SizedBox(height: 24),
             Center(

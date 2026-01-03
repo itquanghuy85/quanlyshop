@@ -8,6 +8,9 @@ import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/user_service.dart';
 import '../widgets/validated_text_field.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_text_styles.dart';
+import '../theme/app_button_styles.dart';
 
 class PayrollView extends StatefulWidget {
   const PayrollView({super.key});
@@ -207,7 +210,7 @@ class _PayrollViewState extends State<PayrollView> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 ValidatedTextField(controller: baseCtrl, label: 'Lương ngày (đ)', icon: Icons.attach_money, keyboardType: TextInputType.number, required: true),
-                Text('Giờ chuẩn/ngày: ${_getHours(staff).toStringAsFixed(1)} (từ lịch làm việc)', style: TextStyle(color: Colors.grey)),
+                Text('Giờ chuẩn/ngày: ${_getHours(staff).toStringAsFixed(1)} (từ lịch làm việc)', style: AppTextStyles.caption.copyWith(color: AppColors.onSurface.withOpacity(0.6))),
                 ValidatedTextField(controller: otCtrl, label: 'Hệ số OT (%)', icon: Icons.trending_up, keyboardType: TextInputType.number, required: true), 
               ],
             ),
@@ -301,7 +304,7 @@ class _PayrollViewState extends State<PayrollView> {
         body: const Center(
           child: Text(
             "Bạn không có quyền truy cập tính năng này",
-            style: TextStyle(fontSize: 16, color: Colors.grey),
+            style: AppTextStyles.body1.copyWith(color: AppColors.onSurface.withOpacity(0.6)),
           ),
         ),
       );
@@ -363,15 +366,15 @@ class _PayrollViewState extends State<PayrollView> {
                 Container(
                   margin: const EdgeInsets.symmetric(horizontal: 12),
                   padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: Colors.black.withAlpha(8), blurRadius: 6)]),
+                  decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(AppButtonStyles.borderRadius), boxShadow: [BoxShadow(color: AppColors.shadow, blurRadius: 6)]),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('TỔNG HỢP', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+                      Text('TỔNG HỢP', style: AppTextStyles.body1.copyWith(fontWeight: FontWeight.bold, color: AppColors.onSurface)),
                       const SizedBox(height: 6),
                       Row(
                         children: [
-                          Chip(label: Text(_monthLocked ? 'THÁNG ĐÃ KHÓA' : 'THÁNG CHƯA KHÓA'), backgroundColor: _monthLocked ? Colors.orange.shade100 : Colors.green.shade100),
+                          Chip(label: Text(_monthLocked ? 'THÁNG ĐÃ KHÓA' : 'THÁNG CHƯA KHÓA'), backgroundColor: _monthLocked ? AppColors.warning.withOpacity(0.2) : AppColors.success.withOpacity(0.2)),
                           const SizedBox(width: 8),
                           if (_isManager)
                             TextButton.icon(onPressed: _toggleLock, icon: Icon(_monthLocked ? Icons.lock_open : Icons.lock), label: Text(_monthLocked ? 'Mở khóa' : 'Khóa tháng')),
@@ -382,7 +385,7 @@ class _PayrollViewState extends State<PayrollView> {
                       Text('Giờ chuẩn: ${summary['regularHours'].toStringAsFixed(2)}h'),
                       Text('Giờ OT: ${summary['otHours'].toStringAsFixed(2)}h (hệ số ${summary['otRate']})'),
                       const Divider(),
-                      Text('Lương tạm tính: ${NumberFormat('#,###').format(summary['salary'].round())} đ', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
+                      Text('Lương tạm tính: ${NumberFormat('#,###').format(summary['salary'].round())} đ', style: AppTextStyles.body1.copyWith(fontWeight: FontWeight.bold, color: AppColors.success)),
                     ],
                   ),
                 ),

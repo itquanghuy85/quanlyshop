@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../services/firestore_service.dart';
 import '../widgets/notification_item.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_text_styles.dart';
+import '../theme/app_button_styles.dart';
 import 'notification_settings_view.dart';
 
 class NotificationsView extends StatefulWidget {
@@ -40,11 +43,11 @@ class _NotificationsViewState extends State<NotificationsView> {
           final notifications = snapshot.data!;
 
           if (notifications.isEmpty) {
-            return const Center(
+            return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.notifications_none, size: 64, color: Colors.grey),
+                  Icon(Icons.notifications_none, size: 64, color: AppColors.onSurface.withOpacity(0.5)),
                   SizedBox(height: 16),
                   Text('Chưa có thông báo nào'),
                 ],

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:QuanLyShop/models/attendance_model.dart';
+import 'package:quanlyshop/models/attendance_model.dart';
 
 void main() {
   group('Attendance Model', () {

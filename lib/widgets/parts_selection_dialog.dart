@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../core/utils/money_utils.dart';
 import '../models/product_model.dart';
+import '../theme/app_text_styles.dart';
 
 class PartsSelectionDialog extends StatefulWidget {
   final List<Product> products;
@@ -35,7 +37,7 @@ class _PartsSelectionDialogState extends State<PartsSelectionDialog> {
           children: [
             Tooltip(
               message: "Chọn phụ tùng cần dùng cho đơn sửa.",
-              child: const Text("CHỌN LINH KIỆN", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              child: const Text("CHỌN LINH KIỆN", style: AppTextStyles.headline4),
             ),
             const SizedBox(height: 16),
             Row(
@@ -60,8 +62,8 @@ class _PartsSelectionDialogState extends State<PartsSelectionDialog> {
               children: [
                 Expanded(
                   child: Text(
-                    "Tổng chi phí: ${NumberFormat('#,###').format(_selectedParts.fold<int>(0, (sum, p) => sum + ((p['cost'] as int) * (p['quantity'] as int))))}đ",
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    "Tổng chi phí: ${MoneyUtils.formatVND(_selectedParts.fold<int>(0, (sum, p) => sum + ((p['cost'] as int) * (p['quantity'] as int))))}đ",
+                    style: AppTextStyles.body1.copyWith(fontWeight: FontWeight.bold),
                   ),
                 ),
                 TextButton(
@@ -79,7 +81,7 @@ class _PartsSelectionDialogState extends State<PartsSelectionDialog> {
                   final isSelected = _selectedParts.any((p) => p['product'] == product);
                   return ListTile(
                     title: Text(product.name),
-                    subtitle: Text("${NumberFormat('#,###').format(product.price)}đ"),
+                    subtitle: Text("${MoneyUtils.formatVND(product.price)}đ"),
                     trailing: isSelected
                         ? IconButton(
                             icon: const Icon(Icons.remove),

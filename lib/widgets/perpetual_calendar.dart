@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../theme/app_text_styles.dart';
+import '../theme/app_colors.dart';
 
 class PerpetualCalendar extends StatelessWidget {
   const PerpetualCalendar({super.key});
@@ -24,14 +26,14 @@ class PerpetualCalendar extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
             decoration: BoxDecoration(color: Colors.white.withAlpha(51), borderRadius: BorderRadius.circular(15)),
-            child: Text(dayStr, style: const TextStyle(fontSize: 40, fontWeight: FontWeight.w900, color: Colors.white)),
+            child: Text(dayStr, style: AppTextStyles.headline1.copyWith(color: AppColors.onPrimary, fontWeight: FontWeight.w900)),
           ),
           const SizedBox(width: 20),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(weekdayStr.toUpperCase(), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white70)),
-              Text("Tháng $monthYearStr", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+              Text(weekdayStr.toUpperCase(), style: AppTextStyles.body1.copyWith(color: AppColors.onPrimary.withOpacity(0.7), fontWeight: FontWeight.bold)),
+              Text("Tháng $monthYearStr", style: AppTextStyles.body1.copyWith(color: AppColors.onPrimary, fontWeight: FontWeight.bold)),
             ],
           ),
         ],

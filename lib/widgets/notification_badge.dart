@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/firestore_service.dart';
+import '../theme/app_text_styles.dart';
+import '../theme/app_colors.dart';
 
 class NotificationBadge extends StatelessWidget {
   final Widget child;
@@ -37,9 +39,8 @@ class NotificationBadge extends StatelessWidget {
                   ),
                   child: Text(
                     count > 99 ? '99+' : count.toString(),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
+                    style: AppTextStyles.caption.copyWith(
+                      color: AppColors.onError,
                       fontWeight: FontWeight.bold,
                     ),
                     textAlign: TextAlign.center,

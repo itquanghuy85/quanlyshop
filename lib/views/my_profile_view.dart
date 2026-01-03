@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/user_service.dart';
 import '../widgets/validated_text_field.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_text_styles.dart';
+import '../theme/app_button_styles.dart';
 
 class MyProfileView extends StatefulWidget {
   const MyProfileView({super.key});
@@ -88,7 +91,7 @@ class _MyProfileViewState extends State<MyProfileView> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(_getRoleDisplayName(_role), style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                          Text(_getRoleDisplayName(_role), style: AppTextStyles.caption.copyWith(color: AppColors.onSurface.withOpacity(0.6))),
                           const SizedBox(height: 4),
                         ],
                       )
@@ -105,8 +108,8 @@ class _MyProfileViewState extends State<MyProfileView> {
                     child: ElevatedButton(
                       onPressed: _saving ? null : _save,
                       child: _saving
-                          ? const CircularProgressIndicator(color: Colors.white)
-                          : const Text('LƯU THAY ĐỔI', style: TextStyle(fontWeight: FontWeight.bold)),
+                          ? CircularProgressIndicator(color: AppColors.onPrimary)
+                          : Text('LƯU THAY ĐỔI', style: AppTextStyles.button.copyWith(fontWeight: FontWeight.bold)),
                     ),
                   )
                 ],

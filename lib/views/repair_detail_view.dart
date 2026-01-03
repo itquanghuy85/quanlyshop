@@ -19,6 +19,9 @@ import '../services/user_service.dart';
 import '../data/db_helper.dart';
 import '../widgets/validated_text_field.dart';
 import '../services/event_bus.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_text_styles.dart';
+import '../theme/app_button_styles.dart';
 
 class RepairDetailView extends StatefulWidget {
   final Repair repair;
@@ -64,17 +67,17 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       return Image.network(
         path, fit: BoxFit.cover,
         loadingBuilder: (ctx, child, progress) => progress == null ? child : const Center(child: CircularProgressIndicator(strokeWidth: 2)),
-        errorBuilder: (ctx, err, stack) => const Icon(Icons.broken_image, color: Colors.red),
+        errorBuilder: (ctx, err, stack) => const Icon(Icons.broken_image, color: AppColors.error),
       );
     }
     File file = File(path);
     if (file.existsSync()) return Image.file(file, fit: BoxFit.cover);
-    return const Icon(Icons.cloud_download, color: Colors.blueAccent);
+    return const Icon(Icons.cloud_download, color: AppColors.primary);
   }
 
   Future<void> _updateStatus(int newStatus) async {
     if (newStatus <= r.status) {
-      NotificationService.showSnackBar("Không thể quay lại trạng thái trước!", color: Colors.red);
+      NotificationService.showSnackBar("Không thể quay lại trạng thái trước!", color: AppColors.error);
       return;
     }
     if (newStatus == 4) { // GIAO MÁY
@@ -91,31 +94,31 @@ class _RepairDetailViewState extends State<RepairDetailView> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text("Chọn thời gian bảo hành:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.blueGrey)),
+                Text("Chọn thời gian bảo hành:", style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.bold, color: AppColors.onSurface)),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
                   children: warrantyOptions.map((opt) => ChoiceChip(
-                    label: Text(opt, style: const TextStyle(fontSize: 11)),
+                    label: Text(opt, style: AppTextStyles.caption),
                     selected: selectedWarranty == opt,
                     onSelected: (v) => setS(() => selectedWarranty = opt),
-                    selectedColor: Colors.blue.shade100,
+                    selectedColor: AppColors.primary.withOpacity(0.2),
                   )).toList(),
                 ),
                 const SizedBox(height: 20),
-                const Text("Hình thức thanh toán:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.blueGrey)),
+                Text("Hình thức thanh toán:", style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.bold, color: AppColors.onSurface)),
                 const SizedBox(height: 8),
                 Wrap(spacing: 8, children: ["TIỀN MẶT", "CHUYỂN KHOẢN", "CÔNG NỢ"].map((m) => ChoiceChip(
-                  label: Text(m, style: const TextStyle(fontSize: 11)), 
+                  label: Text(m, style: AppTextStyles.caption), 
                   selected: payMethod == m, 
                   onSelected: (v) => setS(() => payMethod = m),
-                  selectedColor: Colors.orange.shade100,
+                  selectedColor: AppColors.secondary.withOpacity(0.2),
                 )).toList()),
               ],
             ),
             actions: [
               TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("HỦY")),
-              ElevatedButton(onPressed: () => Navigator.pop(ctx, true), style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent), child: const Text("HOÀN TẤT GIAO MÁY", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+              ElevatedButton(onPressed: () => Navigator.pop(ctx, true), style: AppButtonStyles.elevatedButtonStyle, child: Text("HOÀN TẤT GIAO MÁY", style: AppTextStyles.button)),
             ],
           ),
         ),
@@ -159,7 +162,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     try {
       await db.upsertRepair(r);
       await FirestoreService.upsertRepair(r);
-      NotificationService.showSnackBar("ĐÃ CẬP NHẬT: ${_getStatusText(newStatus)}", color: Colors.green);
+      NotificationService.showSnackBar("ĐÃ CẬP NHẬT: ${_getStatusText(newStatus)}", color: AppColors.success);
     } catch (_) {}
     setState(() => _isUpdating = false);
   }
@@ -191,9 +194,9 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         // Removed create new debt logic to avoid duplicates
       }
 
-      NotificationService.showSnackBar("ĐÃ LƯU THAY ĐỔI ĐƠN HÀNG", color: Colors.green);
+      NotificationService.showSnackBar("ĐÃ LƯU THAY ĐỔI ĐƠN HÀNG", color: AppColors.success);
     } catch (e) {
-      NotificationService.showSnackBar("Lỗi khi lưu: $e", color: Colors.red);
+      NotificationService.showSnackBar("Lỗi khi lưu: $e", color: AppColors.error);
     }
     if (mounted) setState(() => _isUpdating = false);
   }
@@ -259,18 +262,18 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         appBar: AppBar(
           title: const Text("CHI TIẾT ĐƠN SỬA"),
         ),
-        body: const Center(
+        body: Center(
           child: Text(
             "Bạn không có quyền truy cập tính năng này",
-            style: TextStyle(fontSize: 16, color: Colors.grey),
+            style: AppTextStyles.body1.copyWith(color: AppColors.onSurface.withOpacity(0.6)),
           ),
         ),
       );
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFF),
-      appBar: AppBar(title: const Tooltip(message: "Theo dõi tiến độ sửa chữa và cập nhật trạng thái.", child: Text("CHI TIẾT ĐƠN SỬA", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))), automaticallyImplyLeading: true, actions: [IconButton(onPressed: _shareToZalo, icon: const Icon(Icons.share_rounded, color: Colors.green)), IconButton(onPressed: _printReceipt, icon: const Icon(Icons.print_rounded, color: Color(0xFF2962FF)))]),
+      backgroundColor: AppColors.background,
+      appBar: AppBar(title: Tooltip(message: "Theo dõi tiến độ sửa chữa và cập nhật trạng thái.", child: Text("CHI TIẾT ĐƠN SỬA", style: AppTextStyles.headline6)), automaticallyImplyLeading: true, actions: [IconButton(onPressed: _shareToZalo, icon: Icon(Icons.share_rounded, color: AppColors.success)), IconButton(onPressed: _printReceipt, icon: Icon(Icons.print_rounded, color: AppColors.primary))]),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(children: [_buildStatusCard(), const SizedBox(height: 15), _buildActionButtons(), const SizedBox(height: 20), _buildFinancialSummary(), const SizedBox(height: 20), _buildImageGallery(), const SizedBox(height: 20), _buildCustomerCard(), const SizedBox(height: 100)]),
@@ -280,26 +283,26 @@ class _RepairDetailViewState extends State<RepairDetailView> {
   }
 
   Widget _buildStatusCard() {
-    Color color = r.status == 4 ? Colors.blue : (r.status == 3 ? Colors.green : Colors.orange);
-    return Container(padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: color.withAlpha(51))), child: Row(children: [Icon(r.status == 4 ? Icons.verified : (r.status == 3 ? Icons.check_circle : Icons.pending_actions), color: color, size: 40), const SizedBox(width: 15), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(r.model.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)), Text(_getStatusText(r.status), style: TextStyle(color: color, fontWeight: FontWeight.bold, letterSpacing: 1.2))]))]));
+    Color color = r.status == 4 ? AppColors.primary : (r.status == 3 ? AppColors.success : AppColors.warning);
+    return Container(padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(20), border: Border.all(color: color.withOpacity(0.2))), child: Row(children: [Icon(r.status == 4 ? Icons.verified : (r.status == 3 ? Icons.check_circle : Icons.pending_actions), color: color, size: 40), const SizedBox(width: 15), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(r.model.toUpperCase(), style: AppTextStyles.headline5), Text(_getStatusText(r.status), style: AppTextStyles.body2.copyWith(color: color, fontWeight: FontWeight.bold, letterSpacing: 1.2))]))]));
   }
 
   Widget _buildActionButtons() {
     if (r.status == 4) return const SizedBox();
-    return Row(children: [if (r.status < 3) Expanded(child: ElevatedButton(onPressed: () => _updateStatus(3), style: ElevatedButton.styleFrom(backgroundColor: Colors.green), child: const Text("ĐÃ XONG", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)))), if (r.status < 3) const SizedBox(width: 10), Expanded(child: ElevatedButton(onPressed: () => _updateStatus(4), style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent), child: const Text("GIAO MÁY", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))))]);
+    return Row(children: [if (r.status < 3) Expanded(child: ElevatedButton(onPressed: () => _updateStatus(3), style: ElevatedButton.styleFrom(backgroundColor: AppColors.success, foregroundColor: AppColors.onSuccess), child: Text("ĐÃ XONG", style: AppTextStyles.button))), if (r.status < 3) const SizedBox(width: 10), Expanded(child: ElevatedButton(onPressed: () => _updateStatus(4), style: AppButtonStyles.elevatedButtonStyle, child: Text("GIAO MÁY", style: AppTextStyles.button)))]);
   }
 
   Widget _buildFinancialSummary() {
-    return Container(padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)), child: Column(children: [Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text("Lợi nhuận dự kiến", style: TextStyle(fontWeight: FontWeight.bold)), Text("${NumberFormat('#,###').format(r.price - r.cost)} đ", style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 18))]), const Divider(height: 25), Row(children: [_miniFin("GIÁ THU", r.price, Colors.blue), _miniFin("GIÁ VỐN", r.cost, Colors.orange)]), const SizedBox(height: 10), TextButton.icon(onPressed: _editFinancials, icon: const Icon(Icons.edit, size: 14), label: const Text("Thay đổi giá & vốn linh kiện", style: TextStyle(fontSize: 12)))]));
+    return Container(padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(20)), child: Column(children: [Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text("Lợi nhuận dự kiến", style: AppTextStyles.body1.copyWith(fontWeight: FontWeight.bold)), Text("${NumberFormat('#,###').format(r.price - r.cost)} đ", style: AppTextStyles.headline5.copyWith(color: AppColors.success))]), const Divider(height: 25), Row(children: [_miniFin("GIÁ THU", r.price, AppColors.primary), _miniFin("GIÁ VỐN", r.cost, AppColors.warning)]), const SizedBox(height: 10), TextButton.icon(onPressed: _editFinancials, icon: const Icon(Icons.edit, size: 14), label: Text("Thay đổi giá & vốn linh kiện", style: AppTextStyles.caption))]));
   }
 
-  Widget _miniFin(String l, int v, Color c) => Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(l, style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)), Text(NumberFormat('#,###').format(v), style: TextStyle(color: c, fontWeight: FontWeight.bold, fontSize: 15))]));
+  Widget _miniFin(String l, int v, Color c) => Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(l, style: AppTextStyles.overline.copyWith(color: AppColors.onSurface.withOpacity(0.6), fontWeight: FontWeight.bold)), Text(NumberFormat('#,###').format(v), style: AppTextStyles.body2.copyWith(color: c, fontWeight: FontWeight.bold))]));
 
   Widget _buildImageGallery() {
     final images = r.receiveImages;
     if (images.isEmpty) return const SizedBox();
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text("HÌNH ẢNH LÚC NHẬN MÁY", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey, fontSize: 12)),
+      Text("HÌNH ẢNH LÚC NHẬN MÁY", style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.bold, color: AppColors.onSurface)),
       const SizedBox(height: 10),
       SizedBox(height: 120, child: ListView.builder(scrollDirection: Axis.horizontal, itemCount: images.length, itemBuilder: (ctx, i) => GestureDetector(onTap: () => _showFullImage(images, i), child: Container(margin: const EdgeInsets.only(right: 10), width: 120, decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade200)), child: ClipRRect(borderRadius: BorderRadius.circular(12), child: _buildSmartImage(images[i]))))))
     ]);
@@ -313,21 +316,21 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     return Container(padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)), child: Column(children: [_infoRow("Khách hàng", r.customerName), _phoneRow("Số điện thoại", r.phone), _infoRow("Tình trạng lỗi", r.issue), _infoRow("Phụ kiện kèm", r.accessories.isEmpty ? "Không có" : r.accessories), _infoRow("Bảo hành", r.warranty.isEmpty ? "Chưa có" : r.warranty), if (r.deliveredAt != null) _infoRow("Ngày giao", DateFormat('dd/MM/yyyy HH:mm').format(DateTime.fromMillisecondsSinceEpoch(r.deliveredAt!)))]));
   }
 
-  Widget _infoRow(String l, String v) => Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(l, style: const TextStyle(color: Colors.grey, fontSize: 13)), Text(v, style: const TextStyle(fontWeight: FontWeight.bold))]));
+  Widget _infoRow(String l, String v) => Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(l, style: AppTextStyles.caption.copyWith(color: AppColors.onSurface.withOpacity(0.6))), Text(v, style: AppTextStyles.body2.copyWith(fontWeight: FontWeight.bold))]));
 
   Widget _phoneRow(String label, String phone) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 8),
     child: Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: const TextStyle(color: Colors.grey, fontSize: 13)),
+        Text(label, style: AppTextStyles.caption.copyWith(color: AppColors.onSurface.withOpacity(0.6))),
         Row(
           children: [
-            Text(phone, style: const TextStyle(fontWeight: FontWeight.bold)),
+            Text(phone, style: AppTextStyles.body2.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(width: 8),
             IconButton(
               onPressed: () => _callCustomer(phone),
-              icon: const Icon(Icons.call, color: Colors.green, size: 20),
+              icon: const Icon(Icons.call, color: AppColors.success, size: 20),
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
               tooltip: 'Gọi điện',

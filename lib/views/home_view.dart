@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fl_chart/fl_chart.dart';
+import '../core/utils/money_utils.dart';
 import '../services/event_bus.dart';
 import 'customer_history_view.dart';
 import 'order_list_view.dart';
@@ -38,7 +39,6 @@ import 'customer_view.dart';
 import 'stock_in_view.dart';
 import 'parts_inventory_view.dart';
 import 'create_repair_order_view.dart';
-import 'repair_partner_list_view.dart';
 import 'about_developer_view.dart';
 import 'partner_management_view.dart';
 import '../data/db_helper.dart';
@@ -48,6 +48,10 @@ import '../services/sync_service.dart';
 import '../services/user_service.dart';
 import '../services/firestore_service.dart';
 import '../services/notification_service.dart';
+import '../theme/app_theme.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_text_styles.dart';
+import '../theme/app_button_styles.dart';
 
 class HomeView extends StatefulWidget {
   final String role;
@@ -64,14 +68,21 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
   int totalPendingRepair = 0;
   int todaySaleCount = 0;
   int _currentIndex = 0; // Bottom navigation index
+
+  _HomeViewState() {
+    debugPrint('HomeView: _HomeViewState constructor called');
+  }
   
   // Tab configurations with permissions
   late List<Map<String, dynamic>> _tabConfigs;
   late List<BottomNavigationBarItem> _navItems;
   late List<Widget> _tabWidgets;
 
+  int _rebuildCounter = 0; // Force rebuild counter
+  
   // Missing variable declarations
   Timer? _autoSyncTimer;
+  Timer? _statsDebounceTimer; // Add debounce timer
   Map<String, bool> _permissions = {};
   bool _shopLocked = false;
   final TextEditingController _phoneSearchCtrl = TextEditingController();
@@ -90,15 +101,20 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+    debugPrint('HomeView: initState STARTED - instance created');
     _initializeTabConfigs();
     _initialSetup();
-    SyncService.initRealTimeSync(() { if (mounted) _loadStats(); });
+    SyncService.initRealTimeSync(() { _debouncedLoadStats(); });
     _autoSyncTimer = Timer.periodic(const Duration(seconds: 60), (_) => _syncNow(silent: true));
     
     // Listen to debt changes to update stats
     EventBus().stream.listen((event) {
-      if (event == 'debts_changed' && mounted) _loadStats();
-    });
+      debugPrint('HomeView: Received event: $event');
+      if ((event == 'debts_changed' || event == 'sales_changed' || event == 'repairs_changed') && mounted) {
+        debugPrint('HomeView: Loading stats for event: $event');
+        _debouncedLoadStats();
+      }
+    }, onError: (e) => debugPrint('HomeView: EventBus error: $e'));
     
     // Listen to notifications for snackbars
     NotificationService.listenToNotifications((title, body) {
@@ -160,13 +176,31 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
   }
 
   void _updateAvailableTabs() {
+    debugPrint('HomeView: _updateAvailableTabs called, _tabConfigs.length = ${_tabConfigs.length}');
+    debugPrint('HomeView: _permissions = $_permissions');
     final availableConfigs = _tabConfigs.where((config) {
       final permission = config['permission'] as String?;
-      return permission == null || (_permissions[permission] == true);
+      final hasPermission = permission == null || (_permissions[permission] == true);
+      debugPrint('HomeView: Tab ${config['item'].label} permission=$permission, hasPermission=$hasPermission');
+      return hasPermission;
     }).toList();
+
+    // Limit to 5 tabs max for BottomNavigationBar compatibility
+    if (availableConfigs.length > 5) {
+      // Prioritize: Home, Sales, Repairs, Inventory, Settings
+      final priorityTabs = ['Home', 'Bán hàng', 'Sửa chữa', 'Kho', 'Cài đặt'];
+      final prioritized = availableConfigs.where((config) => priorityTabs.contains(config['item'].label)).toList();
+      final remaining = availableConfigs.where((config) => !priorityTabs.contains(config['item'].label)).toList();
+      availableConfigs.clear();
+      availableConfigs.addAll(prioritized);
+      availableConfigs.addAll(remaining.take(5 - prioritized.length));
+    }
 
     _navItems = availableConfigs.map((config) => config['item'] as BottomNavigationBarItem).toList();
     _tabWidgets = availableConfigs.map((config) => config['widget'] as Widget).toList();
+
+    debugPrint('HomeView: Available tabs after limit: ${availableConfigs.length}');
+    debugPrint('HomeView: Available tab names: ${availableConfigs.map((c) => c['item'].label)}');
 
     // Adjust current index if it's out of bounds
     if (_currentIndex >= _navItems.length) {
@@ -175,7 +209,7 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
   }
 
   @override
-  void dispose() { _autoSyncTimer?.cancel(); _phoneSearchCtrl.dispose(); super.dispose(); }
+  void dispose() { _autoSyncTimer?.cancel(); _statsDebounceTimer?.cancel(); _phoneSearchCtrl.dispose(); super.dispose(); }
 
   Future<void> _initialSetup() async {
     try {
@@ -188,7 +222,9 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
         if (currentUser.email != null) await UserService.syncUserInfo(currentUser.uid, currentUser.email!);
       }
       await db.cleanDuplicateData();
+      debugPrint('About to call _loadStats in initState');
       await _loadStats();
+      debugPrint('After _loadStats in initState');
       await _updatePermissions();
     } catch (e) {
       debugPrint('Error in _initialSetup: $e');
@@ -198,6 +234,7 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
   }
 
   Future<void> _updatePermissions() async {
+    debugPrint('HomeView: _updatePermissions called');
     try {
       final perms = await UserService.getCurrentUserPermissions();
       if (!mounted) return;
@@ -207,6 +244,7 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
         _updateAvailableTabs();
       });
       debugPrint('HomeView permissions updated: $_permissions');
+      debugPrint('allowViewSettings: ${_permissions['allowViewSettings']}');
     } catch (e) {
       debugPrint('Error updating permissions: $e');
       // Fallback to default permissions
@@ -231,44 +269,118 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
   }
 
   bool _isSameDay(int timestamp) {
-    final date = DateTime.fromMillisecondsSinceEpoch(timestamp);
+    final date = DateTime.fromMillisecondsSinceEpoch(timestamp).toLocal();
     final now = DateTime.now();
     return date.year == now.year && date.month == now.month && date.day == now.day;
   }
 
+  void _debouncedLoadStats() {
+    _statsDebounceTimer?.cancel();
+    _statsDebounceTimer = Timer(const Duration(milliseconds: 500), () {
+      if (mounted) _loadStats();
+    });
+  }
+
   Future<void> _loadStats() async {
+    debugPrint('STATS_TRACE: _loadStats() STARTED');
     final repairs = await db.getAllRepairs();
     final sales = await db.getAllSales();
     final debts = await db.getAllDebts();
     final expenses = await db.getAllExpenses();
+
+    debugPrint('STATS_TRACE: Raw data loaded - repairs: ${repairs.length}, sales: ${sales.length}, debts: ${debts.length}, expenses: ${expenses.length}');
+
     int pendingR = repairs.where((r) => r.status == 1 || r.status == 2).length;
     int doneT = 0; int soldT = 0; int revT = 0; int newRT = 0; int expT = 0; int debtR = 0; int expW = 0;
     final now = DateTime.now();
+
+    debugPrint('STATS_TRACE: Starting repair calculations...');
     for (var r in repairs) {
-      if (_isSameDay(r.createdAt)) newRT++;
-      if (r.status >= 3 && r.deliveredAt != null) { doneT++; revT += ((r.price as int) - (r.totalCost as int)); }
+      debugPrint('STATS_TRACE: Processing repair - id: ${r.id}, status: ${r.status}, createdAt: ${r.createdAt}, deliveredAt: ${r.deliveredAt}');
+      if (_isSameDay(r.createdAt)) {
+        newRT++;
+        debugPrint('STATS_TRACE: New repair today: $newRT');
+      }
+      if (r.status >= 3 && r.deliveredAt != null && _isSameDay(r.deliveredAt!)) {
+        doneT++;
+        int repairRevenue = r.price - r.totalCost;
+        revT += repairRevenue;
+        debugPrint('STATS_TRACE: Repair revenue added - doneT: $doneT, repairRevenue: $repairRevenue, totalRev: $revT');
+        debugPrint('Repair revenue: ${r.customerName} - Price: ${r.price}, Cost: ${r.totalCost}, Revenue: $repairRevenue');
+      }
       if (r.deliveredAt != null && r.warranty.isNotEmpty && r.warranty != "KO BH") {
         int m = int.tryParse(r.warranty.split(' ').first) ?? 0;
         if (m > 0) { DateTime d = DateTime.fromMillisecondsSinceEpoch(r.deliveredAt!); DateTime e = DateTime(d.year, d.month + m, d.day); if (e.isAfter(now) && e.difference(now).inDays <= 7) expW++; }
       }
     }
+
+    debugPrint('STATS_TRACE: Starting sales calculations...');
     for (var s in sales) {
-      soldT++; revT += ((s.totalPrice as int) - (s.totalCost as int));
+      debugPrint('STATS_TRACE: Processing sale - id: ${s.id}, soldAt: ${s.soldAt}, totalPrice: ${s.totalPrice}, totalCost: ${s.totalCost}');
+      if (_isSameDay(s.soldAt)) {
+        soldT++;
+        int saleRevenue = s.totalPrice - s.totalCost;
+        revT += saleRevenue;
+        debugPrint('STATS_TRACE: Sale revenue added - soldT: $soldT, saleRevenue: $saleRevenue, totalRev: $revT');
+        debugPrint('Sale revenue: ${s.customerName} - Price: ${s.totalPrice}, Cost: ${s.totalCost}, Revenue: $saleRevenue');
+      }
       if (s.warranty.isNotEmpty && s.warranty != "KO BH") {
         int m = int.tryParse(s.warranty.split(' ').first) ?? 12;
         DateTime d = DateTime.fromMillisecondsSinceEpoch(s.soldAt); DateTime e = DateTime(d.year, d.month + m, d.day); if (e.isAfter(now) && e.difference(now).inDays <= 7) expW++;
       }
     }
-    for (var e in expenses) { if (_isSameDay(e['date'] as int)) expT += (e['amount'] as int); }
-    for (var d in debts) { 
-      final int total = d['totalAmount'] ?? 0; 
-      final int paid = d['paidAmount'] ?? 0; 
+
+    debugPrint('STATS_TRACE: Starting expense calculations...');
+    for (var e in expenses) {
+      debugPrint('STATS_TRACE: Processing expense - date: ${e['date']}, amount: ${e['amount']}');
+      if (_isSameDay(e['date'] as int)) {
+        expT += (e['amount'] as int);
+        debugPrint('STATS_TRACE: Expense added - expT: $expT');
+      }
+    }
+
+    debugPrint('STATS_TRACE: Starting debt calculations...');
+    for (var d in debts) {
+      debugPrint('STATS_TRACE: Processing debt - id: ${d['id']}, totalAmount: ${d['totalAmount']}, paidAmount: ${d['paidAmount']}');
+      final int total = d['totalAmount'] ?? 0;
+      final int paid = d['paidAmount'] ?? 0;
       final int remain = total - paid;
-      if (remain > 0) debtR += remain;
+      if (remain > 0) {
+        debtR += remain;
+        debugPrint('STATS_TRACE: Debt remain added - debtR: $debtR');
+      }
       else if (remain < 0) debugPrint('Debt with negative remain: id=${d['id']}, total=$total, paid=$paid');
     }
-    if (mounted) setState(() { totalPendingRepair = pendingR; todayRepairDone = doneT; todaySaleCount = soldT; revenueToday = revT; todayNewRepairs = newRT; todayExpense = expT; totalDebtRemain = debtR; expiringWarranties = expW; });
-    
+
+    debugPrint('STATS_TRACE: Final calculations - pendingR: $pendingR, doneT: $doneT, soldT: $soldT, revT: $revT, newRT: $newRT, expT: $expT, debtR: $debtR, expW: $expW');
+
+    if (mounted) {
+      debugPrint('STATS_TRACE: About to call setState...');
+      setState(() {
+        debugPrint('STATS_TRACE: setState STARTED');
+        debugPrint('Setting state: _rebuildCounter before=${_rebuildCounter}');
+        totalPendingRepair = pendingR;
+        todayRepairDone = doneT;
+        todaySaleCount = soldT;
+        revenueToday = revT;
+        todayNewRepairs = newRT;
+        todayExpense = expT;
+        totalDebtRemain = debtR;
+        expiringWarranties = expW;
+        _rebuildCounter++;
+        debugPrint('STATS_TRACE: setState COMPLETED - totalPendingRepair: $totalPendingRepair, todayRepairDone: $todayRepairDone, todaySaleCount: $todaySaleCount, revenueToday: $revenueToday');
+        debugPrint('Setting state: _rebuildCounter after=${_rebuildCounter}');
+      });
+      debugPrint('STATS_TRACE: setState finished');
+    } else {
+      debugPrint('STATS_TRACE: Widget not mounted, skipping setState');
+    }
+
+    debugPrint('HomeView: Stats updated - Sales: $soldT, Revenue: $revT, Repairs: $pendingR');
+
+    debugPrint('Dashboard Stats - Repairs: ${repairs.length}, Sales: ${sales.length}, Debts: ${debts.length}, Expenses: ${expenses.length}');
+    debugPrint('Today Stats - Pending: $pendingR, Done: $doneT, Sales: $soldT, Revenue: $revT, New Repairs: $newRT, Expense: $expT, Debt: $debtR');
+
     // Load unread chat count
     final unread = await UserService.getUnreadChatCount(FirebaseAuth.instance.currentUser!.uid);
     if (mounted) setState(() => unreadChatCount = unread);
@@ -276,32 +388,36 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    debugPrint('HomeView: Building with revenueToday=$revenueToday, todaySaleCount=$todaySaleCount');
+    debugPrint('HomeView: Current tab index: $_currentIndex');
+    debugPrint('HomeView: _navItems.length = ${_navItems.length}');
+    debugPrint('HomeView: _navItems labels = ${_navItems.map((item) => item.label)}');
     return WillPopScope(
       onWillPop: () async {
         final ok = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(title: const Text("Thoát ứng dụng?"), actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("HỦY")), TextButton(onPressed: () => SystemNavigator.pop(), child: const Text("THOÁT"))]));
         return ok ?? false;
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFFF8FAFF),
+        backgroundColor: AppColors.background,
         appBar: AppBar(
-          backgroundColor: Colors.white, elevation: 0,
+          backgroundColor: AppColors.surface, elevation: 0,
           title: Row(children: [
-            const Icon(Icons.store_rounded, color: Color(0xFF2962FF), size: 22),
+            Icon(Icons.store_rounded, color: AppColors.primary, size: 22),
             const SizedBox(width: 8),
-            Expanded(child: Text(_getTabTitle(_currentIndex), style: const TextStyle(color: Colors.black, fontSize: 15, fontWeight: FontWeight.bold))),
+            Expanded(child: Text(_getTabTitle(_currentIndex), style: AppTextStyles.headline6.copyWith(color: AppColors.onSurface))),
           ]),
           actions: [
             NotificationBadge(
               unreadCount: FirestoreService.getUnreadCount(),
               child: IconButton(
                 onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsView())),
-                icon: const Icon(Icons.notifications, color: Color(0xFFFF9800)),
+                icon: Icon(Icons.notifications, color: AppColors.secondary),
                 tooltip: 'Thông báo',
               ),
             ),
-            IconButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => QrScanView(role: widget.role))), icon: const Icon(Icons.qr_code_scanner_rounded, color: Color(0xFF2962FF))),
-            IconButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => GlobalSearchView(role: widget.role))), icon: const Icon(Icons.search, color: Color(0xFF9C27B0), size: 28), tooltip: 'Tìm kiếm toàn app'),
-            IconButton(onPressed: () => _syncNow(), icon: _isSyncing ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.sync, color: Colors.green, size: 28)),
+            IconButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => QrScanView(role: widget.role))), icon: Icon(Icons.qr_code_scanner_rounded, color: AppColors.primary)),
+            IconButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => GlobalSearchView(role: widget.role))), icon: Icon(Icons.search, color: AppColors.primary, size: 28), tooltip: 'Tìm kiếm toàn app'),
+            IconButton(onPressed: () => _syncNow(), icon: _isSyncing ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : Icon(Icons.sync, color: AppColors.success, size: 28)),
             IconButton(onPressed: () async {
               await SyncService.cancelAllSubscriptions();
               try {
@@ -309,10 +425,11 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
               } catch (e) {
                 debugPrint('Logout error: $e');
               }
-            }, icon: const Icon(Icons.logout_rounded, color: Colors.redAccent)),
+            }, icon: Icon(Icons.logout_rounded, color: AppColors.error)),
           ],
         ),
         body: IndexedStack(
+          key: ValueKey('indexed_stack_${_rebuildCounter}'), // Force rebuild when stats change
           index: _currentIndex,
           children: _tabWidgets,
         ),
@@ -321,22 +438,24 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
           onTap: (index) => setState(() => _currentIndex = index),
           items: _navItems,
           type: BottomNavigationBarType.fixed,
-          selectedItemColor: const Color(0xFF2962FF),
-          unselectedItemColor: Colors.grey.shade600,
+          selectedItemColor: AppColors.primary,
+          unselectedItemColor: AppColors.onSurface.withOpacity(0.6),
           showUnselectedLabels: true,
-          backgroundColor: Colors.white,
+          backgroundColor: AppColors.surface,
           elevation: 8,
           selectedIconTheme: const IconThemeData(size: 28),
           unselectedIconTheme: const IconThemeData(size: 24),
-          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
-          unselectedLabelStyle: const TextStyle(fontSize: 11),
+          selectedLabelStyle: AppTextStyles.button.copyWith(fontWeight: FontWeight.w600),
+          unselectedLabelStyle: AppTextStyles.caption,
         ),
       ),
     );
   }
 
   Widget _buildHomeTab() {
+    debugPrint('_buildHomeTab called with _rebuildCounter=${_rebuildCounter}');
     return RefreshIndicator(
+      key: ValueKey('home_tab_${_rebuildCounter}'), // Force rebuild when stats change
       onRefresh: () => _syncNow(),
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(20), 
@@ -347,15 +466,13 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
               padding: const EdgeInsets.all(12), 
               margin: const EdgeInsets.only(bottom: 12), 
               decoration: BoxDecoration(
-                color: Colors.red.shade50, 
-                border: Border.all(color: Colors.redAccent), 
-                borderRadius: BorderRadius.circular(10)
+                color: AppColors.error.withOpacity(0.1), 
+                border: Border.all(color: AppColors.error), 
+                borderRadius: BorderRadius.circular(AppButtonStyles.borderRadius)
               ), 
-              child: const Text("CỬA HÀNG BỊ KHÓA", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold))
+              child: Text("CỬA HÀNG BỊ KHÓA", style: AppTextStyles.body1.copyWith(color: AppColors.error, fontWeight: FontWeight.bold))
             ),
-            _buildTodaySummary(),
-            const SizedBox(height: 20),
-            _buildFinancialChart(),
+            _buildDashboardOverview(),
             const SizedBox(height: 20),
             _buildQuickActions(),
             const SizedBox(height: 20),
@@ -374,37 +491,36 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        //const Text("THAO TÁC NHANH", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
         const SizedBox(height: 12),
         Row(
           children: [
-            Expanded(child: _quickActionButton("Tạo đơn bán", Icons.add_shopping_cart, Colors.pink, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateSaleView())))),
+            Expanded(child: _quickActionButton("Tạo đơn bán", Icons.add_shopping_cart, AppColors.secondary, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateSaleView())))),
             const SizedBox(width: 8),
-            Expanded(child: _quickActionButton("Tạo đơn sửa", Icons.build_circle, Colors.blue, () => Navigator.push(context, MaterialPageRoute(builder: (_) => CreateRepairOrderView(role: widget.role))))),
+            Expanded(child: _quickActionButton("Tạo đơn sửa", Icons.build_circle, AppColors.primary, () => Navigator.push(context, MaterialPageRoute(builder: (_) => CreateRepairOrderView(role: widget.role))))),
           ],
         ),
         const SizedBox(height: 8),
         Row(
           children: [
-            Expanded(child: _quickActionButton("Nhập kho", Icons.inventory, Colors.green, () => Navigator.push(context, MaterialPageRoute(builder: (_) => FastInventoryInputView())))),
+            Expanded(child: _quickActionButton("Nhập kho", Icons.inventory, AppColors.success, () => Navigator.push(context, MaterialPageRoute(builder: (_) => FastInventoryInputView())))),
             const SizedBox(width: 8),
-            Expanded(child: _quickActionButton("Kiểm kho", Icons.qr_code_scanner, Colors.orange, () => Navigator.push(context, MaterialPageRoute(builder: (_) => FastInventoryCheckView())))),
+            Expanded(child: _quickActionButton("Kiểm kho", Icons.qr_code_scanner, AppColors.warning, () => Navigator.push(context, MaterialPageRoute(builder: (_) => FastInventoryCheckView())))),
           ],
         ),
         const SizedBox(height: 8),
         Row(
           children: [
-            Expanded(child: _quickActionButton("Báo cáo DT", Icons.bar_chart, Colors.purple, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RevenueView())))),
+            Expanded(child: _quickActionButton("Báo cáo DT", Icons.bar_chart, AppColors.primaryDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RevenueView())))),
             const SizedBox(width: 8),
-            Expanded(child: _quickActionButton("Chấm công", Icons.access_time, Colors.teal, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AttendanceView())))),
+            Expanded(child: _quickActionButton("Chấm công", Icons.access_time, AppColors.info, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AttendanceView())))),
           ],
         ),
         const SizedBox(height: 8),
         Row(
           children: [
-            Expanded(child: _quickActionButton("Chat", Icons.chat, Colors.indigo, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChatView())), badgeCount: unreadChatCount)),
+            Expanded(child: _quickActionButton("Chat", Icons.chat, AppColors.primary, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChatView())), badgeCount: unreadChatCount)),
             const SizedBox(width: 8),
-            Expanded(child: _quickActionButton("Bảo hành", Icons.shield, Colors.amber, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WarrantyView())))),
+            Expanded(child: _quickActionButton("Bảo hành", Icons.shield, AppColors.warning, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WarrantyView())))),
           ],
         ),
         // Removed the row with "Đối tác sửa chữa" as it's now in the Repairs tab
@@ -418,9 +534,9 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: color.withAlpha(25),
-          border: Border.all(color: color.withAlpha(100)),
-          borderRadius: BorderRadius.circular(12),
+          color: color.withOpacity(0.1),
+          border: Border.all(color: color.withOpacity(0.4)),
+          borderRadius: BorderRadius.circular(AppButtonStyles.borderRadius),
         ),
         child: Column(
           children: [
@@ -434,7 +550,7 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
                     child: Container(
                       padding: const EdgeInsets.all(2),
                       decoration: BoxDecoration(
-                        color: Colors.red,
+                        color: AppColors.error,
                         borderRadius: BorderRadius.circular(10),
                       ),
                       constraints: const BoxConstraints(
@@ -443,10 +559,8 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
                       ),
                       child: Text(
                         badgeCount > 99 ? '99+' : badgeCount.toString(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
+                        style: AppTextStyles.overline.copyWith(
+                          color: AppColors.onError,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -455,200 +569,94 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
               ],
             ),
             const SizedBox(height: 4),
-            Text(title, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w500), textAlign: TextAlign.center),
+            Text(title, style: AppTextStyles.caption.copyWith(color: color, fontWeight: FontWeight.w500), textAlign: TextAlign.center),
           ],
         ),
       ),
     );
   }
 
-  Widget _summaryRow(IconData icon, Color color, String title, String value, VoidCallback onTap, {bool isBold = false}) {
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Row(
-          children: [
-            Icon(icon, color: color, size: 20),
-            const SizedBox(width: 12),
-            Expanded(child: Text(title, style: TextStyle(color: Colors.grey[700], fontSize: 13))),
-            Text(value, style: TextStyle(color: color, fontSize: 13, fontWeight: isBold ? FontWeight.bold : FontWeight.normal)),
-            const SizedBox(width: 8),
-            Icon(Icons.chevron_right, color: Colors.grey[400], size: 16),
-          ],
-        ),
-      ),
-    );
-  }
-  
-  Widget _buildTodaySummary() {
-    String fmt(int v) => NumberFormat('#,###').format(v);
-    return Container(
-      width: double.infinity, padding: const EdgeInsets.all(18), 
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withAlpha(8), blurRadius: 10)]), 
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text("TRẠNG THÁI CỬA HÀNG", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
-        const SizedBox(height: 15),
-        _summaryRow(Icons.build_circle, Colors.blue, "MÁY ĐANG CHỜ SỬA", "$totalPendingRepair", () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderListView(role: widget.role, statusFilter: const [1, 2]))), isBold: true),
-        _summaryRow(Icons.receipt_long_rounded, Colors.red, "TỔNG CÔNG NỢ TỒN ĐỌNG", "${fmt(totalDebtRemain)} đ", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DebtView())), isBold: true),
-        const Padding(padding: EdgeInsets.symmetric(vertical: 10), child: Divider()),
-        _summaryRow(Icons.add_task, Colors.orange, "Máy nhận mới hôm nay", "$todayNewRepairs", () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderListView(role: widget.role, todayOnly: true)))),
-        _summaryRow(Icons.shopping_bag_outlined, Colors.pink, "Đơn bán mới hôm nay", "$todaySaleCount", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SaleListView(todayOnly: true)))),
-        _summaryRow(Icons.check_circle_outlined, Colors.green, "Đã giao khách hôm nay", "$todayRepairDone", () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderListView(role: widget.role, statusFilter: const [4], todayOnly: true)))),
-        _summaryRow(Icons.money_off_rounded, Colors.blueGrey, "Chi phí phát sinh", "${fmt(todayExpense)} đ", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ExpenseView()))),
-      ])
-    );
-  }
-
-  Widget _buildFinancialChart() {
-    String fmt(int v) => NumberFormat('#,###').format(v);
-    int revenue = revenueToday;
-    int expense = todayExpense;
-    int debt = totalDebtRemain;
-    int total = revenue + expense + debt;
-    if (total == 0) total = 1; // avoid division by zero
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withAlpha(8), blurRadius: 10)],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildSalesTab() {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: ListView(
+        padding: const EdgeInsets.all(20),
         children: [
-          const Text("BIỂU ĐỒ TÀI CHÍNH", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
-          const SizedBox(height: 10),
-          SizedBox(
-            height: 120,
-            child: PieChart(
-              PieChartData(
-                sections: [
-                  PieChartSectionData(
-                    value: revenue.toDouble(),
-                    color: Colors.green,
-                    title: '${(revenue / total * 100).toStringAsFixed(1)}%',
-                    radius: 40,
-                    titleStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
-                  ),
-                  PieChartSectionData(
-                    value: expense.toDouble(),
-                    color: Colors.red,
-                    title: '${(expense / total * 100).toStringAsFixed(1)}%',
-                    radius: 40,
-                    titleStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
-                  ),
-                  PieChartSectionData(
-                    value: debt.toDouble(),
-                    color: Colors.orange,
-                    title: '${(debt / total * 100).toStringAsFixed(1)}%',
-                    radius: 40,
-                    titleStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
-                  ),
-                ],
-                sectionsSpace: 2,
-                centerSpaceRadius: 20,
-              ),
-            ),
-          ),
-          const SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _chartLegend(Colors.green, "Doanh thu", "${fmt(revenue)} đ"),
-              _chartLegend(Colors.red, "Chi phí", "${fmt(expense)} đ"),
-              _chartLegend(Colors.orange, "Công nợ", "${fmt(debt)} đ"),
-            ],
-          ),
+          Text("BÁN HÀNG", style: AppTextStyles.headline5.copyWith(color: AppColors.onSurface)),
+          const SizedBox(height: 20),
+          _tabMenuItem("Danh sách đơn bán", Icons.list_alt, AppColors.primary, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SaleListView())), subtitle: "Xem, tìm kiếm và theo dõi tất cả đơn bán hàng."),
+          _tabMenuItem("Tạo đơn bán mới", Icons.add_circle, AppColors.success, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateSaleView())), subtitle: "Tạo đơn bán hàng mới với sản phẩm và thông tin khách."),
+          _tabMenuItem("Quản lý khách hàng", Icons.people, AppColors.secondary, () => Navigator.push(context, MaterialPageRoute(builder: (_) => CustomerListView(role: widget.role))), subtitle: "Thêm, sửa và xem thông tin khách hàng."),
+          _tabMenuItem("Bảo hành", Icons.verified_user, AppColors.info, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WarrantyView())), subtitle: "Xem và xử lý các yêu cầu bảo hành sản phẩm."),
         ],
       ),
     );
   }
 
-  Widget _chartLegend(Color color, String label, String value) {
-    return Column(
-      children: [
-        Container(
-          width: 12,
-          height: 12,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        ),
-        const SizedBox(height: 4),
-        Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey)),
-        Text(value, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black)),
-      ],
-    );
-  }
-
-  Widget _buildSalesTab() {
-    return ListView(
-      padding: const EdgeInsets.all(20),
-      children: [
-        const Text("BÁN HÀNG", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
-        const SizedBox(height: 20),
-        _tabMenuItem("Danh sách đơn bán", Icons.list_alt, Colors.blue, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SaleListView())), subtitle: "Xem, tìm kiếm và theo dõi tất cả đơn bán hàng."),
-        _tabMenuItem("Tạo đơn bán mới", Icons.add_circle, Colors.green, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateSaleView())), subtitle: "Tạo đơn bán hàng mới với sản phẩm và thông tin khách."),
-        _tabMenuItem("Quản lý khách hàng", Icons.people, Colors.purple, () => Navigator.push(context, MaterialPageRoute(builder: (_) => CustomerListView(role: widget.role))), subtitle: "Thêm, sửa và xem thông tin khách hàng."),
-        _tabMenuItem("Bảo hành", Icons.verified_user, Colors.teal, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WarrantyView())), subtitle: "Xem và xử lý các yêu cầu bảo hành sản phẩm."),
-      ],
-    );
-  }
-
   Widget _buildRepairsTab() {
-    return ListView(
-      padding: const EdgeInsets.all(20),
-      children: [
-        const Text("SỬA CHỮA", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
-        const SizedBox(height: 20),
-        // Quick Actions for Repairs
-        Row(
-          children: [
-            Expanded(child: _quickActionButton("Tạo đơn sửa", Icons.build_circle, Colors.blue, () => Navigator.push(context, MaterialPageRoute(builder: (_) => CreateRepairOrderView(role: widget.role))))),
-            const SizedBox(width: 8),
-            Expanded(child: _quickActionButton("Đối tác sửa chữa", Icons.business, Colors.purple, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RepairPartnerListView())))),
-          ],
-        ),
-        const SizedBox(height: 20),
-        _tabMenuItem("Danh sách đơn sửa", Icons.list_alt, Colors.blue, () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderListView(role: widget.role))), subtitle: "Xem, tìm kiếm và theo dõi tất cả đơn sửa chữa."),
-        _tabMenuItem("Tạo đơn sửa mới", Icons.add_circle, Colors.green, () => Navigator.push(context, MaterialPageRoute(builder: (_) => CreateRepairOrderView(role: widget.role))), subtitle: "Tạo đơn sửa chữa mới với thông tin máy và khách."),
-        _tabMenuItem("Đối tác sửa chữa", Icons.business, Colors.purple, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RepairPartnerListView())), subtitle: "Quản lý danh sách đối tác sửa chữa bên ngoài."),
-        _tabMenuItem("Kho phụ tùng", Icons.build, Colors.orange, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PartsInventoryView())), subtitle: "Quản lý tồn kho phụ tùng cho sửa chữa."),
-      ],
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          Text("SỬA CHỮA", style: AppTextStyles.headline5.copyWith(color: AppColors.onSurface)),
+          const SizedBox(height: 20),
+          // Quick Actions for Repairs
+          Row(
+            children: [
+              Expanded(child: _quickActionButton("Tạo đơn sửa", Icons.build_circle, AppColors.primary, () => Navigator.push(context, MaterialPageRoute(builder: (_) => CreateRepairOrderView(role: widget.role))))),
+              const SizedBox(width: 8),
+              Expanded(child: _quickActionButton("Đối tác & NCC", Icons.business_center, AppColors.secondary, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PartnerManagementView())))),
+            ],
+          ),
+          const SizedBox(height: 20),
+          _tabMenuItem("Danh sách đơn sửa", Icons.list_alt, AppColors.primary, () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderListView(role: widget.role))), subtitle: "Xem, tìm kiếm và theo dõi tất cả đơn sửa chữa."),
+          _tabMenuItem("Tạo đơn sửa mới", Icons.add_circle, AppColors.success, () => Navigator.push(context, MaterialPageRoute(builder: (_) => CreateRepairOrderView(role: widget.role))), subtitle: "Tạo đơn sửa chữa mới với thông tin máy và khách."),
+          _tabMenuItem("Đối tác & Nhà cung cấp", Icons.business_center, AppColors.secondary, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PartnerManagementView())), subtitle: "Quản lý toàn diện đối tác sửa chữa và nhà cung cấp với lịch sử, thanh toán, thống kê."),
+          _tabMenuItem("Kho phụ tùng", Icons.build, AppColors.warning, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PartsInventoryView())), subtitle: "Quản lý tồn kho phụ tùng cho sửa chữa."),
+        ],
+      ),
     );
   }
 
   Widget _buildInventoryTab() {
-    return ListView(
-      padding: const EdgeInsets.all(20),
-      children: [
-        const Text("QUẢN LÝ KHO", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
-        const SizedBox(height: 20),
-        _tabMenuItem("Danh sách sản phẩm", Icons.inventory, Colors.blue, () => Navigator.push(context, MaterialPageRoute(builder: (_) => InventoryView(role: widget.role))), subtitle: "Xem và quản lý danh sách sản phẩm trong kho."),
-        _tabMenuItem("Nhà cung cấp", Icons.business, Colors.red, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SupplierView())), subtitle: "Quản lý danh sách nhà cung cấp."),
-        _tabMenuItem("Quản lý đối tác & NCC", Icons.business_center, Colors.green, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PartnerManagementView())), subtitle: "Quản lý toàn diện đối tác sửa chữa và nhà cung cấp với lịch sử, thanh toán, thống kê."),
-        _tabMenuItem("Nhập kho siêu tốc", Icons.flash_on, Colors.orange, () => Navigator.push(context, MaterialPageRoute(builder: (_) => FastInventoryInputView())), subtitle: "Nhập nhiều sản phẩm vào kho nhanh bằng mã QR."),
-        _tabMenuItem("Danh sách mã nhập nhanh", Icons.qr_code, Colors.teal, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const QuickInputCodesView())), subtitle: "Xem và quản lý danh sách mã nhập nhanh đã tạo."),
-        _tabMenuItem("Kiểm kho QR", Icons.qr_code_scanner, Colors.purple, () => Navigator.push(context, MaterialPageRoute(builder: (_) => FastInventoryCheckView())), subtitle: "Kiểm tra tồn kho bằng cách quét mã QR."),
-      ],
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          Text("QUẢN LÝ KHO", style: AppTextStyles.headline5.copyWith(color: AppColors.onSurface)),
+          const SizedBox(height: 20),
+          _tabMenuItem("Danh sách sản phẩm", Icons.inventory, AppColors.primary, () => Navigator.push(context, MaterialPageRoute(builder: (_) => InventoryView(role: widget.role))), subtitle: "Xem và quản lý danh sách sản phẩm trong kho."),
+          _tabMenuItem("Quản lý đối tác & NCC", Icons.business_center, AppColors.success, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PartnerManagementView())), subtitle: "Quản lý toàn diện đối tác sửa chữa và nhà cung cấp với lịch sử, thanh toán, thống kê."),
+          _tabMenuItem("Nhập kho siêu tốc", Icons.flash_on, AppColors.warning, () => Navigator.push(context, MaterialPageRoute(builder: (_) => FastInventoryInputView())), subtitle: "Nhập nhiều sản phẩm vào kho nhanh bằng mã QR."),
+          _tabMenuItem("Danh sách mã nhập nhanh", Icons.qr_code, AppColors.info, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const QuickInputCodesView())), subtitle: "Xem và quản lý danh sách mã nhập nhanh đã tạo."),
+          _tabMenuItem("Kiểm kho QR", Icons.qr_code_scanner, AppColors.secondary, () => Navigator.push(context, MaterialPageRoute(builder: (_) => FastInventoryCheckView())), subtitle: "Kiểm tra tồn kho bằng cách quét mã QR."),
+        ],
+      ),
     );
   }
 
   Widget _buildStaffTab() {
     if (!hasFullAccess) {
-      return const Center(child: Text("Không có quyền truy cập"));
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        body: Center(child: Text("Không có quyền truy cập", style: AppTextStyles.body1)),
+      );
     }
-    return ListView(
-      padding: const EdgeInsets.all(20),
-      children: [
-        const Text("QUẢN LÝ NHÂN SỰ", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
-        const SizedBox(height: 20),
-        _tabMenuItem("Danh sách nhân viên", Icons.people, Colors.blue, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StaffListView())), subtitle: "Xem và quản lý thông tin nhân viên."),
-        _tabMenuItem("Chấm công", Icons.fingerprint, Colors.green, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AttendanceView())), subtitle: "Ghi nhận giờ làm việc của nhân viên."),
-        _tabMenuItem("Hiệu suất", Icons.bar_chart, Colors.orange, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StaffPerformanceView())), subtitle: "Xem báo cáo hiệu suất làm việc của nhân viên."),
-        _tabMenuItem("Lịch làm việc", Icons.schedule, Colors.purple, () => Navigator.push(context, MaterialPageRoute(builder: (_) => WorkScheduleSettingsView())), subtitle: "Thiết lập và xem lịch làm việc của nhân viên."),
-      ],
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          Text("QUẢN LÝ NHÂN SỰ", style: AppTextStyles.headline5.copyWith(color: AppColors.onSurface)),
+          const SizedBox(height: 20),
+          _tabMenuItem("Danh sách nhân viên", Icons.people, AppColors.primary, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StaffListView())), subtitle: "Xem và quản lý thông tin nhân viên."),
+          _tabMenuItem("Chấm công", Icons.fingerprint, AppColors.success, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AttendanceView())), subtitle: "Ghi nhận giờ làm việc của nhân viên."),
+          _tabMenuItem("Hiệu suất", Icons.bar_chart, AppColors.warning, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StaffPerformanceView())), subtitle: "Xem báo cáo hiệu suất làm việc của nhân viên."),
+          _tabMenuItem("Lịch làm việc", Icons.schedule, AppColors.secondary, () => Navigator.push(context, MaterialPageRoute(builder: (_) => WorkScheduleSettingsView())), subtitle: "Thiết lập và xem lịch làm việc của nhân viên."),
+        ],
+      ),
     );
   }
 
@@ -660,103 +668,114 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
     int total = revenue + expense + debt;
     if (total == 0) total = 1;
 
-    return ListView(
-      padding: const EdgeInsets.all(20),
-      children: [
-        const Text("QUẢN LÝ TÀI CHÍNH", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
-        const SizedBox(height: 20),
-        // TỔNG QUAN TÀI CHÍNH
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [BoxShadow(color: Colors.black.withAlpha(8), blurRadius: 10)],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text("TỔNG QUAN TÀI CHÍNH HÔM NAY", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
-              const SizedBox(height: 15),
-              SizedBox(
-                height: 200,
-                child: PieChart(
-                  PieChartData(
-                    sections: [
-                      PieChartSectionData(
-                        value: revenue.toDouble(),
-                        color: Colors.green,
-                        title: 'Doanh thu\n${fmt(revenue)} đ',
-                        radius: 60,
-                        titleStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
-                      ),
-                      PieChartSectionData(
-                        value: expense.toDouble(),
-                        color: Colors.red,
-                        title: 'Chi phí\n${fmt(expense)} đ',
-                        radius: 60,
-                        titleStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
-                      ),
-                      PieChartSectionData(
-                        value: debt.toDouble(),
-                        color: Colors.orange,
-                        title: 'Công nợ\n${fmt(debt)} đ',
-                        radius: 60,
-                        titleStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
-                      ),
-                    ],
-                    sectionsSpace: 2,
-                    centerSpaceRadius: 30,
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          Text("QUẢN LÝ TÀI CHÍNH", style: AppTextStyles.headline5.copyWith(color: AppColors.onSurface)),
+          const SizedBox(height: 20),
+          // TỔNG QUAN TÀI CHÍNH
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(AppButtonStyles.borderRadius * 2.5),
+              boxShadow: [BoxShadow(color: AppColors.shadow.withOpacity(0.1), blurRadius: 10)],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("TỔNG QUAN TÀI CHÍNH HÔM NAY", style: AppTextStyles.body1.copyWith(fontWeight: FontWeight.bold, color: AppColors.onSurface.withOpacity(0.7))),
+                const SizedBox(height: 15),
+                SizedBox(
+                  height: 200,
+                  child: PieChart(
+                    PieChartData(
+                      sections: [
+                        PieChartSectionData(
+                          value: revenue.toDouble(),
+                          color: AppColors.success,
+                          title: 'Doanh thu\n${fmt(revenue)} đ',
+                          radius: 60,
+                          titleStyle: AppTextStyles.caption.copyWith(fontWeight: FontWeight.bold, color: AppColors.onSuccess),
+                        ),
+                        PieChartSectionData(
+                          value: expense.toDouble(),
+                          color: AppColors.error,
+                          title: 'Chi phí\n${fmt(expense)} đ',
+                          radius: 60,
+                          titleStyle: AppTextStyles.caption.copyWith(fontWeight: FontWeight.bold, color: AppColors.onError),
+                        ),
+                        PieChartSectionData(
+                          value: debt.toDouble(),
+                          color: AppColors.warning,
+                          title: 'Công nợ\n${fmt(debt)} đ',
+                          radius: 60,
+                          titleStyle: AppTextStyles.caption.copyWith(fontWeight: FontWeight.bold, color: AppColors.onWarning),
+                        ),
+                      ],
+                      sectionsSpace: 2,
+                      centerSpaceRadius: 30,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 15),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _chartLegend(Colors.green, "Doanh thu", "${fmt(revenue)} đ"),
-                  _chartLegend(Colors.red, "Chi phí", "${fmt(expense)} đ"),
-                  _chartLegend(Colors.orange, "Công nợ", "${fmt(debt)} đ"),
-                ],
-              ),
-            ],
+                const SizedBox(height: 15),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _financeLegend(AppColors.success, "Doanh thu", "${fmt(revenue)} đ"),
+                    _financeLegend(AppColors.error, "Chi phí", "${fmt(expense)} đ"),
+                    _financeLegend(AppColors.warning, "Công nợ", "${fmt(debt)} đ"),
+                  ],
+                ),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 30),
-        _tabMenuItem("Báo cáo doanh thu", Icons.trending_up, Colors.blue, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RevenueView())), subtitle: "Xem báo cáo doanh thu và lợi nhuận theo thời gian."),
-        _tabMenuItem("Quản lý chi phí", Icons.money_off, Colors.red, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ExpenseView())), subtitle: "Thêm và theo dõi các khoản chi phí của cửa hàng."),
-        _tabMenuItem("Công nợ", Icons.receipt_long, Colors.purple, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DebtView())), subtitle: "Quản lý các khoản nợ và thu nợ từ khách hàng."),
-        if (_isSuperAdmin) _tabMenuItem("Phân tích nợ", Icons.analytics, Colors.deepOrange, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DebtAnalysisView())), subtitle: "Phân tích chi tiết các khoản nợ (chỉ dành cho admin)."),
-      ],
+          const SizedBox(height: 30),
+          _tabMenuItem("Báo cáo doanh thu", Icons.trending_up, AppColors.primary, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RevenueView())), subtitle: "Xem báo cáo doanh thu và lợi nhuận theo thời gian."),
+          _tabMenuItem("Quản lý chi phí", Icons.money_off, AppColors.error, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ExpenseView())), subtitle: "Thêm và theo dõi các khoản chi phí của cửa hàng."),
+          _tabMenuItem("Công nợ", Icons.receipt_long, AppColors.secondary, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DebtView())), subtitle: "Quản lý các khoản nợ và thu nợ từ khách hàng."),
+          if (_isSuperAdmin) _tabMenuItem("Phân tích nợ", Icons.analytics, AppColors.warning, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DebtAnalysisView())), subtitle: "Phân tích chi tiết các khoản nợ (chỉ dành cho admin)."),
+        ],
+      ),
     );
   }
 
   Widget _buildSettingsTab() {
-    return ListView(
-      padding: const EdgeInsets.all(20),
-      children: [
-        const Text("CÀI ĐẶT HỆ THỐNG", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
-        const SizedBox(height: 20),
-        _tabMenuItem("Thông báo", Icons.notifications, Colors.blue, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationSettingsView())), subtitle: "Cấu hình cài đặt thông báo và cảnh báo."),
-        _tabMenuItem("Máy in", Icons.print, Colors.green, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ThermalPrinterDesignView())), subtitle: "Thiết kế mẫu in cho máy in nhiệt."),
-        _tabMenuItem("Tìm kiếm toàn cục", Icons.search, Colors.orange, () => Navigator.push(context, MaterialPageRoute(builder: (_) => GlobalSearchView(role: widget.role))), subtitle: "Tìm kiếm thông tin trên toàn bộ ứng dụng."),
-        if (hasFullAccess) _tabMenuItem("Cài đặt hệ thống", Icons.settings, Colors.grey, () => Navigator.push(context, MaterialPageRoute(builder: (_) => SettingsView(setLocale: widget.setLocale))), subtitle: "Thay đổi cài đặt chung của ứng dụng."),
-        if (_isSuperAdmin) _tabMenuItem("Trung tâm Admin", Icons.admin_panel_settings, Colors.red, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const admin_view.SuperAdminView())), subtitle: "Quản lý toàn bộ hệ thống cho admin cấp cao."),
-        if (hasFullAccess) _tabMenuItem("Nhật ký hệ thống", Icons.history, Colors.teal, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AuditLogView())), subtitle: "Xem lịch sử hoạt động và thay đổi trong hệ thống."),
-        _tabMenuItem("Về nhà phát triển", Icons.info, Colors.indigo, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AboutDeveloperView())), subtitle: "Thông tin về nhà phát triển và ứng dụng."),
-      ],
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          Text("CÀI ĐẶT HỆ THỐNG", style: AppTextStyles.headline5.copyWith(color: AppColors.onSurface)),
+          const SizedBox(height: 20),
+          _tabMenuItem("Thông báo", Icons.notifications, AppColors.primary, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationSettingsView())), subtitle: "Cấu hình cài đặt thông báo và cảnh báo."),
+          _tabMenuItem("Máy in", Icons.print, AppColors.success, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ThermalPrinterDesignView())), subtitle: "Thiết kế mẫu in cho máy in nhiệt."),
+          _tabMenuItem("Tìm kiếm toàn cục", Icons.search, AppColors.warning, () => Navigator.push(context, MaterialPageRoute(builder: (_) => GlobalSearchView(role: widget.role))), subtitle: "Tìm kiếm thông tin trên toàn bộ ứng dụng."),
+          if (hasFullAccess) _tabMenuItem("Cài đặt hệ thống", Icons.settings, AppColors.onSurface.withOpacity(0.6), () => Navigator.push(context, MaterialPageRoute(builder: (_) => SettingsView(setLocale: widget.setLocale))), subtitle: "Thay đổi cài đặt chung của ứng dụng."),
+          if (_isSuperAdmin) _tabMenuItem("Trung tâm Admin", Icons.admin_panel_settings, AppColors.error, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const admin_view.SuperAdminView())), subtitle: "Quản lý toàn bộ hệ thống cho admin cấp cao."),
+          if (hasFullAccess) _tabMenuItem("Nhật ký hệ thống", Icons.history, AppColors.info, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AuditLogView())), subtitle: "Xem lịch sử hoạt động và thay đổi trong hệ thống."),
+          _tabMenuItem("Về nhà phát triển", Icons.info, AppColors.secondary, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AboutDeveloperView())), subtitle: "Thông tin về nhà phát triển và ứng dụng."),
+        ],
+      ),
     );
   }
 
   Widget _tabMenuItem(String title, IconData icon, Color color, VoidCallback onTap, {String? subtitle}) {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
+      color: AppColors.surface,
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppButtonStyles.borderRadius),
+      ),
       child: ListTile(
         leading: Icon(icon, color: color),
-        title: Text(title),
-        subtitle: subtitle != null ? Text(subtitle, style: const TextStyle(fontSize: 12, color: Colors.grey)) : null,
-        trailing: const Icon(Icons.chevron_right),
+        title: Text(title, style: AppTextStyles.body1.copyWith(color: AppColors.onSurface)),
+        subtitle: subtitle != null ? Text(subtitle, style: AppTextStyles.caption.copyWith(color: AppColors.onSurface.withOpacity(0.6))) : null,
+        trailing: Icon(Icons.chevron_right, color: AppColors.onSurface.withOpacity(0.4)),
         onTap: onTap,
       ),
     );
@@ -778,21 +797,163 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
     return "SHOP MANAGER";
   }
 
+  Widget _financeLegend(Color color, String label, String value) {
+    return Column(
+      children: [
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(height: 4),
+        Text(label, style: AppTextStyles.caption.copyWith(color: AppColors.onSurface.withOpacity(0.6))),
+        Text(value, style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.bold, color: AppColors.onSurface)),
+      ],
+    );
+  }
+
+  Widget _buildDashboardOverview() {
+    debugPrint('BUILDING DASHBOARD: totalPendingRepair=$totalPendingRepair, todaySaleCount=$todaySaleCount, todayRepairDone=$todayRepairDone, totalDebtRemain=$totalDebtRemain, revenueToday=$revenueToday');
+    debugPrint('Dashboard rebuilding with key: ${UniqueKey()}');
+
+    // Log formatted values
+    final formattedRevenue = MoneyUtils.formatVND(revenueToday);
+    final formattedDebt = MoneyUtils.formatVND(totalDebtRemain);
+    debugPrint('UI_TRACE: Formatted values - revenue: "$formattedRevenue", debt: "$formattedDebt"');
+    debugPrint('UI_TRACE: Raw values - revenueToday: $revenueToday, totalDebtRemain: $totalDebtRemain');
+
+    return Container(
+      key: UniqueKey(), // Force rebuild every time
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppButtonStyles.borderRadius * 2),
+        boxShadow: [BoxShadow(color: AppColors.shadow.withOpacity(0.1), blurRadius: 8)],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.dashboard, color: AppColors.primary, size: 24),
+              const SizedBox(width: 8),
+              Text("TỔNG QUAN HÔM NAY", style: AppTextStyles.headline6.copyWith(color: AppColors.onSurface)),
+            ],
+          ),
+          const SizedBox(height: 20),
+          GridView.count(
+            crossAxisCount: 2,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            mainAxisSpacing: 16,
+            crossAxisSpacing: 16,
+            children: [
+              _dashboardCard(
+                icon: Icons.build_circle,
+                title: "Đơn sửa chờ",
+                value: "$totalPendingRepair",
+                color: AppColors.primary,
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderListView(role: widget.role, statusFilter: const [1, 2]))),
+              ),
+              _dashboardCard(
+                icon: Icons.shopping_cart,
+                title: "Đơn bán hôm nay",
+                value: "$todaySaleCount",
+                color: AppColors.success,
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SaleListView(todayOnly: true))),
+              ),
+              _dashboardCard(
+                icon: Icons.check_circle,
+                title: "Đã hoàn thành",
+                value: "$todayRepairDone",
+                color: AppColors.info,
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderListView(role: widget.role, statusFilter: const [4], todayOnly: true))),
+              ),
+              _dashboardCard(
+                icon: Icons.receipt_long,
+                title: "Công nợ",
+                value: "${MoneyUtils.formatVND(totalDebtRemain)}đ",
+                color: AppColors.warning,
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DebtView())),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(AppButtonStyles.borderRadius),
+              border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.trending_up, color: AppColors.primary, size: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("Doanh thu hôm nay", style: AppTextStyles.body2.copyWith(color: AppColors.onSurface.withOpacity(0.7))),
+                      Text("${MoneyUtils.formatVND(revenueToday)} đ", style: AppTextStyles.headline6.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _dashboardCard({
+    required IconData icon,
+    required String title,
+    required String value,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppButtonStyles.borderRadius),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(AppButtonStyles.borderRadius),
+          border: Border.all(color: color.withOpacity(0.2)),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: color, size: 28),
+            const SizedBox(height: 8),
+            Text(title, style: AppTextStyles.caption.copyWith(color: AppColors.onSurface.withOpacity(0.7)), textAlign: TextAlign.center),
+            const SizedBox(height: 4),
+            Text(value, style: AppTextStyles.body1.copyWith(color: color, fontWeight: FontWeight.bold)),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildAlerts() {
     if (expiringWarranties == 0) return const SizedBox();
     return InkWell(
       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WarrantyView())),
       child: Container(
         width: double.infinity, padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(color: Colors.redAccent, borderRadius: BorderRadius.circular(15), boxShadow: [BoxShadow(color: Colors.red.withAlpha(51), blurRadius: 10)]),
+        decoration: BoxDecoration(color: AppColors.error, borderRadius: BorderRadius.circular(AppButtonStyles.borderRadius * 2), boxShadow: [BoxShadow(color: AppColors.error.withOpacity(0.3), blurRadius: 10)]),
         child: Row(children: [
-          const Icon(Icons.notification_important, color: Colors.white, size: 28),
-          const SizedBox(width: 15),
+          Icon(Icons.notification_important, color: AppColors.onError, size: 28),
+          const SizedBox(height: 15),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text("NHẮC LỊCH BẢO HÀNH", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-            Text("Có $expiringWarranties máy sắp hết hạn bảo hành. Xem ngay!", style: const TextStyle(color: Colors.white70, fontSize: 11)),
+            Text("NHẮC LỊCH BẢO HÀNH", style: AppTextStyles.body1.copyWith(color: AppColors.onError, fontWeight: FontWeight.bold)),
+            Text("Có $expiringWarranties máy sắp hết hạn bảo hành. Xem ngay!", style: AppTextStyles.caption.copyWith(color: AppColors.onError.withOpacity(0.8))),
           ])),
-          const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 16),
+          Icon(Icons.arrow_forward_ios, color: AppColors.onError, size: 16),
         ]),
       ),
     );

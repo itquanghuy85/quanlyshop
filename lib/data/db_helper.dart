@@ -8,6 +8,7 @@ import '../models/expense_model.dart';
 import '../models/debt_model.dart';
 import '../models/purchase_order_model.dart';
 import '../models/attendance_model.dart';
+import '../models/customer_model.dart';
 import '../models/quick_input_code_model.dart';
 
 class DBHelper {
@@ -448,6 +449,20 @@ class DBHelper {
         } catch (e) {
           debugPrint('DB onOpen check error (repair_parts): $e');
         }
+
+        // Ensure services column exists in repairs table
+        try {
+          final cols = await db.rawQuery('PRAGMA table_info(repairs)');
+          final hasServices = cols.any(
+            (c) => (c['name'] ?? c['name'.toString()]) == 'services',
+          );
+          if (!hasServices) {
+            await db.execute('ALTER TABLE repairs ADD COLUMN services TEXT');
+            debugPrint('DB: added services column to repairs');
+          }
+        } catch (e) {
+          debugPrint('DB onOpen check error (repairs services): $e');
+        }
       },
     );
   }
@@ -507,7 +522,12 @@ class DBHelper {
       'repairs',
       orderBy: 'createdAt DESC',
     );
-    return List.generate(maps.length, (i) => Repair.fromMap(maps[i]));
+    final repairs = List.generate(maps.length, (i) => Repair.fromMap(maps[i]));
+    debugPrint("DB_TRACE: getAllRepairs returned ${repairs.length} repairs");
+    for (var r in repairs) {
+      debugPrint("DB_TRACE: Repair - id: ${r.id}, firestoreId: ${r.firestoreId}, status: ${r.status}, price: ${r.price}, totalCost: ${r.totalCost}, createdAt: ${r.createdAt}, deliveredAt: ${r.deliveredAt}");
+    }
+    return repairs;
   }
 
   Future<Repair?> getRepairById(int id) async {
@@ -560,7 +580,12 @@ class DBHelper {
       .delete('sales', where: 'firestoreId = ?', whereArgs: [fId]);
   Future<List<SaleOrder>> getAllSales() async {
     final maps = await (await database).query('sales', orderBy: 'soldAt DESC');
-    return List.generate(maps.length, (i) => SaleOrder.fromMap(maps[i]));
+    final sales = List.generate(maps.length, (i) => SaleOrder.fromMap(maps[i]));
+    debugPrint("DB_TRACE: getAllSales returned ${sales.length} sales");
+    for (var s in sales) {
+      debugPrint("DB_TRACE: Sale - id: ${s.id}, firestoreId: ${s.firestoreId}, totalPrice: ${s.totalPrice}, totalCost: ${s.totalCost}, soldAt: ${s.soldAt}, customerName: ${s.customerName}");
+    }
+    return sales;
   }
 
   Future<SaleOrder?> getSaleByFirestoreId(String firestoreId) async {
@@ -632,6 +657,19 @@ class DBHelper {
     );
     await db.rawUpdate(
       'UPDATE products SET status = 0 WHERE id = ? AND quantity <= 0',
+      [id],
+    );
+  }
+
+  Future<void> addProductQuantity(int id, int amount) async {
+    final db = await database;
+    await db.rawUpdate(
+      'UPDATE products SET quantity = quantity + ? WHERE id = ?',
+      [amount, id],
+    );
+    // Nếu sản phẩm đã bán hết (status = 0) và giờ có hàng lại, có thể cần cập nhật status
+    await db.rawUpdate(
+      'UPDATE products SET status = 1 WHERE id = ? AND status = 0 AND quantity > 0',
       [id],
     );
   }
@@ -1607,5 +1645,115 @@ class DBHelper {
       } else {
         await db.insert('repair_partner_payments', payment);
       }
+    }
+
+    // ========== CUSTOMER METHODS ==========
+    Future<int> insertCustomer(Map<String, dynamic> customer) async {
+      final db = await database;
+      return await db.insert('customers', customer);
+    }
+
+    Future<int> updateCustomer(int id, Map<String, dynamic> customer) async {
+      final db = await database;
+      return await db.update('customers', customer, where: 'id = ?', whereArgs: [id]);
+    }
+
+    Future<int> deleteCustomer(int id) async {
+      final db = await database;
+      return await db.delete('customers', where: 'id = ?', whereArgs: [id]);
+    }
+
+    Future<List<Map<String, dynamic>>> searchCustomers(String query, String? shopId) async {
+      final db = await database;
+      if (shopId == null) {
+        // Super admin: search all customers
+        return await db.query(
+          'customers',
+          where: 'deleted = 0 AND (name LIKE ? OR phone LIKE ?)',
+          whereArgs: ['%$query%', '%$query%'],
+          orderBy: 'name ASC',
+        );
+      } else {
+        return await db.query(
+          'customers',
+          where: 'shopId = ? AND deleted = 0 AND (name LIKE ? OR phone LIKE ?)',
+          whereArgs: [shopId, '%$query%', '%$query%'],
+          orderBy: 'name ASC',
+        );
+      }
+    }
+
+    Future<List<Map<String, dynamic>>> getCustomerByPhone(String phone, String? shopId) async {
+      final db = await database;
+      if (shopId == null) {
+        // Super admin: search all customers
+        return await db.query(
+          'customers',
+          where: 'phone = ? AND deleted = 0',
+          whereArgs: [phone],
+        );
+      } else {
+        return await db.query(
+          'customers',
+          where: 'shopId = ? AND phone = ? AND deleted = 0',
+          whereArgs: [shopId, phone],
+        );
+      }
+    }
+
+    Future<List<Map<String, dynamic>>> getCustomerSalesHistory(String phone, String? shopId) async {
+      final db = await database;
+      return await db.query(
+        'sales',
+        where: 'phone = ?',
+        whereArgs: [phone],
+        orderBy: 'soldAt DESC',
+      );
+    }
+
+    Future<List<Map<String, dynamic>>> getCustomerRepairsHistory(String phone, String? shopId) async {
+      final db = await database;
+      return await db.query(
+        'repairs',
+        where: 'phone = ?',
+        whereArgs: [phone],
+        orderBy: 'createdAt DESC',
+      );
+    }
+
+    Future<List<Map<String, dynamic>>> getCustomers() async {
+      final db = await database;
+      return await db.query('customers', orderBy: 'name ASC');
+    }
+
+    Future<void> upsertCustomer(Map<String, dynamic> customer) async {
+      final db = await database;
+      final firestoreId = customer['firestoreId'];
+      if (firestoreId != null) {
+        final existing = await db.query(
+          'customers',
+          where: 'firestoreId = ?',
+          whereArgs: [firestoreId],
+        );
+        if (existing.isNotEmpty) {
+          await db.update(
+            'customers',
+            customer,
+            where: 'firestoreId = ?',
+            whereArgs: [firestoreId],
+          );
+          return;
+        }
+      }
+      await db.insert('customers', customer);
+    }
+
+    Future<void> deleteCustomerByFirestoreId(String firestoreId) async {
+      final db = await database;
+      await db.delete(
+        'customers',
+        where: 'firestoreId = ?',
+        whereArgs: [firestoreId],
+      );
     }
   }

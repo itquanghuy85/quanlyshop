@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:QuanLyShop/models/repair_model.dart';
+import 'package:quanlyshop/models/repair_model.dart';
 
 void main() {
   group('Network Sync Model Tests', () {

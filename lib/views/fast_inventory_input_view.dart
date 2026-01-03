@@ -3,11 +3,15 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import '../core/utils/money_utils.dart';
 import '../controllers/fast_inventory_input_controller.dart';
 import '../models/product_model.dart';
 import '../services/notification_service.dart';
 import '../widgets/currency_text_field.dart';
 import '../widgets/validated_text_field.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_text_styles.dart';
+import '../theme/app_button_styles.dart';
 import 'stock_in_view.dart';
 
 class FastInventoryInputView extends StatefulWidget {
@@ -149,7 +153,7 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
         });
       }
     } catch (e) {
-      NotificationService.showSnackBar("Lỗi tải dữ liệu: $e", color: Colors.red);
+      NotificationService.showSnackBar("Lỗi tải dữ liệu: $e", color: AppColors.error);
     }
   }
 
@@ -196,41 +200,41 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
       suppliers = await _controller.getSuppliers();
       setState(() {});
     } catch (e) {
-      NotificationService.showSnackBar("Lỗi tải nhà cung cấp: $e", color: Colors.red);
+      NotificationService.showSnackBar("Lỗi tải nhà cung cấp: $e", color: AppColors.error);
     }
   }
 
   bool _validateForm() {
     if (typeCtrl.text.isEmpty) {
-      NotificationService.showSnackBar("Vui lòng chọn loại hàng!", color: Colors.red);
+      NotificationService.showSnackBar("Vui lòng chọn loại hàng!", color: AppColors.error);
       return false;
     }
     if (brandCtrl.text.isEmpty) {
-      NotificationService.showSnackBar("Vui lòng nhập loại!", color: Colors.red);
+      NotificationService.showSnackBar("Vui lòng nhập loại!", color: AppColors.error);
       return false;
     }
     if (!_isAccessoryOrLinhKien && modelCtrl.text.isEmpty) {
-      NotificationService.showSnackBar("Vui lòng nhập model!", color: Colors.red);
+      NotificationService.showSnackBar("Vui lòng nhập model!", color: AppColors.error);
       return false;
     }
     if (!_isAccessoryOrLinhKien && capacityCtrl.text.isEmpty) {
-      NotificationService.showSnackBar("Vui lòng nhập dung lượng!", color: Colors.red);
+      NotificationService.showSnackBar("Vui lòng nhập dung lượng!", color: AppColors.error);
       return false;
     }
     if (colorCtrl.text.isEmpty) {
-      NotificationService.showSnackBar("Vui lòng nhập màu/thông tin!", color: Colors.red);
+      NotificationService.showSnackBar("Vui lòng nhập màu/thông tin!", color: AppColors.error);
       return false;
     }
     if (quantityCtrl.text.isEmpty || int.tryParse(quantityCtrl.text) == null || int.parse(quantityCtrl.text) <= 0) {
-      NotificationService.showSnackBar("Vui lòng nhập số lượng hợp lệ!", color: Colors.red);
+      NotificationService.showSnackBar("Vui lòng nhập số lượng hợp lệ!", color: AppColors.error);
       return false;
     }
     if (costCtrl.text.isEmpty || int.tryParse(costCtrl.text) == null) {
-      NotificationService.showSnackBar("Vui lòng nhập giá nhập hợp lệ!", color: Colors.red);
+      NotificationService.showSnackBar("Vui lòng nhập giá nhập hợp lệ!", color: AppColors.error);
       return false;
     }
     if (supplierCtrl.text.isEmpty) {
-      NotificationService.showSnackBar("Vui lòng chọn nhà cung cấp!", color: Colors.red);
+      NotificationService.showSnackBar("Vui lòng chọn nhà cung cấp!", color: AppColors.error);
       return false;
     }
     return true;
@@ -265,13 +269,13 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
       // Reset form
       _resetForm();
 
-      NotificationService.showSnackBar("Đã lưu sản phẩm thành công!", color: Colors.green);
+      NotificationService.showSnackBar("Đã lưu sản phẩm thành công!", color: AppColors.success);
       HapticFeedback.lightImpact();
 
       // Refresh recent products
       await _refreshRecentProducts();
     } catch (e) {
-      NotificationService.showSnackBar("Lỗi lưu sản phẩm: $e", color: Colors.red);
+      NotificationService.showSnackBar("Lỗi lưu sản phẩm: $e", color: AppColors.error);
     } finally {
       setState(() => _saving = false);
     }
@@ -335,26 +339,24 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
   }) {
     return DropdownButtonFormField<String>(
       value: controller.text.isNotEmpty ? controller.text : null,
-      style: TextStyle(
-        fontSize: 12,
-        color: hasChanged ? const Color(0xFF1976D2) : Colors.black87,
+      style: AppTextStyles.caption.copyWith(
+        color: hasChanged ? AppColors.primary : AppColors.onSurface,
         fontWeight: hasChanged ? FontWeight.bold : FontWeight.normal,
       ),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: TextStyle(
-          fontSize: 12,
-          color: hasChanged ? const Color(0xFF1976D2) : Colors.black87,
+        labelStyle: AppTextStyles.caption.copyWith(
+          color: hasChanged ? AppColors.primary : AppColors.onSurface,
           fontWeight: hasChanged ? FontWeight.bold : FontWeight.normal,
         ),
-        prefixIcon: icon != null ? Icon(icon, size: 16, color: hasChanged ? const Color(0xFF1976D2) : Colors.black54) : null,
+        prefixIcon: icon != null ? Icon(icon, size: 16, color: hasChanged ? AppColors.primary : AppColors.onSurface.withOpacity(0.6)) : null,
         border: const OutlineInputBorder(),
         contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         filled: false, // Override theme to not fill background
-        fillColor: hasChanged ? const Color(0xFFE3F2FD).withAlpha(50) : null,
+        fillColor: hasChanged ? AppColors.primary.withOpacity(0.1) : null,
         enabledBorder: OutlineInputBorder(
           borderSide: BorderSide(
-            color: hasChanged ? const Color(0xFF1976D2) : Colors.grey.shade400,
+            color: hasChanged ? AppColors.primary : AppColors.outline,
             width: hasChanged ? 1.5 : 1.0,
           ),
         ),
@@ -367,7 +369,7 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
       ),
       items: items.map((item) => DropdownMenuItem(
         value: item,
-        child: Text(item, style: const TextStyle(fontSize: 12, color: Colors.black87)),
+        child: Text(item, style: AppTextStyles.caption.copyWith(color: AppColors.onSurface)),
       )).toList(),
       onChanged: (value) {
         setState(() {
@@ -398,29 +400,27 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
       keyboardType: keyboardType,
       textCapitalization: TextCapitalization.characters,
       inputFormatters: inputFormatters,
-      style: TextStyle(
-        fontSize: 12,
-        color: hasChanged ? const Color(0xFF1976D2) : Colors.black87, // Blue color when changed
+      style: AppTextStyles.caption.copyWith(
+        color: hasChanged ? AppColors.primary : AppColors.onSurface,
         fontWeight: hasChanged ? FontWeight.bold : FontWeight.normal,
       ),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: TextStyle(
-          fontSize: 12,
-          color: hasChanged ? const Color(0xFF1976D2) : Colors.black87,
+        labelStyle: AppTextStyles.caption.copyWith(
+          color: hasChanged ? AppColors.primary : AppColors.onSurface,
           fontWeight: hasChanged ? FontWeight.bold : FontWeight.normal,
         ),
-        prefixIcon: icon != null ? Icon(icon, size: 16, color: hasChanged ? const Color(0xFF1976D2) : Colors.black54) : null,
+        prefixIcon: icon != null ? Icon(icon, size: 16, color: hasChanged ? AppColors.primary : AppColors.onSurface.withOpacity(0.6)) : null,
         suffixText: suffix,
-        suffixStyle: const TextStyle(fontSize: 10, color: Colors.grey),
+        suffixStyle: AppTextStyles.caption.copyWith(color: AppColors.onSurface.withOpacity(0.6)),
         border: const OutlineInputBorder(),
         contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         filled: false, // Override theme to not fill background
         // Add subtle background color when changed
-        fillColor: hasChanged ? const Color(0xFFE3F2FD).withAlpha(50) : null,
+        fillColor: hasChanged ? AppColors.primary.withOpacity(0.1) : null,
         enabledBorder: OutlineInputBorder(
           borderSide: BorderSide(
-            color: hasChanged ? const Color(0xFF1976D2) : Colors.grey.shade400,
+            color: hasChanged ? AppColors.primary : AppColors.outline,
             width: hasChanged ? 1.5 : 1.0,
           ),
         ),
@@ -552,11 +552,11 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
     return Scaffold(
       backgroundColor: const Color(0xFFF0F4F8),
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           "NHẬP KHO SIÊU TỐC",
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+          style: AppTextStyles.headline6.copyWith(fontWeight: FontWeight.bold),
         ),
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.surface,
         elevation: 0,
         automaticallyImplyLeading: true,
         bottom: TabBar(
@@ -710,7 +710,7 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
               controller: costCtrl,
               label: 'Giá nhập (VNĐ) *',
               icon: Icons.attach_money,
-              multiplyBy1000: false,
+              multiplyBy1000: true,
               onSubmitted: () => FocusScope.of(context).requestFocus(priceF),
             ),
           ),
@@ -724,7 +724,7 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
                 controller: priceCtrl,
                 label: typeCtrl.text == 'ACCESSORY' ? 'Giá (VNĐ)' : 'Giá thay (VNĐ)',
                 icon: Icons.sell,
-                multiplyBy1000: false,
+                multiplyBy1000: true,
                 onSubmitted: () => FocusScope.of(context).requestFocus(notesF),
               ),
             ),
@@ -736,7 +736,7 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
                 controller: priceCtrl,
                 label: 'Giá bán (VNĐ)',
                 icon: Icons.sell,
-                multiplyBy1000: false,
+                multiplyBy1000: true,
                 onSubmitted: () => FocusScope.of(context).requestFocus(notesF),
               ),
             ),
@@ -745,28 +745,26 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
           // Nhà cung cấp
           DropdownButtonFormField<String>(
             value: supplierCtrl.text.isNotEmpty ? supplierCtrl.text : null,
-            style: TextStyle(
-              fontSize: 12,
-              color: _supplierChanged ? const Color(0xFF1976D2) : Colors.black87,
+            style: AppTextStyles.caption.copyWith(
+              color: _supplierChanged ? AppColors.primary : AppColors.onSurface,
               fontWeight: _supplierChanged ? FontWeight.bold : FontWeight.normal,
             ),
-            dropdownColor: Colors.white,
+            dropdownColor: AppColors.surface,
             decoration: InputDecoration(
               labelText: 'Nhà cung cấp *',
-              labelStyle: TextStyle(
-                fontSize: 12,
-                color: _supplierChanged ? const Color(0xFF1976D2) : Colors.black87,
+              labelStyle: AppTextStyles.caption.copyWith(
+                color: _supplierChanged ? AppColors.primary : AppColors.onSurface,
                 fontWeight: _supplierChanged ? FontWeight.bold : FontWeight.normal,
               ),
               prefixIcon: Icon(
                 Icons.business_center,
                 size: 16,
-                color: _supplierChanged ? const Color(0xFF1976D2) : Colors.black54,
+                color: _supplierChanged ? AppColors.primary : AppColors.onSurface.withOpacity(0.6),
               ),
               border: const OutlineInputBorder(),
               contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
               filled: false,
-              fillColor: _supplierChanged ? const Color(0xFFE3F2FD).withAlpha(50) : null,
+              fillColor: _supplierChanged ? AppColors.primary.withOpacity(0.1) : null,
               enabledBorder: OutlineInputBorder(
                 borderSide: BorderSide(
                   color: _supplierChanged ? const Color(0xFF1976D2) : Colors.grey.shade400,
@@ -781,9 +779,8 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
               value: supplier['name'] as String,
               child: Text(
                 supplier['name'] as String,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: _supplierChanged ? const Color(0xFF1976D2) : Colors.black87,
+                style: AppTextStyles.caption.copyWith(
+                  color: _supplierChanged ? AppColors.primary : AppColors.onSurface,
                   fontWeight: _supplierChanged ? FontWeight.bold : FontWeight.normal,
                 ),
               ),
@@ -800,12 +797,12 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Phương thức thanh toán', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              Text('Phương thức thanh toán', style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.bold)),
               Row(
                 children: [
                   Expanded(
                     child: RadioListTile<String>(
-                      title: const Text('Công nợ', style: TextStyle(fontSize: 12)),
+                      title: Text('Công nợ', style: AppTextStyles.caption),
                       value: 'Công nợ',
                       groupValue: selectedPaymentMethod,
                       onChanged: (value) => setState(() => selectedPaymentMethod = value!),
@@ -815,7 +812,7 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
                   ),
                   Expanded(
                     child: RadioListTile<String>(
-                      title: const Text('Tiền mặt', style: TextStyle(fontSize: 12)),
+                      title: Text('Tiền mặt', style: AppTextStyles.caption),
                       value: 'Tiền mặt',
                       groupValue: selectedPaymentMethod,
                       onChanged: (value) => setState(() => selectedPaymentMethod = value!),
@@ -825,7 +822,7 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
                   ),
                   Expanded(
                     child: RadioListTile<String>(
-                      title: const Text('Chuyển khoản', style: TextStyle(fontSize: 12)),
+                      title: Text('Chuyển khoản', style: AppTextStyles.caption),
                       value: 'Chuyển khoản',
                       groupValue: selectedPaymentMethod,
                       onChanged: (value) => setState(() => selectedPaymentMethod = value!),
@@ -843,16 +840,16 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
           InkWell(
             onTap: () => _selectDate(context),
             child: InputDecorator(
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Ngày nhập',
-                labelStyle: TextStyle(fontSize: 12),
+                labelStyle: AppTextStyles.caption.copyWith(color: AppColors.onSurface.withOpacity(0.7)),
                 prefixIcon: Icon(Icons.calendar_today, size: 16),
                 border: OutlineInputBorder(),
                 contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
               ),
               child: Text(
                 '${selectedDate.day}/${selectedDate.month}/${selectedDate.year}',
-                style: const TextStyle(fontSize: 12),
+                style: AppTextStyles.caption,
               ),
             ),
           ),
@@ -877,8 +874,8 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
               foregroundColor: Colors.white,
             ),
             child: _saving
-                ? const CircularProgressIndicator(color: Colors.white)
-                : const Text('LƯU', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                ? CircularProgressIndicator(color: AppColors.onPrimary)
+                : Text('LƯU', style: AppTextStyles.button.copyWith(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -906,7 +903,7 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
         ),
         Container(
           padding: const EdgeInsets.all(16),
-          color: Colors.white,
+          color: AppColors.surface,
           child: Column(
             children: [
               Row(
@@ -962,20 +959,19 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
             children: [
               Text(
                 "DANH SÁCH BATCH (${_batchItems.length})",
-                style: const TextStyle(
-                  fontSize: 16,
+                style: AppTextStyles.headline6.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF2962FF),
+                  color: AppColors.primary,
                 ),
               ),
               if (_batchItems.isNotEmpty)
                 ElevatedButton.icon(
                   onPressed: _saveBatch,
-                  icon: const Icon(Icons.save, color: Colors.white),
-                  label: const Text("LƯU TẤT CẢ"),
+                  icon: Icon(Icons.save, color: AppColors.onSuccess),
+                  label: Text("LƯU TẤT CẢ", style: AppTextStyles.button),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    foregroundColor: Colors.white,
+                    backgroundColor: AppColors.success,
+                    foregroundColor: AppColors.onSuccess,
                   ),
                 ),
             ],
@@ -983,7 +979,7 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
         ),
         Expanded(
           child: _batchItems.isEmpty
-              ? const Center(
+              ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -991,12 +987,12 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
                       SizedBox(height: 16),
                       Text(
                         "Chưa có sản phẩm nào trong batch",
-                        style: TextStyle(color: Colors.grey),
+                        style: AppTextStyles.body2.copyWith(color: AppColors.onSurface.withOpacity(0.6)),
                       ),
                       SizedBox(height: 8),
                       Text(
                         "Chuyển sang tab 'Nhập đơn' và bật chế độ batch",
-                        style: TextStyle(color: Colors.grey, fontSize: 12),
+                        style: AppTextStyles.caption.copyWith(color: AppColors.onSurface.withOpacity(0.6)),
                         textAlign: TextAlign.center,
                       ),
                     ],
@@ -1011,7 +1007,7 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
                       margin: const EdgeInsets.only(bottom: 8),
                       child: ListTile(
                         title: Text(item['name']),
-                        subtitle: Text("IMEI: ${item['imei']} • Giá: ${NumberFormat('#,###').format(item['price'])}đ"),
+                        subtitle: Text("IMEI: ${item['imei']} • Giá: ${MoneyUtils.formatVND(item['price'])}đ"),
                         trailing: IconButton(
                           onPressed: () => setState(() => _batchItems.removeAt(index)),
                           icon: const Icon(Icons.delete, color: Colors.red),

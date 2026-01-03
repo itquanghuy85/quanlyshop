@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../data/db_helper.dart';
-import '../models/repair_model.dart';
-import '../models/sale_order_model.dart';
+import '../services/sync_service.dart';
+import '../services/event_bus.dart';
 
 class RevenueReportView extends StatefulWidget {
   const RevenueReportView({super.key});
@@ -26,6 +25,18 @@ class _RevenueReportViewState extends State<RevenueReportView> {
     super.initState();
     _setRange();
     _loadData();
+    
+    // Listen for real-time sync updates
+    SyncService.initRealTimeSync(() { 
+      if (mounted) _loadData(); 
+    });
+    
+    // Listen for sales changes
+    EventBus().stream.listen((event) {
+      if ((event == 'sales_changed' || event == 'repairs_changed') && mounted) {
+        _loadData();
+      }
+    });
   }
 
   void _setRange() {
@@ -44,16 +55,34 @@ class _RevenueReportViewState extends State<RevenueReportView> {
 
   Future<void> _loadData() async {
     setState(() => _loading = true);
+    
+    // Sync data from cloud first
+    try {
+      await SyncService.downloadAllFromCloud();
+    } catch (e) {
+      debugPrint('Error syncing data: $e');
+      // Continue with local data if sync fails
+    }
+    
     final rs = await db.getAllRepairs();
     final ss = await db.getAllSales();
     final es = await db.getAllExpenses();
 
+    debugPrint('Revenue Report - Loaded ${rs.length} repairs, ${ss.length} sales, ${es.length} expenses');
+    debugPrint('Revenue Report - Date range: ${_start.toString()} to ${_end.toString()}');
+
     bool inR(DateTime d) => d.isAfter(_start.subtract(const Duration(seconds: 1))) && d.isBefore(_end.add(const Duration(seconds: 1)));
 
+    final filteredRepairs = rs.where((r) => inR(DateTime.fromMillisecondsSinceEpoch(r.createdAt))).toList();
+    final filteredSales = ss.where((s) => inR(DateTime.fromMillisecondsSinceEpoch(s.soldAt))).toList();
+    final filteredExpenses = es.where((e) => inR(DateTime.fromMillisecondsSinceEpoch(e['date'] as int))).toList();
+
+    debugPrint('Revenue Report - Filtered: ${filteredRepairs.length} repairs, ${filteredSales.length} sales, ${filteredExpenses.length} expenses');
+
     setState(() {
-      _repairs = rs.where((r) => inR(DateTime.fromMillisecondsSinceEpoch(r.createdAt))).toList();
-      _sales = ss.where((s) => inR(DateTime.fromMillisecondsSinceEpoch(s.soldAt))).toList();
-      _expenses = es.where((e) => inR(DateTime.fromMillisecondsSinceEpoch(e['date'] as int))).toList();
+      _repairs = filteredRepairs;
+      _sales = filteredSales;
+      _expenses = filteredExpenses;
       _loading = false;
     });
   }

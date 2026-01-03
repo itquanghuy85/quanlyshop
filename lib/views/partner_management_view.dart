@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
+import '../core/utils/money_utils.dart';
 import '../data/db_helper.dart';
 import '../models/supplier_model.dart';
 import '../models/repair_partner_model.dart';
@@ -158,11 +159,11 @@ class _PartnerManagementViewState extends State<PartnerManagementView> with Sing
           const TabBar(
             labelStyle: TextStyle(fontSize: 12),
             tabs: [
-              Tab(text: 'DANH SÁCH'),
-              Tab(text: 'LỊCH SỬ NHẬP'),
-              Tab(text: 'GIÁ SẢN PHẨM'),
-              Tab(text: 'THANH TOÁN'),
-              Tab(text: 'THỐNG KÊ'),
+              Tab(text: 'D/SÁCH'),
+              Tab(text: 'L/ SỬ NHẬP'),
+              Tab(text: 'GIÁ S/PHẨM'),
+              Tab(text: 'T/TOÁN'),
+              Tab(text: 'T KÊ'),
             ],
           ),
           Expanded(
@@ -227,7 +228,7 @@ class _PartnerManagementViewState extends State<PartnerManagementView> with Sing
         return Card(
           child: ListTile(
             title: Text('Lô ${history.batchId}', style: TextStyle(fontSize: 14)),
-            subtitle: Text('Tổng: ${NumberFormat.currency(locale: 'vi_VN', symbol: '₫').format(history.totalCost)} - ${DateFormat('dd/MM/yyyy').format(DateTime.fromMillisecondsSinceEpoch(history.createdAt))}', style: TextStyle(fontSize: 12)),
+            subtitle: Text('Tổng: ${MoneyUtils.formatVND(history.totalCost.toInt())}₫ - ${DateFormat('dd/MM/yyyy').format(DateTime.fromMillisecondsSinceEpoch(history.createdAt))}', style: TextStyle(fontSize: 12)),
           ),
         );
       },
@@ -242,7 +243,7 @@ class _PartnerManagementViewState extends State<PartnerManagementView> with Sing
         return Card(
           child: ListTile(
             title: Text('Lô ${history.batchId}', style: TextStyle(fontSize: 14)),
-            subtitle: Text('Tổng: ${NumberFormat.currency(locale: 'vi_VN', symbol: '₫').format(history.totalCost)} - ${DateFormat('dd/MM/yyyy').format(DateTime.fromMillisecondsSinceEpoch(history.createdAt))}', style: TextStyle(fontSize: 12)),
+            subtitle: Text('Tổng: ${MoneyUtils.formatVND(history.totalCost.toInt())}₫ - ${DateFormat('dd/MM/yyyy').format(DateTime.fromMillisecondsSinceEpoch(history.createdAt))}', style: TextStyle(fontSize: 12)),
           ),
         );
       },
@@ -257,7 +258,7 @@ class _PartnerManagementViewState extends State<PartnerManagementView> with Sing
         return Card(
           child: ListTile(
             title: Text(price.productId, style: TextStyle(fontSize: 14)),
-            subtitle: Text('Giá nhập: ${NumberFormat.currency(locale: 'vi_VN', symbol: '₫').format(price.costPrice)} - Giá bán: ${NumberFormat.currency(locale: 'vi_VN', symbol: '₫').format(price.sellingPrice)}', style: TextStyle(fontSize: 12)),
+            subtitle: Text('Giá nhập: ${MoneyUtils.formatVND(price.costPrice.toInt())}₫ - Giá bán: ${MoneyUtils.formatVND(price.sellingPrice.toInt())}₫', style: TextStyle(fontSize: 12)),
           ),
         );
       },
@@ -271,7 +272,7 @@ class _PartnerManagementViewState extends State<PartnerManagementView> with Sing
         final payment = _partnerPayments[i];
         return Card(
           child: ListTile(
-            title: Text('${NumberFormat.currency(locale: 'vi_VN', symbol: '₫').format(payment.amount)} - ${payment.paymentMethod}', style: TextStyle(fontSize: 14)),
+            title: Text('${MoneyUtils.formatVND(payment.amount)}₫ - ${payment.paymentMethod}', style: TextStyle(fontSize: 14)),
             subtitle: Text('${DateFormat('dd/MM/yyyy HH:mm').format(DateTime.fromMillisecondsSinceEpoch(payment.paidAt))} - ${payment.note ?? ''}', style: TextStyle(fontSize: 12)),
           ),
         );
@@ -286,7 +287,7 @@ class _PartnerManagementViewState extends State<PartnerManagementView> with Sing
         final payment = _supplierPayments[i];
         return Card(
           child: ListTile(
-            title: Text('${NumberFormat.currency(locale: 'vi_VN', symbol: '₫').format(payment.amount)} - ${payment.paymentMethod}', style: TextStyle(fontSize: 14)),
+            title: Text('${MoneyUtils.formatVND(payment.amount)}₫ - ${payment.paymentMethod}', style: TextStyle(fontSize: 14)),
             subtitle: Text('${DateFormat('dd/MM/yyyy HH:mm').format(DateTime.fromMillisecondsSinceEpoch(payment.paidAt))} - ${payment.note ?? ''}', style: TextStyle(fontSize: 12)),
           ),
         );
@@ -305,7 +306,7 @@ class _PartnerManagementViewState extends State<PartnerManagementView> with Sing
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          Text('Tổng thanh toán: ${NumberFormat.currency(locale: 'vi_VN', symbol: '₫').format(totalPaid)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text('Tổng thanh toán: ${MoneyUtils.formatVND(totalPaid)}₫', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 20),
           SizedBox(
             height: 200,
@@ -313,7 +314,7 @@ class _PartnerManagementViewState extends State<PartnerManagementView> with Sing
               PieChartData(
                 sections: paymentStats.entries.map((e) => PieChartSectionData(
                   value: e.value.toDouble(),
-                  title: '${e.key}\n${NumberFormat.currency(locale: 'vi_VN', symbol: '₫').format(e.value)}',
+                  title: '${e.key}\n${MoneyUtils.formatVND(e.value)}₫',
                   color: Colors.primaries[paymentStats.keys.toList().indexOf(e.key) % Colors.primaries.length],
                 )).toList(),
               ),
@@ -335,7 +336,7 @@ class _PartnerManagementViewState extends State<PartnerManagementView> with Sing
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          Text('Tổng thanh toán: ${NumberFormat.currency(locale: 'vi_VN', symbol: '₫').format(totalPaid)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text('Tổng thanh toán: ${MoneyUtils.formatVND(totalPaid)}₫', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 20),
           SizedBox(
             height: 200,
@@ -343,7 +344,7 @@ class _PartnerManagementViewState extends State<PartnerManagementView> with Sing
               PieChartData(
                 sections: paymentStats.entries.map((e) => PieChartSectionData(
                   value: e.value.toDouble(),
-                  title: '${e.key}\n${NumberFormat.currency(locale: 'vi_VN', symbol: '₫').format(e.value)}',
+                  title: '${e.key}\n${MoneyUtils.formatVND(e.value)}₫',
                   color: Colors.primaries[paymentStats.keys.toList().indexOf(e.key) % Colors.primaries.length],
                 )).toList(),
               ),

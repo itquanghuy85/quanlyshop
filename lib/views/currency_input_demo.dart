@@ -68,14 +68,14 @@ class _CurrencyInputDemoState extends State<CurrencyInputDemo> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '• Nhập 220 → hiển thị 220 VNĐ\n• Lưu giá trị thực: 220\n• Quy ước x1k: rõ ràng, đồng bộ',
+                    '•VNĐ\n• Lưu giá trị thực: 220\n• Quy ước x1k: rõ ràng, đồng bộ',
                     style: TextStyle(color: Colors.red[700], fontSize: 12),
                   ),
                   const SizedBox(height: 16),
                   CurrencyTextField(
                     controller: _oldController,
-                    label: 'Giá tiền (quy ước x1k)',
-                    hint: 'Nhập 220 cho 220 VNĐ',
+                    label: 'Giá tiền (VNĐ)',
+                    hint: ' VNĐ',
                     icon: Icons.attach_money,
                     onChanged: (value) {
                       setState(() => _oldValue = value);

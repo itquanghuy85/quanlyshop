@@ -16,6 +16,9 @@ import '../models/repair_model.dart';
 import '../models/sale_order_model.dart';
 import 'repair_detail_view.dart';
 import 'sale_detail_view.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_text_styles.dart';
+import '../theme/app_button_styles.dart';
 
 ImageProvider? _safeImageProvider(String? path) {
   if (path == null || path.isEmpty) return null;
@@ -159,51 +162,49 @@ class _StaffListViewState extends State<StaffListView> {
             mainAxisSize: MainAxisSize.min,
             children: [
               if (_currentInviteCode != null) ...[
-                const Text(
+                Text(
                   'Quét mã QR hoặc nhập mã bên dưới để tham gia shop:',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 14),
+                  style: AppTextStyles.body1,
                 ),
                 const SizedBox(height: 20),
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppColors.surface,
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.grey.shade300),
+                    border: Border.all(color: AppColors.outline),
                   ),
                   child: QrImageView(
                     data: _currentInviteCode != null && _currentShopName != null
                         ? '{"type":"invite_code","code":"$_currentInviteCode","shopName":"$_currentShopName"}'
                         : _currentInviteCode ?? '',
                     size: 200,
-                    backgroundColor: Colors.white,
+                    backgroundColor: AppColors.surface,
                   ),
                 ),
                 const SizedBox(height: 15),
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
+                    color: AppColors.primaryLight.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.blue.shade200),
+                    border: Border.all(color: AppColors.primaryLight),
                   ),
                   child: Row(
                     children: [
                       Expanded(
                         child: Text(
                           _currentInviteCode!,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blue,
+                          style: AppTextStyles.headline4.copyWith(
+                            color: AppColors.primary,
                             letterSpacing: 2,
                           ),
                           textAlign: TextAlign.center,
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.copy, color: Colors.blue),
+                        icon: const Icon(Icons.copy, color: AppColors.primary),
                         onPressed: () async {
                           final messenger = ScaffoldMessenger.of(context);
                           await Clipboard.setData(ClipboardData(text: _currentInviteCode!));
@@ -216,9 +217,9 @@ class _StaffListViewState extends State<StaffListView> {
                   ),
                 ),
                 const SizedBox(height: 10),
-                const Text(
+                Text(
                   'Mã có hiệu lực trong 7 ngày',
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                  style: AppTextStyles.caption,
                 ),
               ] else ...[
                 const Text(
@@ -411,7 +412,7 @@ class _StaffListViewState extends State<StaffListView> {
                     if (errorText != null)
                       Padding(
                         padding: const EdgeInsets.only(top: 8.0),
-                        child: Text(errorText!, style: const TextStyle(color: Colors.red, fontSize: 12)),
+                        child: Text(errorText!, style: AppTextStyles.caption.copyWith(color: AppColors.error)),
                       ),
                   ],
                 ),
@@ -536,9 +537,9 @@ class _StaffListViewState extends State<StaffListView> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text(
+                    Text(
                       'Nhập email của nhân viên (mỗi email một dòng)\nMật khẩu sẽ được tạo tự động và gửi qua email.',
-                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                      style: AppTextStyles.caption,
                     ),
                     const SizedBox(height: 10),
                     TextField(
@@ -570,7 +571,7 @@ class _StaffListViewState extends State<StaffListView> {
                     if (errorText != null)
                       Padding(
                         padding: const EdgeInsets.only(top: 8.0),
-                        child: Text(errorText!, style: const TextStyle(color: Colors.red, fontSize: 12)),
+                        child: Text(errorText!, style: AppTextStyles.caption.copyWith(color: AppColors.error)),
                       ),
                   ],
                 ),
@@ -717,9 +718,9 @@ class _StaffListViewState extends State<StaffListView> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text(
+                    Text(
                       'Chọn file CSV với định dạng:\nEmail, Họ tên, SĐT (tùy chọn), Địa chỉ (tùy chọn), Quyền (tùy chọn)\n\nVí dụ:\nemail@example.com,Nguyễn Văn A,0987654321,Hà Nội,employee',
-                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                      style: AppTextStyles.caption,
                     ),
                     const SizedBox(height: 15),
                     ElevatedButton.icon(
@@ -732,13 +733,13 @@ class _StaffListViewState extends State<StaffListView> {
                         padding: const EdgeInsets.only(top: 10),
                         child: Text(
                           'Đã tải ${parsedData!.length} nhân viên',
-                          style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
+                          style: AppTextStyles.body2.copyWith(color: AppColors.success, fontWeight: FontWeight.bold),
                         ),
                       ),
                     if (errorText != null)
                       Padding(
                         padding: const EdgeInsets.only(top: 8.0),
-                        child: Text(errorText!, style: const TextStyle(color: Colors.red, fontSize: 12)),
+                        child: Text(errorText!, style: AppTextStyles.caption.copyWith(color: AppColors.error)),
                       ),
                   ],
                 ),
@@ -777,16 +778,16 @@ class _StaffListViewState extends State<StaffListView> {
           title: const Text("QUẢN LÝ NHÂN VIÊN"),
           automaticallyImplyLeading: true,
         ),
-        body: const Center(
+        body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.people, size: 64, color: Colors.grey),
+              Icon(Icons.people, size: 64, color: AppColors.inactive),
               SizedBox(height: 16),
               Text(
                 "Bạn không có quyền truy cập\nmàn hình quản lý nhân viên",
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16, color: Colors.grey),
+                style: AppTextStyles.body1.copyWith(color: AppColors.inactive),
               ),
             ],
           ),
@@ -795,21 +796,21 @@ class _StaffListViewState extends State<StaffListView> {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFF),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text("QUẢN LÝ NHÂN VIÊN", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            Text("QUẢN LÝ NHÂN VIÊN", style: AppTextStyles.headline5),
             if (_currentRole != null)
-              Text("Role: $_currentRole", style: const TextStyle(fontSize: 10, color: Colors.white70)),
+              Text("Role: $_currentRole", style: AppTextStyles.overline.copyWith(color: AppColors.onPrimary.withOpacity(0.7))),
           ],
         ),
         automaticallyImplyLeading: true,
         actions: [
           if (_currentRole == 'owner')
             IconButton(
-              icon: const Icon(Icons.qr_code_2, color: Colors.white),
+              icon: const Icon(Icons.qr_code_2, color: AppColors.onPrimary),
               tooltip: 'Tạo mã mời QR',
               onPressed: _showInviteQRDialog,
             ),
@@ -825,7 +826,7 @@ class _StaffListViewState extends State<StaffListView> {
                     child: FloatingActionButton(
                       onPressed: _showInviteQRDialog,
                       tooltip: 'Tạo mã mời QR',
-                      backgroundColor: Colors.blue,
+                      backgroundColor: AppColors.primary,
                       child: const Icon(Icons.qr_code_2),
                     ),
                   ),
@@ -839,14 +840,14 @@ class _StaffListViewState extends State<StaffListView> {
                   onPressed: _showBulkInviteDialog,
                   icon: const Icon(Icons.group_add),
                   label: const Text("Mời hàng loạt"),
-                  backgroundColor: Colors.green,
+                  backgroundColor: AppColors.success,
                 ),
                 const SizedBox(height: 16),
                 FloatingActionButton.extended(
                   onPressed: _showImportDialog,
                   icon: const Icon(Icons.upload_file),
                   label: const Text("Import CSV"),
-                  backgroundColor: Colors.orange,
+                  backgroundColor: AppColors.secondary,
                 ),
               ],
             )
@@ -860,11 +861,11 @@ class _StaffListViewState extends State<StaffListView> {
 
                 final users = snapshot.data!.docs;
                 if (users.isEmpty) {
-                  return const Center(
+                  return Center(
                     child: Text(
                       "Chưa có dữ liệu nhân viên\nMỗi tài khoản sẽ tự xuất hiện sau khi đăng nhập",
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.grey),
+                      style: AppTextStyles.body1.copyWith(color: AppColors.inactive),
                     ),
                   );
                 }
@@ -888,25 +889,25 @@ class _StaffListViewState extends State<StaffListView> {
                       child: ListTile(
                         leading: CircleAvatar(
                           backgroundImage: _safeImageProvider(photoUrl),
-                          backgroundColor: role == 'owner' ? Colors.purple.withAlpha(25) : role == 'manager' ? Colors.orange.withAlpha(25) : role == 'employee' ? Colors.blue.withAlpha(25) : role == 'technician' ? Colors.green.withAlpha(25) : role == 'admin' ? Colors.red.withAlpha(25) : Colors.grey.withAlpha(25),
-                          child: photoUrl == null ? Icon(role == 'owner' ? Icons.business : role == 'manager' ? Icons.supervisor_account : role == 'employee' ? Icons.work : role == 'technician' ? Icons.build : role == 'admin' ? Icons.admin_panel_settings : Icons.person, color: role == 'owner' ? Colors.purple : role == 'manager' ? Colors.orange : role == 'employee' ? Colors.blue : role == 'technician' ? Colors.green : role == 'admin' ? Colors.red : Colors.grey) : null,
+                          backgroundColor: role == 'owner' ? AppColors.primary.withOpacity(0.1) : role == 'manager' ? AppColors.secondary.withOpacity(0.1) : role == 'employee' ? AppColors.info.withOpacity(0.1) : role == 'technician' ? AppColors.success.withOpacity(0.1) : role == 'admin' ? AppColors.error.withOpacity(0.1) : AppColors.inactive.withOpacity(0.1),
+                          child: photoUrl == null ? Icon(role == 'owner' ? Icons.business : role == 'manager' ? Icons.supervisor_account : role == 'employee' ? Icons.work : role == 'technician' ? Icons.build : role == 'admin' ? Icons.admin_panel_settings : Icons.person, color: role == 'owner' ? AppColors.primary : role == 'manager' ? AppColors.secondary : role == 'employee' ? AppColors.info : role == 'technician' ? AppColors.success : role == 'admin' ? AppColors.error : AppColors.inactive) : null,
                         ),
-                        title: Text(displayName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                        title: Text(displayName, style: AppTextStyles.headline6),
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(email, style: const TextStyle(fontSize: 11, color: Colors.grey)),
-                            Text("SĐT: $phone", style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                            Text(email, style: AppTextStyles.caption.copyWith(fontSize: 11)),
+                            Text("SĐT: $phone", style: AppTextStyles.caption.copyWith(fontSize: 11)),
                             role == 'admin' 
                               ? Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                   decoration: BoxDecoration(
-                                    color: Colors.red,
+                                    color: AppColors.error,
                                     borderRadius: BorderRadius.circular(4),
                                   ),
-                                  child: Text("Vai trò: Admin", style: const TextStyle(fontSize: 11, color: Colors.yellow, fontWeight: FontWeight.bold)),
+                                  child: Text("Vai trò: Admin", style: AppTextStyles.caption.copyWith(fontSize: 11, color: AppColors.warning, fontWeight: FontWeight.bold)),
                                 )
-                              : Text("Vai trò: ${role == 'owner' ? 'Chủ shop' : role == 'manager' ? 'Quản lý' : role == 'employee' ? 'Nhân viên' : role == 'technician' ? 'Kỹ thuật' : role == 'admin' ? 'Admin' : role == 'user' ? 'Người dùng' : role}", style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                              : Text("Vai trò: ${role == 'owner' ? 'Chủ shop' : role == 'manager' ? 'Quản lý' : role == 'employee' ? 'Nhân viên' : role == 'technician' ? 'Kỹ thuật' : role == 'admin' ? 'Admin' : role == 'user' ? 'Người dùng' : role}", style: AppTextStyles.caption.copyWith(fontSize: 11)),
                             if (shopId != null)
                               FutureBuilder<DocumentSnapshot>(
                                 future: FirebaseFirestore.instance.collection('shops').doc(shopId).get(),
@@ -914,16 +915,16 @@ class _StaffListViewState extends State<StaffListView> {
                                   if (snapshot.hasData && snapshot.data!.exists) {
                                     final shopData = snapshot.data!.data() as Map<String, dynamic>;
                                     final shopName = shopData['name'] ?? 'Shop không tên';
-                                    return Text("Shop: $shopName", style: const TextStyle(fontSize: 11, color: Colors.blue, fontWeight: FontWeight.w500));
+                                    return Text("Shop: $shopName", style: AppTextStyles.caption.copyWith(fontSize: 11, color: AppColors.primary, fontWeight: FontWeight.w500));
                                   } else if (snapshot.hasError) {
-                                    return const Text("Shop: Lỗi tải", style: TextStyle(fontSize: 11, color: Colors.red));
+                                    return Text("Shop: Lỗi tải", style: AppTextStyles.caption.copyWith(fontSize: 11, color: AppColors.error));
                                   } else {
-                                    return Text("Shop: $shopId", style: const TextStyle(fontSize: 11, color: Colors.blue));
+                                    return Text("Shop: $shopId", style: AppTextStyles.caption.copyWith(fontSize: 11, color: AppColors.primary));
                                   }
                                 },
                               )
                             else
-                              const Text("Shop: Chưa gán", style: TextStyle(fontSize: 11, color: Colors.orange)),
+                              Text("Shop: Chưa gán", style: AppTextStyles.caption.copyWith(fontSize: 11, color: AppColors.secondary)),
                           ],
                         ),
                         isThreeLine: true,

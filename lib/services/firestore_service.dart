@@ -758,4 +758,54 @@ class FirestoreService {
       return null;
     }
   }
+
+  // ========== CUSTOMER METHODS ==========
+  static Future<String?> addCustomer(Map<String, dynamic> customerData) async {
+    try {
+      final shopId = await UserService.getCurrentShopId();
+      final docId = customerData['firestoreId'] ?? "customer_${DateTime.now().millisecondsSinceEpoch}";
+      final docRef = _db.collection('customers').doc(docId);
+      customerData['shopId'] = shopId;
+      customerData['firestoreId'] = docRef.id;
+      await docRef.set(customerData, SetOptions(merge: true));
+      return docRef.id;
+    } catch (e) {
+      debugPrint('Firestore addCustomer error: $e');
+      return null;
+    }
+  }
+
+  static Future<bool> updateCustomer(Map<String, dynamic> customerData) async {
+    try {
+      final shopId = await UserService.getCurrentShopId();
+      final firestoreId = customerData['firestoreId'];
+      if (firestoreId == null) return false;
+
+      customerData['shopId'] = shopId;
+      await _db.collection('customers').doc(firestoreId).update(customerData);
+      return true;
+    } catch (e) {
+      debugPrint('Firestore updateCustomer error: $e');
+      return false;
+    }
+  }
+
+  static Future<bool> deleteCustomerById(int customerId) async {
+    try {
+      final shopId = await UserService.getCurrentShopId();
+      await _db.collection('customers')
+          .where('shopId', isEqualTo: shopId)
+          .where('id', isEqualTo: customerId)
+          .get()
+          .then((snapshot) {
+            for (var doc in snapshot.docs) {
+              doc.reference.update({'deleted': true, 'updatedAt': FieldValue.serverTimestamp()});
+            }
+          });
+      return true;
+    } catch (e) {
+      debugPrint('Firestore deleteCustomer error: $e');
+      return false;
+    }
+  }
 }

@@ -3,6 +3,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/user_service.dart';
 import '../l10n/app_localizations.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_text_styles.dart';
+import '../theme/app_button_styles.dart';
 import 'register_view.dart';
 
 class LoginView extends StatefulWidget {
@@ -77,53 +80,51 @@ class _LoginViewState extends State<LoginView> {
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context)!;
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(30),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.storefront_rounded, size: 80, color: Colors.blueAccent),
+              const Icon(Icons.storefront_rounded, size: 80, color: AppColors.primary),
               const SizedBox(height: 10),
-              Text(localizations.shopManagement, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.blueAccent)),
+              Text(localizations.shopManagement, style: AppTextStyles.headline4.copyWith(color: AppColors.primary)),
               const SizedBox(height: 20),
               // Language switcher
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
+                  color: AppColors.primary.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.blue.shade200, width: 1.5),
+                  border: Border.all(color: AppColors.primary.withOpacity(0.3), width: 1.5),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.language, color: Colors.blue.shade700, size: 20),
+                    Icon(Icons.language, color: AppColors.primary, size: 20),
                     const SizedBox(width: 8),
                     Text(
                       localizations.selectLanguage,
-                      style: TextStyle(
-                        fontSize: 14,
+                      style: AppTextStyles.body2.copyWith(
                         fontWeight: FontWeight.w600,
-                        color: Colors.blue.shade700,
+                        color: AppColors.primary,
                       ),
                     ),
                     const SizedBox(width: 12),
                     Container(
                       height: 24,
                       width: 1,
-                      color: Colors.blue.shade300,
+                      color: AppColors.primary.withOpacity(0.5),
                     ),
                     const SizedBox(width: 12),
                     DropdownButton<Locale>(
                       value: _selectedLocale,
                       underline: const SizedBox(),
-                      icon: Icon(Icons.arrow_drop_down, color: Colors.blue.shade700),
-                      style: TextStyle(
-                        fontSize: 14,
+                      icon: Icon(Icons.arrow_drop_down, color: AppColors.primary),
+                      style: AppTextStyles.body2.copyWith(
                         fontWeight: FontWeight.w500,
-                        color: Colors.blue.shade700,
+                        color: AppColors.primary,
                       ),
                       items: [
                         DropdownMenuItem(
@@ -163,7 +164,7 @@ class _LoginViewState extends State<LoginView> {
                   prefixIcon: const Icon(Icons.email_outlined),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   helperText: 'Ví dụ: ten@domain.com hoặc ten@gmail.com',
-                  helperStyle: const TextStyle(color: Colors.grey, fontSize: 12),
+                  helperStyle: AppTextStyles.caption.copyWith(color: AppColors.onSurface.withOpacity(0.6)),
                 ),
               ),
               const SizedBox(height: 15),
@@ -188,7 +189,7 @@ class _LoginViewState extends State<LoginView> {
               if (_error != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 10),
-                  child: Text(_error!, style: const TextStyle(color: Colors.red)),
+                  child: Text(_error!, style: AppTextStyles.body2.copyWith(color: AppColors.error)),
                 ),
               const SizedBox(height: 20),
               SizedBox(
@@ -196,14 +197,10 @@ class _LoginViewState extends State<LoginView> {
                 height: 50,
                 child: ElevatedButton(
                   onPressed: _loading ? null : _login,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blueAccent,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
+                  style: AppButtonStyles.elevatedButtonStyle,
                   child: _loading
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : Text(localizations.signIn.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.bold)),
+                      ? const CircularProgressIndicator(color: AppColors.onPrimary)
+                      : Text(localizations.signIn.toUpperCase(), style: AppTextStyles.button),
                 ),
               ),              const SizedBox(height: 15),
               TextButton(
@@ -218,7 +215,7 @@ class _LoginViewState extends State<LoginView> {
                 },
 
 
-                child: const Text('Chưa có tài khoản? Đăng ký ngay', style: TextStyle(color: Colors.blueAccent)),
+                child: Text('Chưa có tài khoản? Đăng ký ngay', style: AppTextStyles.body2.copyWith(color: AppColors.primary)),
               ),              const SizedBox(height: 30),
               _buildCalendarCard(),
             ],
@@ -254,16 +251,15 @@ class _LoginViewState extends State<LoginView> {
       dayCells.add(Container(
         margin: const EdgeInsets.all(2),
         decoration: BoxDecoration(
-          color: isToday ? Colors.blueAccent : Colors.transparent,
+          color: isToday ? AppColors.primary : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
         ),
         child: Center(
           child: Text(
             '$day',
-            style: TextStyle(
-              fontSize: 12,
+            style: AppTextStyles.caption.copyWith(
               fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
-              color: isToday ? Colors.white : Colors.black87,
+              color: isToday ? AppColors.onPrimary : AppColors.onSurface,
             ),
           ),
         ),
@@ -292,8 +288,8 @@ class _LoginViewState extends State<LoginView> {
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(18),
-          gradient: const LinearGradient(
-            colors: [Color(0xFF4F8DFF), Color(0xFF6BCBFF)],
+          gradient: LinearGradient(
+            colors: [AppColors.primary, AppColors.primaryLight],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -308,18 +304,17 @@ class _LoginViewState extends State<LoginView> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'Lịch vạn niên',
-                        style: TextStyle(
-                          fontSize: 16,
+                        style: AppTextStyles.body1.copyWith(
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: AppColors.onPrimary,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         'Hôm nay: ${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}',
-                        style: const TextStyle(fontSize: 12, color: Colors.white70),
+                        style: AppTextStyles.caption.copyWith(color: AppColors.onPrimary.withOpacity(0.7)),
                       ),
                     ],
                   ),
@@ -329,60 +324,60 @@ class _LoginViewState extends State<LoginView> {
                   children: [
                     IconButton(
                       onPressed: () => _changeMonth(-1),
-                      icon: const Icon(Icons.chevron_left, color: Colors.white),
+                      icon: const Icon(Icons.chevron_left, color: AppColors.onPrimary),
                     ),
                     Text(
                       monthYearText,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: AppTextStyles.body2.copyWith(
+                        color: AppColors.onPrimary,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     IconButton(
                       onPressed: () => _changeMonth(1),
-                      icon: const Icon(Icons.chevron_right, color: Colors.white),
+                      icon: const Icon(Icons.chevron_right, color: AppColors.onPrimary),
                     ),
                   ],
                 ),
               ],
             ),
             const SizedBox(height: 12),
-            const Row(
+            Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
                   child: Center(
-                    child: Text('T2', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white)),
+                    child: Text('T2', style: AppTextStyles.overline.copyWith(color: AppColors.onPrimary)),
                   ),
                 ),
                 Expanded(
                   child: Center(
-                    child: Text('T3', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white)),
+                    child: Text('T3', style: AppTextStyles.overline.copyWith(color: AppColors.onPrimary)),
                   ),
                 ),
                 Expanded(
                   child: Center(
-                    child: Text('T4', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white)),
+                    child: Text('T4', style: AppTextStyles.overline.copyWith(color: AppColors.onPrimary)),
                   ),
                 ),
                 Expanded(
                   child: Center(
-                    child: Text('T5', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white)),
+                    child: Text('T5', style: AppTextStyles.overline.copyWith(color: AppColors.onPrimary)),
                   ),
                 ),
                 Expanded(
                   child: Center(
-                    child: Text('T6', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white)),
+                    child: Text('T6', style: AppTextStyles.overline.copyWith(color: AppColors.onPrimary)),
                   ),
                 ),
                 Expanded(
                   child: Center(
-                    child: Text('T7', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white)),
+                    child: Text('T7', style: AppTextStyles.overline.copyWith(color: AppColors.onPrimary)),
                   ),
                 ),
                 Expanded(
                   child: Center(
-                    child: Text('CN', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white)),
+                    child: Text('CN', style: AppTextStyles.overline.copyWith(color: AppColors.onPrimary)),
                   ),
                 ),
               ],

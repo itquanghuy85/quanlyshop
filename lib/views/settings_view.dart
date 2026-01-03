@@ -8,6 +8,7 @@ import '../services/sync_service.dart';
 import 'staff_permissions_view.dart';
 import 'shop_settings_view.dart';
 import 'partner_management_view.dart';
+import 'debt_debug_view.dart';
 
 class SettingsView extends StatefulWidget {
   final void Function(Locale)? setLocale;
@@ -177,6 +178,24 @@ class _SettingsViewState extends State<SettingsView> {
             ),
           ),
           const SizedBox(height: 15),
+
+          // Debug section - di chuyển lên trên để dễ thấy
+          _buildSection("DEBUG TOOLS"),
+          Card(
+            color: Colors.orange.shade50,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15), side: BorderSide(color: Colors.orange.shade200)),
+            child: ListTile(
+              leading: const Icon(Icons.bug_report, color: Colors.orange),
+              title: const Text("DEBT DEBUG", style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
+              subtitle: const Text("Kiểm tra dữ liệu công nợ chi tiết", style: TextStyle(fontSize: 11)),
+              onTap: () {
+                debugPrint('Debt Debug button tapped');
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const DebtDebugView()));
+              },
+            ),
+          ),
+          const SizedBox(height: 15),
+
           Card(
             color: Colors.red.shade50,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15), side: BorderSide(color: Colors.red.shade200)),
@@ -277,6 +296,7 @@ class _SettingsViewState extends State<SettingsView> {
                 onTap: _handleResetShop,
               ),
             ),
+
           ],
           
           const SizedBox(height: 50),

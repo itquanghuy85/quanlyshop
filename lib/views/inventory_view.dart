@@ -8,6 +8,7 @@ import '../models/product_model.dart';
 import '../models/inventory_check_model.dart';
 import 'supplier_view.dart';
 import 'create_sale_view.dart';
+import 'partner_management_view.dart';
 import '../services/firestore_service.dart';
 import '../services/unified_printer_service.dart';
 import '../services/bluetooth_printer_service.dart';
@@ -24,6 +25,10 @@ import 'fast_stock_in_view.dart';
 import 'quick_input_library_view.dart';
 import '../widgets/currency_text_field.dart';
 import '../widgets/validated_text_field.dart';
+import '../theme/app_theme.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_text_styles.dart';
+import '../theme/app_button_styles.dart';
 
 class InventoryView extends StatefulWidget {
   final String role;
@@ -376,6 +381,8 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
               }
 
               try {
+                final oldCost = p.cost;
+                final oldPrice = p.price;
                 final updatedProduct = p.copyWith(
                   name: nameCtrl.text.trim().toUpperCase(),
                   capacity: capacityCtrl.text.trim(),
@@ -388,9 +395,94 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
                   isSynced: false,
                 );
 
+                // Kiểm tra nếu giá thay đổi
+                final priceChanged = oldCost != updatedProduct.cost || oldPrice != updatedProduct.price;
+
                 await db.updateProduct(updatedProduct);
                 await _refresh();
                 Navigator.pop(ctx);
+
+                // CẬP NHẬT BẢNG GIÁ NHÀ CUNG CẤP NẾU CÓ THAY ĐỔI GIÁ NHẬP
+                if (oldCost != updatedProduct.cost && updatedProduct.supplier?.isNotEmpty == true) {
+                  try {
+                    // Tìm supplier ID từ tên supplier
+                    final suppliers = await db.getSuppliers();
+                    final supplier = suppliers.where((s) => s['name'] == updatedProduct.supplier).firstOrNull;
+                    
+                    if (supplier != null) {
+                      // Cập nhật hoặc tạo mới giá trong bảng supplier_product_prices
+                      final priceData = {
+                        'supplierId': supplier['id'],
+                        'productName': updatedProduct.name,
+                        'productBrand': updatedProduct.brand ?? '',
+                        'productModel': updatedProduct.capacity ?? '',
+                        'costPrice': updatedProduct.cost,
+                        'lastUpdated': DateTime.now().millisecondsSinceEpoch,
+                        'createdAt': DateTime.now().millisecondsSinceEpoch,
+                        'isActive': 1,
+                      };
+                      
+                      await db.insertSupplierProductPrice(priceData);
+                      debugPrint('Updated supplier price for ${updatedProduct.name}: ${updatedProduct.cost}');
+                    }
+                  } catch (e) {
+                    debugPrint('Error updating supplier product price: $e');
+                  }
+                }
+
+                if (priceChanged) {
+                  // Hiển thị cảnh báo về việc giá thay đổi
+                  showDialog(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: const Text('⚠️ Lưu ý quan trọng'),
+                      content: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text(
+                            'Bạn vừa thay đổi giá của sản phẩm. Điều này sẽ ảnh hưởng đến:',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 12),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: AppColors.warning.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: AppColors.warning.withOpacity(0.3)),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _warningItem('❌ Các đơn hàng bán đã tạo: GIÁ KHÔNG ĐƯỢC CẬP NHẬT'),
+                                _warningItem('❌ Công nợ khách hàng: SỐ TIỀN KHÔNG THAY ĐỔI'),
+                                _warningItem('❌ Báo cáo lợi nhuận: TÍNH SAI'),
+                                _warningItem('❌ Đơn hàng nhập: GIÁ KHÔNG ẢNH HƯỞNG'),
+                                _warningItem('✅ Bảng giá nhà cung cấp: ĐƯỢC CẬP NHẬT TỰ ĐỘNG'),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Để cập nhật chính xác, bạn cần sửa lại từng đơn hàng đã tạo.',
+                            style: TextStyle(
+                              color: AppColors.error,
+                              fontWeight: FontWeight.w500,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          child: const Text('ĐÃ HIỂU'),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
                 NotificationService.showSnackBar('Đã cập nhật sản phẩm', color: Colors.green);
               } catch (e) {
                 NotificationService.showSnackBar('Lỗi cập nhật sản phẩm: $e', color: Colors.red);
@@ -412,7 +504,7 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.edit, color: Colors.blue),
+              leading: Icon(Icons.edit, color: AppColors.primary),
               title: const Text('Chỉnh sửa'),
               onTap: () {
                 Navigator.pop(ctx);
@@ -420,7 +512,7 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
               },
             ),
             ListTile(
-              leading: const Icon(Icons.delete, color: Colors.red),
+              leading: Icon(Icons.delete, color: AppColors.error),
               title: const Text('Xóa hàng trong kho'),
               onTap: () {
                 Navigator.pop(ctx);
@@ -462,7 +554,7 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
           ElevatedButton(
             onPressed: () async {
               if (passwordCtrl.text.isEmpty) {
-                NotificationService.showSnackBar('Vui lòng nhập mật khẩu', color: Colors.red);
+                NotificationService.showSnackBar('Vui lòng nhập mật khẩu', color: AppColors.error);
                 return;
               }
               
@@ -480,11 +572,11 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
                   await _deleteProduct(p);
                 }
               } catch (e) {
-                NotificationService.showSnackBar('Mật khẩu không đúng', color: Colors.red);
+                NotificationService.showSnackBar('Mật khẩu không đúng', color: AppColors.error);
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Xóa', style: TextStyle(color: Colors.white)),
+            style: AppButtonStyles.errorElevatedButtonStyle,
+            child: Text('Xóa', style: AppTextStyles.button.copyWith(color: AppColors.onError)),
           ),
         ],
       ),
@@ -508,7 +600,7 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
     }
   }
 
-  Widget _detailItem(String l, String v, {Color? color}) => Padding(padding: const EdgeInsets.symmetric(vertical: 6), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(l, style: const TextStyle(color: Colors.blueGrey, fontSize: 13)), Text(v, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: color))]));
+  Widget _detailItem(String l, String v, {Color? color}) => Padding(padding: const EdgeInsets.symmetric(vertical: 6), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(l, style: AppTextStyles.caption.copyWith(color: AppColors.onSurface)), Text(v, style: AppTextStyles.body2.copyWith(fontWeight: FontWeight.bold, color: color ?? AppColors.onSurface))]));
 
   Color _getBrandColor(String name) {
     String n = name.toUpperCase();
@@ -528,7 +620,7 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
 
 
   Widget _buildEmptyState() {
-    return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.inventory_2_outlined, size: 80, color: Colors.grey[300]), const SizedBox(height: 10), const Text("KHO HÀNG ĐANG TRỐNG", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold))]));
+    return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.inventory_2_outlined, size: 80, color: AppColors.grey400), const SizedBox(height: 10), Text("KHO HÀNG ĐANG TRỐNG", style: AppTextStyles.headline6.copyWith(color: AppColors.onSurface, fontWeight: FontWeight.bold))]));
   }
 
   Future<void> _init() async {
@@ -788,8 +880,11 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
     // Kiểm tra quyền truy cập
     if (!_hasInventoryAccess) {
       return Scaffold(
+        backgroundColor: AppColors.background,
         appBar: AppBar(
           title: const Text("QUẢN LÝ KHO TỔNG"),
+          backgroundColor: AppColors.primary,
+          foregroundColor: AppColors.onPrimary,
           automaticallyImplyLeading: true,
         ),
         body: const Center(
@@ -810,40 +905,41 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF0F4F8),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: Text(
           "QUẢN LÝ KHO",
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: _titleFontSize, color: Colors.black),
+          style: AppTextStyles.headline6.copyWith(color: AppColors.onPrimary, fontWeight: FontWeight.bold),
         ),
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.primary,
+        foregroundColor: AppColors.onPrimary,
         elevation: 0,
         automaticallyImplyLeading: true,
         actions: [
           IconButton(
             onPressed: () { HapticFeedback.mediumImpact(); Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateSaleView())).then((_) => _refresh()); },
-            icon: const Icon(Icons.shopping_cart_checkout_rounded, color: Colors.pinkAccent),
+            icon: Icon(Icons.shopping_cart_checkout_rounded, color: AppColors.secondary),
             tooltip: 'Bán hàng nhanh',
           ),
           IconButton(
             onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => GlobalSearchView(role: widget.role))),
-            icon: const Icon(Icons.search, color: Color(0xFF9C27B0)),
+            icon: Icon(Icons.search, color: AppColors.primary),
             tooltip: 'Tìm kiếm toàn app',
           ),
           IconButton(
             onPressed: _refresh,
-            icon: const Icon(Icons.refresh, color: Colors.blue),
+            icon: Icon(Icons.refresh, color: AppColors.primary),
             tooltip: 'Làm mới',
           ),
           TextButton.icon(
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SupplierView())).then((_) => _refresh()),
-            icon: const Icon(Icons.business_center, size: 18, color: Colors.black87),
-            label: const Text('NCC', style: TextStyle(fontSize: 12, color: Colors.black87)),
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PartnerManagementView())).then((_) => _refresh()),
+            icon: Icon(Icons.business_center, size: 18, color: AppColors.onSurface),
+            label: Text('Đối tác & NCC', style: AppTextStyles.caption.copyWith(color: AppColors.onSurface)),
             style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8)),
           ),
           IconButton(
             onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const QuickInputLibraryView())),
-            icon: const Icon(Icons.library_books, color: Colors.teal),
+            icon: Icon(Icons.library_books, color: AppColors.info),
             tooltip: 'Thư viện mã nhập nhanh',
           ),
           const SizedBox(width: 8),
@@ -861,7 +957,7 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
           ),
           // Bottom navigation row (KIỂM KHO removed)
           Container(
-            color: Colors.white,
+            color: AppColors.surface,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Row(
               children: [
@@ -872,16 +968,8 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
                       ElevatedButton.icon(
                         onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const QuickInputLibraryView())).then((_) => _refresh()),
                         icon: Icon(Icons.library_books, size: _iconSize),
-                        label: Text("THƯ VIỆN", style: TextStyle(fontSize: _smallFontSize)),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF2962FF),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
-                          minimumSize: Size(double.infinity, _btnMinHeight),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
+                        label: Text("THƯ VIỆN", style: AppTextStyles.caption),
+                        style: AppButtonStyles.elevatedButtonStyle,
                       ),
                       if (_unsyncedCount > 0)
                         Positioned(
@@ -890,7 +978,7 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
-                              color: Colors.red,
+                              color: AppColors.error,
                               borderRadius: BorderRadius.circular(10),
                             ),
                             constraints: const BoxConstraints(
@@ -899,9 +987,8 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
                             ),
                             child: Text(
                               _unsyncedCount > 99 ? '99+' : _unsyncedCount.toString(),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
+                              style: AppTextStyles.caption.copyWith(
+                                color: AppColors.onError,
                                 fontWeight: FontWeight.bold,
                               ),
                               textAlign: TextAlign.center,
@@ -917,21 +1004,16 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
                   width: 84,
                   child: ElevatedButton(
                     onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StockInView())).then((_) => _refresh()),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2962FF),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 6),
-                      minimumSize: Size(0, _btnMinHeight),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
+                    style: AppButtonStyles.elevatedButtonStyle.copyWith(
+                      minimumSize: MaterialStateProperty.all(Size(0, _btnMinHeight)),
+                      padding: MaterialStateProperty.all(const EdgeInsets.symmetric(vertical: 6, horizontal: 6)),
                     ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(Icons.add_box_rounded, size: _iconSize - 4),
                         const SizedBox(height: 2),
-                        Text("NHẬP KHO", style: TextStyle(fontSize: _smallFontSize)),
+                        Text("NHẬP KHO", style: AppTextStyles.caption),
                       ],
                     ),
                   ),
@@ -942,21 +1024,16 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
                   width: 84,
                   child: ElevatedButton(
                     onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FastStockInView())).then((_) => _refresh()),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color.fromARGB(255, 3, 57, 255),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 6),
-                      minimumSize: Size(0, _btnMinHeight),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
+                    style: AppButtonStyles.elevatedButtonStyle.copyWith(
+                      minimumSize: MaterialStateProperty.all(Size(0, _btnMinHeight)),
+                      padding: MaterialStateProperty.all(const EdgeInsets.symmetric(vertical: 6, horizontal: 6)),
                     ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(Icons.flash_on, size: _iconSize - 4),
                         const SizedBox(height: 2),
-                        Text("NHẬP NHANH", style: TextStyle(fontSize: _smallFontSize - 2)),
+                        Text("NHẬP NHANH", style: AppTextStyles.caption),
                       ],
                     ),
                   ),
@@ -980,13 +1057,13 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
           children: [
             // App Bar Section
             Container(
-              color: Colors.white,
+              color: AppColors.surface,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
                 children: [
                   if (_isSelectionMode) ...[
                     IconButton(
-                      icon: const Icon(Icons.close, color: Colors.red),
+                      icon: Icon(Icons.close, color: AppColors.error),
                       onPressed: () => setState(() {
                         _isSelectionMode = false;
                         _selectedIds.clear();
@@ -994,8 +1071,8 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
                     ),
                     Text(
                       "ĐÃ CHỌN ${_selectedIds.length}",
-                      style: const TextStyle(
-                        color: Colors.red,
+                      style: AppTextStyles.body1.copyWith(
+                        color: AppColors.error,
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
                       ),
@@ -1818,6 +1895,19 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
       case 4: return "Đã giao";
       default: return "Không rõ";
     }
+  }
+
+  Widget _warningItem(String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: AppColors.onSurface.withOpacity(0.8),
+          fontSize: 12,
+        ),
+      ),
+    );
   }
 
   Color _getStatusColor(int status) {

@@ -20,7 +20,9 @@ class _DebtDebugViewState extends State<DebtDebugView> {
   }
 
   Future<void> _loadDebtData() async {
+    debugPrint('DebtDebugView: Loading debt data...');
     final debts = await db.getAllDebts();
+    debugPrint('DebtDebugView: Found ${debts.length} debts');
 
     setState(() {
       _allDebts = debts;

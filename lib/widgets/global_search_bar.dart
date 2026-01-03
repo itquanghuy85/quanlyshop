@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../theme/app_text_styles.dart';
+import '../theme/app_colors.dart';
 
 class GlobalSearchBar extends StatefulWidget {
   final String hintText;
@@ -69,7 +71,7 @@ class _GlobalSearchBarState extends State<GlobalSearchBar> {
         },
         decoration: InputDecoration(
           hintText: widget.hintText,
-          hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+          hintStyle: AppTextStyles.body2.copyWith(color: AppColors.onSurface.withOpacity(0.5)),
           prefixIcon: Icon(Icons.search_rounded, color: _isFocused ? Colors.blue : Colors.grey),
           suffixIcon: _controller.text.isNotEmpty 
             ? IconButton(

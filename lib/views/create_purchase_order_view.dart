@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../core/utils/money_utils.dart';
 import '../data/db_helper.dart';
 import '../models/purchase_order_model.dart';
 import '../models/product_model.dart';
@@ -79,7 +80,7 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
     final clean = text.replaceAll(',', '').split('.').first;
     final num = int.tryParse(clean);
     if (num != null) {
-      final formatted = NumberFormat('#,###').format(num);
+      final formatted = MoneyUtils.formatVND(MoneyUtils.inputToVND(num));
       if (formatted != text) {
         itemCostCtrl.value = TextEditingValue(
           text: formatted,
@@ -95,7 +96,7 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
     final clean = text.replaceAll(',', '').split('.').first;
     final num = int.tryParse(clean);
     if (num != null) {
-      final formatted = NumberFormat('#,###').format(num);
+      final formatted = MoneyUtils.formatVND(MoneyUtils.inputToVND(num));
       if (formatted != text) {
         itemPriceCtrl.value = TextEditingValue(
           text: formatted,
@@ -392,7 +393,7 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
                       ],
                     ),
                     const SizedBox(height: 4),
-                    Text("Giá nhập: ${NumberFormat('#,###').format(item.unitCost)}đ"),
+                    Text("Giá nhập: ${MoneyUtils.formatVND(item.unitCost)}đ"),
                     const SizedBox(height: 4),
                     Row(
                       children: [
@@ -465,7 +466,7 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      "Thành tiền: ${NumberFormat('#,###').format(item.quantity * item.unitCost)}đ",
+                      "Thành tiền: ${MoneyUtils.formatVND(item.quantity * item.unitCost)}đ",
                       style: const TextStyle(fontWeight: FontWeight.w500),
                     ),
                   ],
@@ -476,7 +477,7 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
           Padding(
             padding: const EdgeInsets.all(16),
             child: Text(
-              "Tổng: ${_items.fold(0, (sum, item) => sum + item.quantity)} sản phẩm - ${NumberFormat('#,###').format(_items.fold(0, (sum, item) => sum + (item.unitCost * item.quantity)))}đ",
+              "Tổng: ${_items.fold(0, (sum, item) => sum + item.quantity)} sản phẩm - ${MoneyUtils.formatVND(_items.fold(0, (sum, item) => sum + (item.unitCost * item.quantity)))}đ",
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
           ),

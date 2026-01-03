@@ -1,17 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
+import '../core/utils/money_utils.dart';
 import '../data/db_helper.dart';
 import '../models/product_model.dart';
+import '../models/customer_model.dart';
 import '../models/sale_order_model.dart';
 import '../services/notification_service.dart';
 import '../services/firestore_service.dart';
+import '../services/customer_service.dart';
+import '../services/sync_service.dart';
 import '../services/user_service.dart';
+import '../services/event_bus.dart';
+import 'partner_management_view.dart';
 import '../widgets/validated_text_field.dart';
 import '../widgets/debounced_search_field.dart';
 import '../widgets/currency_text_field.dart';
 import 'supplier_view.dart';
-import 'stock_in_view.dart'; 
+import 'stock_in_view.dart';
+import '../theme/app_theme.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_text_styles.dart';
+import '../theme/app_button_styles.dart'; 
 
 class CreateSaleView extends StatefulWidget {
   final Product? preSelectedProduct; 
@@ -84,13 +94,42 @@ class _CreateSaleViewState extends State<CreateSaleView> {
     super.dispose();
   }
 
+  Future<void> _selectCustomer() async {
+    debugPrint("_selectCustomer: bắt đầu chọn khách hàng");
+    final customerService = CustomerService();
+    
+    // Sync customers from cloud first
+    debugPrint("_selectCustomer: bắt đầu sync từ cloud");
+    await SyncService.syncCustomersFromCloud();
+    debugPrint("_selectCustomer: đã sync xong từ cloud");
+    
+    final customers = await customerService.getCustomers();
+    debugPrint("_selectCustomer: lấy được ${customers.length} customers từ local DB");
+
+    if (!mounted) return;
+
+    final selectedCustomer = await showDialog<Customer>(
+      context: context,
+      builder: (context) => CustomerSelectionDialog(customers: customers),
+    );
+
+    if (selectedCustomer != null) {
+      setState(() {
+        nameCtrl.text = selectedCustomer.name;
+        phoneCtrl.text = selectedCustomer.phone;
+        addressCtrl.text = selectedCustomer.address ?? '';
+        _suggestCustomers = [];
+      });
+    }
+  }
+
   void _formatPrice() {
     final text = priceCtrl.text;
     if (text.isEmpty) return;
     final clean = text.replaceAll(',', '').split('.').first;
     final num = int.tryParse(clean);
     if (num != null) {
-      final formatted = "${NumberFormat('#,###').format(num)}";
+      final formatted = MoneyUtils.formatVND(MoneyUtils.inputToVND(num));
       if (formatted != text) {
         priceCtrl.value = TextEditingValue(
           text: formatted,
@@ -106,7 +145,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
     final clean = text.replaceAll(',', '').split('.').first;
     final num = int.tryParse(clean);
     if (num != null) {
-      final formatted = "${NumberFormat('#,###').format(num)}";
+      final formatted = MoneyUtils.formatVND(MoneyUtils.inputToVND(num));
       if (formatted != text) {
         loanAmountCtrl.value = TextEditingValue(
           text: formatted,
@@ -135,7 +174,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
     phoneCtrl.text = sale.phone;
     addressCtrl.text = sale.address;
     priceCtrl.text = _formatCurrency(sale.totalPrice);
-    noteCtrl.text = sale.notes;
+    noteCtrl.text = sale.notes ?? '';
     _paymentMethod = sale.paymentMethod;
     _saleWarranty = sale.warranty;
     _isInstallment = sale.isInstallment;
@@ -164,15 +203,17 @@ class _CreateSaleViewState extends State<CreateSaleView> {
           price: sale.totalPrice ~/ productNames.length,
           condition: 'UNKNOWN',
           type: 'PHONE',
+          createdAt: DateTime.now().millisecondsSinceEpoch,
         ),
       );
       
-      _addProductToSale(product, quantity: quantities[i], imei: imei);
+      _addProductToSale(product);
     }
   }
+
+  void _calculateInstallment() {
     int total = _parseCurrency(priceCtrl.text);
     int down = _parseCurrency(downPaymentCtrl.text);
-    if (down > 0 && down < 100000) down *= 1000;
     int loan = total - down;
     loanAmountCtrl.text = _formatCurrency(loan > 0 ? loan : 0);
   }
@@ -185,13 +226,10 @@ class _CreateSaleViewState extends State<CreateSaleView> {
   }
 
   int _parseCurrency(String s) {
-    String digitsOnly = s.replaceAll(RegExp(r'[^0-9]'), '');
-    int amount = int.tryParse(digitsOnly) ?? 0;
-    if (amount > 0 && amount < 100000) amount *= 1000;
-    return amount;
+    return MoneyUtils.parseInputToVND(s);
   }
 
-  String _formatCurrency(int amount) => amount == 0 ? '0' : NumberFormat('#,###').format(amount);
+  String _formatCurrency(int amount) => MoneyUtils.formatVND(amount);
 
   void _addItem(Product p) {
     if (_selectedItems.any((item) => item['product'].id == p.id)) return;
@@ -255,23 +293,68 @@ class _CreateSaleViewState extends State<CreateSaleView> {
     });
   }
 
+  Future<void> _revertOldSaleChanges() async {
+    final oldSale = widget.editSale!;
+    debugPrint('Reverting changes for old sale: ${oldSale.firestoreId}');
+
+    // 1. Hoàn trả inventory dựa trên IMEI của đơn hàng cũ
+    final imeis = oldSale.productImeis.split(', ');
+    for (final imei in imeis) {
+      if (imei.isNotEmpty && imei != "NO_IMEI" && !imei.startsWith("PKx")) {
+        // Tìm sản phẩm theo IMEI và tăng quantity
+        final product = await db.getProductByImei(imei);
+        if (product != null) {
+          await db.addProductQuantity(product.id!, 1);
+          // Cập nhật local object
+          product.quantity += 1;
+          if (product.type == 'PHONE' && product.status == 0 && product.quantity > 0) {
+            product.status = 1; // Đánh dấu là available
+            await db.updateProductStatus(product.id!, 1);
+          }
+          // Sync lên cloud
+          await FirestoreService.updateProductCloud(product);
+          debugPrint('Restored inventory for product: ${product.name}, new quantity: ${product.quantity}');
+        }
+      }
+    }
+
+    // 2. Xóa debt cũ nếu có
+    if (oldSale.firestoreId != null) {
+      final existingDebts = await db.getAllDebts();
+      final linkedDebt = existingDebts.where((d) => d['linkedId'] == oldSale.firestoreId).firstOrNull;
+      if (linkedDebt != null) {
+        await db.deleteDebtByFirestoreId(linkedDebt['firestoreId']);
+        // Mark as deleted in cloud instead of deleting
+        await FirestoreService.addDebtCloud({...linkedDebt, 'deleted': true});
+        debugPrint('Marked old debt as deleted for sale: ${oldSale.firestoreId}');
+      }
+    }
+
+    // 3. Xóa expense records liên quan đến đơn hàng cũ (nếu có)
+    // Note: Logic này có thể cần điều chỉnh tùy theo cách lưu expense
+  }
+
   Future<void> _processSale() async {
     if (_isSaving) return;
     if (_selectedItems.isEmpty) { NotificationService.showSnackBar("VUI LÒNG CHỌN SẢN PHẨM", color: Colors.red); return; }
     if (nameCtrl.text.isEmpty || phoneCtrl.text.isEmpty) { NotificationService.showSnackBar("NHẬP ĐỦ THÔNG TIN KHÁCH", color: Colors.red); return; }
-    
+
     // Validate phone format
     final phoneError = UserService.validatePhone(phoneCtrl.text.trim());
     if (phoneError != null) { NotificationService.showSnackBar(phoneError, color: Colors.red); return; }
-    
+
     setState(() => _isSaving = true);
     try {
+      // XỬ LÝ EDIT MODE: Hoàn trả inventory và xóa debt cũ trước khi áp dụng thay đổi mới
+      if (widget.editSale != null) {
+        await _revertOldSaleChanges();
+      }
+
       final now = DateTime.now().millisecondsSinceEpoch;
       final String uniqueId = widget.editSale?.firestoreId ?? "sale_${now}_${phoneCtrl.text}";
       String seller = FirebaseAuth.instance.currentUser?.email?.split('@').first.toUpperCase() ?? "NV";
       int totalPrice = _parseCurrency(priceCtrl.text);
       int paidAmount = _parseCurrency(downPaymentCtrl.text);
-      if (paidAmount > 0 && paidAmount < 100000) paidAmount *= 1000;
       if (_paymentMethod != "CÔNG NỢ" && _paymentMethod != "TRẢ GÓP (NH)" && paidAmount == 0) paidAmount = totalPrice;
       
       int totalCost = _selectedItems.fold(0, (sum, item) => sum + ((item['product'] as Product).cost * (item['quantity'] as int)));
@@ -386,6 +469,10 @@ class _CreateSaleViewState extends State<CreateSaleView> {
         }
       }
       
+      // Notify other views about the new sale
+      debugPrint('CreateSaleView: Emitting sales_changed event');
+      EventBus().emit('sales_changed');
+      
       NotificationService.showSnackBar("ĐÃ BÁN HÀNG THÀNH CÔNG!", color: Colors.green);
       if (mounted) Navigator.pop(context, true);
     } catch (e) { 
@@ -399,10 +486,11 @@ class _CreateSaleViewState extends State<CreateSaleView> {
   Widget build(BuildContext context) {
     if (!_hasPermission) {
       return Scaffold(
+        backgroundColor: AppColors.background,
         appBar: AppBar(
           title: const Text("TẠO ĐƠN BÁN HÀNG"),
-          backgroundColor: Colors.pinkAccent,
-          foregroundColor: Colors.white,
+          backgroundColor: AppColors.primary,
+          foregroundColor: AppColors.onPrimary,
         ),
         body: const Center(
           child: Text(
@@ -414,13 +502,13 @@ class _CreateSaleViewState extends State<CreateSaleView> {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFF),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Tooltip(message: widget.editSale != null ? "Chỉnh sửa thông tin đơn bán hàng" : "Chọn sản phẩm, nhập thông tin khách và hoàn tất đơn bán.", child: Text(widget.editSale != null ? "SỬA ĐƠN BÁN HÀNG" : "TẠO ĐƠN BÁN HÀNG", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))), 
-        backgroundColor: Colors.pinkAccent, foregroundColor: Colors.white,
+        title: Tooltip(message: widget.editSale != null ? "Chỉnh sửa thông tin đơn bán hàng" : "Chọn sản phẩm, nhập thông tin khách và hoàn tất đơn bán.", child: Text(widget.editSale != null ? "SỬA ĐƠN BÁN HÀNG" : "TẠO ĐƠN BÁN HÀNG", style: AppTextStyles.headline6.copyWith(color: AppColors.onPrimary))), 
+        backgroundColor: AppColors.primary, foregroundColor: AppColors.onPrimary,
         automaticallyImplyLeading: true,
         actions: [
-          IconButton(onPressed: () { Navigator.push(context, MaterialPageRoute(builder: (_) => const SupplierView())); }, icon: const Icon(Icons.business_center_rounded)),
+          IconButton(onPressed: () { Navigator.push(context, MaterialPageRoute(builder: (_) => PartnerManagementView())); }, icon: const Icon(Icons.business_center_rounded)),
         ],
       ),
       body: _isLoading ? const Center(child: CircularProgressIndicator()) : SingleChildScrollView(
@@ -436,14 +524,30 @@ class _CreateSaleViewState extends State<CreateSaleView> {
           _buildSelectedItemsList(),
           const SizedBox(height: 20),
           _sectionTitle("2. THÔNG TIN KHÁCH HÀNG"),
-          ValidatedTextField(controller: nameCtrl, label: "TÊN KHÁCH HÀNG", icon: Icons.person, uppercase: true),
+          Row(
+            children: [
+              Expanded(
+                child: ValidatedTextField(controller: nameCtrl, label: "TÊN KHÁCH HÀNG", icon: Icons.person, uppercase: true),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                icon: const Icon(Icons.search),
+                onPressed: _selectCustomer,
+                tooltip: 'Chọn khách hàng',
+                style: IconButton.styleFrom(
+                  backgroundColor: AppColors.primary.withOpacity(0.1),
+                  foregroundColor: AppColors.primary,
+                ),
+              ),
+            ],
+          ),
           _buildCustomerSuggestions(),
           ValidatedTextField(controller: phoneCtrl, label: "SỐ ĐIỆN THOẠI", icon: Icons.phone, keyboardType: TextInputType.phone),
           const SizedBox(height: 20),
           _sectionTitle("3. THANH TOÁN & BẢO HÀNH"),
           _buildPaymentSection(),
           const SizedBox(height: 30),
-          SizedBox(width: double.infinity, height: 55, child: ElevatedButton(onPressed: (_isSaving || _selectedItems.isEmpty) ? null : _processSale, style: ElevatedButton.styleFrom(backgroundColor: _selectedItems.isEmpty ? Colors.grey : Colors.green, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))), child: _isSaving ? const CircularProgressIndicator(color: Colors.white) : Text(_selectedItems.isEmpty ? "CHƯA CHỌN SẢN PHẨM" : "HOÀN TẤT ĐƠN HÀNG", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)))),
+          SizedBox(width: double.infinity, height: 55, child: ElevatedButton(onPressed: (_isSaving || _selectedItems.isEmpty) ? null : _processSale, style: AppButtonStyles.successElevatedButtonStyle, child: _isSaving ? const CircularProgressIndicator(color: Colors.white) : Text(_selectedItems.isEmpty ? "CHƯA CHỌN SẢN PHẨM" : "HOÀN TẤT ĐƠN HÀNG", style: AppTextStyles.button.copyWith(color: AppColors.onSuccess)))),
         ]),
       ),
     );
@@ -452,14 +556,14 @@ class _CreateSaleViewState extends State<CreateSaleView> {
   Widget _buildPaymentSection() {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.grey.shade200)),
+      decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(15), border: Border.all(color: AppColors.outline)),
       child: Column(children: [
-        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text("TỔNG TIỀN:", style: TextStyle(fontWeight: FontWeight.bold)), Row(children: [IconButton(icon: Icon(_autoCalcTotal ? Icons.lock_outline : Icons.edit, size: 18, color: Colors.blue), onPressed: () => setState(() => _autoCalcTotal = !_autoCalcTotal)), SizedBox(width: 150, child: CurrencyTextField(controller: priceCtrl, label: "", enabled: !_autoCalcTotal, multiplyBy1000: false, onChanged: (_) { _calculateInstallment(); })), const Text(" Đ", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold))])]),
+        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text("TỔNG TIỀN:", style: AppTextStyles.body1.copyWith(fontWeight: FontWeight.bold)), Row(children: [IconButton(icon: Icon(_autoCalcTotal ? Icons.lock_outline : Icons.edit, size: 18, color: AppColors.primary), onPressed: () => setState(() => _autoCalcTotal = !_autoCalcTotal)), SizedBox(width: 150, child: CurrencyTextField(controller: priceCtrl, label: "", enabled: !_autoCalcTotal, multiplyBy1000: false, onChanged: (_) { _calculateInstallment(); })), Text(" Đ", style: AppTextStyles.body1.copyWith(color: AppColors.error, fontWeight: FontWeight.bold))])]),
         const SizedBox(height: 15),
-        Wrap(spacing: 8, children: ["TIỀN MẶT", "CHUYỂN KHOẢN", "CÔNG NỢ", "TRẢ GÓP (NH)"].map((e) => ChoiceChip(label: Text(e, style: const TextStyle(fontSize: 11)), selected: _paymentMethod == e, onSelected: (v) => setState(() { _paymentMethod = e; _isInstallment = (e == "TRẢ GÓP (NH)"); }))).toList()),
+        Wrap(spacing: 8, children: ["TIỀN MẶT", "CHUYỂN KHOẢN", "CÔNG NỢ", "TRẢ GÓP (NH)"].map((e) => ChoiceChip(label: Text(e, style: AppTextStyles.caption), selected: _paymentMethod == e, onSelected: (v) => setState(() { _paymentMethod = e; _isInstallment = (e == "TRẢ GÓP (NH)"); }))).toList()),
         const Divider(height: 30),
-        _moneyInput(downPaymentCtrl, _isInstallment ? "KHÁCH TRẢ TRƯỚC (k)" : "SỐ TIỀN THU THỰC TẾ (k)", Colors.orange),
-        if (_isInstallment) ...[const SizedBox(height: 10), _moneyInput(loanAmountCtrl, "NGÂN HÀNG CHO VAY", Colors.blueGrey, enabled: false), const SizedBox(height: 10), ValidatedTextField(controller: bankCtrl, label: "TÊN CÔNG TY TÀI CHÍNH", icon: Icons.account_balance, uppercase: true), const SizedBox(height: 8), Wrap(spacing: 8, children: ["FE", "HOME", "MIRAE", "HD", "F83", "T86"].map((b) => ActionChip(label: Text(b, style: const TextStyle(fontSize: 11)), onPressed: () => setState(() => bankCtrl.text = b))).toList())],
+        _moneyInput(downPaymentCtrl, _isInstallment ? "KHÁCH TRẢ TRƯỚC (k)" : "SỐ TIỀN THU THỰC TẾ (k)", AppColors.secondary),
+        if (_isInstallment) ...[const SizedBox(height: 10), _moneyInput(loanAmountCtrl, "NGÂN HÀNG CHO VAY", AppColors.grey600, enabled: false), const SizedBox(height: 10), ValidatedTextField(controller: bankCtrl, label: "TÊN CÔNG TY TÀI CHÍNH", icon: Icons.account_balance, uppercase: true), const SizedBox(height: 8), Wrap(spacing: 8, children: ["FE", "HOME", "MIRAE", "HD", "F83", "T86"].map((b) => ActionChip(label: Text(b, style: AppTextStyles.caption), onPressed: () => setState(() => bankCtrl.text = b))).toList())],
         const Divider(height: 30),
         // KHÔI PHỤC TAB BẢO HÀNH: Cho phép chọn bảo hành bất kể trạng thái nợ
         DropdownButtonFormField<String>(
@@ -476,30 +580,30 @@ class _CreateSaleViewState extends State<CreateSaleView> {
     return CurrencyTextField(controller: ctrl, label: label, icon: Icons.money, enabled: enabled, onChanged: (_) { _calculateInstallment(); if (onChanged != null) onChanged(); });
   }
 
-  Widget _sectionTitle(String t) => Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(t, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey, fontSize: 12)));
+  Widget _sectionTitle(String t) => Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(t, style: AppTextStyles.caption.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold)));
 
   Widget _buildSearchResults() {
     return Container(
       constraints: const BoxConstraints(maxHeight: 250), 
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10)]), 
+      decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(15), boxShadow: [BoxShadow(color: AppColors.shadow, blurRadius: 10)]), 
       child: ListView.builder(shrinkWrap: true, itemCount: _filteredInStock.length, itemBuilder: (ctx, i) { 
         final p = _filteredInStock[i]; 
         return ListTile(
-          title: Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold)), 
-          subtitle: Text("IMEI: ${p.imei ?? 'PK'} - Giá: ${NumberFormat('#,###').format(p.price)}"), 
+          title: Text(p.name, style: AppTextStyles.body1.copyWith(fontWeight: FontWeight.bold)), 
+          subtitle: Text("IMEI: ${p.imei ?? 'PK'} - Giá: ${MoneyUtils.formatVND(p.price)}"), 
           // HIỂN THỊ SỐ LƯỢNG TỒN TRONG LIST CHỌN
           trailing: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(p.quantity > 0 ? Icons.add_circle : Icons.warning, color: p.quantity > 0 ? Colors.green : Colors.red),
-              Text("Tồn: ${p.quantity}", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: p.quantity > 0 ? Colors.orange : Colors.red)),
+              Icon(p.quantity > 0 ? Icons.add_circle : Icons.warning, color: p.quantity > 0 ? AppColors.success : AppColors.error),
+              Text("Tồn: ${p.quantity}", style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.bold, color: p.quantity > 0 ? AppColors.warning : AppColors.error)),
             ],
           ),
           onTap: () {
             if (p.quantity == 0) {
               NotificationService.showSnackBar(
                 "Sản phẩm '${p.name}' chưa có trong kho!\nVui lòng tạo nhà cung cấp và nhập kho trước khi bán.",
-                color: Colors.red
+                color: AppColors.error
               );
               return;
             }
@@ -531,7 +635,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
+                      icon: Icon(Icons.delete, color: AppColors.error),
                       onPressed: () {
                         setState(() {
                           _selectedItems.remove(item);
@@ -548,7 +652,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                   ],
                 ),
                 const SizedBox(height: 4),
-                Text("Giá bán: ${NumberFormat('#,###').format(item['sellPrice'])}"),
+                Text("Giá bán: ${MoneyUtils.formatVND(item['sellPrice'])}"),
                 const SizedBox(height: 4),
                 Row(
                   children: [
@@ -640,23 +744,22 @@ class _CreateSaleViewState extends State<CreateSaleView> {
       padding: const EdgeInsets.all(20),
       margin: const EdgeInsets.symmetric(vertical: 16),
       decoration: BoxDecoration(
-        color: Colors.orange.shade50,
+        color: AppColors.warning.withOpacity(0.1),
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: Colors.orange.shade200),
+        border: Border.all(color: AppColors.warning.withOpacity(0.3)),
       ),
       child: Column(
         children: [
           Row(
             children: [
-              Icon(Icons.inventory_2_outlined, color: Colors.orange.shade700, size: 28),
+              Icon(Icons.inventory_2_outlined, color: AppColors.warning, size: 28),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   'KHO HÀNG TRỐNG',
-                  style: TextStyle(
-                    fontSize: 16,
+                  style: AppTextStyles.body1.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: Colors.orange.shade700,
+                    color: AppColors.warning,
                   ),
                 ),
               ),
@@ -665,7 +768,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
           const SizedBox(height: 12),
           Text(
             'Shop của bạn chưa có hàng trong kho. Để bán hàng, vui lòng:',
-            style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
+            style: AppTextStyles.body2.copyWith(color: AppColors.onSurface),
           ),
           const SizedBox(height: 16),
           Row(
@@ -675,19 +778,12 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const SupplierView()),
+                      MaterialPageRoute(builder: (_) => PartnerManagementView()),
                     );
                   },
                   icon: const Icon(Icons.business_center, size: 18),
                   label: const Text('TẠO NHÀ CUNG CẤP'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
+                  style: AppButtonStyles.elevatedButtonStyle,
                 ),
               ),
               const SizedBox(width: 12),
@@ -701,19 +797,148 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                   },
                   icon: const Icon(Icons.add_box, size: 18),
                   label: const Text('NHẬP KHO'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
+                  style: AppButtonStyles.successElevatedButtonStyle,
                 ),
               ),
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class CustomerSelectionDialog extends StatefulWidget {
+  final List<Customer> customers;
+
+  const CustomerSelectionDialog({super.key, required this.customers});
+
+  @override
+  State<CustomerSelectionDialog> createState() => _CustomerSelectionDialogState();
+}
+
+class _CustomerSelectionDialogState extends State<CustomerSelectionDialog> {
+  String _searchQuery = '';
+  late List<Customer> _filteredCustomers;
+
+  @override
+  void initState() {
+    super.initState();
+    _filteredCustomers = widget.customers;
+  }
+
+  void _filterCustomers(String query) {
+    setState(() {
+      _searchQuery = query;
+      if (query.isEmpty) {
+        _filteredCustomers = widget.customers;
+      } else {
+        _filteredCustomers = widget.customers.where((customer) {
+          return customer.name.toLowerCase().contains(query.toLowerCase()) ||
+                 customer.phone.contains(query);
+        }).toList();
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      child: Container(
+        width: MediaQuery.of(context).size.width * 0.9,
+        height: MediaQuery.of(context).size.height * 0.8,
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            // Header
+            Row(
+              children: [
+                const Icon(Icons.people),
+                const SizedBox(width: 8),
+                const Text(
+                  'Chọn khách hàng',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const Spacer(),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close),
+                ),
+              ],
+            ),
+
+            const Divider(),
+
+            // Search
+            TextField(
+              decoration: const InputDecoration(
+                hintText: 'Tìm kiếm khách hàng...',
+                prefixIcon: Icon(Icons.search),
+                border: OutlineInputBorder(),
+              ),
+              onChanged: _filterCustomers,
+            ),
+
+            const SizedBox(height: 16),
+
+            // Customer list
+            Expanded(
+              child: _filteredCustomers.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.people_outline,
+                            size: 48,
+                            color: Colors.grey.shade400,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            _searchQuery.isEmpty
+                                ? 'Chưa có khách hàng nào'
+                                : 'Không tìm thấy khách hàng',
+                            style: TextStyle(color: Colors.grey.shade600),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      itemCount: _filteredCustomers.length,
+                      itemBuilder: (context, index) {
+                        final customer = _filteredCustomers[index];
+                        return ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: AppColors.primary.withOpacity(0.1),
+                            child: Text(
+                              customer.name.isNotEmpty ? customer.name[0].toUpperCase() : '?',
+                              style: TextStyle(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          title: Text(customer.name),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(customer.phone),
+                              if (customer.address?.isNotEmpty == true)
+                                Text(
+                                  customer.address!,
+                                  style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                            ],
+                          ),
+                          onTap: () => Navigator.pop(context, customer),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }

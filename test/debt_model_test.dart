@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:QuanLyShop/models/debt_model.dart';
+import 'package:quanlyshop/models/debt_model.dart';
 
 void main() {
   group('Debt.fromMap', () {

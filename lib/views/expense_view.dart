@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 // BỔ SUNG THƯ VIỆN BỊ THIẾU
 import 'package:fl_chart/fl_chart.dart';
+import '../core/utils/money_utils.dart';
 import '../data/db_helper.dart';
 import '../services/notification_service.dart';
 import '../services/firestore_service.dart';
@@ -13,6 +14,9 @@ import '../services/user_service.dart';
 import '../widgets/validated_text_field.dart';
 import '../services/event_bus.dart';
 import '../widgets/currency_text_field.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_text_styles.dart';
+import '../theme/app_button_styles.dart';
 import 'fast_stock_in_view.dart';
 
 class ExpenseView extends StatefulWidget {
@@ -208,26 +212,22 @@ class _ExpenseViewState extends State<ExpenseView> {
 
   Future<void> _handleDeleteExpense(Map<String, dynamic> exp) async {
     if (exp['isPurchaseDebt'] == true) {
-      NotificationService.showSnackBar("Không thể xóa chi phí từ đơn nhập hàng!", color: Colors.red);
+      NotificationService.showSnackBar("Không thể xóa chi phí từ đơn nhập hàng!", color: AppColors.error);
       return;
     }
     final passC = TextEditingController();
     final bool? result = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text(
+        title: Text(
           "XÁC NHẬN XÓA CHI PHÍ",
-          style: TextStyle(
-            color: Colors.red,
-            fontWeight: FontWeight.bold,
-            fontSize: 15,
-          ),
+          style: AppTextStyles.headline5.copyWith(color: AppColors.error, fontWeight: FontWeight.bold),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              "Bạn đang xóa khoản chi: ${exp['title']}\nSố tiền: ${NumberFormat('#,###').format(exp['amount'])}đ",
+              "Bạn đang xóa khoản chi: ${exp['title']}\nSố tiền: ${MoneyUtils.formatVND(exp['amount'])}đ",
             ),
             const SizedBox(height: 15),
             TextField(
@@ -247,10 +247,10 @@ class _ExpenseViewState extends State<ExpenseView> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text(
+            style: AppButtonStyles.errorElevatedButtonStyle,
+            child: Text(
               "XÁC NHẬN XÓA",
-              style: TextStyle(color: Colors.white),
+              style: AppTextStyles.button.copyWith(color: AppColors.onError),
             ),
           ),
         ],
@@ -285,14 +285,14 @@ class _ExpenseViewState extends State<ExpenseView> {
 
           NotificationService.showSnackBar(
             "Đã xóa chi phí thành công",
-            color: Colors.green,
+            color: AppColors.success,
           );
           _refresh();
         }
       } catch (e) {
         NotificationService.showSnackBar(
           "Mật khẩu không đúng! Không thể xóa.",
-          color: Colors.red,
+          color: AppColors.error,
         );
         setState(() => _isLoading = false);
       }
@@ -322,25 +322,18 @@ class _ExpenseViewState extends State<ExpenseView> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(25),
             ),
-            title: const Text(
+            title: Text(
               "GHI CHÉP CHI PHÍ",
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Color(0xFFD32F2F),
-              ),
+              style: AppTextStyles.headline5.copyWith(color: AppColors.error, fontWeight: FontWeight.bold),
             ),
             content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     "PHÂN LOẠI",
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey,
-                    ),
+                    style: AppTextStyles.overline.copyWith(color: AppColors.onSurface.withOpacity(0.6)),
                   ),
                   const SizedBox(height: 8),
                   Wrap(
@@ -350,11 +343,11 @@ class _ExpenseViewState extends State<ExpenseView> {
                           (c) => ChoiceChip(
                             label: Text(
                               c,
-                              style: const TextStyle(fontSize: 10),
+                              style: AppTextStyles.caption,
                             ),
                             selected: category == c,
                             onSelected: (v) => setS(() => category = c),
-                            selectedColor: Colors.red.shade100,
+                            selectedColor: AppColors.error.withOpacity(0.1),
                           ),
                         )
                         .toList(),
@@ -368,13 +361,9 @@ class _ExpenseViewState extends State<ExpenseView> {
                     type: TextInputType.number,
                   ),
                   _input(noteC, "Ghi chú thêm", Icons.description),
-                  const Text(
+                  Text(
                     "THANH TOÁN BẰNG",
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey,
-                    ),
+                    style: AppTextStyles.overline.copyWith(color: AppColors.onSurface.withOpacity(0.6)),
                   ),
                   const SizedBox(height: 8),
                   Row(
@@ -386,7 +375,7 @@ class _ExpenseViewState extends State<ExpenseView> {
                               child: ChoiceChip(
                                 label: Text(
                                   m,
-                                  style: const TextStyle(fontSize: 9),
+                                  style: AppTextStyles.caption,
                                 ),
                                 selected: payMethod == m,
                                 onSelected: (v) => setS(() => payMethod = m),
@@ -448,7 +437,7 @@ class _ExpenseViewState extends State<ExpenseView> {
                           action: "CHI PHÍ",
                           type: "FINANCE",
                           desc:
-                              "Đã chi ${NumberFormat('#,###').format(amount)}đ",
+                              "Đã chi ${MoneyUtils.formatVND(amount)}đ",
                         );
 
                         if (!mounted) return;
@@ -459,16 +448,13 @@ class _ExpenseViewState extends State<ExpenseView> {
                         });
                         NotificationService.showSnackBar(
                           "Đã lưu chi phí!",
-                          color: Colors.green,
+                          color: AppColors.success,
                         );
                       }
                     : null,
-                child: const Text(
+                child: Text(
                   "LƯU CHI PHÍ",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: AppTextStyles.button.copyWith(color: AppColors.onSuccess, fontWeight: FontWeight.bold),
                 ),
               ),
             ],
@@ -504,13 +490,13 @@ class _ExpenseViewState extends State<ExpenseView> {
       return Scaffold(
         appBar: AppBar(
           title: const Text("QUẢN LÝ CHI PHÍ"),
-          backgroundColor: Colors.white,
+          backgroundColor: AppColors.surface,
           elevation: 0,
         ),
-        body: const Center(
+        body: Center(
           child: Text(
             "Bạn không có quyền truy cập tính năng này",
-            style: TextStyle(fontSize: 16, color: Colors.grey),
+            style: AppTextStyles.body1.copyWith(color: AppColors.onSurface.withOpacity(0.6)),
           ),
         ),
       );
@@ -524,17 +510,17 @@ class _ExpenseViewState extends State<ExpenseView> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFF),
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           "QUẢN LÝ CHI PHÍ",
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          style: AppTextStyles.headline6.copyWith(fontWeight: FontWeight.bold),
         ),
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.surface,
         elevation: 0,
         automaticallyImplyLeading: true,
         actions: [
           IconButton(
             onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => FastStockInView())),
-            icon: const Icon(Icons.inventory_2_outlined, color: Colors.green),
+            icon: Icon(Icons.inventory_2_outlined, color: AppColors.success),
             tooltip: 'Nhập kho',
           ),
           Row(
@@ -542,9 +528,8 @@ class _ExpenseViewState extends State<ExpenseView> {
             children: [
               Text(
                 _syncStatus,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: _syncStatus == 'Lỗi đồng bộ' ? Colors.red : Colors.grey[600],
+                style: AppTextStyles.caption.copyWith(
+                  color: _syncStatus == 'Lỗi đồng bộ' ? AppColors.error : AppColors.onSurface.withOpacity(0.6),
                   fontWeight: _isSyncing ? FontWeight.bold : FontWeight.normal,
                 ),
               ),
@@ -553,7 +538,7 @@ class _ExpenseViewState extends State<ExpenseView> {
                 onPressed: _isSyncing ? null : _syncWithFirebase,
                 icon: Icon(
                   _isSyncing ? Icons.sync : Icons.sync_outlined,
-                  color: _isSyncing ? Colors.orange : Colors.blue,
+                  color: _isSyncing ? AppColors.warning : AppColors.primary,
                 ),
                 tooltip: 'Đồng bộ với Firebase',
               ),
@@ -596,9 +581,9 @@ class _ExpenseViewState extends State<ExpenseView> {
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [BoxShadow(color: Colors.black.withAlpha(13), blurRadius: 8)],
+        boxShadow: [BoxShadow(color: AppColors.shadow.withOpacity(0.1), blurRadius: 8)],
       ),
       child: Column(
         children: [
@@ -777,7 +762,7 @@ class _ExpenseViewState extends State<ExpenseView> {
                 ),
                 const SizedBox(height: 5),
                 Text(
-                  "${NumberFormat('#,###').format(total)} đ",
+                  "${MoneyUtils.formatVND(total)} đ",
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 26,
@@ -836,7 +821,7 @@ class _ExpenseViewState extends State<ExpenseView> {
       children: [
         Text(label, style: const TextStyle(color: Colors.white60, fontSize: 9)),
         Text(
-          NumberFormat('#,###').format(val),
+          MoneyUtils.formatVND(val),
           style: const TextStyle(
             color: Colors.white,
             fontSize: 11,
@@ -892,7 +877,7 @@ class _ExpenseViewState extends State<ExpenseView> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              "-${NumberFormat('#,###').format(e['amount'])}",
+              "-${MoneyUtils.formatVND(e['amount'])}",
               style: const TextStyle(
                 color: Colors.redAccent,
                 fontWeight: FontWeight.w900,

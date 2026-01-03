@@ -9,6 +9,7 @@ import '../models/sale_order_model.dart';
 import '../models/expense_model.dart';
 import '../models/debt_model.dart';
 import '../models/attendance_model.dart';
+import '../models/customer_model.dart';
 import '../models/quick_input_code_model.dart';
 import 'storage_service.dart';
 import 'user_service.dart';
@@ -35,15 +36,18 @@ class SyncService {
       shopId: shopId,
       onChanged: (data, docId) async {
         try {
+          debugPrint("SYNC_TRACE: Received repair data from Firestore - docId: $docId, status: ${data['status']}, price: ${data['price']}, totalCost: ${data['totalCost']}, createdAt: ${data['createdAt']}, deliveredAt: ${data['deliveredAt']}");
           final db = DBHelper();
           if (data['deleted'] == true) {
             await db.deleteRepairByFirestoreId(docId);
+            debugPrint("SYNC_TRACE: Deleted repair $docId from local DB");
           } else {
             data['firestoreId'] = docId;
             await db.upsertRepair(Repair.fromMap(data));
+            debugPrint("SYNC_TRACE: Upserted repair $docId to local DB");
           }
         } catch (e) {
-          debugPrint("Lỗi sync repair $docId: $e");
+          debugPrint("SYNC_TRACE: Error syncing repair $docId: $e");
         }
       },
       onBatchDone: onDataChanged,
@@ -55,15 +59,18 @@ class SyncService {
       shopId: shopId,
       onChanged: (data, docId) async {
         try {
+          debugPrint("SYNC_TRACE: Received sale data from Firestore - docId: $docId, totalPrice: ${data['totalPrice']}, totalCost: ${data['totalCost']}, soldAt: ${data['soldAt']}, customerName: ${data['customerName']}");
           final db = DBHelper();
           if (data['deleted'] == true) {
             await db.deleteSaleByFirestoreId(docId);
+            debugPrint("SYNC_TRACE: Deleted sale $docId from local DB");
           } else {
             data['firestoreId'] = docId;
             await db.upsertSale(SaleOrder.fromMap(data));
+            debugPrint("SYNC_TRACE: Upserted sale $docId to local DB");
           }
         } catch (e) {
-          debugPrint("Lỗi sync sale $docId: $e");
+          debugPrint("SYNC_TRACE: Error syncing sale $docId: $e");
         }
       },
       onBatchDone: onDataChanged,
@@ -257,6 +264,30 @@ class SyncService {
       );
     } catch (e) {
       debugPrint("Lỗi khởi tạo repair_partner_payments sync: $e");
+    }
+
+    // 12. Đồng bộ CUSTOMERS
+    try {
+      _subscribeToCollection(
+        collection: 'customers',
+        shopId: shopId,
+        onChanged: (data, docId) async {
+          try {
+            final db = DBHelper();
+            if (data['deleted'] == true) {
+              await db.deleteCustomerByFirestoreId(docId);
+            } else {
+              data['firestoreId'] = docId;
+              await db.upsertCustomer(data);
+            }
+          } catch (e) {
+            debugPrint("Lỗi sync customer $docId: $e");
+          }
+        },
+        onBatchDone: onDataChanged,
+      );
+    } catch (e) {
+      debugPrint("Lỗi khởi tạo customers sync: $e");
     }
 
     debugPrint("Đã khởi tạo real-time sync cho ${isSuperAdmin ? 'super admin' : 'shop: $shopId'}");
@@ -519,7 +550,7 @@ class SyncService {
       final localAttendance = await db.getAllAttendance();
       debugPrint("LOCAL DATA BEFORE SYNC: repairs=${localRepairs.length}, products=${localProducts.length}, sales=${localSales.length}, attendance=${localAttendance.length}");
 
-      final collections = ['repairs', 'products', 'sales', 'expenses', 'debts', 'users', 'shops', 'attendance', 'quick_input_codes', 'supplier_import_history', 'supplier_product_prices', 'supplier_payments', 'repair_partner_payments'];
+      final collections = ['repairs', 'products', 'sales', 'expenses', 'debts', 'users', 'shops', 'attendance', 'quick_input_codes', 'supplier_import_history', 'supplier_product_prices', 'supplier_payments', 'repair_partner_payments', 'customers'];
       
       for (var col in collections) {
         // Skip products if local already has products to avoid downloading old data
@@ -538,16 +569,21 @@ class SyncService {
               data['firestoreId'] = doc.id;
               if (col == 'repairs') {
                 await db.upsertRepair(Repair.fromMap(data));
-              } else if (col == 'products') await db.upsertProduct(Product.fromMap(data));
-              else if (col == 'sales') await db.upsertSale(SaleOrder.fromMap(data));
-              else if (col == 'expenses') await db.upsertExpense(Expense.fromMap(data));
-              else if (col == 'debts') await db.upsertDebt(Debt.fromMap(data));
-              else if (col == 'attendance') {
+              } else if (col == 'products') {
+                await db.upsertProduct(Product.fromMap(data));
+              } else if (col == 'sales') {
+                await db.upsertSale(SaleOrder.fromMap(data));
+              } else if (col == 'expenses') {
+                await db.upsertExpense(Expense.fromMap(data));
+              } else if (col == 'debts') {
+                await db.upsertDebt(Debt.fromMap(data));
+              } else if (col == 'attendance') {
                 try {
                   await db.upsertAttendance(Attendance.fromMap(data));
                 } catch (e) {
                   debugPrint("Lỗi upsert attendance ${doc.id}: $e");
-                }              } else if (col == 'quick_input_codes') {
+                }
+              } else if (col == 'quick_input_codes') {
                 await db.upsertQuickInputCode(QuickInputCode.fromMap(data));
               } else if (col == 'supplier_import_history') {
                 // Handle supplier import history - these are raw data, skip for now as they are managed locally
@@ -555,6 +591,8 @@ class SyncService {
               } else if (col == 'supplier_product_prices') {
                 // Handle supplier product prices - these are raw data, skip for now as they are managed locally
                 continue;
+              } else if (col == 'customers') {
+                await db.upsertCustomer(data);
               }
             } catch (e) {
               debugPrint("Lỗi xử lý document ${doc.id} trong collection $col: $e");
@@ -580,7 +618,7 @@ class SyncService {
     }
   }
 
-  /// Đồng bộ Quick Input Codes từ Local lên Cloud
+  /// Đồng bộ Quick Input Codes lên Cloud
   static Future<void> syncQuickInputCodesToCloud() async {
     debugPrint("Bắt đầu syncQuickInputCodesToCloud...");
     try {
@@ -623,6 +661,54 @@ class SyncService {
       }
     } catch (e) {
       debugPrint("Lỗi syncQuickInputCodesToCloud: $e");
+      rethrow;
+    }
+  }
+
+  /// Đồng bộ customers từ Cloud xuống local DB
+  static Future<void> syncCustomersFromCloud() async {
+    debugPrint("Bắt đầu syncCustomersFromCloud...");
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        debugPrint("syncCustomersFromCloud: Không có user, bỏ qua");
+        return;
+      }
+
+      final bool isSuperAdmin = UserService.isCurrentUserSuperAdmin();
+      final String? shopId = isSuperAdmin ? null : await UserService.getCurrentShopId();
+      debugPrint("syncCustomersFromCloud: shopId = $shopId, isSuperAdmin = $isSuperAdmin");
+
+      final dbHelper = DBHelper();
+
+      // Query customers từ Firestore
+      Query query = _db.collection('customers');
+      if (!isSuperAdmin && shopId != null) {
+        query = query.where('shopId', isEqualTo: shopId);
+      }
+
+      final querySnapshot = await query.get();
+      debugPrint("syncCustomersFromCloud: Tìm thấy ${querySnapshot.docs.length} customers từ cloud");
+
+      // Upsert từng customer vào local DB
+      for (var doc in querySnapshot.docs) {
+        try {
+          final data = doc.data() as Map<String, dynamic>;
+          data['firestoreId'] = doc.id;
+          data['isSynced'] = true; // Đánh dấu đã sync
+
+          // Chuyển đổi thành Customer model và upsert
+          final customer = Customer.fromMap(data);
+          await dbHelper.upsertCustomer(customer.toMap());
+          debugPrint("syncCustomersFromCloud: Đã upsert customer ${customer.name} (${doc.id})");
+        } catch (e) {
+          debugPrint("syncCustomersFromCloud: Lỗi upsert customer ${doc.id}: $e");
+        }
+      }
+
+      debugPrint("syncCustomersFromCloud: Hoàn thành, đã sync ${querySnapshot.docs.length} customers");
+    } catch (e) {
+      debugPrint("syncCustomersFromCloud: Lỗi: $e");
       rethrow;
     }
   }

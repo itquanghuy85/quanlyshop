@@ -1,6 +1,7 @@
 import 'package:esc_pos_utils/esc_pos_utils.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../core/utils/money_utils.dart';
 import 'bluetooth_printer_service.dart';
 import 'wifi_printer_service.dart';
 import '../models/repair_model.dart';
@@ -96,7 +97,7 @@ class UnifiedPrinterService {
     bytes.addAll(generator.text(_removeDiacritics("PHU KIEN: ${repair.accessories}")));
     bytes.addAll(generator.feed(1));
 
-    final priceStr = NumberFormat('#,###').format(repair.price);
+    final priceStr = MoneyUtils.formatVND(repair.price);
     bytes.addAll(generator.text("GIA DU KIEN: $priceStr VND", styles: const PosStyles(bold: true, height: PosTextSize.size2)));
     bytes.addAll(generator.text(_removeDiacritics("Hinh thuc: ${repair.paymentMethod}")));
     bytes.addAll(generator.feed(1));
@@ -164,7 +165,7 @@ class UnifiedPrinterService {
       // 3. GIÁ BÁN
       final price = product['price'] ?? 0;
       bytes.addAll(generator.text(
-        "GIA BAN: ${NumberFormat('#,###').format(price)}",
+        "GIA BAN: ${MoneyUtils.formatVND(price)}",
         styles: const PosStyles(align: PosAlign.center, bold: true),
       ));
 
@@ -249,7 +250,7 @@ class UnifiedPrinterService {
     if (data['estimatedCost'] != null) {
       final costValue = data['estimatedCost'] is num ? data['estimatedCost'].toInt() : int.tryParse(data['estimatedCost'].toString()) ?? 0;
       if (costValue > 0) {
-        final costStr = NumberFormat('#,###').format(costValue);
+        final costStr = MoneyUtils.formatVND(costValue);
         bytes.addAll(generator.text("GIA DU KIEN: $costStr VND", styles: const PosStyles(bold: true, height: PosTextSize.size2)));
         bytes.addAll(generator.feed(1));
       }
@@ -357,7 +358,7 @@ class UnifiedPrinterService {
     // Tổng tiền
     final totalPrice = saleData['totalPrice'];
     final priceValue = totalPrice is num ? totalPrice.toInt() : int.tryParse(totalPrice?.toString() ?? '0') ?? 0;
-    final priceStr = NumberFormat('#,###').format(priceValue);
+    final priceStr = MoneyUtils.formatVND(priceValue);
     bytes.addAll(generator.text("TONG TIEN: $priceStr VND", styles: const PosStyles(bold: true, height: PosTextSize.size2, align: PosAlign.center)));
     bytes.addAll(generator.feed(1));
 
@@ -462,8 +463,8 @@ class UnifiedPrinterService {
   }
 
   static String _fmt(dynamic value) {
-    if (value is int) return NumberFormat('#,###').format(value);
-    if (value is double) return NumberFormat('#,###').format(value);
+    if (value is int) return MoneyUtils.formatVND(value);
+    if (value is double) return MoneyUtils.formatVND(value.toInt());
     return value.toString();
   }
 }

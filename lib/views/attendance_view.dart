@@ -9,6 +9,9 @@ import '../services/user_service.dart';
 import '../services/notification_service.dart';
 import '../services/storage_service.dart';
 import 'work_schedule_settings_view.dart'; // Import màn hình cài đặt lịch
+import '../theme/app_colors.dart';
+import '../theme/app_text_styles.dart';
+import '../theme/app_button_styles.dart';
 
 class AttendanceView extends StatefulWidget {
   const AttendanceView({super.key});
@@ -163,24 +166,24 @@ class _AttendanceViewState extends State<AttendanceView> with TickerProviderStat
         appBar: AppBar(
           title: const Text("CHẤM CÔNG NHÂN VIÊN"),
         ),
-        body: const Center(
+        body: Center(
           child: Text(
             "Bạn không có quyền truy cập tính năng này",
-            style: TextStyle(fontSize: 16, color: Colors.grey),
+            style: AppTextStyles.body1.copyWith(color: AppColors.inactive),
           ),
         ),
       );
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFF),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text("CHẤM CÔNG NHÂN VIÊN", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        title: Text("CHẤM CÔNG NHÂN VIÊN", style: AppTextStyles.headline5),
         automaticallyImplyLeading: true,
         bottom: TabBar(
           controller: _tabController,
-          labelColor: const Color(0xFF2962FF),
-          indicatorColor: const Color(0xFF2962FF),
+          labelColor: AppColors.primary,
+          indicatorColor: AppColors.primary,
           tabs: [
             const Tab(text: "HÔM NAY"),
             const Tab(text: "LỊCH SỬ"),
@@ -206,9 +209,9 @@ class _AttendanceViewState extends State<AttendanceView> with TickerProviderStat
         _buildClockCard(),
         const SizedBox(height: 30),
         Row(children: [
-          Expanded(child: _checkBtn("CHECK-IN", Icons.login, Colors.green, () => _actionCheck(true), enabled: _today?.checkInAt == null)),
+          Expanded(child: _checkBtn("CHECK-IN", Icons.login, AppColors.success, () => _actionCheck(true), enabled: _today?.checkInAt == null)),
           const SizedBox(width: 15),
-          Expanded(child: _checkBtn("CHECK-OUT", Icons.logout, Colors.red, () => _actionCheck(false), enabled: _today?.checkInAt != null && _today?.checkOutAt == null)),
+          Expanded(child: _checkBtn("CHECK-OUT", Icons.logout, AppColors.error, () => _actionCheck(false), enabled: _today?.checkInAt != null && _today?.checkOutAt == null)),
         ]),
         const SizedBox(height: 30),
         if (_today != null) _buildTodaySummary(),
@@ -216,9 +219,9 @@ class _AttendanceViewState extends State<AttendanceView> with TickerProviderStat
           const SizedBox(height: 20),
           const Divider(),
           ListTile(
-            leading: const Icon(Icons.calendar_month, color: Colors.blueAccent),
-            title: const Text("Cấu hình lịch làm việc", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-            subtitle: const Text("Thiết lập giờ vào/ra cho thợ", style: TextStyle(fontSize: 11)),
+            leading: Icon(Icons.calendar_month, color: AppColors.primary),
+            title: Text("Cấu hình lịch làm việc", style: AppTextStyles.body2.copyWith(fontWeight: FontWeight.bold)),
+            subtitle: Text("Thiết lập giờ vào/ra cho thợ", style: AppTextStyles.caption),
             trailing: const Icon(Icons.chevron_right, size: 18),
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WorkScheduleSettingsView())),
           )
@@ -231,10 +234,10 @@ class _AttendanceViewState extends State<AttendanceView> with TickerProviderStat
     final now = DateTime.now();
     return Container(
       width: double.infinity, padding: const EdgeInsets.all(30),
-      decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF1A237E), Color(0xFF2962FF)]), borderRadius: BorderRadius.circular(25), boxShadow: [BoxShadow(color: Colors.blue.withAlpha(77), blurRadius: 15)]),
+      decoration: BoxDecoration(gradient: LinearGradient(colors: [AppColors.primaryDark, AppColors.primary]), borderRadius: BorderRadius.circular(25), boxShadow: [BoxShadow(color: AppColors.primary.withOpacity(0.3), blurRadius: 15)]),
       child: Column(children: [
-        Text(DateFormat('HH:mm').format(now), style: const TextStyle(fontSize: 48, fontWeight: FontWeight.w900, color: Colors.white)),
-        Text(DateFormat('EEEE, dd MMMM', 'vi_VN').format(now).toUpperCase(), style: const TextStyle(color: Colors.white70, letterSpacing: 1.2, fontSize: 12)),
+        Text(DateFormat('HH:mm').format(now), style: AppTextStyles.headline1.copyWith(color: AppColors.onPrimary, fontWeight: FontWeight.w900)),
+        Text(DateFormat('EEEE, dd MMMM', 'vi_VN').format(now).toUpperCase(), style: AppTextStyles.overline.copyWith(color: AppColors.onPrimary.withOpacity(0.7), letterSpacing: 1.2)),
       ]),
     );
   }
@@ -243,24 +246,24 @@ class _AttendanceViewState extends State<AttendanceView> with TickerProviderStat
     return ElevatedButton.icon(
       onPressed: enabled ? onTap : null,
       icon: Icon(icon, size: 18),
-      label: Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-      style: ElevatedButton.styleFrom(backgroundColor: color, foregroundColor: Colors.white, disabledBackgroundColor: Colors.grey.shade300, padding: const EdgeInsets.symmetric(vertical: 18), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
+      label: Text(label, style: AppTextStyles.body2.copyWith(fontWeight: FontWeight.bold)),
+      style: ElevatedButton.styleFrom(backgroundColor: color, foregroundColor: AppColors.onPrimary, disabledBackgroundColor: AppColors.inactive.withOpacity(0.3), padding: const EdgeInsets.symmetric(vertical: 18), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
     );
   }
 
   Widget _buildTodaySummary() {
     return Container(
-      padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
+      padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(20)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text("TRẠNG THÁI HÔM NAY", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.blueGrey)),
+        Text("TRẠNG THÁI HÔM NAY", style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.bold, color: AppColors.onSurface.withOpacity(0.7))),
         const Divider(height: 30),
-        _rowInfo("Giờ vào", _today?.checkInAt != null ? DateFormat('HH:mm').format(DateTime.fromMillisecondsSinceEpoch(_today!.checkInAt!)) : "--:--", _today?.isLate == 1 ? Colors.red : Colors.green),
-        _rowInfo("Giờ ra", _today?.checkOutAt != null ? DateFormat('HH:mm').format(DateTime.fromMillisecondsSinceEpoch(_today!.checkOutAt!)) : "--:--", _today?.isEarlyLeave == 1 ? Colors.orange : Colors.blue),
+        _rowInfo("Giờ vào", _today?.checkInAt != null ? DateFormat('HH:mm').format(DateTime.fromMillisecondsSinceEpoch(_today!.checkInAt!)) : "--:--", _today?.isLate == 1 ? AppColors.error : AppColors.success),
+        _rowInfo("Giờ ra", _today?.checkOutAt != null ? DateFormat('HH:mm').format(DateTime.fromMillisecondsSinceEpoch(_today!.checkOutAt!)) : "--:--", _today?.isEarlyLeave == 1 ? AppColors.warning : AppColors.primary),
       ]),
     );
   }
 
-  Widget _rowInfo(String l, String v, Color c) => Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(l, style: const TextStyle(color: Colors.grey)), Text(v, style: TextStyle(fontWeight: FontWeight.bold, color: c))]));
+  Widget _rowInfo(String l, String v, Color c) => Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(l, style: AppTextStyles.body2.copyWith(color: AppColors.onSurface.withOpacity(0.6))), Text(v, style: AppTextStyles.body2.copyWith(fontWeight: FontWeight.bold, color: c))]));
 
   Widget _buildHistoryTab() {
     if (_history.isEmpty) return const Center(child: Text("Chưa có dữ liệu lịch sử"));
@@ -272,10 +275,10 @@ class _AttendanceViewState extends State<AttendanceView> with TickerProviderStat
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
           child: ListTile(
-            leading: CircleAvatar(backgroundColor: item.isLate == 1 ? Colors.red.shade50 : Colors.green.shade50, child: Icon(item.isLate == 1 ? Icons.warning : Icons.check, color: item.isLate == 1 ? Colors.red : Colors.green, size: 16)),
-            title: Text(item.dateKey, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+            leading: CircleAvatar(backgroundColor: item.isLate == 1 ? AppColors.error.withOpacity(0.1) : AppColors.success.withOpacity(0.1), child: Icon(item.isLate == 1 ? Icons.warning : Icons.check, color: item.isLate == 1 ? AppColors.error : AppColors.success, size: 16)),
+            title: Text(item.dateKey, style: AppTextStyles.headline6),
             subtitle: Text("Vào: ${item.checkInAt != null ? DateFormat('HH:mm').format(DateTime.fromMillisecondsSinceEpoch(item.checkInAt!)) : '--'} | Ra: ${item.checkOutAt != null ? DateFormat('HH:mm').format(DateTime.fromMillisecondsSinceEpoch(item.checkOutAt!)) : '--'}"),
-            trailing: item.photoIn != null ? const Icon(Icons.image, color: Colors.blue, size: 18) : null,
+            trailing: item.photoIn != null ? Icon(Icons.image, color: AppColors.primary, size: 18) : null,
           ),
         );
       },
@@ -288,12 +291,12 @@ class _AttendanceViewState extends State<AttendanceView> with TickerProviderStat
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(children: [
-        _statCard("TỔNG NGÀY CÔNG", "$totalDays", Colors.blue),
+        _statCard("TỔNG NGÀY CÔNG", "$totalDays", AppColors.primary),
         const SizedBox(height: 15),
-        _statCard("SỐ LẦN ĐI MUỘN", "$lateDays", Colors.red),
+        _statCard("SỐ LẦN ĐI MUỘN", "$lateDays", AppColors.error),
       ]),
     );
   }
 
-  Widget _statCard(String l, String v, Color c) => Container(width: double.infinity, padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15)), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(l, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey)), Text(v, style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: c))]));
+  Widget _statCard(String l, String v, Color c) => Container(width: double.infinity, padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(15)), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(l, style: AppTextStyles.body2.copyWith(fontWeight: FontWeight.bold, color: AppColors.onSurface.withOpacity(0.7))), Text(v, style: AppTextStyles.headline3.copyWith(fontWeight: FontWeight.w900, color: c))]));
 }

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart' as m;
 import 'package:intl/intl.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
+import '../core/utils/money_utils.dart';
 
 import '../data/db_helper.dart';
 import '../models/repair_model.dart';
@@ -161,7 +162,7 @@ class _CustomerHistoryViewState extends State<CustomerHistoryView> {
                         subtitle: m.Column(
                           crossAxisAlignment: m.CrossAxisAlignment.start,
                           children: [
-                            m.Text("${item['subtitle']} - ${NumberFormat('#,###').format(item['amount'])}đ", style: const m.TextStyle(fontSize: 13)),
+                            m.Text("${item['subtitle']} - ${MoneyUtils.formatVND(item['amount'])}đ", style: const m.TextStyle(fontSize: 13)),
                             m.Text(_fmtDate(item['time']), style: const m.TextStyle(fontSize: 11, color: m.Colors.grey)),
                           ],
                         ),

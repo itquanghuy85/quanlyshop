@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:QuanLyShop/models/sale_order_model.dart';
+import 'package:quanlyshop/models/sale_order_model.dart';
 
 void main() {
   group('SaleOrder.fromMap', () {

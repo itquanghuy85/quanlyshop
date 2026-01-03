@@ -9,12 +9,19 @@ import '../models/repair_model.dart';
 import '../services/notification_service.dart';
 import '../services/firestore_service.dart';
 import '../services/storage_service.dart';
+import '../services/sync_service.dart';
 import '../services/unified_printer_service.dart';
-import '../utils/money_utils.dart';
+import '../core/utils/money_utils.dart';
 import '../widgets/validated_text_field.dart';
 import '../models/repair_partner_model.dart';
-import '../services/repair_partner_service.dart';
 import '../models/repair_service_model.dart';
+import '../services/repair_partner_service.dart';
+import '../models/customer_model.dart';
+import '../services/customer_service.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_button_styles.dart';
+import '../theme/app_text_styles.dart';
+import '../services/event_bus.dart';
 
 class CreateRepairOrderView extends StatefulWidget {
   final String role;
@@ -25,8 +32,9 @@ class CreateRepairOrderView extends StatefulWidget {
 }
 
 class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
-  final NumberFormat currencyFormat = NumberFormat.currency(locale: 'vi_VN', symbol: '₫');
+  // final NumberFormat currencyFormat = NumberFormat.currency(locale: 'vi_VN', symbol: '₫');
   final db = DBHelper();
+  final customerService = CustomerService();
   final List<File> _images = [];
   bool _saving = false;
   String _uploadStatus = "";
@@ -88,7 +96,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
     final clean = text.replaceAll(',', '').split('.').first;
     final num = int.tryParse(clean);
     if (num != null) {
-      final formatted = "${NumberFormat('#,###').format(num)}";
+      final formatted = MoneyUtils.formatVND(MoneyUtils.inputToVND(num));
       if (formatted != text) {
         priceCtrl.value = TextEditingValue(
           text: formatted,
@@ -109,9 +117,33 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
     }
   }
 
+  Future<void> _selectCustomer() async {
+    // Sync customers from cloud first
+    await SyncService.syncCustomersFromCloud();
+    
+    final customers = await customerService.getCustomers();
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => CustomerSelectionDialog(
+        customers: customers,
+        onSelect: (customer) {
+          setState(() {
+            nameCtrl.text = customer.name;
+            phoneCtrl.text = customer.phone;
+            addressCtrl.text = customer.address ?? '';
+          });
+          Navigator.pop(ctx);
+        },
+      ),
+    );
+  }
+
   int _parseFinalPrice(String text) {
     int v = int.tryParse(text.replaceAll(',', '').replaceAll('.', '')) ?? 0;
-    return v * 1000;
+    // Nếu nhập số nhỏ (dưới 100k) thì tự động nhân 1000
+    return (v > 0 && v < 100000) ? v * 1000 : v;
   }
 
   Future<Repair?> _saveOrderProcess() async {
@@ -199,6 +231,10 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
     final r = await _saveOrderProcess();
     if (r != null) {
       HapticFeedback.mediumImpact();
+      
+      // Notify other views about the new repair
+      EventBus().emit('repairs_changed');
+      
       if (mounted) Navigator.pop(context, true);
       NotificationService.showSnackBar("ĐÃ LƯU ĐƠN THÀNH CÔNG", color: Colors.green);
     }
@@ -227,8 +263,8 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
             children: _services.map((service) => ListTile(
               title: Text(service.serviceName),
               subtitle: service.partnerName != null 
-                ? Text("Đối tác: ${service.partnerName} - Chi phí: ${currencyFormat.format(service.cost)}")
-                : Text("Chi phí: ${currencyFormat.format(service.cost)}"),
+                ? Text("Đối tác: ${service.partnerName} - Chi phí: ${MoneyUtils.formatVND(service.cost.toInt())}₫")
+                : Text("Chi phí: ${MoneyUtils.formatVND(service.cost.toInt())}₫"),
               trailing: IconButton(
                 icon: const Icon(Icons.delete, color: Colors.red),
                 onPressed: () => setState(() => _services.remove(service)),
@@ -237,8 +273,8 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
           ),
         ),
         const SizedBox(height: 10),
-        Text("Tổng chi phí: ${currencyFormat.format(_services.fold(0, (sum, s) => sum + s.cost))}", 
-          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
+        Text("Tổng chi phí: ${MoneyUtils.formatVND(_services.fold(0, (sum, s) => sum + s.cost).toInt())}₫", 
+          style: AppTextStyles.priceStyle),
         const SizedBox(height: 10),
       ],
       ElevatedButton.icon(
@@ -325,20 +361,30 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFF),
       appBar: AppBar(
-        title: const Text("NHẬP ĐƠN SỬA CHỮA", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+        title: const Text("NHẬP ĐƠN SỬA CHỮA"),
         automaticallyImplyLeading: true,
         actions: [IconButton(onPressed: _saveAndPrint, icon: const Icon(Icons.print, color: Color(0xFF2962FF)))],
       ),
       body: _saving 
-        ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const CircularProgressIndicator(), const SizedBox(height: 20), Text(_uploadStatus, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey))]))
+        ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const CircularProgressIndicator(), const SizedBox(height: 20), Text(_uploadStatus, style: AppTextStyles.body1.copyWith(color: AppColors.onSurface.withOpacity(0.7)))]))
         : SingleChildScrollView(
             padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _sectionTitle("THÔNG TIN KHÁCH HÀNG"),
+                Row(
+                  children: [
+                    Expanded(child: _input(nameCtrl, "TÊN KHÁCH HÀNG", Icons.person, caps: true, f: nameF, next: modelF)),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      onPressed: _selectCustomer,
+                      icon: const Icon(Icons.search, color: Colors.blue),
+                      tooltip: 'Chọn khách hàng',
+                    ),
+                  ],
+                ),
                 _input(phoneCtrl, "SỐ ĐIỆN THOẠI *", Icons.phone, type: TextInputType.phone, f: phoneF, next: nameF),
-                _input(nameCtrl, "TÊN KHÁCH HÀNG", Icons.person, caps: true, f: nameF, next: modelF),
                 const SizedBox(height: 15),
                 _sectionTitle("THÔNG TIN MÁY"),
                 _quick(brands, modelCtrl, issueF),
@@ -372,14 +418,14 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
                 _input(accCtrl, "PHỤ KIỆN KHÁC", Icons.add_box_outlined, caps: true),
 
                 const SizedBox(height: 20),
-                const Text("HÌNH ẢNH HIỆN TRẠNG", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.blueGrey)),
+                Text("HÌNH ẢNH HIỆN TRẠNG", style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.bold, color: AppColors.onSurface.withOpacity(0.7))),
                 const SizedBox(height: 10),
                 _imageRow(),
                 const SizedBox(height: 40),
                 Row(children: [
-                  Expanded(child: OutlinedButton.icon(onPressed: _saving ? null : _onlySave, icon: const Icon(Icons.save_rounded), label: const Text("LƯU ĐƠN", style: TextStyle(fontWeight: FontWeight.bold)), style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))))),
+                  Expanded(child: OutlinedButton.icon(onPressed: _saving ? null : _onlySave, icon: const Icon(Icons.save_rounded), label: const Text("LƯU ĐƠN"), style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))))),
                   const SizedBox(width: 12),
-                  Expanded(flex: 2, child: ElevatedButton.icon(onPressed: _saving ? null : _saveAndPrint, icon: const Icon(Icons.print_rounded), label: const Text("LƯU & IN", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), style: ElevatedButton.styleFrom(backgroundColor: const Color.fromARGB(255, 4, 12, 247), elevation: 4, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)), padding: const EdgeInsets.symmetric(vertical: 12)))),
+                  Expanded(flex: 2, child: ElevatedButton.icon(onPressed: _saving ? null : _saveAndPrint, icon: const Icon(Icons.print_rounded), label: const Text("LƯU & IN"), style: ElevatedButton.styleFrom(elevation: 4, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)), padding: const EdgeInsets.symmetric(vertical: 12)))),
                 ]),
               ],
             ),
@@ -390,8 +436,8 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
   Widget _priorityChip(String label, VoidCallback onTap) {
     return Expanded(
       child: ActionChip(
-        label: Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white)),
-        backgroundColor: Colors.orange.shade700,
+        label: Text(label, style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.bold, color: AppColors.onSecondary)),
+        backgroundColor: AppColors.secondary,
         padding: const EdgeInsets.all(0),
         onPressed: () {
           HapticFeedback.lightImpact();
@@ -409,7 +455,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
         children: quickAccs.map((acc) {
           final isSelected = _selectedAccs.contains(acc);
           return FilterChip(
-            label: Text(acc, style: TextStyle(fontSize: 11, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal, color: isSelected ? Colors.white : Colors.black87)),
+            label: Text(acc, style: AppTextStyles.caption.copyWith(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal, color: isSelected ? AppColors.onPrimary : AppColors.onSurface)),
             selected: isSelected,
             onSelected: (v) {
               HapticFeedback.lightImpact();
@@ -424,14 +470,14 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
     );
   }
 
-  Widget _sectionTitle(String title) => Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey, fontSize: 10)));
+  Widget _sectionTitle(String title) => Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(title, style: AppTextStyles.overline.copyWith(fontWeight: FontWeight.bold, color: AppColors.onSurface.withOpacity(0.7))));
 
   Widget _input(TextEditingController c, String l, IconData i, {bool caps = false, TextInputType type = TextInputType.text, FocusNode? f, FocusNode? next, String? suffix, int? maxLines}) {
     return Padding(padding: const EdgeInsets.only(bottom: 12), child: ValidatedTextField(controller: c, label: l.replaceAll(' *', ''), icon: i, keyboardType: type, uppercase: caps, required: l.contains('*'), maxLines: maxLines, onSubmitted: () { if (next != null) FocusScope.of(context).requestFocus(next); }));
   }
 
   Widget _quick(List<String> items, TextEditingController target, FocusNode? nextF) {
-    return Container(height: 38, margin: const EdgeInsets.only(bottom: 8), child: ListView.builder(scrollDirection: Axis.horizontal, itemCount: items.length, itemBuilder: (ctx, i) => Padding(padding: const EdgeInsets.only(right: 8), child: ActionChip(label: Text(items[i], style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)), onPressed: () { setState(() => target.text = items[i]); if (nextF != null) FocusScope.of(context).requestFocus(nextF); }))));
+    return Container(height: 38, margin: const EdgeInsets.only(bottom: 8), child: ListView.builder(scrollDirection: Axis.horizontal, itemCount: items.length, itemBuilder: (ctx, i) => Padding(padding: const EdgeInsets.only(right: 8), child: ActionChip(label: Text(items[i], style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.bold)), onPressed: () { setState(() => target.text = items[i]); if (nextF != null) FocusScope.of(context).requestFocus(nextF); }))));
   }
 
   Widget _imageRow() {
@@ -442,5 +488,88 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
   void dispose() {
     priceCtrl.removeListener(_formatPrice);
     super.dispose();
+  }
+}
+
+class CustomerSelectionDialog extends StatefulWidget {
+  final List<Customer> customers;
+  final Function(Customer) onSelect;
+
+  const CustomerSelectionDialog({
+    super.key,
+    required this.customers,
+    required this.onSelect,
+  });
+
+  @override
+  State<CustomerSelectionDialog> createState() => _CustomerSelectionDialogState();
+}
+
+class _CustomerSelectionDialogState extends State<CustomerSelectionDialog> {
+  String _searchQuery = '';
+  late List<Customer> _filteredCustomers;
+
+  @override
+  void initState() {
+    super.initState();
+    _filteredCustomers = widget.customers;
+  }
+
+  void _filterCustomers(String query) {
+    setState(() {
+      _searchQuery = query;
+      if (query.isEmpty) {
+        _filteredCustomers = widget.customers;
+      } else {
+        _filteredCustomers = widget.customers.where((customer) {
+          return customer.name.toLowerCase().contains(query.toLowerCase()) ||
+                 customer.phone.contains(query);
+        }).toList();
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('CHỌN KHÁCH HÀNG'),
+      content: SizedBox(
+        width: double.maxFinite,
+        height: 400,
+        child: Column(
+        children: [
+          TextField(
+            decoration: const InputDecoration(
+              hintText: 'Tìm theo tên hoặc số điện thoại...',
+              prefixIcon: Icon(Icons.search),
+            ),
+            onChanged: _filterCustomers,
+          ),
+          const SizedBox(height: 10),
+          Expanded(
+            child: _filteredCustomers.isEmpty
+              ? const Center(child: Text('Không tìm thấy khách hàng'))
+              : ListView.builder(
+                  itemCount: _filteredCustomers.length,
+                  itemBuilder: (context, index) {
+                    final customer = _filteredCustomers[index];
+                    return ListTile(
+                      title: Text(customer.name),
+                      subtitle: Text(customer.phone),
+                      onTap: () => widget.onSelect(customer),
+                    );
+                  },
+                ),
+          ),
+        ],
+      ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('HỦY'),
+        ),
+      ],
+    );
   }
 }

@@ -110,7 +110,8 @@ class _QuickInputManagementViewState extends State<QuickInputManagementView>
     setState(() => _isSyncing = true);
     try {
       await SyncService.syncQuickInputCodesToCloud();
-      NotificationService.showSnackBar('Đã đồng bộ thành công mã nhập nhanh lên Cloud!', color: Colors.green);
+      await SyncService.downloadAllFromCloud(); // Download latest data
+      NotificationService.showSnackBar('Đã đồng bộ thành công mã nhập nhanh!', color: Colors.green);
       await _loadCodes();
     } catch (e) {
       NotificationService.showSnackBar('Lỗi đồng bộ: $e', color: Colors.red);

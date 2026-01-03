@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../theme/app_text_styles.dart';
+import '../theme/app_colors.dart';
+import '../core/utils/money_utils.dart';
 
 class CurrencyTextField extends StatefulWidget {
   final TextEditingController controller;
@@ -86,8 +89,14 @@ class _CurrencyTextFieldState extends State<CurrencyTextField> {
     if (text.isNotEmpty) {
       int baseAmount = int.tryParse(text) ?? 0;
       if (baseAmount > 0) {
-        int actualAmount = widget.multiplyBy1000 ? baseAmount * 1000 : baseAmount;
-        String formatted = widget.multiplyBy1000 ? '${_formatNumber(baseAmount)},000' : _formatNumber(baseAmount);
+        int actualAmount;
+        if (widget.multiplyBy1000) {
+          actualAmount = MoneyUtils.inputToVND(baseAmount);
+        } else {
+          // Thêm ",000" vào cuối nếu số < 100000
+          actualAmount = (baseAmount > 0 && baseAmount < 100000) ? baseAmount * 1000 : baseAmount;
+        }
+        String formatted = MoneyUtils.formatVND(actualAmount);
         widget.controller.value = TextEditingValue(text: formatted, selection: TextSelection.collapsed(offset: formatted.length));
         widget.onChanged?.call(actualAmount.toString());
       } else {
@@ -135,13 +144,16 @@ class _CurrencyTextFieldState extends State<CurrencyTextField> {
             hintText: widget.hint ?? (widget.multiplyBy1000 ? 'Nhập số tiền (500 = 500,000)' : 'Nhập số tiền (VNĐ)'),
             prefixIcon: widget.icon != null ? Icon(widget.icon) : null,
             suffixText: widget.multiplyBy1000 ? ',000' : null,
-            suffixStyle: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold, fontSize: 12),
+            suffixStyle: AppTextStyles.caption.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             errorText: _errorText,
             filled: true,
             fillColor: widget.enabled ? Colors.white : Colors.grey.shade100,
           ),
-          style: TextStyle(fontSize: 16, color: widget.enabled ? Colors.black87 : Colors.grey, fontWeight: FontWeight.w500),
+          style: AppTextStyles.body1.copyWith(
+            color: widget.enabled ? AppColors.onSurface : AppColors.onSurface.withOpacity(0.5),
+            fontWeight: FontWeight.w500,
+          ),
         ),
       ],
     );
@@ -299,7 +311,7 @@ class _EnhancedCurrencyInputState extends State<EnhancedCurrencyInput> {
             filled: true,
             fillColor: widget.enabled ? Colors.white : Colors.grey.shade100,
           ),
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+          style: AppTextStyles.body1.copyWith(fontWeight: FontWeight.w500),
         ),
         if (_showQuickAmounts) ...[
           const SizedBox(height: 8),

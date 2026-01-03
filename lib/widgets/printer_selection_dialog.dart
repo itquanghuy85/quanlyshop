@@ -3,6 +3,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../services/bluetooth_printer_service.dart';
 import '../l10n/app_localizations.dart';
 import '../models/printer_types.dart';
+import '../theme/app_text_styles.dart';
+import '../theme/app_colors.dart';
 
 class PrinterSelectionDialog extends StatefulWidget {
   const PrinterSelectionDialog({super.key});
@@ -147,9 +149,6 @@ class _PrinterSelectionDialogState extends State<PrinterSelectionDialog> {
                       onPressed: _loadAvailableBluetoothPrinters,
                       icon: const Icon(Icons.refresh),
                       label: const Text('Tải lại'),
-                      style: ElevatedButton.styleFrom(
-                        minimumSize: const Size(double.infinity, 36),
-                      ),
                     ),
                   ],
                 ),
@@ -196,9 +195,9 @@ class _PrinterSelectionDialogState extends State<PrinterSelectionDialog> {
                       keyboardType: TextInputType.number,
                     ),
                     const SizedBox(height: 8),
-                    const Text(
+                    Text(
                       'Port: 9100 (mặc định)',
-                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                      style: AppTextStyles.caption.copyWith(color: AppColors.onSurface.withOpacity(0.6)),
                     ),
                   ],
                 ),

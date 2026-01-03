@@ -1,13 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../core/utils/money_utils.dart';
 import '../data/db_helper.dart';
 import '../models/repair_model.dart';
 import '../models/sale_order_model.dart';
 import '../services/user_service.dart';
 import '../services/firestore_service.dart';
 import 'repair_detail_view.dart';
+import '../theme/app_text_styles.dart';
+import '../theme/app_colors.dart';
 import 'sale_detail_view.dart';
+import '../theme/app_theme.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_text_styles.dart';
+import '../theme/app_button_styles.dart';
 
 class CustomerListView extends StatefulWidget {
   final String role;
@@ -28,11 +35,6 @@ class _CustomerListViewState extends State<CustomerListView> {
   bool _isSelectionMode = false;
   final Set<int> _selectedIndices = {};
   bool _isDeleting = false;
-
-  // Theme colors cho màn hình quản lý khách hàng
-  final Color _primaryColor = Colors.pink; // Màu hồng cho customer management
-  final Color _accentColor = Colors.pink.shade600;
-  final Color _backgroundColor = const Color(0xFFF8FAFF);
 
   @override
   void initState() {
@@ -239,10 +241,10 @@ class _CustomerListViewState extends State<CustomerListView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _backgroundColor,
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: _primaryColor,
-        foregroundColor: Colors.white,
+        backgroundColor: AppColors.primary,
+        foregroundColor: AppColors.onPrimary,
         elevation: 2,
         automaticallyImplyLeading: true,
         title: Text(
@@ -251,23 +253,23 @@ class _CustomerListViewState extends State<CustomerListView> {
             : _showUnassignedOnly 
               ? "KHÁCH HÀNG CHƯA GÁN SHOP (${_customers.length})"
               : "HỆ THỐNG KHÁCH HÀNG (${_customers.length})", 
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)
+          style: AppTextStyles.headline6.copyWith(color: AppColors.onPrimary, fontWeight: FontWeight.bold)
         ),
         actions: _isSelectionMode ? [
           IconButton(
-            icon: const Icon(Icons.close, color: Colors.white),
+            icon: Icon(Icons.close, color: AppColors.onPrimary),
             onPressed: _cancelSelection,
             tooltip: "Hủy chọn",
           ),
           if (_isAdmin)
             IconButton(
-              icon: const Icon(Icons.delete_forever, color: Colors.white),
+              icon: Icon(Icons.delete_forever, color: AppColors.onPrimary),
               onPressed: _isDeleting ? null : _deleteSelectedCustomers,
               tooltip: "Xóa các khách đã chọn",
             ),
         ] : [
           IconButton(
-            icon: Icon(_showUnassignedOnly ? Icons.group : Icons.group_off, color: Colors.white),
+            icon: Icon(_showUnassignedOnly ? Icons.group : Icons.group_off, color: AppColors.onPrimary),
             onPressed: () {
               setState(() => _showUnassignedOnly = !_showUnassignedOnly);
               _refresh();
@@ -298,7 +300,7 @@ class _CustomerListViewState extends State<CustomerListView> {
     return Card(
       margin: const EdgeInsets.only(bottom: 15),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-      color: isSelected ? Colors.blue.shade50 : null,
+      color: isSelected ? AppColors.primary.withOpacity(0.1) : AppColors.surface,
       child: InkWell(
         onTap: _isSelectionMode 
           ? () => _toggleSelection(index)
@@ -323,48 +325,47 @@ class _CustomerListViewState extends State<CustomerListView> {
                   Expanded(
                     child: Text(
                       "${c['customerName']}",
-                      style: TextStyle(
+                      style: AppTextStyles.body1.copyWith(
                         fontWeight: FontWeight.bold, 
-                        fontSize: 15, 
-                        color: isSelected ? Colors.blue : Colors.blueAccent
+                        color: isSelected ? AppColors.primary : AppColors.onSurface
                       ),
                     ),
                   ),
                   if (!_isSelectionMode && canDelete)
                     IconButton(
-                      icon: const Icon(Icons.delete_outline, size: 18, color: Colors.redAccent),
+                      icon: Icon(Icons.delete_outline, size: 18, color: AppColors.error),
                       tooltip: "Xóa khách khỏi danh sách",
                       onPressed: () => _confirmDeleteCustomer(c),
                     ),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Colors.red,
+                      color: AppColors.error,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      "${NumberFormat('#,###').format(c['totalSpent'] ?? 0)} đ",
-                      style: const TextStyle(color: Colors.yellow, fontWeight: FontWeight.bold, fontSize: 12),
+                      "${MoneyUtils.formatVND(c['totalSpent'] ?? 0)} đ",
+                      style: AppTextStyles.caption.copyWith(color: AppColors.onError, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 5),
-              Text("SĐT: ${c['phone']}", style: const TextStyle(color: Colors.grey, fontSize: 13)),
+              Text("SĐT: ${c['phone']}", style: AppTextStyles.body2.copyWith(color: AppColors.onSurface)),
               if ((c['address'] ?? '').toString().isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: 2),
                   child: Text(
                     "Địa chỉ: ${c['address']}",
-                    style: const TextStyle(color: Colors.grey, fontSize: 12),
+                    style: AppTextStyles.caption.copyWith(color: AppColors.onSurface),
                   ),
                 ),
               const Divider(height: 20),
               Row(
                 children: [
-                  _miniStat(Icons.build_circle_outlined, "${c['repairCount'] ?? 0} lần sửa", Colors.blue),
+                  _miniStat(Icons.build_circle_outlined, "${c['repairCount'] ?? 0} lần sửa", AppColors.info),
                   const SizedBox(width: 20),
-                  _miniStat(Icons.shopping_bag_outlined, "${c['saleCount'] ?? 0} máy đã mua", Colors.pink),
+                  _miniStat(Icons.shopping_bag_outlined, "${c['saleCount'] ?? 0} máy đã mua", AppColors.secondary),
                 ],
               )
             ],
@@ -379,7 +380,7 @@ class _CustomerListViewState extends State<CustomerListView> {
       children: [
         Icon(icon, size: 14, color: color),
         const SizedBox(width: 5),
-        Text(label, style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w500)),
+        Text(label, style: AppTextStyles.caption.copyWith(color: color, fontWeight: FontWeight.w500)),
       ],
     );
   }
@@ -421,7 +422,7 @@ class _CustomerListViewState extends State<CustomerListView> {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: _primaryColor.withOpacity(0.05),
+                  color: AppColors.primary.withOpacity(0.05),
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
                 ),
                 child: Column(
@@ -431,10 +432,10 @@ class _CustomerListViewState extends State<CustomerListView> {
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: _primaryColor,
+                            color: AppColors.primary,
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.person, color: Colors.white, size: 24),
+                          child: Icon(Icons.person, color: AppColors.onPrimary, size: 24),
                         ),
                         const SizedBox(width: 16),
                         Expanded(
@@ -443,11 +444,7 @@ class _CustomerListViewState extends State<CustomerListView> {
                             children: [
                               Text(
                                 c['customerName'].toString().toUpperCase(),
-                                style: const TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black87,
-                                ),
+                                style: AppTextStyles.headline4.copyWith(fontWeight: FontWeight.bold),
                               ),
                               const SizedBox(height: 4),
                               Row(
@@ -456,10 +453,11 @@ class _CustomerListViewState extends State<CustomerListView> {
                                   const SizedBox(width: 4),
                                   Text(
                                     c['phone'].toString(),
-                                    style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                                    style: AppTextStyles.body2.copyWith(color: AppColors.onSurface.withOpacity(0.6)),
                                   ),
                                 ],
                               ),
+                              // address part
                               if (c['address'] != null && c['address'].toString().isNotEmpty) ...[
                                 const SizedBox(height: 2),
                                 Row(
@@ -469,7 +467,7 @@ class _CustomerListViewState extends State<CustomerListView> {
                                     Expanded(
                                       child: Text(
                                         c['address'].toString(),
-                                        style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                                        style: AppTextStyles.body2.copyWith(color: AppColors.onSurface.withOpacity(0.6)),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                       ),
@@ -501,7 +499,7 @@ class _CustomerListViewState extends State<CustomerListView> {
                         children: [
                           _buildStatItem(
                             "Tổng chi tiêu",
-                            "${NumberFormat('#,###').format(c['totalSpent'] ?? 0)} đ",
+                            "${MoneyUtils.formatVND(c['totalSpent'] ?? 0)} đ",
                             Colors.red,
                             Icons.attach_money,
                           ),
@@ -532,7 +530,6 @@ class _CustomerListViewState extends State<CustomerListView> {
                   unselectedLabelColor: Colors.grey,
                   indicatorColor: Colors.pink,
                   indicatorWeight: 3,
-                  labelStyle: TextStyle(fontWeight: FontWeight.w600),
                   tabs: [
                     Tab(text: "LỊCH SỬ SỬA CHỮA"),
                     Tab(text: "LỊCH SỬ MUA HÀNG"),
@@ -595,11 +592,11 @@ class _CustomerListViewState extends State<CustomerListView> {
                           children: [
                             Text(
                               r.model,
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                              style: AppTextStyles.body1.copyWith(fontWeight: FontWeight.bold),
                             ),
                             Text(
                               "Lỗi: ${r.issue.split('|').first}",
-                              style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                              style: AppTextStyles.body2.copyWith(color: AppColors.onSurface.withOpacity(0.6)),
                             ),
                           ],
                         ),
@@ -611,12 +608,8 @@ class _CustomerListViewState extends State<CustomerListView> {
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
-                          "${NumberFormat('#,###').format(r.price)} đ",
-                          style: const TextStyle(
-                            color: Colors.green,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                          ),
+                          "${MoneyUtils.formatVND(r.price)} đ",
+                          style: AppTextStyles.priceStyle,
                         ),
                       ),
                     ],
@@ -639,9 +632,8 @@ class _CustomerListViewState extends State<CustomerListView> {
                         ),
                         child: Text(
                           _getStatusText(r.status),
-                          style: TextStyle(
+                          style: AppTextStyles.caption.copyWith(
                             color: _getStatusColor(r.status),
-                            fontSize: 12,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -709,7 +701,7 @@ class _CustomerListViewState extends State<CustomerListView> {
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
-                          "${NumberFormat('#,###').format(s.totalPrice)} đ",
+                          "${MoneyUtils.formatVND(s.totalPrice)} đ",
                           style: const TextStyle(
                             color: Colors.red,
                             fontWeight: FontWeight.bold,
