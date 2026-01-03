@@ -157,7 +157,7 @@ class _StockInViewState extends State<StockInView> {
     final clean = text.replaceAll(',', '').split('.').first;
     final num = int.tryParse(clean);
     if (num != null) {
-      final formatted = "${NumberFormat('#,###').format(num)}.000";
+      final formatted = "${NumberFormat('#,###').format(num)}";
       if (formatted != text) {
         costCtrl.value = TextEditingValue(
           text: formatted,
@@ -173,7 +173,7 @@ class _StockInViewState extends State<StockInView> {
     final clean = text.replaceAll(',', '').split('.').first;
     final num = int.tryParse(clean);
     if (num != null) {
-      final formatted = "${NumberFormat('#,###').format(num)}.000";
+      final formatted = "${NumberFormat('#,###').format(num)}";
       if (formatted != text) {
         priceCtrl.value = TextEditingValue(
           text: formatted,

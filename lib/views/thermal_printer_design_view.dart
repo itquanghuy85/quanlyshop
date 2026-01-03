@@ -241,8 +241,8 @@ class _ThermalPrinterDesignViewState extends State<ThermalPrinterDesignView> wit
       child: Column(children: [
         if (_showLabelName) Text("IPHONE 13 PRO MAX", textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14 * scale)),
         if (_showLabelDetail) Text("256GB XANH 99%", textAlign: TextAlign.center, style: TextStyle(fontSize: 10 * scale, fontWeight: FontWeight.bold)),
-        if (_showLabelPriceKPK) Text("GIÁ KPK: 15.590.000", textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue, fontSize: 12 * scale)),
-        if (_showLabelPriceCPK) Text("GIÁ CPK: 15.990.000", textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red, fontSize: 11 * scale)),
+        if (_showLabelPriceKPK) Text("GIÁ KPK: 15.590", textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue, fontSize: 12 * scale)),
+        if (_showLabelPriceCPK) Text("GIÁ CPK: 15.990", textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red, fontSize: 11 * scale)),
         if (_showLabelIMEI || _showLabelQR) Row(mainAxisAlignment: MainAxisAlignment.center, children: [
           if (_showLabelIMEI) Expanded(child: Text("IMEI: 35890123...", style: TextStyle(fontSize: 8 * scale, fontWeight: FontWeight.bold))),
           if (_showLabelQR) Icon(Icons.qr_code_2, size: 30 * scale),
@@ -262,7 +262,7 @@ class _ThermalPrinterDesignViewState extends State<ThermalPrinterDesignView> wit
         if (_showRcPhone) const Text("0123.456.789", style: TextStyle(fontSize: 9)),
         const Divider(),
         const Text("HOA DON BAN HANG", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10)),
-        const Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text("Sản phẩm x1", style: TextStyle(fontSize: 8)), Text("15.500.000", style: TextStyle(fontSize: 8))]),
+        const Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text("Sản phẩm x1", style: TextStyle(fontSize: 8)), Text("15.500", style: TextStyle(fontSize: 8))]),
         if (_showRcQR) const Icon(Icons.qr_code_scanner, size: 40),
         Text(_rcNoteCtrl.text, style: const TextStyle(fontSize: 8, fontStyle: FontStyle.italic))
       ]),

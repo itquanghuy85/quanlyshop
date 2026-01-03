@@ -26,7 +26,7 @@ class DBHelper {
     String path = join(await getDatabasesPath(), 'repair_shop_v22.db');
     return await openDatabase(
       path,
-      version: 33,
+      version: 35,
       onCreate: (db, version) async {
         await db.execute(
           'CREATE TABLE IF NOT EXISTS repairs(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, customerName TEXT, phone TEXT, model TEXT, issue TEXT, accessories TEXT, address TEXT, imagePath TEXT, deliveredImage TEXT, warranty TEXT, partsUsed TEXT, status INTEGER, price INTEGER, cost INTEGER, paymentMethod TEXT, createdAt INTEGER, startedAt INTEGER, finishedAt INTEGER, deliveredAt INTEGER, createdBy TEXT, repairedBy TEXT, deliveredBy TEXT, lastCaredAt INTEGER, isSynced INTEGER DEFAULT 0, deleted INTEGER DEFAULT 0, color TEXT, imei TEXT, condition TEXT)',
@@ -57,6 +57,12 @@ class DBHelper {
         );
         await db.execute(
           'CREATE TABLE IF NOT EXISTS inventory_checks(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, type TEXT, checkDate INTEGER, itemsJson TEXT, status TEXT, createdBy TEXT, isSynced INTEGER DEFAULT 0, isCompleted INTEGER DEFAULT 0)',
+        );
+        await db.execute(
+          'CREATE TABLE IF NOT EXISTS supplier_payments(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, supplierId INTEGER, amount INTEGER, paidAt INTEGER, paymentMethod TEXT, note TEXT, shopId TEXT, isSynced INTEGER DEFAULT 0, deleted INTEGER DEFAULT 0)',
+        );
+        await db.execute(
+          'CREATE TABLE IF NOT EXISTS repair_partner_payments(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, partnerId INTEGER, amount INTEGER, paidAt INTEGER, paymentMethod TEXT, note TEXT, shopId TEXT, isSynced INTEGER DEFAULT 0, deleted INTEGER DEFAULT 0)',
         );
         await db.execute(
           'CREATE TABLE IF NOT EXISTS cash_closings(id INTEGER PRIMARY KEY AUTOINCREMENT, dateKey TEXT UNIQUE, cashStart INTEGER DEFAULT 0, bankStart INTEGER DEFAULT 0, cashEnd INTEGER DEFAULT 0, bankEnd INTEGER DEFAULT 0, expectedCashDelta INTEGER DEFAULT 0, expectedBankDelta INTEGER DEFAULT 0, note TEXT, createdAt INTEGER)',
@@ -340,6 +346,31 @@ class DBHelper {
             );
           } catch (e) {
             debugPrint('DB upgrade error (partner_repair_history): $e');
+          }
+        }
+        if (oldV < 34) {
+          try {
+            await db.execute(
+              'ALTER TABLE repairs ADD COLUMN services TEXT',
+            );
+          } catch (e) {
+            debugPrint('DB upgrade error (repairs services): $e');
+          }
+        }
+        if (oldV < 35) {
+          try {
+            await db.execute(
+              'CREATE TABLE IF NOT EXISTS supplier_payments(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, supplierId INTEGER, amount INTEGER, paidAt INTEGER, paymentMethod TEXT, note TEXT, shopId TEXT, isSynced INTEGER DEFAULT 0, deleted INTEGER DEFAULT 0)',
+            );
+          } catch (e) {
+            debugPrint('DB upgrade error (supplier_payments): $e');
+          }
+          try {
+            await db.execute(
+              'CREATE TABLE IF NOT EXISTS repair_partner_payments(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, partnerId INTEGER, amount INTEGER, paidAt INTEGER, paymentMethod TEXT, note TEXT, shopId TEXT, isSynced INTEGER DEFAULT 0, deleted INTEGER DEFAULT 0)',
+            );
+          } catch (e) {
+            debugPrint('DB upgrade error (repair_partner_payments): $e');
           }
         }
         debugPrint('DB upgrade completed');
@@ -1257,13 +1288,13 @@ class DBHelper {
   }
 
   // Supplier Import History methods
-  Future<void> insertSupplierImportHistory(Map<String, dynamic> history) async {
+  Future<int> insertSupplierImportHistory(Map<String, dynamic> history) async {
     final db = await database;
     final firestoreId =
         history['firestoreId'] ??
         "import_${DateTime.now().millisecondsSinceEpoch}_${history['supplierId'] ?? 'unknown'}_${history['imei'] ?? 'no_imei'}";
     history['firestoreId'] = firestoreId;
-    await _upsert('supplier_import_history', history, firestoreId);
+    return await db.insert('supplier_import_history', history);
   }
 
   Future<List<Map<String, dynamic>>> getSupplierImportHistory(
@@ -1447,5 +1478,134 @@ class DBHelper {
         [partnerId],
       );
       return result.isNotEmpty ? result.first : null;
+    }
+
+    Future<List<Map<String, dynamic>>> getSupplierPayments(int supplierId) async {
+      final db = await database;
+      return await db.query(
+        'supplier_payments',
+        where: 'supplierId = ?',
+        whereArgs: [supplierId],
+        orderBy: 'paidAt DESC',
+      );
+    }
+
+    Future<int> updateSupplier(int id, Map<String, dynamic> supplier) async {
+      final db = await database;
+      return await db.update('suppliers', supplier, where: 'id = ?', whereArgs: [id]);
+    }
+
+    Future<int> updateSupplierImportHistory(int id, Map<String, dynamic> history) async {
+      final db = await database;
+      return await db.update('supplier_import_history', history, where: 'id = ?', whereArgs: [id]);
+    }
+
+    Future<int> insertSupplierProductPrices(Map<String, dynamic> prices) async {
+      final db = await database;
+      return await db.insert('supplier_product_prices', prices);
+    }
+
+    Future<int> updateSupplierProductPrices(int id, Map<String, dynamic> prices) async {
+      final db = await database;
+      return await db.update('supplier_product_prices', prices, where: 'id = ?', whereArgs: [id]);
+    }
+
+    Future<Map<String, dynamic>> getSupplierStatistics(String supplierId, String shopId) async {
+      final db = await database;
+      final result = await db.rawQuery(
+        '''
+      SELECT
+        COUNT(DISTINCT sih.id) as totalImports,
+        SUM(sih.totalAmount) as totalImportValue,
+        SUM(sp.amount) as totalPaid
+      FROM supplier_import_history sih
+      LEFT JOIN supplier_payments sp ON sih.supplierId = sp.supplierId
+      WHERE sih.supplierId = ? AND sih.shopId = ?
+    ''',
+        [supplierId, shopId],
+      );
+      return result.isNotEmpty ? result.first : {};
+    }
+
+    // Supplier Payment methods
+    Future<int> insertSupplierPayment(Map<String, dynamic> payment) async {
+      final db = await database;
+      return await db.insert('supplier_payments', payment);
+    }
+
+    Future<int> updateSupplierPayment(int id, Map<String, dynamic> payment) async {
+      final db = await database;
+      return await db.update('supplier_payments', payment, where: 'id = ?', whereArgs: [id]);
+    }
+
+    Future<int> deleteSupplierPayment(int id) async {
+      final db = await database;
+      return await db.delete('supplier_payments', where: 'id = ?', whereArgs: [id]);
+    }
+
+    Future<int> deleteSupplierPaymentByFirestoreId(String firestoreId) async {
+      final db = await database;
+      return await db.delete('supplier_payments', where: 'firestoreId = ?', whereArgs: [firestoreId]);
+    }
+
+    Future<void> upsertSupplierPayment(Map<String, dynamic> payment) async {
+      final db = await database;
+      final firestoreId = payment['firestoreId'];
+      final existing = await db.query(
+        'supplier_payments',
+        where: 'firestoreId = ?',
+        whereArgs: [firestoreId],
+      );
+      if (existing.isNotEmpty) {
+        await db.update(
+          'supplier_payments',
+          payment,
+          where: 'firestoreId = ?',
+          whereArgs: [firestoreId],
+        );
+      } else {
+        await db.insert('supplier_payments', payment);
+      }
+    }
+
+    // Repair Partner Payment methods
+    Future<int> insertRepairPartnerPayment(Map<String, dynamic> payment) async {
+      final db = await database;
+      return await db.insert('repair_partner_payments', payment);
+    }
+
+    Future<int> updateRepairPartnerPayment(int id, Map<String, dynamic> payment) async {
+      final db = await database;
+      return await db.update('repair_partner_payments', payment, where: 'id = ?', whereArgs: [id]);
+    }
+
+    Future<int> deleteRepairPartnerPayment(int id) async {
+      final db = await database;
+      return await db.delete('repair_partner_payments', where: 'id = ?', whereArgs: [id]);
+    }
+
+    Future<int> deleteRepairPartnerPaymentByFirestoreId(String firestoreId) async {
+      final db = await database;
+      return await db.delete('repair_partner_payments', where: 'firestoreId = ?', whereArgs: [firestoreId]);
+    }
+
+    Future<void> upsertRepairPartnerPayment(Map<String, dynamic> payment) async {
+      final db = await database;
+      final firestoreId = payment['firestoreId'];
+      final existing = await db.query(
+        'repair_partner_payments',
+        where: 'firestoreId = ?',
+        whereArgs: [firestoreId],
+      );
+      if (existing.isNotEmpty) {
+        await db.update(
+          'repair_partner_payments',
+          payment,
+          where: 'firestoreId = ?',
+          whereArgs: [firestoreId],
+        );
+      } else {
+        await db.insert('repair_partner_payments', payment);
+      }
     }
   }

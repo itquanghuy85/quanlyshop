@@ -107,7 +107,7 @@ Lưu ý: hàm `_parseCurrency` trong `CreateSaleView` thực hiện đúng các 
 
 ## Demo nhập tiền tệ (CurrencyInputDemo)
 - So sánh hai cách nhập tiền:
-  - Quy ước x1k (`CurrencyTextField`): nhập 220 → 220.000 VNĐ (áp dụng heuristic *1000 nếu <100000).
+  - Quy ước x1k (`CurrencyTextField`): nhập 220 → 220 VNĐ (áp dụng heuristic *1000 nếu <100000).
   - Nhập trực tiếp (`EnhancedCurrencyInput`): nhập đầy đủ số tiền, có quick select buttons (100K, 200K, etc.).
 - Không ảnh hưởng logic app chính; chỉ demo UX.
 

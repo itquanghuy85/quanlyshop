@@ -7,7 +7,7 @@ import '../data/db_helper.dart';
 import '../services/sync_service.dart';
 import 'staff_permissions_view.dart';
 import 'shop_settings_view.dart';
-import 'repair_partner_list_view.dart';
+import 'partner_management_view.dart';
 
 class SettingsView extends StatefulWidget {
   final void Function(Locale)? setLocale;
@@ -235,7 +235,7 @@ class _SettingsViewState extends State<SettingsView> {
                 leading: const Icon(Icons.business, color: Colors.orange),
                 title: const Text("ĐỐI TÁC SỬA CHỮA", style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
                 subtitle: const Text("Quản lý đối tác ngoài, gửi máy sửa chữa và theo dõi chi phí", style: TextStyle(fontSize: 11)),
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => RepairPartnerListView())),
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PartnerManagementView())),
               ),
             ),
             const SizedBox(height: 15),

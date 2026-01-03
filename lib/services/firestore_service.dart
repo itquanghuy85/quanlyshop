@@ -409,44 +409,37 @@ class FirestoreService {
       }
       final collections = ['repairs', 'sales', 'products', 'debts', 'expenses', 'audit_logs', 'attendance', 'chats', 'inventory_checks', 'cash_closings', 'purchase_orders', 'quick_input_codes', 'debt_payments', 'payroll_settings', 'work_schedules', 'suppliers', 'customers'];
       
-      // Nếu là super admin, xóa thêm debts không có shopId (dữ liệu cũ)
-      if (UserService.isCurrentUserSuperAdmin()) {
-        try {
-          final orphanDebts = await _db.collection('debts').where('shopId', isNull: true).get();
-          if (orphanDebts.docs.isNotEmpty) {
-            const batchSize = 400;
-            for (int i = 0; i < orphanDebts.docs.length; i += batchSize) {
-              final batch = _db.batch();
-              final end = (i + batchSize < orphanDebts.docs.length) ? i + batchSize : orphanDebts.docs.length;
-              for (int j = i; j < end; j++) {
-                batch.delete(orphanDebts.docs[j].reference);
-              }
-              await batch.commit();
-            }
-            debugPrint('Deleted ${orphanDebts.docs.length} orphan debts');
-          }
-        } catch (e) {
-          debugPrint('Error deleting orphan debts: $e');
-        }
-      }
-      
       for (var colName in collections) {
         try {
-          final snapshots = await _db.collection(colName).where('shopId', isEqualTo: shopId).get();
-          if (snapshots.docs.isNotEmpty) {
-            // Delete in batches of 400 to stay under Firestore limit of 500
-            const batchSize = 400;
-            for (int i = 0; i < snapshots.docs.length; i += batchSize) {
-              final batch = _db.batch();
-              final end = (i + batchSize < snapshots.docs.length) ? i + batchSize : snapshots.docs.length;
-              for (int j = i; j < end; j++) {
-                batch.delete(snapshots.docs[j].reference);
-              }
-              await batch.commit();
+          List<Query<Map<String, dynamic>>> queries = [];
+          if (colName == 'debts') {
+            queries.add(_db.collection(colName).where('shopId', isEqualTo: shopId));
+            if (UserService.isCurrentUserSuperAdmin()) {
+              queries.add(_db.collection(colName).where('shopId', isNull: true));
+              queries.add(_db.collection(colName).where('type', isEqualTo: 'OWE'));
+              queries.add(_db.collection(colName).where('type', isEqualTo: 'SHOP_OWES'));
             }
-            debugPrint('Deleted ${snapshots.docs.length} docs from $colName');
           } else {
-            debugPrint('No docs to delete in $colName');
+            queries.add(_db.collection(colName).where('shopId', isEqualTo: shopId));
+          }
+
+          for (var query in queries) {
+            final snapshots = await query.get();
+            if (snapshots.docs.isNotEmpty) {
+              // Delete in batches of 400 to stay under Firestore limit of 500
+              const batchSize = 400;
+              for (int i = 0; i < snapshots.docs.length; i += batchSize) {
+                final batch = _db.batch();
+                final end = (i + batchSize < snapshots.docs.length) ? i + batchSize : snapshots.docs.length;
+                for (int j = i; j < end; j++) {
+                  batch.delete(snapshots.docs[j].reference);
+                }
+                await batch.commit();
+              }
+              debugPrint('Deleted ${snapshots.docs.length} docs from $colName');
+            } else {
+              debugPrint('No docs to delete in $colName');
+            }
           }
         } catch (e) {
           debugPrint('Error deleting from $colName: $e');
@@ -695,6 +688,73 @@ class FirestoreService {
       return docRef.id;
     } catch (e) {
       debugPrint('Firestore addPartnerRepairHistory error: $e');
+      return null;
+    }
+  }
+
+  // --- SUPPLIERS ---
+  static Future<String?> addSupplier(Map<String, dynamic> supplierData) async {
+    try {
+      final shopId = await UserService.getCurrentShopId();
+      if (shopId == null && !UserService.isCurrentUserSuperAdmin()) {
+        throw Exception('Không tìm thấy thông tin cửa hàng. Vui lòng liên hệ quản trị viên.');
+      }
+      final docId = supplierData['firestoreId'] ?? "supplier_${DateTime.now().millisecondsSinceEpoch}";
+      final docRef = _db.collection('suppliers').doc(docId);
+      supplierData['shopId'] = shopId;
+      supplierData['firestoreId'] = docRef.id;
+      await docRef.set(supplierData, SetOptions(merge: true));
+      return docRef.id;
+    } catch (e) {
+      debugPrint('Firestore addSupplier error: $e');
+      return null;
+    }
+  }
+
+  static Future<void> updateSupplier(Map<String, dynamic> supplierData) async {
+    try {
+      final firestoreId = supplierData['firestoreId'];
+      if (firestoreId == null) return;
+      await _db.collection('suppliers').doc(firestoreId).update(supplierData);
+    } catch (e) {
+      debugPrint('Firestore updateSupplier error: $e');
+    }
+  }
+
+  // --- SUPPLIER IMPORT HISTORY ---
+  static Future<String?> addSupplierImportHistory(Map<String, dynamic> historyData) async {
+    try {
+      final shopId = await UserService.getCurrentShopId();
+      if (shopId == null && !UserService.isCurrentUserSuperAdmin()) {
+        throw Exception('Không tìm thấy thông tin cửa hàng. Vui lòng liên hệ quản trị viên.');
+      }
+      final docId = historyData['firestoreId'] ?? "supplier_import_${DateTime.now().millisecondsSinceEpoch}";
+      final docRef = _db.collection('supplier_import_history').doc(docId);
+      historyData['shopId'] = shopId;
+      historyData['firestoreId'] = docRef.id;
+      await docRef.set(historyData, SetOptions(merge: true));
+      return docRef.id;
+    } catch (e) {
+      debugPrint('Firestore addSupplierImportHistory error: $e');
+      return null;
+    }
+  }
+
+  // --- SUPPLIER PRODUCT PRICES ---
+  static Future<String?> addSupplierProductPrices(Map<String, dynamic> pricesData) async {
+    try {
+      final shopId = await UserService.getCurrentShopId();
+      if (shopId == null && !UserService.isCurrentUserSuperAdmin()) {
+        throw Exception('Không tìm thấy thông tin cửa hàng. Vui lòng liên hệ quản trị viên.');
+      }
+      final docId = pricesData['firestoreId'] ?? "supplier_prices_${DateTime.now().millisecondsSinceEpoch}";
+      final docRef = _db.collection('supplier_product_prices').doc(docId);
+      pricesData['shopId'] = shopId;
+      pricesData['firestoreId'] = docRef.id;
+      await docRef.set(pricesData, SetOptions(merge: true));
+      return docRef.id;
+    } catch (e) {
+      debugPrint('Firestore addSupplierProductPrices error: $e');
       return null;
     }
   }

@@ -704,44 +704,42 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
           const SizedBox(height: 8),
 
           // Giá nhập
-          _buildTextField(
-            controller: costCtrl,
-            label: 'Giá nhập (VNĐ) *',
-            focusNode: costF,
-            nextFocus: priceF,
-            keyboardType: TextInputType.number,
-            icon: Icons.attach_money,
-            suffix: 'x1k',
-            hasChanged: _costChanged,
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: CurrencyTextField(
+              controller: costCtrl,
+              label: 'Giá nhập (VNĐ) *',
+              icon: Icons.attach_money,
+              multiplyBy1000: false,
+              onSubmitted: () => FocusScope.of(context).requestFocus(priceF),
+            ),
           ),
           const SizedBox(height: 8),
 
           // Giá bán (cho accessory) hoặc Giá thay (cho linh kiện)
           if (_isAccessoryOrLinhKien) ...[
-            _buildTextField(
-              controller: priceCtrl,
-              label: typeCtrl.text == 'ACCESSORY' ? 'Giá (VNĐ)' : 'Giá thay (VNĐ)',
-              focusNode: priceF,
-              nextFocus: notesF,
-              keyboardType: TextInputType.number,
-              icon: Icons.sell,
-              suffix: 'x1k',
-              hasChanged: _priceChanged,
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: CurrencyTextField(
+                controller: priceCtrl,
+                label: typeCtrl.text == 'ACCESSORY' ? 'Giá (VNĐ)' : 'Giá thay (VNĐ)',
+                icon: Icons.sell,
+                multiplyBy1000: false,
+                onSubmitted: () => FocusScope.of(context).requestFocus(notesF),
+              ),
             ),
-            const SizedBox(height: 8),
           ] else ...[
             // Giá bán không phụ kiện (cho phone)
-            _buildTextField(
-              controller: priceCtrl,
-              label: 'Giá bán (VNĐ)',
-              focusNode: priceF,
-              nextFocus: notesF,
-              keyboardType: TextInputType.number,
-              icon: Icons.sell,
-              suffix: 'x1k',
-              hasChanged: _priceChanged,
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: CurrencyTextField(
+                controller: priceCtrl,
+                label: 'Giá bán (VNĐ)',
+                icon: Icons.sell,
+                multiplyBy1000: false,
+                onSubmitted: () => FocusScope.of(context).requestFocus(notesF),
+              ),
             ),
-            const SizedBox(height: 8),
           ],
 
           // Nhà cung cấp
@@ -1013,7 +1011,7 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView> with Ti
                       margin: const EdgeInsets.only(bottom: 8),
                       child: ListTile(
                         title: Text(item['name']),
-                        subtitle: Text("IMEI: ${item['imei']} • Giá: ${NumberFormat('#,###').format(item['price'])}.000đ"),
+                        subtitle: Text("IMEI: ${item['imei']} • Giá: ${NumberFormat('#,###').format(item['price'])}đ"),
                         trailing: IconButton(
                           onPressed: () => setState(() => _batchItems.removeAt(index)),
                           icon: const Icon(Icons.delete, color: Colors.red),

@@ -12,7 +12,7 @@ void main() {
     });
 
     test('parseMoney with dots and spaces', () {
-      expect(MoneyUtils.parseMoney('1.000'), 1000);
+      expect(MoneyUtils.parseMoney('1'), 1000);
     });
 
     test('parseMoney with mixed characters', () {

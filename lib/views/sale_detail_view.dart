@@ -20,6 +20,7 @@ import '../services/unified_printer_service.dart';
 import '../services/bluetooth_printer_service.dart';
 import '../models/printer_types.dart';
 import '../widgets/printer_selection_dialog.dart';
+import 'create_sale_view.dart';
 
 class SaleDetailView extends StatefulWidget {
   final SaleOrder sale;
@@ -191,9 +192,9 @@ class _SaleDetailViewState extends State<SaleDetailView> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(controller: amountCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "Số tiền nhận (.000đ)", prefixText: "Đ ", suffixText: ".000")),
+            TextField(controller: amountCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "Số tiền nhận ", prefixText: "Đ ", suffixText: null)),
             const SizedBox(height: 8),
-            TextField(controller: feeCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "Phí NH giữ lại (.000đ)", prefixText: "Đ ", suffixText: ".000")),
+            TextField(controller: feeCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "Phí NH giữ lại ", prefixText: "Đ ", suffixText: null)),
             const SizedBox(height: 8),
             TextField(controller: noteCtrl, decoration: const InputDecoration(labelText: "Ghi chú")),
           ],
@@ -270,8 +271,8 @@ class _SaleDetailViewState extends State<SaleDetailView> {
               TextField(controller: address, decoration: const InputDecoration(labelText: "Địa chỉ")),
               TextField(controller: products, decoration: const InputDecoration(labelText: "Sản phẩm")),
               TextField(controller: imeis, decoration: const InputDecoration(labelText: "IMEI/Serial")),
-              TextField(controller: totalPrice, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "Tổng tiền (.000)")),
-              TextField(controller: totalCost, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "Giá vốn (.000)")),
+              TextField(controller: totalPrice, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "Tổng tiền ")),
+              TextField(controller: totalCost, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "Giá vốn ")),
               DropdownButtonFormField<String>(initialValue: warranty, decoration: const InputDecoration(labelText: "Bảo hành"), items: warranties.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(), onChanged: (v) => warranty = v ?? warranty),
               DropdownButtonFormField<String>(
                 initialValue: payment,
@@ -361,6 +362,19 @@ class _SaleDetailViewState extends State<SaleDetailView> {
         await FirestoreService.addDebtCloud(linkedDebt);
         EventBus().emit('debts_changed');
       }
+    }
+  }
+
+  Future<void> _editSale() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CreateSaleView(editSale: s),
+      ),
+    );
+    if (result == true && mounted) {
+      // Refresh the sale data if edited
+      Navigator.pop(context, true); // Close detail view to refresh list
     }
   }
 
@@ -473,6 +487,7 @@ class _SaleDetailViewState extends State<SaleDetailView> {
           IconButton(onPressed: _sendToChat, icon: const Icon(Icons.chat_bubble_outline_rounded, color: Colors.white)),
           IconButton(onPressed: _printWifi, icon: const Icon(Icons.print_rounded, color: Colors.white)),
           IconButton(onPressed: _shareInvoice, icon: const Icon(Icons.share_rounded, color: Colors.white)),
+          IconButton(onPressed: _editSale, icon: const Icon(Icons.edit_note, color: Colors.white)),
           if (_managerUnlocked)
             IconButton(onPressed: _deleteSale, icon: const Icon(Icons.delete_forever, color: Colors.white)),
         ],

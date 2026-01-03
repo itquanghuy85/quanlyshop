@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'repair_service_model.dart';
+
 class Repair {
   int? id;
   String? firestoreId;
@@ -31,6 +34,15 @@ class Repair {
   String? imei;
   String? condition;
 
+  // Dịch vụ sửa chữa với đối tác
+  List<RepairService> services;
+
+  // Getter for receive images
+  List<String> get receiveImages {
+    if (imagePath == null || imagePath!.isEmpty) return [];
+    return imagePath!.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+  }
+
   Repair({
     this.id,
     this.firestoreId,
@@ -61,10 +73,10 @@ class Repair {
     this.color,
     this.imei,
     this.condition,
+    this.services = const [],
   });
 
-  List<String> get receiveImages => imagePath?.split(',').where((e) => e.isNotEmpty).toList() ?? [];
-  List<String> get deliverImages => deliveredImage?.split(',').where((e) => e.isNotEmpty).toList() ?? [];
+  int get totalCost => services.isNotEmpty ? services.fold(0, (sum, s) => sum + s.cost) : cost;
 
   Map<String, dynamic> toMap() {
     return {
@@ -97,6 +109,7 @@ class Repair {
       'color': color,
       'imei': imei,
       'condition': condition,
+      'services': jsonEncode(services.map((s) => s.toMap()).toList()),
     };
   }
 
@@ -131,6 +144,9 @@ class Repair {
       color: map['color'],
       imei: map['imei'],
       condition: map['condition'],
+      services: map['services'] != null 
+        ? (jsonDecode(map['services']) as List).map((s) => RepairService.fromMap(s)).toList()
+        : [],
     );
   }
 }

@@ -40,6 +40,7 @@ import 'parts_inventory_view.dart';
 import 'create_repair_order_view.dart';
 import 'repair_partner_list_view.dart';
 import 'about_developer_view.dart';
+import 'partner_management_view.dart';
 import '../data/db_helper.dart';
 import '../widgets/notification_badge.dart';
 import '../widgets/perpetual_calendar.dart';
@@ -245,14 +246,14 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
     final now = DateTime.now();
     for (var r in repairs) {
       if (_isSameDay(r.createdAt)) newRT++;
-      if (r.status >= 3 && r.deliveredAt != null && _isSameDay(r.deliveredAt!)) { doneT++; revT += ((r.price as int) - (r.cost as int)); }
+      if (r.status >= 3 && r.deliveredAt != null) { doneT++; revT += ((r.price as int) - (r.totalCost as int)); }
       if (r.deliveredAt != null && r.warranty.isNotEmpty && r.warranty != "KO BH") {
         int m = int.tryParse(r.warranty.split(' ').first) ?? 0;
         if (m > 0) { DateTime d = DateTime.fromMillisecondsSinceEpoch(r.deliveredAt!); DateTime e = DateTime(d.year, d.month + m, d.day); if (e.isAfter(now) && e.difference(now).inDays <= 7) expW++; }
       }
     }
     for (var s in sales) {
-      if (_isSameDay(s.soldAt)) { soldT++; revT += ((s.totalPrice as int) - (s.totalCost as int)); }
+      soldT++; revT += ((s.totalPrice as int) - (s.totalCost as int));
       if (s.warranty.isNotEmpty && s.warranty != "KO BH") {
         int m = int.tryParse(s.warranty.split(' ').first) ?? 12;
         DateTime d = DateTime.fromMillisecondsSinceEpoch(s.soldAt); DateTime e = DateTime(d.year, d.month + m, d.day); if (e.isAfter(now) && e.difference(now).inDays <= 7) expW++;
@@ -626,6 +627,7 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
         const SizedBox(height: 20),
         _tabMenuItem("Danh sách sản phẩm", Icons.inventory, Colors.blue, () => Navigator.push(context, MaterialPageRoute(builder: (_) => InventoryView(role: widget.role))), subtitle: "Xem và quản lý danh sách sản phẩm trong kho."),
         _tabMenuItem("Nhà cung cấp", Icons.business, Colors.red, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SupplierView())), subtitle: "Quản lý danh sách nhà cung cấp."),
+        _tabMenuItem("Quản lý đối tác & NCC", Icons.business_center, Colors.green, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PartnerManagementView())), subtitle: "Quản lý toàn diện đối tác sửa chữa và nhà cung cấp với lịch sử, thanh toán, thống kê."),
         _tabMenuItem("Nhập kho siêu tốc", Icons.flash_on, Colors.orange, () => Navigator.push(context, MaterialPageRoute(builder: (_) => FastInventoryInputView())), subtitle: "Nhập nhiều sản phẩm vào kho nhanh bằng mã QR."),
         _tabMenuItem("Danh sách mã nhập nhanh", Icons.qr_code, Colors.teal, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const QuickInputCodesView())), subtitle: "Xem và quản lý danh sách mã nhập nhanh đã tạo."),
         _tabMenuItem("Kiểm kho QR", Icons.qr_code_scanner, Colors.purple, () => Navigator.push(context, MaterialPageRoute(builder: (_) => FastInventoryCheckView())), subtitle: "Kiểm tra tồn kho bằng cách quét mã QR."),

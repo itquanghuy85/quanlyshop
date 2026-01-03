@@ -91,12 +91,14 @@ class _InventoryViewState extends State<InventoryView> with TickerProviderStateM
   Widget _input(TextEditingController c, String l, IconData i, {FocusNode? f, FocusNode? next, TextInputType type = TextInputType.text, String? suffix, bool caps = false, bool isBig = false, bool readOnly = false}) {
     if (type == TextInputType.number && (l.contains('GIÁ') || l.contains('TIỀN') || suffix == 'k')) {
       // Use CurrencyTextField for price fields
+      bool multiply = !(l.contains('GIÁ NHẬP') || l.contains('GIÁ BÁN'));
       return Padding(
         padding: const EdgeInsets.only(bottom: 10),
         child: CurrencyTextField(
           controller: c,
           label: l,
           icon: i,
+          multiplyBy1000: multiply,
           onSubmitted: () { if (next != null) FocusScope.of(context).requestFocus(next); },
         ),
       );

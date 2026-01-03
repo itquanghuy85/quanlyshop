@@ -10,6 +10,7 @@ class CurrencyTextField extends StatefulWidget {
   final bool enabled;
   final VoidCallback? onSubmitted;
   final Function(String)? onChanged;
+  final bool multiplyBy1000;
 
   const CurrencyTextField({
     super.key,
@@ -21,6 +22,7 @@ class CurrencyTextField extends StatefulWidget {
     this.enabled = true,
     this.onSubmitted,
     this.onChanged,
+    this.multiplyBy1000 = true,
   });
 
   @override
@@ -84,8 +86,8 @@ class _CurrencyTextFieldState extends State<CurrencyTextField> {
     if (text.isNotEmpty) {
       int baseAmount = int.tryParse(text) ?? 0;
       if (baseAmount > 0) {
-        int actualAmount = baseAmount * 1000;
-        String formatted = _formatNumber(baseAmount);
+        int actualAmount = widget.multiplyBy1000 ? baseAmount * 1000 : baseAmount;
+        String formatted = widget.multiplyBy1000 ? '${_formatNumber(baseAmount)},000' : _formatNumber(baseAmount);
         widget.controller.value = TextEditingValue(text: formatted, selection: TextSelection.collapsed(offset: formatted.length));
         widget.onChanged?.call(actualAmount.toString());
       } else {
@@ -130,9 +132,9 @@ class _CurrencyTextFieldState extends State<CurrencyTextField> {
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           decoration: InputDecoration(
             labelText: widget.required ? '${widget.label} *' : widget.label,
-            hintText: widget.hint ?? 'Nhập số tiền',
+            hintText: widget.hint ?? (widget.multiplyBy1000 ? 'Nhập số tiền (500 = 500,000)' : 'Nhập số tiền (VNĐ)'),
             prefixIcon: widget.icon != null ? Icon(widget.icon) : null,
-            suffixText: 'x1k',
+            suffixText: widget.multiplyBy1000 ? ',000' : null,
             suffixStyle: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold, fontSize: 12),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             errorText: _errorText,

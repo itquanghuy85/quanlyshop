@@ -15,8 +15,9 @@ import 'stock_in_view.dart';
 
 class CreateSaleView extends StatefulWidget {
   final Product? preSelectedProduct; 
+  final SaleOrder? editSale; // Thêm parameter cho edit mode
   
-  const CreateSaleView({super.key, this.preSelectedProduct});
+  const CreateSaleView({super.key, this.preSelectedProduct, this.editSale});
   @override
   State<CreateSaleView> createState() => _CreateSaleViewState();
 }
@@ -89,7 +90,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
     final clean = text.replaceAll(',', '').split('.').first;
     final num = int.tryParse(clean);
     if (num != null) {
-      final formatted = "${NumberFormat('#,###').format(num)}.000";
+      final formatted = "${NumberFormat('#,###').format(num)}";
       if (formatted != text) {
         priceCtrl.value = TextEditingValue(
           text: formatted,
@@ -105,7 +106,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
     final clean = text.replaceAll(',', '').split('.').first;
     final num = int.tryParse(clean);
     if (num != null) {
-      final formatted = "${NumberFormat('#,###').format(num)}.000";
+      final formatted = "${NumberFormat('#,###').format(num)}";
       if (formatted != text) {
         loanAmountCtrl.value = TextEditingValue(
           text: formatted,
@@ -123,9 +124,52 @@ class _CreateSaleViewState extends State<CreateSaleView> {
     if (widget.preSelectedProduct != null) { 
       _addProductToSale(widget.preSelectedProduct!); 
     }
+    if (widget.editSale != null) {
+      _loadEditData();
+    }
   }
 
-  void _calculateInstallment() {
+  void _loadEditData() {
+    final sale = widget.editSale!;
+    nameCtrl.text = sale.customerName;
+    phoneCtrl.text = sale.phone;
+    addressCtrl.text = sale.address;
+    priceCtrl.text = _formatCurrency(sale.totalPrice);
+    noteCtrl.text = sale.notes;
+    _paymentMethod = sale.paymentMethod;
+    _saleWarranty = sale.warranty;
+    _isInstallment = sale.isInstallment;
+    if (_isInstallment) {
+      downPaymentCtrl.text = _formatCurrency(sale.downPayment);
+      loanAmountCtrl.text = _formatCurrency(sale.loanAmount);
+      bankCtrl.text = sale.bankName ?? '';
+    }
+    
+    // Load selected items từ sale
+    final productNames = sale.productNames.split(',');
+    final productImeis = sale.productImeis.split(',');
+    final quantities = List.filled(productNames.length, 1); // Giả sử quantity 1
+    
+    for (int i = 0; i < productNames.length; i++) {
+      final name = productNames[i].trim();
+      final imei = productImeis.length > i ? productImeis[i].trim() : '';
+      
+      // Tìm product trong _allInStock
+      final product = _allInStock.firstWhere(
+        (p) => p.name == name || p.imei == imei,
+        orElse: () => Product(
+          name: name,
+          imei: imei,
+          cost: 0,
+          price: sale.totalPrice ~/ productNames.length,
+          condition: 'UNKNOWN',
+          type: 'PHONE',
+        ),
+      );
+      
+      _addProductToSale(product, quantity: quantities[i], imei: imei);
+    }
+  }
     int total = _parseCurrency(priceCtrl.text);
     int down = _parseCurrency(downPaymentCtrl.text);
     if (down > 0 && down < 100000) down *= 1000;
@@ -223,7 +267,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
     setState(() => _isSaving = true);
     try {
       final now = DateTime.now().millisecondsSinceEpoch;
-      final String uniqueId = "sale_${now}_${phoneCtrl.text}";
+      final String uniqueId = widget.editSale?.firestoreId ?? "sale_${now}_${phoneCtrl.text}";
       String seller = FirebaseAuth.instance.currentUser?.email?.split('@').first.toUpperCase() ?? "NV";
       int totalPrice = _parseCurrency(priceCtrl.text);
       int paidAmount = _parseCurrency(downPaymentCtrl.text);
@@ -372,7 +416,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFF),
       appBar: AppBar(
-        title: const Tooltip(message: "Chọn sản phẩm, nhập thông tin khách và hoàn tất đơn bán.", child: Text("TẠO ĐƠN BÁN HÀNG", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))), 
+        title: Tooltip(message: widget.editSale != null ? "Chỉnh sửa thông tin đơn bán hàng" : "Chọn sản phẩm, nhập thông tin khách và hoàn tất đơn bán.", child: Text(widget.editSale != null ? "SỬA ĐƠN BÁN HÀNG" : "TẠO ĐƠN BÁN HÀNG", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))), 
         backgroundColor: Colors.pinkAccent, foregroundColor: Colors.white,
         automaticallyImplyLeading: true,
         actions: [
@@ -410,7 +454,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.grey.shade200)),
       child: Column(children: [
-        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text("TỔNG TIỀN:", style: TextStyle(fontWeight: FontWeight.bold)), Row(children: [IconButton(icon: Icon(_autoCalcTotal ? Icons.lock_outline : Icons.edit, size: 18, color: Colors.blue), onPressed: () => setState(() => _autoCalcTotal = !_autoCalcTotal)), SizedBox(width: 150, child: CurrencyTextField(controller: priceCtrl, label: "", enabled: !_autoCalcTotal, onChanged: (_) { _calculateInstallment(); })), const Text(" Đ", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold))])]),
+        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text("TỔNG TIỀN:", style: TextStyle(fontWeight: FontWeight.bold)), Row(children: [IconButton(icon: Icon(_autoCalcTotal ? Icons.lock_outline : Icons.edit, size: 18, color: Colors.blue), onPressed: () => setState(() => _autoCalcTotal = !_autoCalcTotal)), SizedBox(width: 150, child: CurrencyTextField(controller: priceCtrl, label: "", enabled: !_autoCalcTotal, multiplyBy1000: false, onChanged: (_) { _calculateInstallment(); })), const Text(" Đ", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold))])]),
         const SizedBox(height: 15),
         Wrap(spacing: 8, children: ["TIỀN MẶT", "CHUYỂN KHOẢN", "CÔNG NỢ", "TRẢ GÓP (NH)"].map((e) => ChoiceChip(label: Text(e, style: const TextStyle(fontSize: 11)), selected: _paymentMethod == e, onSelected: (v) => setState(() { _paymentMethod = e; _isInstallment = (e == "TRẢ GÓP (NH)"); }))).toList()),
         const Divider(height: 30),

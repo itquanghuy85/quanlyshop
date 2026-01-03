@@ -248,7 +248,7 @@ class _RevenueViewState extends State<RevenueView> with SingleTickerProviderStat
     final fExpenses = _expenses.where((e) => _isSameDay(e['date'] as int, now)).toList();
     int totalIn = fSales.fold<int>(0, (sum, s) => sum + s.totalPrice) + fRepairs.fold<int>(0, (sum, r) => sum + r.price);
     int totalOut = fExpenses.fold<int>(0, (sum, e) => sum + (e['amount'] as int));
-    int profit = totalIn - totalOut - fSales.fold<int>(0, (sum, s) => sum + s.totalCost) - fRepairs.fold<int>(0, (sum, r) => sum + r.cost);
+    int profit = totalIn - totalOut - fSales.fold<int>(0, (sum, s) => sum + s.totalCost) - fRepairs.fold<int>(0, (sum, r) => sum + r.totalCost);
     
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),

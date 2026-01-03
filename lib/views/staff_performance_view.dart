@@ -49,7 +49,7 @@ class _StaffPerformanceViewState extends State<StaffPerformanceView> {
         r.createdAt <= lastDay.millisecondsSinceEpoch).toList();
       
       int repairRevenue = staffRepairs.fold(0, (sum, r) => sum + r.price);
-      int repairProfit = staffRepairs.fold(0, (sum, r) => sum + (r.price - r.cost));
+      int repairProfit = staffRepairs.fold(0, (sum, r) => sum + (r.price - r.totalCost));
 
       // Doanh số bán hàng
       final staffSales = sales.where((s) => 

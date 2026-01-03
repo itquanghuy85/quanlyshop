@@ -135,7 +135,10 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> with TickerPr
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => StockInView(prefilledData: code?.toMap())),
-    ).then((_) => _loadCodes());
+    ).then((_) async {
+      await _syncCodes();
+      _loadCodes();
+    });
   }
 
   List<QuickInputCode> _combineData(List<QuickInputCode> cloudCodes) {

@@ -211,6 +211,54 @@ class SyncService {
       debugPrint("Lỗi khởi tạo quick_input_codes sync: $e");
     }
 
+    // 10. Đồng bộ SUPPLIER PAYMENTS
+    try {
+      _subscribeToCollection(
+        collection: 'supplier_payments',
+        shopId: shopId,
+        onChanged: (data, docId) async {
+          try {
+            final db = DBHelper();
+            if (data['deleted'] == true) {
+              await db.deleteSupplierPaymentByFirestoreId(docId);
+            } else {
+              data['firestoreId'] = docId;
+              await db.upsertSupplierPayment(data);
+            }
+          } catch (e) {
+            debugPrint("Lỗi sync supplier_payment $docId: $e");
+          }
+        },
+        onBatchDone: onDataChanged,
+      );
+    } catch (e) {
+      debugPrint("Lỗi khởi tạo supplier_payments sync: $e");
+    }
+
+    // 11. Đồng bộ REPAIR PARTNER PAYMENTS
+    try {
+      _subscribeToCollection(
+        collection: 'repair_partner_payments',
+        shopId: shopId,
+        onChanged: (data, docId) async {
+          try {
+            final db = DBHelper();
+            if (data['deleted'] == true) {
+              await db.deleteRepairPartnerPaymentByFirestoreId(docId);
+            } else {
+              data['firestoreId'] = docId;
+              await db.upsertRepairPartnerPayment(data);
+            }
+          } catch (e) {
+            debugPrint("Lỗi sync repair_partner_payment $docId: $e");
+          }
+        },
+        onBatchDone: onDataChanged,
+      );
+    } catch (e) {
+      debugPrint("Lỗi khởi tạo repair_partner_payments sync: $e");
+    }
+
     debugPrint("Đã khởi tạo real-time sync cho ${isSuperAdmin ? 'super admin' : 'shop: $shopId'}");
   }
 
@@ -471,7 +519,7 @@ class SyncService {
       final localAttendance = await db.getAllAttendance();
       debugPrint("LOCAL DATA BEFORE SYNC: repairs=${localRepairs.length}, products=${localProducts.length}, sales=${localSales.length}, attendance=${localAttendance.length}");
 
-      final collections = ['repairs', 'products', 'sales', 'expenses', 'debts', 'users', 'shops', 'attendance', 'quick_input_codes', 'supplier_import_history', 'supplier_product_prices'];
+      final collections = ['repairs', 'products', 'sales', 'expenses', 'debts', 'users', 'shops', 'attendance', 'quick_input_codes', 'supplier_import_history', 'supplier_product_prices', 'supplier_payments', 'repair_partner_payments'];
       
       for (var col in collections) {
         // Skip products if local already has products to avoid downloading old data

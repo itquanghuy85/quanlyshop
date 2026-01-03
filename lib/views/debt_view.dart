@@ -134,7 +134,7 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            Text("+ ${NumberFormat('#,###').format(p['amount'])}.000 đ", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
+                            Text("+ ${NumberFormat('#,###').format(p['amount'])} đ", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
                             Text(date, style: const TextStyle(fontSize: 10, color: Colors.grey)),
                           ]),
                           Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
@@ -274,7 +274,7 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
               await FirestoreService.addDebtCloud(Map<String, dynamic>.from(updatedOldDebt));
 
               // 5. Nhật ký
-              await db.logAction(userId: user?.uid ?? "0", userName: userName, action: "THU NỢ", type: "DEBT", targetId: debt['firestoreId'], desc: "Khách trả ${NumberFormat('#,###').format(payAmount)}.000 đ.");
+              await db.logAction(userId: user?.uid ?? "0", userName: userName, action: "THU NỢ", type: "DEBT", targetId: debt['firestoreId'], desc: "Khách trả ${NumberFormat('#,###').format(payAmount)} đ.");
 
               if (!mounted) return;
               Navigator.pop(context);
@@ -399,7 +399,7 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
                   const SizedBox(width: 8),
                   const Text("NỢ PHẢI THU", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
                   const Spacer(),
-                  Text("${NumberFormat('#,###').format(totalReceivable)}.000 đ", style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 16)),
+                  Text("${NumberFormat('#,###').format(totalReceivable)} đ", style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 16)),
                 ],
               ),
             ),
@@ -430,7 +430,7 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
                   const SizedBox(width: 8),
                   const Text("NỢ PHẢI TRẢ", style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
                   const Spacer(),
-                  Text("${NumberFormat('#,###').format(totalPayable)}.000 đ", style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold, fontSize: 16)),
+                  Text("${NumberFormat('#,###').format(totalPayable)} đ", style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold, fontSize: 16)),
                 ],
               ),
             ),
@@ -479,7 +479,7 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
     return Container(
       width: double.infinity, margin: const EdgeInsets.all(16), padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(color: color.withAlpha(25), borderRadius: BorderRadius.circular(20), border: Border.all(color: color.withAlpha(77))),
-      child: Column(children: [Text(label, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 11)), const SizedBox(height: 4), Text("${NumberFormat('#,###').format(amount)}.000 đ", style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 24))]),
+      child: Column(children: [Text(label, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 11)), const SizedBox(height: 4), Text("${NumberFormat('#,###').format(amount)} đ", style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 24))]),
     );
   }
 
@@ -519,7 +519,7 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
     );
   }
 
-  Widget _miniValue(String l, int v, Color c) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(l, style: const TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: Colors.grey)), Text("${NumberFormat('#,###').format(v)}.000", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: c))]);
+  Widget _miniValue(String l, int v, Color c) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(l, style: const TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: Colors.grey)), Text("${NumberFormat('#,###').format(v)}", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: c))]);
 
   void _createOtherDebt() {
     final nameC = TextEditingController();
@@ -636,7 +636,7 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("HỦY")),
           ElevatedButton(
             onPressed: () async {
-              if (nameC.text.isEmpty || amountC.text.isEmpty) return;
+              if (nameC.text.isEmpty || phoneC.text.isEmpty || amountC.text.isEmpty) return;
 
               try {
                 // Xử lý quy ước nhập nhanh (x1000)
@@ -667,7 +667,7 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
                 await FirestoreService.addDebtCloud(newDebtData);
 
                 // Nhật ký
-                await db.logAction(userId: user?.uid ?? "0", userName: userName, action: "TẠO NỢ", type: "DEBT", targetId: newDebtData['firestoreId'] as String, desc: "Tạo nợ khách hàng: ${nameC.text} - ${NumberFormat('#,###').format(debtAmount)}.000 đ.");
+                await db.logAction(userId: user?.uid ?? "0", userName: userName, action: "TẠO NỢ", type: "DEBT", targetId: newDebtData['firestoreId'] as String, desc: "Tạo nợ khách hàng: ${nameC.text} - ${NumberFormat('#,###').format(debtAmount)} đ.");
 
                 if (!mounted) return;
                 Navigator.pop(context);
@@ -711,7 +711,7 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("HỦY")),
           ElevatedButton(
             onPressed: () async {
-              if (nameC.text.isEmpty || amountC.text.isEmpty) return;
+              if (nameC.text.isEmpty || phoneC.text.isEmpty || amountC.text.isEmpty) return;
 
               try {
                 // Xử lý quy ước nhập nhanh (x1000)
@@ -742,7 +742,7 @@ class _DebtViewState extends State<DebtView> with SingleTickerProviderStateMixin
                 await FirestoreService.addDebtCloud(newDebtData);
 
                 // Nhật ký
-                await db.logAction(userId: user?.uid ?? "0", userName: userName, action: "TẠO NỢ", type: "DEBT", targetId: newDebtData['firestoreId'] as String, desc: "Tạo nợ nhà cung cấp: ${nameC.text} - ${NumberFormat('#,###').format(debtAmount)}.000 đ.");
+                await db.logAction(userId: user?.uid ?? "0", userName: userName, action: "TẠO NỢ", type: "DEBT", targetId: newDebtData['firestoreId'] as String, desc: "Tạo nợ nhà cung cấp: ${nameC.text} - ${NumberFormat('#,###').format(debtAmount)} đ.");
 
                 if (!mounted) return;
                 Navigator.pop(context);
