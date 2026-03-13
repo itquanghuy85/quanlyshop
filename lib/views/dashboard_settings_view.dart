@@ -39,20 +39,24 @@ class _DashboardSettingsViewState extends State<DashboardSettingsView>
     _tabController = TabController(length: 2, vsync: this);
     // Deep copy dashboard configs
     _configs = widget.currentConfig
-        .map((c) => DashboardCardConfig(
-              type: c.type,
-              visible: c.visible,
-              order: c.order,
-            ))
+        .map(
+          (c) => DashboardCardConfig(
+            type: c.type,
+            visible: c.visible,
+            order: c.order,
+          ),
+        )
         .toList();
     // Deep copy shortcut configs
     if (widget.currentShortcuts.isNotEmpty) {
       _shortcuts = widget.currentShortcuts
-          .map((s) => ShortcutConfig(
-                type: s.type,
-                visible: s.visible,
-                order: s.order,
-              ))
+          .map(
+            (s) => ShortcutConfig(
+              type: s.type,
+              visible: s.visible,
+              order: s.order,
+            ),
+          )
           .toList();
     } else {
       _shortcuts = ShortcutConfigService.getDefaultShortcuts();
@@ -76,10 +80,7 @@ class _DashboardSettingsViewState extends State<DashboardSettingsView>
         color: Colors.green,
       );
       // Return configs directly so caller can apply instantly without re-reading
-      Navigator.pop(context, {
-        'configs': _configs,
-        'shortcuts': _shortcuts,
-      });
+      Navigator.pop(context, {'configs': _configs, 'shortcuts': _shortcuts});
     }
   }
 
@@ -95,7 +96,9 @@ class _DashboardSettingsViewState extends State<DashboardSettingsView>
             Text('Khôi phục mặc định?'),
           ],
         ),
-        content: const Text('Bố cục Dashboard sẽ trở về mặc định theo vai trò của bạn.'),
+        content: const Text(
+          'Bố cục Dashboard sẽ trở về mặc định theo vai trò của bạn.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -158,55 +161,58 @@ class _DashboardSettingsViewState extends State<DashboardSettingsView>
               icon: const Icon(Icons.dashboard, size: 18),
               text: 'Thẻ Dashboard',
             ),
-            Tab(
-              icon: const Icon(Icons.apps, size: 18),
-              text: 'Lối tắt nhanh',
-            ),
+            Tab(icon: const Icon(Icons.apps, size: 18), text: 'Lối tắt nhanh'),
           ],
         ),
       ),
-      body: ResponsiveCenter(child: Column(
-        children: [
-          // Instructions
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(14),
-            color: Colors.blue.shade50,
-            child: Row(
-              children: [
-                Icon(Icons.info_outline, color: Colors.blue.shade600, size: 18),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'Kéo thả để sắp xếp • Bật/tắt để ẩn hiện',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.blue.shade700,
-                      fontWeight: FontWeight.w500,
+      body: ResponsiveCenter(
+        child: Column(
+          children: [
+            // Instructions
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              color: Colors.blue.shade50,
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    color: Colors.blue.shade600,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Kéo thả để sắp xếp • Bật/tắt để ẩn hiện',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.blue.shade700,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
 
-          // Tabbed content
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                // Tab 1: Dashboard cards
-                _buildDashboardCardList(),
-                // Tab 2: Shortcuts
-                _buildShortcutList(),
-              ],
+            // Tabbed content
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  // Tab 1: Dashboard cards
+                  _buildDashboardCardList(),
+                  // Tab 2: Shortcuts
+                  _buildShortcutList(),
+                ],
+              ),
             ),
-          ),
 
-          // Bottom info bar
-          _buildBottomBar(),
-        ],
-      )),
+            // Bottom info bar
+            _buildBottomBar(),
+          ],
+        ),
+      ),
     );
   }
 
@@ -339,7 +345,10 @@ class _DashboardSettingsViewState extends State<DashboardSettingsView>
                 icon: const Icon(Icons.save, size: 16),
                 label: const Text('LƯU'),
                 style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
                 ),
               ),
           ],
@@ -350,8 +359,7 @@ class _DashboardSettingsViewState extends State<DashboardSettingsView>
 
   Widget _buildCardTile(DashboardCardConfig config, int index) {
     final isFinance = config.requiresFinanceAccess;
-    final isOwner = widget.role == 'owner' || widget.role == 'admin' ||
-        UserService.isCurrentUserSuperAdmin();
+    final isOwner = UserService.hasOwnerLevelAccess(widget.role);
 
     return Card(
       key: ValueKey(config.type),
@@ -369,7 +377,10 @@ class _DashboardSettingsViewState extends State<DashboardSettingsView>
         opacity: config.visible ? 1.0 : 0.5,
         duration: const Duration(milliseconds: 200),
         child: ListTile(
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 4,
+          ),
           leading: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -406,15 +417,15 @@ class _DashboardSettingsViewState extends State<DashboardSettingsView>
               Expanded(
                 child: Text(
                   config.description,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey.shade500,
-                  ),
+                  style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
                 ),
               ),
               if (isFinance && !isOwner)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.orange.shade50,
                     borderRadius: BorderRadius.circular(4),
@@ -456,16 +467,17 @@ class _DashboardSettingsViewState extends State<DashboardSettingsView>
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-          color: sc.visible
-              ? sc.color.withOpacity(0.3)
-              : Colors.grey.shade200,
+          color: sc.visible ? sc.color.withOpacity(0.3) : Colors.grey.shade200,
         ),
       ),
       child: AnimatedOpacity(
         opacity: sc.visible ? 1.0 : 0.5,
         duration: const Duration(milliseconds: 200),
         child: ListTile(
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 2,
+          ),
           leading: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -496,12 +508,16 @@ class _DashboardSettingsViewState extends State<DashboardSettingsView>
             ),
           ),
           subtitle: sc.requiresRepair
-              ? Text('Yêu cầu module sửa chữa',
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500))
+              ? Text(
+                  'Yêu cầu module sửa chữa',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                )
               : sc.requiresWarranty
-                  ? Text('Yêu cầu module bảo hành',
-                      style: TextStyle(fontSize: 12, color: Colors.grey.shade500))
-                  : null,
+              ? Text(
+                  'Yêu cầu module bảo hành',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                )
+              : null,
           trailing: Switch.adaptive(
             value: sc.visible,
             activeColor: sc.color,

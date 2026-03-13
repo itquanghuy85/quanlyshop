@@ -44,11 +44,11 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
     'salaryType': 'monthly',
     'saleCommType': 'percent',
     'saleCommValue': 1.0,
-    'saleCommTier1Max': 10000000.0,   // Dưới 10 triệu
-    'saleCommTier1Value': 20000.0,    // 20k
-    'saleCommTier2Max': 50000000.0,   // 10-50 triệu
-    'saleCommTier2Value': 50000.0,    // 50k
-    'saleCommTier3Value': 100000.0,   // Trên 50 triệu -> 100k
+    'saleCommTier1Max': 10000000.0, // Dưới 10 triệu
+    'saleCommTier1Value': 20000.0, // 20k
+    'saleCommTier2Max': 50000000.0, // 10-50 triệu
+    'saleCommTier2Value': 50000.0, // 50k
+    'saleCommTier3Value': 100000.0, // Trên 50 triệu -> 100k
     'repairCommType': 'percent',
     'repairCommValue': 10.0,
     'transportAllowance': 0.0,
@@ -80,8 +80,7 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
     if (uid == null) return;
     final role = await UserService.getUserRole(uid);
     if (mounted) {
-      // Cho phép admin hoặc owner (chủ shop) có quyền cài đặt
-      setState(() => _isAdmin = role == 'admin' || role == 'owner');
+      setState(() => _isAdmin = UserService.hasOwnerLevelAccess(role));
     }
   }
 
@@ -234,11 +233,16 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
         'baseSalary': (_shopDefaults['baseSalary'] ?? 0).toInt(),
         'saleCommPercent': _shopDefaults['saleCommValue'] ?? 1.0,
         'saleCommType': _shopDefaults['saleCommType'] ?? 'percent',
-        'saleCommTier1Max': (_shopDefaults['saleCommTier1Max'] ?? 10000000).toInt(),
-        'saleCommTier1Value': (_shopDefaults['saleCommTier1Value'] ?? 20000).toInt(),
-        'saleCommTier2Max': (_shopDefaults['saleCommTier2Max'] ?? 50000000).toInt(),
-        'saleCommTier2Value': (_shopDefaults['saleCommTier2Value'] ?? 50000).toInt(),
-        'saleCommTier3Value': (_shopDefaults['saleCommTier3Value'] ?? 100000).toInt(),
+        'saleCommTier1Max': (_shopDefaults['saleCommTier1Max'] ?? 10000000)
+            .toInt(),
+        'saleCommTier1Value': (_shopDefaults['saleCommTier1Value'] ?? 20000)
+            .toInt(),
+        'saleCommTier2Max': (_shopDefaults['saleCommTier2Max'] ?? 50000000)
+            .toInt(),
+        'saleCommTier2Value': (_shopDefaults['saleCommTier2Value'] ?? 50000)
+            .toInt(),
+        'saleCommTier3Value': (_shopDefaults['saleCommTier3Value'] ?? 100000)
+            .toInt(),
         'repairProfitPercent': _shopDefaults['repairCommValue'] ?? 10.0,
         'repairCommType': _shopDefaults['repairCommType'] ?? 'percent',
         'transportAllowance': (_shopDefaults['transportAllowance'] ?? 0)
@@ -308,7 +312,8 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: CustomAppBar.build(
-        title: AppLocalizations.of(context)?.salarySettings ?? 'SALARY SETTINGS',
+        title:
+            AppLocalizations.of(context)?.salarySettings ?? 'SALARY SETTINGS',
         accentColor: AppBarAccents.staff,
         elevation: 0,
         bottom: TabBar(
@@ -335,23 +340,25 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
           ),
         ],
       ),
-      body: ResponsiveCenter(child: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                if (UserService.isCurrentUserSuperAdmin())
-                  _buildAdminShopSelectorCard(),
-                Expanded(
-                  child: TabBarView(
-                    controller: _tabController,
-                    children: [
-                      _buildShopDefaultsTab(),
-                      _buildEmployeeSettingsTab(),
-                    ],
+      body: ResponsiveCenter(
+        child: _loading
+            ? const Center(child: CircularProgressIndicator())
+            : Column(
+                children: [
+                  if (UserService.isCurrentUserSuperAdmin())
+                    _buildAdminShopSelectorCard(),
+                  Expanded(
+                    child: TabBarView(
+                      controller: _tabController,
+                      children: [
+                        _buildShopDefaultsTab(),
+                        _buildEmployeeSettingsTab(),
+                      ],
+                    ),
                   ),
-                ),
-              ],
-            )),
+                ],
+              ),
+      ),
     );
   }
 
@@ -453,8 +460,9 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
 
   /// Tab 1: Cài đặt mặc định của shop
   Widget _buildShopDefaultsTab() {
+    final bottomInset = MediaQuery.of(context).padding.bottom;
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.fromLTRB(16, 16, 16, bottomInset + 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -684,7 +692,12 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.fromLTRB(
+        16,
+        16,
+        16,
+        MediaQuery.of(context).padding.bottom + 24,
+      ),
       itemCount: _staffList.length,
       itemBuilder: (context, index) {
         final staff = _staffList[index];
@@ -962,7 +975,11 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
                               }),
                             )
                           else if (settings.saleCommType == 'tiered')
-                            ..._buildEmployeeTieredFields(settings, setDialogState, (s) => settings = s)
+                            ..._buildEmployeeTieredFields(
+                              settings,
+                              setDialogState,
+                              (s) => settings = s,
+                            )
                           else
                             _buildCurrencyField(
                               label: 'Tiền/đơn bán (đ)',
@@ -1479,7 +1496,8 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
             child: _buildCurrencyField(
               label: 'Mức 1: Đơn dưới (đ)',
               value: (_shopDefaults['saleCommTier1Max'] ?? 10000000).toDouble(),
-              onChanged: (v) => setState(() => _shopDefaults['saleCommTier1Max'] = v),
+              onChanged: (v) =>
+                  setState(() => _shopDefaults['saleCommTier1Max'] = v),
             ),
           ),
           const SizedBox(width: 8),
@@ -1487,7 +1505,8 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
             child: _buildCurrencyField(
               label: 'Hoa hồng 1 (đ)',
               value: (_shopDefaults['saleCommTier1Value'] ?? 20000).toDouble(),
-              onChanged: (v) => setState(() => _shopDefaults['saleCommTier1Value'] = v),
+              onChanged: (v) =>
+                  setState(() => _shopDefaults['saleCommTier1Value'] = v),
             ),
           ),
         ],
@@ -1500,7 +1519,8 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
             child: _buildCurrencyField(
               label: 'Mức 2: Đơn đến (đ)',
               value: (_shopDefaults['saleCommTier2Max'] ?? 50000000).toDouble(),
-              onChanged: (v) => setState(() => _shopDefaults['saleCommTier2Max'] = v),
+              onChanged: (v) =>
+                  setState(() => _shopDefaults['saleCommTier2Max'] = v),
             ),
           ),
           const SizedBox(width: 8),
@@ -1508,7 +1528,8 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
             child: _buildCurrencyField(
               label: 'Hoa hồng 2 (đ)',
               value: (_shopDefaults['saleCommTier2Value'] ?? 50000).toDouble(),
-              onChanged: (v) => setState(() => _shopDefaults['saleCommTier2Value'] = v),
+              onChanged: (v) =>
+                  setState(() => _shopDefaults['saleCommTier2Value'] = v),
             ),
           ),
         ],
@@ -1531,7 +1552,8 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
             child: _buildCurrencyField(
               label: 'Hoa hồng 3 (đ)',
               value: (_shopDefaults['saleCommTier3Value'] ?? 100000).toDouble(),
-              onChanged: (v) => setState(() => _shopDefaults['saleCommTier3Value'] = v),
+              onChanged: (v) =>
+                  setState(() => _shopDefaults['saleCommTier3Value'] = v),
             ),
           ),
         ],
@@ -1709,7 +1731,7 @@ class _CurrencyFieldWidgetState extends State<_CurrencyFieldWidget> {
   void _formatLive(String value) {
     final clean = value.replaceAll(RegExp(r'[^0-9]'), '');
     _currentValue = double.tryParse(clean) ?? 0;
-    
+
     if (clean.isEmpty) {
       _controller.value = const TextEditingValue(
         text: '',
@@ -1717,14 +1739,14 @@ class _CurrencyFieldWidgetState extends State<_CurrencyFieldWidget> {
       );
       return;
     }
-    
+
     final formatted = widget.currencyFormat.format(_currentValue);
     // Preserve cursor position
     final oldLength = _controller.text.length;
     final oldCursor = _controller.selection.baseOffset;
     final newLength = formatted.length;
     final newCursor = (oldCursor + (newLength - oldLength)).clamp(0, newLength);
-    
+
     _controller.value = TextEditingValue(
       text: formatted,
       selection: TextSelection.collapsed(offset: newCursor),

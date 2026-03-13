@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -32,7 +33,16 @@ import 'package:cached_network_image/cached_network_image.dart';
 
 ImageProvider? _safeImageProvider(String? path) {
   if (path == null || path.isEmpty) return null;
-  if (path.startsWith('http')) return CachedNetworkImageProvider(path);
+  if (path.startsWith('http') ||
+      path.startsWith('blob:') ||
+      path.startsWith('data:')) {
+    return CachedNetworkImageProvider(path);
+  }
+  if (StorageService.isGsStoragePath(path) ||
+      StorageService.isStorageRelativePath(path) ||
+      kIsWeb) {
+    return null;
+  }
   final file = File(path);
   return file.existsSync() ? FileImage(file) : null;
 }
@@ -1323,6 +1333,62 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
 
   Map<String, dynamic>? _workSchedule;
 
+  Map<String, bool> _buildRolePermissions(
+    String role, {
+    Map<String, dynamic>? source,
+  }) {
+    final permissions = UserService.getDefaultPermissionsForRole(role);
+
+    if (source != null) {
+      for (final key in permissions.keys.toList()) {
+        final rawValue = source[key];
+        if (rawValue is bool) {
+          permissions[key] = rawValue;
+        }
+      }
+    }
+
+    if (role == 'owner' || role == 'manager') {
+      permissions['allowViewSales'] = true;
+      permissions['allowViewRepairs'] = true;
+      permissions['allowViewInventory'] = true;
+      permissions['allowViewParts'] = true;
+      permissions['allowViewSuppliers'] = true;
+      permissions['allowViewCustomers'] = true;
+      permissions['allowViewPurchaseOrders'] = true;
+      permissions['allowCreatePurchaseOrders'] = true;
+      permissions['allowViewWarranty'] = true;
+      permissions['allowViewChat'] = true;
+      permissions['allowViewAttendance'] = true;
+      permissions['allowViewPrinter'] = true;
+      permissions['allowViewRevenue'] = true;
+      permissions['allowViewExpenses'] = true;
+      permissions['allowViewDebts'] = true;
+      permissions['allowViewCostPrice'] = true;
+      permissions['allowViewSettings'] = true;
+      permissions['allowManageStaff'] = true;
+    }
+
+    return permissions;
+  }
+
+  void _applyPermissions(Map<String, bool> permissions) {
+    _canViewSales = permissions['allowViewSales'] ?? false;
+    _canViewRepairs = permissions['allowViewRepairs'] ?? false;
+    _canViewInventory = permissions['allowViewInventory'] ?? false;
+    _canViewParts = permissions['allowViewParts'] ?? false;
+    _canViewSuppliers = permissions['allowViewSuppliers'] ?? false;
+    _canViewCustomers = permissions['allowViewCustomers'] ?? false;
+    _canViewWarranty = permissions['allowViewWarranty'] ?? false;
+    _canViewChat = permissions['allowViewChat'] ?? false;
+    _canViewAttendance = permissions['allowViewAttendance'] ?? false;
+    _canViewPrinter = permissions['allowViewPrinter'] ?? false;
+    _canViewRevenue = permissions['allowViewRevenue'] ?? false;
+    _canViewExpenses = permissions['allowViewExpenses'] ?? false;
+    _canViewDebts = permissions['allowViewDebts'] ?? false;
+    _canViewCostPrice = permissions['allowViewCostPrice'] ?? false;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -1341,25 +1407,9 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
           ? widget.role
           : 'employee';
       _staffShopId = widget.fullData['shopId'];
-
-      // Quyền xem nội dung (mặc định: chỉ quản lý thấy toàn bộ tài chính)
-      _canViewSales = widget.fullData['allowViewSales'] == true;
-      _canViewRepairs = widget.fullData['allowViewRepairs'] == true;
-      _canViewInventory = widget.fullData['allowViewInventory'] == true;
-      _canViewParts = widget.fullData['allowViewParts'] == true;
-      _canViewSuppliers = widget.fullData['allowViewSuppliers'] == true;
-      _canViewCustomers = widget.fullData['allowViewCustomers'] == true;
-      _canViewWarranty = widget.fullData['allowViewWarranty'] == true;
-      _canViewChat = widget.fullData['allowViewChat'] == true;
-      _canViewAttendance = widget.fullData['allowViewAttendance'] == true;
-      _canViewPrinter = widget.fullData['allowViewPrinter'] == true;
-      _canViewRevenue = widget.fullData['allowViewRevenue'] == true;
-      _canViewExpenses = widget.fullData['allowViewExpenses'] == true;
-      _canViewDebts = widget.fullData['allowViewDebts'] == true;
-      _canViewCostPrice = widget.fullData['allowViewCostPrice'] == true;
-
-      // Đồng bộ permissions với role hiện tại
-      _syncPermissionsWithRole();
+      _applyPermissions(
+        _buildRolePermissions(_selectedRole, source: widget.fullData),
+      );
 
       _loadCurrentShop();
       _loadAllStaffData();
@@ -1374,22 +1424,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
   }
 
   void _syncPermissionsWithRole() {
-    // Nếu là owner hoặc manager, luôn có full permissions
-    if (_selectedRole == 'owner' || _selectedRole == 'manager') {
-      _canViewSales = true;
-      _canViewRepairs = true;
-      _canViewInventory = true;
-      _canViewParts = true;
-      _canViewSuppliers = true;
-      _canViewCustomers = true;
-      _canViewWarranty = true;
-      _canViewChat = true;
-      _canViewAttendance = true;
-      _canViewPrinter = true;
-      _canViewRevenue = true;
-      _canViewExpenses = true;
-      _canViewDebts = true;
-    }
+    _applyPermissions(_buildRolePermissions(_selectedRole));
   }
 
   int get _tabCount => _enableRepair ? 3 : 2; // repair: ĐÃ SỬA, ĐÃ BÁN, LỊCH; no repair: ĐÃ BÁN, LỊCH
@@ -1749,23 +1784,43 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
       );
 
       print('Updating user permissions for ${widget.uid}');
+      final rolePermissions = _buildRolePermissions(_selectedRole);
+      rolePermissions['allowViewSales'] = _canViewSales;
+      rolePermissions['allowViewRepairs'] = _canViewRepairs;
+      rolePermissions['allowViewInventory'] = _canViewInventory;
+      rolePermissions['allowViewParts'] = _canViewParts;
+      rolePermissions['allowViewSuppliers'] = _canViewSuppliers;
+      rolePermissions['allowViewCustomers'] = _canViewCustomers;
+      rolePermissions['allowViewWarranty'] = _canViewWarranty;
+      rolePermissions['allowViewChat'] = _canViewChat;
+      rolePermissions['allowViewAttendance'] = _canViewAttendance;
+      rolePermissions['allowViewPrinter'] = _canViewPrinter;
+      rolePermissions['allowViewRevenue'] = _canViewRevenue;
+      rolePermissions['allowViewExpenses'] = _canViewExpenses;
+      rolePermissions['allowViewDebts'] = _canViewDebts;
+      rolePermissions['allowViewCostPrice'] = _canViewCostPrice;
+
       // Lưu cấu hình phân quyền hiển thị nội dung
       await UserService.updateUserPermissions(
         uid: widget.uid,
-        allowViewSales: _canViewSales,
-        allowViewRepairs: _canViewRepairs,
-        allowViewInventory: _canViewInventory,
-        allowViewParts: _canViewParts,
-        allowViewSuppliers: _canViewSuppliers,
-        allowViewCustomers: _canViewCustomers,
-        allowViewWarranty: _canViewWarranty,
-        allowViewChat: _canViewChat,
-        allowViewAttendance: _canViewAttendance,
-        allowViewPrinter: _canViewPrinter,
-        allowViewRevenue: _canViewRevenue,
-        allowViewExpenses: _canViewExpenses,
-        allowViewDebts: _canViewDebts,
-        allowViewCostPrice: _canViewCostPrice,
+        allowViewSales: rolePermissions['allowViewSales'] ?? false,
+        allowViewRepairs: rolePermissions['allowViewRepairs'] ?? false,
+        allowViewInventory: rolePermissions['allowViewInventory'] ?? false,
+        allowViewParts: rolePermissions['allowViewParts'] ?? false,
+        allowViewSuppliers: rolePermissions['allowViewSuppliers'] ?? false,
+        allowViewCustomers: rolePermissions['allowViewCustomers'] ?? false,
+        allowViewWarranty: rolePermissions['allowViewWarranty'] ?? false,
+        allowViewChat: rolePermissions['allowViewChat'] ?? false,
+        allowViewAttendance: rolePermissions['allowViewAttendance'] ?? false,
+        allowViewPrinter: rolePermissions['allowViewPrinter'] ?? false,
+        allowViewRevenue: rolePermissions['allowViewRevenue'] ?? false,
+        allowViewExpenses: rolePermissions['allowViewExpenses'] ?? false,
+        allowViewDebts: rolePermissions['allowViewDebts'] ?? false,
+        allowViewCostPrice: rolePermissions['allowViewCostPrice'] ?? false,
+        allowViewPurchaseOrders: rolePermissions['allowViewPurchaseOrders'],
+        allowCreatePurchaseOrders: rolePermissions['allowCreatePurchaseOrders'],
+        allowViewSettings: rolePermissions['allowViewSettings'],
+        allowManageStaff: rolePermissions['allowManageStaff'],
       );
 
       if (!mounted) return;

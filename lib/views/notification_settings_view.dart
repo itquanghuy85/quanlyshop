@@ -11,7 +11,8 @@ class NotificationSettingsView extends StatefulWidget {
   const NotificationSettingsView({super.key});
 
   @override
-  State<NotificationSettingsView> createState() => _NotificationSettingsViewState();
+  State<NotificationSettingsView> createState() =>
+      _NotificationSettingsViewState();
 }
 
 class _NotificationSettingsViewState extends State<NotificationSettingsView> {
@@ -24,6 +25,8 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
   String _userRole = 'user';
   bool _permissionGranted = false;
   bool _hasFcmToken = false;
+  bool _hasApnsToken = !Platform.isIOS;
+  Map<String, dynamic> _pushDiagnostics = const {};
 
   @override
   void initState() {
@@ -34,9 +37,13 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
   }
 
   Future<void> _loadSettings() async {
-    final newOrder = await NotificationService.getNotificationEnabled('new_order');
+    final newOrder = await NotificationService.getNotificationEnabled(
+      'new_order',
+    );
     final payment = await NotificationService.getNotificationEnabled('payment');
-    final inventory = await NotificationService.getNotificationEnabled('inventory');
+    final inventory = await NotificationService.getNotificationEnabled(
+      'inventory',
+    );
     final staff = await NotificationService.getNotificationEnabled('staff');
     final system = await NotificationService.getNotificationEnabled('system');
 
@@ -72,10 +79,13 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
     // This avoids false-negative on iOS where permission_handler
     // reports 'permanentlyDenied' even though iOS Settings has notifications ON
     final status = await NotificationService.checkNotificationStatus();
+    final diagnostics = await NotificationService.getPushDiagnostics();
     if (mounted) {
       setState(() {
         _permissionGranted = status['permissionGranted'] ?? false;
         _hasFcmToken = status['hasFcmToken'] ?? false;
+        _hasApnsToken = status['hasApnsToken'] ?? !Platform.isIOS;
+        _pushDiagnostics = diagnostics;
       });
     }
   }
@@ -124,91 +134,95 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
         ),
         title: Text(
           "CÀI ĐẶT THÔNG BÁO",
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: AppTextStyles.headline3.fontSize, color: Colors.white),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: AppTextStyles.headline3.fontSize,
+            color: Colors.white,
+          ),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: Colors.white,
       ),
-      body: ResponsiveCenter(child: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          // Permission Status Section
-          _buildPermissionStatusCard(),
-          const SizedBox(height: 24),
+      body: ResponsiveCenter(
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            // Permission Status Section
+            _buildPermissionStatusCard(),
+            const SizedBox(height: 24),
 
-          // Role Information
-          _buildRoleInfoCard(),
-          const SizedBox(height: 24),
+            // Role Information
+            _buildRoleInfoCard(),
+            const SizedBox(height: 24),
 
-          _buildSectionHeader('THÔNG BÁO QUAN TRỌNG'),
-          _buildNotificationTile(
-            'Đơn hàng mới',
-            'Thông báo khi có khách hàng tạo đơn hàng mới',
-            _newOrderEnabled,
-            (value) => _updateSetting('new_order', value),
-            Icons.shopping_cart,
-            Colors.blue,
-            enabled: _isRoleAllowed('new_order'),
-          ),
-          _buildNotificationTile(
-            'Thanh toán',
-            'Thông báo khi có thanh toán thành công',
-            _paymentEnabled,
-            (value) => _updateSetting('payment', value),
-            Icons.payment,
-            Colors.green,
-            enabled: _isRoleAllowed('payment'),
-          ),
+            _buildSectionHeader('THÔNG BÁO QUAN TRỌNG'),
+            _buildNotificationTile(
+              'Đơn hàng mới',
+              'Thông báo khi có khách hàng tạo đơn hàng mới',
+              _newOrderEnabled,
+              (value) => _updateSetting('new_order', value),
+              Icons.shopping_cart,
+              Colors.blue,
+              enabled: _isRoleAllowed('new_order'),
+            ),
+            _buildNotificationTile(
+              'Thanh toán',
+              'Thông báo khi có thanh toán thành công',
+              _paymentEnabled,
+              (value) => _updateSetting('payment', value),
+              Icons.payment,
+              Colors.green,
+              enabled: _isRoleAllowed('payment'),
+            ),
 
-          const SizedBox(height: 24),
-          _buildSectionHeader('THÔNG BÁO KHÁC'),
-          _buildNotificationTile(
-            'Kho hàng',
-            'Cảnh báo khi sản phẩm sắp hết hàng',
-            _inventoryEnabled,
-            (value) => _updateSetting('inventory', value),
-            Icons.inventory,
-            Colors.orange,
-            enabled: _isRoleAllowed('inventory'),
-          ),
-          _buildNotificationTile(
-            'Nhân viên',
-            'Thông báo về hoạt động của nhân viên',
-            _staffEnabled,
-            (value) => _updateSetting('staff', value),
-            Icons.people,
-            Colors.blue,
-            enabled: _isRoleAllowed('staff'),
-          ),
-          _buildNotificationTile(
-            'Hệ thống',
-            'Thông báo cập nhật và bảo trì hệ thống',
-            _systemEnabled,
-            (value) => _updateSetting('system', value),
-            Icons.settings,
-            Colors.grey,
-            enabled: _isRoleAllowed('system'),
-          ),
+            const SizedBox(height: 24),
+            _buildSectionHeader('THÔNG BÁO KHÁC'),
+            _buildNotificationTile(
+              'Kho hàng',
+              'Cảnh báo khi sản phẩm sắp hết hàng',
+              _inventoryEnabled,
+              (value) => _updateSetting('inventory', value),
+              Icons.inventory,
+              Colors.orange,
+              enabled: _isRoleAllowed('inventory'),
+            ),
+            _buildNotificationTile(
+              'Nhân viên',
+              'Thông báo về hoạt động của nhân viên',
+              _staffEnabled,
+              (value) => _updateSetting('staff', value),
+              Icons.people,
+              Colors.blue,
+              enabled: _isRoleAllowed('staff'),
+            ),
+            _buildNotificationTile(
+              'Hệ thống',
+              'Thông báo cập nhật và bảo trì hệ thống',
+              _systemEnabled,
+              (value) => _updateSetting('system', value),
+              Icons.settings,
+              Colors.grey,
+              enabled: _isRoleAllowed('system'),
+            ),
 
-          const SizedBox(height: 32),
-          _buildRefreshTokenButton(),
-          const SizedBox(height: 16),
-          _buildTestNotificationButton(),
-          _buildInfoCard(),
-        ],
-      )),
+            const SizedBox(height: 32),
+            _buildRefreshTokenButton(),
+            const SizedBox(height: 16),
+            _buildTestNotificationButton(),
+            _buildInfoCard(),
+          ],
+        ),
+      ),
     );
   }
 
   Widget _buildPermissionStatusCard() {
-    final isFullyWorking = _permissionGranted && _hasFcmToken;
+    final isFullyWorking = _permissionGranted && _hasFcmToken && _hasApnsToken;
 
     return Card(
       color: isFullyWorking ? Colors.green.shade50 : Colors.orange.shade50,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -217,7 +231,9 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
             Row(
               children: [
                 Icon(
-                  isFullyWorking ? Icons.notifications_active : Icons.notifications_off,
+                  isFullyWorking
+                      ? Icons.notifications_active
+                      : Icons.notifications_off,
                   color: isFullyWorking ? Colors.green : Colors.orange,
                 ),
                 const SizedBox(width: 8),
@@ -232,44 +248,114 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
                 ),
                 // Status badges
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
-                    color: _permissionGranted ? Colors.green.shade100 : Colors.red.shade100,
+                    color: _permissionGranted
+                        ? Colors.green.shade100
+                        : Colors.red.shade100,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     _permissionGranted ? 'Quyền OK' : 'Chưa cấp quyền',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
-                      color: _permissionGranted ? Colors.green.shade800 : Colors.red.shade800),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: _permissionGranted
+                          ? Colors.green.shade800
+                          : Colors.red.shade800,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 4),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
-                    color: _hasFcmToken ? Colors.green.shade100 : Colors.red.shade100,
+                    color: _hasFcmToken
+                        ? Colors.green.shade100
+                        : Colors.red.shade100,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     _hasFcmToken ? 'Token OK' : 'Chưa có token',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
-                      color: _hasFcmToken ? Colors.green.shade800 : Colors.red.shade800),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: _hasFcmToken
+                          ? Colors.green.shade800
+                          : Colors.red.shade800,
+                    ),
                   ),
                 ),
+                if (Platform.isIOS) ...[
+                  const SizedBox(width: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _hasApnsToken
+                          ? Colors.green.shade100
+                          : Colors.red.shade100,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      _hasApnsToken ? 'APNs OK' : 'Thiếu APNs',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: _hasApnsToken
+                            ? Colors.green.shade800
+                            : Colors.red.shade800,
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
             const SizedBox(height: 8),
             Text(
               isFullyWorking
-                ? 'Đã cấp quyền thông báo. Bạn sẽ nhận được thông báo push.'
-                : !_permissionGranted
+                  ? 'Đã cấp quyền thông báo. ${Platform.isIOS ? "APNs + FCM đã sẵn sàng." : "Bạn sẽ nhận được thông báo push."}'
+                  : !_permissionGranted
                   ? 'Cần cấp quyền thông báo để nhận thông báo push.${Platform.isIOS ? "\nNếu đã bật trong Cài đặt iOS, hãy nhấn \"Làm mới FCM Token\"." : ""}'
+                  : Platform.isIOS && !_hasApnsToken
+                  ? 'Đã cấp quyền nhưng iPhone chưa trả APNs token. Kiểm tra Push Notifications trong Signing & Capabilities, sau đó mở app trên iPhone thật và nhấn "Làm mới FCM Token".'
                   : 'Đã cấp quyền nhưng chưa có FCM Token. Nhấn "Làm mới FCM Token" bên dưới.',
               style: TextStyle(
                 fontSize: AppTextStyles.subtitle1.fontSize,
-                color: isFullyWorking ? Colors.green.shade700 : Colors.orange.shade700,
+                color: isFullyWorking
+                    ? Colors.green.shade700
+                    : Colors.orange.shade700,
               ),
             ),
+            if (_pushDiagnostics.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.04),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  Platform.isIOS
+                      ? 'Authorization: ${_pushDiagnostics['authorizationStatus'] ?? 'unknown'}\nAPNs: ${_pushDiagnostics['apnsTokenPreview'] ?? 'chưa có'}\nFCM: ${_pushDiagnostics['fcmTokenPreview'] ?? 'chưa có'}\nServer token: ${_pushDiagnostics['serverTokenPreview'] ?? 'chưa có'}'
+                      : 'Authorization: ${_pushDiagnostics['authorizationStatus'] ?? 'unknown'}\nFCM: ${_pushDiagnostics['fcmTokenPreview'] ?? 'chưa có'}\nServer token: ${_pushDiagnostics['serverTokenPreview'] ?? 'chưa có'}',
+                  style: TextStyle(
+                    fontSize: AppTextStyles.caption.fontSize,
+                    color: Colors.grey.shade800,
+                    height: 1.5,
+                  ),
+                ),
+              ),
+            ],
             if (!_permissionGranted) ...[
               const SizedBox(height: 12),
               SizedBox(
@@ -296,9 +382,7 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
 
     return Card(
       color: Colors.blue.shade50,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -357,15 +441,15 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
   }) {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       color: enabled ? null : Colors.grey.shade100,
       child: ListTile(
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: enabled ? color.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
+            color: enabled
+                ? color.withOpacity(0.1)
+                : Colors.grey.withOpacity(0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(icon, color: enabled ? color : Colors.grey),
@@ -461,14 +545,20 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
     await _checkPermissionStatus();
 
     if (status.isGranted || _permissionGranted) {
-      NotificationService.showSnackBar('Đã cấp quyền thông báo!', color: Colors.green);
+      NotificationService.showSnackBar(
+        'Đã cấp quyền thông báo!',
+        color: Colors.green,
+      );
       // Also refresh FCM token after granting permission
       await NotificationService.forceRefreshFCMToken();
       await _checkPermissionStatus();
     } else if (status.isPermanentlyDenied) {
       _showPermissionSettingsDialog();
     } else {
-      NotificationService.showSnackBar('Cần cấp quyền để nhận thông báo', color: Colors.orange);
+      NotificationService.showSnackBar(
+        'Cần cấp quyền để nhận thông báo',
+        color: Colors.orange,
+      );
     }
   }
 
@@ -479,7 +569,7 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
         title: const Text('Cấp quyền thông báo'),
         content: const Text(
           'Ứng dụng cần quyền thông báo để gửi thông báo quan trọng. '
-          'Vui lòng bật quyền trong cài đặt hệ thống.'
+          'Vui lòng bật quyền trong cài đặt hệ thống.',
         ),
         actions: [
           TextButton(
@@ -514,13 +604,14 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
     };
 
     final allowedRoles = rolePermissions[notificationType] ?? [];
-    return allowedRoles.contains(_userRole) || UserService.isCurrentUserSuperAdmin();
+    return allowedRoles.contains(_userRole) ||
+        UserService.isCurrentUserSuperAdmin();
   }
 
   Future<void> _sendTestNotification() async {
     try {
       await NotificationService.sendSystemNotification(
-        'Đây là thông báo test từ hệ thống push notification. Nếu bạn thấy thông báo này, hệ thống đang hoạt động bình thường!'
+        'Đây là thông báo test từ hệ thống push notification. Nếu bạn thấy thông báo này, hệ thống đang hoạt động bình thường!',
       );
       NotificationService.showSnackBar(
         'Đã gửi thông báo test!',
@@ -582,9 +673,7 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
   Widget _buildInfoCard() {
     return Card(
       color: Colors.grey.shade50,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -609,7 +698,10 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
               '• Admin & Owner nhận tất cả thông báo\n'
               '• Manager & Technician nhận thông báo quan trọng\n'
               '• Employee chỉ nhận thông báo cá nhân',
-              style: TextStyle(fontSize: AppTextStyles.subtitle1.fontSize, color: Colors.grey.shade700),
+              style: TextStyle(
+                fontSize: AppTextStyles.subtitle1.fontSize,
+                color: Colors.grey.shade700,
+              ),
             ),
           ],
         ),

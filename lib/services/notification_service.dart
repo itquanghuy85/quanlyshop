@@ -40,6 +40,25 @@ class NotificationService {
   ); // Kiểm tra token mỗi 6 giờ
   static String? _cachedToken;
 
+  static String _authorizationStatusLabel(AuthorizationStatus status) {
+    switch (status) {
+      case AuthorizationStatus.authorized:
+        return 'authorized';
+      case AuthorizationStatus.denied:
+        return 'denied';
+      case AuthorizationStatus.notDetermined:
+        return 'not_determined';
+      case AuthorizationStatus.provisional:
+        return 'provisional';
+    }
+  }
+
+  static String? _tokenPreview(String? token) {
+    if (token == null || token.isEmpty) return null;
+    if (token.length <= 16) return token;
+    return '${token.substring(0, 8)}...${token.substring(token.length - 8)}';
+  }
+
   // Notification settings keys
   static const String _newOrderKey = 'notification_new_order';
   static const String _paymentKey = 'notification_payment';
@@ -94,15 +113,16 @@ class NotificationService {
 
     // Step 1: Firebase Messaging (primary for iOS, also works on Android)
     try {
-      NotificationSettings settings = await _firebaseMessaging.requestPermission(
-        alert: true,
-        badge: true,
-        sound: true,
-        provisional: false,
-        announcement: false,
-        carPlay: false,
-        criticalAlert: false,
-      );
+      NotificationSettings settings = await _firebaseMessaging
+          .requestPermission(
+            alert: true,
+            badge: true,
+            sound: true,
+            provisional: false,
+            announcement: false,
+            carPlay: false,
+            criticalAlert: false,
+          );
 
       debugPrint('FCM permission status: ${settings.authorizationStatus}');
 
@@ -144,6 +164,7 @@ class NotificationService {
   static Future<Map<String, bool>> checkNotificationStatus() async {
     bool permissionGranted = false;
     bool hasFcmToken = false;
+    bool hasApnsToken = !Platform.isIOS;
 
     try {
       // Check 1: permission_handler (chính xác trên Android, có thể sai trên iOS)
@@ -154,11 +175,16 @@ class NotificationService {
       // iOS sometimes reports "denied" via permission_handler but "authorized" via FCM
       if (!permissionGranted) {
         try {
-          final fcmSettings = await _firebaseMessaging.getNotificationSettings();
-          if (fcmSettings.authorizationStatus == AuthorizationStatus.authorized ||
-              fcmSettings.authorizationStatus == AuthorizationStatus.provisional) {
+          final fcmSettings = await _firebaseMessaging
+              .getNotificationSettings();
+          if (fcmSettings.authorizationStatus ==
+                  AuthorizationStatus.authorized ||
+              fcmSettings.authorizationStatus ==
+                  AuthorizationStatus.provisional) {
             permissionGranted = true;
-            debugPrint('Notification permission: permission_handler=denied but FCM=authorized (iOS quirk)');
+            debugPrint(
+              'Notification permission: permission_handler=denied but FCM=authorized (iOS quirk)',
+            );
           }
         } catch (e) {
           debugPrint('FCM getNotificationSettings fallback error: $e');
@@ -169,8 +195,13 @@ class NotificationService {
       final token = await _firebaseMessaging.getToken();
       hasFcmToken = token != null && token.isNotEmpty;
 
+      if (Platform.isIOS) {
+        final apnsToken = await _firebaseMessaging.getAPNSToken();
+        hasApnsToken = apnsToken != null && apnsToken.isNotEmpty;
+      }
+
       debugPrint(
-        'Notification status check: permission=$permissionGranted, fcmToken=$hasFcmToken',
+        'Notification status check: permission=$permissionGranted, fcmToken=$hasFcmToken, apnsToken=$hasApnsToken',
       );
     } catch (e) {
       debugPrint('Error checking notification status: $e');
@@ -179,7 +210,44 @@ class NotificationService {
     return {
       'permissionGranted': permissionGranted,
       'hasFcmToken': hasFcmToken,
-      'isFullyWorking': permissionGranted && hasFcmToken,
+      'hasApnsToken': hasApnsToken,
+      'isFullyWorking': permissionGranted && hasFcmToken && hasApnsToken,
+    };
+  }
+
+  static Future<Map<String, dynamic>> getPushDiagnostics() async {
+    final user = FirebaseAuth.instance.currentUser;
+    final settings = await _firebaseMessaging.getNotificationSettings();
+    final fcmToken = await _firebaseMessaging.getToken();
+    final apnsToken = Platform.isIOS
+        ? await _firebaseMessaging.getAPNSToken()
+        : null;
+    String? serverToken;
+
+    if (user != null) {
+      try {
+        final userDoc = await _db.collection('users').doc(user.uid).get();
+        serverToken = userDoc.data()?['fcmToken'] as String?;
+      } catch (e) {
+        debugPrint('getPushDiagnostics: failed to read server token: $e');
+      }
+    }
+
+    return {
+      'platform': Platform.operatingSystem,
+      'authorizationStatus': _authorizationStatusLabel(
+        settings.authorizationStatus,
+      ),
+      'permissionGranted':
+          settings.authorizationStatus == AuthorizationStatus.authorized ||
+          settings.authorizationStatus == AuthorizationStatus.provisional,
+      'hasFcmToken': fcmToken != null && fcmToken.isNotEmpty,
+      'hasApnsToken':
+          !Platform.isIOS || (apnsToken != null && apnsToken.isNotEmpty),
+      'hasServerToken': serverToken != null && serverToken.isNotEmpty,
+      'fcmTokenPreview': _tokenPreview(fcmToken),
+      'apnsTokenPreview': _tokenPreview(apnsToken),
+      'serverTokenPreview': _tokenPreview(serverToken),
     };
   }
 
@@ -334,6 +402,12 @@ class NotificationService {
     // Handle when app is opened from notification
     FirebaseMessaging.onMessageOpenedApp.listen(_handleMessageOpenedApp);
 
+    // Handle cold start from terminated state via notification tap.
+    final initialMessage = await _firebaseMessaging.getInitialMessage();
+    if (initialMessage != null) {
+      _handleMessageOpenedApp(initialMessage);
+    }
+
     // Subscribe to staff topic for business notifications
     await _firebaseMessaging.subscribeToTopic('staff');
 
@@ -350,6 +424,8 @@ class NotificationService {
       }
       if (apnsToken == null) {
         debugPrint('APNs token not available - FCM may not work on iOS');
+      } else {
+        debugPrint('APNs token available on iOS');
       }
     }
 
@@ -464,11 +540,15 @@ class NotificationService {
             debugPrint('forceRefreshFCMToken: APNs token available');
             break;
           }
-          debugPrint('forceRefreshFCMToken: APNs token not ready, retry ${i + 1}/10');
+          debugPrint(
+            'forceRefreshFCMToken: APNs token not ready, retry ${i + 1}/10',
+          );
           await Future.delayed(const Duration(milliseconds: 800));
         }
         if (apnsToken == null) {
-          debugPrint('forceRefreshFCMToken: APNs token unavailable - trying getToken anyway');
+          debugPrint(
+            'forceRefreshFCMToken: APNs token unavailable - trying getToken anyway',
+          );
         }
       }
 
@@ -477,7 +557,9 @@ class NotificationService {
       try {
         await _firebaseMessaging.deleteToken();
       } catch (deleteError) {
-        debugPrint('forceRefreshFCMToken: deleteToken failed (non-fatal): $deleteError');
+        debugPrint(
+          'forceRefreshFCMToken: deleteToken failed (non-fatal): $deleteError',
+        );
       }
 
       // Wait for FCM reset
@@ -492,7 +574,9 @@ class NotificationService {
           newToken = await _firebaseMessaging.getToken();
           if (newToken != null && newToken.isNotEmpty) break;
         } catch (getError) {
-          debugPrint('forceRefreshFCMToken: getToken attempt $attempt failed: $getError');
+          debugPrint(
+            'forceRefreshFCMToken: getToken attempt $attempt failed: $getError',
+          );
         }
         if (attempt < 5) {
           await Future.delayed(Duration(seconds: attempt));
@@ -500,7 +584,9 @@ class NotificationService {
       }
 
       if (newToken == null || newToken.isEmpty) {
-        debugPrint('forceRefreshFCMToken: Failed to get new token after all retries!');
+        debugPrint(
+          'forceRefreshFCMToken: Failed to get new token after all retries!',
+        );
         return false;
       }
 
@@ -733,7 +819,9 @@ class NotificationService {
                 _processedNotificationIds.add(docId);
                 // Limit memory: keep only last 100 processed IDs
                 if (_processedNotificationIds.length > 100) {
-                  _processedNotificationIds.remove(_processedNotificationIds.first);
+                  _processedNotificationIds.remove(
+                    _processedNotificationIds.first,
+                  );
                 }
 
                 final data = change.doc.data() as Map<String, dynamic>;
@@ -921,7 +1009,8 @@ class NotificationService {
       // iOS fallback: permission_handler có thể sai → check FCM
       if (!hasPermission) {
         final fcmSettings = await _firebaseMessaging.getNotificationSettings();
-        hasPermission = fcmSettings.authorizationStatus == AuthorizationStatus.authorized ||
+        hasPermission =
+            fcmSettings.authorizationStatus == AuthorizationStatus.authorized ||
             fcmSettings.authorizationStatus == AuthorizationStatus.provisional;
       }
     } catch (e) {
@@ -1090,7 +1179,9 @@ class NotificationService {
   }
 
   static bool _shouldPlaySound(String channelId) {
-    return channelId == 'new_order_channel' || channelId == 'payment_channel' || channelId == 'system_channel';
+    return channelId == 'new_order_channel' ||
+        channelId == 'payment_channel' ||
+        channelId == 'system_channel';
   }
 
   // Notification Settings Management
