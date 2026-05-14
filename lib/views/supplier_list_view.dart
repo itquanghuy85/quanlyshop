@@ -478,7 +478,11 @@ class _SupplierListViewState extends State<SupplierListView>
             icon: const Icon(Icons.inventory_2),
             tooltip: 'Quản lý kho',
             onPressed: () async {
-              final role = await UserService.getRoleFast();
+              final uid = FirebaseAuth.instance.currentUser?.uid;
+              final role = uid != null
+                  ? await UserService.getUserRole(uid)
+                  : 'user';
+              if (!context.mounted) return;
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => InventoryView(role: role)),
