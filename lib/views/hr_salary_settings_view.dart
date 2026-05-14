@@ -106,8 +106,8 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
     if (uid == null) return;
     final role = await UserService.getUserRole(uid);
     if (mounted) {
-      // Cho phép admin hoặc owner (chủ shop) có quyền cài đặt
-      setState(() => _isAdmin = role == 'admin' || role == 'owner');
+      // Cho phép admin, owner (chủ shop) hoặc manager có quyền cài đặt lương
+      setState(() => _isAdmin = role == 'admin' || role == 'owner' || role == 'manager');
     }
   }
 

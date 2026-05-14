@@ -108,8 +108,12 @@ class UserService {
 
   static Map<String, dynamic>? getCurrentUserPermissionsSync() {
     final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser == null) return _defaultPermissionsForRole('user');
-    if (_isSuperAdmin(currentUser)) return _defaultPermissionsForRole('admin');
+    if (currentUser == null) {
+      return {..._defaultPermissionsForRole('user'), 'role': 'user', 'isManagerLike': false};
+    }
+    if (_isSuperAdmin(currentUser)) {
+      return {..._defaultPermissionsForRole('admin'), 'role': 'admin', 'isManagerLike': true};
+    }
     if (!_isPermissionsCacheValid(currentUser)) return null;
     return Map<String, dynamic>.from(_cachedPermissions!);
   }
@@ -455,8 +459,13 @@ class UserService {
     final isTechnician = role == 'technician';
     final isAdmin = role == 'admin' || role == 'super_admin'; // Super admin
     final isUser = role == 'user'; // Default fallback
+    final isOwnerOrAdmin = isOwner || isAdmin;
+    final isManagerLike = isOwnerOrAdmin || isManager;
 
     return {
+      // === Role metadata ===
+      // Không có key 'role' ở đây vì _defaultPermissionsForRole trả về Map<String, bool>
+      // 'role' và 'isManagerLike' được thêm trong getCurrentUserPermissions (Map<String, dynamic>)
       // Chủ shop: toàn quyền quản lý shop
       // Quản lý: xem được tất cả, quản lý nhân viên
       // Nhân viên: xem nghiệp vụ cơ bản, không xem tài chính
@@ -512,15 +521,12 @@ class UserService {
           isTechnician ||
           isAdmin ||
           isUser,
-      'allowViewRevenue': isOwner || isAdmin, // Chủ shop hoặc super admin
-      'allowViewExpenses': isOwner || isAdmin, // Chủ shop hoặc super admin
-      'allowViewDebts': isOwner || isAdmin, // Chủ shop hoặc super admin
-      'allowViewCostPrice':
-          isOwner ||
-          isManager ||
-          isAdmin, // Xem giá vốn - mặc định chỉ owner/manager/admin
-      'allowViewSettings': isOwner || isManager || isAdmin,
-      'allowManageStaff': isOwner || isManager || isAdmin,
+      'allowViewRevenue': isOwnerOrAdmin, // Chủ shop hoặc super admin
+      'allowViewExpenses': isOwnerOrAdmin, // Chủ shop hoặc super admin
+      'allowViewDebts': isOwnerOrAdmin, // Chủ shop hoặc super admin
+      'allowViewCostPrice': isManagerLike, // Xem giá vốn - owner/manager/admin
+      'allowViewSettings': isManagerLike,
+      'allowManageStaff': isManagerLike,
       'shopAppLocked': false,
       'shopAdminFinanceLocked': false,
     };
@@ -1135,24 +1141,38 @@ class UserService {
           : '';
     }
 
+    final resolvedRole = isSuperAdmin
+        ? 'admin'
+        : (data['role'] ?? (shopId == uid ? 'owner' : 'user')) as String;
+
     final userData = {
       'email': email,
       'displayName': resolvedDisplayName,
       'phone': data['phone'] ?? '',
       'address': data['address'] ?? '',
-      'role': isSuperAdmin
-          ? 'admin'
-          : (data['role'] ?? (shopId == uid ? 'owner' : 'user')),
+      'role': resolvedRole,
       'shopId': shopId,
       'lastLogin': FieldValue.serverTimestamp(),
     };
+
+    // Khi tạo shop mới (isNewShop=true), ghi đầy đủ permission flags cho owner
+    // để tránh phụ thuộc vào computed defaults (giảm nguy cơ quyền bị thiếu)
+    if (isNewShop && resolvedRole == 'owner') {
+      final ownerPerms = _defaultPermissionsForRole('owner');
+      // Force-true toàn bộ quyền cho chủ shop mới
+      for (final entry in ownerPerms.entries) {
+        if (!userData.containsKey(entry.key)) {
+          userData[entry.key] = entry.value;
+        }
+      }
+    }
+
     if (extra != null) {
       userData.addAll(extra);
     }
     await userRef.set(userData, SetOptions(merge: true));
 
     // Cache role ngay sau khi write để _getRoleAfterSync có thể dùng
-    final resolvedRole = userData['role'] as String;
     saveAuthCache(role: resolvedRole, forUid: uid);
     debugPrint('💾 syncUserInfo: cached role=$resolvedRole for uid=$uid');
 
@@ -1174,7 +1194,7 @@ class UserService {
       }
 
       bool claimsSynced = false;
-      final maxRetries = 5;
+      const maxRetries = 5;
 
       for (int retry = 0; retry < maxRetries; retry++) {
         await Future.delayed(const Duration(seconds: 2));
@@ -1339,12 +1359,12 @@ class UserService {
   }) async {
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) {
-      return _defaultPermissionsForRole('user');
+      return {..._defaultPermissionsForRole('user'), 'role': 'user', 'isManagerLike': false};
     }
 
     // Admin tối cao luôn có toàn quyền
     if (_isSuperAdmin(currentUser)) {
-      return _defaultPermissionsForRole('super_admin');
+      return {..._defaultPermissionsForRole('super_admin'), 'role': 'super_admin', 'isManagerLike': true};
     }
 
     if (!forceRefresh) {
@@ -1361,17 +1381,18 @@ class UserService {
       final role = (data['role'] as String?) ?? 'user';
       debugPrint('getCurrentUserPermissions: role from firestore = $role');
       final defaults = _defaultPermissionsForRole(role);
-      debugPrint('getCurrentUserPermissions: defaults = $defaults');
-      // Debug: kiểm tra allowViewCostPrice từ Firestore vs force override
-      final firestoreCostPrice = data['allowViewCostPrice'];
-      final forceTrue =
-          (role == 'owner' || role == 'manager' || role == 'admin');
-      debugPrint(
-        'getCurrentUserPermissions: Firestore allowViewCostPrice=$firestoreCostPrice, forceTrue=$forceTrue',
-      );
+      debugPrint('getCurrentUserPermissions: role=$role, defaults=$defaults');
+
+      // Cờ xác định owner/admin: luôn có toàn quyền tài chính bất kể Firestore field
+      final isOwnerOrAdmin = role == 'owner' || role == 'admin';
+      final isManagerLike = isOwnerOrAdmin || role == 'manager';
 
       // Bắt đầu từ quyền riêng trên tài khoản (nếu chưa cấu hình thì dùng mặc định theo role)
       final perms = <String, dynamic>{
+        // === Role metadata (dùng để check ở UI mà không cần gọi thêm Firestore) ===
+        'role': role,
+        'isManagerLike': isManagerLike,
+        // === Quyền nghiệp vụ ===
         'allowViewSales':
             (data['allowViewSales'] as bool?) ?? defaults['allowViewSales']!,
         'allowViewRepairs':
@@ -1405,26 +1426,39 @@ class UserService {
         'allowViewPrinter':
             (data['allowViewPrinter'] as bool?) ??
             defaults['allowViewPrinter']!,
+        // Owner/Admin LUÔN có quyền xem tài chính — không thể bị ghi đè bởi Firestore field
         'allowViewRevenue':
-            (data['allowViewRevenue'] as bool?) ??
-            defaults['allowViewRevenue']!,
+            isOwnerOrAdmin
+            ? true
+            : ((data['allowViewRevenue'] as bool?) ??
+                  defaults['allowViewRevenue']!),
         'allowViewExpenses':
-            (data['allowViewExpenses'] as bool?) ??
-            defaults['allowViewExpenses']!,
+            isOwnerOrAdmin
+            ? true
+            : ((data['allowViewExpenses'] as bool?) ??
+                  defaults['allowViewExpenses']!),
         'allowViewDebts':
-            (data['allowViewDebts'] as bool?) ?? defaults['allowViewDebts']!,
+            isOwnerOrAdmin
+            ? true
+            : ((data['allowViewDebts'] as bool?) ??
+                  defaults['allowViewDebts']!),
         // Owner, Manager, Admin LUÔN được xem giá vốn, không bao giờ bị tắt
         'allowViewCostPrice':
-            (role == 'owner' || role == 'manager' || role == 'admin')
+            isManagerLike
             ? true
             : ((data['allowViewCostPrice'] as bool?) ??
                   defaults['allowViewCostPrice']!),
+        // Owner/Admin LUÔN có quyền cài đặt và quản lý nhân viên
         'allowViewSettings':
-            (data['allowViewSettings'] as bool?) ??
-            defaults['allowViewSettings']!,
+            isManagerLike
+            ? true
+            : ((data['allowViewSettings'] as bool?) ??
+                  defaults['allowViewSettings']!),
         'allowManageStaff':
-            (data['allowManageStaff'] as bool?) ??
-            defaults['allowManageStaff']!,
+            isManagerLike
+            ? true
+            : ((data['allowManageStaff'] as bool?) ??
+                  defaults['allowManageStaff']!),
         'shopAppLocked': false,
         'shopAdminFinanceLocked': false,
         // Lưu nguồn gốc khóa để hiển thị thông báo phù hợp
@@ -1477,19 +1511,23 @@ class UserService {
 
           if (appLocked) {
             // Khóa toàn bộ app cho shop này - bởi Admin
-            for (final key in perms.keys.toList()) {
-              if (key.startsWith('allowView') ||
-                  key.startsWith('allowManage') ||
-                  key.startsWith('allowCreate')) {
-                perms[key] = false;
-                adminLockedList.add(key);
+            // NGOẠI LỆ: Owner và Admin KHÔNG bị khóa bởi appLocked
+            if (!isOwnerOrAdmin) {
+              for (final key in perms.keys.toList()) {
+                if (key.startsWith('allowView') ||
+                    key.startsWith('allowManage') ||
+                    key.startsWith('allowCreate')) {
+                  perms[key] = false;
+                  adminLockedList.add(key);
+                }
               }
+              perms['shopAppLocked'] = true;
             }
-            perms['shopAppLocked'] = true;
           }
 
           // Khóa tài chính cho quản lý - bởi Admin
-          if (adminFinanceLocked && (role == 'manager')) {
+          // NGOẠI LỆ: Owner không bị khóa tài chính
+          if (adminFinanceLocked && role == 'manager') {
             perms['allowViewRevenue'] = false;
             perms['allowViewExpenses'] = false;
             perms['allowViewDebts'] = false;

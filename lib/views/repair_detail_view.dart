@@ -689,9 +689,8 @@ class _RepairDetailViewState extends State<RepairDetailView> {
 
   Future<void> _checkPermission() async {
     final perms = await UserService.getCurrentUserPermissions(forceRefresh: true);
-    final role = await UserService.getRoleFast();
-    final isManagerLike =
-        role == 'admin' || role == 'owner' || role == 'manager';
+    // Lấy isManagerLike từ permissions map (cùng nguồn Firestore — tránh stale claims)
+    final isManagerLike = perms['isManagerLike'] == true;
     final canViewCostPrice = perms['allowViewCostPrice'] == true;
     final canViewRevenue =
         perms['allowViewRevenue'] == true || canViewCostPrice;
@@ -2946,7 +2945,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
             activityType: 'REPAIR_PRICE_ADJUST',
             amount: delta.abs(),
             direction: delta >= 0 ? 'IN' : 'OUT',
-            paymentMethod: r.paymentMethod ?? 'TIỀN MẶT',
+            paymentMethod: r.paymentMethod,
             title:
                 'Điều chỉnh giá sửa: ${r.customerName} (${MoneyUtils.formatVND(oldPrice)} → ${MoneyUtils.formatVND(parsedPrice)})',
             description:
@@ -2964,7 +2963,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
             activityType: 'REPAIR_COST_ADJUST',
             amount: costDelta.abs(),
             direction: costDelta >= 0 ? 'OUT' : 'IN',
-            paymentMethod: r.paymentMethod ?? 'TIỀN MẶT',
+            paymentMethod: r.paymentMethod,
             title:
                 'Điều chỉnh giá vốn sửa: ${r.customerName} (${MoneyUtils.formatVND(oldCost)} → ${MoneyUtils.formatVND(parsedCost)})',
             description:
@@ -6166,7 +6165,6 @@ class _RepairDetailViewState extends State<RepairDetailView> {
 
   Future<void> _printReceipt() async {
     // Show printer selection dialog giống như in hóa đơn bán hàng
-    final messenger = ScaffoldMessenger.of(context);
     final printerConfig = await showPrinterSelectionDialog(context);
     if (printerConfig == null) return; // User cancelled
 
