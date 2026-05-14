@@ -845,13 +845,10 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     // Chỉ admin/owner mới được giao máy (status 4)
     // Nếu đơn đang chờ duyệt (pendingDeliveryApproval = true), phải duyệt trước
     if (newStatus == 4) {
-      final currentRole = await UserService.getRoleFast();
-      final isManagerOrOwner =
-          currentRole == 'admin' ||
-          currentRole == 'owner' ||
-          currentRole == 'manager';
+      // Dùng _isManagerLike từ Firestore (tránh stale Claims với chủ shop/quản lý mới)
+      final isManagerOrOwner = _isManagerLike;
       debugPrint(
-        'Giao máy check: role=$currentRole, isManager=$isManagerOrOwner, pending=${r.pendingDeliveryApproval}',
+        'Giao máy check: isManagerLike=$isManagerOrOwner, pending=${r.pendingDeliveryApproval}',
       );
 
       // Nhân viên bấm "Giao máy" -> chuyển sang "Chờ duyệt giao"
@@ -5888,14 +5885,11 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       height: 1,
     );
 
-    return FutureBuilder<String>(
-      future: UserService.getRoleFast(),
-      builder: (context, snapshot) {
-        final role = snapshot.data ?? 'user';
-        final isManager =
-            role == 'admin' || role == 'owner' || role == 'manager';
+    // Dùng _isManagerLike đã tính từ Firestore trong _checkPermission()
+    // Tránh dùng getRoleFast() (Claims-based) — có thể stale với chủ shop/quản lý mới
+    final isManager = _isManagerLike;
 
-        Widget? statusButton;
+    Widget? statusButton;
         if (r.status < 3) {
           statusButton = ElevatedButton.icon(
             onPressed: _isUpdating ? null : () => _updateStatus(3),
@@ -6145,8 +6139,6 @@ class _RepairDetailViewState extends State<RepairDetailView> {
             ),
           ),
         );
-      },
-    );
   }
 
   Future<void> _shareToZalo() async {
