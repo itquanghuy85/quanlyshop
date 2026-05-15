@@ -4181,10 +4181,10 @@ class _HomeViewState extends State<HomeView>
       margin: const EdgeInsets.only(bottom: 10),
       child: Card(
         elevation: 0,
-        color: AppColors.error,
+        color: AppColors.iconBgPink,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10),
-          side: BorderSide(color: AppColors.error),
+          side: BorderSide(color: AppColors.error.withAlpha(51)),
         ),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
@@ -4208,7 +4208,7 @@ class _HomeViewState extends State<HomeView>
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: AppColors.error,
+                                color: AppColors.iconBgRed,
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Icon(
@@ -4234,7 +4234,7 @@ class _HomeViewState extends State<HomeView>
                                         ? _shopName.trim()
                                         : 'Bảng tin nội bộ',
                                     style: AppTextStyles.caption.copyWith(
-                                      color: AppColors.error,
+                                      color: AppColors.textSecondary,
                                     ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,

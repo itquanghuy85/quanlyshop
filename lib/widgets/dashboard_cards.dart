@@ -163,9 +163,9 @@ class _ActionRequiredCardState extends State<ActionRequiredCard> {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.warning,
+        color: AppColors.warningLight,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.warning),
+        border: Border.all(color: AppColors.warning.withAlpha(77)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
