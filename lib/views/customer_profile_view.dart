@@ -11,6 +11,9 @@ import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 import '../widgets/entity_avatar.dart';
 import '../widgets/responsive_wrapper.dart';
+import '../data/db_helper.dart';
+import 'repair_detail_view.dart';
+import 'sale_detail_view.dart';
 
 class CustomerProfileView extends StatefulWidget {
   final Customer customer;
@@ -191,6 +194,29 @@ class _CustomerProfileViewState extends State<CustomerProfileView> {
       Navigator.pop(context, {'deleted': true});
     } finally {
       if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Future<void> _openOrder(Map<String, dynamic> h) async {
+    final type = (h['type'] ?? '').toString();
+    final id = (h['id'] as num?)?.toInt();
+    if (id == null) return;
+    if (type == 'sale') {
+      final sale = await DBHelper().getSaleById(id);
+      if (!mounted) return;
+      if (sale == null) {
+        NotificationService.showSnackBar('Không tìm thấy đơn bán', color: AppColors.warning);
+        return;
+      }
+      await Navigator.push(context, MaterialPageRoute(builder: (_) => SaleDetailView(sale: sale)));
+    } else if (type == 'repair') {
+      final repair = await DBHelper().getRepairById(id);
+      if (!mounted) return;
+      if (repair == null) {
+        NotificationService.showSnackBar('Không tìm thấy đơn sửa', color: AppColors.warning);
+        return;
+      }
+      await Navigator.push(context, MaterialPageRoute(builder: (_) => RepairDetailView(repair: repair)));
     }
   }
 
@@ -467,9 +493,11 @@ class _CustomerProfileViewState extends State<CustomerProfileView> {
                         final label = type == 'sale'
                             ? 'Mua bán'
                             : (type == 'repair' ? 'Sửa chữa' : 'Thanh toán');
+                        final canTap = type == 'sale' || type == 'repair';
                         return ListTile(
                           dense: true,
                           contentPadding: EdgeInsets.zero,
+                          onTap: canTap ? () => _openOrder(h) : null,
                           leading: CircleAvatar(
                             radius: 14,
                             backgroundColor: type == 'sale'

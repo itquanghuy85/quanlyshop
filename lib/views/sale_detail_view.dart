@@ -40,6 +40,10 @@ import 'sale_invoice_preview_view.dart';
 import 'create_sales_return_view.dart';
 import '../services/sales_return_service.dart';
 import '../models/sales_return_model.dart';
+import 'dart:convert';
+import '../widgets/clickable_customer_header.dart';
+import '../widgets/clickable_product_list.dart';
+import '../widgets/deep_link_navigator.dart';
 
 class SaleDetailView extends StatefulWidget {
   final SaleOrder sale;
@@ -227,6 +231,76 @@ class _SaleDetailViewState extends State<SaleDetailView> {
           'dd/MM/yyyy',
         ).format(DateTime.fromMillisecondsSinceEpoch(ms));
   String _money(int amount) => MoneyUtils.formatCompactCurrency(amount);
+
+  String? _extractImageFromSnapshot(Map<String, dynamic> item) {
+    final imageUrl = (item['imageUrl'] ?? item['image'] ?? '').toString().trim();
+    if (imageUrl.isNotEmpty) return imageUrl;
+    final rawImages = item['images'];
+    if (rawImages is List && rawImages.isNotEmpty) {
+      final first = rawImages.first.toString().trim();
+      if (first.isNotEmpty) return first;
+    }
+    if (rawImages is String && rawImages.trim().isNotEmpty) {
+      final parts = rawImages.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+      if (parts.isNotEmpty) return parts.first;
+    }
+    return null;
+  }
+
+  List<ProductLinkRef> _buildLinkedProducts() {
+    final items = <ProductLinkRef>[];
+    final snapshotRaw = (s.itemSnapshotsJson ?? '').trim();
+    if (snapshotRaw.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(snapshotRaw);
+        if (decoded is List) {
+          for (final raw in decoded) {
+            if (raw is! Map) continue;
+            final item = Map<String, dynamic>.from(raw);
+            final name = ProductConstants.cleanProductName(
+              (item['name'] ?? item['productName'] ?? '').toString(),
+            ).trim();
+            if (name.isEmpty) continue;
+            final imei = (item['imei'] ?? item['serial'] ?? '').toString().trim();
+            final sku = (item['sku'] ?? '').toString().trim();
+            final productId = (item['id'] ?? item['productId'] ?? item['firestoreId'] ?? '').toString().trim();
+            items.add(ProductLinkRef(
+              productId: productId.isEmpty ? null : productId,
+              displayName: name,
+              imei: imei.isEmpty ? null : imei,
+              serial: imei.isEmpty ? null : imei,
+              sku: sku.isEmpty ? null : sku,
+              imageUrl: _extractImageFromSnapshot(item),
+              sourceEvent: 'product_detail_opened_from_sale',
+            ));
+          }
+        }
+      } catch (e) {
+        debugPrint('SaleDetailView _buildLinkedProducts parse error: $e');
+      }
+    }
+    if (items.isNotEmpty) return items;
+    final names = s.productNames
+        .split(RegExp(r'\s*,\s*'))
+        .map((e) => ProductConstants.cleanProductName(e).trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+    final imeis = s.productImeis
+        .split(RegExp(r'\s*,\s*'))
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+    for (var i = 0; i < names.length; i++) {
+      final imei = i < imeis.length ? imeis[i] : '';
+      items.add(ProductLinkRef(
+        displayName: names[i],
+        imei: imei.isEmpty ? null : imei,
+        serial: imei.isEmpty ? null : imei,
+        sourceEvent: 'product_detail_opened_from_sale',
+      ));
+    }
+    return items;
+  }
 
   Future<void> _unlockManager() async {
     final user = FirebaseAuth.instance.currentUser;
@@ -1360,11 +1434,16 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                 ),
 
               _card("GIAO DỊCH", [
-                _item("Khách hàng", s.customerName),
-                _item("Số điện thoại", s.phone),
+                ClickableCustomerHeader(
+                  customerName: s.customerName,
+                  phoneNumber: s.phone,
+                  sourceEvent: 'customer_profile_opened_from_sale',
+                ),
                 _item("Địa chỉ", s.address.isEmpty ? "---" : s.address),
-                _item("Sản phẩm", s.productNamesDisplay),
-                _item("IMEI", s.productImeis),
+                ClickableProductList(
+                  items: _buildLinkedProducts(),
+                  tooltip: 'Mở chi tiết sản phẩm từ đơn bán',
+                ),
                 _item("Bảo hành", s.warranty.isNotEmpty ? s.warranty : "KO BH"),
                 _item("Nhân viên", s.sellerName),
                 _item("Thời gian", _fmtDate(s.soldAt)),

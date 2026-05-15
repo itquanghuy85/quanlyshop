@@ -32,6 +32,8 @@ import 'adjustment_history_view.dart';
 import 'hr_salary_settings_view.dart';
 import 'label_designer_view.dart';
 import 'onboarding/business_type_wizard.dart';
+import 'backup_restore_view.dart';
+import 'kiotviet_settings_view.dart';
 
 class ShopSettingsView extends StatefulWidget {
   const ShopSettingsView({super.key});
@@ -1576,6 +1578,48 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const LabelDesignerView()),
+            ),
+          ),
+          const Divider(height: 1),
+          ListTile(
+            dense: true,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            leading: Container(
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                color: const Color(0xFFCCFBF1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.backup, color: Color(0xFF0D9488), size: 18),
+            ),
+            title: const Text('Sao lưu & Khôi phục', style: TextStyle(fontSize: 15)),
+            subtitle: const Text('Lưu dữ liệu ra máy hoặc lên Cloud', style: TextStyle(fontSize: 12, color: Colors.grey)),
+            trailing: const Icon(Icons.chevron_right, size: 16, color: Colors.grey),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const BackupRestoreView()),
+            ),
+          ),
+          const Divider(height: 1),
+          ListTile(
+            dense: true,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            leading: Container(
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                color: const Color(0xFFEDE9FE),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.sync_alt, color: Color(0xFF7C3AED), size: 18),
+            ),
+            title: const Text('Kết nối KiotViet', style: TextStyle(fontSize: 15)),
+            subtitle: const Text('Đồng bộ sản phẩm & khách hàng từ KiotViet', style: TextStyle(fontSize: 12, color: Colors.grey)),
+            trailing: const Icon(Icons.chevron_right, size: 16, color: Colors.grey),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const KiotVietSettingsView()),
             ),
           ),
         ],

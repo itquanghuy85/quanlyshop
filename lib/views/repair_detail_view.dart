@@ -49,6 +49,7 @@ import '../widgets/app_cached_image.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'inventory_view.dart';
 import 'repair_partner_view.dart';
+import '../widgets/clickable_customer_header.dart';
 import 'repair_invoice_template_view.dart';
 import 'repair_invoice_preview_view.dart';
 
@@ -3654,21 +3655,15 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Header row: icon + tên + edit + call
+                      // Header row: customer deep-link + actions
                       Row(
                         children: [
-                          Icon(
-                            Icons.person,
-                            size: 18,
-                            color: Colors.blue.shade700,
-                          ),
-                          const SizedBox(width: 8),
                           Expanded(
-                            child: Text(
-                              r.customerName.toUpperCase(),
-                              style: AppTextStyles.body2.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
+                            child: ClickableCustomerHeader(
+                              customerName: r.customerName,
+                              phoneNumber: r.phone,
+                              sourceEvent: 'customer_profile_opened_from_repair',
+                              tooltip: 'Mở hồ sơ khách hàng từ phiếu sửa',
                             ),
                           ),
                           if (r.status < 4 && _canEditRepairOrder)
