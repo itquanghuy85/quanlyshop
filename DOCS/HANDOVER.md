@@ -22,12 +22,13 @@ Dự án HULUCA Shop Manager là ứng dụng Flutter quản lý cửa hàng s�
 
 ## Completed Tasks (Recent)
 
-- [x] **iOS Premium Color Palette** (2026-05-15)
-  - Toàn bộ bảng màu cập nhật sang iOS System Blue (#007AFF)
-  - Grey scale chuyển Tailwind Slate → Tailwind Gray
-  - finance_v2_theme.dart đồng bộ với palette mới
-  - Finance V1 hoàn toàn bị xóa (4 files)
-  - AppBar gradient: #007AFF → #0056D6
+- [x] **Restore Legacy Color Palette** (2026-05-15)
+  - Truy vết palette gốc từ commit `3d6b3109` bằng `git show`
+  - Khôi phục primary `#4D8EE9` (soft blue, mềm mại hơn iOS/Zalo blue)
+  - AppBar gradient: #0068FF → #0084FF (Zalo Blue gốc)
+  - Grey scale: Material Design grey (gốc, không Tailwind)
+  - finance_v2_theme.dart: khôi phục navy original
+  - Toàn bộ ứng dụng tự kế thừa qua shared tokens
 
 - [x] **Documentation Process Setup** (2026-05-15)
   - Tạo CLAUDE.md, documentation index

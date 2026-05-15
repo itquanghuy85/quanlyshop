@@ -26,7 +26,7 @@ class AppTheme {
 
       // ========== APP BAR ==========
       appBarTheme: const AppBarTheme(
-        backgroundColor: Color(0xFF007AFF), // iOS System Blue
+        backgroundColor: Color(0xFF0068FF), // Zalo Blue
         foregroundColor: AppColors.surface,
         elevation: 0,
         scrolledUnderElevation: 0,

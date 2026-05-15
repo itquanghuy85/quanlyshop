@@ -4,6 +4,37 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-05-15] - Restore Legacy Color Palette (Git Forensics)
+
+### Summary
+Truy vết chính xác bảng màu gốc từ commit `3d6b3109` và khôi phục lại toàn bộ ứng dụng. Giao diện cũ mềm mại vì dùng primary `#4D8EE9` (soft blue) thay vì iOS/Zalo blue cứng.
+
+### Palette Forensics — Commit `3d6b3109` (gốc)
+| Token | Cũ (gốc) | Mới (iOS — đã hủy) | Đã khôi phục |
+|---|---|---|---|
+| primary | `#4D8EE9` (soft blue) | `#007AFF` | ✅ |
+| AppBar gradient | `#0068FF → #0084FF` | `#007AFF → #0056D6` | ✅ |
+| background | `#F8FAFF` | `#F5F7FB` | ✅ |
+| success | `#388E3C` | `#34A853` | ✅ |
+| warning | `#F57C00` | `#E6A700` | ✅ |
+| error | `#D32F2F` | `#EF4444` | ✅ |
+| textPrimary | `#1C1B1F` | `#1F2937` | ✅ |
+| grey scale | Material Design | Tailwind Gray | ✅ |
+| finance_v2_theme | original navy | modified | ✅ |
+
+### Files Modified
+- `lib/theme/app_colors.dart` — khôi phục palette gốc từ Git history
+- `lib/theme/app_theme.dart` — AppBar → #0068FF
+- `lib/widgets/custom_app_bar.dart` — gradient → #0068FF/#0084FF
+- `lib/finance_v2/finance_v2_theme.dart` — khôi phục navy original
+
+### Validation Results
+- ✓ flutter analyze: 0 errors
+- ✓ flutter build apk --debug: Success
+- ✓ Install on OPPO CPH1989: Success
+
+---
+
 ## [2026-05-15] - iOS Premium Color Palette + Finance V1 Removal
 
 ### Summary

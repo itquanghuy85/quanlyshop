@@ -31,26 +31,27 @@ Helper:
 - Gaps: `gapXs`, `gapSm`, `gapMd`, `gapLg`, `gapXl`, `gapXxl`
 
 ## Colors (`lib/theme/app_colors.dart`)
-**iOS Premium Palette** (updated 2026-05-15)
+**Original Legacy Palette** (restored 2026-05-15 from commit `3d6b3109`)
 
 | Token | Value | Usage |
 |---|---|---|
-| `AppColors.primary` | `#007AFF` | iOS System Blue |
-| `AppColors.primaryDark` | `#0056D6` | Gradient end, selected state |
-| `AppColors.background` | `#F5F7FB` | App background |
+| `AppColors.primary` | `#4D8EE9` | Soft blue — chips, buttons, links |
+| `AppColors.primaryDark` | `#0068FF` | Zalo Blue — AppBar, gradient |
+| `AppColors.background` | `#F8FAFF` | Blue-tinted app background |
 | `AppColors.surface` | `#FFFFFF` | Cards, sheets |
-| `AppColors.textPrimary` | `#1F2937` | Headings, body text |
-| `AppColors.textSecondary` | `#6B7280` | Labels, captions |
-| `AppColors.success` | `#34A853` | Positive, completed |
-| `AppColors.warning` | `#E6A700` | Caution, pending |
-| `AppColors.error` | `#EF4444` | Errors, cancelled |
-| `AppColors.info` | `#3B82F6` | Informational, links |
-| `AppColors.divider` | `#EEF2F7` | Separators |
-| `AppColors.outline` | `#E5EAF2` | Card borders |
-| `AppColors.grey400` | `#9CA3AF` | Icons, placeholders |
-| `AppColors.grey800` | `#1F2937` | Dark text |
+| `AppColors.textPrimary` | `#1C1B1F` | Near-black |
+| `AppColors.textSecondary` | `#616161` | Grey 700 |
+| `AppColors.success` | `#388E3C` | Green 700 |
+| `AppColors.warning` | `#F57C00` | Orange 700 |
+| `AppColors.error` | `#D32F2F` | Red 700 |
+| `AppColors.info` | `#0068FF` | Zalo Blue |
+| `AppColors.divider` | `#E0E0E0` | Grey 300 |
+| `AppColors.outline` | `#E0E0E0` | Grey 300 |
+| `AppColors.grey400` | `#BDBDBD` | Material Grey 400 |
+| `AppColors.grey800` | `#424242` | Material Grey 800 |
 
-Grey scale: Tailwind Gray (warmer than previous Tailwind Slate)
+Grey scale: Material Design Grey (not Tailwind)
+AppBar gradient: `#0068FF → #0084FF` (Zalo Blue)
 
 ## Core Tokens (`lib/theme/design_tokens.dart`)
 - Minimum touch target: 44
