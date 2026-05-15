@@ -17,7 +17,7 @@ enum DashboardCardType {
   alerts, // Cảnh báo (bảo hành, HSD)
   userGuide, // Hướng dẫn sử dụng
   financeShortcuts, // Truy cập nhanh tài chính (Sổ quỹ/Công nợ/Thu chi)
-  dailyReport, // Báo cáo hoạt động hôm nay (DailyActivityReportView)
+  dailyReport, // Deprecated – replaced by Finance V2 Báo cáo tab
 }
 
 /// Config for a single dashboard card

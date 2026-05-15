@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../theme/app_colors.dart';
 
 import '../../../expansion/safe_mode/expansion_feature_flags.dart';
 import '../../../expansion/safe_mode/expansion_module_services.dart';
@@ -102,13 +103,13 @@ class _LoyaltyHistoryViewState extends State<LoyaltyHistoryView> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.history_toggle_off, size: 48, color: Colors.grey),
+          const Icon(Icons.history_toggle_off, size: 48, color: AppColors.textHint),
           const SizedBox(height: 12),
-          const Text('Chưa có giao dịch nào', style: TextStyle(color: Colors.grey)),
+          const Text('Chưa có giao dịch nào', style: TextStyle(color: AppColors.textHint)),
           const SizedBox(height: 4),
           Text(
             widget.customerName,
-            style: const TextStyle(color: Colors.grey, fontSize: 12),
+            style: const TextStyle(color: AppColors.textHint, fontSize: 12),
           ),
         ],
       ),
@@ -143,7 +144,7 @@ class _LoyaltyHistoryViewState extends State<LoyaltyHistoryView> {
 
   Widget _buildSummaryRow(int earned, int redeemed) {
     return Container(
-      color: Colors.grey.shade50,
+      color: AppColors.background,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Row(
         children: [
@@ -151,25 +152,25 @@ class _LoyaltyHistoryViewState extends State<LoyaltyHistoryView> {
             child: _buildStat(
               label: 'Đã tích',
               value: '+$earned điểm',
-              color: Colors.green,
+              color: AppColors.success,
               icon: Icons.arrow_upward,
             ),
           ),
-          Container(width: 1, height: 32, color: Colors.grey.shade300),
+          Container(width: 1, height: 32, color: AppColors.outline),
           Expanded(
             child: _buildStat(
               label: 'Đã đổi',
               value: '-$redeemed điểm',
-              color: Colors.orange,
+              color: AppColors.warning,
               icon: Icons.arrow_downward,
             ),
           ),
-          Container(width: 1, height: 32, color: Colors.grey.shade300),
+          Container(width: 1, height: 32, color: AppColors.outline),
           Expanded(
             child: _buildStat(
               label: 'Giao dịch',
               value: '${_transactions.length} lần',
-              color: Colors.blue,
+              color: AppColors.primary,
               icon: Icons.receipt_long,
             ),
           ),
@@ -189,14 +190,14 @@ class _LoyaltyHistoryViewState extends State<LoyaltyHistoryView> {
         Icon(icon, size: 14, color: color),
         const SizedBox(height: 2),
         Text(value, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 13)),
-        Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+        Text(label, style: const TextStyle(fontSize: 10, color: AppColors.textHint)),
       ],
     );
   }
 
   Widget _buildTile(LoyaltyTransaction tx) {
     final isEarn = tx.type == LoyaltyTransactionType.earn;
-    final color = isEarn ? Colors.green : Colors.orange;
+    final color = isEarn ? AppColors.success : AppColors.warning;
     final icon = isEarn ? Icons.add_circle : Icons.redeem;
     final sign = isEarn ? '+' : '-';
 
@@ -213,10 +214,10 @@ class _LoyaltyHistoryViewState extends State<LoyaltyHistoryView> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (tx.note.isNotEmpty)
-            Text(tx.note, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+            Text(tx.note, style: const TextStyle(fontSize: 12, color: AppColors.textHint)),
           Text(
             _formatDate(tx.createdAt),
-            style: const TextStyle(fontSize: 11, color: Colors.grey),
+            style: const TextStyle(fontSize: 11, color: AppColors.textHint),
           ),
         ],
       ),
@@ -235,7 +236,7 @@ class _LoyaltyHistoryViewState extends State<LoyaltyHistoryView> {
           if (!isEarn && tx.discountAmount > 0)
             Text(
               _formatMoney(tx.discountAmount),
-              style: const TextStyle(fontSize: 11, color: Colors.grey),
+              style: const TextStyle(fontSize: 11, color: AppColors.textHint),
             ),
         ],
       ),

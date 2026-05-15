@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
 import '../data/db_helper.dart';
 import '../models/quick_input_code_model.dart';
 import '../models/shop_settings_model.dart';
@@ -82,7 +83,7 @@ class _QuickInputLibraryViewState extends State<QuickInputLibraryView> {
       debugPrint('Load quick input codes error: $e');
       debugPrint('Stack trace: $stackTrace');
       if (mounted) {
-        NotificationService.showSnackBar('Lỗi tải thư viện mã nhập nhanh: $e', color: Colors.red);
+        NotificationService.showSnackBar('Lỗi tải thư viện mã nhập nhanh: $e', color: AppColors.error);
         setState(() => _isLoading = false);
       }
     }
@@ -104,10 +105,10 @@ class _QuickInputLibraryViewState extends State<QuickInputLibraryView> {
     try {
       await SyncService.syncQuickInputCodesToCloud();
       // Real-time listeners handle downloads — chỉ push local changes
-      NotificationService.showSnackBar('Đã đồng bộ thành công mã nhập nhanh!', color: Colors.green);
+      NotificationService.showSnackBar('Đã đồng bộ thành công mã nhập nhanh!', color: AppColors.success);
       await _loadCodes(); // Refresh list
     } catch (e) {
-      NotificationService.showSnackBar('Lỗi đồng bộ: $e', color: Colors.red);
+      NotificationService.showSnackBar('Lỗi đồng bộ: $e', color: AppColors.error);
     } finally {
       if (mounted) {
         setState(() => _isSyncing = false);
@@ -121,10 +122,10 @@ class _QuickInputLibraryViewState extends State<QuickInputLibraryView> {
       await _loadCodes();
       NotificationService.showSnackBar(
         code.isActive ? 'Đã tắt mã nhập nhanh' : 'Đã bật mã nhập nhanh',
-        color: Colors.green,
+        color: AppColors.success,
       );
     } catch (e) {
-      NotificationService.showSnackBar('Lỗi cập nhật trạng thái: $e', color: Colors.red);
+      NotificationService.showSnackBar('Lỗi cập nhật trạng thái: $e', color: AppColors.error);
     }
   }
 
@@ -141,7 +142,7 @@ class _QuickInputLibraryViewState extends State<QuickInputLibraryView> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
             child: const Text('Xóa'),
           ),
         ],
@@ -163,9 +164,9 @@ class _QuickInputLibraryViewState extends State<QuickInputLibraryView> {
         // Sau đó xóa local
         await db.deleteQuickInputCode(code.id!);
         await _loadCodes();
-        NotificationService.showSnackBar('Đã xóa mã nhập nhanh', color: Colors.green);
+        NotificationService.showSnackBar('Đã xóa mã nhập nhanh', color: AppColors.success);
       } catch (e) {
-        NotificationService.showSnackBar('Lỗi xóa mã nhập nhanh: $e', color: Colors.red);
+        NotificationService.showSnackBar('Lỗi xóa mã nhập nhanh: $e', color: AppColors.error);
       }
     }
   }
@@ -192,20 +193,20 @@ class _QuickInputLibraryViewState extends State<QuickInputLibraryView> {
             try {
               if (code == null) {
                 await db.insertQuickInputCode(newCode);
-                NotificationService.showSnackBar('Đã thêm mã nhập nhanh', color: Colors.green);
+                NotificationService.showSnackBar('Đã thêm mã nhập nhanh', color: AppColors.success);
               } else {
                 await db.updateQuickInputCode(newCode);
-                NotificationService.showSnackBar('Đã cập nhật mã nhập nhanh', color: Colors.green);
+                NotificationService.showSnackBar('Đã cập nhật mã nhập nhanh', color: AppColors.success);
               }
               await _loadCodes();
             } catch (e) {
-              NotificationService.showSnackBar('Lỗi lưu mã nhập nhanh: $e', color: Colors.red);
+              NotificationService.showSnackBar('Lỗi lưu mã nhập nhanh: $e', color: AppColors.error);
             }
           },
         ),
       );
     } catch (e) {
-      NotificationService.showSnackBar('Lỗi mở dialog: $e', color: Colors.red);
+      NotificationService.showSnackBar('Lỗi mở dialog: $e', color: AppColors.error);
     }
   }
 
@@ -225,27 +226,27 @@ class _QuickInputLibraryViewState extends State<QuickInputLibraryView> {
         ),
         title: Text(
           "THƯ VIỆN MÃ NHẬP NHANH",
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: AppTextStyles.headline3.fontSize, color: Colors.white),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: AppTextStyles.headline3.fontSize, color: AppColors.surface),
         ),
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
+        backgroundColor: AppColors.surface,
+        foregroundColor: AppColors.textPrimary,
         elevation: 0,
         actions: [
           IconButton(
             onPressed: _isSyncing ? null : _syncToCloud,
             icon: _isSyncing
                 ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                : const Icon(Icons.cloud_upload, color: Colors.blue),
+                : const Icon(Icons.cloud_upload, color: AppColors.primary),
             tooltip: 'Đồng bộ lên Cloud',
           ),
           IconButton(
             onPressed: _syncToCloud,
-            icon: const Icon(Icons.sync, color: Colors.orange),
+            icon: const Icon(Icons.sync, color: AppColors.warning),
             tooltip: 'Đồng bộ dữ liệu',
           ),
           IconButton(
             onPressed: _loadCodes,
-            icon: const Icon(Icons.refresh, color: Colors.blue),
+            icon: const Icon(Icons.refresh, color: AppColors.primary),
           ),
         ],
       ),
@@ -258,7 +259,7 @@ class _QuickInputLibraryViewState extends State<QuickInputLibraryView> {
                     // Filter chips
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      color: Colors.white,
+                      color: AppColors.surface,
                       child: Row(
                         children: [
                           FilterChip(
@@ -269,9 +270,9 @@ class _QuickInputLibraryViewState extends State<QuickInputLibraryView> {
                                 setState(() => _currentFilter = QuickInputFilter.all);
                               }
                             },
-                            backgroundColor: Colors.grey[100],
-                            selectedColor: Colors.blue[100],
-                            checkmarkColor: Colors.blue,
+                            backgroundColor: AppColors.textHint,
+                            selectedColor: AppColors.primary,
+                            checkmarkColor: AppColors.primary,
                           ),
                           const SizedBox(width: 8),
                           FilterChip(
@@ -282,9 +283,9 @@ class _QuickInputLibraryViewState extends State<QuickInputLibraryView> {
                                 setState(() => _currentFilter = QuickInputFilter.unsynced);
                               }
                             },
-                            backgroundColor: Colors.grey[100],
-                            selectedColor: Colors.orange[100],
-                            checkmarkColor: Colors.orange,
+                            backgroundColor: AppColors.textHint,
+                            selectedColor: AppColors.warning,
+                            checkmarkColor: AppColors.warning,
                           ),
                         ],
                       ),
@@ -313,16 +314,16 @@ class _QuickInputLibraryViewState extends State<QuickInputLibraryView> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.library_books_outlined, size: 80, color: Colors.grey[200]),
+            Icon(Icons.library_books_outlined, size: 80, color: AppColors.divider),
             const SizedBox(height: 16),
             Text(
               "Chưa có mã nhập nhanh nào",
-              style: TextStyle(color: Colors.grey[600], fontSize: AppTextStyles.headline3.fontSize),
+              style: TextStyle(color: AppColors.textSecondary, fontSize: AppTextStyles.headline3.fontSize),
             ),
             const SizedBox(height: 8),
             Text(
               "Tạo mã nhập nhanh để tăng tốc độ nhập kho",
-              style: TextStyle(color: Colors.grey[400], fontSize: AppTextStyles.subtitle1.fontSize),
+              style: TextStyle(color: AppColors.textHint, fontSize: AppTextStyles.subtitle1.fontSize),
               textAlign: TextAlign.center,
             ),
           ],
@@ -336,21 +337,21 @@ class _QuickInputLibraryViewState extends State<QuickInputLibraryView> {
             Icon(
               _currentFilter == QuickInputFilter.unsynced ? Icons.check_circle : Icons.filter_list,
               size: 80, 
-              color: _currentFilter == QuickInputFilter.unsynced ? Colors.green[200] : Colors.grey[200]
+              color: _currentFilter == QuickInputFilter.unsynced ? AppColors.success : AppColors.divider
             ),
             const SizedBox(height: 16),
             Text(
               _currentFilter == QuickInputFilter.unsynced 
                 ? "Tất cả mã đã được đồng bộ!" 
                 : "Không có mã nào phù hợp với bộ lọc",
-              style: TextStyle(color: Colors.grey[600], fontSize: AppTextStyles.headline3.fontSize),
+              style: TextStyle(color: AppColors.textSecondary, fontSize: AppTextStyles.headline3.fontSize),
             ),
             const SizedBox(height: 8),
             Text(
               _currentFilter == QuickInputFilter.unsynced 
                 ? "Không có mã nhập nhanh nào chưa đồng bộ" 
                 : "Thử thay đổi bộ lọc để xem các mã khác",
-              style: TextStyle(color: Colors.grey[400], fontSize: AppTextStyles.subtitle1.fontSize),
+              style: TextStyle(color: AppColors.textHint, fontSize: AppTextStyles.subtitle1.fontSize),
               textAlign: TextAlign.center,
             ),
           ],
@@ -362,11 +363,11 @@ class _QuickInputLibraryViewState extends State<QuickInputLibraryView> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(18),
-        border: !code.isSynced ? Border.all(color: Colors.orange.withAlpha(100), width: 2) : null,
+        border: !code.isSynced ? Border.all(color: AppColors.warning.withAlpha(100), width: 2) : null,
         boxShadow: [
-          BoxShadow(color: Colors.black.withAlpha(5), blurRadius: 10),
+          BoxShadow(color: AppColors.textPrimary.withAlpha(5), blurRadius: 10),
         ],
       ),
       child: Column(
@@ -379,12 +380,12 @@ class _QuickInputLibraryViewState extends State<QuickInputLibraryView> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: isPhone ? Colors.blue.withAlpha(25) : Colors.orange.withAlpha(25),
+                    color: isPhone ? AppColors.primary.withAlpha(25) : AppColors.warning.withAlpha(25),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
                     isPhone ? Icons.smartphone : Icons.inventory_2,
-                    color: isPhone ? Colors.blue : Colors.orange,
+                    color: isPhone ? AppColors.primary : AppColors.warning,
                     size: 20,
                   ),
                 ),
@@ -398,12 +399,12 @@ class _QuickInputLibraryViewState extends State<QuickInputLibraryView> {
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: AppTextStyles.headline4.fontSize,
-                          color: code.isActive ? const Color(0xFF1A237E) : Colors.grey,
+                          color: code.isActive ? const Color(0xFF1A237E) : AppColors.textHint,
                         ),
                       ),
                       Text(
                         isPhone ? "${code.brand ?? ''} ${code.model ?? ''}".trim() : code.description ?? '',
-                        style: TextStyle(fontSize: AppTextStyles.caption.fontSize, color: Colors.grey),
+                        style: TextStyle(fontSize: AppTextStyles.caption.fontSize, color: AppColors.textHint),
                       ),
                     ],
                   ),
@@ -413,17 +414,17 @@ class _QuickInputLibraryViewState extends State<QuickInputLibraryView> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
-                      color: Colors.orange[100],
+                      color: AppColors.warning,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.sync_problem, size: 10, color: Colors.orange),
+                        Icon(Icons.sync_problem, size: 10, color: AppColors.warning),
                         SizedBox(width: 2),
                         Text(
                           'CHƯA ĐỒNG BỘ',
-                          style: TextStyle(fontSize: AppTextStyles.overlineSize, color: Colors.orange, fontWeight: FontWeight.bold),
+                          style: TextStyle(fontSize: AppTextStyles.overlineSize, color: AppColors.warning, fontWeight: FontWeight.bold),
                         ),
                       ],
                     ),
@@ -432,12 +433,12 @@ class _QuickInputLibraryViewState extends State<QuickInputLibraryView> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
-                      color: Colors.grey[200],
+                      color: AppColors.divider,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Text(
                       'TẮT',
-                      style: TextStyle(fontSize: AppTextStyles.overlineSize, color: Colors.grey),
+                      style: TextStyle(fontSize: AppTextStyles.overlineSize, color: AppColors.textHint),
                     ),
                   ),
               ],
@@ -448,7 +449,7 @@ class _QuickInputLibraryViewState extends State<QuickInputLibraryView> {
           ExpansionTile(
             title: Text(
               'Xem chi tiết',
-              style: TextStyle(fontSize: AppTextStyles.subtitle1.fontSize, color: Colors.blue),
+              style: TextStyle(fontSize: AppTextStyles.subtitle1.fontSize, color: AppColors.primary),
             ),
             children: [
               Padding(
@@ -498,7 +499,7 @@ class _QuickInputLibraryViewState extends State<QuickInputLibraryView> {
                         label: const Text('NHẬP KHO'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF4CAF50),
-                          foregroundColor: Colors.white,
+                          foregroundColor: AppColors.surface,
                           padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
                       ),
@@ -510,8 +511,8 @@ class _QuickInputLibraryViewState extends State<QuickInputLibraryView> {
                         icon: const Icon(Icons.edit, size: 16),
                         label: const Text('CHỈNH SỬA'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
-                          foregroundColor: Colors.white,
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: AppColors.surface,
                           padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
                       ),
@@ -527,8 +528,8 @@ class _QuickInputLibraryViewState extends State<QuickInputLibraryView> {
                         icon: Icon(code.isActive ? Icons.visibility_off : Icons.visibility, size: 16),
                         label: Text(code.isActive ? 'TẮT' : 'BẬT'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: code.isActive ? Colors.orange : Colors.green,
-                          foregroundColor: Colors.white,
+                          backgroundColor: code.isActive ? AppColors.warning : AppColors.success,
+                          foregroundColor: AppColors.surface,
                           padding: const EdgeInsets.symmetric(vertical: 8),
                         ),
                       ),
@@ -540,8 +541,8 @@ class _QuickInputLibraryViewState extends State<QuickInputLibraryView> {
                         icon: const Icon(Icons.delete, size: 16),
                         label: const Text('XÓA'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red,
-                          foregroundColor: Colors.white,
+                          backgroundColor: AppColors.error,
+                          foregroundColor: AppColors.surface,
                           padding: const EdgeInsets.symmetric(vertical: 8),
                         ),
                       ),
@@ -564,11 +565,11 @@ class _QuickInputLibraryViewState extends State<QuickInputLibraryView> {
         children: [
           Text(
             '$label: ',
-            style: TextStyle(fontSize: AppTextStyles.subtitle1.fontSize, fontWeight: FontWeight.bold, color: Colors.grey),
+            style: TextStyle(fontSize: AppTextStyles.subtitle1.fontSize, fontWeight: FontWeight.bold, color: AppColors.textHint),
           ),
           Text(
             value,
-            style: TextStyle(fontSize: AppTextStyles.subtitle1.fontSize, color: Colors.black87),
+            style: TextStyle(fontSize: AppTextStyles.subtitle1.fontSize, color: AppColors.textPrimary),
           ),
         ],
       ),

@@ -109,10 +109,18 @@ class UserService {
   static Map<String, dynamic>? getCurrentUserPermissionsSync() {
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) {
-      return {..._defaultPermissionsForRole('user'), 'role': 'user', 'isManagerLike': false};
+      return {
+        ..._defaultPermissionsForRole('user'),
+        'role': 'user',
+        'isManagerLike': false,
+      };
     }
     if (_isSuperAdmin(currentUser)) {
-      return {..._defaultPermissionsForRole('admin'), 'role': 'admin', 'isManagerLike': true};
+      return {
+        ..._defaultPermissionsForRole('admin'),
+        'role': 'admin',
+        'isManagerLike': true,
+      };
     }
     if (!_isPermissionsCacheValid(currentUser)) return null;
     return Map<String, dynamic>.from(_cachedPermissions!);
@@ -581,10 +589,9 @@ class UserService {
         final profileShopId = data['shopId'] as String?;
         final normalizedActive = activeShopId?.trim();
         final normalizedProfile = profileShopId?.trim();
-        shopId =
-            (normalizedActive != null && normalizedActive.isNotEmpty)
-                ? normalizedActive
-                : normalizedProfile;
+        shopId = (normalizedActive != null && normalizedActive.isNotEmpty)
+            ? normalizedActive
+            : normalizedProfile;
       }
 
       // Auto-heal 1: nếu user doc thiếu shopId, ưu tiên lấy từ custom claims.
@@ -677,8 +684,8 @@ class UserService {
     if (uid == currentUser?.uid) {
       try {
         final claims = await ClaimsService().getClaimsFromToken();
-        final isSuperAdminClaim = claims?['isSuperAdmin'] == true ||
-            claims?['role'] == 'super_admin';
+        final isSuperAdminClaim =
+            claims?['isSuperAdmin'] == true || claims?['role'] == 'super_admin';
         if (isSuperAdminClaim) {
           setCurrentUserSuperAdmin(true, uid: uid);
           return 'admin';
@@ -709,8 +716,8 @@ class UserService {
   /// Fast role check using Custom Claims (no Firestore read)
   static Future<String> getRoleFast() async {
     final claims = await ClaimsService().getClaimsFromToken();
-    final isSuperAdminClaim = claims?['isSuperAdmin'] == true ||
-        claims?['role'] == 'super_admin';
+    final isSuperAdminClaim =
+        claims?['isSuperAdmin'] == true || claims?['role'] == 'super_admin';
     if (isSuperAdminClaim) {
       setCurrentUserSuperAdmin(true);
       return 'admin';
@@ -814,7 +821,10 @@ class UserService {
 
     // Trường hợp chưa đồng bộ shopId: không trả toàn bộ để tránh leak cross-tenant.
     return _pollQuerySnapshots(
-      _db.collection('users').where('shopId', isEqualTo: '__NO_SHOP__').limit(1),
+      _db
+          .collection('users')
+          .where('shopId', isEqualTo: '__NO_SHOP__')
+          .limit(1),
     );
   }
 
@@ -914,9 +924,7 @@ class UserService {
             role: normalizedRole,
             photoUrl: photoUrl,
           );
-          debugPrint(
-            '✅ updateUserInfo fallback callable success for uid=$uid',
-          );
+          debugPrint('✅ updateUserInfo fallback callable success for uid=$uid');
           EventBus().emit('users_changed');
           return;
         } catch (callableErr) {
@@ -975,8 +983,8 @@ class UserService {
     final data = userDoc.data() ?? {};
 
     final claims = await ClaimsService().getClaimsFromToken();
-    final bool isSuperAdmin = claims?['isSuperAdmin'] == true ||
-        claims?['role'] == 'super_admin';
+    final bool isSuperAdmin =
+        claims?['isSuperAdmin'] == true || claims?['role'] == 'super_admin';
     setCurrentUserSuperAdmin(isSuperAdmin, uid: uid);
     String? shopId = data['shopId'];
     bool isNewShop = false;
@@ -1051,7 +1059,8 @@ class UserService {
 
           shopId = uid;
           isNewShop = true;
-          _isCreatingNewShopData = true; // AuthGate sẽ hiển thị thông báo lần đầu
+          _isCreatingNewShopData =
+              true; // AuthGate sẽ hiển thị thông báo lần đầu
           debugPrint(
             '🆕 syncUserInfo: Creating new shop with id=$shopId for user $email',
           );
@@ -1359,12 +1368,20 @@ class UserService {
   }) async {
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) {
-      return {..._defaultPermissionsForRole('user'), 'role': 'user', 'isManagerLike': false};
+      return {
+        ..._defaultPermissionsForRole('user'),
+        'role': 'user',
+        'isManagerLike': false,
+      };
     }
 
     // Admin tối cao luôn có toàn quyền
     if (_isSuperAdmin(currentUser)) {
-      return {..._defaultPermissionsForRole('super_admin'), 'role': 'super_admin', 'isManagerLike': true};
+      return {
+        ..._defaultPermissionsForRole('super_admin'),
+        'role': 'super_admin',
+        'isManagerLike': true,
+      };
     }
 
     if (!forceRefresh) {
@@ -1427,35 +1444,29 @@ class UserService {
             (data['allowViewPrinter'] as bool?) ??
             defaults['allowViewPrinter']!,
         // Owner/Admin LUÔN có quyền xem tài chính — không thể bị ghi đè bởi Firestore field
-        'allowViewRevenue':
-            isOwnerOrAdmin
+        'allowViewRevenue': isOwnerOrAdmin
             ? true
             : ((data['allowViewRevenue'] as bool?) ??
                   defaults['allowViewRevenue']!),
-        'allowViewExpenses':
-            isOwnerOrAdmin
+        'allowViewExpenses': isOwnerOrAdmin
             ? true
             : ((data['allowViewExpenses'] as bool?) ??
                   defaults['allowViewExpenses']!),
-        'allowViewDebts':
-            isOwnerOrAdmin
+        'allowViewDebts': isOwnerOrAdmin
             ? true
             : ((data['allowViewDebts'] as bool?) ??
                   defaults['allowViewDebts']!),
         // Owner, Manager, Admin LUÔN được xem giá vốn, không bao giờ bị tắt
-        'allowViewCostPrice':
-            isManagerLike
+        'allowViewCostPrice': isManagerLike
             ? true
             : ((data['allowViewCostPrice'] as bool?) ??
                   defaults['allowViewCostPrice']!),
         // Owner/Admin LUÔN có quyền cài đặt và quản lý nhân viên
-        'allowViewSettings':
-            isManagerLike
+        'allowViewSettings': isManagerLike
             ? true
             : ((data['allowViewSettings'] as bool?) ??
                   defaults['allowViewSettings']!),
-        'allowManageStaff':
-            isManagerLike
+        'allowManageStaff': isManagerLike
             ? true
             : ((data['allowManageStaff'] as bool?) ??
                   defaults['allowManageStaff']!),

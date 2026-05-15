@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
 import '../l10n/app_localizations.dart';
 import '../data/user_guide_repository.dart';
 import '../services/notification_service.dart';
+import '../theme/app_text_styles.dart';
 
 /// Complete User Guide View - Professional in-app documentation viewer
 class UserGuideView extends StatefulWidget {
@@ -88,8 +90,8 @@ class _UserGuideViewState extends State<UserGuideView> with SingleTickerProvider
       floating: false,
       pinned: true,
       elevation: 0,
-      backgroundColor: const Color(0xFF0068FF),
-      foregroundColor: Colors.white,
+      backgroundColor: Theme.of(context).colorScheme.primary,
+      foregroundColor: Theme.of(context).colorScheme.onPrimary,
       leading: _selectedModuleId != null
           ? IconButton(
               icon: const Icon(Icons.arrow_back),
@@ -98,9 +100,13 @@ class _UserGuideViewState extends State<UserGuideView> with SingleTickerProvider
           : null,
       flexibleSpace: FlexibleSpaceBar(
         background: Container(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [Color(0xFF0068FF), Color(0xFF0084FF), Color(0xFF42A5F5)],
+              colors: [
+                Theme.of(context).colorScheme.primary,
+                Theme.of(context).colorScheme.primaryContainer,
+                Theme.of(context).colorScheme.secondary,
+              ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -117,10 +123,10 @@ class _UserGuideViewState extends State<UserGuideView> with SingleTickerProvider
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
+                            color: AppColors.surface.withAlpha(51),
                             borderRadius: BorderRadius.circular(16),
                           ),
-                          child: const Icon(Icons.menu_book, size: 32, color: Colors.white),
+                          child: Icon(Icons.menu_book, size: 32, color: Theme.of(context).colorScheme.onPrimary),
                         ),
                         const SizedBox(width: 16),
                         Expanded(
@@ -129,18 +135,16 @@ class _UserGuideViewState extends State<UserGuideView> with SingleTickerProvider
                             children: [
                               Text(
                                 AppLocalizations.of(context)!.userGuide,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 24,
+                                style: AppTextStyles.headline4.copyWith(
+                                  color: Theme.of(context).colorScheme.onPrimary,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
                               const SizedBox(height: 4),
                               Text(
                                 AppLocalizations.of(context)!.learnHowToUseApp,
-                                style: const TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 16,
+                                style: AppTextStyles.body2.copyWith(
+                                  color: Theme.of(context).colorScheme.onPrimary.withAlpha(179),
                                 ),
                               ),
                             ],
@@ -162,11 +166,11 @@ class _UserGuideViewState extends State<UserGuideView> with SingleTickerProvider
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
           child: Container(
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColors.surface,
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: AppColors.textPrimary.withAlpha(26),
                   blurRadius: 10,
                   offset: const Offset(0, 2),
                 ),
@@ -176,11 +180,11 @@ class _UserGuideViewState extends State<UserGuideView> with SingleTickerProvider
               controller: _searchCtrl,
               decoration: InputDecoration(
                 hintText: AppLocalizations.of(context)!.searchGuides,
-                hintStyle: TextStyle(color: Colors.grey.shade500),
-                prefixIcon: const Icon(Icons.search, color: Colors.blue),
+                hintStyle: TextStyle(color: AppColors.textHint),
+                prefixIcon: const Icon(Icons.search, color: AppColors.primary),
                 suffixIcon: _isSearching
                     ? IconButton(
-                        icon: const Icon(Icons.close, color: Colors.grey),
+                        icon: const Icon(Icons.close, color: AppColors.textHint),
                         onPressed: _clearSearch,
                       )
                     : null,
@@ -260,12 +264,12 @@ class _UserGuideViewState extends State<UserGuideView> with SingleTickerProvider
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Colors.blue.shade50, Colors.blue.shade50],
+          colors: [AppColors.primary, AppColors.primary],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.blue.shade100),
+        border: Border.all(color: AppColors.primary),
       ),
       child: Row(
         children: [
@@ -274,33 +278,33 @@ class _UserGuideViewState extends State<UserGuideView> with SingleTickerProvider
               Icons.folder_outlined,
               '$moduleCount',
               'Chủ đề',
-              Colors.blue,
+              AppColors.primary,
             ),
           ),
           Container(
             width: 1,
             height: 40,
-            color: Colors.blue.shade200,
+            color: AppColors.primary,
           ),
           Expanded(
             child: _buildStatItem(
               Icons.article_outlined,
               '$sectionCount',
               'Bài hướng dẫn',
-              Colors.blue,
+              AppColors.primary,
             ),
           ),
           Container(
             width: 1,
             height: 40,
-            color: Colors.blue.shade200,
+            color: AppColors.primary,
           ),
           Expanded(
             child: _buildStatItem(
               Icons.verified_outlined,
               '100%',
               AppLocalizations.of(context)!.free,
-              Colors.green,
+              AppColors.success,
             ),
           ),
         ],
@@ -325,7 +329,7 @@ class _UserGuideViewState extends State<UserGuideView> with SingleTickerProvider
           label,
           style: TextStyle(
             fontSize: 14,
-            color: Colors.grey.shade600,
+            color: AppColors.textSecondary,
           ),
         ),
       ],
@@ -348,7 +352,7 @@ class _UserGuideViewState extends State<UserGuideView> with SingleTickerProvider
             subtitle,
             style: TextStyle(
               fontSize: 16,
-              color: Colors.grey.shade600,
+              color: AppColors.textSecondary,
             ),
           ),
       ],
@@ -365,8 +369,8 @@ class _UserGuideViewState extends State<UserGuideView> with SingleTickerProvider
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              module?.color ?? Colors.blue,
-              (module?.color ?? Colors.blue).withOpacity(0.7),
+              module?.color ?? AppColors.primary,
+              (module?.color ?? AppColors.primary).withAlpha(179),
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -374,7 +378,7 @@ class _UserGuideViewState extends State<UserGuideView> with SingleTickerProvider
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: (module?.color ?? Colors.blue).withOpacity(0.3),
+              color: (module?.color ?? AppColors.primary).withAlpha(77),
               blurRadius: 8,
               offset: const Offset(0, 4),
             ),
@@ -384,14 +388,14 @@ class _UserGuideViewState extends State<UserGuideView> with SingleTickerProvider
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Icon(module?.icon ?? Icons.article, color: Colors.white, size: 28),
+            Icon(module?.icon ?? Icons.article, color: AppColors.surface, size: 28),
             const SizedBox(height: 12),
             Text(
               section.title,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
-                color: Colors.white,
+                color: AppColors.surface,
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
               ),
@@ -399,12 +403,12 @@ class _UserGuideViewState extends State<UserGuideView> with SingleTickerProvider
             const SizedBox(height: 8),
             Row(
               children: [
-                Icon(Icons.timer_outlined, size: 14, color: Colors.white.withOpacity(0.8)),
+                Icon(Icons.timer_outlined, size: 14, color: AppColors.surface.withAlpha(204)),
                 const SizedBox(width: 4),
                 Text(
                   section.estimatedTime,
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.8),
+                    color: AppColors.surface.withAlpha(204),
                     fontSize: 14,
                   ),
                 ),
@@ -428,12 +432,12 @@ class _UserGuideViewState extends State<UserGuideView> with SingleTickerProvider
           width: 48,
           height: 48,
           decoration: BoxDecoration(
-            color: (module?.color ?? Colors.blue).withOpacity(0.1),
+            color: (module?.color ?? AppColors.primary).withAlpha(26),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Stack(
             children: [
-              Center(child: Icon(module?.icon ?? Icons.article, color: module?.color ?? Colors.blue)),
+              Center(child: Icon(module?.icon ?? Icons.article, color: module?.color ?? AppColors.primary)),
               Positioned(
                 top: 0,
                 right: 0,
@@ -441,7 +445,7 @@ class _UserGuideViewState extends State<UserGuideView> with SingleTickerProvider
                   width: 12,
                   height: 12,
                   decoration: const BoxDecoration(
-                    color: Colors.green,
+                    color: AppColors.success,
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -457,18 +461,18 @@ class _UserGuideViewState extends State<UserGuideView> with SingleTickerProvider
           section.description,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+          style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
         ),
         trailing: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
-            color: Colors.green.shade50,
+            color: AppColors.success,
             borderRadius: BorderRadius.circular(8),
           ),
           child: Text(
             AppLocalizations.of(context)!.newLabel,
             style: const TextStyle(
-              color: Colors.green,
+              color: AppColors.success,
               fontSize: 13,
               fontWeight: FontWeight.bold,
             ),
@@ -485,7 +489,7 @@ class _UserGuideViewState extends State<UserGuideView> with SingleTickerProvider
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       elevation: 0,
-      color: Colors.white,
+      color: AppColors.surface,
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
         onTap: () => setState(() => _selectedModuleId = module.id),
@@ -497,7 +501,7 @@ class _UserGuideViewState extends State<UserGuideView> with SingleTickerProvider
                 width: 56,
                 height: 56,
                 decoration: BoxDecoration(
-                  color: module.color.withOpacity(0.1),
+                  color: module.color.withAlpha(26),
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Icon(module.icon, color: module.color, size: 28),
@@ -520,7 +524,7 @@ class _UserGuideViewState extends State<UserGuideView> with SingleTickerProvider
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: Colors.grey.shade600,
+                        color: AppColors.textSecondary,
                         fontSize: 14,
                       ),
                     ),
@@ -530,7 +534,7 @@ class _UserGuideViewState extends State<UserGuideView> with SingleTickerProvider
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: module.color.withOpacity(0.1),
+                            color: module.color.withAlpha(26),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
@@ -547,7 +551,7 @@ class _UserGuideViewState extends State<UserGuideView> with SingleTickerProvider
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right, color: Colors.grey.shade400),
+              Icon(Icons.chevron_right, color: AppColors.textHint),
             ],
           ),
         ),
@@ -572,12 +576,12 @@ class _UserGuideViewState extends State<UserGuideView> with SingleTickerProvider
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [module.color.withOpacity(0.1), module.color.withOpacity(0.05)],
+              colors: [module.color.withAlpha(26), module.color.withAlpha(13)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: module.color.withOpacity(0.2)),
+            border: Border.all(color: module.color.withAlpha(51)),
           ),
           child: Row(
             children: [
@@ -585,7 +589,7 @@ class _UserGuideViewState extends State<UserGuideView> with SingleTickerProvider
                 width: 64,
                 height: 64,
                 decoration: BoxDecoration(
-                  color: module.color.withOpacity(0.2),
+                  color: module.color.withAlpha(51),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Icon(module.icon, color: module.color, size: 32),
@@ -606,7 +610,7 @@ class _UserGuideViewState extends State<UserGuideView> with SingleTickerProvider
                     const SizedBox(height: 4),
                     Text(
                       module.description,
-                      style: TextStyle(color: Colors.grey.shade700),
+                      style: TextStyle(color: AppColors.textSecondary),
                     ),
                     const SizedBox(height: 8),
                     Text(
@@ -652,7 +656,7 @@ class _UserGuideViewState extends State<UserGuideView> with SingleTickerProvider
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: color.withAlpha(26),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Center(
@@ -686,12 +690,12 @@ class _UserGuideViewState extends State<UserGuideView> with SingleTickerProvider
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
-                              color: Colors.green,
+                              color: AppColors.success,
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
                               AppLocalizations.of(context)!.newLabel,
-                              style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                              style: const TextStyle(color: AppColors.surface, fontSize: 12, fontWeight: FontWeight.bold),
                             ),
                           ),
                       ],
@@ -701,23 +705,23 @@ class _UserGuideViewState extends State<UserGuideView> with SingleTickerProvider
                       section.description,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                      style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
                     ),
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        _buildInfoChip(Icons.timer_outlined, section.estimatedTime, Colors.blue),
+                        _buildInfoChip(Icons.timer_outlined, section.estimatedTime, AppColors.primary),
                         const SizedBox(width: 8),
                         _buildInfoChip(Icons.signal_cellular_alt, section.difficulty, _getDifficultyColor(context, section.difficulty)),
                         const SizedBox(width: 8),
-                        _buildInfoChip(Icons.list, '${section.steps.length} bước', Colors.blue),
+                        _buildInfoChip(Icons.list, '${section.steps.length} bước', AppColors.primary),
                       ],
                     ),
                   ],
                 ),
               ),
               const SizedBox(width: 8),
-              Icon(Icons.chevron_right, color: Colors.grey.shade400),
+              Icon(Icons.chevron_right, color: AppColors.textHint),
             ],
           ),
         ),
@@ -729,7 +733,7 @@ class _UserGuideViewState extends State<UserGuideView> with SingleTickerProvider
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withAlpha(26),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -753,13 +757,13 @@ class _UserGuideViewState extends State<UserGuideView> with SingleTickerProvider
   Color _getDifficultyColor(BuildContext context, String difficulty) {
     final loc = AppLocalizations.of(context)!;
     if (difficulty == loc.easy) {
-      return Colors.green;
+      return AppColors.success;
     } else if (difficulty == loc.medium) {
-      return Colors.orange;
+      return AppColors.warning;
     } else if (difficulty == loc.advanced) {
-      return Colors.red;
+      return AppColors.error;
     } else {
-      return Colors.grey;
+      return AppColors.textHint;
     }
   }
 
@@ -770,20 +774,20 @@ class _UserGuideViewState extends State<UserGuideView> with SingleTickerProvider
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.search_off, size: 64, color: Colors.grey.shade400),
+            Icon(Icons.search_off, size: 64, color: AppColors.textHint),
             const SizedBox(height: 16),
             Text(
               AppLocalizations.of(context)!.noResultsFound,
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: Colors.grey.shade600,
+                color: AppColors.textSecondary,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               AppLocalizations.of(context)!.tryDifferentKeywords,
-              style: TextStyle(color: Colors.grey.shade500),
+              style: TextStyle(color: AppColors.textHint),
             ),
           ],
         ),
@@ -802,7 +806,7 @@ class _UserGuideViewState extends State<UserGuideView> with SingleTickerProvider
               AppLocalizations.of(context)!.foundResults(_searchResults.length),
               style: TextStyle(
                 fontWeight: FontWeight.bold,
-                color: Colors.grey.shade700,
+                color: AppColors.textSecondary,
               ),
             ),
           ),
@@ -810,7 +814,7 @@ class _UserGuideViewState extends State<UserGuideView> with SingleTickerProvider
             final index = entry.key;
             final section = entry.value;
             final module = UserGuideRepository.findModule(section.moduleId);
-            return _buildSectionCard(section, index + 1, module?.color ?? Colors.blue);
+            return _buildSectionCard(section, index + 1, module?.color ?? AppColors.primary);
           }),
         ],
       ),
@@ -821,7 +825,7 @@ class _UserGuideViewState extends State<UserGuideView> with SingleTickerProvider
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.blueGrey.shade50,
+        color: AppColors.textSecondary,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -829,7 +833,7 @@ class _UserGuideViewState extends State<UserGuideView> with SingleTickerProvider
         children: [
           Row(
             children: [
-              Icon(Icons.support_agent, color: Colors.blueGrey.shade700, size: 28),
+              Icon(Icons.support_agent, color: AppColors.textSecondary, size: 28),
               const SizedBox(width: 12),
               Text(
                 AppLocalizations.of(context)!.needMoreHelp,
@@ -843,7 +847,7 @@ class _UserGuideViewState extends State<UserGuideView> with SingleTickerProvider
           const SizedBox(height: 12),
           Text(
             AppLocalizations.of(context)!.supportTeamReady,
-            style: TextStyle(color: Colors.blueGrey.shade700),
+            style: TextStyle(color: AppColors.textSecondary),
           ),
           const SizedBox(height: 16),
           Wrap(
@@ -855,7 +859,7 @@ class _UserGuideViewState extends State<UserGuideView> with SingleTickerProvider
                 label: AppLocalizations.of(context)!.supportEmail,
                 onTap: () => NotificationService.showSnackBar(
                   'Email: ${AppLocalizations.of(context)!.supportEmail}',
-                  color: Colors.blue,
+                  color: AppColors.primary,
                 ),
               ),
               _buildContactButton(
@@ -863,7 +867,7 @@ class _UserGuideViewState extends State<UserGuideView> with SingleTickerProvider
                 label: AppLocalizations.of(context)!.hotline,
                 onTap: () => NotificationService.showSnackBar(
                   AppLocalizations.of(context)!.supportHotline,
-                  color: Colors.green,
+                  color: AppColors.success,
                 ),
               ),
             ],
@@ -883,8 +887,8 @@ class _UserGuideViewState extends State<UserGuideView> with SingleTickerProvider
       icon: Icon(icon, size: 18),
       label: Text(label),
       style: OutlinedButton.styleFrom(
-        foregroundColor: Colors.blueGrey.shade700,
-        side: BorderSide(color: Colors.blueGrey.shade300),
+        foregroundColor: AppColors.textSecondary,
+        side: BorderSide(color: AppColors.textSecondary),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
@@ -917,22 +921,22 @@ class _SectionDetailPage extends StatelessWidget {
     
     final module = UserGuideRepository.findModule(section.moduleId);
     final related = UserGuideRepository.getRelatedSections(section);
-    final color = module?.color ?? Colors.blue;
+    final color = module?.color ?? AppColors.primary;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.surface,
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
             expandedHeight: 180,
             pinned: true,
             backgroundColor: color,
-            foregroundColor: Colors.white,
+            foregroundColor: AppColors.surface,
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [color, color.withOpacity(0.7)],
+                    colors: [color, color.withAlpha(179)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -947,17 +951,17 @@ class _SectionDetailPage extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
+                              color: AppColors.surface.withAlpha(51),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(module.icon, size: 16, color: Colors.white),
+                                Icon(module.icon, size: 16, color: AppColors.surface),
                                 const SizedBox(width: 6),
                                 Text(
                                   module.title,
-                                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                                  style: const TextStyle(color: AppColors.surface, fontSize: 14),
                                 ),
                               ],
                             ),
@@ -966,7 +970,7 @@ class _SectionDetailPage extends StatelessWidget {
                         Text(
                           section.title,
                           style: const TextStyle(
-                            color: Colors.white,
+                            color: AppColors.surface,
                             fontSize: 22,
                             fontWeight: FontWeight.bold,
                           ),
@@ -990,7 +994,7 @@ class _SectionDetailPage extends StatelessWidget {
                     spacing: 12,
                     runSpacing: 8,
                     children: [
-                      _buildMetaChip(Icons.timer_outlined, section.estimatedTime, Colors.blue),
+                      _buildMetaChip(Icons.timer_outlined, section.estimatedTime, AppColors.primary),
                       _buildMetaChip(Icons.signal_cellular_alt, section.difficulty, _getDifficultyColor(context, section.difficulty)),
                       _buildMetaChip(Icons.list_alt, AppLocalizations.of(context)!.stepsCount(section.steps.length), color),
                     ],
@@ -1002,7 +1006,7 @@ class _SectionDetailPage extends StatelessWidget {
                     section.description,
                     style: const TextStyle(
                       fontSize: 17,
-                      color: Colors.black87, // FIX: Màu đen rõ ràng
+                      color: AppColors.textPrimary, // FIX: Màu đen rõ ràng
                       height: 1.5,
                     ),
                   ),
@@ -1016,14 +1020,14 @@ class _SectionDetailPage extends StatelessWidget {
                   // Tips
                   if (section.tips.isNotEmpty) ...[
                     const SizedBox(height: 24),
-                    _buildSectionTitle(AppLocalizations.of(context)!.usefulTips, Colors.amber.shade700),
+                    _buildSectionTitle(AppLocalizations.of(context)!.usefulTips, AppColors.warning),
                     const SizedBox(height: 12),
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.amber.shade50,
+                        color: AppColors.warning,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.amber.shade200),
+                        border: Border.all(color: AppColors.warning),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1032,12 +1036,12 @@ class _SectionDetailPage extends StatelessWidget {
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Icon(Icons.lightbulb, size: 18, color: Colors.amber.shade700),
+                              Icon(Icons.lightbulb, size: 18, color: AppColors.warning),
                               const SizedBox(width: 10),
                               Expanded(
                                 child: Text(
                                   tip,
-                                  style: TextStyle(color: Colors.amber.shade900),
+                                  style: TextStyle(color: AppColors.warning),
                                 ),
                               ),
                             ],
@@ -1050,14 +1054,14 @@ class _SectionDetailPage extends StatelessWidget {
                   // Warnings
                   if (section.warnings.isNotEmpty) ...[
                     const SizedBox(height: 24),
-                    _buildSectionTitle(AppLocalizations.of(context)!.importantNotes, Colors.red.shade700),
+                    _buildSectionTitle(AppLocalizations.of(context)!.importantNotes, AppColors.error),
                     const SizedBox(height: 12),
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.red.shade50,
+                        color: AppColors.error,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.red.shade200),
+                        border: Border.all(color: AppColors.error),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1066,12 +1070,12 @@ class _SectionDetailPage extends StatelessWidget {
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Icon(Icons.warning_amber, size: 18, color: Colors.red.shade700),
+                              Icon(Icons.warning_amber, size: 18, color: AppColors.error),
                               const SizedBox(width: 10),
                               Expanded(
                                 child: Text(
                                   warning,
-                                  style: TextStyle(color: Colors.red.shade900),
+                                  style: TextStyle(color: AppColors.error),
                                 ),
                               ),
                             ],
@@ -1084,7 +1088,7 @@ class _SectionDetailPage extends StatelessWidget {
                   // Related
                   if (related.isNotEmpty) ...[
                     const SizedBox(height: 24),
-                    _buildSectionTitle(AppLocalizations.of(context)!.relatedArticles, Colors.blueGrey),
+                    _buildSectionTitle(AppLocalizations.of(context)!.relatedArticles, AppColors.textSecondary),
                     const SizedBox(height: 12),
                     ...related.map((r) => Card(
                       margin: const EdgeInsets.only(bottom: 12),
@@ -1092,7 +1096,7 @@ class _SectionDetailPage extends StatelessWidget {
                       child: ListTile(
                         leading: Icon(
                           UserGuideRepository.findModule(r.moduleId)?.icon ?? Icons.article,
-                          color: UserGuideRepository.findModule(r.moduleId)?.color ?? Colors.blue,
+                          color: UserGuideRepository.findModule(r.moduleId)?.color ?? AppColors.primary,
                         ),
                         title: Text(r.title, style: const TextStyle(fontWeight: FontWeight.w600)),
                         subtitle: Text(r.estimatedTime),
@@ -1113,7 +1117,7 @@ class _SectionDetailPage extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
+                      color: AppColors.background,
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Column(
@@ -1133,14 +1137,14 @@ class _SectionDetailPage extends StatelessWidget {
                                 onPressed: () {
                                   NotificationService.showSnackBar(
                                     AppLocalizations.of(context)!.thankYouForFeedback,
-                                    color: Colors.green,
+                                    color: AppColors.success,
                                   );
                                 },
                                 icon: const Icon(Icons.thumb_up_outlined),
                                 label: Text(AppLocalizations.of(context)!.yes),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.green,
-                                  foregroundColor: Colors.white,
+                                  backgroundColor: AppColors.success,
+                                  foregroundColor: AppColors.surface,
                                 ),
                               ),
                             ),
@@ -1150,7 +1154,7 @@ class _SectionDetailPage extends StatelessWidget {
                                 onPressed: () {
                                   NotificationService.showSnackBar(
                                     AppLocalizations.of(context)!.weWillImprove,
-                                    color: Colors.orange,
+                                    color: AppColors.warning,
                                   );
                                 },
                                 icon: const Icon(Icons.thumb_down_outlined),
@@ -1176,9 +1180,9 @@ class _SectionDetailPage extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withAlpha(26),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withAlpha(77)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -1201,13 +1205,13 @@ class _SectionDetailPage extends StatelessWidget {
   Color _getDifficultyColor(BuildContext context, String difficulty) {
     final loc = AppLocalizations.of(context)!;
     if (difficulty == loc.easy) {
-      return Colors.green;
+      return AppColors.success;
     } else if (difficulty == loc.medium) {
-      return Colors.orange;
+      return AppColors.warning;
     } else if (difficulty == loc.advanced) {
-      return Colors.red;
+      return AppColors.error;
     } else {
-      return Colors.grey;
+      return AppColors.textHint;
     }
   }
 
@@ -1239,7 +1243,7 @@ class _SectionDetailPage extends StatelessWidget {
               child: Text(
                 '${step.order}',
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: AppColors.surface,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -1255,14 +1259,14 @@ class _SectionDetailPage extends StatelessWidget {
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 17,
-                    color: Colors.black87, // FIX: Đảm bảo màu đen
+                    color: AppColors.textPrimary, // FIX: Đảm bảo màu đen
                   ),
                 ),
                 const SizedBox(height: 6),
                 Text(
                   step.description,
                   style: const TextStyle(
-                    color: Colors.black54, // FIX: Màu xám đậm thay vì grey.shade700
+                    color: AppColors.textSecondary, // FIX: Màu xám đậm thay vì grey.shade700
                     height: 1.5,
                   ),
                 ),
@@ -1271,20 +1275,20 @@ class _SectionDetailPage extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: Colors.blue.shade50,
+                      color: AppColors.primary,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.blue.shade100),
+                      border: Border.all(color: AppColors.primary),
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.info_outline, size: 16, color: Colors.blue.shade700),
+                        Icon(Icons.info_outline, size: 16, color: AppColors.primary),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             step.note!,
                             style: TextStyle(
                               fontSize: 14,
-                              color: Colors.blue.shade700,
+                              color: AppColors.primary,
                             ),
                           ),
                         ),

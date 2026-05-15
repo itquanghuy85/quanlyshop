@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import '../widgets/responsive_wrapper.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -185,7 +186,7 @@ class _FastStockInViewState extends State<FastStockInView> {
         // Supplier from QuickInputCode not found in current suppliers list
         NotificationService.showSnackBar(
           "Nhà cung cấp '${code.supplier}' từ mã nhập nhanh không có trong danh sách. Vui lòng chọn lại.",
-          color: Colors.orange,
+          color: AppColors.warning,
         );
         selectedSupplier = null;
       }
@@ -229,7 +230,7 @@ class _FastStockInViewState extends State<FastStockInView> {
       if (mounted) {
         NotificationService.showSnackBar(
           'Lỗi tải nhà cung cấp: $e',
-          color: Colors.red,
+          color: AppColors.error,
         );
       }
     } finally {
@@ -285,7 +286,7 @@ class _FastStockInViewState extends State<FastStockInView> {
       if (mounted) {
         NotificationService.showSnackBar(
           "Lỗi tải nhà cung cấp: $e",
-          color: Colors.red,
+          color: AppColors.error,
         );
       }
     }
@@ -400,7 +401,7 @@ class _FastStockInViewState extends State<FastStockInView> {
               if (nameCtrl.text.trim().isEmpty) {
                 NotificationService.showSnackBar(
                   "Vui lòng nhập tên nhà cung cấp",
-                  color: Colors.red,
+                  color: AppColors.error,
                 );
                 return;
               }
@@ -434,18 +435,18 @@ class _FastStockInViewState extends State<FastStockInView> {
                   Navigator.pop(ctx, true);
                   NotificationService.showSnackBar(
                     "Đã thêm nhà cung cấp thành công",
-                    color: Colors.green,
+                    color: AppColors.success,
                   );
                 } else {
                   NotificationService.showSnackBar(
                     "Lỗi thêm nhà cung cấp",
-                    color: Colors.red,
+                    color: AppColors.error,
                   );
                 }
               } catch (e) {
                 NotificationService.showSnackBar(
                   "Lỗi thêm nhà cung cấp: $e",
-                  color: Colors.red,
+                  color: AppColors.error,
                 );
               }
             },
@@ -466,7 +467,7 @@ class _FastStockInViewState extends State<FastStockInView> {
     if (supplierMap.isEmpty) {
       NotificationService.showSnackBar(
         "Không tìm thấy nhà cung cấp",
-        color: Colors.red,
+        color: AppColors.error,
       );
       return;
     }
@@ -480,7 +481,7 @@ class _FastStockInViewState extends State<FastStockInView> {
     if (currentUser == null) {
       NotificationService.showSnackBar(
         "Vui lòng đăng nhập lại",
-        color: Colors.red,
+        color: AppColors.error,
       );
       return;
     }
@@ -494,7 +495,7 @@ class _FastStockInViewState extends State<FastStockInView> {
     } catch (e) {
       NotificationService.showSnackBar(
         "Mật khẩu không đúng!",
-        color: Colors.red,
+        color: AppColors.error,
       );
       return;
     }
@@ -516,9 +517,9 @@ class _FastStockInViewState extends State<FastStockInView> {
             child: const Text('Hủy'),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Xóa', style: TextStyle(color: Colors.white)),
+            child: const Text('Xóa', style: TextStyle(color: AppColors.surface)),
           ),
         ],
       ),
@@ -544,18 +545,18 @@ class _FastStockInViewState extends State<FastStockInView> {
         EventBus().emit('suppliers_changed');
         NotificationService.showSnackBar(
           "Đã xóa nhà cung cấp thành công",
-          color: Colors.green,
+          color: AppColors.success,
         );
       } else {
         NotificationService.showSnackBar(
           "Lỗi: Không thể xóa nhà cung cấp",
-          color: Colors.red,
+          color: AppColors.error,
         );
       }
     } catch (e) {
       NotificationService.showSnackBar(
         "Lỗi xóa nhà cung cấp: $e",
-        color: Colors.red,
+        color: AppColors.error,
       );
     }
   }
@@ -636,14 +637,14 @@ class _FastStockInViewState extends State<FastStockInView> {
         selectedPaymentMethod == null) {
       NotificationService.showSnackBar(
         "Vui lòng chọn đầy đủ thông tin!",
-        color: Colors.red,
+        color: AppColors.error,
       );
       return;
     }
     if (modelCtrl.text.trim().isEmpty || imeiCtrl.text.trim().isEmpty) {
       NotificationService.showSnackBar(
         "Vui lòng nhập model và ${_terms.specialField1Label}!",
-        color: Colors.red,
+        color: AppColors.error,
       );
       return;
     }
@@ -656,7 +657,7 @@ class _FastStockInViewState extends State<FastStockInView> {
     if (cost < 0) {
       NotificationService.showSnackBar(
         "Giá nhập không thể âm!",
-        color: Colors.red,
+        color: AppColors.error,
       );
       return;
     }
@@ -677,11 +678,11 @@ class _FastStockInViewState extends State<FastStockInView> {
               SizedBox(height: 8),
               Text(
                 '• Sẽ KHÔNG tạo công nợ NCC',
-                style: TextStyle(color: Colors.orange),
+                style: TextStyle(color: AppColors.warning),
               ),
               Text(
                 '• Sẽ KHÔNG tính vào chốt quỹ',
-                style: TextStyle(color: Colors.orange),
+                style: TextStyle(color: AppColors.warning),
               ),
               SizedBox(height: 8),
               Text('Khi xác nhận giá vốn sau, hệ thống sẽ:'),
@@ -696,7 +697,7 @@ class _FastStockInViewState extends State<FastStockInView> {
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(ctx, true),
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.warning),
               child: const Text('Nhập Kho Tạm'),
             ),
           ],
@@ -709,7 +710,7 @@ class _FastStockInViewState extends State<FastStockInView> {
     if (price < 0) {
       NotificationService.showSnackBar(
         "Vui lòng nhập giá bán hợp lệ!",
-        color: Colors.red,
+        color: AppColors.error,
       );
       return;
     }
@@ -718,7 +719,7 @@ class _FastStockInViewState extends State<FastStockInView> {
     if (quantity <= 0) {
       NotificationService.showSnackBar(
         "Số lượng phải lớn hơn 0!",
-        color: Colors.red,
+        color: AppColors.error,
       );
       return;
     }
@@ -965,7 +966,7 @@ class _FastStockInViewState extends State<FastStockInView> {
         isPending
             ? "Đã nhập vào KHO TẠM! Vui lòng xác nhận giá sau."
             : "Nhập kho nhanh thành công!",
-        color: isPending ? Colors.orange : Colors.green,
+        color: isPending ? AppColors.warning : AppColors.success,
       );
 
       // Send chat notification
@@ -987,7 +988,7 @@ class _FastStockInViewState extends State<FastStockInView> {
       // Reset form
       _resetForm();
     } catch (e) {
-      NotificationService.showSnackBar("Lỗi: $e", color: Colors.red);
+      NotificationService.showSnackBar("Lỗi: $e", color: AppColors.error);
     } finally {
       setState(() => _saving = false);
     }
@@ -1004,7 +1005,7 @@ class _FastStockInViewState extends State<FastStockInView> {
         (_isElectronics && selectedCondition == null)) {
       NotificationService.showSnackBar(
         "Vui lòng chọn đầy đủ thông tin cơ bản!",
-        color: Colors.red,
+        color: AppColors.error,
       );
       return;
     }
@@ -1012,7 +1013,7 @@ class _FastStockInViewState extends State<FastStockInView> {
     if (modelCtrl.text.trim().isEmpty) {
       NotificationService.showSnackBar(
         "Vui lòng nhập model!",
-        color: Colors.red,
+        color: AppColors.error,
       );
       return;
     }
@@ -1024,7 +1025,7 @@ class _FastStockInViewState extends State<FastStockInView> {
     if (quantity <= 0) {
       NotificationService.showSnackBar(
         "Số lượng phải lớn hơn 0!",
-        color: Colors.red,
+        color: AppColors.error,
       );
       return;
     }
@@ -1056,7 +1057,7 @@ class _FastStockInViewState extends State<FastStockInView> {
       if (shopId == null || shopId.isEmpty) {
         NotificationService.showSnackBar(
           "Không tìm thấy thông tin shop!",
-          color: Colors.red,
+          color: AppColors.error,
         );
         setState(() => _saving = false);
         return;
@@ -1120,7 +1121,7 @@ class _FastStockInViewState extends State<FastStockInView> {
         // Thông báo
         NotificationService.showSnackBar(
           "Đã lưu vào Hàng Chờ Xác Nhận Nhập Vào Kho!",
-          color: Colors.orange,
+          color: AppColors.warning,
         );
 
         // Hỏi user có muốn mở trang xác nhận không
@@ -1138,7 +1139,7 @@ class _FastStockInViewState extends State<FastStockInView> {
                 const Text(
                   'Phiếu đã được lưu vào "Hàng Chờ Xác Nhận Nhập Vào Kho".\n'
                   'Bạn cần XÁC NHẬN phiếu để hàng vào kho chính.',
-                  style: TextStyle(color: Colors.orange),
+                  style: TextStyle(color: AppColors.warning),
                 ),
               ],
             ),
@@ -1149,10 +1150,10 @@ class _FastStockInViewState extends State<FastStockInView> {
               ),
               ElevatedButton(
                 onPressed: () => Navigator.pop(ctx, true),
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.warning),
                 child: const Text(
                   'XEM HÀNG CHỜ',
-                  style: TextStyle(color: Colors.white),
+                  style: TextStyle(color: AppColors.surface),
                 ),
               ),
             ],
@@ -1170,11 +1171,11 @@ class _FastStockInViewState extends State<FastStockInView> {
       } else {
         NotificationService.showSnackBar(
           "Lỗi tạo phiếu nhập!",
-          color: Colors.red,
+          color: AppColors.error,
         );
       }
     } catch (e) {
-      NotificationService.showSnackBar("Lỗi: $e", color: Colors.red);
+      NotificationService.showSnackBar("Lỗi: $e", color: AppColors.error);
     } finally {
       setState(() => _saving = false);
     }
@@ -1227,7 +1228,7 @@ class _FastStockInViewState extends State<FastStockInView> {
           style: TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: AppTextStyles.body1.fontSize,
-            color: Colors.black87,
+            color: AppColors.textPrimary,
           ),
         ),
         const SizedBox(height: 4),
@@ -1244,7 +1245,7 @@ class _FastStockInViewState extends State<FastStockInView> {
                           sup['name'] as String,
                           style: TextStyle(
                             fontSize: AppTextStyles.body1.fontSize,
-                            color: Colors.black87,
+                            color: AppColors.textPrimary,
                           ),
                         ),
                       ),
@@ -1255,7 +1256,7 @@ class _FastStockInViewState extends State<FastStockInView> {
                   hintText: 'Chọn nhà cung cấp',
                   hintStyle: TextStyle(
                     fontSize: AppTextStyles.body1.fontSize,
-                    color: Colors.black54,
+                    color: AppColors.textSecondary,
                   ),
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 6,
@@ -1268,16 +1269,16 @@ class _FastStockInViewState extends State<FastStockInView> {
                 ),
                 style: TextStyle(
                   fontSize: AppTextStyles.body1.fontSize,
-                  color: Colors.black87,
+                  color: AppColors.textPrimary,
                 ),
-                dropdownColor: Colors.white,
+                dropdownColor: AppColors.surface,
               ),
             ),
             const SizedBox(width: 4),
             // Nút thêm nhà cung cấp
             IconButton(
               onPressed: _addNewSupplier,
-              icon: const Icon(Icons.add_circle, color: Colors.green, size: 20),
+              icon: const Icon(Icons.add_circle, color: AppColors.success, size: 20),
               tooltip: 'Thêm nhà cung cấp',
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
@@ -1289,7 +1290,7 @@ class _FastStockInViewState extends State<FastStockInView> {
                   : null,
               icon: Icon(
                 Icons.delete_outline,
-                color: validSelectedSupplier != null ? Colors.red : Colors.grey,
+                color: validSelectedSupplier != null ? AppColors.error : AppColors.textHint,
                 size: 18,
               ),
               tooltip: 'Xóa nhà cung cấp',
@@ -1391,11 +1392,11 @@ class _FastStockInViewState extends State<FastStockInView> {
                     option,
                     style: TextStyle(
                       fontSize: AppTextStyles.caption.fontSize,
-                      color: Colors.black,
+                      color: AppColors.textPrimary,
                     ),
                   ),
                   selected: selected == option,
-                  selectedColor: Colors.blue[100],
+                  selectedColor: AppColors.primary,
                   onSelected: (sel) => setState(() => onSelect(option)),
                   padding: const EdgeInsets.symmetric(
                     horizontal: 4,
@@ -1427,20 +1428,20 @@ class _FastStockInViewState extends State<FastStockInView> {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Colors.blue.shade50, Colors.indigo.shade50],
+            colors: [AppColors.primary, AppColors.primary],
           ),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.blue.shade200),
+          border: Border.all(color: AppColors.primary),
         ),
         child: Row(
           children: [
-            Icon(Icons.flash_on, color: Colors.blue.shade700, size: 20),
+            Icon(Icons.flash_on, color: AppColors.primary, size: 20),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
                 'Chọn mã nhập nhanh để điền tự động',
                 style: TextStyle(
-                  color: Colors.blue.shade700,
+                  color: AppColors.primary,
                   fontWeight: FontWeight.w600,
                   fontSize: 14,
                 ),
@@ -1448,7 +1449,7 @@ class _FastStockInViewState extends State<FastStockInView> {
             ),
             Icon(
               Icons.arrow_forward_ios,
-              color: Colors.blue.shade400,
+              color: AppColors.primary,
               size: 14,
             ),
           ],
@@ -1464,7 +1465,7 @@ class _FastStockInViewState extends State<FastStockInView> {
     if (activeCodes.isEmpty) {
       NotificationService.showSnackBar(
         'Không có mã nhập nhanh nào đang hoạt động',
-        color: Colors.orange,
+        color: AppColors.warning,
       );
       return;
     }
@@ -1488,13 +1489,13 @@ class _FastStockInViewState extends State<FastStockInView> {
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: isPhone
-                        ? Colors.blue.withAlpha(25)
-                        : Colors.orange.withAlpha(25),
+                        ? AppColors.primary.withAlpha(25)
+                        : AppColors.warning.withAlpha(25),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
                     isPhone ? Icons.smartphone : Icons.inventory_2,
-                    color: isPhone ? Colors.blue : Colors.orange,
+                    color: isPhone ? AppColors.primary : AppColors.warning,
                     size: 20,
                   ),
                 ),
@@ -1577,7 +1578,7 @@ class _FastStockInViewState extends State<FastStockInView> {
           !suppliers.any((s) => s['name'] == code.supplier)) {
         NotificationService.showSnackBar(
           "Nhà cung cấp '${code.supplier}' không có trong danh sách. Vui lòng chọn lại.",
-          color: Colors.orange,
+          color: AppColors.warning,
         );
         selectedSupplier = null;
       }
@@ -1590,7 +1591,7 @@ class _FastStockInViewState extends State<FastStockInView> {
 
     NotificationService.showSnackBar(
       'Đã áp dụng mã nhập nhanh: ${code.name}',
-      color: Colors.green,
+      color: AppColors.success,
     );
   }
 
@@ -1614,14 +1615,14 @@ class _FastStockInViewState extends State<FastStockInView> {
             ),
           ),
         ),
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
+        backgroundColor: AppColors.surface,
+        foregroundColor: AppColors.textPrimary,
         elevation: 0,
         title: const Text('Nhập Kho Nhanh'),
         actions: [
           IconButton(
             onPressed: _selectFromLibrary,
-            icon: const Icon(Icons.library_books, color: Colors.white),
+            icon: const Icon(Icons.library_books, color: AppColors.surface),
             tooltip: 'Chọn từ thư viện',
           ),
         ],
@@ -1651,7 +1652,7 @@ class _FastStockInViewState extends State<FastStockInView> {
                     Text(
                       _loadingError!,
                       style: const TextStyle(
-                        color: Colors.red,
+                        color: AppColors.error,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -1801,11 +1802,11 @@ class _FastStockInViewState extends State<FastStockInView> {
                           onPressed: _openQRScanner,
                           icon: const Icon(
                             Icons.qr_code_scanner,
-                            color: Colors.green,
+                            color: AppColors.success,
                           ),
                           tooltip: 'Quét QR/Barcode IMEI',
                           style: IconButton.styleFrom(
-                            backgroundColor: Colors.green.withOpacity(0.1),
+                            backgroundColor: AppColors.success.withAlpha(26),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
@@ -1867,18 +1868,18 @@ class _FastStockInViewState extends State<FastStockInView> {
                               horizontal: 32,
                               vertical: 16,
                             ),
-                            backgroundColor: Colors.orange,
+                            backgroundColor: AppColors.warning,
                           ),
                           label: _saving
                               ? const CircularProgressIndicator(
-                                  color: Colors.white,
+                                  color: AppColors.surface,
                                 )
                               : Text(
                                   'LƯU VÀO HÀNG CHỜ XÁC NHẬN NHẬP KHO',
                                   style: TextStyle(
                                     fontSize: AppTextStyles.headline4.fontSize,
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.white,
+                                    color: AppColors.surface,
                                   ),
                                 ),
                         ),
@@ -1918,7 +1919,7 @@ class _FastStockInViewState extends State<FastStockInView> {
                   const Text(
                     'Lỗi hiển thị, thử lại sau.',
                     style: TextStyle(
-                      color: Colors.red,
+                      color: AppColors.error,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -2007,7 +2008,7 @@ class _SmartIMEIScannerSheetState extends State<_SmartIMEIScannerSheet> {
         widget.onIMEISelected(last5);
         NotificationService.showSnackBar(
           '✅ IMEI: ${IMEIExtractor.formatIMEI(imei)} → 5 số cuối: $last5',
-          color: Colors.green,
+          color: AppColors.success,
         );
       }
       // Nếu có nhiều candidates hoặc QR phức tạp -> hiện dialog chọn
@@ -2023,7 +2024,7 @@ class _SmartIMEIScannerSheetState extends State<_SmartIMEIScannerSheet> {
           widget.onIMEISelected(selected);
           NotificationService.showSnackBar(
             '✅ Đã chọn: $selected',
-            color: Colors.green,
+            color: AppColors.success,
           );
         } else {
           await _controller?.start();
@@ -2039,17 +2040,17 @@ class _SmartIMEIScannerSheetState extends State<_SmartIMEIScannerSheet> {
           widget.onIMEISelected(last5);
           NotificationService.showSnackBar(
             '⚠️ Không tìm thấy IMEI, dùng 5 số cuối: $last5',
-            color: Colors.orange,
+            color: AppColors.warning,
           );
         } else {
           NotificationService.showSnackBar(
             '❌ Không tìm thấy số IMEI trong QR',
-            color: Colors.red,
+            color: AppColors.error,
           );
         }
       }
     } catch (e) {
-      NotificationService.showSnackBar('❌ Lỗi xử lý QR: $e', color: Colors.red);
+      NotificationService.showSnackBar('❌ Lỗi xử lý QR: $e', color: AppColors.error);
     } finally {
       if (mounted) {
         setState(() => _isProcessing = false);
@@ -2062,7 +2063,7 @@ class _SmartIMEIScannerSheetState extends State<_SmartIMEIScannerSheet> {
     return Container(
       height: MediaQuery.of(context).size.height * 0.7,
       decoration: const BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: Column(
@@ -2071,7 +2072,7 @@ class _SmartIMEIScannerSheetState extends State<_SmartIMEIScannerSheet> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.green.shade50,
+              color: AppColors.success,
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(20),
               ),
@@ -2081,21 +2082,21 @@ class _SmartIMEIScannerSheetState extends State<_SmartIMEIScannerSheet> {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.qr_code_scanner, color: Colors.green),
+                    const Icon(Icons.qr_code_scanner, color: AppColors.success),
                     const SizedBox(width: 8),
                     Text(
                       'QUÉT QR/BARCODE IMEI',
                       style: TextStyle(
                         fontSize: AppTextStyles.headline3.fontSize,
                         fontWeight: FontWeight.bold,
-                        color: Colors.green,
+                        color: AppColors.success,
                       ),
                     ),
                   ],
                 ),
                 IconButton(
                   onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close, color: Colors.grey),
+                  icon: const Icon(Icons.close, color: AppColors.textHint),
                 ),
               ],
             ),
@@ -2104,10 +2105,10 @@ class _SmartIMEIScannerSheetState extends State<_SmartIMEIScannerSheet> {
           // Hướng dẫn
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            color: Colors.blue.shade50,
+            color: AppColors.primary,
             child: Row(
               children: [
-                const Icon(Icons.info_outline, size: 20, color: Colors.blue),
+                const Icon(Icons.info_outline, size: 20, color: AppColors.primary),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -2115,7 +2116,7 @@ class _SmartIMEIScannerSheetState extends State<_SmartIMEIScannerSheet> {
                     'Tự động trích xuất IMEI và cho phép chọn nếu có nhiều số.',
                     style: TextStyle(
                       fontSize: AppTextStyles.subtitle1.fontSize,
-                      color: Colors.blue,
+                      color: AppColors.primary,
                     ),
                   ),
                 ),
@@ -2140,7 +2141,7 @@ class _SmartIMEIScannerSheetState extends State<_SmartIMEIScannerSheet> {
                     width: 280,
                     height: 150,
                     decoration: BoxDecoration(
-                      border: Border.all(color: Colors.green, width: 3),
+                      border: Border.all(color: AppColors.success, width: 3),
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
@@ -2148,9 +2149,9 @@ class _SmartIMEIScannerSheetState extends State<_SmartIMEIScannerSheet> {
                 // Processing indicator
                 if (_isProcessing)
                   Container(
-                    color: Colors.black54,
+                    color: AppColors.textSecondary,
                     child: const Center(
-                      child: CircularProgressIndicator(color: Colors.white),
+                      child: CircularProgressIndicator(color: AppColors.surface),
                     ),
                   ),
               ],

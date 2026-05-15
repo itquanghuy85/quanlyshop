@@ -4298,6 +4298,16 @@ return db;
     return List.generate(maps.length, (i) => Repair.fromMap(maps[i]));
   }
 
+  Future<SaleOrder?> getSaleById(int id) async {
+    final res = await (await database).query(
+      'sales',
+      where: 'id = ?',
+      whereArgs: [id],
+      limit: 1,
+    );
+    return res.isNotEmpty ? SaleOrder.fromMap(res.first) : null;
+  }
+
   Future<Repair?> getRepairById(int id) async {
     final res = await (await database).query(
       'repairs',

@@ -51,7 +51,7 @@ class _StaffPerformanceViewState extends State<StaffPerformanceView> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Không có dữ liệu để in'),
-          backgroundColor: Colors.orange,
+          backgroundColor: AppColors.warning,
         ),
       );
       return;
@@ -101,7 +101,7 @@ class _StaffPerformanceViewState extends State<StaffPerformanceView> {
       if (mounted) Navigator.of(context).pop(); // Đóng loading
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('Lỗi: $e'), backgroundColor: AppColors.error),
         );
       }
     }
@@ -121,7 +121,7 @@ class _StaffPerformanceViewState extends State<StaffPerformanceView> {
         actions: [
           IconButton(
             onPressed: _loadReport,
-            icon: const Icon(Icons.refresh, color: Colors.white),
+            icon: const Icon(Icons.refresh, color: AppColors.surface),
             tooltip: 'Làm mới',
           ),
         ],
@@ -176,12 +176,12 @@ class _StaffPerformanceViewState extends State<StaffPerformanceView> {
               });
               _loadReport();
             },
-            icon: const Icon(Icons.chevron_left, color: Colors.white),
+            icon: const Icon(Icons.chevron_left, color: AppColors.surface),
           ),
           Text(
             'THÁNG ${_selectedMonth.month.toString().padLeft(2, '0')} / ${_selectedMonth.year}',
             style: TextStyle(
-              color: Colors.white,
+              color: AppColors.surface,
               fontWeight: FontWeight.bold,
               fontSize: AppTextStyles.headline2.fontSize,
             ),
@@ -196,7 +196,7 @@ class _StaffPerformanceViewState extends State<StaffPerformanceView> {
               });
               _loadReport();
             },
-            icon: const Icon(Icons.chevron_right, color: Colors.white),
+            icon: const Icon(Icons.chevron_right, color: AppColors.surface),
           ),
         ],
       ),
@@ -207,10 +207,10 @@ class _StaffPerformanceViewState extends State<StaffPerformanceView> {
   Widget _buildBottomActionBar() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha(20),
+            color: AppColors.textPrimary.withAlpha(20),
             blurRadius: 8,
             offset: const Offset(0, -2),
           ),
@@ -226,7 +226,7 @@ class _StaffPerformanceViewState extends State<StaffPerformanceView> {
               child: _bottomAction(
                 icon: Icons.print,
                 label: 'In lương',
-                color: Colors.blue,
+                color: AppColors.primary,
                 onTap: () => _showPrintMenu(),
               ),
             ),
@@ -234,7 +234,7 @@ class _StaffPerformanceViewState extends State<StaffPerformanceView> {
               child: _bottomAction(
                 icon: Icons.receipt_long,
                 label: 'Khấu trừ',
-                color: Colors.orange,
+                color: AppColors.warning,
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -247,7 +247,7 @@ class _StaffPerformanceViewState extends State<StaffPerformanceView> {
               child: _bottomAction(
                 icon: Icons.settings,
                 label: 'Cài đặt',
-                color: Colors.teal,
+                color: AppColors.info,
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -260,7 +260,7 @@ class _StaffPerformanceViewState extends State<StaffPerformanceView> {
               child: _bottomAction(
                 icon: Icons.calendar_month,
                 label: 'Chọn tháng',
-                color: Colors.indigo,
+                color: AppColors.primary,
                 onTap: () => _selectMonth(context),
               ),
             ),
@@ -318,13 +318,13 @@ class _StaffPerformanceViewState extends State<StaffPerformanceView> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey[300],
+                color: AppColors.divider,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
             const SizedBox(height: 16),
             ListTile(
-              leading: const Icon(Icons.table_chart, color: Colors.blue),
+              leading: const Icon(Icons.table_chart, color: AppColors.primary),
               title: const Text('In bảng lương tổng hợp'),
               onTap: () {
                 Navigator.pop(ctx);
@@ -332,7 +332,7 @@ class _StaffPerformanceViewState extends State<StaffPerformanceView> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.share, color: Colors.green),
+              leading: const Icon(Icons.share, color: AppColors.success),
               title: const Text('Chia sẻ PDF tổng hợp'),
               onTap: () {
                 Navigator.pop(ctx);
@@ -364,10 +364,10 @@ class _StaffPerformanceViewState extends State<StaffPerformanceView> {
       margin: const EdgeInsets.all(12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
+          BoxShadow(color: AppColors.textPrimary.withAlpha(13), blurRadius: 10),
         ],
       ),
       child: Column(
@@ -391,19 +391,19 @@ class _StaffPerformanceViewState extends State<StaffPerformanceView> {
               _buildSummaryItem(
                 '💰 TỔNG LƯƠNG',
                 '${_currencyFormat.format(totalSalary)}đ',
-                Colors.green,
+                AppColors.success,
               ),
               const SizedBox(width: 12),
               _buildSummaryItem(
                 '📊 DOANH SỐ',
                 '${_currencyFormat.format(totalRevenue)}đ',
-                Colors.blue,
+                AppColors.primary,
               ),
               const SizedBox(width: 12),
               _buildSummaryItem(
                 '📈 LỢI NHUẬN',
                 '${_currencyFormat.format(totalProfit)}đ',
-                Colors.orange,
+                AppColors.warning,
               ),
             ],
           ),
@@ -417,9 +417,9 @@ class _StaffPerformanceViewState extends State<StaffPerformanceView> {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withAlpha(26),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withOpacity(0.3)),
+          border: Border.all(color: color.withAlpha(77)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -440,7 +440,7 @@ class _StaffPerformanceViewState extends State<StaffPerformanceView> {
                 style: TextStyle(
                   fontSize: AppTextStyles.headline5.fontSize,
                   fontWeight: FontWeight.bold,
-                  color: color.withOpacity(0.9),
+                  color: color.withAlpha(230),
                 ),
               ),
             ),
@@ -455,12 +455,12 @@ class _StaffPerformanceViewState extends State<StaffPerformanceView> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.person_off, size: 64, color: Colors.grey.shade400),
+          Icon(Icons.person_off, size: 64, color: AppColors.textHint),
           const SizedBox(height: 16),
           Text(
             'Không có dữ liệu nhân viên',
             style: TextStyle(
-              color: Colors.grey.shade600,
+              color: AppColors.textSecondary,
               fontWeight: FontWeight.bold,
               fontSize: AppTextStyles.headline3.fontSize,
             ),
@@ -468,12 +468,12 @@ class _StaffPerformanceViewState extends State<StaffPerformanceView> {
           const SizedBox(height: 8),
           Text(
             'Tháng ${_selectedMonth.month}/${_selectedMonth.year}',
-            style: TextStyle(color: Colors.grey.shade500),
+            style: TextStyle(color: AppColors.textHint),
           ),
           const SizedBox(height: 16),
           Text(
             'Hãy thêm nhân viên vào shop trước',
-            style: TextStyle(color: Colors.grey.shade500, fontSize: AppTextStyles.subtitle1.fontSize),
+            style: TextStyle(color: AppColors.textHint, fontSize: AppTextStyles.subtitle1.fontSize),
           ),
         ],
       ),
@@ -484,10 +484,10 @@ class _StaffPerformanceViewState extends State<StaffPerformanceView> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8),
+          BoxShadow(color: AppColors.textPrimary.withAlpha(13), blurRadius: 8),
         ],
       ),
       child: Theme(
@@ -496,7 +496,7 @@ class _StaffPerformanceViewState extends State<StaffPerformanceView> {
           tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           childrenPadding: EdgeInsets.zero,
           leading: CircleAvatar(
-            backgroundColor: AppColors.primary.withOpacity(0.1),
+            backgroundColor: AppColors.primary.withAlpha(26),
             child: Text(
               data.staffName.isNotEmpty ? data.staffName[0].toUpperCase() : '?',
               style: const TextStyle(
@@ -513,8 +513,8 @@ class _StaffPerformanceViewState extends State<StaffPerformanceView> {
             spacing: 4,
             runSpacing: 4,
             children: [
-              _buildMiniChip('${data.workDays} ngày', Colors.blue),
-              _buildMiniChip('${data.totalOrders} đơn', Colors.blue),
+              _buildMiniChip('${data.workDays} ngày', AppColors.primary),
+              _buildMiniChip('${data.totalOrders} đơn', AppColors.primary),
             ],
           ),
           trailing: Column(
@@ -525,14 +525,14 @@ class _StaffPerformanceViewState extends State<StaffPerformanceView> {
                 'THỰC NHẬN',
                 style: TextStyle(
                   fontSize: AppTextStyles.overlineSize,
-                  color: Colors.grey,
+                  color: AppColors.textHint,
                   fontWeight: FontWeight.w600,
                 ),
               ),
               Text(
                 '${_currencyFormat.format(data.totalSalary)}đ',
                 style: TextStyle(
-                  color: Colors.green,
+                  color: AppColors.success,
                   fontWeight: FontWeight.bold,
                   fontSize: AppTextStyles.headline3.fontSize,
                 ),
@@ -549,7 +549,7 @@ class _StaffPerformanceViewState extends State<StaffPerformanceView> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withAlpha(26),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Text(
@@ -567,7 +567,7 @@ class _StaffPerformanceViewState extends State<StaffPerformanceView> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+        color: AppColors.background,
         borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
       ),
       child: Column(
@@ -581,7 +581,7 @@ class _StaffPerformanceViewState extends State<StaffPerformanceView> {
           Container(
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
             decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.1),
+              color: AppColors.primary.withAlpha(26),
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(8),
               ),
@@ -618,16 +618,16 @@ class _StaffPerformanceViewState extends State<StaffPerformanceView> {
           // Rows
           Container(
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColors.surface,
               borderRadius: const BorderRadius.vertical(
                 bottom: Radius.circular(8),
               ),
-              border: Border.all(color: Colors.grey.shade200),
+              border: Border.all(color: AppColors.outline),
             ),
             child: Column(
               children: [
                 // === THU NHẬP ===
-                _buildSectionHeader('THU NHẬP', Colors.green),
+                _buildSectionHeader('THU NHẬP', AppColors.success),
 
                 // 1. Lương cơ bản
                 _buildTableRow(
@@ -695,12 +695,12 @@ class _StaffPerformanceViewState extends State<StaffPerformanceView> {
                 _buildSubtotalRow(
                   '📊 TỔNG GROSS',
                   data.grossIncome,
-                  Colors.blue,
+                  AppColors.primary,
                 ),
 
                 // === KHẤU TRỪ ===
                 if (data.totalDeductions > 0) ...[
-                  _buildSectionHeader('KHẤU TRỪ', Colors.red),
+                  _buildSectionHeader('KHẤU TRỪ', AppColors.error),
 
                   // Trừ đi muộn
                   if (data.lateDeduction > 0)
@@ -778,7 +778,7 @@ class _StaffPerformanceViewState extends State<StaffPerformanceView> {
                   _buildSubtotalRow(
                     '➖ TỔNG KHẤU TRỪ',
                     -data.totalDeductions,
-                    Colors.red,
+                    AppColors.error,
                   ),
                 ],
 
@@ -789,9 +789,9 @@ class _StaffPerformanceViewState extends State<StaffPerformanceView> {
                     horizontal: 12,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.green.shade50,
+                    color: AppColors.success,
                     border: Border(
-                      top: BorderSide(color: Colors.green.shade200, width: 2),
+                      top: BorderSide(color: AppColors.success, width: 2),
                     ),
                   ),
                   child: Row(
@@ -814,7 +814,7 @@ class _StaffPerformanceViewState extends State<StaffPerformanceView> {
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: AppTextStyles.headline3.fontSize,
-                            color: Colors.green.shade700,
+                            color: AppColors.success,
                           ),
                           textAlign: TextAlign.right,
                         ),
@@ -834,32 +834,32 @@ class _StaffPerformanceViewState extends State<StaffPerformanceView> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.blue.shade50,
+              color: AppColors.primary,
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.blue.shade100),
+              border: Border.all(color: AppColors.primary),
             ),
             child: Row(
               children: [
-                _buildInfoItem('Ngày công', '${data.workDays}', Colors.blue),
+                _buildInfoItem('Ngày công', '${data.workDays}', AppColors.primary),
                 _buildInfoItem(
                   'Giờ làm',
                   '${data.totalWorkHours.toStringAsFixed(1)}h',
-                  Colors.indigo,
+                  AppColors.primary,
                 ),
                 _buildInfoItem(
                   'Giờ OT',
                   '${data.overtimeHours.toStringAsFixed(1)}h',
-                  Colors.blue,
+                  AppColors.primary,
                 ),
                 _buildInfoItem(
                   'Muộn',
                   '${data.lateDays}',
-                  data.lateDays > 0 ? Colors.orange : Colors.green,
+                  data.lateDays > 0 ? AppColors.warning : AppColors.success,
                 ),
                 _buildInfoItem(
                   'Nghỉ',
                   '${data.absentDays}',
-                  data.absentDays > 0 ? Colors.red : Colors.green,
+                  data.absentDays > 0 ? AppColors.error : AppColors.success,
                 ),
               ],
             ),
@@ -878,7 +878,7 @@ class _StaffPerformanceViewState extends State<StaffPerformanceView> {
                   data.saleOrderCount,
                   data.saleRevenue,
                   data.saleProfit,
-                  Colors.orange,
+                  AppColors.warning,
                 ),
               ),
               const SizedBox(width: 8),
@@ -888,7 +888,7 @@ class _StaffPerformanceViewState extends State<StaffPerformanceView> {
                   data.repairOrderCount,
                   data.repairRevenue,
                   data.repairProfit,
-                  Colors.teal,
+                  AppColors.info,
                 ),
               ),
             ],
@@ -902,7 +902,7 @@ class _StaffPerformanceViewState extends State<StaffPerformanceView> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.grey.shade100,
+              color: AppColors.background,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Column(
@@ -949,9 +949,9 @@ class _StaffPerformanceViewState extends State<StaffPerformanceView> {
               width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.amber.shade50,
+                color: AppColors.warning,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.amber.shade200),
+                border: Border.all(color: AppColors.warning),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -963,7 +963,7 @@ class _StaffPerformanceViewState extends State<StaffPerformanceView> {
                           note,
                           style: TextStyle(
                             fontSize: AppTextStyles.body1.fontSize,
-                            color: Colors.amber.shade900,
+                            color: AppColors.warning,
                             fontFamily: 'monospace',
                           ),
                         ),
@@ -984,8 +984,8 @@ class _StaffPerformanceViewState extends State<StaffPerformanceView> {
                   icon: const Icon(Icons.print, size: 18),
                   label: const Text('In phiếu lương'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.blue,
-                    side: const BorderSide(color: Colors.blue),
+                    foregroundColor: AppColors.primary,
+                    side: const BorderSide(color: AppColors.primary),
                   ),
                 ),
               ),
@@ -996,8 +996,8 @@ class _StaffPerformanceViewState extends State<StaffPerformanceView> {
                   icon: const Icon(Icons.share, size: 18),
                   label: const Text('Chia sẻ PDF'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    foregroundColor: Colors.white,
+                    backgroundColor: AppColors.success,
+                    foregroundColor: AppColors.surface,
                   ),
                 ),
               ),
@@ -1019,20 +1019,20 @@ class _StaffPerformanceViewState extends State<StaffPerformanceView> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.picture_as_pdf, color: Colors.red),
+              leading: const Icon(Icons.picture_as_pdf, color: AppColors.error),
               title: const Text('In PDF (A4)'),
               subtitle: const Text('In qua máy in thường'),
               onTap: () => Navigator.pop(ctx, 'pdf'),
             ),
             const Divider(),
             ListTile(
-              leading: const Icon(Icons.receipt_long, color: Colors.orange),
+              leading: const Icon(Icons.receipt_long, color: AppColors.warning),
               title: const Text('In WiFi POS 80mm'),
               subtitle: const Text('Máy in hóa đơn nhiệt'),
               onTap: () => Navigator.pop(ctx, 'thermal_80'),
             ),
             ListTile(
-              leading: const Icon(Icons.receipt, color: Colors.blue),
+              leading: const Icon(Icons.receipt, color: AppColors.primary),
               title: const Text('In WiFi POS 58mm'),
               subtitle: const Text('Máy in bill nhỏ'),
               onTap: () => Navigator.pop(ctx, 'thermal_58'),
@@ -1093,7 +1093,7 @@ class _StaffPerformanceViewState extends State<StaffPerformanceView> {
                     ? 'Không thể in PDF. Vui lòng kiểm tra quyền truy cập hoặc thử lại.'
                     : 'Không thể kết nối máy in. Kiểm tra IP trong Cài đặt máy in.',
               ),
-              backgroundColor: Colors.orange,
+              backgroundColor: AppColors.warning,
             ),
           );
         }
@@ -1102,7 +1102,7 @@ class _StaffPerformanceViewState extends State<StaffPerformanceView> {
       if (mounted) Navigator.of(context).pop();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('Lỗi: $e'), backgroundColor: AppColors.error),
         );
       }
     }
@@ -1138,7 +1138,7 @@ class _StaffPerformanceViewState extends State<StaffPerformanceView> {
       if (mounted) Navigator.of(context).pop();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('Lỗi: $e'), backgroundColor: AppColors.error),
         );
       }
     }
@@ -1150,7 +1150,7 @@ class _StaffPerformanceViewState extends State<StaffPerformanceView> {
       style: TextStyle(
         fontWeight: FontWeight.bold,
         fontSize: AppTextStyles.subtitle1.fontSize,
-        color: Colors.black87,
+        color: AppColors.textPrimary,
       ),
     );
   }
@@ -1224,15 +1224,15 @@ class _StaffPerformanceViewState extends State<StaffPerformanceView> {
     bool isBonus = false,
   }) {
     Color bgColor = Colors.transparent;
-    if (isHighlight) bgColor = Colors.blue.shade50;
-    if (isBonus) bgColor = Colors.amber.shade50;
-    if (isNegative) bgColor = Colors.red.shade50;
+    if (isHighlight) bgColor = AppColors.primary;
+    if (isBonus) bgColor = AppColors.warning;
+    if (isNegative) bgColor = AppColors.error;
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
       decoration: BoxDecoration(
         color: bgColor,
-        border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+        border: Border(bottom: BorderSide(color: AppColors.outline)),
       ),
       child: Row(
         children: [
@@ -1251,7 +1251,7 @@ class _StaffPerformanceViewState extends State<StaffPerformanceView> {
                 if (subText != null)
                   Text(
                     subText,
-                    style: TextStyle(fontSize: AppTextStyles.overlineSize, color: Colors.grey.shade600),
+                    style: TextStyle(fontSize: AppTextStyles.overlineSize, color: AppColors.textSecondary),
                   ),
               ],
             ),
@@ -1260,7 +1260,7 @@ class _StaffPerformanceViewState extends State<StaffPerformanceView> {
             flex: 2,
             child: Text(
               formula,
-              style: TextStyle(fontSize: AppTextStyles.caption.fontSize, color: Colors.grey.shade700),
+              style: TextStyle(fontSize: AppTextStyles.caption.fontSize, color: AppColors.textSecondary),
               textAlign: TextAlign.center,
             ),
           ),
@@ -1272,8 +1272,8 @@ class _StaffPerformanceViewState extends State<StaffPerformanceView> {
                 fontSize: AppTextStyles.subtitle1.fontSize,
                 fontWeight: FontWeight.w600,
                 color: isNegative
-                    ? Colors.red
-                    : (isBonus ? Colors.amber.shade800 : Colors.black87),
+                    ? AppColors.error
+                    : (isBonus ? AppColors.warning : AppColors.textPrimary),
               ),
               textAlign: TextAlign.right,
             ),
@@ -1297,7 +1297,7 @@ class _StaffPerformanceViewState extends State<StaffPerformanceView> {
           ),
           Text(
             label,
-            style: TextStyle(fontSize: AppTextStyles.caption.fontSize, color: Colors.grey.shade600),
+            style: TextStyle(fontSize: AppTextStyles.caption.fontSize, color: AppColors.textSecondary),
           ),
         ],
       ),
@@ -1314,9 +1314,9 @@ class _StaffPerformanceViewState extends State<StaffPerformanceView> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withAlpha(26),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withAlpha(77)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1341,7 +1341,7 @@ class _StaffPerformanceViewState extends State<StaffPerformanceView> {
             style: TextStyle(
               fontSize: AppTextStyles.caption.fontSize,
               fontWeight: FontWeight.w600,
-              color: profit > 0 ? Colors.green.shade700 : Colors.red,
+              color: profit > 0 ? AppColors.success : AppColors.error,
             ),
           ),
         ],
@@ -1356,7 +1356,7 @@ class _StaffPerformanceViewState extends State<StaffPerformanceView> {
         children: [
           Text(
             '• $label: ',
-            style: TextStyle(fontSize: AppTextStyles.body1.fontSize, color: Colors.grey.shade700),
+            style: TextStyle(fontSize: AppTextStyles.body1.fontSize, color: AppColors.textSecondary),
           ),
           Text(
             value,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/app_colors.dart';
 import '../../models/shop_settings_model.dart';
 import '../../services/category_service.dart';
 
@@ -22,7 +23,8 @@ class BusinessTypeWizard extends StatefulWidget {
 
 class _BusinessTypeWizardState extends State<BusinessTypeWizard> {
   int _currentStep = 0;
-  String _selectedType = 'electronics';
+  final String _selectedType =
+      'electronics'; // Luôn là electronics - không thay đổi
   final Map<String, bool> _selectedModules = {};
   bool _isLoading = false;
 
@@ -33,43 +35,15 @@ class _BusinessTypeWizardState extends State<BusinessTypeWizard> {
   }
 
   void _updateModulesForType(String type) {
+    // Luôn cấu hình cho electronics - loại duy nhất được hỗ trợ
     setState(() {
       _selectedModules.clear();
-      switch (type) {
-        case 'electronics':
-          _selectedModules['enableRepair'] = true;
-          _selectedModules['enableSerial'] = true;
-          _selectedModules['enableWarranty'] = true;
-          _selectedModules['enableExpiry'] = false;
-          _selectedModules['enableVariants'] = false;
-          _selectedModules['enableBatch'] = false;
-          break;
-        case 'food':
-          _selectedModules['enableRepair'] = false;
-          _selectedModules['enableSerial'] = false;
-          _selectedModules['enableWarranty'] = false;
-          _selectedModules['enableExpiry'] = true;
-          _selectedModules['enableVariants'] = false;
-          _selectedModules['enableBatch'] = true;
-          break;
-        case 'fashion':
-          _selectedModules['enableRepair'] = false;
-          _selectedModules['enableSerial'] = false;
-          _selectedModules['enableWarranty'] = false;
-          _selectedModules['enableExpiry'] = false;
-          _selectedModules['enableVariants'] = true;
-          _selectedModules['enableBatch'] = false;
-          break;
-        case 'general':
-          // All off, user will customize
-          _selectedModules['enableRepair'] = false;
-          _selectedModules['enableSerial'] = false;
-          _selectedModules['enableWarranty'] = false;
-          _selectedModules['enableExpiry'] = false;
-          _selectedModules['enableVariants'] = false;
-          _selectedModules['enableBatch'] = false;
-          break;
-      }
+      _selectedModules['enableRepair'] = true;
+      _selectedModules['enableSerial'] = true;
+      _selectedModules['enableWarranty'] = true;
+      _selectedModules['enableExpiry'] = false;
+      _selectedModules['enableVariants'] = false;
+      _selectedModules['enableBatch'] = false;
     });
   }
 
@@ -97,7 +71,7 @@ class _BusinessTypeWizardState extends State<BusinessTypeWizard> {
                           height: 20,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : Text(_currentStep == 2 ? 'Hoàn tất' : 'Tiếp tục'),
+                      : Text(_currentStep == 1 ? 'Hoàn tất' : 'Tiếp tục'),
                 ),
                 const SizedBox(width: 12),
                 if (_currentStep > 0)
@@ -111,137 +85,20 @@ class _BusinessTypeWizardState extends State<BusinessTypeWizard> {
         },
         steps: [
           Step(
-            title: const Text('Chọn ngành'),
-            subtitle: const Text('Chọn loại hình kinh doanh'),
-            content: _buildBusinessTypeSelector(),
+            title: const Text('Tính năng'),
+            subtitle: const Text('Tùy chỉnh tính năng cho cửa hàng điện thoại'),
+            content: _buildModuleSelector(),
             isActive: _currentStep >= 0,
             state: _currentStep > 0 ? StepState.complete : StepState.indexed,
-          ),
-          Step(
-            title: const Text('Tính năng'),
-            subtitle: const Text('Tùy chỉnh tính năng'),
-            content: _buildModuleSelector(),
-            isActive: _currentStep >= 1,
-            state: _currentStep > 1 ? StepState.complete : StepState.indexed,
           ),
           Step(
             title: const Text('Xác nhận'),
             subtitle: const Text('Kiểm tra và hoàn tất'),
             content: _buildSummary(),
-            isActive: _currentStep >= 2,
+            isActive: _currentStep >= 1,
             state: StepState.indexed,
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildBusinessTypeSelector() {
-    return Column(
-      children: [
-        _buildTypeCard(
-          'electronics',
-          '📱 Điện thoại & Điện tử',
-          'Shop điện thoại, laptop, phụ kiện...\nHỗ trợ: Quản lý IMEI, sửa chữa, bảo hành',
-          Icons.phone_android,
-          Colors.blue,
-        ),
-        // Food và General tạm ẩn - chỉ hỗ trợ Electronics và Fashion
-        // _buildTypeCard(
-        //   'food',
-        //   '🍎 Thực phẩm & Đồ tươi sống',
-        //   'Cửa hàng thực phẩm, nông sản...\nHỗ trợ: Hạn sử dụng, theo lô, đơn vị tính',
-        //   Icons.restaurant,
-        //   Colors.green,
-        // ),
-        _buildTypeCard(
-          'fashion',
-          '👕 Thời trang & May mặc',
-          'Shop quần áo, giày dép, túi xách...\nHỗ trợ: Size, màu sắc, biến thể',
-          Icons.checkroom,
-          Colors.blue,
-        ),
-        // _buildTypeCard(
-        //   'general',
-        //   '📦 Tổng hợp / Tùy chỉnh',
-        //   'Các loại hình khác hoặc tự tạo\nTự do bật/tắt từng tính năng',
-        //   Icons.store,
-        //   Colors.orange,
-        // ),
-      ],
-    );
-  }
-
-  Widget _buildTypeCard(
-    String type,
-    String title,
-    String description,
-    IconData icon,
-    Color color,
-  ) {
-    final isSelected = _selectedType == type;
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: isSelected ? color : Colors.transparent,
-          width: 2,
-        ),
-      ),
-      child: InkWell(
-        onTap: () {
-          setState(() => _selectedType = type);
-          _updateModulesForType(type);
-        },
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(icon, color: color, size: 32),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 17,
-                        color: isSelected ? color : null,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      description,
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Radio<String>(
-                value: type,
-                groupValue: _selectedType,
-                onChanged: (v) {
-                  setState(() => _selectedType = v!);
-                  _updateModulesForType(v!);
-                },
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
@@ -257,7 +114,7 @@ class _BusinessTypeWizardState extends State<BusinessTypeWizard> {
         const SizedBox(height: 8),
         Text(
           'Bạn có thể bật/tắt các tính năng theo nhu cầu',
-          style: TextStyle(color: Colors.grey[600], fontSize: 14),
+          style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
         ),
         const SizedBox(height: 16),
         _buildModuleSwitch(
@@ -358,20 +215,25 @@ class _BusinessTypeWizardState extends State<BusinessTypeWizard> {
                   runSpacing: 4,
                   children: _selectedModules.entries
                       .where((e) => e.value)
-                      .map((e) => Chip(
-                            label: Text(
-                              _getModuleName(e.key),
-                              style: const TextStyle(fontSize: 13),
-                            ),
-                            padding: EdgeInsets.zero,
-                            visualDensity: VisualDensity.compact,
-                          ))
+                      .map(
+                        (e) => Chip(
+                          label: Text(
+                            _getModuleName(e.key),
+                            style: const TextStyle(fontSize: 13),
+                          ),
+                          padding: EdgeInsets.zero,
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      )
                       .toList(),
                 ),
                 if (!_selectedModules.values.any((v) => v))
                   const Text(
                     'Chưa bật tính năng nào',
-                    style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
+                    style: TextStyle(
+                      color: AppColors.textHint,
+                      fontStyle: FontStyle.italic,
+                    ),
                   ),
               ],
             ),
@@ -381,17 +243,17 @@ class _BusinessTypeWizardState extends State<BusinessTypeWizard> {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.blue.withOpacity(0.1),
+            color: AppColors.primary.withAlpha(26),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Row(
             children: [
-              const Icon(Icons.info_outline, color: Colors.blue),
+              const Icon(Icons.info_outline, color: AppColors.primary),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   'Bạn có thể thay đổi cài đặt bất cứ lúc nào trong phần Cài đặt cửa hàng',
-                  style: TextStyle(color: Colors.blue[700], fontSize: 14),
+                  style: TextStyle(color: AppColors.primary, fontSize: 14),
                 ),
               ),
             ],
@@ -404,9 +266,9 @@ class _BusinessTypeWizardState extends State<BusinessTypeWizard> {
   Widget _buildSummaryRow(String label, String value, IconData icon) {
     return Row(
       children: [
-        Icon(icon, size: 18, color: Colors.grey[600]),
+        Icon(icon, size: 18, color: AppColors.textSecondary),
         const SizedBox(width: 8),
-        Text('$label: ', style: TextStyle(color: Colors.grey[600])),
+        Text('$label: ', style: TextStyle(color: AppColors.textSecondary)),
         Text(value, style: const TextStyle(fontWeight: FontWeight.w500)),
       ],
     );
@@ -462,7 +324,7 @@ class _BusinessTypeWizardState extends State<BusinessTypeWizard> {
   }
 
   void _onStepContinue() async {
-    if (_currentStep < 2) {
+    if (_currentStep < 1) {
       setState(() => _currentStep++);
     } else {
       // Save settings
@@ -483,28 +345,26 @@ class _BusinessTypeWizardState extends State<BusinessTypeWizard> {
       final settings = ShopSettings(
         shopId: widget.shopId,
         firestoreId: 'shop_settings',
-        businessType: _selectedType,
-        businessTypeName: _getTypeName(_selectedType),
-        enableRepair: _selectedModules['enableRepair'] ?? false,
-        enableSerial: _selectedModules['enableSerial'] ?? false,
-        enableWarranty: _selectedModules['enableWarranty'] ?? false,
-        enableExpiry: _selectedModules['enableExpiry'] ?? false,
-        enableBatch: _selectedModules['enableBatch'] ?? false,
-        enableVariants: _selectedModules['enableVariants'] ?? false,
-        defaultUnit: _selectedType == 'food' ? 'kg' : 'cái',
+        businessType: 'electronics', // Luôn electronics
+        businessTypeName: 'Điện thoại & Điện tử',
+        enableRepair: _selectedModules['enableRepair'] ?? true,
+        enableSerial: _selectedModules['enableSerial'] ?? true,
+        enableWarranty: _selectedModules['enableWarranty'] ?? true,
+        enableExpiry: false,
+        enableBatch: false,
+        enableVariants: false,
+        defaultUnit: 'cái',
       );
 
       // Save to Firestore through service
       await CategoryService().saveShopSettings(settings);
 
-      // Default categories will be created by CategoryService when needed
-
       widget.onComplete(settings);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Lỗi: $e')));
       }
     } finally {
       if (mounted) {
@@ -514,7 +374,7 @@ class _BusinessTypeWizardState extends State<BusinessTypeWizard> {
   }
 }
 
-/// Dialog chọn nhanh loại hình cho shop đã có
+/// Dialog chọn nhanh loại hình cho shop đã có - chỉ hiển thị electronics
 class BusinessTypeQuickSelector extends StatelessWidget {
   final Function(String) onSelected;
 
@@ -523,15 +383,17 @@ class BusinessTypeQuickSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Chọn loại hình kinh doanh'),
+      title: const Text('Loại hình kinh doanh'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _buildOption(context, 'electronics', '📱 Điện thoại & Điện tử', Icons.phone_android, Colors.blue),
-          // Food và General tạm ẩn - chỉ hỗ trợ Electronics và Fashion
-          // _buildOption(context, 'food', '🍎 Thực phẩm', Icons.restaurant, Colors.green),
-          _buildOption(context, 'fashion', '👕 Thời trang', Icons.checkroom, Colors.blue),
-          // _buildOption(context, 'general', '📦 Tổng hợp', Icons.store, Colors.orange),
+          _buildOption(
+            context,
+            'electronics',
+            '📱 Điện thoại & Điện tử',
+            Icons.phone_android,
+            AppColors.primary,
+          ),
         ],
       ),
     );
@@ -559,110 +421,62 @@ class BusinessTypeQuickSelector extends StatelessWidget {
   }
 }
 
-/// Preset configurations for each business type
+/// Preset configurations - chỉ hỗ trợ electronics
 class BusinessTypePresets {
   static Map<String, dynamic> getPreset(String type) {
-    switch (type) {
-      case 'electronics':
-        return {
-          'businessType': 'electronics',
-          'businessTypeName': 'Điện thoại & Điện tử',
-          'enableRepair': true,
-          'enableSerial': true,
-          'enableWarranty': true,
-          'enableExpiry': false,
-          'enableBatch': false,
-          'enableVariants': false,
-          'defaultUnit': 'cái',
-          'defaultCategories': [
-            {'name': 'Điện thoại', 'icon': '📱', 'trackSerial': true, 'hasWarranty': true},
-            {'name': 'Máy tính bảng', 'icon': '📱', 'trackSerial': true, 'hasWarranty': true},
-            {'name': 'Laptop', 'icon': '💻', 'trackSerial': true, 'hasWarranty': true},
-            {'name': 'Phụ kiện', 'icon': '🎧', 'trackSerial': false, 'hasWarranty': false},
-            {'name': 'Linh kiện', 'icon': '🔧', 'trackSerial': false, 'hasWarranty': false},
-          ],
-        };
-      case 'food':
-        return {
-          'businessType': 'food',
-          'businessTypeName': 'Thực phẩm & Đồ tươi sống',
-          'enableRepair': false,
-          'enableSerial': false,
-          'enableWarranty': false,
-          'enableExpiry': true,
-          'enableBatch': true,
-          'enableVariants': false,
-          'defaultUnit': 'kg',
-          'expiryWarningDays': 7,
-          'defaultCategories': [
-            {'name': 'Rau củ', 'icon': '🥬', 'trackExpiry': true, 'unit': 'kg'},
-            {'name': 'Trái cây', 'icon': '🍎', 'trackExpiry': true, 'unit': 'kg'},
-            {'name': 'Thịt cá', 'icon': '🍖', 'trackExpiry': true, 'unit': 'kg'},
-            {'name': 'Đồ khô', 'icon': '🍚', 'trackExpiry': true, 'unit': 'gói'},
-            {'name': 'Đồ hộp', 'icon': '🥫', 'trackExpiry': true, 'unit': 'hộp'},
-            {'name': 'Đồ uống', 'icon': '🧃', 'trackExpiry': true, 'unit': 'chai'},
-            {'name': 'Đông lạnh', 'icon': '🧊', 'trackExpiry': true, 'unit': 'kg'},
-          ],
-        };
-      case 'fashion':
-        return {
-          'businessType': 'fashion',
-          'businessTypeName': 'Thời trang & May mặc',
-          'enableRepair': false,
-          'enableSerial': false,
-          'enableWarranty': false,
-          'enableExpiry': false,
-          'enableBatch': false,
-          'enableVariants': true,
-          'defaultUnit': 'cái',
-          'defaultCategories': [
-            {'name': 'Áo', 'icon': '👕', 'hasVariants': true},
-            {'name': 'Quần', 'icon': '👖', 'hasVariants': true},
-            {'name': 'Váy/Đầm', 'icon': '👗', 'hasVariants': true},
-            {'name': 'Giày dép', 'icon': '👟', 'hasVariants': true},
-            {'name': 'Túi xách', 'icon': '👜', 'hasVariants': false},
-            {'name': 'Phụ kiện', 'icon': '🧣', 'hasVariants': false},
-          ],
-        };
-      case 'general':
-      default:
-        return {
-          'businessType': 'general',
-          'businessTypeName': 'Tổng hợp',
-          'enableRepair': false,
-          'enableSerial': false,
-          'enableWarranty': false,
-          'enableExpiry': false,
-          'enableBatch': false,
-          'enableVariants': false,
-          'defaultUnit': 'cái',
-          'defaultCategories': [
-            {'name': 'Hàng hóa', 'icon': '📦'},
-            {'name': 'Khác', 'icon': '📋'},
-          ],
-        };
-    }
+    // Luôn trả về preset cho electronics
+    return {
+      'businessType': 'electronics',
+      'businessTypeName': 'Điện thoại & Điện tử',
+      'enableRepair': true,
+      'enableSerial': true,
+      'enableWarranty': true,
+      'enableExpiry': false,
+      'enableBatch': false,
+      'enableVariants': false,
+      'defaultUnit': 'cái',
+      'defaultCategories': [
+        {
+          'name': 'Điện thoại',
+          'icon': '📱',
+          'trackSerial': true,
+          'hasWarranty': true,
+        },
+        {
+          'name': 'Máy tính bảng',
+          'icon': '📱',
+          'trackSerial': true,
+          'hasWarranty': true,
+        },
+        {
+          'name': 'Laptop',
+          'icon': '💻',
+          'trackSerial': true,
+          'hasWarranty': true,
+        },
+        {
+          'name': 'Phụ kiện',
+          'icon': '🎧',
+          'trackSerial': false,
+          'hasWarranty': false,
+        },
+        {
+          'name': 'Linh kiện',
+          'icon': '🔧',
+          'trackSerial': false,
+          'hasWarranty': false,
+        },
+      ],
+    };
   }
 
-  static List<String> get availableTypes => ['electronics', 'food', 'fashion', 'general'];
+  static List<String> get availableTypes => ['electronics'];
 
   static String getTypeName(String type) {
-    final preset = getPreset(type);
-    return preset['businessTypeName'] ?? type;
+    return 'Điện thoại & Điện tử';
   }
 
   static String getTypeIcon(String type) {
-    switch (type) {
-      case 'electronics':
-        return '📱';
-      case 'food':
-        return '🍎';
-      case 'fashion':
-        return '👕';
-      case 'general':
-        return '📦';
-      default:
-        return '📦';
-    }
+    return '📱';
   }
 }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../widgets/responsive_wrapper.dart';
+import '../theme/app_spacing.dart';
 import '../theme/app_text_styles.dart';
 import '../utils/app_info.dart';
 import '../l10n/app_localizations.dart';
@@ -21,7 +23,7 @@ class AboutDeveloperView extends StatelessWidget {
         title: Text(loc.aboutDeveloper),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        foregroundColor: Colors.white,
+        foregroundColor: AppColors.surface,
       ),
       body: ResponsiveCenter(child: Container(
         decoration: const BoxDecoration(
@@ -40,7 +42,7 @@ class AboutDeveloperView extends StatelessWidget {
             child: Column(
               children: [
                 // Header Section
-                _buildHeader(loc),
+                _buildHeader(context, loc),
 
                 // Main Content
                 Container(
@@ -50,22 +52,22 @@ class AboutDeveloperView extends StatelessWidget {
                       const SizedBox(height: 30),
 
                       // Developer Card
-                      _buildDeveloperCard(loc),
+                      _buildDeveloperCard(context, loc),
 
                       const SizedBox(height: 20),
 
                       // Store Card
-                      _buildStoreCard(loc),
+                      _buildStoreCard(context, loc),
 
                       const SizedBox(height: 20),
 
                       // Contact Card
-                      _buildContactCard(loc),
+                      _buildContactCard(context, loc),
 
                       const SizedBox(height: 20),
 
                       // App Info Card
-                      _buildAppInfoCard(loc),
+                      _buildAppInfoCard(context, loc),
 
                       const SizedBox(height: 40),
                     ],
@@ -79,9 +81,9 @@ class AboutDeveloperView extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(AppLocalizations loc) {
+  Widget _buildHeader(BuildContext context, AppLocalizations loc) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxl, horizontal: AppSpacing.xl),
       child: Column(
         children: [
           // Logo/Icon
@@ -90,20 +92,20 @@ class AboutDeveloperView extends StatelessWidget {
             height: 140,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Colors.white,
+              color: AppColors.surface,
               border: Border.all(
-                color: Colors.white.withOpacity(0.9),
+                color: AppColors.surface.withAlpha(230),
                 width: 5,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.3),
+                  color: AppColors.textPrimary.withAlpha(77),
                   spreadRadius: 3,
                   blurRadius: 15,
                   offset: const Offset(0, 6),
                 ),
                 BoxShadow(
-                  color: Colors.white.withOpacity(0.1),
+                  color: AppColors.surface.withAlpha(26),
                   spreadRadius: -2,
                   blurRadius: 8,
                   offset: const Offset(0, -2),
@@ -116,11 +118,11 @@ class AboutDeveloperView extends StatelessWidget {
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
                   return Container(
-                    color: Colors.white.withOpacity(0.2),
+                    color: AppColors.surface.withAlpha(51),
                     child: const Icon(
                       Icons.business,
                       size: 70,
-                      color: Colors.white,
+                      color: AppColors.surface,
                     ),
                   );
                 },
@@ -128,14 +130,13 @@ class AboutDeveloperView extends StatelessWidget {
             ),
           ),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpacing.xl),
 
           Text(
             loc.hulucaStoreDongNai,
-            style: TextStyle(
-              fontSize: AppTextStyles.headline1.fontSize,
+            style: AppTextStyles.headline1.copyWith(
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.onPrimary,
               letterSpacing: 1.5,
               shadows: const [
                 Shadow(
@@ -148,14 +149,13 @@ class AboutDeveloperView extends StatelessWidget {
             textAlign: TextAlign.center,
           ),
 
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.md),
 
           Text(
             loc.aboutDeveloper,
-            style: TextStyle(
-              fontSize: AppTextStyles.headline1.fontSize,
+            style: AppTextStyles.headline1.copyWith(
               fontWeight: FontWeight.w500,
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.onPrimary,
               letterSpacing: 0.8,
               shadows: const [
                 Shadow(
@@ -168,13 +168,12 @@ class AboutDeveloperView extends StatelessWidget {
             textAlign: TextAlign.center,
           ),
 
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.sm),
 
           Text(
             loc.professionalStoreManagementApp,
-            style: TextStyle(
-              fontSize: AppTextStyles.headline3.fontSize,
-              color: Colors.white.withOpacity(0.95),
+            style: AppTextStyles.headline3.copyWith(
+              color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.95),
               fontWeight: FontWeight.w400,
               shadows: const [
                 Shadow(
@@ -191,22 +190,22 @@ class AboutDeveloperView extends StatelessWidget {
     );
   }
 
-  Widget _buildDeveloperCard(AppLocalizations loc) {
+  Widget _buildDeveloperCard(BuildContext context, AppLocalizations loc) {
     return Card(
-      elevation: 8,
+      elevation: 4,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppSpacing.lg),
       ),
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          gradient: const LinearGradient(
+          borderRadius: BorderRadius.circular(AppSpacing.lg),
+          gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Colors.white,
-              Color(0xFFF8F9FA),
+              Theme.of(context).colorScheme.surface,
+              Theme.of(context).colorScheme.surfaceVariant,
             ],
           ),
         ),
@@ -218,17 +217,17 @@ class AboutDeveloperView extends StatelessWidget {
               height: 80,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: const LinearGradient(
+                gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    Color(0xFF2962FF),
-                    Color(0xFF1976D2),
+                    Theme.of(context).colorScheme.primary,
+                    Theme.of(context).colorScheme.primaryContainer,
                   ],
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF2962FF).withOpacity(0.3),
+                    color: Theme.of(context).colorScheme.primary.withOpacity(0.18),
                     spreadRadius: 2,
                     blurRadius: 8,
                     offset: const Offset(0, 4),
@@ -238,49 +237,46 @@ class AboutDeveloperView extends StatelessWidget {
               child: const Icon(
                 Icons.code,
                 size: 40,
-                color: Colors.white,
+                color: AppColors.surface,
               ),
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.lg),
 
             Text(
               'Quang Huy',
-              style: TextStyle(
-                fontSize: AppTextStyles.headline1.fontSize,
+              style: AppTextStyles.headline1.copyWith(
                 fontWeight: FontWeight.bold,
-                color: const Color(0xFF2D3748),
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
 
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.sm),
 
             Text(
               loc.developerAndDesigner,
-              style: TextStyle(
-                fontSize: AppTextStyles.headline3.fontSize,
-                color: Colors.grey[600],
+              style: AppTextStyles.headline3.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 fontWeight: FontWeight.w500,
               ),
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.lg),
 
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
               decoration: BoxDecoration(
-                color: const Color(0xFF2962FF).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
+                color: Theme.of(context).colorScheme.primary.withAlpha(20),
+                borderRadius: BorderRadius.circular(AppSpacing.lg),
                 border: Border.all(
-                  color: const Color(0xFF2962FF).withOpacity(0.2),
+                  color: Theme.of(context).colorScheme.primary.withOpacity(0.18),
                 ),
               ),
               child: Text(
                 'HUY AKA',
-                style: TextStyle(
-                  color: const Color(0xFF2962FF),
+                style: AppTextStyles.headline4.copyWith(
+                  color: Theme.of(context).colorScheme.primary,
                   fontWeight: FontWeight.w600,
-                  fontSize: AppTextStyles.headline4.fontSize,
                 ),
               ),
             ),
@@ -290,22 +286,22 @@ class AboutDeveloperView extends StatelessWidget {
     );
   }
 
-  Widget _buildStoreCard(AppLocalizations loc) {
+  Widget _buildStoreCard(BuildContext context, AppLocalizations loc) {
     return Card(
-      elevation: 8,
+      elevation: 4,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppSpacing.lg),
       ),
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          gradient: const LinearGradient(
+          borderRadius: BorderRadius.circular(AppSpacing.lg),
+          gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Colors.white,
-              Color(0xFFF8F9FA),
+              Theme.of(context).colorScheme.surface,
+              Theme.of(context).colorScheme.surfaceVariant,
             ],
           ),
         ),
@@ -326,7 +322,7 @@ class AboutDeveloperView extends StatelessWidget {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFFFF6B35).withOpacity(0.3),
+                    color: const Color(0xFFFF6B35).withAlpha(77),
                     spreadRadius: 2,
                     blurRadius: 8,
                     offset: const Offset(0, 4),
@@ -336,41 +332,38 @@ class AboutDeveloperView extends StatelessWidget {
               child: const Icon(
                 Icons.store,
                 size: 40,
-                color: Colors.white,
+                color: AppColors.surface,
               ),
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.lg),
 
             Text(
               loc.hulucaStore,
-              style: TextStyle(
-                fontSize: AppTextStyles.headline1.fontSize,
+              style: AppTextStyles.headline1.copyWith(
                 fontWeight: FontWeight.bold,
-                color: const Color(0xFF2D3748),
+                color: Theme.of(context).colorScheme.onSurface,
                 letterSpacing: 1.5,
               ),
             ),
 
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.sm),
 
             Text(
               loc.dongNai,
-              style: TextStyle(
-                fontSize: AppTextStyles.headline2.fontSize,
+              style: AppTextStyles.headline2.copyWith(
                 fontWeight: FontWeight.w600,
-                color: const Color(0xFFFF6B35),
+                color: Theme.of(context).colorScheme.primary,
                 letterSpacing: 2,
               ),
             ),
 
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.md),
 
             Text(
               loc.professionalPhoneRepairShop,
-              style: TextStyle(
-                fontSize: AppTextStyles.headline4.fontSize,
-                color: Colors.grey[600],
+              style: AppTextStyles.headline4.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 fontWeight: FontWeight.w400,
               ),
               textAlign: TextAlign.center,
@@ -381,22 +374,22 @@ class AboutDeveloperView extends StatelessWidget {
     );
   }
 
-  Widget _buildContactCard(AppLocalizations loc) {
+  Widget _buildContactCard(BuildContext context, AppLocalizations loc) {
     return Card(
-      elevation: 8,
+      elevation: 4,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppSpacing.lg),
       ),
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          gradient: const LinearGradient(
+          borderRadius: BorderRadius.circular(AppSpacing.lg),
+          gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Colors.white,
-              Color(0xFFF8F9FA),
+              Theme.of(context).colorScheme.surface,
+              Theme.of(context).colorScheme.surfaceVariant,
             ],
           ),
         ),
@@ -408,7 +401,7 @@ class AboutDeveloperView extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF25D366).withOpacity(0.1),
+                    color: const Color(0xFF25D366).withAlpha(26),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(
@@ -435,7 +428,7 @@ class AboutDeveloperView extends StatelessWidget {
                         loc.hotlineAndZalo,
                         style: TextStyle(
                           fontSize: AppTextStyles.headline4.fontSize,
-                          color: Colors.grey,
+                          color: AppColors.textHint,
                         ),
                       ),
                     ],
@@ -444,15 +437,15 @@ class AboutDeveloperView extends StatelessWidget {
               ],
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: AppSpacing.lg),
 
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(AppSpacing.lg),
               decoration: BoxDecoration(
-                color: Colors.grey[50],
-                borderRadius: BorderRadius.circular(12),
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(AppSpacing.lg),
                 border: Border.all(
-                  color: Colors.grey[200]!,
+                  color: Theme.of(context).colorScheme.outlineVariant,
                 ),
               ),
               child: Row(
@@ -465,10 +458,9 @@ class AboutDeveloperView extends StatelessWidget {
                   Expanded(
                     child: Text(
                       '0964.09.59.79',
-                      style: TextStyle(
-                        fontSize: AppTextStyles.headline2.fontSize,
+                      style: AppTextStyles.headline2.copyWith(
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF2D3748),
+                        color: Theme.of(context).colorScheme.onSurface,
                         letterSpacing: 1,
                       ),
                     ),
@@ -480,22 +472,22 @@ class AboutDeveloperView extends StatelessWidget {
                       color: Color(0xFF25D366),
                     ),
                     style: IconButton.styleFrom(
-                      backgroundColor: const Color(0xFF25D366).withOpacity(0.1),
+                      backgroundColor: const Color(0xFF25D366).withAlpha(26),
                     ),
                   ),
                 ],
               ),
             ),
 
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.md),
 
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(AppSpacing.lg),
               decoration: BoxDecoration(
-                color: Colors.grey[50],
-                borderRadius: BorderRadius.circular(12),
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(AppSpacing.lg),
                 border: Border.all(
-                  color: Colors.grey[200]!,
+                  color: Theme.of(context).colorScheme.outlineVariant,
                 ),
               ),
               child: Row(
@@ -508,10 +500,9 @@ class AboutDeveloperView extends StatelessWidget {
                   Expanded(
                     child: Text(
                       'Zalo: 0964.09.59.79',
-                      style: TextStyle(
-                        fontSize: AppTextStyles.headline3.fontSize,
+                      style: AppTextStyles.headline3.copyWith(
                         fontWeight: FontWeight.w500,
-                        color: const Color(0xFF2D3748),
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                   ),
@@ -522,7 +513,7 @@ class AboutDeveloperView extends StatelessWidget {
                       color: Color(0xFF0068FF),
                     ),
                     style: IconButton.styleFrom(
-                      backgroundColor: const Color(0xFF0068FF).withOpacity(0.1),
+                      backgroundColor: const Color(0xFF0068FF).withAlpha(26),
                     ),
                   ),
                 ],
@@ -534,22 +525,22 @@ class AboutDeveloperView extends StatelessWidget {
     );
   }
 
-  Widget _buildAppInfoCard(AppLocalizations loc) {
+  Widget _buildAppInfoCard(BuildContext context, AppLocalizations loc) {
     return Card(
-      elevation: 8,
+      elevation: 4,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppSpacing.lg),
       ),
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          gradient: const LinearGradient(
+          borderRadius: BorderRadius.circular(AppSpacing.lg),
+          gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Colors.white,
-              Color(0xFFF8F9FA),
+              Theme.of(context).colorScheme.surface,
+              Theme.of(context).colorScheme.surfaceVariant,
             ],
           ),
         ),
@@ -570,7 +561,7 @@ class AboutDeveloperView extends StatelessWidget {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF0068FF).withOpacity(0.3),
+                    color: const Color(0xFF0068FF).withAlpha(77),
                     spreadRadius: 2,
                     blurRadius: 8,
                     offset: const Offset(0, 4),
@@ -580,22 +571,21 @@ class AboutDeveloperView extends StatelessWidget {
               child: const Icon(
                 Icons.phone_android,
                 size: 40,
-                color: Colors.white,
+                color: AppColors.surface,
               ),
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.lg),
 
             Text(
               loc.shopManagerApp,
-              style: TextStyle(
-                fontSize: AppTextStyles.headline1.fontSize,
+              style: AppTextStyles.headline1.copyWith(
                 fontWeight: FontWeight.bold,
-                color: const Color(0xFF2D3748),
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
 
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.sm),
 
             FutureBuilder<String>(
               future: AppInfo.getVersion(),
@@ -603,24 +593,23 @@ class AboutDeveloperView extends StatelessWidget {
                 final versionText = snapshot.data != null ? loc.versionLabel(snapshot.data!) : loc.versionLabel('...');
                 return Text(
                   versionText,
-                  style: TextStyle(
-                    fontSize: AppTextStyles.headline4.fontSize,
-                    color: Colors.grey[600],
+                  style: AppTextStyles.headline4.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                     fontWeight: FontWeight.w500,
                   ),
                 );
               },
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.lg),
 
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
               decoration: BoxDecoration(
-                color: const Color(0xFF4CAF50).withOpacity(0.1),
+                color: const Color(0xFF4CAF50).withAlpha(26),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: const Color(0xFF4CAF50).withOpacity(0.2),
+                  color: const Color(0xFF4CAF50).withAlpha(51),
                 ),
               ),
               child: Text(
@@ -633,13 +622,12 @@ class AboutDeveloperView extends StatelessWidget {
               ),
             ),
 
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.md),
 
             Text(
               loc.appFullDescription,
-              style: TextStyle(
-                fontSize: AppTextStyles.headline4.fontSize,
-                color: Colors.grey[600],
+              style: AppTextStyles.headline4.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 height: 1.5,
               ),
               textAlign: TextAlign.center,

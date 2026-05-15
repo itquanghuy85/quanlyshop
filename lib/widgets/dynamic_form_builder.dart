@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
 import 'dart:convert';
 
 /// Widget builder cho dynamic form fields
@@ -128,7 +129,7 @@ class DynamicFormBuilder extends StatelessWidget {
         children: [
           Text(field.label, style: const TextStyle(fontWeight: FontWeight.w500)),
           if (field.description != null)
-            Text(field.description!, style: TextStyle(color: Colors.grey[600], fontSize: 14)),
+            Text(field.description!, style: TextStyle(color: AppColors.textSecondary, fontSize: 14)),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
@@ -200,7 +201,7 @@ class DynamicFormBuilder extends StatelessWidget {
                 ? '${date.day}/${date.month}/${date.year}'
                 : field.hint ?? 'Chọn ngày...',
             style: TextStyle(
-              color: date != null ? null : Colors.grey[600],
+              color: date != null ? null : AppColors.textSecondary,
             ),
           ),
         ),
@@ -253,7 +254,7 @@ class DynamicFormBuilder extends StatelessWidget {
         children: [
           Text(field.label, style: const TextStyle(fontWeight: FontWeight.w500)),
           if (field.description != null)
-            Text(field.description!, style: TextStyle(color: Colors.grey[600], fontSize: 14)),
+            Text(field.description!, style: TextStyle(color: AppColors.textSecondary, fontSize: 14)),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
@@ -473,15 +474,15 @@ class _CustomFieldsEditorState extends State<CustomFieldsEditor> {
               child: Center(
                 child: Column(
                   children: [
-                    Icon(Icons.add_box_outlined, size: 48, color: Colors.grey[400]),
+                    Icon(Icons.add_box_outlined, size: 48, color: AppColors.textHint),
                     const SizedBox(height: 8),
                     Text(
                       'Chưa có thuộc tính tùy chỉnh',
-                      style: TextStyle(color: Colors.grey[600]),
+                      style: TextStyle(color: AppColors.textSecondary),
                     ),
                     const Text(
                       'Thêm thuộc tính để thu thập thông tin sản phẩm',
-                      style: TextStyle(color: Colors.grey, fontSize: 14),
+                      style: TextStyle(color: AppColors.textHint, fontSize: 14),
                     ),
                   ],
                 ),
@@ -504,10 +505,10 @@ class _CustomFieldsEditorState extends State<CustomFieldsEditor> {
                   title: Text(field.label),
                   subtitle: Text(
                     '${field.type.name}${field.required ? ' *' : ''}',
-                    style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                    style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
                   ),
                   trailing: IconButton(
-                    icon: const Icon(Icons.delete_outline, color: Colors.red),
+                    icon: const Icon(Icons.delete_outline, color: AppColors.error),
                     onPressed: () => _removeField(index),
                   ),
                 ),

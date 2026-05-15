@@ -10,6 +10,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../services/user_service.dart';
 import '../widgets/validated_text_field.dart';
 import '../theme/app_colors.dart';
+import '../theme/design_tokens.dart';
 import '../theme/app_text_styles.dart';
 import '../theme/app_button_styles.dart';
 import '../widgets/custom_app_bar.dart';
@@ -178,7 +179,7 @@ class _PayrollViewState extends State<PayrollView> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('✅ Đã thêm khoản thưởng/trừ'),
-          backgroundColor: Colors.green,
+          backgroundColor: AppColors.success,
         ),
       );
     }
@@ -282,7 +283,7 @@ class _PayrollViewState extends State<PayrollView> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 ValidatedTextField(controller: baseCtrl, label: 'Lương ngày (đ)', icon: Icons.attach_money, keyboardType: TextInputType.number, required: true),
-                Text('Giờ chuẩn/ngày: ${_getHours(staff).toStringAsFixed(1)} (từ lịch làm việc)', style: AppTextStyles.caption.copyWith(color: AppColors.onSurface.withOpacity(0.6))),
+                Text('Giờ chuẩn/ngày: ${_getHours(staff).toStringAsFixed(1)} (từ lịch làm việc)', style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary)),
                 ValidatedTextField(controller: otCtrl, label: 'Hệ số OT (%)', icon: Icons.trending_up, keyboardType: TextInputType.number, required: true), 
               ],
             ),
@@ -372,26 +373,20 @@ class _PayrollViewState extends State<PayrollView> {
   Widget build(BuildContext context) {
     if (!_hasPermission) {
       return Scaffold(
-        backgroundColor: FinanceV2Theme.pageBg,
+        backgroundColor: AppColors.background,
         appBar: AppBar(
-          flexibleSpace: Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF0068FF), Color(0xFF0084FF)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-          ),
-          backgroundColor: Colors.transparent,
-          foregroundColor: Colors.white,
+          backgroundColor: AppColors.surface,
+          foregroundColor: AppColors.textPrimary,
           elevation: 0,
+          scrolledUnderElevation: 0.5,
+          surfaceTintColor: Colors.transparent,
+          titleTextStyle: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600, fontSize: 17),
           title: const Text('BẢNG LƯƠNG'),
         ),
         body: Center(
           child: Text(
             "Bạn không có quyền truy cập tính năng này",
-            style: FinanceV2Theme.bodyMd.copyWith(color: FinanceV2Theme.subInk),
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.textPrimary).copyWith(color: AppColors.textSecondary),
           ),
         ),
       );
@@ -399,7 +394,7 @@ class _PayrollViewState extends State<PayrollView> {
 
     final summary = _calc();
     return Scaffold(
-      backgroundColor: FinanceV2Theme.pageBg,
+      backgroundColor: AppColors.background,
       appBar: CustomAppBar.build(
         title: 'BẢNG LƯƠNG',
         accentColor: AppBarAccents.staff,
@@ -455,7 +450,7 @@ class _PayrollViewState extends State<PayrollView> {
                                   isDense: true,
                                   labelStyle: TextStyle(fontSize: 14),
                                 ),
-                                style: const TextStyle(fontSize: 14, color: Colors.black87),
+                                style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
                                 items: _staffList.map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 14)))).toList(),
                                 onChanged: (v) => setState(() => _selectedStaff = v),
                               ),
@@ -504,8 +499,8 @@ class _PayrollViewState extends State<PayrollView> {
                                 icon: const Icon(Icons.card_giftcard, size: 14),
                                 label: const Text('Thưởng/Trừ', style: TextStyle(fontSize: 13)),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.green,
-                                  foregroundColor: Colors.white,
+                                  backgroundColor: AppColors.success,
+                                  foregroundColor: AppColors.surface,
                                   padding: const EdgeInsets.symmetric(horizontal: 8),
                                 ),
                               ),
@@ -534,11 +529,11 @@ class _PayrollViewState extends State<PayrollView> {
                     children: [
                       Row(
                         children: [
-                          Text('TỒNG HỢP', style: FinanceV2Theme.titleMd),
+                          Text('TỒNG HỢP', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
                           const Spacer(),
                           Chip(
                             label: Text(_monthLocked ? 'ĐÃ KHÓA' : 'CHƯA KHÓA', style: const TextStyle(fontSize: 12)),
-                            backgroundColor: _monthLocked ? AppColors.warning.withOpacity(0.2) : AppColors.success.withOpacity(0.2),
+                            backgroundColor: _monthLocked ? AppColors.warningLight : AppColors.successLight,
                             materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             visualDensity: VisualDensity.compact,
                             padding: EdgeInsets.zero,
@@ -557,9 +552,9 @@ class _PayrollViewState extends State<PayrollView> {
                         ],
                       ),
                       const SizedBox(height: 4),
-                      Text('Ngày công: ${summary['days']}   •   Chuẩn: ${summary['regularHours'].toStringAsFixed(1)}h   •   OT: ${summary['otHours'].toStringAsFixed(1)}h (x${summary['otRate']})', style: FinanceV2Theme.bodyMd),
+                      Text('Ngày công: ${summary['days']}   •   Chuẩn: ${summary['regularHours'].toStringAsFixed(1)}h   •   OT: ${summary['otHours'].toStringAsFixed(1)}h (x${summary['otRate']})', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.textPrimary)),
                       const Divider(height: 12),
-                      Text('Lương tạm tính: ${NumberFormat('#,###').format(summary['salary'].round())} đ', style: FinanceV2Theme.amountMd.copyWith(color: FinanceV2Theme.positive)),
+                      Text('Lương tạm tính: ${NumberFormat('#,###').format(summary['salary'].round())} đ', style: FinanceV2Theme.amountMd.copyWith(color: AppColors.success)),
                     ],
                   ),
                 ),
@@ -577,9 +572,9 @@ class _PayrollViewState extends State<PayrollView> {
                         visualDensity: VisualDensity.compact,
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12),
                         leading: const Icon(Icons.calendar_today, size: 15),
-                        title: Text(a.dateKey ?? '', style: FinanceV2Theme.bodyMd),
-                        subtitle: Text('${inMs == null ? '--' : DateFormat('HH:mm').format(DateTime.fromMillisecondsSinceEpoch(inMs))} → ${outMs == null ? '--' : DateFormat('HH:mm').format(DateTime.fromMillisecondsSinceEpoch(outMs))} • ${hrs.toStringAsFixed(1)}h', style: FinanceV2Theme.micro.copyWith(color: FinanceV2Theme.subInk)),
-                        trailing: (a.overtimeOn ?? 0) == 1 ? Text('OT', style: FinanceV2Theme.bodySm.copyWith(color: FinanceV2Theme.warn, fontWeight: FontWeight.w700)) : null,
+                        title: Text(a.dateKey ?? '', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.textPrimary)),
+                        subtitle: Text('${inMs == null ? '--' : DateFormat('HH:mm').format(DateTime.fromMillisecondsSinceEpoch(inMs))} → ${outMs == null ? '--' : DateFormat('HH:mm').format(DateTime.fromMillisecondsSinceEpoch(outMs))} • ${hrs.toStringAsFixed(1)}h', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w400, color: AppColors.textSecondary).copyWith(color: AppColors.textSecondary)),
+                        trailing: (a.overtimeOn ?? 0) == 1 ? Text('OT', style: FinanceV2Theme.bodySm.copyWith(color: AppColors.warning, fontWeight: FontWeight.w700)) : null,
                       );
                     }).toList(),
                   ),

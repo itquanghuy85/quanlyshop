@@ -129,10 +129,10 @@ class _PrinterSelectionDialogState extends State<PrinterSelectionDialog> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              gradient: LinearGradient(colors: [Colors.blue.shade400, Colors.indigo.shade400]),
+              gradient: LinearGradient(colors: [AppColors.primary, Colors.indigo.shade400]),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(Icons.print, color: Colors.white, size: 20),
+            child: const Icon(Icons.print, color: AppColors.surface, size: 20),
           ),
           const SizedBox(width: 12),
           Text(l10n.printer, style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -152,7 +152,7 @@ class _PrinterSelectionDialogState extends State<PrinterSelectionDialog> {
             // Auto selection
             _buildPrinterTypeCard(
               icon: Icons.auto_awesome,
-              iconColor: Colors.amber,
+              iconColor: AppColors.warning,
               title: 'Tự động',
               subtitle: 'Bluetooth → WiFi',
               type: PrinterType.auto,
@@ -173,9 +173,9 @@ class _PrinterSelectionDialogState extends State<PrinterSelectionDialog> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
+                  color: AppColors.primary,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.blue.shade200),
+                  border: Border.all(color: AppColors.primary),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -223,7 +223,7 @@ class _PrinterSelectionDialogState extends State<PrinterSelectionDialog> {
             // WiFi selection
             _buildPrinterTypeCard(
               icon: Icons.wifi,
-              iconColor: Colors.teal,
+              iconColor: AppColors.info,
               title: 'WiFi/Network',
               subtitle: _wifiIp.isNotEmpty ? _wifiIp : 'Nhập IP hoặc quét mạng',
               type: PrinterType.wifi,
@@ -234,9 +234,9 @@ class _PrinterSelectionDialogState extends State<PrinterSelectionDialog> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.teal.shade50,
+                  color: AppColors.infoLight,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.teal.shade200),
+                  border: Border.all(color: AppColors.info),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -246,24 +246,24 @@ class _PrinterSelectionDialogState extends State<PrinterSelectionDialog> {
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: AppColors.surface,
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: Colors.teal.shade100),
+                          border: Border.all(color: AppColors.info.withAlpha(31)),
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.print, color: Colors.teal.shade600, size: 22),
+                            Icon(Icons.print, color: AppColors.info, size: 22),
                             const SizedBox(width: 10),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(_printerName!, style: TextStyle(fontWeight: FontWeight.bold, color: Colors.teal.shade800, fontSize: 14)),
-                                  Text(_wifiIp, style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
+                                  Text(_printerName!, style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary, fontSize: 14)),
+                                  Text(_wifiIp, style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
                                 ],
                               ),
                             ),
-                            Icon(Icons.check_circle, size: 18, color: Colors.green.shade400),
+                            Icon(Icons.check_circle, size: 18, color: AppColors.success),
                           ],
                         ),
                       ),
@@ -286,7 +286,7 @@ class _PrinterSelectionDialogState extends State<PrinterSelectionDialog> {
                     const SizedBox(height: 6),
                     Text(
                       'Port: 9100 (mặc định)',
-                      style: AppTextStyles.caption.copyWith(color: AppColors.onSurface.withOpacity(0.5), fontSize: 13),
+                      style: AppTextStyles.caption.copyWith(color: AppColors.onSurface.withAlpha(128), fontSize: 13),
                     ),
                     const SizedBox(height: 10),
 
@@ -296,12 +296,12 @@ class _PrinterSelectionDialogState extends State<PrinterSelectionDialog> {
                       child: ElevatedButton.icon(
                         onPressed: _isScanningNetwork ? null : _scanNetworkPrinters,
                         icon: _isScanningNetwork
-                            ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                            ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.surface))
                             : const Icon(Icons.radar, size: 18),
                         label: Text(_isScanningNetwork ? 'Đang quét ${(_scanProgress * 100).toInt()}%...' : 'Quét tìm máy in trong mạng'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.teal,
-                          foregroundColor: Colors.white,
+                          backgroundColor: AppColors.info,
+                          foregroundColor: AppColors.surface,
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
@@ -315,8 +315,8 @@ class _PrinterSelectionDialogState extends State<PrinterSelectionDialog> {
                         borderRadius: BorderRadius.circular(4),
                         child: LinearProgressIndicator(
                           value: _scanProgress,
-                          backgroundColor: Colors.teal.shade100,
-                          valueColor: AlwaysStoppedAnimation(Colors.teal.shade600),
+                          backgroundColor: AppColors.info.withAlpha(31),
+                          valueColor: AlwaysStoppedAnimation(AppColors.info),
                           minHeight: 3,
                         ),
                       ),
@@ -327,7 +327,7 @@ class _PrinterSelectionDialogState extends State<PrinterSelectionDialog> {
                       const SizedBox(height: 10),
                       Text(
                         'Máy in tìm thấy (${_discoveredPrinters.length}):',
-                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Colors.teal.shade800),
+                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: AppColors.primary),
                       ),
                       const SizedBox(height: 6),
                       ...(_discoveredPrinters.map((printer) {
@@ -349,15 +349,15 @@ class _PrinterSelectionDialogState extends State<PrinterSelectionDialog> {
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                               decoration: BoxDecoration(
-                                color: isSelected ? Colors.teal.shade100 : Colors.white,
+                                color: isSelected ? AppColors.info.withAlpha(31) : AppColors.surface,
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(
-                                  color: isSelected ? Colors.teal.shade400 : Colors.grey.shade200,
+                                  color: isSelected ? AppColors.info : AppColors.outline,
                                 ),
                               ),
                               child: Row(
                                 children: [
-                                  Icon(Icons.print, size: 18, color: isSelected ? Colors.teal.shade700 : Colors.grey.shade500),
+                                  Icon(Icons.print, size: 18, color: isSelected ? AppColors.info : AppColors.textHint),
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Column(
@@ -368,17 +368,17 @@ class _PrinterSelectionDialogState extends State<PrinterSelectionDialog> {
                                           style: TextStyle(
                                             fontWeight: FontWeight.w600,
                                             fontSize: 14,
-                                            color: isSelected ? Colors.teal.shade800 : null,
+                                            color: isSelected ? AppColors.primary : null,
                                           ),
                                         ),
                                         Text(
                                           '${printer.name} - ${printer.responseTimeMs}ms',
-                                          style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+                                          style: TextStyle(fontSize: 13, color: AppColors.textHint),
                                         ),
                                       ],
                                     ),
                                   ),
-                                  if (isSelected) Icon(Icons.check_circle, size: 18, color: Colors.teal.shade600),
+                                  if (isSelected) Icon(Icons.check_circle, size: 18, color: AppColors.info),
                                 ],
                               ),
                             ),
@@ -427,7 +427,7 @@ class _PrinterSelectionDialogState extends State<PrinterSelectionDialog> {
           color: isSelected ? iconColor.withOpacity(0.08) : null,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? iconColor.withOpacity(0.4) : Colors.grey.shade200,
+            color: isSelected ? iconColor.withOpacity(0.4) : AppColors.outline,
             width: isSelected ? 1.5 : 1,
           ),
         ),
@@ -449,7 +449,7 @@ class _PrinterSelectionDialogState extends State<PrinterSelectionDialog> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(title, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: isSelected ? iconColor : null)),
-                  Text(subtitle, style: TextStyle(fontSize: 13, color: Colors.grey.shade500), overflow: TextOverflow.ellipsis),
+                  Text(subtitle, style: TextStyle(fontSize: 13, color: AppColors.textHint), overflow: TextOverflow.ellipsis),
                 ],
               ),
             ),

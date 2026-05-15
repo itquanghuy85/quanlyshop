@@ -7,6 +7,7 @@ import 'dart:ui' as ui;
 import 'package:barcode/barcode.dart' as bc;
 import 'package:barcode_image/barcode_image.dart';
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:image/image.dart' as img;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -17,6 +18,7 @@ import '../models/printer_types.dart';
 import '../models/product_model.dart';
 import '../services/unified_printer_service.dart';
 import '../services/label_settings_service.dart';
+import '../theme/app_spacing.dart';
 import '../widgets/printer_selection_dialog.dart';
 import '../widgets/responsive_wrapper.dart';
 
@@ -490,7 +492,7 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
           padding: EdgeInsets.zero,
           minimumSize: Size.zero,
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          side: BorderSide(color: Colors.grey.shade300),
+          side: BorderSide(color: AppColors.outline),
         ),
         onPressed: onPressed,
         child: Icon(icon, size: 16),
@@ -611,18 +613,14 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
         bottom: false, // Bottom được xử lý bởi bottomNavigationBar
         child: LayoutBuilder(
           builder: (context, constraints) {
-            // Tính toán flex dựa trên chiều cao màn hình
             final availableHeight = constraints.maxHeight;
             final isSmallScreen = availableHeight < 500;
-
             return Column(
               children: [
-                // Canvas area - co giãn linh hoạt
                 Expanded(
                   flex: isSmallScreen ? 1 : 2,
                   child: _buildCanvasArea(colorScheme),
                 ),
-                // Control panel - giới hạn chiều cao tối đa
                 Expanded(
                   flex: isSmallScreen ? 2 : 3,
                   child: _buildControlPanel(colorScheme),
@@ -661,7 +659,7 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
       bottom: TabBar(
         controller: _tabController,
         labelColor: colorScheme.onPrimary,
-        unselectedLabelColor: colorScheme.onPrimary.withOpacity(0.6),
+        unselectedLabelColor: colorScheme.onPrimary.withAlpha(153),
         indicatorColor: colorScheme.onPrimary,
         tabs: const [
           Tab(icon: Icon(Icons.edit_outlined), text: 'Thiết kế'),
@@ -675,12 +673,12 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
     return LayoutBuilder(
       builder: (context, constraints) {
         // Padding cho margin xung quanh
-        const margin = 16.0;
+        final margin = AppSpacing.lg;
         final availableHeight = constraints.maxHeight - (margin * 2);
         final availableWidth = constraints.maxWidth - (margin * 2);
 
         return Container(
-          margin: const EdgeInsets.all(margin),
+          margin: const EdgeInsets.all(AppSpacing.lg),
           child: TabBarView(
             controller: _tabController,
             physics: const NeverScrollableScrollPhysics(),
@@ -744,16 +742,16 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
                   child: Container(
                     decoration: BoxDecoration(
                       color: colorScheme.surface,
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(AppSpacing.lg),
                       boxShadow: [
                         BoxShadow(
-                          color: colorScheme.shadow.withOpacity(0.1),
+                          color: colorScheme.shadow.withAlpha(20),
                           blurRadius: 20,
                           offset: const Offset(0, 8),
                         ),
                       ],
                     ),
-                    padding: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.all(AppSpacing.sm),
                     child: GestureDetector(
                       onTapDown: (_) => _selectElement(null),
                       // Vùng bao gồm cả overflow (giấy thừa)
@@ -761,9 +759,8 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
                         width: scaledSize.width + (_overflowMm * 2 * pxPerMm),
                         height: scaledSize.height + (_overflowMm * 2 * pxPerMm),
                         decoration: BoxDecoration(
-                          // Vùng giấy thừa - màu xám nhạt
-                          color: Colors.grey.shade200,
-                          borderRadius: BorderRadius.circular(4),
+                          color: colorScheme.surfaceVariant,
+                          borderRadius: BorderRadius.circular(AppSpacing.sm),
                         ),
                         child: Stack(
                           clipBehavior: Clip.none,
@@ -776,15 +773,15 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
                               width: scaledSize.width,
                               height: scaledSize.height,
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: colorScheme.surface,
                                 border: Border.all(
                                   color: colorScheme.primary,
                                   width: 2,
                                 ),
-                                borderRadius: BorderRadius.circular(2),
+                                borderRadius: BorderRadius.circular(AppSpacing.sm),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: colorScheme.primary.withOpacity(0.1),
+                                    color: colorScheme.primary.withAlpha(20),
                                     blurRadius: 4,
                                     spreadRadius: 1,
                                   ),
@@ -799,7 +796,7 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
                                       size: scaledSize,
                                       painter: _GridPainter(
                                         gridSpacingPx: _gridSpacingMm * pxPerMm,
-                                        color: Colors.grey.withOpacity(0.3),
+                                        color: AppColors.textHint.withAlpha(77),
                                       ),
                                     ),
                                   // Margin guides
@@ -851,7 +848,7 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: colorScheme.primaryContainer.withOpacity(0.3),
+        color: colorScheme.primaryContainer.withAlpha(77),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -872,7 +869,7 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
             height: 20,
             width: 1,
             margin: const EdgeInsets.symmetric(horizontal: 8),
-            color: colorScheme.primary.withOpacity(0.3),
+            color: colorScheme.primary.withAlpha(77),
           ),
           // Zoom controls
           Icon(Icons.zoom_out, size: 16, color: colorScheme.primary),
@@ -884,7 +881,7 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
                 thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
                 overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
                 activeTrackColor: colorScheme.primary,
-                inactiveTrackColor: colorScheme.primary.withOpacity(0.3),
+                inactiveTrackColor: colorScheme.primary.withAlpha(77),
                 thumbColor: colorScheme.primary,
               ),
               child: Slider(
@@ -905,7 +902,7 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
-              color: colorScheme.primary.withOpacity(0.15),
+              color: colorScheme.primary.withAlpha(38),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
@@ -998,10 +995,10 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
           transformAlignment: Alignment.center,
           decoration: BoxDecoration(
             // Màu nền khác khi nằm ngoài vùng in
-            color: isOutsidePrintArea ? Colors.orange.shade50 : Colors.white,
+            color: isOutsidePrintArea ? AppColors.warning : AppColors.surface,
             border: Border.all(
               color: isOutsidePrintArea
-                  ? Colors.orange
+                  ? AppColors.warning
                   : isSelected
                   ? colorScheme.primary
                   : colorScheme.outlineVariant,
@@ -1014,9 +1011,9 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
                     BoxShadow(
                       color:
                           (isOutsidePrintArea
-                                  ? Colors.orange
+                                  ? AppColors.warning
                                   : colorScheme.primary)
-                              .withOpacity(0.3),
+                              .withAlpha(77),
                       blurRadius: 8,
                       spreadRadius: 1,
                     ),
@@ -1034,7 +1031,7 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
                   child: Icon(
                     Icons.warning_amber_rounded,
                     size: 12,
-                    color: Colors.orange.shade700,
+                    color: AppColors.warning,
                   ),
                 ),
             ],
@@ -1067,7 +1064,7 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
               style: TextStyle(
                 fontSize: el.fontSizeMm * pxPerMm * 0.3,
                 fontWeight: el.bold ? FontWeight.bold : FontWeight.normal,
-                color: Colors.black87,
+                color: AppColors.textPrimary,
               ),
             ),
           ),
@@ -1076,18 +1073,18 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
       case LabelElementType.qr:
         return Container(
           decoration: BoxDecoration(
-            color: Colors.grey.shade100,
+            color: AppColors.background,
             borderRadius: BorderRadius.circular(2),
           ),
           child: const Center(
-            child: Icon(Icons.qr_code_2, color: Colors.black54),
+            child: Icon(Icons.qr_code_2, color: AppColors.textSecondary),
           ),
         );
 
       case LabelElementType.barcode:
         return Container(
           decoration: BoxDecoration(
-            color: Colors.grey.shade100,
+            color: AppColors.background,
             borderRadius: BorderRadius.circular(2),
           ),
           child: CustomPaint(painter: _BarcodePlaceholderPainter()),
@@ -1133,7 +1130,7 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: colorScheme.shadow.withOpacity(0.1),
+                        color: colorScheme.shadow.withAlpha(26),
                         blurRadius: 20,
                         offset: const Offset(0, 8),
                       ),
@@ -1144,7 +1141,7 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
                     width: scaledSize.width,
                     height: scaledSize.height,
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppColors.surface,
                       border: Border.all(color: colorScheme.outline),
                       borderRadius: BorderRadius.circular(4),
                     ),
@@ -1176,7 +1173,7 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: colorScheme.secondaryContainer.withOpacity(0.5),
+        color: colorScheme.secondaryContainer.withAlpha(128),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -1208,7 +1205,7 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         boxShadow: [
           BoxShadow(
-            color: colorScheme.shadow.withOpacity(0.08),
+            color: colorScheme.shadow.withAlpha(20),
             blurRadius: 16,
             offset: const Offset(0, -4),
           ),
@@ -1292,7 +1289,7 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
   Widget _buildGridSettings(ColorScheme colorScheme) {
     return Card(
       elevation: 0,
-      color: colorScheme.surfaceContainerHighest.withOpacity(0.5),
+      color: colorScheme.surfaceContainerHighest.withAlpha(128),
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
@@ -1415,7 +1412,7 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
 
     return Card(
       elevation: 0,
-      color: colorScheme.surfaceContainerHighest.withOpacity(0.5),
+      color: colorScheme.surfaceContainerHighest.withAlpha(128),
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
@@ -1532,7 +1529,7 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
   Widget _buildPaperSizeSection(ColorScheme colorScheme) {
     return Card(
       elevation: 0,
-      color: colorScheme.primaryContainer.withOpacity(0.3),
+      color: colorScheme.primaryContainer.withAlpha(77),
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
@@ -1742,7 +1739,7 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
   Widget _buildMarginSection(ColorScheme colorScheme) {
     return Card(
       elevation: 0,
-      color: colorScheme.surfaceContainerHighest.withOpacity(0.5),
+      color: colorScheme.surfaceContainerHighest.withAlpha(128),
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
@@ -1855,7 +1852,7 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
     final cpk = _calculateCPK(_previewProduct);
     return Card(
       elevation: 0,
-      color: colorScheme.surfaceContainerHighest.withOpacity(0.5),
+      color: colorScheme.surfaceContainerHighest.withAlpha(128),
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
@@ -1980,7 +1977,7 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
   Widget _buildElementsQuickSelect(ColorScheme colorScheme) {
     return Card(
       elevation: 0,
-      color: colorScheme.surfaceContainerHighest.withOpacity(0.5),
+      color: colorScheme.surfaceContainerHighest.withAlpha(128),
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
@@ -2102,7 +2099,7 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
   Widget _buildSizeControls(LabelElement el, ColorScheme colorScheme) {
     return Card(
       elevation: 0,
-      color: colorScheme.surfaceContainerHighest.withOpacity(0.5),
+      color: colorScheme.surfaceContainerHighest.withAlpha(128),
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
@@ -2240,7 +2237,7 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
     
     return Card(
       elevation: 0,
-      color: colorScheme.surfaceContainerHighest.withOpacity(0.5),
+      color: colorScheme.surfaceContainerHighest.withAlpha(128),
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
@@ -2447,7 +2444,7 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
   Widget _buildRotationControls(LabelElement el, ColorScheme colorScheme) {
     return Card(
       elevation: 0,
-      color: colorScheme.surfaceContainerHighest.withOpacity(0.5),
+      color: colorScheme.surfaceContainerHighest.withAlpha(128),
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Row(
@@ -2499,7 +2496,7 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
       children: [
         Card(
           elevation: 0,
-          color: colorScheme.surfaceContainerHighest.withOpacity(0.5),
+          color: colorScheme.surfaceContainerHighest.withAlpha(128),
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: Column(
@@ -2565,7 +2562,7 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
         const SizedBox(height: 12),
         Card(
           elevation: 0,
-          color: colorScheme.surfaceContainerHighest.withOpacity(0.5),
+          color: colorScheme.surfaceContainerHighest.withAlpha(128),
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: Column(
@@ -2630,7 +2627,7 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
           color: colorScheme.surface,
           boxShadow: [
             BoxShadow(
-              color: colorScheme.shadow.withOpacity(0.08),
+              color: colorScheme.shadow.withAlpha(20),
               blurRadius: 8,
               offset: const Offset(0, -2),
             ),
@@ -2866,7 +2863,7 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
                                       padding: const EdgeInsets.all(8),
                                       decoration: BoxDecoration(
                                         color: colorScheme.primaryContainer
-                                            .withOpacity(0.5),
+                                            .withAlpha(128),
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: Icon(
@@ -3019,13 +3016,13 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
     Color bgColor;
     if (failed == 0 && success > 0) {
       message = 'In thành công $success tem';
-      bgColor = Colors.green;
+      bgColor = AppColors.success;
     } else if (success == 0 && failed > 0) {
       message = 'In thất bại! ${lastError ?? "Kiểm tra kết nối máy in"}';
-      bgColor = Colors.red;
+      bgColor = AppColors.error;
     } else {
       message = 'Thành công: $success, Thất bại: $failed';
-      bgColor = Colors.orange;
+      bgColor = AppColors.warning;
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -3037,7 +3034,7 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
         action: failed > 0
             ? SnackBarAction(
                 label: 'Cài đặt',
-                textColor: Colors.white,
+                textColor: AppColors.surface,
                 onPressed: () {
                   Navigator.pushNamed(context, '/printer_settings');
                 },
@@ -3066,7 +3063,7 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
     final canvas = Canvas(recorder);
 
     // White background
-    canvas.drawRect(Offset.zero & labelPxSize, Paint()..color = Colors.white);
+    canvas.drawRect(Offset.zero & labelPxSize, Paint()..color = AppColors.surface);
 
     // Draw only visible elements
     for (final el in _elements.where((e) => e.visible)) {
@@ -3111,7 +3108,7 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
           text: TextSpan(
             text: _resolveText(el.text, product, prefix: el.prefix),
             style: TextStyle(
-              color: Colors.black,
+              color: AppColors.textPrimary,
               fontSize: pxPerMm * el.fontSizeMm * 0.28,
               fontWeight: el.bold ? FontWeight.bold : FontWeight.normal,
             ),
@@ -3259,7 +3256,7 @@ class _MarginGuidePainter extends CustomPainter {
 class _BarcodePlaceholderPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = Colors.black54;
+    final paint = Paint()..color = AppColors.textSecondary;
     const barCount = 12;
     final barWidth = size.width / (barCount * 2);
 
@@ -3314,7 +3311,7 @@ class _PreviewPainter extends CustomPainter {
             text: TextSpan(
               text: resolveText(el.text, product),
               style: TextStyle(
-                color: Colors.black,
+                color: AppColors.textPrimary,
                 fontSize: el.fontSizeMm * pxPerMm * 0.3,
                 fontWeight: el.bold ? FontWeight.bold : FontWeight.normal,
               ),
@@ -3339,7 +3336,7 @@ class _PreviewPainter extends CustomPainter {
               style: TextStyle(
                 fontSize: rect.height * 0.8,
                 fontFamily: Icons.qr_code_2.fontFamily,
-                color: Colors.black87,
+                color: AppColors.textPrimary,
               ),
             ),
             textDirection: TextDirection.ltr,
@@ -3355,7 +3352,7 @@ class _PreviewPainter extends CustomPainter {
           break;
 
         case LabelElementType.barcode:
-          final paint = Paint()..color = Colors.black;
+          final paint = Paint()..color = AppColors.textPrimary;
           const barCount = 16;
           final barWidth = rect.width / (barCount * 1.5);
           for (int i = 0; i < barCount; i++) {

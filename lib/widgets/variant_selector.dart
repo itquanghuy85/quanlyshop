@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
 import '../models/product_variant_model.dart';
 import '../services/variant_service.dart';
 
@@ -119,7 +120,7 @@ class _VariantSelectorState extends State<VariantSelector> {
         padding: EdgeInsets.all(16),
         child: Text(
           'Sản phẩm này không có biến thể',
-          style: TextStyle(color: Colors.grey),
+          style: TextStyle(color: AppColors.textHint),
         ),
       );
     }
@@ -175,11 +176,11 @@ class _VariantSelectorState extends State<VariantSelector> {
                   _updateSelection();
                 }
               : null,
-          backgroundColor: hasStock ? null : Colors.grey[200],
-          selectedColor: Theme.of(context).primaryColor.withOpacity(0.2),
+          backgroundColor: hasStock ? null : AppColors.divider,
+          selectedColor: Theme.of(context).primaryColor.withAlpha(51),
           labelStyle: TextStyle(
             color: !hasStock
-                ? Colors.grey
+                ? AppColors.textHint
                 : isSelected
                     ? Theme.of(context).primaryColor
                     : null,
@@ -212,7 +213,7 @@ class _VariantSelectorState extends State<VariantSelector> {
             decoration: BoxDecoration(
               color: _getColorFromName(color),
               shape: BoxShape.circle,
-              border: Border.all(color: Colors.grey),
+              border: Border.all(color: AppColors.textHint),
             ),
           ),
           label: Text(color),
@@ -225,11 +226,11 @@ class _VariantSelectorState extends State<VariantSelector> {
                   _updateSelection();
                 }
               : null,
-          backgroundColor: validHasStock ? null : Colors.grey[200],
-          selectedColor: Theme.of(context).primaryColor.withOpacity(0.2),
+          backgroundColor: validHasStock ? null : AppColors.divider,
+          selectedColor: Theme.of(context).primaryColor.withAlpha(51),
           labelStyle: TextStyle(
             color: !validHasStock
-                ? Colors.grey
+                ? AppColors.textHint
                 : isSelected
                     ? Theme.of(context).primaryColor
                     : null,
@@ -247,18 +248,18 @@ class _VariantSelectorState extends State<VariantSelector> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: variant.isOutOfStock
-            ? Colors.red.withOpacity(0.1)
-            : Colors.green.withOpacity(0.1),
+            ? AppColors.error.withAlpha(26)
+            : AppColors.success.withAlpha(26),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: variant.isOutOfStock ? Colors.red : Colors.green,
+          color: variant.isOutOfStock ? AppColors.error : AppColors.success,
         ),
       ),
       child: Row(
         children: [
           Icon(
             variant.isOutOfStock ? Icons.error : Icons.check_circle,
-            color: variant.isOutOfStock ? Colors.red : Colors.green,
+            color: variant.isOutOfStock ? AppColors.error : AppColors.success,
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -275,14 +276,14 @@ class _VariantSelectorState extends State<VariantSelector> {
                         ? 'Hết hàng'
                         : 'Còn ${variant.quantity} sản phẩm',
                     style: TextStyle(
-                      color: variant.isOutOfStock ? Colors.red : Colors.green,
+                      color: variant.isOutOfStock ? AppColors.error : AppColors.success,
                       fontSize: 14,
                     ),
                   ),
                 if (variant.sku != null)
                   Text(
                     'SKU: ${variant.sku}',
-                    style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                    style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
                   ),
               ],
             ),
@@ -303,7 +304,7 @@ class _VariantSelectorState extends State<VariantSelector> {
   Color _getColorFromName(String colorName) {
     return CommonColors.hexCodes[colorName] != null
         ? _hexToColor(CommonColors.hexCodes[colorName]!)
-        : Colors.grey;
+        : AppColors.textHint;
   }
 
   Color _hexToColor(String hex) {
@@ -331,14 +332,14 @@ class VariantBadge extends StatelessWidget {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
         decoration: BoxDecoration(
-          color: Colors.blue.withOpacity(0.1),
+          color: AppColors.primary.withAlpha(26),
           borderRadius: BorderRadius.circular(4),
         ),
         child: Text(
           '${summary.totalVariants} biến thể',
           style: const TextStyle(
             fontSize: 12,
-            color: Colors.blue,
+            color: AppColors.primary,
           ),
         ),
       );
@@ -347,7 +348,7 @@ class VariantBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: Colors.grey[100],
+        color: AppColors.textHint,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
@@ -355,7 +356,7 @@ class VariantBadge extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.style, size: 16, color: Colors.blue),
+              const Icon(Icons.style, size: 16, color: AppColors.primary),
               const SizedBox(width: 4),
               Text(
                 '${summary.totalVariants} biến thể',
@@ -377,11 +378,11 @@ class VariantBadge extends StatelessWidget {
           const SizedBox(height: 4),
           Row(
             children: [
-              const Icon(Icons.inventory_2, size: 14, color: Colors.grey),
+              const Icon(Icons.inventory_2, size: 14, color: AppColors.textHint),
               const SizedBox(width: 4),
               Text(
                 'Tổng tồn: ${summary.totalStock}',
-                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
               ),
             ],
           ),
@@ -389,7 +390,7 @@ class VariantBadge extends StatelessWidget {
             summary.priceRange,
             style: const TextStyle(
               fontWeight: FontWeight.bold,
-              color: Colors.green,
+              color: AppColors.success,
             ),
           ),
         ],
@@ -428,7 +429,7 @@ class VariantQuickSelect extends StatelessWidget {
                 width: 40,
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
-                  color: Colors.grey[200],
+                  color: AppColors.divider,
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
@@ -456,13 +457,13 @@ class VariantQuickSelect extends StatelessWidget {
                         ),
                         decoration: BoxDecoration(
                           color: hasStock
-                              ? _getColorFromName(v.color ?? '').withOpacity(0.2)
-                              : Colors.grey[200],
+                              ? _getColorFromName(v.color ?? '').withAlpha(51)
+                              : AppColors.divider,
                           borderRadius: BorderRadius.circular(4),
                           border: Border.all(
                             color: hasStock
                                 ? _getColorFromName(v.color ?? '')
-                                : Colors.grey,
+                                : AppColors.textHint,
                           ),
                         ),
                         child: Column(
@@ -471,7 +472,7 @@ class VariantQuickSelect extends StatelessWidget {
                               v.color ?? '?',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: hasStock ? null : Colors.grey,
+                                color: hasStock ? null : AppColors.textHint,
                                 decoration: hasStock
                                     ? null
                                     : TextDecoration.lineThrough,
@@ -482,7 +483,7 @@ class VariantQuickSelect extends StatelessWidget {
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
-                                color: hasStock ? Colors.green : Colors.grey,
+                                color: hasStock ? AppColors.success : AppColors.textHint,
                               ),
                             ),
                           ],
@@ -502,7 +503,7 @@ class VariantQuickSelect extends StatelessWidget {
   Color _getColorFromName(String colorName) {
     return CommonColors.hexCodes[colorName] != null
         ? _hexToColor(CommonColors.hexCodes[colorName]!)
-        : Colors.grey;
+        : AppColors.textHint;
   }
 
   Color _hexToColor(String hex) {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
@@ -81,7 +82,7 @@ class _FirestoreConnectivityTestViewState
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.error_outline, size: 44, color: Colors.red),
+              const Icon(Icons.error_outline, size: 44, color: AppColors.error),
               const SizedBox(height: 10),
               Text('Không thể chạy test Firestore\n$_error', textAlign: TextAlign.center),
               const SizedBox(height: 12),
@@ -114,7 +115,7 @@ class _FirestoreConnectivityTestViewState
             _buildBulletCard(
               title: 'Cảnh báo',
               icon: Icons.warning_amber_rounded,
-              color: Colors.orange,
+              color: AppColors.warning,
               items: report.warnings,
             ),
           ],
@@ -123,7 +124,7 @@ class _FirestoreConnectivityTestViewState
             _buildBulletCard(
               title: 'Lỗi phát hiện',
               icon: Icons.error_outline,
-              color: Colors.red,
+              color: AppColors.error,
               items: report.errors,
             ),
           ],
@@ -131,7 +132,7 @@ class _FirestoreConnectivityTestViewState
           _buildBulletCard(
             title: 'Khuyến nghị xử lý',
             icon: Icons.tips_and_updates,
-            color: Colors.blue,
+            color: AppColors.primary,
             items: report.recommendations,
           ),
           const SizedBox(height: 24),
@@ -142,13 +143,13 @@ class _FirestoreConnectivityTestViewState
 
   Widget _buildSummaryCard(FirestoreConnectivityReport report) {
     final healthy = report.isHealthy;
-    final color = healthy ? Colors.green : Colors.orange;
+    final color = healthy ? AppColors.success : AppColors.warning;
 
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.08),
-        border: Border.all(color: color.withOpacity(0.25)),
+        color: color.withAlpha(20),
+        border: Border.all(color: color.withAlpha(64)),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Column(
@@ -173,7 +174,7 @@ class _FirestoreConnectivityTestViewState
           const SizedBox(height: 4),
           Text(
             'Thời điểm test: ${DateFormat('dd/MM/yyyy HH:mm:ss').format(report.checkedAt.toLocal())}',
-            style: TextStyle(color: Colors.grey.shade700, fontSize: 12),
+            style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
           ),
         ],
       ),
@@ -215,7 +216,7 @@ class _FirestoreConnectivityTestViewState
         children: [
           Icon(
             ok ? Icons.check_circle : Icons.cancel,
-            color: ok ? Colors.green : Colors.red,
+            color: ok ? AppColors.success : AppColors.error,
             size: 18,
           ),
           const SizedBox(width: 8),
@@ -293,6 +294,6 @@ class _FirestoreConnectivityTestViewState
     }
 
     await Clipboard.setData(ClipboardData(text: buffer.toString()));
-    NotificationService.showSnackBar('Đã copy báo cáo kết nối Firestore', color: Colors.green);
+    NotificationService.showSnackBar('Đã copy báo cáo kết nối Firestore', color: AppColors.success);
   }
 }

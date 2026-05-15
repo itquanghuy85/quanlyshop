@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
 import '../services/shop_deletion_service.dart';
 import '../services/event_bus.dart';
 
@@ -190,7 +191,7 @@ class _SafeStreamBuilderState<T> extends State<SafeStreamBuilder<T>> {
             Icon(
               isDeleted ? Icons.store_outlined : Icons.lock_outline,
               size: 64,
-              color: Colors.grey[400],
+              color: AppColors.textHint,
             ),
             const SizedBox(height: 16),
             Text(
@@ -198,7 +199,7 @@ class _SafeStreamBuilderState<T> extends State<SafeStreamBuilder<T>> {
                   ? 'Chi nhánh đã bị xóa'
                   : 'Không có quyền truy cập',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: Colors.grey[600],
+                color: AppColors.textSecondary,
               ),
               textAlign: TextAlign.center,
             ),
@@ -208,7 +209,7 @@ class _SafeStreamBuilderState<T> extends State<SafeStreamBuilder<T>> {
                   ? 'Vui lòng chọn chi nhánh khác để tiếp tục.'
                   : 'Chi nhánh đã bị xóa hoặc bạn không còn quyền truy cập.',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Colors.grey[500],
+                color: AppColors.textHint,
               ),
               textAlign: TextAlign.center,
             ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../theme/app_colors.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -274,7 +275,7 @@ class _PriceSelectorSheetState extends State<PriceSelectorSheet> {
                 width: 36,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
+                  color: AppColors.outline,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -290,7 +291,7 @@ class _PriceSelectorSheetState extends State<PriceSelectorSheet> {
             ),
             Text(
               'SL: ${widget.quantity}',
-              style: const TextStyle(color: Colors.grey, fontSize: 13),
+              style: const TextStyle(color: AppColors.textHint, fontSize: 13),
             ),
             const Divider(height: 20),
 
@@ -365,7 +366,7 @@ class _PriceSelectorSheetState extends State<PriceSelectorSheet> {
               border: Border.all(
                 color: isSelected
                     ? Theme.of(context).colorScheme.primary
-                    : Colors.grey.shade300,
+                    : AppColors.outline,
                 width: isSelected ? 1.5 : 1,
               ),
               borderRadius: BorderRadius.circular(8),
@@ -401,12 +402,12 @@ class _PriceSelectorSheetState extends State<PriceSelectorSheet> {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 6, vertical: 1),
                               decoration: BoxDecoration(
-                                color: Colors.green.shade50,
+                                color: AppColors.success,
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: const Text('Phù hợp',
                                   style: TextStyle(
-                                      fontSize: 10, color: Colors.green)),
+                                      fontSize: 10, color: AppColors.success)),
                             ),
                           ],
                           if (savedPct > 0) ...[
@@ -415,12 +416,12 @@ class _PriceSelectorSheetState extends State<PriceSelectorSheet> {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 6, vertical: 1),
                               decoration: BoxDecoration(
-                                color: Colors.red.shade50,
+                                color: AppColors.error,
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text('-$savedPct%',
                                   style: const TextStyle(
-                                      fontSize: 10, color: Colors.red)),
+                                      fontSize: 10, color: AppColors.error)),
                             ),
                           ],
                         ],
@@ -428,7 +429,7 @@ class _PriceSelectorSheetState extends State<PriceSelectorSheet> {
                       const SizedBox(height: 2),
                       Text(opt.reason,
                           style: const TextStyle(
-                              fontSize: 11, color: Colors.grey)),
+                              fontSize: 11, color: AppColors.textHint)),
                     ],
                   ),
                 ),
@@ -438,7 +439,7 @@ class _PriceSelectorSheetState extends State<PriceSelectorSheet> {
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
                     color: opt.price < widget.basePrice
-                        ? Colors.green.shade700
+                        ? AppColors.success
                         : null,
                   ),
                 ),
@@ -457,14 +458,14 @@ class _PriceSelectorSheetState extends State<PriceSelectorSheet> {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+        color: AppColors.background,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text('SL ${widget.quantity} × ${_fmt2(selected.price)}',
-              style: const TextStyle(color: Colors.grey, fontSize: 13)),
+              style: const TextStyle(color: AppColors.textHint, fontSize: 13)),
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
@@ -474,7 +475,7 @@ class _PriceSelectorSheetState extends State<PriceSelectorSheet> {
               ),
               if (saved > 0)
                 Text('Tiết kiệm ${_fmt2(saved)}',
-                    style: const TextStyle(color: Colors.green, fontSize: 11)),
+                    style: const TextStyle(color: AppColors.success, fontSize: 11)),
             ],
           ),
         ],
@@ -487,11 +488,11 @@ class _PriceSelectorSheetState extends State<PriceSelectorSheet> {
       padding: const EdgeInsets.symmetric(vertical: 20),
       child: Column(
         children: [
-          const Icon(Icons.price_change_outlined, size: 40, color: Colors.grey),
+          const Icon(Icons.price_change_outlined, size: 40, color: AppColors.textHint),
           const SizedBox(height: 8),
           const Text('Chưa có rule giá nào cho sản phẩm này.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey)),
+              style: TextStyle(color: AppColors.textHint)),
           const SizedBox(height: 4),
           Text('Giá gốc: ${_fmt2(widget.basePrice)}',
               style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -513,9 +514,9 @@ class _PriceSelectorSheetState extends State<PriceSelectorSheet> {
       margin: const EdgeInsets.only(top: 12),
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+        color: AppColors.background,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(color: AppColors.outline),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -570,10 +571,10 @@ class _PriceSelectorSheetState extends State<PriceSelectorSheet> {
       padding: EdgeInsets.symmetric(vertical: 20),
       child: Column(
         children: [
-          Icon(Icons.lock_outline, size: 40, color: Colors.orange),
+          Icon(Icons.lock_outline, size: 40, color: AppColors.warning),
           SizedBox(height: 8),
           Text('Module Pricing chưa được bật.',
-              style: TextStyle(color: Colors.grey)),
+              style: TextStyle(color: AppColors.textHint)),
         ],
       ),
     );
@@ -584,10 +585,10 @@ class _PriceSelectorSheetState extends State<PriceSelectorSheet> {
       padding: const EdgeInsets.symmetric(vertical: 20),
       child: Column(
         children: [
-          const Icon(Icons.error_outline, size: 40, color: Colors.red),
+          const Icon(Icons.error_outline, size: 40, color: AppColors.error),
           const SizedBox(height: 8),
           Text(_error ?? 'Lỗi không xác định',
-              style: const TextStyle(color: Colors.red),
+              style: const TextStyle(color: AppColors.error),
               textAlign: TextAlign.center),
         ],
       ),

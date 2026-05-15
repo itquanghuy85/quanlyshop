@@ -80,7 +80,8 @@ import '../services/storage_service.dart';
 import '../services/encryption_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
-import '../theme/app_button_styles.dart';
+import '../theme/app_spacing.dart';
+import '../theme/design_tokens.dart';
 import '../services/category_service.dart';
 import '../services/expiry_alert_service.dart';
 import '../services/variant_service.dart';
@@ -751,8 +752,8 @@ class _HomeViewState extends State<HomeView>
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: (isLockedByAdmin ? AppColors.error : Colors.orange)
-                      .withOpacity(0.1),
+                  color: (isLockedByAdmin ? AppColors.error : AppColors.warning)
+                      .withAlpha(26),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -760,7 +761,7 @@ class _HomeViewState extends State<HomeView>
                       ? Icons.admin_panel_settings
                       : Icons.lock_person,
                   size: 80,
-                  color: isLockedByAdmin ? AppColors.error : Colors.orange,
+                  color: isLockedByAdmin ? AppColors.error : AppColors.warning,
                 ),
               ),
               const SizedBox(height: 32),
@@ -773,13 +774,13 @@ class _HomeViewState extends State<HomeView>
                 ),
                 decoration: BoxDecoration(
                   color: isLockedByAdmin
-                      ? Colors.red.shade50
-                      : Colors.orange.shade50,
+                      ? AppColors.error
+                      : AppColors.warning,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: isLockedByAdmin
-                        ? Colors.red.shade200
-                        : Colors.orange.shade200,
+                        ? AppColors.error
+                        : AppColors.warning,
                   ),
                 ),
                 child: Row(
@@ -788,14 +789,14 @@ class _HomeViewState extends State<HomeView>
                     Icon(
                       isLockedByAdmin ? Icons.security : Icons.person,
                       size: 16,
-                      color: isLockedByAdmin ? Colors.red : Colors.orange,
+                      color: isLockedByAdmin ? AppColors.error : AppColors.warning,
                     ),
                     const SizedBox(width: 6),
                     Text(
                       isLockedByAdmin ? 'ADMIN KHÓA' : 'CHỦ SHOP PHÂN QUYỀN',
                       style: AppTextStyles.body1.copyWith(
                         fontWeight: FontWeight.bold,
-                        color: isLockedByAdmin ? Colors.red : Colors.orange,
+                        color: isLockedByAdmin ? AppColors.error : AppColors.warning,
                       ),
                     ),
                   ],
@@ -821,7 +822,7 @@ class _HomeViewState extends State<HomeView>
                   vertical: 8,
                 ),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
+                  color: AppColors.primary.withAlpha(26),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
@@ -838,7 +839,7 @@ class _HomeViewState extends State<HomeView>
               Text(
                 lockMessage,
                 style: AppTextStyles.body1.copyWith(
-                  color: AppColors.onSurface.withOpacity(0.7),
+                  color: AppColors.onSurface.withAlpha(179),
                   height: 1.5,
                 ),
                 textAlign: TextAlign.center,
@@ -866,14 +867,14 @@ class _HomeViewState extends State<HomeView>
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [AppColors.primary, AppColors.primary.withOpacity(0.8)],
+              colors: [AppColors.primary, AppColors.primary.withAlpha(204)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: AppColors.primary.withOpacity(0.3),
+                color: AppColors.primary.withAlpha(77),
                 blurRadius: 12,
                 offset: const Offset(0, 4),
               ),
@@ -886,12 +887,12 @@ class _HomeViewState extends State<HomeView>
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
+                      color: AppColors.surface.withAlpha(51),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(
                       Icons.support_agent_rounded,
-                      color: Colors.white,
+                      color: AppColors.surface,
                       size: 28,
                     ),
                   ),
@@ -903,7 +904,7 @@ class _HomeViewState extends State<HomeView>
                         Text(
                           contactTitle,
                           style: AppTextStyles.caption.copyWith(
-                            color: Colors.white.withOpacity(0.8),
+                            color: AppColors.surface.withAlpha(204),
                             letterSpacing: 1,
                             fontWeight: FontWeight.w500,
                           ),
@@ -912,7 +913,7 @@ class _HomeViewState extends State<HomeView>
                         Text(
                           contactName,
                           style: AppTextStyles.headline6.copyWith(
-                            color: Colors.white,
+                            color: AppColors.surface,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -950,9 +951,9 @@ class _HomeViewState extends State<HomeView>
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppColors.info.withOpacity(0.1),
+            color: AppColors.info.withAlpha(26),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.info.withOpacity(0.3)),
+            border: Border.all(color: AppColors.info.withAlpha(77)),
           ),
           child: Row(
             children: [
@@ -985,14 +986,14 @@ class _HomeViewState extends State<HomeView>
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Colors.orange.shade600, Colors.orange.shade400],
+          colors: [AppColors.warning, AppColors.warning],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.orange.withOpacity(0.3),
+            color: AppColors.warning.withAlpha(77),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -1005,12 +1006,12 @@ class _HomeViewState extends State<HomeView>
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
+                  color: AppColors.surface.withAlpha(51),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(
                   Icons.store_rounded,
-                  color: Colors.white,
+                  color: AppColors.surface,
                   size: 28,
                 ),
               ),
@@ -1022,7 +1023,7 @@ class _HomeViewState extends State<HomeView>
                     Text(
                       'LIÊN HỆ CHỦ SHOP',
                       style: AppTextStyles.caption.copyWith(
-                        color: Colors.white.withOpacity(0.8),
+                        color: AppColors.surface.withAlpha(204),
                         letterSpacing: 1,
                         fontWeight: FontWeight.w500,
                       ),
@@ -1031,7 +1032,7 @@ class _HomeViewState extends State<HomeView>
                     Text(
                       'Yêu cầu cấp quyền',
                       style: AppTextStyles.headline6.copyWith(
-                        color: Colors.white,
+                        color: AppColors.surface,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -1048,7 +1049,7 @@ class _HomeViewState extends State<HomeView>
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.15),
+              color: AppColors.surface.withAlpha(38),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Column(
@@ -1078,14 +1079,14 @@ class _HomeViewState extends State<HomeView>
           width: 24,
           height: 24,
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.3),
+            color: AppColors.surface.withAlpha(77),
             shape: BoxShape.circle,
           ),
           child: Center(
             child: Text(
               step,
               style: AppTextStyles.subtitle1.copyWith(
-                color: Colors.white,
+                color: AppColors.surface,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -1096,7 +1097,7 @@ class _HomeViewState extends State<HomeView>
           child: Text(
             text,
             style: AppTextStyles.headline5.copyWith(
-              color: Colors.white,
+              color: AppColors.surface,
               height: 1.4,
             ),
           ),
@@ -1121,10 +1122,10 @@ class _HomeViewState extends State<HomeView>
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.15),
+                color: AppColors.surface.withAlpha(38),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(icon, color: Colors.white, size: 20),
+              child: Icon(icon, color: AppColors.surface, size: 20),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -1134,13 +1135,13 @@ class _HomeViewState extends State<HomeView>
                   Text(
                     label,
                     style: AppTextStyles.caption.copyWith(
-                      color: Colors.white.withOpacity(0.7),
+                      color: AppColors.surface.withAlpha(179),
                     ),
                   ),
                   Text(
                     value,
                     style: AppTextStyles.subtitle1.copyWith(
-                      color: Colors.white,
+                      color: AppColors.surface,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -1150,12 +1151,12 @@ class _HomeViewState extends State<HomeView>
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
+                color: AppColors.surface.withAlpha(51),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Icon(
                 Icons.arrow_forward_ios_rounded,
-                color: Colors.white,
+                color: AppColors.surface,
                 size: 16,
               ),
             ),
@@ -1491,8 +1492,8 @@ class _HomeViewState extends State<HomeView>
         style: OutlinedButton.styleFrom(
           alignment: Alignment.centerLeft,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          foregroundColor: Colors.blueGrey.shade700,
-          side: BorderSide(color: Colors.blueGrey.shade200),
+          foregroundColor: AppColors.textSecondary,
+          side: BorderSide(color: AppColors.textSecondary),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
       ),
@@ -1511,8 +1512,8 @@ class _HomeViewState extends State<HomeView>
         style: OutlinedButton.styleFrom(
           alignment: Alignment.centerLeft,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          foregroundColor: Colors.blueGrey.shade700,
-          side: BorderSide(color: Colors.blueGrey.shade200),
+          foregroundColor: AppColors.textSecondary,
+          side: BorderSide(color: AppColors.textSecondary),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
       ),
@@ -1921,7 +1922,7 @@ class _HomeViewState extends State<HomeView>
     if (_updatingMyAvatar) return;
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      NotificationService.showSnackBar('Vui lòng đăng nhập lại', color: Colors.red);
+      NotificationService.showSnackBar('Vui lòng đăng nhập lại', color: AppColors.error);
       return;
     }
 
@@ -1993,7 +1994,7 @@ class _HomeViewState extends State<HomeView>
     if (!isOwner) {
       NotificationService.showSnackBar(
         'Chỉ chủ shop mới có quyền mở cài đặt shop',
-        color: Colors.orange,
+        color: AppColors.warning,
       );
       return;
     }
@@ -2251,10 +2252,11 @@ class _HomeViewState extends State<HomeView>
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
         height: MediaQuery.of(context).size.height * 0.85,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(DesignTokens.radiusLg)),
         ),
+        padding: AppSpacing.pvXs,
         child: BusinessTypeWizard(
           shopId: shopId,
           shopName: _shopName.isNotEmpty ? _shopName : 'Cửa hàng',
@@ -2267,7 +2269,7 @@ class _HomeViewState extends State<HomeView>
             _loadShopSettings();
             NotificationService.showSnackBar(
               'Đã thiết lập ngành kinh doanh: ${newSettings.businessTypeName}',
-              color: Colors.green,
+              color: AppColors.success,
             );
           },
         ),
@@ -2873,10 +2875,10 @@ class _HomeViewState extends State<HomeView>
           child: _shopLogoUrl.isNotEmpty
               ? CircleAvatar(
                   radius: 16,
-                  backgroundColor: Colors.white,
+                  backgroundColor: AppColors.surface,
                   backgroundImage: CachedNetworkImageProvider(_shopLogoUrl),
                 )
-              : const Icon(Icons.store_rounded, color: Colors.white, size: 20),
+              : const Icon(Icons.store_rounded, color: AppColors.surface, size: 20),
         ),
         actions: [
           NotificationBadge(
@@ -2904,7 +2906,7 @@ class _HomeViewState extends State<HomeView>
             ),
             icon: const Icon(
               Icons.qr_code_scanner_rounded,
-              color: Colors.white,
+              color: AppColors.surface,
             ),
           ),
           IconButton(
@@ -2914,7 +2916,7 @@ class _HomeViewState extends State<HomeView>
                 builder: (_) => GlobalSearchView(role: widget.role),
               ),
             ),
-            icon: const Icon(Icons.search, color: Colors.white, size: 22),
+            icon: const Icon(Icons.search, color: AppColors.surface, size: 22),
             tooltip: loc.searchWholeApp,
           ),
           // Simple sync indicator - tự động sync, tap để force sync
@@ -2981,7 +2983,7 @@ class _HomeViewState extends State<HomeView>
               children: [
                 Icon(
                   Icons.warning_amber_rounded,
-                  color: Colors.orange,
+                  color: AppColors.warning,
                   size: 28,
                 ),
                 SizedBox(width: 8),
@@ -3009,7 +3011,7 @@ class _HomeViewState extends State<HomeView>
                   // Try force sync
                   NotificationService.showSnackBar(
                     'Đang đồng bộ...',
-                    color: Colors.blue,
+                    color: AppColors.primary,
                   );
                   try {
                     await SyncOrchestrator().syncAll();
@@ -3022,33 +3024,33 @@ class _HomeViewState extends State<HomeView>
                     if (remainCount == 0) {
                       NotificationService.showSnackBar(
                         '✅ Đã đồng bộ xong!',
-                        color: Colors.green,
+                        color: AppColors.success,
                       );
                     } else {
                       NotificationService.showSnackBar(
                         '⚠️ Còn $remainCount bản ghi chưa sync. Kiểm tra mạng.',
-                        color: Colors.orange,
+                        color: AppColors.warning,
                       );
                     }
                   } catch (e) {
                     NotificationService.showSnackBar(
                       '❌ Lỗi sync: $e',
-                      color: Colors.red,
+                      color: AppColors.error,
                     );
                   }
                 },
                 icon: const Icon(Icons.sync, size: 16),
                 label: const Text('Thử đồng bộ'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  foregroundColor: Colors.white,
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: AppColors.surface,
                 ),
               ),
               ElevatedButton(
                 onPressed: () => Navigator.pop(ctx, true),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  foregroundColor: Colors.white,
+                  backgroundColor: AppColors.error,
+                  foregroundColor: AppColors.surface,
                 ),
                 child: const Text('Vẫn đăng xuất'),
               ),
@@ -3119,7 +3121,7 @@ class _HomeViewState extends State<HomeView>
                     fontSize: r.isDesktop ? 13 : 11,
                   ),
                   unselectedLabelTextStyle: TextStyle(
-                    color: AppColors.onSurface.withOpacity(0.6),
+                    color: AppColors.onSurface.withAlpha(153),
                     fontSize: r.isDesktop ? 12 : 10,
                   ),
                   destinations: _navItems.map((item) {
@@ -3158,7 +3160,7 @@ class _HomeViewState extends State<HomeView>
         color: AppColors.surface,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: AppColors.textPrimary.withAlpha(26),
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),
@@ -3200,12 +3202,12 @@ class _HomeViewState extends State<HomeView>
     // Màu cho từng tab
     final tabColors = [
       AppColors.primary, // Home - blue
-      Colors.green, // Bán hàng - green
-      Colors.blue.shade700, // Sửa chữa - blue
-      Colors.orange, // Kho - orange
-      Colors.teal, // Nhân sự - teal
-      Colors.indigo, // Tài chính - indigo
-      Colors.blueGrey, // Cài đặt - blueGrey
+      AppColors.success, // Bán hàng - green
+      AppColors.primary, // Sửa chữa - blue
+      AppColors.warning, // Kho - orange
+      AppColors.info, // Nhân sự - teal
+      AppColors.primary, // Tài chính - indigo
+      AppColors.textSecondary, // Cài đặt - blueGrey
     ];
 
     final color = index < tabColors.length
@@ -3236,7 +3238,7 @@ class _HomeViewState extends State<HomeView>
                 padding: EdgeInsets.all(isSelected ? 7 : 4),
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? color.withOpacity(0.15)
+                      ? color.withAlpha(38)
                       : Colors.transparent,
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -3248,7 +3250,7 @@ class _HomeViewState extends State<HomeView>
                     size: isSelected ? 22 : 20,
                     color: isSelected
                         ? color
-                        : AppColors.onSurface.withOpacity(0.5),
+                        : AppColors.onSurface.withAlpha(128),
                   ),
                 ),
               ),
@@ -3258,7 +3260,7 @@ class _HomeViewState extends State<HomeView>
                 style: TextStyle(
                   color: isSelected
                       ? color
-                      : AppColors.onSurface.withOpacity(0.5),
+                      : AppColors.onSurface.withAlpha(128),
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                   fontSize: isSelected
                       ? AppTextStyles.captionSize
@@ -3292,17 +3294,17 @@ class _HomeViewState extends State<HomeView>
             children: [
               if (_shopLocked)
                 Card(
-                  color: Colors.red.shade50,
+                  color: AppColors.errorLight,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15),
-                    side: BorderSide(color: Colors.red.shade200),
+                    borderRadius: BorderRadius.circular(12),
+                    side: BorderSide(color: AppColors.error.withAlpha(77)),
                   ),
                   child: ListTile(
-                    leading: const Icon(Icons.lock, color: Colors.red),
+                    leading: const Icon(Icons.lock, color: AppColors.error),
                     title: const Text(
                       "CỬA HÀNG BỊ KHÓA",
                       style: TextStyle(
-                        color: Colors.red,
+                        color: AppColors.error,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -3494,9 +3496,9 @@ class _HomeViewState extends State<HomeView>
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: Colors.grey.shade100,
+            color: AppColors.background,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.grey.shade300),
+            border: Border.all(color: AppColors.outline),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -3504,14 +3506,14 @@ class _HomeViewState extends State<HomeView>
               Icon(
                 Icons.dashboard_customize,
                 size: 14,
-                color: Colors.grey.shade600,
+                color: AppColors.textSecondary,
               ),
               const SizedBox(width: 6),
               Text(
                 'Tùy chỉnh giao diện Home',
                 style: TextStyle(
                   fontSize: 13,
-                  color: Colors.grey.shade600,
+                  color: AppColors.textSecondary,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -3540,203 +3542,165 @@ class _HomeViewState extends State<HomeView>
       greetingIcon = Icons.nightlight_outlined;
     }
 
-    // Xác định vai trò hiển thị
-    String roleText;
-    Color roleColor;
-    IconData roleIcon;
-    if (_isSuperAdmin) {
-      roleText = loc.adminRole;
-      roleColor = Colors.blue;
-      roleIcon = Icons.admin_panel_settings;
-    } else if (_effectiveRole == 'owner') {
-      roleText = loc.ownerRole;
-      roleColor = Colors.orange;
-      roleIcon = Icons.store;
-    } else if (_effectiveRole == 'admin' || _effectiveRole == 'manager') {
-      roleText = loc.managerRole;
-      roleColor = Colors.blue;
-      roleIcon = Icons.manage_accounts;
-    } else if (_effectiveRole == 'technician') {
-      roleText = loc.technicianRole;
-      roleColor = Colors.teal;
-      roleIcon = Icons.build;
-    } else {
-      roleText = loc.employeeRole;
-      roleColor = Colors.green;
-      roleIcon = Icons.person;
-    }
-
     final hasCover = _shopCoverUrl.trim().isNotEmpty;
 
     return GestureDetector(
       onTap: _openShopSettingsFromGreeting,
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.fromLTRB(12, 22, 12, 22),
+        padding: const EdgeInsets.fromLTRB(14, 16, 14, 16),
         decoration: BoxDecoration(
           image: hasCover
               ? DecorationImage(
-                image: CachedNetworkImageProvider(_shopCoverUrl),
+                  image: CachedNetworkImageProvider(_shopCoverUrl),
                   fit: BoxFit.cover,
-                  alignment: Alignment.center,
+                  colorFilter: ColorFilter.mode(
+                    AppColors.textPrimary.withAlpha(77),
+                    BlendMode.darken,
+                  ),
                 )
               : null,
           gradient: hasCover
               ? null
-              : LinearGradient(
-                  colors: [AppColors.primary, AppColors.primary.withOpacity(0.8)],
+              : const LinearGradient(
+                  colors: [Color(0xFF1D4ED8), Color(0xFF2563EB)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primary.withOpacity(0.25),
-              blurRadius: 6,
-              offset: const Offset(0, 3),
-            ),
-          ],
+          borderRadius: BorderRadius.circular(14),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-          // Dòng lời chào
-          Row(
-            children: [
-              Icon(
-                greetingIcon,
-                color: Colors.white.withOpacity(0.9),
-                size: 18,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                greeting,
-                style: AppTextStyles.headline6.copyWith(
-                  color: Colors.white.withOpacity(0.9),
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const Spacer(),
-              Text(
-                DateFormat('EEEE, dd/MM', 'vi').format(DateTime.now()),
-                style: AppTextStyles.caption.copyWith(
-                  color: Colors.white.withOpacity(0.8),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-
-          // Tên người dùng
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              GestureDetector(
-                onTap: _openMyStaffProfile,
-                child: Container(
-                  width: 46,
-                  height: 46,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white.withOpacity(0.7), width: 2),
+            // Row 1: greeting + date
+            Row(
+              children: [
+                Icon(greetingIcon, color: Colors.white70, size: 16),
+                const SizedBox(width: 5),
+                Text(
+                  '$greeting, ${_userName.isNotEmpty ? _userName : loc.userLabel}',
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w400,
                   ),
-                  child: Hero(
-                    tag: 'hero_staff_avatar_${FirebaseAuth.instance.currentUser?.uid ?? 'me'}',
-                    child: ClipOval(
-                      child: _userPhotoUrl.isNotEmpty
-                          ? Image.network(
-                              _userPhotoUrl,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => const Icon(
-                                Icons.person_rounded,
-                                color: Colors.white,
-                                size: 24,
-                              ),
-                            )
-                          : const Icon(
-                              Icons.person_rounded,
-                              color: Colors.white,
-                              size: 24,
-                            ),
-                    ),
-                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _userName.isNotEmpty
-                          ? _userName
-                          : (FirebaseAuth.instance.currentUser?.email
-                                    ?.split('@')
-                                    .first ??
-                                loc.userLabel),
-                      style: AppTextStyles.headline3.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
+                const Spacer(),
+                Text(
+                  DateFormat('dd/MM/yyyy', 'vi').format(DateTime.now()),
+                  style: const TextStyle(color: Colors.white60, fontSize: 12),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            // Row 2: revenue number + icon
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Doanh thu hôm nay',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w400,
+                        ),
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                      const SizedBox(height: 3),
+                      Text(
+                        MoneyUtils.formatVND(_todayTotalIn),
+                        style: const TextStyle(
+                          color: AppColors.surface,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: AppColors.surface.withAlpha(38),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: ClipOval(
+                    child: _userPhotoUrl.isNotEmpty
+                        ? Image.network(
+                            _userPhotoUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => const Icon(
+                              Icons.person_rounded,
+                              color: AppColors.surface,
+                              size: 22,
+                            ),
+                          )
+                        : const Icon(
+                            Icons.trending_up_rounded,
+                            color: AppColors.surface,
+                            size: 22,
+                          ),
+                  ),
+                ),
+              ],
+            ),
+            if (_todayNetProfit != 0) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface.withAlpha(38),
+                      borderRadius: BorderRadius.circular(20),
                     ),
-                    const SizedBox(height: 2),
-                    Row(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: roleColor.withOpacity(0.9),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(roleIcon, color: Colors.white, size: 12),
-                              const SizedBox(width: 4),
-                              Text(
-                                roleText,
-                                style: AppTextStyles.body1.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
+                        Icon(
+                          _todayNetProfit >= 0 ? Icons.arrow_upward : Icons.arrow_downward,
+                          color: _todayNetProfit >= 0 ? const Color(0xFF86EFAC) : const Color(0xFFFCA5A5),
+                          size: 12,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Lợi nhuận: ${MoneyUtils.formatVND(_todayNetProfit.abs())}',
+                          style: TextStyle(
+                            color: _todayNetProfit >= 0 ? const Color(0xFF86EFAC) : const Color(0xFFFCA5A5),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
-                        if (_shopName.isNotEmpty) ...[
-                          const SizedBox(width: 8),
-                          Flexible(
-                            child: GestureDetector(
-                              onTap: _openShopSettingsFromGreeting,
-                              child: Text(
-                                '• $_shopName',
-                                style: AppTextStyles.subtitle1.copyWith(
-                                  color: Colors.white.withOpacity(0.85),
-                                  decoration: TextDecoration.underline,
-                                  decorationColor: Colors.white70,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ),
-                        ],
                       ],
                     ),
+                  ),
+                  if (_shopName.isNotEmpty) ...[
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        _shopName,
+                        style: const TextStyle(
+                          color: Colors.white60,
+                          fontSize: 12,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
                   ],
-                ),
+                ],
               ),
             ],
-          ),
           ],
         ),
-        ),
+      ),
     );
   }
 
@@ -3746,29 +3710,22 @@ class _HomeViewState extends State<HomeView>
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.blue.shade400, Colors.blue.shade600],
+        gradient: const LinearGradient(
+          colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.blue.withOpacity(0.25),
-            blurRadius: 6,
-            offset: const Offset(0, 3),
-          ),
-        ],
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: AppColors.surface.withAlpha(51),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(Icons.waving_hand, color: Colors.white, size: 20),
+            child: const Icon(Icons.waving_hand, color: AppColors.surface, size: 20),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -3778,7 +3735,7 @@ class _HomeViewState extends State<HomeView>
                 Text(
                   loc.welcomeNewStaff,
                   style: AppTextStyles.headline3.copyWith(
-                    color: Colors.white,
+                    color: AppColors.surface,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -3805,19 +3762,12 @@ class _HomeViewState extends State<HomeView>
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.blue.shade400, Colors.blue.shade600],
+        gradient: const LinearGradient(
+          colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.blue.withOpacity(0.3),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -3827,12 +3777,12 @@ class _HomeViewState extends State<HomeView>
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
+                  color: AppColors.surface.withAlpha(51),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(
                   Icons.waving_hand,
-                  color: Colors.white,
+                  color: AppColors.surface,
                   size: 24,
                 ),
               ),
@@ -3844,7 +3794,7 @@ class _HomeViewState extends State<HomeView>
                     Text(
                       loc.welcomeNewStaff,
                       style: AppTextStyles.headline3.copyWith(
-                        color: Colors.white,
+                        color: AppColors.surface,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -3871,8 +3821,8 @@ class _HomeViewState extends State<HomeView>
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: Colors.blue.shade600,
+                backgroundColor: AppColors.surface,
+                foregroundColor: AppColors.primary,
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
@@ -3907,7 +3857,7 @@ class _HomeViewState extends State<HomeView>
       builder: (ctx) => AlertDialog(
         title: Row(
           children: [
-            Icon(Icons.cloud_download, color: Colors.blue.shade600),
+            Icon(Icons.cloud_download, color: AppColors.primary),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
@@ -3923,14 +3873,14 @@ class _HomeViewState extends State<HomeView>
           children: [
             RichText(
               text: TextSpan(
-                style: AppTextStyles.headline4.copyWith(color: Colors.black87),
+                style: AppTextStyles.headline4.copyWith(color: AppColors.textPrimary),
                 children: [
                   TextSpan(text: '${loc.downloadDataOf} '),
                   TextSpan(
                     text: '"$shopName"',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: Colors.blue,
+                      color: AppColors.primary,
                     ),
                   ),
                   TextSpan(text: ' ${loc.fromCloudToThisDevice}'),
@@ -3941,7 +3891,7 @@ class _HomeViewState extends State<HomeView>
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.blue.shade50,
+                color: AppColors.primary,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Column(
@@ -3962,23 +3912,23 @@ class _HomeViewState extends State<HomeView>
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.orange.shade50,
+                color: AppColors.warning,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.orange.shade200),
+                border: Border.all(color: AppColors.warning),
               ),
               child: Row(
                 children: [
                   Icon(
                     Icons.info_outline,
                     size: 16,
-                    color: Colors.orange.shade700,
+                    color: AppColors.warning,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       loc.onlyDownloadThisShopData,
                       style: AppTextStyles.body1.copyWith(
-                        color: Colors.orange.shade800,
+                        color: AppColors.warning,
                       ),
                     ),
                   ),
@@ -3990,7 +3940,7 @@ class _HomeViewState extends State<HomeView>
               loc.processMayTakeFewMinutes,
               style: AppTextStyles.body1.copyWith(
                 fontStyle: FontStyle.italic,
-                color: Colors.grey,
+                color: AppColors.textHint,
               ),
             ),
           ],
@@ -4004,7 +3954,7 @@ class _HomeViewState extends State<HomeView>
             onPressed: () => Navigator.pop(ctx, true),
             icon: const Icon(Icons.download, size: 18),
             label: Text(loc.startDownload),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
           ),
         ],
       ),
@@ -4031,7 +3981,7 @@ class _HomeViewState extends State<HomeView>
                 Text(
                   loc.pleaseWait,
                   style: AppTextStyles.subtitle1.copyWith(
-                    color: Colors.grey.shade600,
+                    color: AppColors.textSecondary,
                   ),
                 ),
               ],
@@ -4050,13 +4000,13 @@ class _HomeViewState extends State<HomeView>
         if (mounted) Navigator.of(context).pop(); // Close loading dialog
         NotificationService.showSnackBar(
           "✅ ${loc.downloadSuccess}",
-          color: Colors.green,
+          color: AppColors.success,
         );
       } catch (e) {
         if (mounted) Navigator.of(context).pop(); // Close loading dialog
         NotificationService.showSnackBar(
           "❌ ${loc.downloadError(e.toString())}",
-          color: Colors.red,
+          color: AppColors.error,
         );
       }
     }
@@ -4067,7 +4017,7 @@ class _HomeViewState extends State<HomeView>
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          Icon(icon, size: 16, color: Colors.blue.shade600),
+          Icon(icon, size: 16, color: AppColors.primary),
           const SizedBox(width: 8),
           Text(text, style: AppTextStyles.headline5),
         ],
@@ -4089,10 +4039,10 @@ class _HomeViewState extends State<HomeView>
             margin: const EdgeInsets.only(bottom: 10),
             child: Card(
               elevation: 0,
-              color: Colors.cyan.shade50,
+              color: AppColors.info,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
-                side: BorderSide(color: Colors.cyan.shade200),
+                side: BorderSide(color: AppColors.info),
               ),
               child: InkWell(
                 onTap: () => _pushRoute(
@@ -4113,12 +4063,12 @@ class _HomeViewState extends State<HomeView>
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: Colors.cyan.shade100,
+                              color: AppColors.info,
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Icon(
                               Icons.chat_bubble_rounded,
-                              color: Colors.cyan.shade700,
+                              color: AppColors.info,
                               size: 20,
                             ),
                           ),
@@ -4129,10 +4079,10 @@ class _HomeViewState extends State<HomeView>
                               child: Container(
                                 padding: const EdgeInsets.all(4),
                                 decoration: BoxDecoration(
-                                  color: Colors.red,
+                                  color: AppColors.error,
                                   shape: BoxShape.circle,
                                   border: Border.all(
-                                    color: Colors.white,
+                                    color: AppColors.surface,
                                     width: 1.5,
                                   ),
                                 ),
@@ -4145,7 +4095,7 @@ class _HomeViewState extends State<HomeView>
                                       ? '99+'
                                       : '$unreadChatCount',
                                   style: const TextStyle(
-                                    color: Colors.white,
+                                    color: AppColors.surface,
                                     fontWeight: FontWeight.bold,
                                     fontSize: 11,
                                   ),
@@ -4165,7 +4115,7 @@ class _HomeViewState extends State<HomeView>
                                 Text(
                                   "CHAT NỘI BỘ",
                                   style: AppTextStyles.body2.copyWith(
-                                    color: Colors.cyan.shade700,
+                                    color: AppColors.info,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
@@ -4177,13 +4127,13 @@ class _HomeViewState extends State<HomeView>
                                       vertical: 2,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: Colors.red,
+                                      color: AppColors.error,
                                       borderRadius: BorderRadius.circular(10),
                                     ),
                                     child: Text(
                                       '$unreadChatCount mới',
                                       style: const TextStyle(
-                                        color: Colors.white,
+                                        color: AppColors.surface,
                                         fontWeight: FontWeight.bold,
                                         fontSize: 12,
                                       ),
@@ -4199,8 +4149,8 @@ class _HomeViewState extends State<HomeView>
                                   : "Chưa có tin nhắn nào",
                               style: AppTextStyles.caption.copyWith(
                                 color: unreadChatCount > 0
-                                    ? Colors.cyan.shade700
-                                    : Colors.grey.shade600,
+                                    ? AppColors.info
+                                    : AppColors.textSecondary,
                                 fontWeight: unreadChatCount > 0
                                     ? FontWeight.w500
                                     : FontWeight.normal,
@@ -4214,7 +4164,7 @@ class _HomeViewState extends State<HomeView>
                       Icon(
                         Icons.arrow_forward_ios,
                         size: 14,
-                        color: Colors.cyan.shade400,
+                        color: AppColors.info,
                       ),
                     ],
                   ),
@@ -4231,10 +4181,10 @@ class _HomeViewState extends State<HomeView>
       margin: const EdgeInsets.only(bottom: 10),
       child: Card(
         elevation: 0,
-        color: Colors.pink.shade50,
+        color: AppColors.error,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10),
-          side: BorderSide(color: Colors.pink.shade200),
+          side: BorderSide(color: AppColors.error),
         ),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
@@ -4258,12 +4208,12 @@ class _HomeViewState extends State<HomeView>
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: Colors.pink.shade100,
+                                color: AppColors.error,
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Icon(
                                 Icons.groups_2_outlined,
-                                color: Colors.pink.shade700,
+                                color: AppColors.error,
                                 size: 20,
                               ),
                             ),
@@ -4275,7 +4225,7 @@ class _HomeViewState extends State<HomeView>
                                   Text(
                                     'CỘNG ĐỒNG',
                                     style: AppTextStyles.body2.copyWith(
-                                      color: Colors.pink.shade700,
+                                      color: AppColors.error,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
@@ -4284,7 +4234,7 @@ class _HomeViewState extends State<HomeView>
                                         ? _shopName.trim()
                                         : 'Bảng tin nội bộ',
                                     style: AppTextStyles.caption.copyWith(
-                                      color: Colors.pink.shade400,
+                                      color: AppColors.error,
                                     ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
@@ -4295,7 +4245,7 @@ class _HomeViewState extends State<HomeView>
                             Text(
                               'Mở',
                               style: AppTextStyles.caption.copyWith(
-                                color: Colors.pink.shade600,
+                                color: AppColors.error,
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
@@ -4308,7 +4258,7 @@ class _HomeViewState extends State<HomeView>
                   Switch.adaptive(
                     value: _showHomeCommunityCard,
                     onChanged: _setHomeCommunityDashboardVisible,
-                    activeColor: Colors.pink.shade600,
+                    activeColor: AppColors.error,
                   ),
                 ],
               ),
@@ -4318,7 +4268,7 @@ class _HomeViewState extends State<HomeView>
                   child: Text(
                     'Đã ẩn thẻ này trên dashboard. Bật lại công tắc để hiển thị.',
                     style: AppTextStyles.caption.copyWith(
-                      color: Colors.grey.shade700,
+                      color: AppColors.textSecondary,
                     ),
                   ),
                 )
@@ -4342,7 +4292,7 @@ class _HomeViewState extends State<HomeView>
                           child: Text(
                             _friendlyHomeCommunityError(snapshot.error),
                             style: AppTextStyles.caption.copyWith(
-                              color: Colors.red.shade700,
+                              color: AppColors.error,
                             ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
@@ -4422,14 +4372,14 @@ class _HomeViewState extends State<HomeView>
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(8),
                                       color: imageUrl.isEmpty
-                                          ? Colors.pink.shade100
-                                          : Colors.grey.shade200,
+                                          ? AppColors.error
+                                          : AppColors.outline,
                                     ),
                                     clipBehavior: Clip.antiAlias,
                                     child: imageUrl.isEmpty
                                         ? Icon(
                                             Icons.image_outlined,
-                                            color: Colors.pink.shade300,
+                                            color: AppColors.error,
                                             size: 20,
                                           )
                                         : CachedNetworkImage(
@@ -4437,7 +4387,7 @@ class _HomeViewState extends State<HomeView>
                                             fit: BoxFit.cover,
                                             errorWidget: (_, __, ___) => Icon(
                                               Icons.broken_image_outlined,
-                                              color: Colors.grey.shade500,
+                                              color: AppColors.textHint,
                                               size: 20,
                                             ),
                                           ),
@@ -4462,7 +4412,7 @@ class _HomeViewState extends State<HomeView>
                                         Text(
                                           '$author • ❤ $likeCount • 💬 $commentCount',
                                           style: AppTextStyles.caption.copyWith(
-                                            color: Colors.grey.shade700,
+                                            color: AppColors.textSecondary,
                                           ),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
@@ -4473,7 +4423,7 @@ class _HomeViewState extends State<HomeView>
                                   Text(
                                     'Mở',
                                     style: AppTextStyles.caption.copyWith(
-                                      color: Colors.pink.shade600,
+                                      color: AppColors.error,
                                       fontWeight: FontWeight.w700,
                                     ),
                                   ),
@@ -4524,7 +4474,7 @@ class _HomeViewState extends State<HomeView>
     if (!canEdit && mounted) {
       NotificationService.showSnackBar(
         '❌ Ngày hôm nay đã chốt quỹ! Không thể thêm chi phí mới.',
-        color: Colors.red,
+        color: AppColors.error,
       );
       return;
     }
@@ -4551,12 +4501,12 @@ class _HomeViewState extends State<HomeView>
                 Container(
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
-                    color: Colors.red.shade50,
+                    color: AppColors.error,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
                     Icons.remove_circle,
-                    color: Colors.red.shade700,
+                    color: AppColors.error,
                     size: 20,
                   ),
                 ),
@@ -4567,7 +4517,7 @@ class _HomeViewState extends State<HomeView>
                     style: TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.bold,
-                      color: Colors.red,
+                      color: AppColors.error,
                     ),
                   ),
                 ),
@@ -4584,7 +4534,7 @@ class _HomeViewState extends State<HomeView>
                       "PHÂN LOẠI",
                       style: TextStyle(
                         fontSize: 13,
-                        color: Colors.grey.shade600,
+                        color: AppColors.textSecondary,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -4666,7 +4616,7 @@ class _HomeViewState extends State<HomeView>
                       "THANH TOÁN",
                       style: TextStyle(
                         fontSize: 13,
-                        color: Colors.grey.shade600,
+                        color: AppColors.textSecondary,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -4701,7 +4651,7 @@ class _HomeViewState extends State<HomeView>
                 child: const Text("HỦY"),
               ),
               FilledButton.icon(
-                style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                style: FilledButton.styleFrom(backgroundColor: AppColors.error),
                 onPressed: _quickSaving
                     ? null
                     : () async {
@@ -4772,7 +4722,7 @@ class _HomeViewState extends State<HomeView>
     if (!canEdit && mounted) {
       NotificationService.showSnackBar(
         '❌ Ngày hôm nay đã chốt quỹ! Không thể thêm thu phát sinh.',
-        color: Colors.red,
+        color: AppColors.error,
       );
       return;
     }
@@ -4799,12 +4749,12 @@ class _HomeViewState extends State<HomeView>
                 Container(
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
-                    color: Colors.green.shade50,
+                    color: AppColors.success,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
                     Icons.add_circle,
-                    color: Colors.green.shade700,
+                    color: AppColors.success,
                     size: 20,
                   ),
                 ),
@@ -4815,7 +4765,7 @@ class _HomeViewState extends State<HomeView>
                     style: TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.bold,
-                      color: Colors.green,
+                      color: AppColors.success,
                     ),
                   ),
                 ),
@@ -4832,7 +4782,7 @@ class _HomeViewState extends State<HomeView>
                       "PHÂN LOẠI",
                       style: TextStyle(
                         fontSize: 13,
-                        color: Colors.grey.shade600,
+                        color: AppColors.textSecondary,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -4913,7 +4863,7 @@ class _HomeViewState extends State<HomeView>
                       "THANH TOÁN",
                       style: TextStyle(
                         fontSize: 13,
-                        color: Colors.grey.shade600,
+                        color: AppColors.textSecondary,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -4948,7 +4898,7 @@ class _HomeViewState extends State<HomeView>
                 child: const Text("HỦY"),
               ),
               FilledButton.icon(
-                style: FilledButton.styleFrom(backgroundColor: Colors.green),
+                style: FilledButton.styleFrom(backgroundColor: AppColors.success),
                 onPressed: _quickSaving
                     ? null
                     : () async {
@@ -5203,7 +5153,7 @@ class _HomeViewState extends State<HomeView>
           _ShortcutItem(
             Icons.add_shopping_cart,
             'Bán hàng',
-            Colors.green,
+            AppColors.success,
             () => _pushRoute(
               context,
               MaterialPageRoute(builder: (_) => const CreateSaleView()),
@@ -5213,7 +5163,7 @@ class _HomeViewState extends State<HomeView>
           _ShortcutItem(
             Icons.build_circle,
             'Đơn sửa',
-            Colors.blue,
+            AppColors.primary,
             () => _pushRoute(
               context,
               MaterialPageRoute(
@@ -5225,7 +5175,7 @@ class _HomeViewState extends State<HomeView>
           _ShortcutItem(
             Icons.add_box,
             'Nhập kho',
-            Colors.teal,
+            AppColors.info,
             () => _pushRoute(
               context,
               MaterialPageRoute(builder: (_) => const SmartStockInView()),
@@ -5235,7 +5185,7 @@ class _HomeViewState extends State<HomeView>
           _ShortcutItem(
             Icons.pending_actions,
             'Chờ XN',
-            Colors.orange,
+            AppColors.warning,
             () => _pushRoute(
               context,
               MaterialPageRoute(builder: (_) => const PendingStockListView()),
@@ -5245,7 +5195,7 @@ class _HomeViewState extends State<HomeView>
           _ShortcutItem(
             Icons.receipt_long,
             'Đơn bán',
-            Colors.indigo,
+            AppColors.primary,
             () => _pushRoute(
               context,
               MaterialPageRoute(builder: (_) => const SaleListView()),
@@ -5255,7 +5205,7 @@ class _HomeViewState extends State<HomeView>
           _ShortcutItem(
             Icons.list_alt,
             'DS sửa',
-            Colors.deepPurple,
+            AppColors.repairDelivered,
             () => _pushRoute(
               context,
               MaterialPageRoute(builder: (_) => const OrderListView()),
@@ -5265,21 +5215,21 @@ class _HomeViewState extends State<HomeView>
           _ShortcutItem(
             Icons.remove_circle_outline,
             'Thêm chi',
-            Colors.red,
+            AppColors.error,
             () => _openExpensePageAndAdd(isIncome: false),
           ),
         if (_ok('allowViewRevenue'))
           _ShortcutItem(
             Icons.add_circle_outline,
             'Thêm thu',
-            Colors.green.shade700,
+            AppColors.success,
             () => _openExpensePageAndAdd(isIncome: true),
           ),
         if (_ok('allowViewInventory'))
           _ShortcutItem(
             Icons.qr_code_scanner,
             'Kiểm kho',
-            Colors.cyan,
+            AppColors.info,
             () => _pushRoute(
               context,
               MaterialPageRoute(builder: (_) => const FastInventoryCheckView()),
@@ -5289,7 +5239,7 @@ class _HomeViewState extends State<HomeView>
           _ShortcutItem(
             Icons.bar_chart,
             'Báo cáo',
-            Colors.purple,
+            AppColors.repairDelivered,
             () => _pushRoute(
               context,
               MaterialPageRoute(
@@ -5301,7 +5251,7 @@ class _HomeViewState extends State<HomeView>
           _ShortcutItem(
             Icons.access_time,
             'Chấm công',
-            Colors.teal.shade700,
+            AppColors.info,
             () => _pushRoute(
               context,
               MaterialPageRoute(builder: (_) => const AttendanceView()),
@@ -5311,7 +5261,7 @@ class _HomeViewState extends State<HomeView>
           _ShortcutItem(
             Icons.shield,
             'Bảo hành',
-            Colors.amber.shade800,
+            AppColors.warning,
             () => _pushRoute(
               context,
               MaterialPageRoute(builder: (_) => const WarrantyView()),
@@ -5339,13 +5289,13 @@ class _HomeViewState extends State<HomeView>
             padding: const EdgeInsets.only(bottom: 8),
             child: Row(
               children: [
-                Icon(Icons.apps, size: 14, color: Colors.grey.shade600),
+                Icon(Icons.apps, size: 14, color: AppColors.textSecondary),
                 const SizedBox(width: 6),
                 Text(
                   'THAO TÁC NHANH',
                   style: AppTextStyles.body1.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: Colors.grey.shade600,
+                    color: AppColors.textSecondary,
                     letterSpacing: 0.5,
                   ),
                 ),
@@ -5365,14 +5315,14 @@ class _HomeViewState extends State<HomeView>
                           Icon(
                             Icons.edit,
                             size: 12,
-                            color: Colors.grey.shade500,
+                            color: AppColors.textHint,
                           ),
                           const SizedBox(width: 3),
                           Text(
                             'Sửa',
                             style: TextStyle(
                               fontSize: 13,
-                              color: Colors.grey.shade500,
+                              color: AppColors.textHint,
                             ),
                           ),
                         ],
@@ -5410,10 +5360,10 @@ class _HomeViewState extends State<HomeView>
                           child: Container(
                             padding: EdgeInsets.symmetric(vertical: vPad),
                             decoration: BoxDecoration(
-                              color: item.color.withOpacity(0.08),
+                              color: item.color.withAlpha(20),
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(
-                                color: item.color.withOpacity(0.2),
+                                color: item.color.withAlpha(51),
                               ),
                             ),
                             child: Column(
@@ -5422,7 +5372,7 @@ class _HomeViewState extends State<HomeView>
                                 Container(
                                   padding: const EdgeInsets.all(5),
                                   decoration: BoxDecoration(
-                                    color: item.color.withOpacity(0.15),
+                                    color: item.color.withAlpha(38),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Icon(
@@ -5437,7 +5387,7 @@ class _HomeViewState extends State<HomeView>
                                   style: TextStyle(
                                     fontSize: fontSize,
                                     fontWeight: FontWeight.w600,
-                                    color: item.color.withOpacity(0.9),
+                                    color: item.color.withAlpha(230),
                                   ),
                                   textAlign: TextAlign.center,
                                   maxLines: 1,
@@ -5475,14 +5425,14 @@ class _HomeViewState extends State<HomeView>
                 Icon(
                   Icons.dashboard_customize,
                   size: 14,
-                  color: Colors.blue.shade700,
+                  color: AppColors.primary,
                 ),
                 const SizedBox(width: 6),
                 Text(
                   'TÙY CHỈNH ($visibleCount đang hiện)',
                   style: AppTextStyles.body1.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: Colors.blue.shade700,
+                    color: AppColors.primary,
                     letterSpacing: 0.5,
                   ),
                 ),
@@ -5502,7 +5452,7 @@ class _HomeViewState extends State<HomeView>
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.blue.shade600,
+                      color: AppColors.primary,
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: const Text(
@@ -5510,7 +5460,7 @@ class _HomeViewState extends State<HomeView>
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: AppColors.surface,
                       ),
                     ),
                   ),
@@ -5524,7 +5474,7 @@ class _HomeViewState extends State<HomeView>
             padding: const EdgeInsets.only(bottom: 10),
             child: Text(
               'Nhấn để ẩn/hiện • Sắp xếp thứ tự trong Cài đặt',
-              style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+              style: TextStyle(fontSize: 13, color: AppColors.textHint),
             ),
           ),
 
@@ -5538,11 +5488,11 @@ class _HomeViewState extends State<HomeView>
                 runSpacing: 8,
                 children: _shortcutConfigs.map((config) {
                   final isVisible = config.visible;
-                  final color = isVisible ? config.color : Colors.grey.shade400;
+                  final color = isVisible ? config.color : AppColors.textHint;
                   final bgOpacity = isVisible ? 0.08 : 0.04;
                   final borderColor = isVisible
-                      ? config.color.withOpacity(0.3)
-                      : Colors.grey.shade200;
+                      ? config.color.withAlpha(77)
+                      : AppColors.outline;
 
                   return SizedBox(
                     width: itemWidth,
@@ -5594,17 +5544,17 @@ class _HomeViewState extends State<HomeView>
                                     height: 16,
                                     decoration: BoxDecoration(
                                       color: isVisible
-                                          ? Colors.green
-                                          : Colors.grey.shade300,
+                                          ? AppColors.success
+                                          : AppColors.outline,
                                       shape: BoxShape.circle,
                                       border: Border.all(
-                                        color: Colors.white,
+                                        color: AppColors.surface,
                                         width: 1.5,
                                       ),
                                     ),
                                     child: Icon(
                                       isVisible ? Icons.check : Icons.remove,
-                                      color: Colors.white,
+                                      color: AppColors.surface,
                                       size: 10,
                                     ),
                                   ),
@@ -5652,13 +5602,13 @@ class _HomeViewState extends State<HomeView>
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.tune, size: 14, color: Colors.blue.shade400),
+                    Icon(Icons.tune, size: 14, color: AppColors.primary),
                     const SizedBox(width: 4),
                     Text(
                       'Sắp xếp thứ tự & cài đặt nâng cao',
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.blue.shade400,
+                        color: AppColors.primary,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -5666,7 +5616,7 @@ class _HomeViewState extends State<HomeView>
                     Icon(
                       Icons.chevron_right,
                       size: 16,
-                      color: Colors.blue.shade400,
+                      color: AppColors.primary,
                     ),
                   ],
                 ),
@@ -5691,13 +5641,13 @@ class _HomeViewState extends State<HomeView>
             padding: const EdgeInsets.only(bottom: 6),
             child: Row(
               children: [
-                Icon(Icons.push_pin, size: 14, color: Colors.grey.shade600),
+                Icon(Icons.push_pin, size: 14, color: AppColors.textSecondary),
                 const SizedBox(width: 6),
                 Text(
                   loc.quickAccess,
                   style: AppTextStyles.body1.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: Colors.grey.shade600,
+                    color: AppColors.textSecondary,
                     letterSpacing: 0.5,
                   ),
                 ),
@@ -5714,7 +5664,7 @@ class _HomeViewState extends State<HomeView>
                     icon: Icons.pending_actions,
                     title: loc.pendingStockShort,
                     subtitle: loc.stockIn,
-                    color: Colors.orange,
+                    color: AppColors.warning,
                     onTap: () => _pushRoute(
                       context,
                       MaterialPageRoute(
@@ -5732,7 +5682,7 @@ class _HomeViewState extends State<HomeView>
                     icon: Icons.account_balance_wallet,
                     title: loc.incomeExpense,
                     subtitle: 'Ghi thu chi',
-                    color: Colors.green,
+                    color: AppColors.success,
                     onTap: () => _pushRoute(
                       context,
                       MaterialPageRoute(builder: (_) => const ExpenseView()),
@@ -5751,7 +5701,7 @@ class _HomeViewState extends State<HomeView>
                     icon: Icons.receipt_long,
                     title: loc.salesOrder,
                     subtitle: loc.salesOrderList,
-                    color: Colors.blue,
+                    color: AppColors.primary,
                     onTap: () => _pushRoute(
                       context,
                       MaterialPageRoute(builder: (_) => const SaleListView()),
@@ -5767,7 +5717,7 @@ class _HomeViewState extends State<HomeView>
                     icon: Icons.build_circle,
                     title: loc.repairOrderTitle,
                     subtitle: loc.repairOrderList,
-                    color: Colors.deepPurple,
+                    color: AppColors.repairDelivered,
                     onTap: () => _pushRoute(
                       context,
                       MaterialPageRoute(builder: (_) => const OrderListView()),
@@ -5782,7 +5732,7 @@ class _HomeViewState extends State<HomeView>
                     icon: Icons.people,
                     title: loc.customers,
                     subtitle: loc.customersAndSuppliers,
-                    color: Colors.teal,
+                    color: AppColors.info,
                     onTap: () => _pushRoute(
                       context,
                       MaterialPageRoute(
@@ -5853,7 +5803,7 @@ class _HomeViewState extends State<HomeView>
                     Text(
                       subtitle,
                       style: AppTextStyles.caption.copyWith(
-                        color: Colors.grey.shade600,
+                        color: AppColors.textSecondary,
                       ),
                     ),
                   ],
@@ -5877,10 +5827,11 @@ class _HomeViewState extends State<HomeView>
       padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
       child: Text(
         title,
-        style: AppTextStyles.caption.copyWith(
-          fontWeight: FontWeight.bold,
-          color: Colors.blueGrey,
-          letterSpacing: 0.5,
+        style: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: AppColors.textSecondary,
+          letterSpacing: 0.3,
         ),
       ),
     );
@@ -5902,7 +5853,7 @@ class _HomeViewState extends State<HomeView>
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.2),
+                color: color.withAlpha(51),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(icon, color: color, size: 24),
@@ -5943,10 +5894,10 @@ class _HomeViewState extends State<HomeView>
         // BÁN HÀNG
         if (_can('allowViewSales'))
           Card(
-            color: Colors.green.shade50,
+            color: AppColors.success,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
-              side: BorderSide(color: Colors.green.shade200),
+              side: BorderSide(color: AppColors.success),
             ),
             child: ListTile(
               dense: true,
@@ -5955,19 +5906,19 @@ class _HomeViewState extends State<HomeView>
               leading: Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: Colors.green.shade100,
+                  color: AppColors.success,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(
                   Icons.add_shopping_cart,
-                  color: Colors.green,
+                  color: AppColors.success,
                   size: 20,
                 ),
               ),
               title: Text(
                 loc.createSaleOrder,
                 style: const TextStyle(
-                  color: Colors.green,
+                  color: AppColors.success,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -5978,7 +5929,7 @@ class _HomeViewState extends State<HomeView>
               trailing: const Icon(
                 Icons.arrow_forward_ios,
                 size: 14,
-                color: Colors.green,
+                color: AppColors.success,
               ),
               onTap: () => _pushRoute(
                 context,
@@ -5991,10 +5942,10 @@ class _HomeViewState extends State<HomeView>
         // SỬA CHỮA - Only show for electronics shops
         if (_enableRepair && _can('allowViewRepairs'))
           Card(
-            color: Colors.blue.shade50,
+            color: AppColors.primary,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
-              side: BorderSide(color: Colors.blue.shade200),
+              side: BorderSide(color: AppColors.primary),
             ),
             child: ListTile(
               dense: true,
@@ -6003,19 +5954,19 @@ class _HomeViewState extends State<HomeView>
               leading: Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: Colors.blue.shade100,
+                  color: AppColors.primary,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(
                   Icons.build_circle,
-                  color: Colors.blue,
+                  color: AppColors.primary,
                   size: 20,
                 ),
               ),
               title: Text(
                 loc.createRepairOrder,
                 style: const TextStyle(
-                  color: Colors.blue,
+                  color: AppColors.primary,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -6026,7 +5977,7 @@ class _HomeViewState extends State<HomeView>
               trailing: const Icon(
                 Icons.arrow_forward_ios,
                 size: 14,
-                color: Colors.blue,
+                color: AppColors.primary,
               ),
               onTap: () => _pushRoute(
                 context,
@@ -6045,10 +5996,10 @@ class _HomeViewState extends State<HomeView>
             children: [
               Expanded(
                 child: Card(
-                  color: Colors.green.shade50,
+                  color: AppColors.success,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
-                    side: BorderSide(color: Colors.green.shade300, width: 2),
+                    side: BorderSide(color: AppColors.success, width: 2),
                   ),
                   child: InkWell(
                     onTap: () => _pushRoute(
@@ -6065,12 +6016,12 @@ class _HomeViewState extends State<HomeView>
                           Container(
                             padding: const EdgeInsets.all(7),
                             decoration: BoxDecoration(
-                              color: Colors.green.shade100,
+                              color: AppColors.success,
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: const Icon(
                               Icons.add_box,
-                              color: Colors.green,
+                              color: AppColors.success,
                               size: 20,
                             ),
                           ),
@@ -6078,14 +6029,14 @@ class _HomeViewState extends State<HomeView>
                           Text(
                             loc.addStock,
                             style: AppTextStyles.subtitle1.copyWith(
-                              color: Colors.green,
+                              color: AppColors.success,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           Text(
                             loc.newStockIn,
                             style: AppTextStyles.caption.copyWith(
-                              color: Colors.grey,
+                              color: AppColors.textHint,
                             ),
                           ),
                         ],
@@ -6097,10 +6048,10 @@ class _HomeViewState extends State<HomeView>
               const SizedBox(width: 8),
               Expanded(
                 child: Card(
-                  color: Colors.blue.shade50,
+                  color: AppColors.primary,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
-                    side: BorderSide(color: Colors.blue.shade200),
+                    side: BorderSide(color: AppColors.primary),
                   ),
                   child: InkWell(
                     onTap: () => _pushRoute(
@@ -6117,12 +6068,12 @@ class _HomeViewState extends State<HomeView>
                           Container(
                             padding: const EdgeInsets.all(7),
                             decoration: BoxDecoration(
-                              color: Colors.blue.shade100,
+                              color: AppColors.primary,
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: const Icon(
                               Icons.qr_code_scanner,
-                              color: Colors.blue,
+                              color: AppColors.primary,
                               size: 20,
                             ),
                           ),
@@ -6130,14 +6081,14 @@ class _HomeViewState extends State<HomeView>
                           Text(
                             loc.checkInventory,
                             style: AppTextStyles.subtitle1.copyWith(
-                              color: Colors.blue,
+                              color: AppColors.primary,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           Text(
                             loc.scanToCheck,
                             style: AppTextStyles.caption.copyWith(
-                              color: Colors.grey,
+                              color: AppColors.textHint,
                             ),
                           ),
                         ],
@@ -6156,10 +6107,10 @@ class _HomeViewState extends State<HomeView>
             children: [
               Expanded(
                 child: Card(
-                  color: Colors.orange.shade50,
+                  color: AppColors.warning,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
-                    side: BorderSide(color: Colors.orange.shade200),
+                    side: BorderSide(color: AppColors.warning),
                   ),
                   child: InkWell(
                     onTap: () => _pushRoute(
@@ -6176,12 +6127,12 @@ class _HomeViewState extends State<HomeView>
                           Container(
                             padding: const EdgeInsets.all(7),
                             decoration: BoxDecoration(
-                              color: Colors.orange.shade100,
+                              color: AppColors.warning,
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: const Icon(
                               Icons.pending_actions,
-                              color: Colors.orange,
+                              color: AppColors.warning,
                               size: 20,
                             ),
                           ),
@@ -6189,14 +6140,14 @@ class _HomeViewState extends State<HomeView>
                           Text(
                             'Chờ nhập',
                             style: AppTextStyles.subtitle1.copyWith(
-                              color: Colors.orange,
+                              color: AppColors.warning,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           Text(
                             'Phiếu đang chờ',
                             style: AppTextStyles.caption.copyWith(
-                              color: Colors.grey,
+                              color: AppColors.textHint,
                             ),
                           ),
                         ],
@@ -6208,10 +6159,10 @@ class _HomeViewState extends State<HomeView>
               const SizedBox(width: 8),
               Expanded(
                 child: Card(
-                  color: Colors.teal.shade50,
+                  color: AppColors.info,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
-                    side: BorderSide(color: Colors.teal.shade200),
+                    side: BorderSide(color: AppColors.info),
                   ),
                   child: InkWell(
                     onTap: () => _pushRoute(
@@ -6228,12 +6179,12 @@ class _HomeViewState extends State<HomeView>
                           Container(
                             padding: const EdgeInsets.all(7),
                             decoration: BoxDecoration(
-                              color: Colors.teal.shade100,
+                              color: AppColors.info,
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: const Icon(
                               Icons.history,
-                              color: Colors.teal,
+                              color: AppColors.info,
                               size: 20,
                             ),
                           ),
@@ -6241,14 +6192,14 @@ class _HomeViewState extends State<HomeView>
                           Text(
                             'Lịch sử nhập',
                             style: AppTextStyles.subtitle1.copyWith(
-                              color: Colors.teal,
+                              color: AppColors.info,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           Text(
                             'Xem phiếu nhập kho',
                             style: AppTextStyles.caption.copyWith(
-                              color: Colors.grey,
+                              color: AppColors.textHint,
                             ),
                           ),
                         ],
@@ -6267,10 +6218,10 @@ class _HomeViewState extends State<HomeView>
             if (_can('allowViewRevenue'))
               Expanded(
                 child: Card(
-                  color: Colors.indigo.shade50,
+                  color: AppColors.primary,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
-                    side: BorderSide(color: Colors.indigo.shade200),
+                    side: BorderSide(color: AppColors.primary),
                   ),
                   child: InkWell(
                     onTap: () => _pushRoute(
@@ -6287,12 +6238,12 @@ class _HomeViewState extends State<HomeView>
                           Container(
                             padding: const EdgeInsets.all(7),
                             decoration: BoxDecoration(
-                              color: Colors.indigo.shade100,
+                              color: AppColors.primary,
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: const Icon(
                               Icons.bar_chart,
-                              color: Colors.indigo,
+                              color: AppColors.primary,
                               size: 20,
                             ),
                           ),
@@ -6300,14 +6251,14 @@ class _HomeViewState extends State<HomeView>
                           Text(
                             loc.report,
                             style: AppTextStyles.subtitle1.copyWith(
-                              color: Colors.indigo,
+                              color: AppColors.primary,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           Text(
                             loc.revenue,
                             style: AppTextStyles.caption.copyWith(
-                              color: Colors.grey,
+                              color: AppColors.textHint,
                             ),
                           ),
                         ],
@@ -6320,10 +6271,10 @@ class _HomeViewState extends State<HomeView>
             if (_can('allowViewAttendance'))
               Expanded(
                 child: Card(
-                  color: Colors.teal.shade50,
+                  color: AppColors.info,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
-                    side: BorderSide(color: Colors.teal.shade200),
+                    side: BorderSide(color: AppColors.info),
                   ),
                   child: InkWell(
                     onTap: () => _pushRoute(
@@ -6338,12 +6289,12 @@ class _HomeViewState extends State<HomeView>
                           Container(
                             padding: const EdgeInsets.all(7),
                             decoration: BoxDecoration(
-                              color: Colors.teal.shade100,
+                              color: AppColors.info,
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: const Icon(
                               Icons.access_time,
-                              color: Colors.teal,
+                              color: AppColors.info,
                               size: 20,
                             ),
                           ),
@@ -6351,14 +6302,14 @@ class _HomeViewState extends State<HomeView>
                           Text(
                             loc.attendance,
                             style: AppTextStyles.subtitle1.copyWith(
-                              color: Colors.teal,
+                              color: AppColors.info,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           Text(
                             loc.checkInOut,
                             style: AppTextStyles.caption.copyWith(
-                              color: Colors.grey,
+                              color: AppColors.textHint,
                             ),
                           ),
                         ],
@@ -6377,10 +6328,10 @@ class _HomeViewState extends State<HomeView>
             if (_can('allowViewExpenses'))
               Expanded(
                 child: Card(
-                  color: Colors.red.shade50,
+                  color: AppColors.error,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
-                    side: BorderSide(color: Colors.red.shade300, width: 2),
+                    side: BorderSide(color: AppColors.error, width: 2),
                   ),
                   child: InkWell(
                     onTap: () => _openExpensePageAndAdd(isIncome: false),
@@ -6392,12 +6343,12 @@ class _HomeViewState extends State<HomeView>
                           Container(
                             padding: const EdgeInsets.all(7),
                             decoration: BoxDecoration(
-                              color: Colors.red.shade100,
+                              color: AppColors.error,
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: const Icon(
                               Icons.remove_circle_outline,
-                              color: Colors.red,
+                              color: AppColors.error,
                               size: 20,
                             ),
                           ),
@@ -6405,14 +6356,14 @@ class _HomeViewState extends State<HomeView>
                           Text(
                             'Thêm chi',
                             style: AppTextStyles.subtitle1.copyWith(
-                              color: Colors.red,
+                              color: AppColors.error,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           Text(
                             'Ghi nhanh khoản chi',
                             style: AppTextStyles.caption.copyWith(
-                              color: Colors.grey,
+                              color: AppColors.textHint,
                             ),
                           ),
                         ],
@@ -6425,10 +6376,10 @@ class _HomeViewState extends State<HomeView>
             if (_can('allowViewRevenue'))
               Expanded(
                 child: Card(
-                  color: Colors.green.shade50,
+                  color: AppColors.success,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
-                    side: BorderSide(color: Colors.green.shade300, width: 2),
+                    side: BorderSide(color: AppColors.success, width: 2),
                   ),
                   child: InkWell(
                     onTap: () => _openExpensePageAndAdd(isIncome: true),
@@ -6440,12 +6391,12 @@ class _HomeViewState extends State<HomeView>
                           Container(
                             padding: const EdgeInsets.all(7),
                             decoration: BoxDecoration(
-                              color: Colors.green.shade100,
+                              color: AppColors.success,
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: const Icon(
                               Icons.add_circle_outline,
-                              color: Colors.green,
+                              color: AppColors.success,
                               size: 20,
                             ),
                           ),
@@ -6453,14 +6404,14 @@ class _HomeViewState extends State<HomeView>
                           Text(
                             'Thêm thu',
                             style: AppTextStyles.subtitle1.copyWith(
-                              color: Colors.green,
+                              color: AppColors.success,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           Text(
                             'Ghi nhanh khoản thu',
                             style: AppTextStyles.caption.copyWith(
-                              color: Colors.grey,
+                              color: AppColors.textHint,
                             ),
                           ),
                         ],
@@ -6476,10 +6427,10 @@ class _HomeViewState extends State<HomeView>
         // BẢO HÀNH - Only show for electronics shops (repair/warranty enabled)
         if (_enableWarranty && _can('allowViewWarranty'))
           Card(
-            color: Colors.amber.shade50,
+            color: AppColors.warning,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
-              side: BorderSide(color: Colors.amber.shade200),
+              side: BorderSide(color: AppColors.warning),
             ),
             child: ListTile(
               dense: true,
@@ -6488,19 +6439,19 @@ class _HomeViewState extends State<HomeView>
               leading: Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: Colors.amber.shade100,
+                  color: AppColors.warning,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
                   Icons.shield,
-                  color: Colors.amber.shade800,
+                  color: AppColors.warning,
                   size: 18,
                 ),
               ),
               title: Text(
                 "BẢO HÀNH",
                 style: TextStyle(
-                  color: Colors.amber.shade800,
+                  color: AppColors.warning,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -6511,7 +6462,7 @@ class _HomeViewState extends State<HomeView>
               trailing: const Icon(
                 Icons.arrow_forward_ios,
                 size: 14,
-                color: Colors.amber,
+                color: AppColors.warning,
               ),
               onTap: () => _pushRoute(
                 context,
@@ -6681,9 +6632,9 @@ class _HomeViewState extends State<HomeView>
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          border: Border.all(color: color.withOpacity(0.4)),
-          borderRadius: BorderRadius.circular(AppButtonStyles.borderRadius),
+          color: color.withAlpha(26),
+          border: Border.all(color: color.withAlpha(102)),
+          borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
           children: [
@@ -6745,7 +6696,7 @@ class _HomeViewState extends State<HomeView>
             _buildTabHeader(
               loc.sales.toUpperCase(),
               Icons.shopping_cart,
-              Colors.green,
+              AppColors.success,
             ),
             const SizedBox(height: 10),
 
@@ -6754,7 +6705,7 @@ class _HomeViewState extends State<HomeView>
             _financeQuickCard(
               loc.createNewSaleOrder,
               Icons.add_shopping_cart,
-              Colors.green,
+              AppColors.success,
               () => _pushRoute(
                 context,
                 MaterialPageRoute(builder: (_) => const CreateSaleView()),
@@ -6774,7 +6725,7 @@ class _HomeViewState extends State<HomeView>
                 _tabMenuItem(
                   loc.saleOrderList,
                   Icons.list_alt,
-                  Colors.blue,
+                  AppColors.primary,
                   () => _pushRoute(
                     context,
                     MaterialPageRoute(builder: (_) => const SaleListView()),
@@ -6784,7 +6735,7 @@ class _HomeViewState extends State<HomeView>
                 _tabMenuItem(
                   loc.customerManagement,
                   Icons.people,
-                  Colors.blue,
+                  AppColors.primary,
                   () => _pushRoute(
                     context,
                     MaterialPageRoute(
@@ -6796,7 +6747,7 @@ class _HomeViewState extends State<HomeView>
                 _tabMenuItem(
                   loc.warranty,
                   Icons.verified_user,
-                  Colors.orange,
+                  AppColors.warning,
                   () => _pushRoute(
                     context,
                     MaterialPageRoute(builder: (_) => const WarrantyView()),
@@ -6806,7 +6757,7 @@ class _HomeViewState extends State<HomeView>
                 _tabMenuItem(
                   'Trả hàng',
                   Icons.assignment_return,
-                  Colors.red,
+                  AppColors.error,
                   () => _pushRoute(
                     context,
                     MaterialPageRoute(
@@ -6819,7 +6770,7 @@ class _HomeViewState extends State<HomeView>
                   _tabMenuItem(
                     'Kho máy xác',
                     Icons.phone_android,
-                    Colors.brown,
+                    AppColors.textSecondary,
                     () => _pushRoute(
                       context,
                       MaterialPageRoute(
@@ -6850,14 +6801,14 @@ class _HomeViewState extends State<HomeView>
             _buildTabHeader(
               loc.repairsTab.toUpperCase(),
               Icons.build,
-              Colors.blue,
+              AppColors.primary,
             ),
             const SizedBox(height: 10), // Quick Action - Tạo đơn sửa
             _buildSectionHeader(loc.quickActions),
             _financeQuickCard(
               loc.createNewRepairOrder,
               Icons.build_circle,
-              Colors.blue,
+              AppColors.primary,
               () => _pushRoute(
                 context,
                 MaterialPageRoute(
@@ -6883,7 +6834,7 @@ class _HomeViewState extends State<HomeView>
             _tabMenuItem(
               loc.repairOrderList,
               Icons.list_alt,
-              Colors.indigo,
+              AppColors.primary,
               () => _pushRoute(
                 context,
                 MaterialPageRoute(
@@ -6899,7 +6850,7 @@ class _HomeViewState extends State<HomeView>
               _tabMenuItem(
                 'Kho phụ tùng / linh kiện',
                 Icons.settings_suggest_outlined,
-                Colors.deepOrange,
+                AppColors.repairPendingApproval,
                 () => _pushRoute(
                   context,
                   MaterialPageRoute(
@@ -6933,7 +6884,7 @@ class _HomeViewState extends State<HomeView>
             _buildTabHeader(
               loc.inventoryManagement,
               Icons.inventory_2,
-              Colors.orange,
+              AppColors.warning,
             ),
             const SizedBox(height: 8),
 
@@ -6951,13 +6902,13 @@ class _HomeViewState extends State<HomeView>
                   Icon(
                     Icons.info_outline,
                     size: 14,
-                    color: Colors.grey.shade600,
+                    color: AppColors.textSecondary,
                   ),
                   const SizedBox(width: 4),
                   Text(
                     loc.holdForDetailedGuide,
                     style: AppTextStyles.body1.copyWith(
-                      color: Colors.grey.shade600,
+                      color: AppColors.textSecondary,
                       fontStyle: FontStyle.italic,
                     ),
                   ),
@@ -6969,10 +6920,10 @@ class _HomeViewState extends State<HomeView>
                 // Nhập kho thông minh (MỚI)
                 Expanded(
                   child: Card(
-                    color: Colors.green.shade50,
+                    color: AppColors.success,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
-                      side: BorderSide(color: Colors.green.shade300, width: 2),
+                      side: BorderSide(color: AppColors.success, width: 2),
                     ),
                     child: InkWell(
                       onTap: () => _pushRoute(
@@ -6985,7 +6936,7 @@ class _HomeViewState extends State<HomeView>
                         loc.stockInNew,
                         loc.stockInNewGuide,
                         Icons.add_box,
-                        Colors.green,
+                        AppColors.success,
                       ),
                       borderRadius: BorderRadius.circular(10),
                       child: Padding(
@@ -6995,12 +6946,12 @@ class _HomeViewState extends State<HomeView>
                             Container(
                               padding: const EdgeInsets.all(7),
                               decoration: BoxDecoration(
-                                color: Colors.green.shade100,
+                                color: AppColors.success,
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: const Icon(
                                 Icons.add_box,
-                                color: Colors.green,
+                                color: AppColors.success,
                                 size: 20,
                               ),
                             ),
@@ -7008,14 +6959,14 @@ class _HomeViewState extends State<HomeView>
                             Text(
                               loc.stockInNew,
                               style: AppTextStyles.subtitle1.copyWith(
-                                color: Colors.green,
+                                color: AppColors.success,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                             Text(
                               loc.fullInformation,
                               style: AppTextStyles.overline.copyWith(
-                                color: Colors.grey.shade600,
+                                color: AppColors.textSecondary,
                               ),
                             ),
                           ],
@@ -7029,10 +6980,10 @@ class _HomeViewState extends State<HomeView>
                 if (_isElectronics)
                   Expanded(
                     child: Card(
-                      color: Colors.orange.shade50,
+                      color: AppColors.warning,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
-                        side: BorderSide(color: Colors.orange.shade200),
+                        side: BorderSide(color: AppColors.warning),
                       ),
                       child: InkWell(
                         onTap: () => _pushRoute(
@@ -7045,7 +6996,7 @@ class _HomeViewState extends State<HomeView>
                           loc.quickStockIn,
                           loc.quickStockInGuide,
                           Icons.flash_on,
-                          Colors.orange,
+                          AppColors.warning,
                         ),
                         borderRadius: BorderRadius.circular(10),
                         child: Padding(
@@ -7055,12 +7006,12 @@ class _HomeViewState extends State<HomeView>
                               Container(
                                 padding: const EdgeInsets.all(7),
                                 decoration: BoxDecoration(
-                                  color: Colors.orange.shade100,
+                                  color: AppColors.warning,
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: const Icon(
                                   Icons.flash_on,
-                                  color: Colors.orange,
+                                  color: AppColors.warning,
                                   size: 20,
                                 ),
                               ),
@@ -7068,14 +7019,14 @@ class _HomeViewState extends State<HomeView>
                               Text(
                                 loc.quickStockIn,
                                 style: AppTextStyles.subtitle1.copyWith(
-                                  color: Colors.orange,
+                                  color: AppColors.warning,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
                               Text(
                                 loc.continuousScan,
                                 style: AppTextStyles.overline.copyWith(
-                                  color: Colors.grey.shade600,
+                                  color: AppColors.textSecondary,
                                 ),
                               ),
                             ],
@@ -7087,10 +7038,10 @@ class _HomeViewState extends State<HomeView>
                 const SizedBox(width: 6),
                 Expanded(
                   child: Card(
-                    color: Colors.blue.shade50,
+                    color: AppColors.primary,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
-                      side: BorderSide(color: Colors.blue.shade200),
+                      side: BorderSide(color: AppColors.primary),
                     ),
                     child: InkWell(
                       onTap: () => _pushRoute(
@@ -7103,7 +7054,7 @@ class _HomeViewState extends State<HomeView>
                         loc.checkInventory,
                         loc.checkInventoryGuide,
                         Icons.qr_code_scanner,
-                        Colors.blue,
+                        AppColors.primary,
                       ),
                       borderRadius: BorderRadius.circular(10),
                       child: Padding(
@@ -7113,12 +7064,12 @@ class _HomeViewState extends State<HomeView>
                             Container(
                               padding: const EdgeInsets.all(7),
                               decoration: BoxDecoration(
-                                color: Colors.blue.shade100,
+                                color: AppColors.primary,
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: const Icon(
                                 Icons.qr_code_scanner,
-                                color: Colors.blue,
+                                color: AppColors.primary,
                                 size: 20,
                               ),
                             ),
@@ -7126,14 +7077,14 @@ class _HomeViewState extends State<HomeView>
                             Text(
                               loc.checkInventory,
                               style: AppTextStyles.subtitle1.copyWith(
-                                color: Colors.blue,
+                                color: AppColors.primary,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                             Text(
                               loc.compareInventory,
                               style: AppTextStyles.overline.copyWith(
-                                color: Colors.grey.shade600,
+                                color: AppColors.textSecondary,
                               ),
                             ),
                           ],
@@ -7158,7 +7109,7 @@ class _HomeViewState extends State<HomeView>
                 _tabMenuItem(
                   loc.pendingConfirmation,
                   Icons.pending_actions,
-                  Colors.orange,
+                  AppColors.warning,
                   () => _pushRoute(
                     context,
                     MaterialPageRoute(
@@ -7170,7 +7121,7 @@ class _HomeViewState extends State<HomeView>
                 _tabMenuItem(
                   loc.productList,
                   Icons.inventory,
-                  Colors.blue,
+                  AppColors.primary,
                   () => _pushRoute(
                     context,
                     MaterialPageRoute(
@@ -7182,7 +7133,7 @@ class _HomeViewState extends State<HomeView>
                 _tabMenuItem(
                   loc.suppliersPartners,
                   Icons.business_center,
-                  Colors.teal,
+                  AppColors.info,
                   () => _pushRoute(
                     context,
                     MaterialPageRoute(builder: (_) => const SupplierListView()),
@@ -7192,7 +7143,7 @@ class _HomeViewState extends State<HomeView>
                 _tabMenuItem(
                   loc.quickInputCodeList,
                   Icons.qr_code,
-                  Colors.indigo,
+                  AppColors.primary,
                   () => _pushRoute(
                     context,
                     MaterialPageRoute(
@@ -7204,7 +7155,7 @@ class _HomeViewState extends State<HomeView>
                 _tabMenuItem(
                   'Lịch sử nhập kho',
                   Icons.history_edu,
-                  Colors.teal,
+                  AppColors.info,
                   () => _pushRoute(
                     context,
                     MaterialPageRoute(
@@ -7234,14 +7185,14 @@ class _HomeViewState extends State<HomeView>
             vertical: 10,
           ),
           children: [
-            _buildTabHeader(loc.staffManagement, Icons.people, Colors.teal),
+            _buildTabHeader(loc.staffManagement, Icons.people, AppColors.info),
             const SizedBox(height: 10),
 
             _buildSectionHeader(loc.quickActions),
             _staffQuickCard(
               loc.attendance,
               Icons.fingerprint,
-              Colors.teal,
+              AppColors.info,
               _guardedFeatureAction(
                 featureName: loc.attendance,
                 permission: 'allowViewAttendance',
@@ -7259,15 +7210,15 @@ class _HomeViewState extends State<HomeView>
                 margin: const EdgeInsets.only(top: 10, bottom: 2),
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
+                  color: AppColors.primary,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.blue.shade100),
+                  border: Border.all(color: AppColors.primary),
                 ),
                 child: Row(
                   children: [
                     Icon(
                       Icons.info_outline,
-                      color: Colors.blue.shade700,
+                      color: AppColors.primary,
                       size: 18,
                     ),
                     const SizedBox(width: 8),
@@ -7275,7 +7226,7 @@ class _HomeViewState extends State<HomeView>
                       child: Text(
                         'Bạn vẫn có thể dùng tab Nhân sự ở chế độ cá nhân. Một số chức năng quản lý đã được ẩn/khóa theo phân quyền.',
                         style: AppTextStyles.caption.copyWith(
-                          color: Colors.blue.shade800,
+                          color: AppColors.primary,
                         ),
                       ),
                     ),
@@ -7298,7 +7249,7 @@ class _HomeViewState extends State<HomeView>
                 _staffQuickCard(
                   loc.staffListLabel,
                   Icons.people,
-                  Colors.blue,
+                  AppColors.primary,
                   _guardedFeatureAction(
                     featureName: loc.staffListLabel,
                     permission: 'allowManageStaff',
@@ -7313,7 +7264,7 @@ class _HomeViewState extends State<HomeView>
                 _staffQuickCard(
                   'Hồ sơ của tôi',
                   Icons.account_circle_outlined,
-                  Colors.teal,
+                  AppColors.info,
                   _guardedFeatureAction(
                     featureName: 'Hồ sơ của tôi',
                     onAllowed: _openMyStaffProfile,
@@ -7322,7 +7273,7 @@ class _HomeViewState extends State<HomeView>
                 _staffQuickCard(
                   'Danh bạ nội bộ',
                   Icons.badge_outlined,
-                  Colors.indigo,
+                  AppColors.primary,
                   _guardedFeatureAction(
                     featureName: 'Danh bạ nội bộ',
                     onAllowed: () => _pushRoute(
@@ -7336,7 +7287,7 @@ class _HomeViewState extends State<HomeView>
                 _staffQuickCard(
                   'Cộng đồng shop',
                   Icons.groups_2_outlined,
-                  Colors.pink,
+                  AppColors.error,
                   _guardedFeatureAction(
                     featureName: 'Cộng đồng shop',
                     onAllowed: () => _pushRoute(
@@ -7350,7 +7301,7 @@ class _HomeViewState extends State<HomeView>
                 _staffQuickCardWithHelp(
                   loc.salaryCalculation,
                   Icons.bar_chart,
-                  Colors.orange,
+                  AppColors.warning,
                   _guardedFeatureAction(
                     featureName: loc.salaryCalculation,
                     permission: 'allowManageStaff',
@@ -7368,7 +7319,7 @@ class _HomeViewState extends State<HomeView>
                 _staffQuickCard(
                   loc.workSchedule,
                   Icons.schedule,
-                  Colors.blue,
+                  AppColors.primary,
                   _guardedFeatureAction(
                     featureName: loc.workSchedule,
                     permission: 'allowManageStaff',
@@ -7385,7 +7336,7 @@ class _HomeViewState extends State<HomeView>
                 _staffQuickCard(
                   loc.salaryCommissionSettings,
                   Icons.account_balance_wallet,
-                  Colors.green,
+                  AppColors.success,
                   _guardedFeatureAction(
                     featureName: loc.salaryCommissionSettings,
                     permission: 'allowManageStaff',
@@ -7415,7 +7366,7 @@ class _HomeViewState extends State<HomeView>
                 _tabMenuItem(
                   loc.attendanceTracking,
                   Icons.people_outline,
-                  Colors.teal,
+                  AppColors.info,
                   _guardedFeatureAction(
                     featureName: loc.attendanceTracking,
                     permission: 'allowManageStaff',
@@ -7431,7 +7382,7 @@ class _HomeViewState extends State<HomeView>
                 _tabMenuItem(
                   loc.personalAttendance,
                   Icons.history,
-                  Colors.indigo,
+                  AppColors.primary,
                   _guardedFeatureAction(
                     featureName: loc.personalAttendance,
                     permission: 'allowViewAttendance',
@@ -7469,13 +7420,13 @@ class _HomeViewState extends State<HomeView>
         }
         NotificationService.showSnackBar(
           'Bạn không có quyền truy cập "$featureName". Vui lòng liên hệ chủ shop.',
-          color: Colors.orange,
+          color: AppColors.warning,
         );
       } catch (e) {
         debugPrint('HomeView: error opening feature "$featureName": $e');
         NotificationService.showSnackBar(
           'Không thể mở "$featureName" lúc này. Vui lòng thử lại.',
-          color: Colors.red,
+          color: AppColors.error,
         );
       }
     };
@@ -7489,19 +7440,19 @@ class _HomeViewState extends State<HomeView>
     bool locked = false,
     String? lockHint,
   }) {
-    final displayColor = locked ? Colors.grey : color;
+    final displayColor = locked ? AppColors.textHint : color;
     return Card(
       elevation: 0,
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10),
-        side: BorderSide(color: displayColor.withOpacity(0.2)),
+        side: BorderSide(color: displayColor.withAlpha(51)),
       ),
       child: InkWell(
         onTap: locked
             ? () => NotificationService.showSnackBar(
                 lockHint ?? 'Tính năng đang bị khóa theo phân quyền',
-                color: Colors.orange,
+                color: AppColors.warning,
               )
             : onTap,
         borderRadius: BorderRadius.circular(10),
@@ -7509,14 +7460,14 @@ class _HomeViewState extends State<HomeView>
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(10),
-            color: displayColor.withOpacity(0.05),
+            color: displayColor.withAlpha(13),
           ),
           child: Row(
             children: [
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: displayColor.withOpacity(0.12),
+                  color: displayColor.withAlpha(31),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
@@ -7539,7 +7490,7 @@ class _HomeViewState extends State<HomeView>
               ),
               Icon(
                 locked ? Icons.lock_outline : Icons.chevron_right,
-                color: displayColor.withOpacity(0.4),
+                color: displayColor.withAlpha(102),
                 size: 16,
               ),
             ],
@@ -7561,19 +7512,19 @@ class _HomeViewState extends State<HomeView>
     String? lockHint,
     }
   ) {
-    final displayColor = locked ? Colors.grey : color;
+    final displayColor = locked ? AppColors.textHint : color;
     return Card(
       elevation: 0,
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10),
-        side: BorderSide(color: displayColor.withOpacity(0.2)),
+        side: BorderSide(color: displayColor.withAlpha(51)),
       ),
       child: InkWell(
         onTap: locked
             ? () => NotificationService.showSnackBar(
                 lockHint ?? 'Tính năng đang bị khóa theo phân quyền',
-                color: Colors.orange,
+                color: AppColors.warning,
               )
             : onTap,
         borderRadius: BorderRadius.circular(10),
@@ -7581,14 +7532,14 @@ class _HomeViewState extends State<HomeView>
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(10),
-            color: displayColor.withOpacity(0.05),
+            color: displayColor.withAlpha(13),
           ),
           child: Row(
             children: [
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: displayColor.withOpacity(0.12),
+                  color: displayColor.withAlpha(31),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(locked ? Icons.lock_outline : icon, color: displayColor, size: 18),
@@ -7608,7 +7559,7 @@ class _HomeViewState extends State<HomeView>
               IconButton(
                 icon: Icon(
                   Icons.help_outline,
-                  color: displayColor.withOpacity(0.5),
+                  color: displayColor.withAlpha(128),
                   size: 14,
                 ),
                 onPressed: onHelpTap,
@@ -7619,7 +7570,7 @@ class _HomeViewState extends State<HomeView>
               const SizedBox(width: 4),
               Icon(
                 locked ? Icons.lock_outline : Icons.chevron_right,
-                color: displayColor.withOpacity(0.4),
+                color: displayColor.withAlpha(102),
                 size: 16,
               ),
             ],
@@ -7640,12 +7591,12 @@ class _HomeViewState extends State<HomeView>
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.orange.shade100,
+                color: AppColors.warning,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: const Icon(
                 Icons.bar_chart,
-                color: Colors.orange,
+                color: AppColors.warning,
                 size: 24,
               ),
             ),
@@ -7656,7 +7607,7 @@ class _HomeViewState extends State<HomeView>
                 style: const TextStyle(
                   fontSize: AppTextStyles.h3,
                   fontWeight: FontWeight.bold,
-                  color: Colors.orange,
+                  color: AppColors.warning,
                 ),
               ),
             ),
@@ -7670,32 +7621,32 @@ class _HomeViewState extends State<HomeView>
               _buildHelpSection(
                 AppLocalizations.of(context)!.accessSalaryTable,
                 AppLocalizations.of(context)!.accessSalaryDesc,
-                Colors.blue,
+                AppColors.primary,
               ),
               _buildHelpSection(
                 AppLocalizations.of(context)!.salarySettings,
                 AppLocalizations.of(context)!.salarySettingsDesc,
-                Colors.green,
+                AppColors.success,
               ),
               _buildHelpSection(
                 AppLocalizations.of(context)!.salaryComponents,
                 AppLocalizations.of(context)!.salaryComponentsDesc,
-                Colors.orange,
+                AppColors.warning,
               ),
               _buildHelpSection(
                 AppLocalizations.of(context)!.viewDetails,
                 AppLocalizations.of(context)!.viewDetailsDesc,
-                Colors.blue,
+                AppColors.primary,
               ),
               _buildHelpSection(
                 AppLocalizations.of(context)!.printSalarySlip,
                 AppLocalizations.of(context)!.printSalaryDesc,
-                Colors.teal,
+                AppColors.info,
               ),
               _buildHelpSection(
                 AppLocalizations.of(context)!.taxAndInsurance,
                 AppLocalizations.of(context)!.taxAndInsuranceDesc,
-                Colors.red,
+                AppColors.error,
               ),
             ],
           ),
@@ -7706,7 +7657,7 @@ class _HomeViewState extends State<HomeView>
             child: Text(
               AppLocalizations.of(context)!.understood,
               style: const TextStyle(
-                color: Colors.orange,
+                color: AppColors.warning,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -7722,8 +7673,8 @@ class _HomeViewState extends State<HomeView>
             icon: const Icon(Icons.arrow_forward, size: 16),
             label: Text(AppLocalizations.of(context)!.goToSalaryTable),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange,
-              foregroundColor: Colors.white,
+              backgroundColor: AppColors.warning,
+              foregroundColor: AppColors.surface,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
               ),
@@ -7752,7 +7703,7 @@ class _HomeViewState extends State<HomeView>
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withAlpha(26),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
@@ -7782,7 +7733,7 @@ class _HomeViewState extends State<HomeView>
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10),
-        side: BorderSide(color: color.withOpacity(0.2)),
+        side: BorderSide(color: color.withAlpha(51)),
       ),
       child: InkWell(
         onTap: onTap,
@@ -7791,14 +7742,14 @@ class _HomeViewState extends State<HomeView>
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(10),
-            color: color.withOpacity(0.05),
+            color: color.withAlpha(13),
           ),
           child: Row(
             children: [
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.12),
+                  color: color.withAlpha(31),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(icon, color: color, size: 18),
@@ -7823,7 +7774,7 @@ class _HomeViewState extends State<HomeView>
                         subtitle,
                         style: TextStyle(
                           fontSize: 12,
-                          color: color.withOpacity(0.7),
+                          color: color.withAlpha(179),
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -7833,7 +7784,7 @@ class _HomeViewState extends State<HomeView>
               ),
               Icon(
                 Icons.chevron_right,
-                color: color.withOpacity(0.4),
+                color: color.withAlpha(102),
                 size: 16,
               ),
             ],
@@ -7849,14 +7800,14 @@ class _HomeViewState extends State<HomeView>
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [color, color.withOpacity(0.7)],
+          colors: [color, color.withAlpha(179)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.25),
+            color: color.withAlpha(64),
             blurRadius: 8,
             offset: const Offset(0, 3),
           ),
@@ -7867,10 +7818,10 @@ class _HomeViewState extends State<HomeView>
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: AppColors.surface.withAlpha(51),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icon, color: Colors.white, size: 22),
+            child: Icon(icon, color: AppColors.surface, size: 22),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -7880,14 +7831,14 @@ class _HomeViewState extends State<HomeView>
                 Text(
                   title,
                   style: AppTextStyles.headline3.copyWith(
-                    color: Colors.white,
+                    color: AppColors.surface,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 Text(
                   DateFormat('EEEE, dd/MM', 'vi').format(DateTime.now()),
                   style: AppTextStyles.caption.copyWith(
-                    color: Colors.white.withOpacity(0.8),
+                    color: AppColors.surface.withAlpha(204),
                   ),
                 ),
               ],
@@ -7911,11 +7862,11 @@ class _HomeViewState extends State<HomeView>
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(14),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: AppColors.textPrimary.withAlpha(13),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -7929,12 +7880,12 @@ class _HomeViewState extends State<HomeView>
                 Container(
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
-                    color: Colors.orange.shade50,
+                    color: AppColors.warning,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
                     Icons.account_balance,
-                    color: Colors.orange.shade600,
+                    color: AppColors.warning,
                     size: 16,
                   ),
                 ),
@@ -7944,7 +7895,7 @@ class _HomeViewState extends State<HomeView>
                     'CÔNG NỢ TỔNG HỢP',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: Colors.orange.shade700,
+                      color: AppColors.warning,
                       fontSize: 13,
                       letterSpacing: 0.4,
                     ),
@@ -7961,8 +7912,8 @@ class _HomeViewState extends State<HomeView>
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                       color: totalDebtRemain > 0
-                          ? Colors.red.shade600
-                          : Colors.grey.shade500,
+                          ? AppColors.error
+                          : AppColors.textHint,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -7972,7 +7923,7 @@ class _HomeViewState extends State<HomeView>
                 Icon(
                   Icons.arrow_forward_ios,
                   size: 10,
-                  color: Colors.grey.shade400,
+                  color: AppColors.textHint,
                 ),
               ],
             ),
@@ -7983,25 +7934,25 @@ class _HomeViewState extends State<HomeView>
                   child: _debtTypeColumn(
                     '👤 Khách nợ',
                     _customerDebtRemain,
-                    Colors.cyan,
+                    AppColors.info,
                     'Phải thu',
                   ),
                 ),
-                Container(width: 1, height: 44, color: Colors.grey.shade200),
+                Container(width: 1, height: 44, color: AppColors.outline),
                 Expanded(
                   child: _debtTypeColumn(
                     '🏭 Nợ NCC',
                     _supplierDebtRemain,
-                    Colors.deepOrange,
+                    AppColors.repairPendingApproval,
                     'Phải trả',
                   ),
                 ),
-                Container(width: 1, height: 44, color: Colors.grey.shade200),
+                Container(width: 1, height: 44, color: AppColors.outline),
                 Expanded(
                   child: _debtTypeColumn(
                     '🤝 Đối tác',
                     _partnerDebtRemain,
-                    Colors.purple,
+                    AppColors.repairDelivered,
                     'Phải trả',
                   ),
                 ),
@@ -8023,7 +7974,7 @@ class _HomeViewState extends State<HomeView>
       children: [
         Text(
           label,
-          style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+          style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
@@ -8033,14 +7984,14 @@ class _HomeViewState extends State<HomeView>
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.bold,
-            color: amount > 0 ? color : Colors.grey,
+            color: amount > 0 ? color : AppColors.textHint,
           ),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
         Text(
           subLabel,
-          style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+          style: TextStyle(fontSize: 11, color: AppColors.textHint),
         ),
       ],
     );
@@ -8055,7 +8006,7 @@ class _HomeViewState extends State<HomeView>
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: AppColors.shadow.withOpacity(0.1),
+            color: AppColors.shadow.withAlpha(26),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -8078,8 +8029,8 @@ class _HomeViewState extends State<HomeView>
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: (_todayNetProfit >= 0 ? Colors.green : Colors.red)
-                      .withOpacity(0.3),
+                  color: (_todayNetProfit >= 0 ? AppColors.success : AppColors.error)
+                      .withAlpha(77),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -8097,7 +8048,7 @@ class _HomeViewState extends State<HomeView>
                     _todayNetProfit >= 0
                         ? Icons.trending_up_rounded
                         : Icons.trending_down_rounded,
-                    color: Colors.white,
+                    color: AppColors.surface,
                     size: 28,
                   ),
                 ),
@@ -8117,7 +8068,7 @@ class _HomeViewState extends State<HomeView>
                       Text(
                         MoneyUtils.formatCompact(_todayNetProfit),
                         style: AppTextStyles.headline5.copyWith(
-                          color: Colors.white,
+                          color: AppColors.surface,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -8127,7 +8078,7 @@ class _HomeViewState extends State<HomeView>
                           Text(
                             '🛒 ${MoneyUtils.formatCompact(_todaySalesProfit)}',
                             style: AppTextStyles.overline.copyWith(
-                              color: Colors.white.withOpacity(0.85),
+                              color: AppColors.surface.withOpacity(0.85),
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -8141,7 +8092,7 @@ class _HomeViewState extends State<HomeView>
                             Text(
                               '🔧 ${MoneyUtils.formatCompact(_todayRepairProfit)}',
                               style: AppTextStyles.overline.copyWith(
-                                color: Colors.white.withOpacity(0.85),
+                                color: AppColors.surface.withOpacity(0.85),
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -8194,9 +8145,9 @@ class _HomeViewState extends State<HomeView>
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.08),
+          color: color.withAlpha(20),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: color.withOpacity(0.2)),
+          border: Border.all(color: color.withAlpha(51)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -8217,7 +8168,7 @@ class _HomeViewState extends State<HomeView>
                 if (onTap != null)
                   Icon(
                     Icons.arrow_forward_ios,
-                    color: color.withOpacity(0.5),
+                    color: color.withAlpha(128),
                     size: 12,
                   ),
               ],
@@ -8235,7 +8186,7 @@ class _HomeViewState extends State<HomeView>
               Text(
                 detail,
                 style: AppTextStyles.overline.copyWith(
-                  color: AppColors.onSurface.withOpacity(0.5),
+                  color: AppColors.onSurface.withAlpha(128),
                 ),
               ),
             ],
@@ -8301,7 +8252,7 @@ class _HomeViewState extends State<HomeView>
               _tabMenuItem(
                 loc.shopSettings,
                 Icons.store,
-                Colors.blue,
+                AppColors.primary,
                 () => _pushRoute(
                   context,
                   MaterialPageRoute(builder: (_) => const ShopSettingsView()),
@@ -8418,7 +8369,7 @@ class _HomeViewState extends State<HomeView>
                       backgroundImage: hasPhoto
                           ? NetworkImage(resolvedPhotoUrl)
                           : null,
-                      backgroundColor: Colors.blue.shade100,
+                      backgroundColor: AppColors.primary,
                       child: hasPhoto
                           ? null
                           : Text(
@@ -8426,7 +8377,7 @@ class _HomeViewState extends State<HomeView>
                               style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.blue,
+                                color: AppColors.primary,
                               ),
                             ),
                     ),
@@ -8434,7 +8385,7 @@ class _HomeViewState extends State<HomeView>
                       right: -2,
                       bottom: -2,
                       child: Material(
-                        color: Colors.white,
+                        color: AppColors.surface,
                         shape: const CircleBorder(),
                         elevation: 2,
                         child: InkWell(
@@ -8451,7 +8402,7 @@ class _HomeViewState extends State<HomeView>
                                 : const Icon(
                                     Icons.camera_alt,
                                     size: 12,
-                                    color: Colors.blue,
+                                    color: AppColors.primary,
                                   ),
                           ),
                         ),
@@ -8476,7 +8427,7 @@ class _HomeViewState extends State<HomeView>
                         email,
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.grey.shade600,
+                          color: AppColors.textSecondary,
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -8489,7 +8440,7 @@ class _HomeViewState extends State<HomeView>
                     vertical: 3,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
+                    color: AppColors.primary,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -8497,7 +8448,7 @@ class _HomeViewState extends State<HomeView>
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 11,
-                      color: Colors.blue.shade700,
+                      color: AppColors.primary,
                     ),
                   ),
                 ),
@@ -8507,21 +8458,21 @@ class _HomeViewState extends State<HomeView>
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.blueGrey.shade50,
+                color: AppColors.textSecondary,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.blueGrey.shade100),
+                border: Border.all(color: AppColors.textSecondary),
               ),
               child: Row(
                 children: [
                   CircleAvatar(
                     radius: 14,
-                    backgroundColor: Colors.indigo.shade100,
+                    backgroundColor: AppColors.primary,
                     backgroundImage: hasShopLogo
                         ? NetworkImage(_shopLogoUrl.trim())
                         : null,
                     child: hasShopLogo
                         ? null
-                        : const Icon(Icons.store, size: 14, color: Colors.indigo),
+                        : const Icon(Icons.store, size: 14, color: AppColors.primary),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
@@ -8529,7 +8480,7 @@ class _HomeViewState extends State<HomeView>
                       shopName,
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.blueGrey.shade800,
+                        color: AppColors.textSecondary,
                         fontWeight: FontWeight.w600,
                       ),
                       overflow: TextOverflow.ellipsis,
@@ -8539,7 +8490,7 @@ class _HomeViewState extends State<HomeView>
                     'Cửa hàng',
                     style: TextStyle(
                       fontSize: 11,
-                      color: Colors.blueGrey.shade600,
+                      color: AppColors.textSecondary,
                     ),
                   ),
                 ],
@@ -8550,14 +8501,14 @@ class _HomeViewState extends State<HomeView>
             // Linked accounts
             Row(
               children: [
-                Icon(Icons.link, color: Colors.indigo.shade400, size: 18),
+                Icon(Icons.link, color: AppColors.primary, size: 18),
                 const SizedBox(width: 6),
                 Text(
                   'Liên kết tài khoản',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 13,
-                    color: Colors.indigo.shade400,
+                    color: AppColors.primary,
                   ),
                 ),
               ],
@@ -8566,7 +8517,7 @@ class _HomeViewState extends State<HomeView>
             // Email
             _buildProviderTile(
               Icons.email,
-              Colors.blue,
+              AppColors.primary,
               'Email',
               passwordLinked,
               null,
@@ -8576,7 +8527,7 @@ class _HomeViewState extends State<HomeView>
             // Google
             _buildProviderTile(
               Icons.g_mobiledata,
-              Colors.red,
+              AppColors.error,
               'Google',
               googleLinked,
               () => _linkSocialProvider('google'),
@@ -8587,7 +8538,7 @@ class _HomeViewState extends State<HomeView>
             if (showApple)
               _buildProviderTile(
                 Icons.apple,
-                Colors.black,
+                AppColors.textPrimary,
                 'Apple',
                 appleLinked,
                 () => _linkSocialProvider('apple'),
@@ -8604,12 +8555,12 @@ class _HomeViewState extends State<HomeView>
                 padding: const EdgeInsets.symmetric(vertical: 6),
                 child: Row(
                   children: [
-                    const Icon(Icons.logout, color: Colors.red, size: 20),
+                    const Icon(Icons.logout, color: AppColors.error, size: 20),
                     const SizedBox(width: 10),
                     Text(
                       loc.logout,
                       style: const TextStyle(
-                        color: Colors.red,
+                        color: AppColors.error,
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
                       ),
@@ -8647,7 +8598,7 @@ class _HomeViewState extends State<HomeView>
                 if (linked && providerEmail != null && providerEmail.isNotEmpty)
                   Text(
                     providerEmail,
-                    style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                    style: TextStyle(fontSize: 11, color: AppColors.textHint),
                     overflow: TextOverflow.ellipsis,
                   ),
               ],
@@ -8657,11 +8608,11 @@ class _HomeViewState extends State<HomeView>
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.check_circle, color: Colors.green, size: 16),
+                const Icon(Icons.check_circle, color: AppColors.success, size: 16),
                 const SizedBox(width: 4),
                 Text(
                   'Đã liên kết',
-                  style: TextStyle(fontSize: 11, color: Colors.green.shade700),
+                  style: TextStyle(fontSize: 11, color: AppColors.success),
                 ),
                 if (onUnlink != null &&
                     SocialAuthService.getLinkedProviders().length > 1) ...[
@@ -8672,7 +8623,7 @@ class _HomeViewState extends State<HomeView>
                       'Hủy',
                       style: TextStyle(
                         fontSize: 11,
-                        color: Colors.red.shade400,
+                        color: AppColors.error,
                         decoration: TextDecoration.underline,
                       ),
                     ),
@@ -8735,7 +8686,7 @@ class _HomeViewState extends State<HomeView>
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('✅ Đã liên kết $provider thành công!'),
-              backgroundColor: Colors.green,
+              backgroundColor: AppColors.success,
             ),
           );
         }
@@ -8745,7 +8696,7 @@ class _HomeViewState extends State<HomeView>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(e.message ?? 'Lỗi liên kết $provider'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.error,
           ),
         );
       }
@@ -8755,7 +8706,7 @@ class _HomeViewState extends State<HomeView>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(msg, maxLines: 4),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.error,
             duration: const Duration(seconds: 6),
           ),
         );
@@ -8776,10 +8727,10 @@ class _HomeViewState extends State<HomeView>
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
             child: const Text(
               'XÁC NHẬN',
-              style: TextStyle(color: Colors.white),
+              style: TextStyle(color: AppColors.surface),
             ),
           ),
         ],
@@ -8799,7 +8750,7 @@ class _HomeViewState extends State<HomeView>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Đã hủy liên kết $provider'),
-            backgroundColor: Colors.orange,
+            backgroundColor: AppColors.warning,
           ),
         );
       }
@@ -8825,10 +8776,10 @@ class _HomeViewState extends State<HomeView>
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
             child: Text(
               loc.logout,
-              style: const TextStyle(color: Colors.white),
+              style: const TextStyle(color: AppColors.surface),
             ),
           ),
         ],
@@ -8863,17 +8814,17 @@ class _HomeViewState extends State<HomeView>
 
   Widget _buildLogoutCard() {
     return Card(
-      color: Colors.red.shade50,
+      color: AppColors.error,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(15),
-        side: BorderSide(color: Colors.red.shade200),
+        side: BorderSide(color: AppColors.error),
       ),
       child: ListTile(
-        leading: const Icon(Icons.logout, color: Colors.red),
+        leading: const Icon(Icons.logout, color: AppColors.error),
         title: Text(
           loc.logout,
           style: const TextStyle(
-            color: Colors.red,
+            color: AppColors.error,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -8891,10 +8842,10 @@ class _HomeViewState extends State<HomeView>
                 ),
                 ElevatedButton(
                   onPressed: () => Navigator.pop(ctx, true),
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
                   child: Text(
                     loc.logout,
-                    style: const TextStyle(color: Colors.white),
+                    style: const TextStyle(color: AppColors.surface),
                   ),
                 ),
               ],
@@ -8942,10 +8893,10 @@ class _HomeViewState extends State<HomeView>
             // Chưa kiểm tra
             if (isHealthy == null) {
               return Card(
-                color: Colors.grey.shade100,
+                color: AppColors.background,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(15),
-                  side: BorderSide(color: Colors.grey.shade300),
+                  side: BorderSide(color: AppColors.outline),
                 ),
                 child: ListTile(
                   leading: const SizedBox(
@@ -8965,42 +8916,42 @@ class _HomeViewState extends State<HomeView>
             // Healthy
             if (isHealthy) {
               return Card(
-                color: Colors.green.shade50,
+                color: AppColors.success,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(15),
-                  side: BorderSide(color: Colors.green.shade200),
+                  side: BorderSide(color: AppColors.success),
                 ),
                 child: ListTile(
                   leading: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.green.shade100,
+                      color: AppColors.success.withAlpha(77),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: const Icon(
                       Icons.check_circle,
-                      color: Colors.green,
+                      color: AppColors.surface,
                       size: 22,
                     ),
                   ),
                   title: Text(
                     loc.dataSyncedFully,
                     style: AppTextStyles.headline5.copyWith(
-                      color: Colors.green,
+                      color: AppColors.surface,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   subtitle: Text(
                     loc.localCloudMatched,
-                    style: AppTextStyles.caption,
+                    style: AppTextStyles.caption.copyWith(color: AppColors.surface.withAlpha(204)),
                   ),
                   trailing: IconButton(
-                    icon: const Icon(Icons.refresh, color: Colors.green),
+                    icon: const Icon(Icons.refresh, color: AppColors.surface),
                     onPressed: () {
                       SyncHealthCheck.runFullCheck();
                       NotificationService.showSnackBar(
                         loc.recheckingSync,
-                        color: Colors.blue,
+                        color: AppColors.primary,
                       );
                     },
                   ),
@@ -9010,29 +8961,29 @@ class _HomeViewState extends State<HomeView>
 
             // Has issues
             return Card(
-              color: Colors.red.shade50,
+              color: AppColors.error,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(15),
-                side: BorderSide(color: Colors.red.shade200),
+                side: BorderSide(color: AppColors.error),
               ),
               child: ListTile(
                 leading: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.red.shade100,
+                    color: AppColors.error,
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Badge(
                     label: Text(
                       '$mismatchCount',
                       style: AppTextStyles.caption.copyWith(
-                        color: Colors.white,
+                        color: AppColors.surface,
                       ),
                     ),
-                    backgroundColor: Colors.red,
+                    backgroundColor: AppColors.error,
                     child: const Icon(
                       Icons.warning,
-                      color: Colors.red,
+                      color: AppColors.error,
                       size: 22,
                     ),
                   ),
@@ -9040,18 +8991,18 @@ class _HomeViewState extends State<HomeView>
                 title: Text(
                   loc.needSyncData,
                   style: AppTextStyles.headline5.copyWith(
-                    color: Colors.red,
+                    color: AppColors.error,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 subtitle: Text(
                   loc.recordsNotSynced(mismatchCount),
-                  style: AppTextStyles.caption.copyWith(color: Colors.red),
+                  style: AppTextStyles.caption.copyWith(color: AppColors.error),
                 ),
                 trailing: IconButton(
                   icon: const Icon(
                     Icons.arrow_forward_ios,
-                    color: Colors.red,
+                    color: AppColors.error,
                     size: 16,
                   ),
                   onPressed: () {
@@ -9088,11 +9039,11 @@ class _HomeViewState extends State<HomeView>
   }) {
     return Card(
       margin: const EdgeInsets.only(bottom: 6),
-      color: color.withOpacity(0.05),
+      color: color.withAlpha(13),
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10),
-        side: BorderSide(color: color.withOpacity(0.2)),
+        side: BorderSide(color: color.withAlpha(51)),
       ),
       child: ListTile(
         dense: true,
@@ -9101,7 +9052,7 @@ class _HomeViewState extends State<HomeView>
         leading: Container(
           padding: const EdgeInsets.all(6),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
+            color: color.withAlpha(26),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(icon, color: color, size: 18),
@@ -9116,12 +9067,12 @@ class _HomeViewState extends State<HomeView>
         subtitle: subtitle != null
             ? Text(
                 subtitle,
-                style: AppTextStyles.caption.copyWith(color: Colors.grey),
+                style: AppTextStyles.caption.copyWith(color: AppColors.textHint),
               )
             : null,
         trailing: Icon(
           Icons.arrow_forward_ios,
-          color: color.withOpacity(0.5),
+          color: color.withAlpha(128),
           size: 14,
         ),
         onTap: onTap,
@@ -9144,52 +9095,36 @@ class _HomeViewState extends State<HomeView>
 
     // Income breakdown for donut
     final incomeItems = <_HomeDashItem>[
-      _HomeDashItem(
-        'Bán hàng',
-        _todaySaleIncome + _todayRefundOut,
-        const Color(0xFF43A047),
-      ),
+      _HomeDashItem('Bán hàng', _todaySaleIncome + _todayRefundOut, AppColors.success),
       if (_todaySettlementIncome > 0)
-        _HomeDashItem(
-          'Tất toán NH',
-          _todaySettlementIncome,
-          const Color(0xFF00897B),
-        ),
+        _HomeDashItem('Tất toán NH', _todaySettlementIncome, const Color(0xFF0D9488)),
       if (_enableRepair && _todayRepairIncome > 0)
-        _HomeDashItem('Sửa chữa', _todayRepairIncome, const Color(0xFF1E88E5)),
+        _HomeDashItem('Sửa chữa', _todayRepairIncome, AppColors.info),
       if (_todayDebtCollected > 0)
-        _HomeDashItem(
-          'Thu nợ KH',
-          _todayDebtCollected,
-          const Color(0xFF5C6BC0),
-        ),
+        _HomeDashItem('Thu nợ KH', _todayDebtCollected, const Color(0xFF6366F1)),
       if (_todayMiscIncome > 0)
-        _HomeDashItem('Thu khác', _todayMiscIncome, const Color(0xFF7E57C2)),
+        _HomeDashItem('Thu khác', _todayMiscIncome, const Color(0xFF8B5CF6)),
     ].where((i) => i.value > 0).toList();
 
     final expenseItems = <_HomeDashItem>[
-      _HomeDashItem('Chi phí', _todayExpenseOnly, const Color(0xFFE53935)),
+      _HomeDashItem('Chi phí', _todayExpenseOnly, AppColors.error),
       if (_todayImportOut > 0)
-        _HomeDashItem('Nhập hàng', _todayImportOut, const Color(0xFFFB8C00)),
+        _HomeDashItem('Nhập hàng', _todayImportOut, AppColors.warning),
       if (_todayDebtPaidToSupplier > 0)
-        _HomeDashItem(
-          'Trả nợ NCC',
-          _todayDebtPaidToSupplier,
-          const Color(0xFFFF7043),
-        ),
+        _HomeDashItem('Trả nợ NCC', _todayDebtPaidToSupplier, const Color(0xFFF97316)),
       if (_todayPartnerPaid > 0)
-        _HomeDashItem('TT đối tác', _todayPartnerPaid, const Color(0xFFAB47BC)),
+        _HomeDashItem('TT đối tác', _todayPartnerPaid, const Color(0xFFA855F7)),
       if (_todayRefundOut > 0)
-        _HomeDashItem('Trả hàng', _todayRefundOut, const Color(0xFFEF5350)),
+        _HomeDashItem('Trả hàng', _todayRefundOut, const Color(0xFFF43F5E)),
     ].where((i) => i.value > 0).toList();
 
     // Bar chart data
     final barItems = <_HomeDashItem>[
-      _HomeDashItem('Bán hàng', _todaySaleIncome, const Color(0xFF43A047)),
+      _HomeDashItem('Bán hàng', _todaySaleIncome, AppColors.success),
       if (_enableRepair)
-        _HomeDashItem('Sửa chữa', _todayRepairIncome, const Color(0xFF1E88E5)),
-      _HomeDashItem('Chi phí', _todayExpenseOnly, const Color(0xFFE53935)),
-      _HomeDashItem('Nhập hàng', _todayImportOut, const Color(0xFFFB8C00)),
+        _HomeDashItem('Sửa chữa', _todayRepairIncome, AppColors.info),
+      _HomeDashItem('Chi phí', _todayExpenseOnly, AppColors.error),
+      _HomeDashItem('Nhập hàng', _todayImportOut, AppColors.warning),
     ];
     final barMax = barItems.fold<double>(
       0,
@@ -9203,11 +9138,11 @@ class _HomeViewState extends State<HomeView>
       ),
       child: Container(
         key: ValueKey('dashboard_overview_${_todayTotalIn}_${_todayTotalOut}'),
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.grey.shade100),
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(DesignTokens.radiusMd),
+          border: Border.all(color: AppColors.outline),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -9223,14 +9158,14 @@ class _HomeViewState extends State<HomeView>
                 _dashMetric(
                   'Thu',
                   totalIncome,
-                  const Color(0xFF2E7D32),
+                  AppColors.success,
                   Icons.trending_up,
                 ),
                 const SizedBox(width: 8),
                 _dashMetric(
                   'Chi',
                   totalExpense,
-                  const Color(0xFFC62828),
+                  AppColors.error,
                   Icons.trending_down,
                 ),
               ],
@@ -9241,7 +9176,7 @@ class _HomeViewState extends State<HomeView>
                 _dashMetric(
                   'Đơn bán',
                   todaySaleCount,
-                  const Color(0xFF1E88E5),
+                  AppColors.info,
                   Icons.shopping_cart_outlined,
                   raw: true,
                   suffix: '',
@@ -9250,9 +9185,7 @@ class _HomeViewState extends State<HomeView>
                 _dashMetric(
                   _enableRepair ? 'Sửa chữa' : 'Chi phí HĐ',
                   _enableRepair ? _todayRepairCount : _todayExpenseCount,
-                  _enableRepair
-                      ? const Color(0xFFFB8C00)
-                      : const Color(0xFFE53935),
+                  _enableRepair ? AppColors.warning : AppColors.error,
                   _enableRepair ? Icons.build_outlined : Icons.receipt_outlined,
                   raw: true,
                   suffix: '',
@@ -9290,7 +9223,7 @@ class _HomeViewState extends State<HomeView>
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
+                  color: AppColors.background,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Column(
@@ -9301,7 +9234,7 @@ class _HomeViewState extends State<HomeView>
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
-                        color: Colors.grey.shade600,
+                        color: AppColors.textSecondary,
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -9419,7 +9352,7 @@ class _HomeViewState extends State<HomeView>
           icon: Icons.timer,
           label: 'Sắp hết HSD',
           value: (_expiryStats?.atRiskCount ?? 0).toString(),
-          color: Colors.orange,
+          color: AppColors.warning,
           onTap: () {
             final expiryTabIndex = _navItems.indexWhere(
               (item) => item.label == 'HSD',
@@ -9434,7 +9367,7 @@ class _HomeViewState extends State<HomeView>
           icon: Icons.checkroom,
           label: 'Hết size/màu',
           value: (_variantWarnings?.outOfStock ?? 0).toString(),
-          color: Colors.blue,
+          color: AppColors.primary,
           onTap: () {
             final variantTabIndex = _navItems.indexWhere(
               (item) => item.label == 'Size/Màu',
@@ -9487,86 +9420,157 @@ class _HomeViewState extends State<HomeView>
   }
 
   Widget _buildTodayActivityDashboardCard() {
-    final activityItems = _buildTodayActivityItems();
-    if (activityItems.isEmpty) return const SizedBox.shrink();
+    final tasks = _buildTaskListData();
+    if (tasks.isEmpty) return const SizedBox.shrink();
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(DesignTokens.radiusMd),
+        border: Border.all(color: AppColors.outline),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(
-                Icons.space_dashboard_rounded,
-                color: Colors.deepOrange.shade400,
-                size: 16,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                loc.todayActivity.toUpperCase(),
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.deepOrange.shade600,
-                  fontSize: 14,
-                  letterSpacing: 0.5,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
+            child: Row(
+              children: [
+                Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: AppColors.iconBgOrange,
+                    borderRadius: BorderRadius.circular(7),
+                  ),
+                  child: const Icon(Icons.checklist_rounded, color: AppColors.warning, size: 16),
                 ),
-              ),
-            ],
+                const SizedBox(width: 8),
+                const Text(
+                  'Công việc cần làm',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 12),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final r2 = context.responsive;
-              final itemCount = activityItems.length;
-              final width = constraints.maxWidth;
-              final isPhone = !r2.isTablet && !r2.isDesktop;
-              final isVeryNarrow = width < 360;
-              final crossAxisCount = r2.isDesktop
-                  ? itemCount.clamp(1, 6)
-                  : r2.isTablet
-                  ? itemCount.clamp(1, 4)
-                  : itemCount <= 3
-                  ? itemCount
-                  : isVeryNarrow
-                  ? 3
-                  : isPhone
-                  ? 3
-                  : 4;
-              final childAspectRatio = r2.isDesktop
-                  ? 1.0
-                  : r2.isTablet
-                  ? 0.9
-                  : isVeryNarrow
-                  ? 0.72
-                  : 0.84;
-
-              return GridView.count(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisCount: crossAxisCount,
-                mainAxisSpacing: 6,
-                crossAxisSpacing: 6,
-                childAspectRatio: childAspectRatio,
-                children: activityItems,
-              );
-            },
-          ),
+          const Divider(height: 1, color: AppColors.divider),
+          ...tasks.asMap().entries.map((e) {
+            final task = e.value;
+            final isLast = e.key == tasks.length - 1;
+            return Column(
+              children: [
+                InkWell(
+                  onTap: task.onTap,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 30,
+                          height: 30,
+                          decoration: BoxDecoration(
+                            color: task.color.withAlpha(20),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(task.icon, color: task.color, size: 16),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            task.label,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          task.value,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: task.color,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        const Icon(Icons.chevron_right, size: 16, color: AppColors.grey400),
+                      ],
+                    ),
+                  ),
+                ),
+                if (!isLast)
+                  const Divider(height: 1, indent: 54, endIndent: 0, color: AppColors.divider),
+              ],
+            );
+          }),
         ],
       ),
     );
+  }
+
+  List<_TaskItem> _buildTaskListData() {
+    final canRepair = hasFullAccess || _permissions['allowViewRepairs'] == true;
+    final canSales = hasFullAccess || _permissions['allowViewSales'] == true;
+    final canDebt = hasFullAccess || _permissions['allowViewDebts'] == true;
+
+    return [
+      if (_enableRepair && canRepair)
+        _TaskItem(
+          icon: Icons.build_circle_outlined,
+          label: 'Máy chờ sửa',
+          value: totalPendingRepair.toString(),
+          color: AppColors.primary,
+          onTap: () => _pushRoute(context, MaterialPageRoute(
+            builder: (_) => OrderListView(role: widget.role, statusFilter: const [1, 2]),
+          )),
+        ),
+      if (_enableRepair && canRepair)
+        _TaskItem(
+          icon: Icons.local_shipping_outlined,
+          label: 'Máy chờ giao',
+          value: pendingApprovalCount.toString(),
+          color: AppColors.warning,
+          onTap: () => _pushRoute(context, MaterialPageRoute(
+            builder: (_) => OrderListView(role: widget.role, statusFilter: const [3]),
+          )),
+        ),
+      if (canSales)
+        _TaskItem(
+          icon: Icons.receipt_long_outlined,
+          label: 'Đơn bán hôm nay',
+          value: todaySaleCount.toString(),
+          color: AppColors.success,
+          onTap: () => _pushRoute(context, MaterialPageRoute(
+            builder: (_) => const SaleListView(todayOnly: true),
+          )),
+        ),
+      if (canDebt)
+        _TaskItem(
+          icon: Icons.account_balance_wallet_outlined,
+          label: 'Tổng công nợ',
+          value: MoneyUtils.formatCompact(totalDebtRemain),
+          color: AppColors.error,
+          onTap: () => _pushRoute(context, MaterialPageRoute(
+            builder: (_) => const DebtView(),
+          )),
+        ),
+      if (_totalReminderCount > 0)
+        _TaskItem(
+          icon: Icons.notifications_active_outlined,
+          label: 'Nhắc nhở',
+          value: _totalReminderCount.toString(),
+          color: AppColors.warning,
+          onTap: () => _pushRoute(context, MaterialPageRoute(
+            builder: (_) => RemindersView(role: widget.role, permissions: _permissions),
+          )).then((_) => _loadReminderCount()),
+        ),
+    ];
   }
 
   // ── Dashboard chart helpers ──
@@ -9576,7 +9580,7 @@ class _HomeViewState extends State<HomeView>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: isPositive ? const Color(0xFFE8F5E9) : const Color(0xFFFFEBEE),
+        color: isPositive ? AppColors.successLight : AppColors.errorLight,
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
@@ -9584,15 +9588,15 @@ class _HomeViewState extends State<HomeView>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColors.surface,
               borderRadius: BorderRadius.circular(6),
             ),
-            child: Text(
+            child: const Text(
               'HÔM NAY',
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
-                color: Colors.grey.shade600,
+                color: AppColors.textSecondary,
               ),
             ),
           ),
@@ -9600,9 +9604,7 @@ class _HomeViewState extends State<HomeView>
           Icon(
             isPositive ? Icons.arrow_upward : Icons.arrow_downward,
             size: 16,
-            color: isPositive
-                ? const Color(0xFF2E7D32)
-                : const Color(0xFFC62828),
+            color: isPositive ? AppColors.success : AppColors.error,
           ),
           const SizedBox(width: 4),
           Expanded(
@@ -9611,13 +9613,11 @@ class _HomeViewState extends State<HomeView>
               style: TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w800,
-                color: isPositive
-                    ? const Color(0xFF2E7D32)
-                    : const Color(0xFFC62828),
+                color: isPositive ? AppColors.success : AppColors.error,
               ),
             ),
           ),
-          Icon(Icons.arrow_forward_ios, size: 12, color: Colors.grey.shade400),
+          const Icon(Icons.arrow_forward_ios, size: 12, color: AppColors.grey400),
         ],
       ),
     );
@@ -9635,12 +9635,12 @@ class _HomeViewState extends State<HomeView>
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.06),
-          borderRadius: BorderRadius.circular(10),
+          color: color.withAlpha(15),
+          borderRadius: BorderRadius.circular(DesignTokens.radiusMd),
         ),
         child: Row(
           children: [
-            Icon(icon, size: 16, color: color),
+            Icon(icon, size: DesignTokens.iconMd, color: color),
             const SizedBox(width: 6),
             Expanded(
               child: Column(
@@ -9648,9 +9648,9 @@ class _HomeViewState extends State<HomeView>
                 children: [
                   Text(
                     label,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 11,
-                      color: Colors.grey.shade600,
+                      color: AppColors.textSecondary,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -9685,7 +9685,7 @@ class _HomeViewState extends State<HomeView>
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+        color: AppColors.background,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -9708,7 +9708,7 @@ class _HomeViewState extends State<HomeView>
                     titleStyle: const TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
-                      color: Colors.white,
+                      color: AppColors.surface,
                     ),
                   );
                 }).toList(),
@@ -9763,7 +9763,7 @@ class _HomeViewState extends State<HomeView>
                             i.label,
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey.shade700,
+                              color: AppColors.textSecondary,
                             ),
                           ),
                         ),
@@ -9797,35 +9797,36 @@ class _HomeViewState extends State<HomeView>
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(DesignTokens.radiusMd),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 2),
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              padding: const EdgeInsets.all(6),
+              width: DesignTokens.iconContainer,
+              height: DesignTokens.iconContainer,
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withAlpha(31),
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, color: color, size: 17),
+              child: Icon(icon, color: color, size: DesignTokens.iconMd),
             ),
             const SizedBox(height: 4),
             Text(
               value,
-              style: AppTextStyles.body2.copyWith(
+              style: TextStyle(
                 color: color,
                 fontWeight: FontWeight.bold,
-                fontSize: 13,
+                fontSize: 14,
               ),
             ),
             Text(
               label,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 10,
-                color: AppColors.onSurface.withOpacity(0.6),
+                color: AppColors.textSecondary,
               ),
               textAlign: TextAlign.center,
               maxLines: 2,
@@ -9854,40 +9855,33 @@ class _HomeViewState extends State<HomeView>
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
-            color: Colors.blue.shade50,
+            color: AppColors.iconBgBlue,
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: Colors.blue.shade200),
+            border: Border.all(color: AppColors.primary.withAlpha(51)),
           ),
           child: Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                width: 30,
+                height: 30,
                 decoration: BoxDecoration(
-                  color: Colors.blue.shade100,
+                  color: AppColors.primarySurface,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(
-                  Icons.menu_book_rounded,
-                  color: Colors.blue.shade700,
-                  size: 18,
-                ),
+                child: const Icon(Icons.menu_book_rounded, color: AppColors.primary, size: 16),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   loc.userGuide,
-                  style: TextStyle(
-                    color: Colors.blue.shade700,
+                  style: const TextStyle(
+                    color: AppColors.primary,
                     fontWeight: FontWeight.w600,
                     fontSize: 14,
                   ),
                 ),
               ),
-              Icon(
-                Icons.arrow_forward_ios,
-                color: Colors.blue.shade300,
-                size: 14,
-              ),
+              const Icon(Icons.chevron_right, color: AppColors.grey400, size: 16),
             ],
           ),
         ),
@@ -9899,17 +9893,11 @@ class _HomeViewState extends State<HomeView>
   Widget _buildFinanceShortcuts() {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.outline),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -9918,16 +9906,16 @@ class _HomeViewState extends State<HomeView>
             children: [
               Icon(
                 Icons.account_balance,
-                color: Colors.indigo.shade400,
+                color: AppColors.primary,
                 size: 16,
               ),
               const SizedBox(width: 6),
-              Text(
+              const Text(
                 'TRUY CẬP NHANH TÀI CHÍNH',
                 style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.indigo.shade600,
-                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textSecondary,
+                  fontSize: 12,
                   letterSpacing: 0.5,
                 ),
               ),
@@ -9940,7 +9928,7 @@ class _HomeViewState extends State<HomeView>
                 child: _financeShortcutButton(
                   icon: Icons.menu_book,
                   label: 'Sổ quỹ',
-                  color: Colors.green,
+                  color: AppColors.success,
                   onTap: () => _pushRoute(
                     context,
                     MaterialPageRoute(builder: (_) => const CashClosingView()),
@@ -9953,7 +9941,7 @@ class _HomeViewState extends State<HomeView>
                   child: _financeShortcutButton(
                     icon: Icons.account_balance_wallet,
                     label: 'Công nợ',
-                    color: Colors.orange,
+                    color: AppColors.warning,
                     onTap: () => _pushRoute(
                       context,
                       MaterialPageRoute(builder: (_) => const DebtView()),
@@ -9968,7 +9956,7 @@ class _HomeViewState extends State<HomeView>
                   child: _financeShortcutButton(
                     icon: Icons.swap_vert,
                     label: 'Thu Chi',
-                    color: Colors.blue,
+                    color: AppColors.info,
                     onTap: () => _pushRoute(
                       context,
                       MaterialPageRoute(builder: (_) => const ExpenseView()),
@@ -9993,27 +9981,28 @@ class _HomeViewState extends State<HomeView>
       onTap: onTap,
       borderRadius: BorderRadius.circular(10),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.08),
+          color: color.withAlpha(20),
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: color.withOpacity(0.2)),
+          border: Border.all(color: color.withAlpha(51)),
         ),
         child: Column(
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              width: 30,
+              height: 30,
               decoration: BoxDecoration(
-                color: color.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(10),
+                color: color.withAlpha(38),
+                borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(icon, color: color, size: 20),
+              child: Icon(icon, color: color, size: 18),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 5),
             Text(
               label,
               style: TextStyle(
-                fontSize: 14,
+                fontSize: 12,
                 fontWeight: FontWeight.w600,
                 color: color,
               ),
@@ -10037,47 +10026,44 @@ class _HomeViewState extends State<HomeView>
       ),
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: AppColors.error,
-          borderRadius: BorderRadius.circular(AppButtonStyles.borderRadius * 2),
-          boxShadow: [
-            BoxShadow(color: AppColors.error.withOpacity(0.3), blurRadius: 10),
-          ],
+          color: AppColors.errorLight,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.error.withAlpha(77)),
         ),
         child: Row(
           children: [
-            const Icon(
-              Icons.notification_important,
-              color: AppColors.onError,
-              size: 28,
+            Container(
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                color: AppColors.error.withAlpha(38),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.notification_important, color: AppColors.error, size: 16),
             ),
-            const SizedBox(height: 15),
+            const SizedBox(width: 10),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     loc.warrantyReminder,
-                    style: AppTextStyles.body1.copyWith(
-                      color: AppColors.onError,
-                      fontWeight: FontWeight.bold,
+                    style: const TextStyle(
+                      color: AppColors.error,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
                     ),
                   ),
                   Text(
                     "$expiringWarranties ${loc.devicesExpiringWarranty}",
-                    style: AppTextStyles.caption.copyWith(
-                      color: AppColors.onError.withOpacity(0.8),
-                    ),
+                    style: const TextStyle(color: AppColors.error, fontSize: 12),
                   ),
                 ],
               ),
             ),
-            const Icon(
-              Icons.arrow_forward_ios,
-              color: AppColors.onError,
-              size: 16,
-            ),
+            const Icon(Icons.chevron_right, color: AppColors.error, size: 16),
           ],
         ),
       ),
@@ -10100,4 +10086,20 @@ class _HomeDashItem {
   final int value;
   final Color color;
   const _HomeDashItem(this.label, this.value, this.color);
+}
+
+/// Data class for task list items
+class _TaskItem {
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color color;
+  final VoidCallback onTap;
+  const _TaskItem({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.color,
+    required this.onTap,
+  });
 }

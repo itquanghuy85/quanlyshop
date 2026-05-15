@@ -157,7 +157,7 @@ class _RemindersViewState extends State<RemindersView> {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: AppColors.success.withOpacity(0.1),
+                  color: AppColors.success.withAlpha(26),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -178,7 +178,7 @@ class _RemindersViewState extends State<RemindersView> {
               Text(
                 'Tất cả đã được xử lý xong!',
                 style: AppTextStyles.body2.copyWith(
-                  color: AppColors.onSurface.withOpacity(0.5),
+                  color: AppColors.onSurface.withAlpha(128),
                 ),
               ),
             ],
@@ -209,7 +209,7 @@ class _RemindersViewState extends State<RemindersView> {
         boxShadow: [
           BoxShadow(
             color: (urgentCount > 0 ? const Color(0xFFE65100) : const Color(0xFF0D47A1))
-                .withOpacity(0.3),
+                .withAlpha(77),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -220,10 +220,10 @@ class _RemindersViewState extends State<RemindersView> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: AppColors.surface.withAlpha(51),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(Icons.notifications_active_rounded, color: Colors.white, size: 28),
+            child: const Icon(Icons.notifications_active_rounded, color: AppColors.surface, size: 28),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -233,7 +233,7 @@ class _RemindersViewState extends State<RemindersView> {
                 Text(
                   '$totalCount việc cần xử lý',
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: AppColors.surface,
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
                   ),
@@ -244,7 +244,7 @@ class _RemindersViewState extends State<RemindersView> {
                       ? '$urgentCount việc cần xử lý ngay'
                       : 'Không có việc khẩn cấp',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.85),
+                    color: AppColors.surface.withOpacity(0.85),
                     fontSize: 13,
                   ),
                 ),
@@ -254,7 +254,7 @@ class _RemindersViewState extends State<RemindersView> {
           Text(
             _reminders.length.toString(),
             style: TextStyle(
-              color: Colors.white.withOpacity(0.5),
+              color: AppColors.surface.withAlpha(128),
               fontSize: 40,
               fontWeight: FontWeight.w900,
             ),
@@ -280,7 +280,7 @@ class _RemindersViewState extends State<RemindersView> {
         ),
         const SizedBox(width: 8),
         Expanded(
-          child: Divider(color: color.withOpacity(0.2), thickness: 1),
+          child: Divider(color: color.withAlpha(51), thickness: 1),
         ),
       ],
     );
@@ -298,15 +298,15 @@ class _RemindersViewState extends State<RemindersView> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColors.surface,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: reminder.color.withOpacity(0.15),
+                color: reminder.color.withAlpha(38),
                 width: 1,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
+                  color: AppColors.textPrimary.withOpacity(0.04),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -359,7 +359,7 @@ class _RemindersViewState extends State<RemindersView> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: reminder.color.withOpacity(0.1),
+                        color: reminder.color.withAlpha(26),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
@@ -375,7 +375,7 @@ class _RemindersViewState extends State<RemindersView> {
                     Icon(
                       Icons.arrow_forward_ios_rounded,
                       size: 14,
-                      color: AppColors.onSurface.withOpacity(0.3),
+                      color: AppColors.onSurface.withAlpha(77),
                     ),
                   ],
                 ),
@@ -394,7 +394,7 @@ class _RemindersViewState extends State<RemindersView> {
         Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: reminder.color.withOpacity(0.1),
+            color: reminder.color.withAlpha(26),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Icon(
@@ -414,7 +414,7 @@ class _RemindersViewState extends State<RemindersView> {
               decoration: BoxDecoration(
                 color: const Color(0xFFD32F2F),
                 shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 2),
+                border: Border.all(color: AppColors.surface, width: 2),
               ),
             ),
           ),

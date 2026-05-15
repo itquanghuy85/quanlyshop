@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -33,8 +34,13 @@ import '../constants/financial_constants.dart';
 import '../constants/product_constants.dart';
 import '../widgets/printer_selection_dialog.dart';
 import '../widgets/responsive_wrapper.dart';
+import '../widgets/clickable_customer_header.dart';
+import '../widgets/clickable_product_list.dart';
+import '../widgets/deep_link_navigator.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
+import '../theme/app_spacing.dart';
+import '../theme/design_tokens.dart';
 import 'sale_invoice_template_view.dart';
 import 'sale_invoice_preview_view.dart';
 import 'create_sales_return_view.dart';
@@ -69,9 +75,7 @@ class _SaleDetailViewState extends State<SaleDetailView> {
       BusinessTypeHelper.instance.getTerminology(_shopSettings);
 
   // Theme colors cho màn hình chi tiết đơn bán hàng
-  final Color _primaryColor = const Color(0xFF2E7D32); // Xanh lá - đồng bộ bán hàng
-  final Color _accentColor = const Color(0xFF388E3C);
-  final Color _backgroundColor = const Color(0xFFF8FAFF);
+  final Color _accentColor = AppColors.success;
 
   // Return info
   SalesReturn? _returnInfo;
@@ -126,6 +130,7 @@ class _SaleDetailViewState extends State<SaleDetailView> {
       'settlementCode': sale.settlementCode,
       'cashAmount': sale.cashAmount,
       'transferAmount': sale.transferAmount,
+      'itemSnapshotsJson': sale.itemSnapshotsJson,
       'isSynced': sale.isSynced,
     });
   }
@@ -227,6 +232,92 @@ class _SaleDetailViewState extends State<SaleDetailView> {
           'dd/MM/yyyy',
         ).format(DateTime.fromMillisecondsSinceEpoch(ms));
   String _money(int amount) => MoneyUtils.formatCompactCurrency(amount);
+
+  String? _extractImageFromSnapshot(Map<String, dynamic> item) {
+    final imageUrl = (item['imageUrl'] ?? item['image'] ?? '').toString().trim();
+    if (imageUrl.isNotEmpty) return imageUrl;
+
+    final rawImages = item['images'];
+    if (rawImages is List && rawImages.isNotEmpty) {
+      final first = rawImages.first.toString().trim();
+      if (first.isNotEmpty) return first;
+    }
+
+    if (rawImages is String && rawImages.trim().isNotEmpty) {
+      final parts = rawImages
+          .split(',')
+          .map((e) => e.trim())
+          .where((e) => e.isNotEmpty)
+          .toList();
+      if (parts.isNotEmpty) return parts.first;
+    }
+    return null;
+  }
+
+  List<ProductLinkRef> _buildLinkedProducts() {
+    final items = <ProductLinkRef>[];
+    final snapshotRaw = (s.itemSnapshotsJson ?? '').trim();
+
+    if (snapshotRaw.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(snapshotRaw);
+        if (decoded is List) {
+          for (final raw in decoded) {
+            if (raw is! Map) continue;
+            final item = Map<String, dynamic>.from(raw);
+            final name = ProductConstants.cleanProductName(
+              (item['name'] ?? item['productName'] ?? '').toString(),
+            ).trim();
+            if (name.isEmpty) continue;
+
+            final imei = (item['imei'] ?? item['serial'] ?? '').toString().trim();
+            final sku = (item['sku'] ?? '').toString().trim();
+            final productId = (item['id'] ?? item['productId'] ?? item['firestoreId'] ?? '').toString().trim();
+            items.add(
+              ProductLinkRef(
+                productId: productId.isEmpty ? null : productId,
+                displayName: name,
+                imei: imei.isEmpty ? null : imei,
+                serial: imei.isEmpty ? null : imei,
+                sku: sku.isEmpty ? null : sku,
+                imageUrl: _extractImageFromSnapshot(item),
+                sourceEvent: 'product_detail_opened_from_sale',
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        debugPrint('SaleDetailView _buildLinkedProducts parse error: $e');
+      }
+    }
+
+    if (items.isNotEmpty) return items;
+
+    final names = s.productNames
+        .split(RegExp(r'\s*,\s*'))
+        .map((e) => ProductConstants.cleanProductName(e).trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+    final imeis = s.productImeis
+        .split(RegExp(r'\s*,\s*'))
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+
+    for (var i = 0; i < names.length; i++) {
+      final imei = i < imeis.length ? imeis[i] : '';
+      items.add(
+        ProductLinkRef(
+          displayName: names[i],
+          imei: imei.isEmpty ? null : imei,
+          serial: imei.isEmpty ? null : imei,
+          sourceEvent: 'product_detail_opened_from_sale',
+        ),
+      );
+    }
+
+    return items;
+  }
 
   Future<void> _unlockManager() async {
     final user = FirebaseAuth.instance.currentUser;
@@ -791,7 +882,7 @@ class _SaleDetailViewState extends State<SaleDetailView> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Đã cập nhật thông tin đơn hàng'),
-          backgroundColor: Colors.green,
+          backgroundColor: AppColors.success,
         ),
       );
     }
@@ -839,9 +930,9 @@ class _SaleDetailViewState extends State<SaleDetailView> {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: Colors.blue.shade50,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.blue.shade200),
+                color: AppColors.infoLight,
+                borderRadius: BorderRadius.circular(DesignTokens.radiusSm),
+                border: Border.all(color: AppColors.info.withAlpha(77)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1093,7 +1184,7 @@ class _SaleDetailViewState extends State<SaleDetailView> {
       // 2I: Thông báo thành công
       NotificationService.showSnackBar(
         'Đã xóa đơn bán${restoredCount > 0 ? ' • Kho +$restoredCount' : ''}${debtDeleted > 0 ? ' • Xóa $debtDeleted nợ' : ''}',
-        color: Colors.green,
+        color: AppColors.success,
       );
 
       if (mounted) {
@@ -1103,7 +1194,7 @@ class _SaleDetailViewState extends State<SaleDetailView> {
       debugPrint('❌ Lỗi xóa đơn bán: $e');
       NotificationService.showSnackBar(
         'Lỗi xóa đơn bán: $e',
-        color: Colors.red,
+        color: AppColors.error,
       );
     }
   }
@@ -1113,12 +1204,12 @@ class _SaleDetailViewState extends State<SaleDetailView> {
       padding: const EdgeInsets.only(top: 3),
       child: Row(
         children: [
-          Icon(icon, size: 14, color: Colors.blue.shade700),
+          Icon(icon, size: DesignTokens.iconXs, color: AppColors.info),
           const SizedBox(width: 6),
           Expanded(
             child: Text(
               text,
-              style: TextStyle(fontSize: 13, color: Colors.blue.shade800),
+              style: const TextStyle(fontSize: 13, color: AppColors.textPrimary),
             ),
           ),
         ],
@@ -1129,19 +1220,15 @@ class _SaleDetailViewState extends State<SaleDetailView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _backgroundColor,
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         flexibleSpace: Container(
           decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF1B5E20), Color(0xFF2E7D32)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            gradient: AppColors.primaryGradient,
           ),
         ),
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
+        backgroundColor: AppColors.surface,
+        foregroundColor: AppColors.textPrimary,
         elevation: 0,
         automaticallyImplyLeading: true,
         title: Column(
@@ -1172,37 +1259,37 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                 height: 18,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  color: Colors.white,
+                  color: AppColors.surface,
                 ),
               ),
             ),
           if (!_managerUnlocked)
             IconButton(
               onPressed: _unlockManager,
-              icon: const Icon(Icons.edit_rounded, color: Colors.white),
+              icon: const Icon(Icons.edit_rounded, color: AppColors.surface),
             ),
           if (_managerUnlocked)
             IconButton(
               onPressed: _openEditSaleDialog,
               tooltip: 'Sửa thông tin đơn',
-              icon: const Icon(Icons.edit_note_rounded, color: Colors.white),
+              icon: const Icon(Icons.edit_note_rounded, color: AppColors.surface),
             ),
           if (_managerUnlocked)
             IconButton(
               onPressed: _deleteSale,
               icon: const Icon(
                 Icons.delete_forever_rounded,
-                color: Colors.white,
+                color: AppColors.surface,
               ),
             ),
         ],
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surface,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withAlpha(20),
+              color: AppColors.grey900.withAlpha(20),
               blurRadius: 8,
               offset: const Offset(0, -2),
             ),
@@ -1249,7 +1336,7 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text('Trả hàng thành công!'),
-                                backgroundColor: Colors.green,
+                                backgroundColor: AppColors.success,
                               ),
                             );
                           }
@@ -1283,7 +1370,7 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                     onPressed: _openSettlementDialog,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _accentColor,
-                      foregroundColor: Colors.white,
+                      foregroundColor: AppColors.surface,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
@@ -1306,13 +1393,13 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: _allItemsReturned
-                        ? Colors.grey.shade100
-                        : Colors.red.shade50,
-                    borderRadius: BorderRadius.circular(10),
+                        ? AppColors.iconBgGray
+                        : AppColors.errorLight,
+                    borderRadius: BorderRadius.circular(DesignTokens.radiusMd),
                     border: Border.all(
                       color: _allItemsReturned
-                          ? Colors.grey.shade400
-                          : Colors.red.shade200,
+                          ? AppColors.outline
+                          : AppColors.error.withAlpha(77),
                     ),
                   ),
                   child: Row(
@@ -1320,9 +1407,9 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                       Icon(
                         Icons.assignment_return,
                         color: _allItemsReturned
-                            ? Colors.grey.shade700
-                            : Colors.red.shade700,
-                        size: 20,
+                            ? AppColors.textSecondary
+                            : AppColors.error,
+                        size: DesignTokens.iconLg,
                       ),
                       const SizedBox(width: 8),
                       Expanded(
@@ -1337,8 +1424,8 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
                                 color: _allItemsReturned
-                                    ? Colors.grey.shade700
-                                    : Colors.red.shade700,
+                                    ? AppColors.textSecondary
+                                    : AppColors.error,
                               ),
                             ),
                             ..._allReturns.map(
@@ -1347,8 +1434,8 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                                 style: TextStyle(
                                   fontSize: 13,
                                   color: _allItemsReturned
-                                      ? Colors.grey.shade600
-                                      : Colors.red.shade600,
+                                      ? AppColors.grey50
+                                      : AppColors.error.withAlpha(204),
                                 ),
                               ),
                             ),
@@ -1360,11 +1447,17 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                 ),
 
               _card("GIAO DỊCH", [
-                _item("Khách hàng", s.customerName),
-                _item("Số điện thoại", s.phone),
+                ClickableCustomerHeader(
+                  customerName: s.customerName,
+                  phoneNumber: s.phone,
+                  sourceEvent: 'customer_profile_opened_from_sale',
+                ),
                 _item("Địa chỉ", s.address.isEmpty ? "---" : s.address),
-                _item("Sản phẩm", s.productNamesDisplay),
-                _item("IMEI", s.productImeis),
+                AppSpacing.gapXs,
+                ClickableProductList(
+                  items: _buildLinkedProducts(),
+                  tooltip: 'Mở chi tiết sản phẩm từ đơn bán',
+                ),
                 _item("Bảo hành", s.warranty.isNotEmpty ? s.warranty : "KO BH"),
                 _item("Nhân viên", s.sellerName),
                 _item("Thời gian", _fmtDate(s.soldAt)),
@@ -1375,12 +1468,12 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                   _item(
                     "💵 Tiền mặt",
                     _money(s.cashAmount),
-                    color: Colors.green,
+                    color: AppColors.success,
                   ),
                   _item(
                     "🏦 Chuyển khoản",
                     _money(s.transferAmount),
-                    color: Colors.blue,
+                    color: AppColors.info,
                   ),
                 ],
                 if (s.notes != null && s.notes!.isNotEmpty)
@@ -1389,25 +1482,25 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                   _item(
                     "Giảm giá",
                     '-${_money(s.discount)}',
-                    color: Colors.orange,
+                    color: AppColors.warning,
                   ),
                 _item(
                   "Tổng tiền",
                   _money(s.finalPrice),
-                  color: Colors.red,
+                  color: AppColors.error,
                 ),
                 if (_canViewCostPrice && s.totalCost > 0) ...[
                   _item(
                     "Giá vốn",
                     _money(s.totalCost),
-                    color: Colors.orange.shade700,
+                    color: AppColors.warning,
                   ),
                   _item(
                     "Lợi nhuận",
                     '${s.finalPrice - s.totalCost >= 0 ? '+' : ''}${_money(s.finalPrice - s.totalCost)}',
                     color: s.finalPrice - s.totalCost >= 0
-                        ? Colors.green.shade700
-                        : Colors.red,
+                        ? AppColors.success
+                        : AppColors.error,
                   ),
                 ],
               ]),
@@ -1448,7 +1541,7 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                     _item(
                       "Phí NH",
                       _money(s.settlementFee),
-                      color: Colors.orange,
+                      color: AppColors.warning,
                     ),
                 ]),
             ],
@@ -1460,92 +1553,106 @@ class _SaleDetailViewState extends State<SaleDetailView> {
 
   Widget _card(String t, List<Widget> c) => Container(
     width: double.infinity,
-    padding: const EdgeInsets.all(16),
+    margin: const EdgeInsets.only(bottom: 12),
     decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(15),
+      color: AppColors.surface,
+      borderRadius: BorderRadius.circular(DesignTokens.radiusMd),
+      border: Border.all(color: AppColors.outline, width: 1),
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          t,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.pink,
+        Padding(
+          padding: const EdgeInsets.fromLTRB(14, 10, 14, 8),
+          child: Text(
+            t,
+            style: AppTextStyles.caption.copyWith(
+              fontWeight: FontWeight.w600,
+              color: AppColors.textSecondary,
+              letterSpacing: 0.5,
+              fontSize: 12,
+            ),
           ),
         ),
-        const Divider(),
+        const Divider(height: 1, color: AppColors.divider),
         ...c,
       ],
     ),
   );
-  Widget _item(String l, String v, {Color? color}) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 6),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(l, style: const TextStyle(color: Colors.grey)),
-        const SizedBox(width: 12),
-        Flexible(
-          child: Text(
-            v,
-            style: TextStyle(fontWeight: FontWeight.bold, color: color),
-            textAlign: TextAlign.end,
-            maxLines: 3,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ],
-    ),
-  );
-  Widget _row(String l, String v) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 4),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(l, style: TextStyle(fontSize: AppTextStyles.subtitle1.fontSize)),
-        const SizedBox(width: 12),
-        Flexible(
-          child: Text(
-            v,
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: AppTextStyles.headline5.fontSize,
+
+  Widget _item(String l, String v, {Color? color}) => Column(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(l, style: AppTextStyles.body2.copyWith(color: AppColors.textSecondary)),
+            const SizedBox(width: 12),
+            Flexible(
+              child: Text(
+                v,
+                style: AppTextStyles.body2.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: color ?? AppColors.textPrimary,
+                ),
+                textAlign: TextAlign.end,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
-            textAlign: TextAlign.end,
-            maxLines: 3,
-            overflow: TextOverflow.ellipsis,
-          ),
+          ],
         ),
-      ],
-    ),
+      ),
+      const Divider(height: 1, color: AppColors.divider),
+    ],
+  );
+
+  Widget _row(String l, String v) => Column(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(l, style: AppTextStyles.body2.copyWith(color: AppColors.textSecondary)),
+            const SizedBox(width: 12),
+            Flexible(
+              child: Text(
+                v,
+                style: AppTextStyles.body2.copyWith(fontWeight: FontWeight.bold),
+                textAlign: TextAlign.end,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
+      const Divider(height: 1, color: AppColors.divider),
+    ],
   );
 
   Widget _bottomAction(IconData icon, String label, VoidCallback? onTap) {
     final isDisabled = onTap == null;
+    final actionColor = isDisabled ? AppColors.textHint : AppColors.primary;
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(DesignTokens.radiusSm),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              size: 22,
-              color: isDisabled ? Colors.grey : const Color(0xFF0068FF),
-            ),
+            Icon(icon, size: DesignTokens.iconLg, color: actionColor),
             const SizedBox(height: 2),
             Text(
               label,
-              style: TextStyle(
-                fontSize: 12,
-                color: isDisabled ? Colors.grey : const Color(0xFF0068FF),
-              ),
+              style: TextStyle(fontSize: 12, color: actionColor),
             ),
           ],
         ),

@@ -265,7 +265,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
         accentColor: AppBarAccents.staff,
         actions: [
           IconButton(
-            icon: const Icon(Icons.swap_horiz, color: Colors.white, size: 20),
+            icon: const Icon(Icons.swap_horiz, color: AppColors.surface, size: 20),
             tooltip: 'Quản lý đổi ca',
             onPressed: () => Navigator.push(
               context,
@@ -275,7 +275,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
           IconButton(
             icon: Icon(
               _viewMode == 'day' ? Icons.calendar_month : Icons.calendar_today,
-              color: Colors.white,
+              color: AppColors.surface,
               size: 20,
             ),
             tooltip: _viewMode == 'day' ? loc.viewByMonth : loc.viewByDay,
@@ -285,14 +285,14 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
             },
           ),
           IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white, size: 20),
+            icon: const Icon(Icons.refresh, color: AppColors.surface, size: 20),
             onPressed: _loadData,
           ),
         ],
         bottom: TabBar(
           controller: _tabCtrl,
-          indicatorColor: Colors.white,
-          labelColor: Colors.white,
+          indicatorColor: AppColors.surface,
+          labelColor: AppColors.surface,
           unselectedLabelColor: Colors.white70,
           labelStyle: const TextStyle(
             fontSize: 12,
@@ -338,7 +338,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
               '$count',
               style: const TextStyle(
                 fontSize: 10,
-                color: Colors.white,
+                color: AppColors.surface,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -384,11 +384,11 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
       margin: const EdgeInsets.fromLTRB(12, 10, 12, 0),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: AppColors.textPrimary.withOpacity(0.04),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -521,11 +521,11 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
       margin: const EdgeInsets.fromLTRB(12, 10, 12, 0),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: AppColors.textPrimary.withOpacity(0.04),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -610,14 +610,14 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
                 _summaryItem(loc.present, present, Colors.greenAccent),
                 _summaryItem(loc.lateArrival, late, Colors.orangeAccent),
                 _summaryItem(loc.absent, absent, Colors.redAccent),
-                _summaryItem(loc.totalStaff, _staffList.length, Colors.white),
+                _summaryItem(loc.totalStaff, _staffList.length, AppColors.surface),
               ],
             )
           else
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _summaryItem(loc.totalStaff, _staffList.length, Colors.white),
+                _summaryItem(loc.totalStaff, _staffList.length, AppColors.surface),
                 _summaryItem(
                   loc.checkedInStatus,
                   _staffAttendance.values.where((v) => v.isNotEmpty).length,
@@ -644,7 +644,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
         Text(
           label,
           style: TextStyle(
-            color: Colors.white.withOpacity(0.8),
+            color: AppColors.surface.withAlpha(204),
             fontSize: AppTextStyles.caption.fontSize,
           ),
         ),
@@ -655,7 +655,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
   Widget _buildDateSelector() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      color: Colors.white,
+      color: AppColors.surface,
       child: Column(
         children: [
           Row(
@@ -892,7 +892,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
                 children: [
                   CircleAvatar(
                     radius: 20,
-                    backgroundColor: _roleColor(staff['role']).withOpacity(0.2),
+                    backgroundColor: _roleColor(staff['role']).withAlpha(51),
                     child: Text(
                       (staff['name'] as String).substring(0, 1).toUpperCase(),
                       style: TextStyle(
@@ -911,7 +911,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
                       decoration: BoxDecoration(
                         color: statusColor,
                         shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
+                        border: Border.all(color: AppColors.surface, width: 2),
                       ),
                     ),
                   ),
@@ -944,7 +944,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
                               vertical: 1,
                             ),
                             decoration: BoxDecoration(
-                              color: approvalColor.withOpacity(0.1),
+                              color: approvalColor.withAlpha(26),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
@@ -979,7 +979,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
                               vertical: 1,
                             ),
                             decoration: BoxDecoration(
-                              color: AppColors.warning.withOpacity(0.1),
+                              color: AppColors.warning.withAlpha(26),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
@@ -1062,7 +1062,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
                 children: [
                   CircleAvatar(
                     radius: 18,
-                    backgroundColor: _roleColor(staff['role']).withOpacity(0.2),
+                    backgroundColor: _roleColor(staff['role']).withAlpha(51),
                     child: Text(
                       (staff['name'] as String).substring(0, 1).toUpperCase(),
                       style: TextStyle(
@@ -1129,7 +1129,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
                     totalHours,
                     AppColors.primary,
                   ),
-                  _monthStatItem('OT', ot, Colors.deepOrange),
+                  _monthStatItem('OT', ot, AppColors.repairPendingApproval),
                 ],
               ),
               if (pendingDays > 0 ||
@@ -1143,7 +1143,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
                     if (pendingDays > 0)
                       _monthFlag('Chờ duyệt $pendingDays', AppColors.warning),
                     if (earlyLeaveDays > 0)
-                      _monthFlag('Về sớm $earlyLeaveDays', Colors.orange),
+                      _monthFlag('Về sớm $earlyLeaveDays', AppColors.warning),
                     if (incompleteDays > 0)
                       _monthFlag(
                         'Thiếu giờ ra $incompleteDays',
@@ -1163,7 +1163,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withAlpha(26),
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
@@ -1208,7 +1208,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
         children.add(
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            color: AppColors.warning.withOpacity(0.1),
+            color: AppColors.warning.withAlpha(26),
             child: Row(
               children: [
                 Icon(Icons.pending_actions, size: 18, color: AppColors.warning),
@@ -1289,7 +1289,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
                   Icon(
                     Icons.check_circle_outline,
                     size: 48,
-                    color: AppColors.success.withOpacity(0.5),
+                    color: AppColors.success.withAlpha(128),
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -1326,7 +1326,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
           padding: const EdgeInsets.all(16),
           child: Text(
             'Lỗi tab duyệt: $e',
-            style: const TextStyle(color: Colors.red),
+            style: const TextStyle(color: AppColors.error),
           ),
         ),
       );
@@ -1347,7 +1347,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
     final typeColor = isForget
         ? AppColors.warning
         : isOTEdit
-        ? Colors.deepOrange
+        ? AppColors.repairPendingApproval
         : AppColors.primary;
 
     return Card(
@@ -1367,7 +1367,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
-                    color: typeColor.withOpacity(0.1),
+                    color: typeColor.withAlpha(26),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
@@ -1417,7 +1417,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
                     'OT: ${record.overtimeOn}p ',
                     style: const TextStyle(
                       fontSize: 12,
-                      color: Colors.deepOrange,
+                      color: AppColors.repairPendingApproval,
                     ),
                   ),
               ],
@@ -1453,7 +1453,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
                     onPressed: () => _approveAttendance(record),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.success,
-                      foregroundColor: Colors.white,
+                      foregroundColor: AppColors.surface,
                       visualDensity: VisualDensity.compact,
                     ),
                     child: Text(
@@ -1481,7 +1481,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
     } else {
       NotificationService.showSnackBar(
         'Lỗi duyệt chấm công',
-        color: Colors.red,
+        color: AppColors.error,
       );
     }
   }
@@ -1654,7 +1654,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
                   if (selectedUserId == null || checkInTime == null) {
                     NotificationService.showSnackBar(
                       'Chọn nhân viên và giờ vào',
-                      color: Colors.red,
+                      color: AppColors.error,
                     );
                     return;
                   }
@@ -1814,7 +1814,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: Colors.deepOrange.withOpacity(0.08),
+                        color: AppColors.repairPendingApproval.withAlpha(20),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
@@ -1822,7 +1822,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
                         style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
-                          color: Colors.deepOrange,
+                          color: AppColors.repairPendingApproval,
                         ),
                       ),
                     ),
@@ -1851,7 +1851,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
                       otEnd == null) {
                     NotificationService.showSnackBar(
                       'Chọn nhân viên và giờ tăng ca',
-                      color: Colors.red,
+                      color: AppColors.error,
                     );
                     return;
                   }
@@ -1863,7 +1863,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
                   if (existing == null) {
                     NotificationService.showSnackBar(
                       'Không tìm thấy bản ghi chấm công ngày này',
-                      color: Colors.red,
+                      color: AppColors.error,
                     );
                     return;
                   }
@@ -1898,7 +1898,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
                   }
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.deepOrange,
+                  backgroundColor: AppColors.repairPendingApproval,
                 ),
                 child: const Text('Ghi nhận OT'),
               ),
@@ -1957,7 +1957,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
                   Icon(
                     Icons.event_available,
                     size: 48,
-                    color: AppColors.inactive.withOpacity(0.5),
+                    color: AppColors.inactive.withAlpha(128),
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -2045,7 +2045,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
           padding: const EdgeInsets.all(16),
           child: Text(
             'Lỗi tab nghỉ: $e',
-            style: const TextStyle(color: Colors.red),
+            style: const TextStyle(color: AppColors.error),
           ),
         ),
       );
@@ -2088,7 +2088,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.1),
+                    color: statusColor.withAlpha(26),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
@@ -2107,7 +2107,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
+                    color: AppColors.primary.withAlpha(26),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
@@ -2152,7 +2152,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
                   'Lý do: ${lr.reason}',
                   style: TextStyle(
                     fontSize: 11,
-                    color: AppColors.onSurface.withOpacity(0.7),
+                    color: AppColors.onSurface.withAlpha(179),
                   ),
                 ),
               ),
@@ -2188,7 +2188,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
                       onPressed: () => _approveLeave(lr),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.success,
-                        foregroundColor: Colors.white,
+                        foregroundColor: AppColors.surface,
                         visualDensity: VisualDensity.compact,
                       ),
                       child: Text(
@@ -2317,7 +2317,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.08),
+                      color: AppColors.primary.withAlpha(20),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
@@ -2352,7 +2352,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
                   if (selectedUserId == null) {
                     NotificationService.showSnackBar(
                       'Chọn nhân viên',
-                      color: Colors.red,
+                      color: AppColors.error,
                     );
                     return;
                   }
@@ -2444,7 +2444,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
           maxHeight: MediaQuery.of(context).size.height * 0.75,
         ),
         decoration: const BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surface,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         padding: const EdgeInsets.all(12),
@@ -2456,7 +2456,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
               children: [
                 CircleAvatar(
                   radius: 18,
-                  backgroundColor: AppColors.primary.withOpacity(0.1),
+                  backgroundColor: AppColors.primary.withAlpha(26),
                   child: Text(
                     (staff['name'] as String).substring(0, 1),
                     style: TextStyle(
@@ -2590,7 +2590,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.success,
-                      foregroundColor: Colors.white,
+                      foregroundColor: AppColors.surface,
                     ),
                     child: Text(
                       loc.approveAttendance,
@@ -2810,7 +2810,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
           maxHeight: MediaQuery.of(context).size.height * 0.8,
         ),
         decoration: const BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surface,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         padding: const EdgeInsets.all(12),
@@ -2821,7 +2821,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
               children: [
                 CircleAvatar(
                   radius: 18,
-                  backgroundColor: AppColors.primary.withOpacity(0.1),
+                  backgroundColor: AppColors.primary.withAlpha(26),
                   child: Text(
                     (staff['name'] as String).substring(0, 1),
                     style: TextStyle(
@@ -2882,7 +2882,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
                   if (summary.overtimeMinutes > 0)
                     _monthFlag(
                       'OT ${summary.overtimeLabel}',
-                      Colors.deepOrange,
+                      AppColors.repairPendingApproval,
                     ),
                 ],
               ),
@@ -2916,8 +2916,8 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
                             height: 30,
                             decoration: BoxDecoration(
                               color: r.isLate == 1
-                                  ? AppColors.warning.withOpacity(0.1)
-                                  : AppColors.success.withOpacity(0.1),
+                                  ? AppColors.warning.withAlpha(26)
+                                  : AppColors.success.withAlpha(26),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             alignment: Alignment.center,
@@ -2951,7 +2951,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: statusColor.withOpacity(0.12),
+                              color: statusColor.withAlpha(31),
                               borderRadius: BorderRadius.circular(999),
                             ),
                             child: Text(
@@ -2982,7 +2982,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Container(
             height: 100,
-            color: Colors.grey[100],
+            color: AppColors.textHint,
             child: const Center(
               child: CircularProgressIndicator(strokeWidth: 2),
             ),
@@ -2992,7 +2992,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
         if (url == null || url.isEmpty) {
           return Container(
             height: 100,
-            color: Colors.grey[200],
+            color: AppColors.divider,
             child: const Icon(Icons.broken_image),
           );
         }
@@ -3136,7 +3136,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
           maxHeight: MediaQuery.of(context).size.height * 0.85,
         ),
         decoration: const BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surface,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         padding: const EdgeInsets.all(12),
@@ -3209,7 +3209,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: AppColors.primary.withOpacity(0.08),
+                          color: AppColors.primary.withAlpha(20),
                           borderRadius: BorderRadius.circular(999),
                         ),
                         child: Text(
@@ -3258,7 +3258,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: statusColor.withOpacity(0.12),
+                              color: statusColor.withAlpha(31),
                               borderRadius: BorderRadius.circular(999),
                             ),
                             child: Text(
@@ -3335,7 +3335,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withAlpha(26),
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text(
@@ -3416,7 +3416,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
               if (reason.trim().isEmpty) {
                 NotificationService.showSnackBar(
                   'Nhập lý do',
-                  color: Colors.red,
+                  color: AppColors.error,
                 );
                 return;
               }

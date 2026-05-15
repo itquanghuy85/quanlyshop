@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
 import '../widgets/responsive_wrapper.dart';
 import '../models/product_category_model.dart';
 import '../models/shop_settings_model.dart';
 import '../services/category_service.dart';
 import '../services/business_type_helper.dart';
+import '../theme/app_spacing.dart';
+import '../theme/app_text_styles.dart';
 
 /// Màn hình quản lý danh mục sản phẩm
 /// Multi-Industry Extension - Phase 1
@@ -62,7 +65,10 @@ class _CategoryManagementViewState extends State<CategoryManagementView> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Quản lý danh mục'),
+        title: Text(
+          'Quản lý danh mục',
+          style: AppTextStyles.headline3.copyWith(fontWeight: FontWeight.bold),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
@@ -84,18 +90,18 @@ class _CategoryManagementViewState extends State<CategoryManagementView> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.category_outlined, size: 80, color: Colors.grey.shade400),
-          const SizedBox(height: 16),
+          Icon(Icons.category_outlined, size: 80, color: AppColors.textHint),
+          const SizedBox(height: AppSpacing.lg),
           Text(
             'Chưa có danh mục nào',
-            style: TextStyle(fontSize: 18, color: Colors.grey.shade600),
+            style: AppTextStyles.headline3.copyWith(color: AppColors.textSecondary),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.sm),
           Text(
             'Thêm danh mục để phân loại sản phẩm',
-            style: TextStyle(color: Colors.grey.shade500),
+            style: AppTextStyles.body2.copyWith(color: AppColors.textHint),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: AppSpacing.sm),
           ElevatedButton.icon(
             onPressed: () => _showAddEditDialog(),
             icon: const Icon(Icons.add),
@@ -108,7 +114,7 @@ class _CategoryManagementViewState extends State<CategoryManagementView> {
 
   Widget _buildCategoryList() {
     return ReorderableListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       itemCount: _categories.length,
       onReorder: _onReorder,
       itemBuilder: (context, index) {
@@ -118,29 +124,29 @@ class _CategoryManagementViewState extends State<CategoryManagementView> {
             : 'cat_$index';
         return Card(
           key: ValueKey(key),
-          margin: const EdgeInsets.only(bottom: 12),
+          margin: const EdgeInsets.only(bottom: AppSpacing.md),
           child: ListTile(
             leading: Container(
               width: 44,
               height: 44,
               decoration: BoxDecoration(
                 color: _parseColor(category.color).withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(AppSpacing.md),
               ),
               child: Center(
                 child: Text(
                   category.icon ?? '📦',
-                  style: const TextStyle(fontSize: 24),
+                  style: AppTextStyles.headline1.copyWith(fontSize: 24),
                 ),
               ),
             ),
             title: Text(
               category.name,
-              style: const TextStyle(fontWeight: FontWeight.w600),
+              style: AppTextStyles.body1.copyWith(fontWeight: FontWeight.w600),
             ),
             subtitle: Text(
               _buildSubtitle(category),
-              style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+              style: AppTextStyles.body2.copyWith(color: AppColors.textSecondary),
             ),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
@@ -150,12 +156,12 @@ class _CategoryManagementViewState extends State<CategoryManagementView> {
                   onPressed: () => _showAddEditDialog(category: category),
                 ),
                 IconButton(
-                  icon: Icon(Icons.delete, size: 20, color: Colors.red.shade400),
+                  icon: Icon(Icons.delete, size: 20, color: AppColors.error),
                   onPressed: () => _confirmDelete(category),
                 ),
                 ReorderableDragStartListener(
                   index: index,
-                  child: const Icon(Icons.drag_handle, color: Colors.grey),
+                  child: const Icon(Icons.drag_handle, color: AppColors.textHint),
                 ),
               ],
             ),
@@ -178,11 +184,11 @@ class _CategoryManagementViewState extends State<CategoryManagementView> {
   }
 
   Color _parseColor(String? colorStr) {
-    if (colorStr == null || colorStr.isEmpty) return Colors.blue;
+    if (colorStr == null || colorStr.isEmpty) return AppColors.primary;
     try {
       return Color(int.parse(colorStr.replaceFirst('#', '0xFF')));
     } catch (_) {
-      return Colors.blue;
+      return AppColors.primary;
     }
   }
 
@@ -231,20 +237,23 @@ class _CategoryManagementViewState extends State<CategoryManagementView> {
                         width: 60,
                         height: 60,
                         decoration: BoxDecoration(
-                          color: Colors.grey.shade100,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.grey.shade300),
+                          color: AppColors.background,
+                          borderRadius: BorderRadius.circular(AppSpacing.md),
+                          border: Border.all(color: AppColors.outline),
                         ),
                         child: Center(
-                          child: Text(selectedIcon, style: const TextStyle(fontSize: 32)),
+                          child: Text(
+                            selectedIcon,
+                            style: AppTextStyles.headline1.copyWith(fontSize: 32),
+                          ),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    const Text('Nhấn để chọn icon', style: TextStyle(fontSize: 14)),
+                    const SizedBox(width: AppSpacing.sm),
+                    Text('Nhấn để chọn icon', style: AppTextStyles.body2),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppSpacing.lg),
                 // Name
                 TextField(
                   controller: nameController,
@@ -253,7 +262,7 @@ class _CategoryManagementViewState extends State<CategoryManagementView> {
                     border: OutlineInputBorder(),
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: AppSpacing.md),
                 // Description
                 TextField(
                   controller: descController,
@@ -264,9 +273,12 @@ class _CategoryManagementViewState extends State<CategoryManagementView> {
                   ),
                   maxLines: 2,
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppSpacing.lg),
                 // Feature toggles
-                const Text('Tính năng', style: TextStyle(fontWeight: FontWeight.bold)),
+                Text(
+                  'Tính năng',
+                  style: AppTextStyles.headline4.copyWith(fontWeight: FontWeight.bold),
+                ),
                 SwitchListTile(
                   title: Text('Theo dõi ${_terms.specialField1Label}'),
                   subtitle: const Text('Cho sản phẩm cần theo dõi serial'),
@@ -356,13 +368,16 @@ class _CategoryManagementViewState extends State<CategoryManagementView> {
     showAppBottomSheet(
       context: context,
       builder: (context) => Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Chọn icon', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
-            const SizedBox(height: 16),
+            Text(
+              'Chọn icon',
+              style: AppTextStyles.headline3.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: AppSpacing.lg),
             Wrap(
               spacing: 12,
               runSpacing: 12,
@@ -375,18 +390,23 @@ class _CategoryManagementViewState extends State<CategoryManagementView> {
                   width: 50,
                   height: 50,
                   decoration: BoxDecoration(
-                    color: icon == current ? Colors.blue.shade100 : Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(10),
+                    color: icon == current ? AppColors.primary : AppColors.background,
+                    borderRadius: BorderRadius.circular(AppSpacing.md),
                     border: Border.all(
-                      color: icon == current ? Colors.blue : Colors.transparent,
+                      color: icon == current ? AppColors.primary : Colors.transparent,
                       width: 2,
                     ),
                   ),
-                  child: Center(child: Text(icon, style: const TextStyle(fontSize: 28))),
+                  child: Center(
+                    child: Text(
+                      icon,
+                      style: AppTextStyles.headline1.copyWith(fontSize: 28),
+                    ),
+                  ),
                 ),
               )).toList(),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: AppSpacing.sm),
           ],
         ),
       ),
@@ -413,8 +433,11 @@ class _CategoryManagementViewState extends State<CategoryManagementView> {
               await _categoryService.deleteCategory(catId);
               _loadCategories();
             },
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Xóa'),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            child: Text(
+              'Xóa',
+              style: AppTextStyles.button.copyWith(color: AppColors.surface),
+            ),
           ),
         ],
       ),

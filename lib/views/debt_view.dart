@@ -22,6 +22,7 @@ import '../services/user_service.dart';
 import '../constants/financial_constants.dart';
 import '../theme/app_text_styles.dart';
 import '../theme/app_colors.dart';
+import '../theme/design_tokens.dart';
 import '../models/shop_settings_model.dart';
 import '../services/category_service.dart';
 import '../widgets/responsive_wrapper.dart';
@@ -124,7 +125,7 @@ class _DebtViewState extends State<DebtView>
       screenKey: FirstTimeGuideService.keyDebtManagement,
       title: 'Quản Lý Công Nợ',
       icon: Icons.account_balance_wallet,
-      color: Colors.red,
+      color: AppColors.error,
       steps: [
         GuideStep(
           title: _enableRepair ? '📊 3 loại công nợ' : '📊 2 loại công nợ',
@@ -132,28 +133,28 @@ class _DebtViewState extends State<DebtView>
               ? 'KHÁCH NỢ (khách chưa TT), NỢ NCC (nợ nhà cung cấp), NỢ ĐỐI TÁC (nợ thợ sửa ngoài).'
               : 'KHÁCH NỢ (khách chưa TT), NỢ NCC (nợ nhà cung cấp).',
           icon: Icons.category,
-          iconColor: Colors.blue,
+          iconColor: AppColors.primary,
         ),
         const GuideStep(
           title: '💰 Ghi nhận thanh toán',
           description:
               'Nhấn vào khoản nợ để xem chi tiết và ghi nhận thanh toán từng phần hoặc toàn bộ.',
           icon: Icons.payment,
-          iconColor: Colors.green,
+          iconColor: AppColors.success,
         ),
         const GuideStep(
           title: '📅 Theo dõi hạn nợ',
           description:
               'Nợ quá hạn sẽ được highlight đỏ. Báo cáo tổng hợp giúp theo dõi dòng tiền.',
           icon: Icons.event,
-          iconColor: Colors.orange,
+          iconColor: AppColors.warning,
         ),
         const GuideStep(
           title: '🔄 Tự động tạo nợ',
           description:
               'Khi bán hàng/nhập kho chọn "CÔNG NỢ", hệ thống tự tạo khoản nợ tương ứng.',
           icon: Icons.auto_mode,
-          iconColor: Colors.blue,
+          iconColor: AppColors.primary,
         ),
       ],
     );
@@ -276,7 +277,7 @@ class _DebtViewState extends State<DebtView>
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey[300],
+                color: AppColors.outline,
                 borderRadius: BorderRadius.circular(10),
               ),
             ),
@@ -291,7 +292,7 @@ class _DebtViewState extends State<DebtView>
             Text(
               _debtPersonName(debt).toUpperCase(),
               style: AppTextStyles.caption.copyWith(
-                color: AppColors.onSurface.withOpacity(0.7),
+                color: AppColors.textSecondary,
               ),
             ),
             const Divider(height: 30),
@@ -301,7 +302,7 @@ class _DebtViewState extends State<DebtView>
                 child: Text(
                   "Chưa có lịch sử trả nợ",
                   style: AppTextStyles.body1.copyWith(
-                    color: AppColors.onSurface.withOpacity(0.5),
+                    color: AppColors.textHint,
                   ),
                 ),
               ),
@@ -319,7 +320,7 @@ class _DebtViewState extends State<DebtView>
                       margin: const EdgeInsets.only(bottom: 12),
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.green.withAlpha(13),
+                        color: AppColors.success.withAlpha(13),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Row(
@@ -335,7 +336,7 @@ class _DebtViewState extends State<DebtView>
                               Text(
                                 date,
                                 style: AppTextStyles.caption.copyWith(
-                                  color: AppColors.onSurface.withOpacity(0.6),
+                                  color: AppColors.textSecondary,
                                 ),
                               ),
                             ],
@@ -352,7 +353,7 @@ class _DebtViewState extends State<DebtView>
                               Text(
                                 p['paymentMethod'] ?? "TIỀN MẶT",
                                 style: AppTextStyles.overline.copyWith(
-                                  color: AppColors.onSurface.withOpacity(0.7),
+                                  color: AppColors.textSecondary,
                                 ),
                               ),
                             ],
@@ -390,7 +391,7 @@ class _DebtViewState extends State<DebtView>
           label,
           style: TextStyle(
             fontSize: AppTextStyles.overlineSize,
-            color: Colors.grey.shade600,
+            color: AppColors.textSecondary,
           ),
         ),
         Text(
@@ -414,7 +415,7 @@ class _DebtViewState extends State<DebtView>
     if (!canEdit && mounted) {
       NotificationService.showSnackBar(
         '❌ Ngày hôm nay đã chốt quỹ! Không thể thu tiền trả nợ.',
-        color: Colors.red,
+        color: AppColors.error,
       );
       return;
     }
@@ -445,16 +446,16 @@ class _DebtViewState extends State<DebtView>
                   padding: const EdgeInsets.all(10),
                   margin: const EdgeInsets.only(bottom: 12),
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade50,
+                    color: AppColors.background,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey.shade200),
+                    border: Border.all(color: AppColors.outline),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _miniPayValue('Tổng nợ', totalAmount, Colors.grey.shade700),
-                      _miniPayValue('Đã trả', paidAmount, Colors.green),
-                      _miniPayValue('Còn lại', remainingAmount, Colors.red),
+                      _miniPayValue('Tổng nợ', totalAmount, AppColors.textSecondary),
+                      _miniPayValue('Đã trả', paidAmount, AppColors.success),
+                      _miniPayValue('Còn lại', remainingAmount, AppColors.error),
                     ],
                   ),
                 ),
@@ -472,7 +473,7 @@ class _DebtViewState extends State<DebtView>
                 Text(
                   "THANH TOÁN BẰNG",
                   style: AppTextStyles.overline.copyWith(
-                    color: AppColors.onSurface.withOpacity(0.6),
+                    color: AppColors.textSecondary,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -559,7 +560,7 @@ class _DebtViewState extends State<DebtView>
                   if (mounted) {
                     NotificationService.showSnackBar(
                       "Đã ${isCustomerDebt ? 'thu' : 'trả'} nợ ${MoneyUtils.formatCurrency(payAmount)}đ!",
-                      color: Colors.green,
+                      color: AppColors.success,
                     );
                     await _refresh();
                   }
@@ -567,7 +568,7 @@ class _DebtViewState extends State<DebtView>
                   if (mounted) {
                     NotificationService.showSnackBar(
                       result.errorMessage ?? 'Có lỗi xảy ra',
-                      color: Colors.red,
+                      color: AppColors.error,
                     );
                   }
                 }
@@ -589,7 +590,7 @@ class _DebtViewState extends State<DebtView>
 
     if (!_hasPermission) {
       return Scaffold(
-        backgroundColor: FinanceV2Theme.pageBg,
+        backgroundColor: AppColors.background,
         appBar: CustomAppBar.build(
           title: 'QUẢN LÝ CÔNG NỢ',
           accentColor: AppBarAccents.customer,
@@ -597,7 +598,7 @@ class _DebtViewState extends State<DebtView>
         body: const Center(
           child: Text(
             'Bạn không có quyền truy cập tính năng này',
-            style: TextStyle(color: Colors.grey),
+            style: TextStyle(color: AppColors.textHint),
           ),
         ),
       );
@@ -614,7 +615,7 @@ class _DebtViewState extends State<DebtView>
         (_enableRepair ? _partnerDebts.length : 0);
 
     return Scaffold(
-      backgroundColor: FinanceV2Theme.pageBg,
+      backgroundColor: AppColors.background,
       appBar: CustomAppBar.buildWithTabs(
         title: 'QUẢN LÝ CÔNG NỢ',
         subtitle: '$activeDebtsCount khoản nợ còn',
@@ -634,8 +635,8 @@ class _DebtViewState extends State<DebtView>
                 _syncStatus,
                 style: AppTextStyles.caption.copyWith(
                   color: _syncStatus == 'Lỗi đồng bộ'
-                      ? Colors.orange
-                      : AppBarAccents.customer.withOpacity(0.7),
+                      ? AppColors.warning
+                      : AppBarAccents.customer.withAlpha(179),
                   fontWeight: _isSyncing ? FontWeight.bold : FontWeight.normal,
                 ),
               ),
@@ -644,7 +645,7 @@ class _DebtViewState extends State<DebtView>
                 onPressed: _isSyncing ? null : _syncWithFirebase,
                 icon: Icon(
                   _isSyncing ? Icons.sync : Icons.sync_outlined,
-                  color: _isSyncing ? Colors.orange : AppBarAccents.customer,
+                  color: _isSyncing ? AppColors.warning : AppBarAccents.customer,
                 ),
                 tooltip: 'Đồng bộ với Firebase',
               ),
@@ -710,7 +711,7 @@ class _DebtViewState extends State<DebtView>
                   : _tabController?.index == 1
                   ? 'Tạo nợ nhà cung cấp'
                   : 'Tạo công nợ khác',
-              child: const Icon(Icons.add, color: Colors.white),
+              child: const Icon(Icons.add, color: AppColors.surface),
             ),
     );
   }
@@ -801,11 +802,11 @@ class _DebtViewState extends State<DebtView>
               Expanded(
                 child: TextField(
                   controller: _searchController,
-                  style: FinanceV2Theme.bodyMd,
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.textPrimary),
                   decoration: InputDecoration(
                     hintText: 'Tìm kiếm tên, SĐT...',
-                    hintStyle: FinanceV2Theme.bodyMd.copyWith(color: FinanceV2Theme.subInk),
-                    prefixIcon: const Icon(Icons.search_rounded, size: 18, color: FinanceV2Theme.subInk),
+                    hintStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.textPrimary).copyWith(color: AppColors.textSecondary),
+                    prefixIcon: const Icon(Icons.search_rounded, size: 18, color: AppColors.textSecondary),
                     suffixIcon: _searchQuery.isNotEmpty
                         ? IconButton(
                             icon: const Icon(Icons.clear_rounded, size: 18),
@@ -827,7 +828,7 @@ class _DebtViewState extends State<DebtView>
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
-                      borderSide: const BorderSide(color: FinanceV2Theme.accent),
+                      borderSide: const BorderSide(color: AppColors.primary),
                     ),
                   ),
                   onChanged: (v) => setState(() => _searchQuery = v.trim()),
@@ -838,8 +839,8 @@ class _DebtViewState extends State<DebtView>
                 label: const Text('Đã trả', style: TextStyle(fontSize: 12)),
                 selected: _showPaidDebts,
                 onSelected: (v) => setState(() => _showPaidDebts = v),
-                selectedColor: Colors.green.shade100,
-                checkmarkColor: Colors.green.shade700,
+                selectedColor: AppColors.success,
+                checkmarkColor: AppColors.success,
               ),
             ],
           ),
@@ -853,7 +854,7 @@ class _DebtViewState extends State<DebtView>
                   Icon(
                     Icons.receipt_long_outlined,
                     size: 80,
-                    color: Colors.grey[300],
+                    color: AppColors.divider,
                   ),
                   const SizedBox(height: 10),
                   Text(
@@ -861,7 +862,7 @@ class _DebtViewState extends State<DebtView>
                         ? 'Không tìm thấy kết quả'
                         : "Hiện tại không có khoản nợ nào",
                     style: AppTextStyles.body1.copyWith(
-                      color: AppColors.onSurface.withOpacity(0.5),
+                      color: AppColors.textHint,
                     ),
                   ),
                 ],
@@ -915,13 +916,13 @@ class _DebtViewState extends State<DebtView>
               margin: const EdgeInsets.fromLTRB(12, 8, 12, 4),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.red.withAlpha(25),
+                color: AppColors.error.withAlpha(25),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.red.withAlpha(77)),
+                border: Border.all(color: AppColors.error.withAlpha(77)),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.arrow_downward, color: Colors.red),
+                  const Icon(Icons.arrow_downward, color: AppColors.error),
                   const SizedBox(width: 8),
                   Text(
                     "NỢ PHẢI THU",
@@ -954,7 +955,7 @@ class _DebtViewState extends State<DebtView>
                 itemBuilder: (ctx, i) => _debtCardWithIcon(
                   receivableDebts[i],
                   Icons.arrow_downward,
-                  Colors.red,
+                  AppColors.error,
                   i + 1,
                 ),
               ),
@@ -966,13 +967,13 @@ class _DebtViewState extends State<DebtView>
               margin: const EdgeInsets.fromLTRB(12, 8, 12, 4),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.blue.withAlpha(25),
+                color: AppColors.primary.withAlpha(25),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.blue.withAlpha(77)),
+                border: Border.all(color: AppColors.primary.withAlpha(77)),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.arrow_upward, color: Colors.blue),
+                  const Icon(Icons.arrow_upward, color: AppColors.primary),
                   const SizedBox(width: 8),
                   Text(
                     "NỢ PHẢI TRẢ",
@@ -1005,7 +1006,7 @@ class _DebtViewState extends State<DebtView>
                 itemBuilder: (ctx, i) => _debtCardWithIcon(
                   payableDebts[i],
                   Icons.arrow_upward,
-                  Colors.blue,
+                  AppColors.primary,
                   i + 1,
                 ),
               ),
@@ -1018,7 +1019,7 @@ class _DebtViewState extends State<DebtView>
                 child: Text(
                   "Không có công nợ nào",
                   style: AppTextStyles.body1.copyWith(
-                    color: AppColors.onSurface.withOpacity(0.5),
+                    color: AppColors.textHint,
                   ),
                 ),
               ),
@@ -1055,19 +1056,19 @@ class _DebtViewState extends State<DebtView>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.handshake_outlined, size: 80, color: Colors.grey[300]),
+            Icon(Icons.handshake_outlined, size: 80, color: AppColors.divider),
             const SizedBox(height: 10),
             Text(
               "Không có công nợ đối tác sửa chữa",
               style: AppTextStyles.body1.copyWith(
-                color: AppColors.onSurface.withOpacity(0.5),
+                color: AppColors.textHint,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               "Quản lý đối tác tại: Cài đặt > Quản lý đối tác",
               style: AppTextStyles.body2.copyWith(
-                color: AppColors.onSurface.withOpacity(0.4),
+                color: AppColors.textHint,
               ),
             ),
           ],
@@ -1082,7 +1083,7 @@ class _DebtViewState extends State<DebtView>
 
     return Column(
       children: [
-        _summaryHeader("TỔNG NỢ ĐỐI TÁC SỬA CHỮA", totalRemain, Colors.orange),
+        _summaryHeader("TỔNG NỢ ĐỐI TÁC SỬA CHỮA", totalRemain, AppColors.warning),
         Expanded(
           child: ListView.builder(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -1111,15 +1112,15 @@ class _DebtViewState extends State<DebtView>
     return Card(
       margin: const EdgeInsets.only(bottom: 3),
       color: isAltRow
-          ? Color.alphaBlend(Colors.orange.withOpacity(0.03), Colors.white)
-          : Colors.white,
+          ? Color.alphaBlend(AppColors.warning.withAlpha(8), AppColors.surface)
+          : AppColors.surface,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(9),
-        side: BorderSide(color: Colors.orange.shade200),
+        borderRadius: DesignTokens.brSm,
+        side: BorderSide(color: AppColors.warning.withAlpha(77)),
       ),
       child: InkWell(
         onTap: () => _navigateToPartnerDetail(partner),
-        borderRadius: BorderRadius.circular(9),
+        borderRadius: DesignTokens.brSm,
         child: Padding(
           padding: const EdgeInsets.all(6),
           child: Column(
@@ -1134,7 +1135,7 @@ class _DebtViewState extends State<DebtView>
                     height: 24,
                     margin: const EdgeInsets.only(right: 8),
                     decoration: BoxDecoration(
-                      color: Colors.orange.withValues(alpha: 0.3),
+                      color: AppColors.warning.withAlpha(77),
                       borderRadius: BorderRadius.circular(7),
                     ),
                     child: Center(
@@ -1142,7 +1143,7 @@ class _DebtViewState extends State<DebtView>
                         '$index',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: Colors.orange.shade800,
+                          color: AppColors.secondaryDark,
                           fontSize: AppTextStyles.subtitle1.fontSize,
                         ),
                       ),
@@ -1152,12 +1153,12 @@ class _DebtViewState extends State<DebtView>
                   Container(
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
-                      color: Colors.orange.withValues(alpha: 0.3),
+                      color: AppColors.warning.withAlpha(77),
                       borderRadius: BorderRadius.circular(7),
                     ),
                     child: Icon(
                       Icons.handshake,
-                      color: Colors.orange.shade800,
+                      color: AppColors.secondaryDark,
                       size: 16,
                     ),
                   ),
@@ -1181,7 +1182,7 @@ class _DebtViewState extends State<DebtView>
                             '📞 $phone',
                             style: TextStyle(
                               fontSize: AppTextStyles.caption.fontSize,
-                              color: Colors.grey.shade700,
+                              color: AppColors.textSecondary,
                             ),
                           ),
                       ],
@@ -1194,13 +1195,13 @@ class _DebtViewState extends State<DebtView>
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.blue.withValues(alpha: 0.2),
+                      color: AppColors.primary.withAlpha(51),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
                       '$totalRepairs đơn',
                       style: TextStyle(
-                        color: Colors.blue.shade700,
+                        color: AppColors.primaryDark,
                         fontWeight: FontWeight.bold,
                         fontSize: AppTextStyles.caption.fontSize,
                       ),
@@ -1218,13 +1219,13 @@ class _DebtViewState extends State<DebtView>
                 children: [
                   _debtInfoChip(
                     'Đối tác sửa chữa',
-                    Colors.orange.withValues(alpha: 0.14),
-                    Colors.orange.shade800,
+                    AppColors.warning.withAlpha(36),
+                    AppColors.secondaryDark,
                   ),
                   _debtInfoChip(
                     source == 'manual' ? 'Thủ công' : 'Tự động',
-                    Colors.grey.shade200,
-                    Colors.grey.shade700,
+                    AppColors.outline,
+                    AppColors.textSecondary,
                   ),
                 ],
               ),
@@ -1237,7 +1238,7 @@ class _DebtViewState extends State<DebtView>
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: AppTextStyles.caption.fontSize,
-                    color: Colors.grey.shade700,
+                    color: AppColors.textSecondary,
                   ),
                 ),
               ],
@@ -1251,7 +1252,7 @@ class _DebtViewState extends State<DebtView>
                     child: _amountPill(
                       label: 'Tổng phí',
                       amount: totalCost,
-                      valueColor: Colors.grey.shade700,
+                      valueColor: AppColors.textSecondary,
                     ),
                   ),
                   const SizedBox(width: 4),
@@ -1259,7 +1260,7 @@ class _DebtViewState extends State<DebtView>
                     child: _amountPill(
                       label: 'Đã trả',
                       amount: totalPaid,
-                      valueColor: Colors.green,
+                      valueColor: AppColors.success,
                     ),
                   ),
                   const SizedBox(width: 4),
@@ -1267,9 +1268,9 @@ class _DebtViewState extends State<DebtView>
                     child: _amountPill(
                       label: 'Còn nợ',
                       amount: remainingDebt,
-                      valueColor: Colors.white,
-                      bgColor: Colors.orange,
-                      labelColor: Colors.white70,
+                      valueColor: AppColors.surface,
+                      bgColor: AppColors.warning,
+                      labelColor: AppColors.surface.withAlpha(179),
                     ),
                   ),
                 ],
@@ -1291,8 +1292,8 @@ class _DebtViewState extends State<DebtView>
                         ),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange,
-                        foregroundColor: Colors.white,
+                        backgroundColor: AppColors.warning,
+                        foregroundColor: AppColors.surface,
                         padding: const EdgeInsets.symmetric(
                           horizontal: 8,
                           vertical: 3,
@@ -1317,7 +1318,7 @@ class _DebtViewState extends State<DebtView>
         Text(
           label,
           style: AppTextStyles.body2.copyWith(
-            color: AppColors.onSurface.withOpacity(0.6),
+            color: AppColors.textSecondary,
           ),
         ),
         const SizedBox(height: 4),
@@ -1365,7 +1366,7 @@ class _DebtViewState extends State<DebtView>
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('Lỗi: $e'), backgroundColor: AppColors.error),
         );
       }
     }
@@ -1386,7 +1387,7 @@ class _DebtViewState extends State<DebtView>
           Expanded(
             child: Text(
               label,
-              style: FinanceV2Theme.micro.copyWith(
+              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w400, color: AppColors.textSecondary).copyWith(
                 color: color,
                 fontWeight: FontWeight.w700,
               ),
@@ -1429,10 +1430,10 @@ class _DebtViewState extends State<DebtView>
         debtType == 'CUSTOMER_OWES' ||
         debtType == 'OWE' ||
         debtType == 'OTHER_CUSTOMER_OWES';
-    final mainColor = isCustomerDebt ? Colors.red : Colors.blue;
+    final mainColor = isCustomerDebt ? AppColors.error : AppColors.primary;
     final borderColor = isCustomerDebt
-        ? Colors.red.shade200
-        : Colors.blue.shade200;
+        ? AppColors.error
+        : AppColors.primary;
 
     // Calculate days since creation for urgency
     final daysSince = hasCreatedAt
@@ -1446,8 +1447,8 @@ class _DebtViewState extends State<DebtView>
     final hasMeaningfulNote =
         note.trim().isNotEmpty && note.trim().toLowerCase() != 'nợ';
     final zebraBg = isAltRow
-        ? Color.alphaBlend(mainColor.withOpacity(0.03), Colors.white)
-        : Colors.white;
+        ? Color.alphaBlend(mainColor.withAlpha(8), AppColors.surface)
+        : AppColors.surface;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 3),
@@ -1456,8 +1457,8 @@ class _DebtViewState extends State<DebtView>
         borderRadius: BorderRadius.circular(FinanceV2Theme.radiusControl),
         side: BorderSide(
           color: isVeryUrgent
-              ? Colors.red.shade400
-              : (isUrgent ? Colors.orange.shade300 : borderColor),
+              ? AppColors.error
+              : (isUrgent ? AppColors.warning : borderColor),
           width: isVeryUrgent ? 1.4 : 1,
         ),
       ),
@@ -1515,14 +1516,14 @@ class _DebtViewState extends State<DebtView>
                       children: [
                         Text(
                           personName.toUpperCase(),
-                          style: FinanceV2Theme.bodyMd.copyWith(fontWeight: FontWeight.w700),
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.textPrimary).copyWith(fontWeight: FontWeight.w700),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                         if (phone.isNotEmpty)
                           Text(
                             '📞 $phone',
-                            style: FinanceV2Theme.micro.copyWith(color: FinanceV2Theme.subInk),
+                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w400, color: AppColors.textSecondary).copyWith(color: AppColors.textSecondary),
                           ),
                       ],
                     ),
@@ -1533,14 +1534,14 @@ class _DebtViewState extends State<DebtView>
                     children: [
                       Text(
                         date,
-                        style: FinanceV2Theme.micro.copyWith(
+                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w400, color: AppColors.textSecondary).copyWith(
                           fontWeight: FontWeight.w500,
-                          color: FinanceV2Theme.subInk,
+                          color: AppColors.textSecondary,
                         ),
                       ),
                       Text(
                         time,
-                        style: FinanceV2Theme.caption.copyWith(color: FinanceV2Theme.subInk),
+                        style: FinanceV2Theme.caption.copyWith(color: AppColors.textSecondary),
                       ),
                     ],
                   ),
@@ -1559,20 +1560,20 @@ class _DebtViewState extends State<DebtView>
                   if (remain == 0)
                     _debtInfoChip(
                       '✓ Đã trả hết',
-                      Colors.green.shade100,
-                      Colors.green.shade700,
+                      AppColors.success,
+                      AppColors.success,
                     )
                   else if (isVeryUrgent)
                     _debtInfoChip(
                       'Quá hạn $daysSince ngày',
-                      Colors.red.shade100,
-                      Colors.red.shade800,
+                      AppColors.error,
+                      AppColors.error,
                     )
                   else if (isUrgent)
                     _debtInfoChip(
                       '$daysSince ngày',
-                      Colors.orange.shade100,
-                      Colors.orange.shade800,
+                      AppColors.warning,
+                      AppColors.warning,
                     ),
                 ],
               ),
@@ -1585,7 +1586,7 @@ class _DebtViewState extends State<DebtView>
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: AppTextStyles.caption.fontSize,
-                    color: Colors.grey.shade700,
+                    color: AppColors.textSecondary,
                   ),
                 ),
               ],
@@ -1599,7 +1600,7 @@ class _DebtViewState extends State<DebtView>
                     child: _amountPill(
                       label: 'Tổng nợ',
                       amount: total,
-                      valueColor: Colors.grey.shade700,
+                      valueColor: AppColors.textSecondary,
                     ),
                   ),
                   const SizedBox(width: 4),
@@ -1607,7 +1608,7 @@ class _DebtViewState extends State<DebtView>
                     child: _amountPill(
                       label: 'Đã trả',
                       amount: paid,
-                      valueColor: Colors.green,
+                      valueColor: AppColors.success,
                     ),
                   ),
                   const SizedBox(width: 4),
@@ -1615,7 +1616,7 @@ class _DebtViewState extends State<DebtView>
                     child: _amountPill(
                       label: 'Còn nợ',
                       amount: remain,
-                      valueColor: Colors.white,
+                      valueColor: AppColors.surface,
                       bgColor: mainColor,
                       labelColor: Colors.white70,
                     ),
@@ -1654,7 +1655,7 @@ class _DebtViewState extends State<DebtView>
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: mainColor,
-                      foregroundColor: Colors.white,
+                      foregroundColor: AppColors.surface,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,
                         vertical: 3,
@@ -1696,11 +1697,11 @@ class _DebtViewState extends State<DebtView>
     Color? bgColor,
     Color? labelColor,
   }) {
-    final chipBg = bgColor ?? Colors.grey.shade100;
-    final chipLabelColor = labelColor ?? Colors.grey.shade600;
+    final chipBg = bgColor ?? AppColors.background;
+    final chipLabelColor = labelColor ?? AppColors.textSecondary;
     final borderColor = bgColor == null
-        ? Colors.grey.shade200
-        : chipBg.withOpacity(0.7);
+        ? AppColors.outline
+        : chipBg.withAlpha(179);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
@@ -1742,7 +1743,7 @@ class _DebtViewState extends State<DebtView>
     if (!canEdit && mounted) {
       NotificationService.showSnackBar(
         '❌ Ngày hôm nay đã chốt quỹ! Không thể tạo công nợ mới.',
-        color: Colors.red,
+        color: AppColors.error,
       );
       return;
     }
@@ -1816,13 +1817,13 @@ class _DebtViewState extends State<DebtView>
                             ),
                             decoration: BoxDecoration(
                               color: debtType == "CUSTOMER_OWES"
-                                  ? Colors.red.withOpacity(0.15)
-                                  : Colors.grey.withOpacity(0.1),
+                                  ? AppColors.error.withAlpha(38)
+                                  : AppColors.background,
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(
                                 color: debtType == "CUSTOMER_OWES"
-                                    ? Colors.red
-                                    : Colors.grey.shade300,
+                                    ? AppColors.error
+                                    : AppColors.outline,
                                 width: debtType == "CUSTOMER_OWES" ? 2 : 1,
                               ),
                             ),
@@ -1831,8 +1832,8 @@ class _DebtViewState extends State<DebtView>
                                 Icon(
                                   Icons.arrow_downward,
                                   color: debtType == "CUSTOMER_OWES"
-                                      ? Colors.red
-                                      : Colors.grey,
+                                      ? AppColors.error
+                                      : AppColors.textHint,
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
@@ -1841,8 +1842,8 @@ class _DebtViewState extends State<DebtView>
                                     fontSize: AppTextStyles.body1.fontSize,
                                     fontWeight: FontWeight.bold,
                                     color: debtType == "CUSTOMER_OWES"
-                                        ? Colors.red
-                                        : Colors.grey,
+                                        ? AppColors.error
+                                        : AppColors.textHint,
                                   ),
                                   textAlign: TextAlign.center,
                                 ),
@@ -1850,7 +1851,7 @@ class _DebtViewState extends State<DebtView>
                                   "(Khách nợ shop)",
                                   style: TextStyle(
                                     fontSize: AppTextStyles.overlineSize,
-                                    color: Colors.grey,
+                                    color: AppColors.textHint,
                                   ),
                                 ),
                               ],
@@ -1869,13 +1870,13 @@ class _DebtViewState extends State<DebtView>
                             ),
                             decoration: BoxDecoration(
                               color: debtType == "SHOP_OWES"
-                                  ? Colors.blue.withOpacity(0.15)
-                                  : Colors.grey.withOpacity(0.1),
+                                  ? AppColors.primary.withAlpha(38)
+                                  : AppColors.background,
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(
                                 color: debtType == "SHOP_OWES"
-                                    ? Colors.blue
-                                    : Colors.grey.shade300,
+                                    ? AppColors.primary
+                                    : AppColors.outline,
                                 width: debtType == "SHOP_OWES" ? 2 : 1,
                               ),
                             ),
@@ -1884,8 +1885,8 @@ class _DebtViewState extends State<DebtView>
                                 Icon(
                                   Icons.arrow_upward,
                                   color: debtType == "SHOP_OWES"
-                                      ? Colors.blue
-                                      : Colors.grey,
+                                      ? AppColors.primary
+                                      : AppColors.textHint,
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
@@ -1894,8 +1895,8 @@ class _DebtViewState extends State<DebtView>
                                     fontSize: AppTextStyles.body1.fontSize,
                                     fontWeight: FontWeight.bold,
                                     color: debtType == "SHOP_OWES"
-                                        ? Colors.blue
-                                        : Colors.grey,
+                                        ? AppColors.primary
+                                        : AppColors.textHint,
                                   ),
                                   textAlign: TextAlign.center,
                                 ),
@@ -1903,7 +1904,7 @@ class _DebtViewState extends State<DebtView>
                                   "(Shop nợ người khác)",
                                   style: TextStyle(
                                     fontSize: AppTextStyles.overlineSize,
-                                    color: Colors.grey,
+                                    color: AppColors.textHint,
                                   ),
                                 ),
                               ],
@@ -1964,7 +1965,7 @@ class _DebtViewState extends State<DebtView>
                   Navigator.pop(ctx);
                   NotificationService.showSnackBar(
                     "Đã tạo công nợ mới",
-                    color: Colors.green,
+                    color: AppColors.success,
                   );
                   await _refresh();
                 }
@@ -1986,7 +1987,7 @@ class _DebtViewState extends State<DebtView>
     if (!canEdit && mounted) {
       NotificationService.showSnackBar(
         '❌ Ngày hôm nay đã chốt quỹ! Không thể tạo công nợ mới.',
-        color: Colors.red,
+        color: AppColors.error,
       );
       return;
     }
@@ -2095,14 +2096,14 @@ class _DebtViewState extends State<DebtView>
                 Navigator.pop(context);
                 NotificationService.showSnackBar(
                   "Đã tạo nợ khách hàng!",
-                  color: Colors.green,
+                  color: AppColors.success,
                 );
                 await _refresh();
               } catch (e) {
                 if (!mounted) return;
                 NotificationService.showSnackBar(
                   "Lỗi tạo nợ: $e",
-                  color: Colors.red,
+                  color: AppColors.error,
                 );
               }
             },
@@ -2122,7 +2123,7 @@ class _DebtViewState extends State<DebtView>
     if (!canEdit && mounted) {
       NotificationService.showSnackBar(
         '❌ Ngày hôm nay đã chốt quỹ! Không thể tạo công nợ mới.',
-        color: Colors.red,
+        color: AppColors.error,
       );
       return;
     }
@@ -2233,14 +2234,14 @@ class _DebtViewState extends State<DebtView>
                 Navigator.pop(context);
                 NotificationService.showSnackBar(
                   "Đã tạo nợ nhà cung cấp!",
-                  color: Colors.green,
+                  color: AppColors.success,
                 );
                 await _refresh();
               } catch (e) {
                 if (!mounted) return;
                 NotificationService.showSnackBar(
                   "Lỗi tạo nợ: $e",
-                  color: Colors.red,
+                  color: AppColors.error,
                 );
               }
             },
@@ -2283,15 +2284,15 @@ class _DebtViewState extends State<DebtView>
     return Card(
       margin: const EdgeInsets.only(bottom: 3),
       color: isAltRow
-          ? Color.alphaBlend(iconColor.withOpacity(0.04), Colors.white)
-          : Colors.white,
+          ? Color.alphaBlend(iconColor.withAlpha(10), AppColors.surface)
+          : AppColors.surface,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
-        side: BorderSide(color: iconColor.withOpacity(0.12)),
+        borderRadius: DesignTokens.brSm,
+        side: BorderSide(color: iconColor.withAlpha(31)),
       ),
       child: InkWell(
         onTap: () => _showDebtHistory(d),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: DesignTokens.brSm,
         child: Padding(
           padding: const EdgeInsets.all(6),
           child: Column(
@@ -2305,7 +2306,7 @@ class _DebtViewState extends State<DebtView>
                       height: 26,
                       margin: const EdgeInsets.only(right: 8),
                       decoration: BoxDecoration(
-                        color: iconColor.withOpacity(0.12),
+                        color: iconColor.withAlpha(31),
                         borderRadius: BorderRadius.circular(7),
                       ),
                       child: Center(
@@ -2323,7 +2324,7 @@ class _DebtViewState extends State<DebtView>
                   Container(
                     padding: const EdgeInsets.all(7),
                     decoration: BoxDecoration(
-                      color: iconColor.withOpacity(0.12),
+                      color: iconColor.withAlpha(31),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(icon, color: iconColor, size: 16),
@@ -2349,7 +2350,7 @@ class _DebtViewState extends State<DebtView>
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               fontSize: AppTextStyles.caption.fontSize,
-                              color: Colors.grey.shade700,
+                              color: AppColors.textSecondary,
                             ),
                           ),
                       ],
@@ -2362,7 +2363,7 @@ class _DebtViewState extends State<DebtView>
                         date,
                         style: TextStyle(
                           fontSize: AppTextStyles.caption.fontSize,
-                          color: Colors.grey.shade600,
+                          color: AppColors.textSecondary,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -2370,7 +2371,7 @@ class _DebtViewState extends State<DebtView>
                         time,
                         style: TextStyle(
                           fontSize: AppTextStyles.overlineSize,
-                          color: Colors.grey.shade500,
+                          color: AppColors.textHint,
                         ),
                       ),
                     ],
@@ -2394,7 +2395,7 @@ class _DebtViewState extends State<DebtView>
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: AppTextStyles.caption.fontSize,
-                    color: Colors.grey.shade700,
+                    color: AppColors.textSecondary,
                   ),
                 ),
               ],
@@ -2405,7 +2406,7 @@ class _DebtViewState extends State<DebtView>
                     child: _amountPill(
                       label: 'Tổng nợ',
                       amount: total,
-                      valueColor: Colors.grey.shade700,
+                      valueColor: AppColors.textSecondary,
                     ),
                   ),
                   const SizedBox(width: 4),
@@ -2413,7 +2414,7 @@ class _DebtViewState extends State<DebtView>
                     child: _amountPill(
                       label: 'Đã trả',
                       amount: paid,
-                      valueColor: Colors.green,
+                      valueColor: AppColors.success,
                     ),
                   ),
                   const SizedBox(width: 4),
@@ -2421,7 +2422,7 @@ class _DebtViewState extends State<DebtView>
                     child: _amountPill(
                       label: 'Còn nợ',
                       amount: remain,
-                      valueColor: Colors.white,
+                      valueColor: AppColors.surface,
                       bgColor: iconColor,
                       labelColor: Colors.white70,
                     ),
@@ -2458,7 +2459,7 @@ class _DebtViewState extends State<DebtView>
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: iconColor,
-                      foregroundColor: Colors.white,
+                      foregroundColor: AppColors.surface,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,
                         vertical: 3,

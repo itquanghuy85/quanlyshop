@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../theme/app_colors.dart';
 import 'package:intl/intl.dart';
 
 import '../../../expansion/safe_mode/expansion_feature_flags.dart';
@@ -103,7 +104,7 @@ class _BranchListViewState extends State<BranchListView> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('Lỗi: $e'), backgroundColor: AppColors.error),
         );
       }
     }
@@ -121,9 +122,9 @@ class _BranchListViewState extends State<BranchListView> {
               child: const Text('Huỷ')),
           ElevatedButton(
               onPressed: () => Navigator.pop(ctx, true),
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
               child: const Text('Vô hiệu hoá',
-                  style: TextStyle(color: Colors.white))),
+                  style: TextStyle(color: AppColors.surface))),
         ],
       ),
     );
@@ -151,10 +152,10 @@ class _BranchListViewState extends State<BranchListView> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.lock_outline, size: 48, color: Colors.orange),
+                  Icon(Icons.lock_outline, size: 48, color: AppColors.warning),
                   SizedBox(height: 12),
                   Text('Module Multi-Branch chưa được bật.',
-                      style: TextStyle(color: Colors.grey)),
+                      style: TextStyle(color: AppColors.textHint)),
                 ],
               ),
             )
@@ -185,10 +186,10 @@ class _BranchListViewState extends State<BranchListView> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.business_outlined, size: 60, color: Colors.grey.shade300),
+          Icon(Icons.business_outlined, size: 60, color: AppColors.outline),
           const SizedBox(height: 16),
           const Text('Chưa có chi nhánh nào.',
-              style: TextStyle(color: Colors.grey)),
+              style: TextStyle(color: AppColors.textHint)),
           const SizedBox(height: 12),
           ElevatedButton.icon(
             onPressed: _addBranch,
@@ -206,8 +207,8 @@ class _BranchListViewState extends State<BranchListView> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: Colors.blue.shade50,
-          child: const Icon(Icons.business_outlined, color: Colors.blue),
+          backgroundColor: AppColors.primary,
+          child: const Icon(Icons.business_outlined, color: AppColors.primary),
         ),
         title: Text(b.name, style: const TextStyle(fontWeight: FontWeight.bold)),
         subtitle: Column(
@@ -216,7 +217,7 @@ class _BranchListViewState extends State<BranchListView> {
             if (b.address != null && b.address!.isNotEmpty)
               Text(b.address!, style: const TextStyle(fontSize: 12)),
             Text('Tạo: ${_dateFmt.format(b.createdAt)}',
-                style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+                style: TextStyle(fontSize: 11, color: AppColors.textHint)),
           ],
         ),
         trailing: PopupMenuButton<String>(
@@ -239,7 +240,7 @@ class _BranchListViewState extends State<BranchListView> {
             const PopupMenuItem(value: 'switch', child: Text('Chuyển chi nhánh')),
             const PopupMenuItem(
               value: 'deactivate',
-              child: Text('Vô hiệu hoá', style: TextStyle(color: Colors.red)),
+              child: Text('Vô hiệu hoá', style: TextStyle(color: AppColors.error)),
             ),
           ],
         ),

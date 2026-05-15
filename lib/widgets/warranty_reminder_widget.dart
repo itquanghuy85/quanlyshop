@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
 import '../services/warranty_reminder_service.dart';
 
 /// Widget hiển thị bảo hành sắp hết hạn — dùng cho dashboard
@@ -31,7 +32,7 @@ class _WarrantyReminderWidgetState extends State<WarrantyReminderWidget> {
           children: [
             Row(
               children: [
-                const Icon(Icons.verified_user, color: Colors.orange, size: 24),
+                const Icon(Icons.verified_user, color: AppColors.warning, size: 24),
                 const SizedBox(width: 12),
                 const Text(
                   'Bảo hành sắp hết hạn',
@@ -40,7 +41,7 @@ class _WarrantyReminderWidgetState extends State<WarrantyReminderWidget> {
                 const Spacer(),
                 Text(
                   '30 ngày',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
                 ),
               ],
             ),
@@ -77,10 +78,10 @@ class _WarrantyReminderWidgetState extends State<WarrantyReminderWidget> {
                     final status = w['status'] as String;
                     final daysLeft = w['daysLeft'] as int;
                     final color = status == 'expired'
-                        ? Colors.red
+                        ? AppColors.error
                         : status == 'urgent'
-                            ? Colors.orange
-                            : Colors.amber;
+                            ? AppColors.warning
+                            : AppColors.warning;
 
                     return Container(
                       margin: const EdgeInsets.only(bottom: 8),
@@ -110,7 +111,7 @@ class _WarrantyReminderWidgetState extends State<WarrantyReminderWidget> {
                                 const SizedBox(height: 4),
                                 Text(
                                   'SĐT: ${w['phone']}',
-                                  style: TextStyle(fontSize: 11, color: Colors.grey[700]),
+                                  style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
                                 ),
                               ],
                             ),
@@ -133,7 +134,7 @@ class _WarrantyReminderWidgetState extends State<WarrantyReminderWidget> {
                                       ? 'HẾT HẠN'
                                       : 'Còn $daysLeft ngày',
                                   style: const TextStyle(
-                                    color: Colors.white,
+                                    color: AppColors.surface,
                                     fontSize: 11,
                                     fontWeight: FontWeight.bold,
                                   ),

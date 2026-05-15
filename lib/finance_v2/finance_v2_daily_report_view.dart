@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
 import 'dart:async';
 import 'package:flutter_esc_pos_utils/flutter_esc_pos_utils.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -327,7 +328,7 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
       label: Text(
         _rangeModeLabel(mode),
         style: FinanceV2Theme.meta.copyWith(
-          color: selected ? Colors.white : FinanceV2Theme.subInk,
+          color: selected ? AppColors.surface : FinanceV2Theme.subInk,
           fontWeight: FontWeight.w600,
         ),
       ),
@@ -930,7 +931,7 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(ok ? 'Đã gửi lệnh in báo cáo ngày' : 'Không thể in, vui lòng kiểm tra máy in'),
-        backgroundColor: ok ? Colors.green : Colors.red,
+        backgroundColor: ok ? AppColors.success : AppColors.error,
       ),
     );
   }
@@ -1408,7 +1409,7 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(ok ? 'Đã gửi lệnh in chi tiết' : 'Không thể in, vui lòng kiểm tra máy in'),
-        backgroundColor: ok ? Colors.green : Colors.red,
+        backgroundColor: ok ? AppColors.success : AppColors.error,
       ),
     );
   }
@@ -1472,7 +1473,7 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
         title: Text('Báo cáo $_periodSuffix'),
         automaticallyImplyLeading: true,
         backgroundColor: FinanceV2Theme.accent,
-        foregroundColor: Colors.white,
+        foregroundColor: AppColors.surface,
         actions: [
           if (_snapshot != null)
             IconButton(
@@ -1513,7 +1514,7 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(FinanceV2Theme.radiusControl),
         boxShadow: [
           BoxShadow(
@@ -1562,7 +1563,7 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                color: Colors.blue[700],
+                                color: AppColors.primary,
                                 fontWeight: FontWeight.w600,
                               ),
                         ),
@@ -1613,11 +1614,11 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
               'Bán hàng trong kỳ (${sales.length})',
               style: Theme.of(context).textTheme.labelLarge?.copyWith(
                     fontWeight: FontWeight.w700,
-                    color: Colors.green[700],
+                    color: AppColors.success,
                   ),
             ),
             const SizedBox(height: 6),
-            ...sales.take(8).map((tx) => _transactionDetailRow(context, tx, Colors.green)),
+            ...sales.take(8).map((tx) => _transactionDetailRow(context, tx, AppColors.success)),
             const SizedBox(height: 12),
           ],
           if (repairs.isNotEmpty) ...[
@@ -1625,11 +1626,11 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
               'Sửa chữa trong kỳ (${repairs.length})',
               style: Theme.of(context).textTheme.labelLarge?.copyWith(
                     fontWeight: FontWeight.w700,
-                    color: Colors.blue[700],
+                    color: AppColors.primary,
                   ),
             ),
             const SizedBox(height: 6),
-            ...repairs.take(8).map((tx) => _transactionDetailRow(context, tx, Colors.blue)),
+            ...repairs.take(8).map((tx) => _transactionDetailRow(context, tx, AppColors.primary)),
           ],
           if (sales.isEmpty && repairs.isEmpty)
             const Text('Không có dữ liệu bán/sửa trong kỳ đã chọn.'),
@@ -1681,7 +1682,7 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.grey[700],
+                      color: AppColors.textSecondary,
                     ),
               ),
             ),
@@ -1697,13 +1698,13 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
         title: Text('Tổng hợp toàn app theo $_periodSuffix'),
         childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
         children: [
-          _metricRow(context, 'Doanh thu bán hàng', _snapshot!.incomeFromSales, Colors.green),
-          _metricRow(context, 'Doanh thu sửa chữa', _snapshot!.incomeFromRepairs, Colors.teal),
-          _metricRow(context, 'Thu khác', _snapshot!.incomeOther, Colors.blue),
+          _metricRow(context, 'Doanh thu bán hàng', _snapshot!.incomeFromSales, AppColors.success),
+          _metricRow(context, 'Doanh thu sửa chữa', _snapshot!.incomeFromRepairs, AppColors.info),
+          _metricRow(context, 'Thu khác', _snapshot!.incomeOther, AppColors.primary),
           _metricRow(context, 'Tổng thu', _snapshot!.totalIn, Colors.indigo),
-          _metricRow(context, 'Tổng chi', _snapshot!.totalOut, Colors.red),
-          _metricRow(context, 'Dòng tiền ròng (sổ quỹ)', _snapshot!.netCashflow, _snapshot!.netCashflow >= 0 ? Colors.green : Colors.orange),
-          _metricRow(context, 'Lợi nhuận thực (lãi gộp - chi vận hành)', _snapshot!.grossProfitTotal - _snapshot!.operatingExpenseOut, (_snapshot!.grossProfitTotal - _snapshot!.operatingExpenseOut) >= 0 ? Colors.green : Colors.red),
+          _metricRow(context, 'Tổng chi', _snapshot!.totalOut, AppColors.error),
+          _metricRow(context, 'Dòng tiền ròng (sổ quỹ)', _snapshot!.netCashflow, _snapshot!.netCashflow >= 0 ? AppColors.success : AppColors.warning),
+          _metricRow(context, 'Lợi nhuận thực (lãi gộp - chi vận hành)', _snapshot!.grossProfitTotal - _snapshot!.operatingExpenseOut, (_snapshot!.grossProfitTotal - _snapshot!.operatingExpenseOut) >= 0 ? AppColors.success : AppColors.error),
           _metricRow(context, 'Doanh thu/GD vào (TB)', _snapshot!.avgIncomePerTransaction, Colors.deepPurple),
         ],
       ),
@@ -1714,8 +1715,8 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
     return _panel(
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: Colors.orange.withValues(alpha: 0.1),
-          child: const Icon(Icons.account_balance_wallet_rounded, color: Colors.orange),
+          backgroundColor: AppColors.warning.withValues(alpha: 0.1),
+          child: const Icon(Icons.account_balance_wallet_rounded, color: AppColors.warning),
         ),
         title: Text('Tổng quan công nợ theo $_periodSuffix'),
         subtitle: Text(
@@ -1754,7 +1755,7 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
                   MoneyUtils.formatCompactCurrency(c.amount),
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.w700,
-                        color: Colors.red[700],
+                        color: AppColors.error,
                       ),
                 ),
               ],
@@ -1814,32 +1815,32 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
             context: context,
             label: 'Tiền vào',
             value: MoneyUtils.formatCompactCurrency(_snapshot!.totalIn),
-            color: Colors.green,
+            color: AppColors.success,
           ),
           const SizedBox(width: 12),
           _buildStatCard(
             context: context,
             label: 'Tiền ra',
             value: MoneyUtils.formatCompactCurrency(_snapshot!.totalOut),
-            color: Colors.red,
+            color: AppColors.error,
           ),
           const SizedBox(width: 12),
           _buildStatCard(
             context: context,
             label: 'Ròng sổ quỹ',
             value: MoneyUtils.formatCompactCurrency(netCashflow),
-            color: netCashflow >= 0 ? Colors.blue : Colors.orange,
+            color: netCashflow >= 0 ? AppColors.primary : AppColors.warning,
             footerText: 'So với kỳ trước: $netDeltaText',
-            footerColor: netDelta >= 0 ? Colors.green[700] : Colors.red[700],
+            footerColor: netDelta >= 0 ? AppColors.success : AppColors.error,
           ),
           const SizedBox(width: 12),
           _buildStatCard(
             context: context,
             label: 'Lợi nhuận thực',
             value: MoneyUtils.formatCompactCurrency(realProfit),
-            color: realProfit >= 0 ? Colors.green : Colors.red,
+            color: realProfit >= 0 ? AppColors.success : AppColors.error,
             footerText: 'Lãi gộp - chi vận hành',
-            footerColor: Colors.grey[700],
+            footerColor: AppColors.textSecondary,
           ),
           const SizedBox(width: 12),
           _buildStatCard(
@@ -1865,7 +1866,7 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
       width: 156,
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(FinanceV2Theme.radiusControl),
         border: Border.all(color: color.withValues(alpha: 0.2), width: 1),
         boxShadow: [
@@ -1882,7 +1883,7 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
           Text(
             label,
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: Colors.grey[600],
+                  color: AppColors.textSecondary,
                   fontWeight: FontWeight.w500,
                 ),
             maxLines: 1,
@@ -1907,7 +1908,7 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: footerColor ?? Colors.grey[700],
+                    color: footerColor ?? AppColors.textSecondary,
                     fontWeight: FontWeight.w600,
                   ),
             ),
@@ -1935,34 +1936,34 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
               children: [
                 Row(
                   children: [
-                    Expanded(child: Text('Tiền vào (${inTxs.length})', maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600, color: Colors.green[700]))),
+                    Expanded(child: Text('Tiền vào (${inTxs.length})', maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600, color: AppColors.success))),
                     const SizedBox(width: 8),
-                    Text(MoneyUtils.formatCompactCurrency(totalIn), style: Theme.of(context).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600, color: Colors.green[700])),
+                    Text(MoneyUtils.formatCompactCurrency(totalIn), style: Theme.of(context).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600, color: AppColors.success)),
                   ],
                 ),
                 const SizedBox(height: 8),
                 if (inTxs.isEmpty)
-                  Text('Không có', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[500]))
+                  Text('Không có', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textHint))
                 else
                   Column(
-                    children: inTxs.take(10).map((tx) => _cashFlowRow(context, tx, Colors.green)).toList(),
+                    children: inTxs.take(10).map((tx) => _cashFlowRow(context, tx, AppColors.success)).toList(),
                   ),
                 const SizedBox(height: 12),
-                Divider(color: Colors.grey[300], height: 1),
+                Divider(color: AppColors.divider, height: 1),
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    Expanded(child: Text('Tiền ra (${outTxs.length})', maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600, color: Colors.red[700]))),
+                    Expanded(child: Text('Tiền ra (${outTxs.length})', maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600, color: AppColors.error))),
                     const SizedBox(width: 8),
-                    Text(MoneyUtils.formatCompactCurrency(totalOut), style: Theme.of(context).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600, color: Colors.red[700])),
+                    Text(MoneyUtils.formatCompactCurrency(totalOut), style: Theme.of(context).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600, color: AppColors.error)),
                   ],
                 ),
                 const SizedBox(height: 8),
                 if (outTxs.isEmpty)
-                  Text('Không có', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[500]))
+                  Text('Không có', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textHint))
                 else
                   Column(
-                    children: outTxs.take(10).map((tx) => _cashFlowRow(context, tx, Colors.red)).toList(),
+                    children: outTxs.take(10).map((tx) => _cashFlowRow(context, tx, AppColors.error)).toList(),
                   ),
               ],
             ),
@@ -1997,7 +1998,7 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
                 if (details.isNotEmpty)
                   Text(
                     details.join(' · '),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[700]),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -2041,10 +2042,10 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
                         DataCell(Text(_displayTitle(tx), style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w500), maxLines: 1, overflow: TextOverflow.ellipsis)),
                         DataCell(Text(tx.subtitle, style: Theme.of(context).textTheme.bodySmall, maxLines: 2, overflow: TextOverflow.ellipsis)),
                         DataCell(Text((tx.actorName ?? '').trim().isEmpty ? '-' : (tx.actorName ?? ''), style: Theme.of(context).textTheme.bodySmall, maxLines: 1, overflow: TextOverflow.ellipsis)),
-                        DataCell(Text(tx.isIncome ? 'Vào' : 'Ra', style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600, color: tx.isIncome ? Colors.green[700] : Colors.red[700]))),
-                        DataCell(Text(MoneyUtils.formatCompactCurrency(tx.amount), style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600, color: tx.isIncome ? Colors.green[700] : Colors.red[700]))),
+                        DataCell(Text(tx.isIncome ? 'Vào' : 'Ra', style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600, color: tx.isIncome ? AppColors.success : AppColors.error))),
+                        DataCell(Text(MoneyUtils.formatCompactCurrency(tx.amount), style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600, color: tx.isIncome ? AppColors.success : AppColors.error))),
                         DataCell(Text(tx.costAmount == null ? '-' : MoneyUtils.formatCompactCurrency(tx.costAmount!), style: Theme.of(context).textTheme.bodySmall)),
-                        DataCell(Text(tx.grossProfit == null ? '-' : MoneyUtils.formatCompactCurrency(tx.grossProfit!), style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600, color: (tx.grossProfit ?? 0) >= 0 ? Colors.green[700] : Colors.red[700]))),
+                        DataCell(Text(tx.grossProfit == null ? '-' : MoneyUtils.formatCompactCurrency(tx.grossProfit!), style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600, color: (tx.grossProfit ?? 0) >= 0 ? AppColors.success : AppColors.error))),
                       ]))
                   .toList(),
             ),
@@ -2063,11 +2064,11 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
         childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
         children: [
           _metricRow(context, 'Vốn bán hàng', s.cogsFromSales, Colors.deepOrange),
-          _metricRow(context, 'Vốn sửa chữa', s.cogsFromRepairs, Colors.orange),
-          _metricRow(context, 'Lãi gộp bán hàng', s.grossProfitFromSales, s.grossProfitFromSales >= 0 ? Colors.green : Colors.red),
-          _metricRow(context, 'Lãi gộp sửa chữa', s.grossProfitFromRepairs, s.grossProfitFromRepairs >= 0 ? Colors.green : Colors.red),
+          _metricRow(context, 'Vốn sửa chữa', s.cogsFromRepairs, AppColors.warning),
+          _metricRow(context, 'Lãi gộp bán hàng', s.grossProfitFromSales, s.grossProfitFromSales >= 0 ? AppColors.success : AppColors.error),
+          _metricRow(context, 'Lãi gộp sửa chữa', s.grossProfitFromRepairs, s.grossProfitFromRepairs >= 0 ? AppColors.success : AppColors.error),
           const Divider(height: 18),
-          _metricRow(context, 'Tổng lãi gộp', s.grossProfitTotal, s.grossProfitTotal >= 0 ? Colors.green : Colors.red),
+          _metricRow(context, 'Tổng lãi gộp', s.grossProfitTotal, s.grossProfitTotal >= 0 ? AppColors.success : AppColors.error),
         ],
       ),
     );
@@ -2120,7 +2121,7 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
             child: Text(
               'Có mặt: $totalPresent · Vắng: $totalAbsent · Đi trễ: $totalLate · Đổi ca: $totalSwap',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.grey[700],
+                    color: AppColors.textSecondary,
                     fontWeight: FontWeight.w600,
                   ),
             ),
@@ -2142,7 +2143,7 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
                     ),
                     Text(
                       '${e.value.count} giao dịch',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[700]),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
                     ),
                   ],
                 ),
@@ -2157,7 +2158,7 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
                   'Có mặt: ${e.value.presentDays} · Vắng: ${e.value.absentDays} · Đi trễ: ${e.value.lateDays} · Đổi ca: ${e.value.swapCount}',
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[700]),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
                 ),
               ],
             ),
@@ -2192,13 +2193,13 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (receivables.isNotEmpty) ...[
-                  Text('Phải thu (${receivables.length})', style: Theme.of(context).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600, color: Colors.blue[700])),
+                  Text('Phải thu (${receivables.length})', style: Theme.of(context).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600, color: AppColors.primary)),
                   const SizedBox(height: 8),
                   ...receivables.map((d) => _debtItem(context, d)),
                   const SizedBox(height: 12),
                 ],
                 if (payables.isNotEmpty) ...[
-                  Text('Phải trả (${payables.length})', style: Theme.of(context).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600, color: Colors.orange[700])),
+                  Text('Phải trả (${payables.length})', style: Theme.of(context).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600, color: AppColors.warning)),
                   const SizedBox(height: 8),
                   ...payables.map((d) => _debtItem(context, d)),
                 ],
@@ -2219,9 +2220,9 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
         child: Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: Colors.grey[50],
+            color: AppColors.textHint,
             borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: Colors.grey[300]!, width: 1),
+            border: Border.all(color: AppColors.divider!, width: 1),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -2232,7 +2233,7 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
                   children: [
                     Text(debt.name, style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
                     if (debt.phone != null)
-                      Text(debt.phone!, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[600])),
+                      Text(debt.phone!, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary)),
                   ],
                 ),
               ),
@@ -2241,8 +2242,8 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text('Còn: ${MoneyUtils.formatCompactCurrency(debt.remaining)}', maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600, color: Colors.red[700])),
-                    Text('Tổng: ${MoneyUtils.formatCompactCurrency(debt.total)}', maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[600])),
+                    Text('Còn: ${MoneyUtils.formatCompactCurrency(debt.remaining)}', maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600, color: AppColors.error)),
+                    Text('Tổng: ${MoneyUtils.formatCompactCurrency(debt.total)}', maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary)),
                   ],
                 ),
               ),
@@ -2274,8 +2275,8 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
               final direction = (log['direction'] ?? '').toString().toUpperCase();
               final amount = (log['amount'] as num?)?.toInt() ?? 0;
               final color = direction == 'IN'
-                  ? Colors.green
-                  : (direction == 'OUT' ? Colors.red : Colors.orange);
+                  ? AppColors.success
+                  : (direction == 'OUT' ? AppColors.error : AppColors.warning);
               final ts = createdAt > 0
                   ? _dtFmt.format(DateTime.fromMillisecondsSinceEpoch(createdAt))
                   : '--';

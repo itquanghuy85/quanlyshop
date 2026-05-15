@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/app_colors.dart';
 import '../../widgets/responsive_wrapper.dart';
 import '../../widgets/custom_app_bar.dart';
 import '../../l10n/app_localizations.dart';
@@ -131,12 +132,12 @@ class _VariantManagementViewState extends State<VariantManagementView>
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: Colors.red,
+                        color: AppColors.error,
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
                         '${_warnings!.total}',
-                        style: const TextStyle(fontSize: 12, color: Colors.white),
+                        style: const TextStyle(fontSize: 12, color: AppColors.surface),
                       ),
                     ),
                   ],
@@ -153,12 +154,12 @@ class _VariantManagementViewState extends State<VariantManagementView>
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: Colors.red,
+                        color: AppColors.error,
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
                         '${_outOfStock.length}',
-                        style: const TextStyle(fontSize: 12, color: Colors.white),
+                        style: const TextStyle(fontSize: 12, color: AppColors.surface),
                       ),
                     ),
                   ],
@@ -175,12 +176,12 @@ class _VariantManagementViewState extends State<VariantManagementView>
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: Colors.orange,
+                        color: AppColors.warning,
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
                         '${_lowStock.length}',
-                        style: const TextStyle(fontSize: 12, color: Colors.white),
+                        style: const TextStyle(fontSize: 12, color: AppColors.surface),
                       ),
                     ),
                   ],
@@ -259,25 +260,25 @@ class _VariantManagementViewState extends State<VariantManagementView>
           'Tổng phân loại',
           '${_allVariants.length}',
           Icons.style,
-          Colors.blue,
+          AppColors.primary,
         ),
         _buildStatCard(
           _terms.productLabel,
           '${_productsWithVariants.length}',
           Icons.inventory_2,
-          Colors.blue,
+          AppColors.primary,
         ),
         _buildStatCard(
           'Hết hàng',
           '${_outOfStock.length}',
           Icons.error_outline,
-          Colors.red,
+          AppColors.error,
         ),
         _buildStatCard(
           'Sắp hết',
           '${_lowStock.length}',
           Icons.warning_amber,
-          Colors.orange,
+          AppColors.warning,
         ),
       ],
     );
@@ -305,7 +306,7 @@ class _VariantManagementViewState extends State<VariantManagementView>
               title,
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.grey[600],
+                color: AppColors.textSecondary,
               ),
             ),
           ],
@@ -351,11 +352,11 @@ class _VariantManagementViewState extends State<VariantManagementView>
           child: const Center(
             child: Column(
               children: [
-                Icon(Icons.grid_off, size: 48, color: Colors.grey),
+                Icon(Icons.grid_off, size: 48, color: AppColors.textHint),
                 SizedBox(height: 12),
                 Text(
                   'Chưa có phân loại nào',
-                  style: TextStyle(color: Colors.grey),
+                  style: TextStyle(color: AppColors.textHint),
                 ),
               ],
             ),
@@ -402,15 +403,15 @@ class _VariantManagementViewState extends State<VariantManagementView>
             title: Text(product.name),
             subtitle: Text(
               '${summary.totalVariants} phân loại • ${summary.totalStock} tồn kho',
-              style: TextStyle(color: Colors.grey[600], fontSize: 14),
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
             ),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 if (variants.any((v) => v.isOutOfStock))
-                  const Icon(Icons.error, color: Colors.red, size: 20),
+                  const Icon(Icons.error, color: AppColors.error, size: 20),
                 if (variants.any((v) => v.isLowStock))
-                  const Icon(Icons.warning, color: Colors.orange, size: 20),
+                  const Icon(Icons.warning, color: AppColors.warning, size: 20),
                 const Icon(Icons.expand_more),
               ],
             ),
@@ -469,20 +470,20 @@ class _VariantManagementViewState extends State<VariantManagementView>
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: variant.isOutOfStock
-                            ? Colors.red.withOpacity(0.1)
+                            ? AppColors.error.withAlpha(26)
                             : variant.isLowStock
-                                ? Colors.orange.withOpacity(0.1)
-                                : Colors.green.withOpacity(0.1),
+                                ? AppColors.warning.withAlpha(26)
+                                : AppColors.success.withAlpha(26),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
                         variant.firestoreId.isNotEmpty ? '${variant.quantity}' : '-',
                         style: TextStyle(
                           color: variant.isOutOfStock
-                              ? Colors.red
+                              ? AppColors.error
                               : variant.isLowStock
-                                  ? Colors.orange
-                                  : Colors.green,
+                                  ? AppColors.warning
+                                  : AppColors.success,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -505,10 +506,10 @@ class _VariantManagementViewState extends State<VariantManagementView>
       trailing: Chip(
         label: Text('${variant.quantity}'),
         backgroundColor: variant.isOutOfStock
-            ? Colors.red.withOpacity(0.2)
+            ? AppColors.error.withAlpha(51)
             : variant.isLowStock
-                ? Colors.orange.withOpacity(0.2)
-                : Colors.green.withOpacity(0.2),
+                ? AppColors.warning.withAlpha(51)
+                : AppColors.success.withAlpha(51),
       ),
     );
   }
@@ -520,7 +521,7 @@ class _VariantManagementViewState extends State<VariantManagementView>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.check_circle_outline, size: 64, color: Colors.green),
+            Icon(Icons.check_circle_outline, size: 64, color: AppColors.success),
             SizedBox(height: 16),
             Text(
               'Không có phân loại nào hết hàng! 🎉',
@@ -537,7 +538,7 @@ class _VariantManagementViewState extends State<VariantManagementView>
         padding: const EdgeInsets.all(16),
         itemCount: _outOfStock.length,
         itemBuilder: (context, index) {
-          return _buildVariantCard(_outOfStock[index], Colors.red);
+          return _buildVariantCard(_outOfStock[index], AppColors.error);
         },
       ),
     );
@@ -550,7 +551,7 @@ class _VariantManagementViewState extends State<VariantManagementView>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.check_circle_outline, size: 64, color: Colors.green),
+            Icon(Icons.check_circle_outline, size: 64, color: AppColors.success),
             SizedBox(height: 16),
             Text(
               'Không có phân loại nào sắp hết! 🎉',
@@ -567,7 +568,7 @@ class _VariantManagementViewState extends State<VariantManagementView>
         padding: const EdgeInsets.all(16),
         itemCount: _lowStock.length,
         itemBuilder: (context, index) {
-          return _buildVariantCard(_lowStock[index], Colors.orange);
+          return _buildVariantCard(_lowStock[index], AppColors.warning);
         },
       ),
     );
@@ -578,7 +579,7 @@ class _VariantManagementViewState extends State<VariantManagementView>
       margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: statusColor.withOpacity(0.2),
+          backgroundColor: statusColor.withAlpha(51),
           child: Text(
             variant.size ?? 'V',
             style: TextStyle(color: statusColor, fontWeight: FontWeight.bold),
@@ -618,16 +619,16 @@ class _VariantManagementViewState extends State<VariantManagementView>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.checkroom_outlined, size: 64, color: Colors.grey),
+            const Icon(Icons.checkroom_outlined, size: 64, color: AppColors.textHint),
             const SizedBox(height: 16),
             Text(
               'Chưa có ${_terms.productLabel.toLowerCase()} nào có phân loại',
-              style: const TextStyle(fontSize: 17, color: Colors.grey),
+              style: const TextStyle(fontSize: 17, color: AppColors.textHint),
             ),
             const SizedBox(height: 8),
             Text(
               'Thêm phân loại size/màu cho ${_terms.productLabel.toLowerCase()}',
-              style: const TextStyle(fontSize: 14, color: Colors.grey),
+              style: const TextStyle(fontSize: 14, color: AppColors.textHint),
             ),
           ],
         ),
@@ -990,7 +991,7 @@ class _AddVariantDialogState extends State<_AddVariantDialog> {
                       margin: const EdgeInsets.only(right: 8),
                       decoration: BoxDecoration(
                         color: _hexToColor(CommonColors.hexCodes[c] ?? '#808080'),
-                        border: Border.all(color: Colors.grey),
+                        border: Border.all(color: AppColors.textHint),
                         borderRadius: BorderRadius.circular(4),
                       ),
                     ),
@@ -1139,7 +1140,7 @@ class _EditVariantDialogState extends State<_EditVariantDialog> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
             child: const Text('Xóa'),
           ),
         ],
@@ -1219,7 +1220,7 @@ class _EditVariantDialogState extends State<_EditVariantDialog> {
       actions: [
         TextButton(
           onPressed: _delete,
-          style: TextButton.styleFrom(foregroundColor: Colors.red),
+          style: TextButton.styleFrom(foregroundColor: AppColors.error),
           child: const Text('Xóa'),
         ),
         TextButton(
@@ -1333,7 +1334,7 @@ class _BulkImportDialogState extends State<_BulkImportDialog> {
                     child: Text(
                       'Chưa có phân loại.\nHãy thêm phân loại trước khi nhập hàng.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.grey),
+                      style: TextStyle(color: AppColors.textHint),
                     ),
                   )
                 : ListView.builder(

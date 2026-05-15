@@ -28,8 +28,12 @@ import '../widgets/validated_text_field.dart';
 import '../widgets/responsive_wrapper.dart';
 import '../theme/app_text_styles.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_spacing.dart';
+import '../theme/design_tokens.dart';
 import 'adjustment_history_view.dart';
+import 'backup_restore_view.dart';
 import 'hr_salary_settings_view.dart';
+import 'kiotviet_settings_view.dart';
 import 'label_designer_view.dart';
 import 'onboarding/business_type_wizard.dart';
 
@@ -65,6 +69,10 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
   // Multi-Industry: Shop Settings
   ShopSettings? _shopSettings;
 
+  // User profile for header
+  String _userName = '';
+  String _userRole = '';
+
   // Controllers
   final _nameController = TextEditingController();
   final _addressController = TextEditingController();
@@ -98,7 +106,7 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
   Future<void> _loadShopData() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      NotificationService.showSnackBar("Vui lòng đăng nhập", color: Colors.red);
+      NotificationService.showSnackBar("Vui lòng đăng nhập", color: AppColors.error);
       _safeSetState(() => _loading = false);
       return;
     }
@@ -148,7 +156,8 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
 
         // Legacy fallback: some shops cannot update top-level doc due old owner metadata.
         // In that case profile is stored under shops/{shopId}/settings/shop_profile.
-        final shouldTryProfileFallback = data == null ||
+        final shouldTryProfileFallback =
+            data == null ||
             (((data['name'] ?? '').toString().trim().isEmpty) &&
                 ((data['address'] ?? '').toString().trim().isEmpty) &&
                 ((data['phone'] ?? '').toString().trim().isEmpty));
@@ -156,7 +165,9 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
           final profile = await _loadShopProfileFallback(shopId);
           if (profile != null && profile.isNotEmpty) {
             data = {...?data, ...profile};
-            debugPrint('Loaded shop profile fallback from settings/shop_profile');
+            debugPrint(
+              'Loaded shop profile fallback from settings/shop_profile',
+            );
           }
         }
 
@@ -170,8 +181,8 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
             _shopDescription = safeData['description'] ?? '';
             _shopLogoUrl = safeData['logoUrl'] ?? '';
             _shopCoverUrl =
-              (safeData['coverUrl'] ?? safeData['bannerUrl'] ?? '')
-                .toString();
+                (safeData['coverUrl'] ?? safeData['bannerUrl'] ?? '')
+                    .toString();
             _shopCoverAlignX =
                 (safeData['coverAlignX'] as num?)?.toDouble() ?? 0;
             _shopCoverAlignY =
@@ -200,9 +211,9 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
               _shopEmail = profileOnly['email'] ?? '';
               _shopDescription = profileOnly['description'] ?? '';
               _shopLogoUrl = profileOnly['logoUrl'] ?? '';
-                _shopCoverUrl =
+              _shopCoverUrl =
                   (profileOnly['coverUrl'] ?? profileOnly['bannerUrl'] ?? '')
-                    .toString();
+                      .toString();
               _shopCoverAlignX =
                   (profileOnly['coverAlignX'] as num?)?.toDouble() ?? 0;
               _shopCoverAlignY =
@@ -239,10 +250,10 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
             _shopDescription = profileFallback['description'] ?? '';
             _shopLogoUrl = profileFallback['logoUrl'] ?? '';
             _shopCoverUrl =
-              (profileFallback['coverUrl'] ??
-                  profileFallback['bannerUrl'] ??
-                  '')
-                .toString();
+                (profileFallback['coverUrl'] ??
+                        profileFallback['bannerUrl'] ??
+                        '')
+                    .toString();
             _shopCoverAlignX =
                 (profileFallback['coverAlignX'] as num?)?.toDouble() ?? 0;
             _shopCoverAlignY =
@@ -272,10 +283,26 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
           // Final retry failed - show user-friendly error
           NotificationService.showSnackBar(
             "Đang chờ quyền truy cập. Vui lòng thử lại sau vài giây.",
-            color: Colors.orange,
+            color: AppColors.warning,
           );
         }
       }
+    }
+
+    // Load user name and role for profile header
+    try {
+      final currentUser = FirebaseAuth.instance.currentUser;
+      final displayName = currentUser?.displayName ?? currentUser?.email ?? '';
+      String role = '';
+      if (currentUser != null) {
+        role = await UserService.getUserRole(currentUser.uid);
+      }
+      _safeSetState(() {
+        _userName = displayName;
+        _userRole = role;
+      });
+    } catch (e) {
+      debugPrint('Load user profile for header failed: $e');
     }
 
     _safeSetState(() => _loading = false);
@@ -375,8 +402,9 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
     String shopId,
     Map<String, dynamic> profile,
   ) async {
-    final callable = FirebaseFunctions.instanceFor(region: 'asia-southeast1')
-        .httpsCallable('updateShopProfileSecure');
+    final callable = FirebaseFunctions.instanceFor(
+      region: 'asia-southeast1',
+    ).httpsCallable('updateShopProfileSecure');
 
     final result = await callable.call({
       'shopId': shopId,
@@ -397,7 +425,9 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
 
     final data = result.data;
     if (data is Map && data['success'] == true) return;
-    throw Exception('Callable updateShopProfileSecure không trả về success=true');
+    throw Exception(
+      'Callable updateShopProfileSecure không trả về success=true',
+    );
   }
 
   /// Đồng bộ thông tin shop vào SharedPreferences để các màn hình in hóa đơn đọc được
@@ -416,7 +446,9 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
   Future<void> _loadShopSettings() async {
     try {
       final settings = await CategoryService().getShopSettings();
-      debugPrint('🏪 ShopSettings: Loaded - businessType=${settings?.businessType}');
+      debugPrint(
+        '🏪 ShopSettings: Loaded - businessType=${settings?.businessType}',
+      );
       _safeSetState(() => _shopSettings = settings);
     } catch (e) {
       debugPrint('Error loading shop settings: $e');
@@ -427,7 +459,10 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
   Future<void> _openBusinessTypeWizard() async {
     final shopId = await UserService.getCurrentShopId();
     if (shopId == null) {
-      NotificationService.showSnackBar('Không tìm thấy thông tin shop', color: Colors.red);
+      NotificationService.showSnackBar(
+        'Không tìm thấy thông tin shop',
+        color: AppColors.error,
+      );
       return;
     }
 
@@ -443,7 +478,7 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
             await _loadShopSettings();
             NotificationService.showSnackBar(
               'Đã cập nhật loại hình kinh doanh',
-              color: Colors.green,
+              color: AppColors.success,
             );
             Navigator.of(context).pop();
           },
@@ -473,7 +508,7 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
     if (coverProvider == null) {
       NotificationService.showSnackBar(
         'Vui lòng chọn ảnh bìa trước',
-        color: Colors.orange,
+        color: AppColors.warning,
       );
       return;
     }
@@ -502,22 +537,16 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
                                 : constraints.maxWidth;
                             final h = 180.0;
                             setDialogState(() {
-                              localX =
-                                  (localX + (details.delta.dx / (w / 2))).clamp(
-                                    -1.0,
-                                    1.0,
-                                  );
-                              localY =
-                                  (localY + (details.delta.dy / (h / 2))).clamp(
-                                    -1.0,
-                                    1.0,
-                                  );
+                              localX = (localX + (details.delta.dx / (w / 2)))
+                                  .clamp(-1.0, 1.0);
+                              localY = (localY + (details.delta.dy / (h / 2)))
+                                  .clamp(-1.0, 1.0);
                             });
                           },
                           child: Container(
                             height: 180,
                             decoration: BoxDecoration(
-                              color: Colors.blueGrey.shade100,
+                              color: AppColors.grey200,
                               image: DecorationImage(
                                 image: coverProvider,
                                 fit: BoxFit.cover,
@@ -550,7 +579,7 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
                     Navigator.pop(dialogContext);
                     NotificationService.showSnackBar(
                       'Đã căn ảnh. Nhấn Lưu thay đổi để áp dụng.',
-                      color: Colors.blue,
+                      color: AppColors.primary,
                     );
                   },
                   child: const Text('Áp dụng'),
@@ -604,7 +633,7 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
       if (decoded == null) {
         NotificationService.showSnackBar(
           'Không đọc được ảnh đã chọn',
-          color: Colors.red,
+          color: AppColors.error,
         );
         return null;
       }
@@ -717,12 +746,15 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
         'shop_cover_${DateTime.now().millisecondsSinceEpoch}.jpg',
       );
       final outFile = File(outPath);
-      await outFile.writeAsBytes(img.encodeJpg(cropped, quality: 92), flush: true);
+      await outFile.writeAsBytes(
+        img.encodeJpg(cropped, quality: 92),
+        flush: true,
+      );
       return outFile;
     } catch (e) {
       NotificationService.showSnackBar(
         'Không thể crop ảnh bìa: $e',
-        color: Colors.red,
+        color: AppColors.error,
       );
       return null;
     }
@@ -733,7 +765,7 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
     if (_nameController.text.trim().isEmpty) {
       NotificationService.showSnackBar(
         "Vui lòng nhập tên cửa hàng",
-        color: Colors.red,
+        color: AppColors.error,
       );
       return;
     }
@@ -753,7 +785,7 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
       if (shopId == null || shopId.isEmpty) {
         NotificationService.showSnackBar(
           "Không tìm thấy thông tin shop",
-          color: Colors.red,
+          color: AppColors.error,
         );
         return;
       }
@@ -765,7 +797,7 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
       if (_selectedLogo != null && _selectedCover != null) {
         NotificationService.showSnackBar(
           'Đang tải logo và ảnh bìa lên hệ thống...',
-          color: Colors.blue,
+          color: AppColors.primary,
           duration: const Duration(seconds: 7),
         );
         final uploadResults = await Future.wait<List<String>>([
@@ -783,7 +815,8 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
         if (coverUrls.isNotEmpty) coverUrl = coverUrls.first;
 
         if (logoUrls.isEmpty || coverUrls.isEmpty) {
-          final denied = StorageService.lastUploadPermissionDenied ||
+          final denied =
+              StorageService.lastUploadPermissionDenied ||
               (StorageService.lastUploadErrorMessage ?? '')
                   .toLowerCase()
                   .contains('unauthorized') ||
@@ -795,7 +828,7 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
               denied
                   ? 'Không có quyền tải ảnh lên (lỗi 403). Kiểm tra cấu hình Firebase.'
                   : 'Một phần ảnh tải lên thất bại. Vui lòng kiểm tra mạng và thử lại.',
-              color: Colors.red,
+              color: AppColors.error,
               duration: const Duration(seconds: 6),
             );
           }
@@ -806,7 +839,7 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
       if (_selectedLogo != null && _selectedCover == null) {
         NotificationService.showSnackBar(
           'Đang tải logo lên hệ thống, vui lòng không thoát ứng dụng.',
-          color: Colors.blue,
+          color: AppColors.primary,
           duration: const Duration(seconds: 7),
         );
         final urls = await StorageService.uploadMultipleImages([
@@ -815,15 +848,20 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
         if (urls.isNotEmpty) {
           logoUrl = urls.first;
         } else {
-          final denied = StorageService.lastUploadPermissionDenied ||
-              (StorageService.lastUploadErrorMessage ?? '').toLowerCase().contains('unauthorized') ||
-              (StorageService.lastUploadErrorMessage ?? '').toLowerCase().contains('permission');
+          final denied =
+              StorageService.lastUploadPermissionDenied ||
+              (StorageService.lastUploadErrorMessage ?? '')
+                  .toLowerCase()
+                  .contains('unauthorized') ||
+              (StorageService.lastUploadErrorMessage ?? '')
+                  .toLowerCase()
+                  .contains('permission');
           if (mounted) {
             NotificationService.showSnackBar(
               denied
                   ? 'Không có quyền tải logo lên (lỗi 403). Kiểm tra cấu hình App Check/Storage Firebase.'
                   : 'Tải logo thất bại. Vui lòng kiểm tra kết nối mạng và thử lại.',
-              color: Colors.red,
+              color: AppColors.error,
               duration: const Duration(seconds: 6),
             );
           }
@@ -834,7 +872,7 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
       if (_selectedCover != null && _selectedLogo == null) {
         NotificationService.showSnackBar(
           'Đang tải ảnh bìa shop lên hệ thống...',
-          color: Colors.blue,
+          color: AppColors.primary,
           duration: const Duration(seconds: 6),
         );
         final urls = await StorageService.uploadMultipleImages([
@@ -843,7 +881,8 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
         if (urls.isNotEmpty) {
           coverUrl = urls.first;
         } else {
-          final denied = StorageService.lastUploadPermissionDenied ||
+          final denied =
+              StorageService.lastUploadPermissionDenied ||
               (StorageService.lastUploadErrorMessage ?? '')
                   .toLowerCase()
                   .contains('unauthorized') ||
@@ -855,7 +894,7 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
               denied
                   ? 'Không có quyền tải ảnh bìa lên (lỗi 403). Kiểm tra cấu hình Firebase.'
                   : 'Tải ảnh bìa thất bại. Vui lòng kiểm tra mạng và thử lại.',
-              color: Colors.red,
+              color: AppColors.error,
               duration: const Duration(seconds: 6),
             );
           }
@@ -903,7 +942,9 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
               try {
                 await _saveShopProfileFallback(shopId, shopData);
                 savedToFallbackProfile = true;
-                debugPrint('Saved shop profile to fallback settings/shop_profile');
+                debugPrint(
+                  'Saved shop profile to fallback settings/shop_profile',
+                );
               } catch (fallbackError) {
                 if (_isPermissionDeniedError(fallbackError)) {
                   await _saveShopProfileViaCallable(shopId, shopData);
@@ -955,26 +996,26 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
           'saveMode': savedToMainShopDoc
               ? 'main_doc'
               : (savedViaCallable
-                  ? 'callable'
-                  : (savedToFallbackProfile ? 'fallback' : 'unknown')),
+                    ? 'callable'
+                    : (savedToFallbackProfile ? 'fallback' : 'unknown')),
         },
       );
 
       NotificationService.showSnackBar(
         savedToMainShopDoc
             ? "✅ Đã cập nhật thông tin shop!"
-          : (savedViaCallable
-            ? "✅ Đã lưu thông tin cửa hàng (chế độ bảo mật)!"
-            : (savedToFallbackProfile
-                  ? "✅ Đã lưu thông tin cửa hàng (chế độ tương thích)!"
-            : "✅ Đã lưu thông tin cửa hàng!")),
-        color: Colors.green,
+            : (savedViaCallable
+                  ? "✅ Đã lưu thông tin cửa hàng (chế độ bảo mật)!"
+                  : (savedToFallbackProfile
+                        ? "✅ Đã lưu thông tin cửa hàng (chế độ tương thích)!"
+                        : "✅ Đã lưu thông tin cửa hàng!")),
+        color: AppColors.success,
       );
     } catch (e) {
       final message = _isPermissionDeniedError(e)
           ? "❌ Tài khoản hiện tại chưa có quyền chỉnh sửa thông tin cửa hàng. Vui lòng đăng xuất/đăng nhập lại tài khoản chủ shop để đồng bộ quyền."
           : "❌ Lỗi cập nhật: $e";
-      NotificationService.showSnackBar(message, color: Colors.red);
+      NotificationService.showSnackBar(message, color: AppColors.error);
     } finally {
       _safeSetState(() => _saving = false);
     }
@@ -986,19 +1027,15 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
       appBar: AppBar(
         flexibleSpace: Container(
           decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF0068FF), Color(0xFF0084FF)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            gradient: AppColors.primaryGradient,
           ),
         ),
         title: const Text(
           "CÀI ĐẶT SHOP",
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+          style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.surface),
         ),
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
+        backgroundColor: AppColors.surface,
+        foregroundColor: AppColors.textPrimary,
         elevation: 0,
         actions: [
           if (_saving)
@@ -1023,322 +1060,392 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
           : ResponsiveCenter(
               maxWidth: 800,
               child: SingleChildScrollView(
-              padding: const EdgeInsets.all(12),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // === LOGO + THÔNG TIN CƠ BẢN ===
-                    Card(
-                      margin: EdgeInsets.zero,
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Column(
-                          children: [
-                            // Profile-style cover + logo
-                            Stack(
-                              clipBehavior: Clip.none,
-                              children: [
-                                LayoutBuilder(
-                                  builder: (context, _) => GestureDetector(
-                                    onTap: _pickCover,
-                                    child: Container(
-                                      height: 150,
-                                      width: double.infinity,
-                                      decoration: BoxDecoration(
-                                        color: Colors.blueGrey.shade100,
-                                        borderRadius: BorderRadius.circular(12),
-                                        image: _selectedCover != null
-                                            ? DecorationImage(
-                                                image: kIsWeb
-                                                    ? NetworkImage(
-                                                        _selectedCover!.path,
+                padding: const EdgeInsets.all(12),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // === LOGO + THÔNG TIN CƠ BẢN ===
+                      Card(
+                        margin: EdgeInsets.zero,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(DesignTokens.radiusMd),
+                          side: const BorderSide(color: AppColors.outline),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(14),
+                          child: Column(
+                            children: [
+                              // Profile-style cover + logo
+                              Stack(
+                                clipBehavior: Clip.none,
+                                children: [
+                                  LayoutBuilder(
+                                    builder: (context, _) => GestureDetector(
+                                      onTap: _pickCover,
+                                      child: Container(
+                                        height: 150,
+                                        width: double.infinity,
+                                        decoration: BoxDecoration(
+                                          color: AppColors.grey200,
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                          image: _selectedCover != null
+                                              ? DecorationImage(
+                                                  image: kIsWeb
+                                                      ? NetworkImage(
+                                                          _selectedCover!.path,
+                                                        )
+                                                      : FileImage(
+                                                              _selectedCover!,
+                                                            )
+                                                            as ImageProvider,
+                                                  fit: BoxFit.cover,
+                                                  alignment: Alignment(
+                                                    _shopCoverAlignX,
+                                                    _shopCoverAlignY,
+                                                  ),
+                                                )
+                                              : (_shopCoverUrl.trim().isNotEmpty
+                                                    ? DecorationImage(
+                                                        image: NetworkImage(
+                                                          _shopCoverUrl,
+                                                        ),
+                                                        fit: BoxFit.cover,
+                                                        alignment: Alignment(
+                                                          _shopCoverAlignX,
+                                                          _shopCoverAlignY,
+                                                        ),
                                                       )
-                                                    : FileImage(_selectedCover!)
-                                                        as ImageProvider,
-                                                fit: BoxFit.cover,
-                                                alignment: Alignment(
-                                                  _shopCoverAlignX,
-                                                  _shopCoverAlignY,
+                                                    : null),
+                                        ),
+                                        child:
+                                            (_selectedCover == null &&
+                                                _shopCoverUrl.trim().isEmpty)
+                                            ? Center(
+                                                child: Text(
+                                                  'Thêm ảnh bìa shop',
+                                                  style: AppTextStyles.body1
+                                                      .copyWith(
+                                                        color: AppColors.surface,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
                                                 ),
                                               )
-                                            : (_shopCoverUrl.trim().isNotEmpty
-                                                ? DecorationImage(
-                                                    image: NetworkImage(
-                                                      _shopCoverUrl,
-                                                    ),
-                                                    fit: BoxFit.cover,
-                                                    alignment: Alignment(
-                                                      _shopCoverAlignX,
-                                                      _shopCoverAlignY,
-                                                    ),
-                                                  )
-                                                : null),
+                                            : null,
                                       ),
-                                      child: (_selectedCover == null &&
-                                              _shopCoverUrl.trim().isEmpty)
-                                          ? Center(
-                                              child: Text(
-                                                'Thêm ảnh bìa shop',
-                                                style: AppTextStyles.body1.copyWith(
-                                                  color: Colors.white,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                            )
-                                          : null,
                                     ),
                                   ),
-                                ),
-                                if (_selectedCover != null || _shopCoverUrl.trim().isNotEmpty)
+                                  if (_selectedCover != null ||
+                                      _shopCoverUrl.trim().isNotEmpty)
+                                    Positioned(
+                                      left: 10,
+                                      top: 10,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.textPrimary.withAlpha(89),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          'Chọn ảnh trước, cân chỉnh sau rồi bấm Lưu',
+                                          style: AppTextStyles.caption.copyWith(
+                                            color: AppColors.surface,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
                                   Positioned(
-                                    left: 10,
-                                    top: 10,
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 4,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.black.withOpacity(0.35),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Text(
-                                        'Chọn ảnh trước, cân chỉnh sau rồi bấm Lưu',
-                                        style: AppTextStyles.caption.copyWith(
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                Positioned(
-                                  top: 6,
-                                  right: 6,
-                                  child: Row(
-                                    children: [
-                                      if (_selectedCover != null ||
-                                          _shopCoverUrl.trim().isNotEmpty)
-                                        IconButton(
-                                          tooltip: 'Xem ảnh bìa',
-                                          onPressed: () => EntityAvatar.showPreview(
-                                            context,
-                                            _selectedCover != null
-                                                ? _selectedCover!.path
-                                                : _shopCoverUrl,
-                                            _nameController.text,
-                                          ),
-                                          icon: const Icon(
-                                            Icons.fullscreen,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                      if (_selectedCover != null ||
-                                          _shopCoverUrl.trim().isNotEmpty)
-                                        IconButton(
-                                          tooltip: 'Căn giữa ảnh bìa',
-                                          onPressed: () {
-                                            _safeSetState(() {
-                                              _shopCoverAlignX = 0;
-                                              _shopCoverAlignY = 0;
-                                            });
-                                            NotificationService.showSnackBar(
-                                              'Đã căn giữa. Nhấn Lưu thay đổi để áp dụng.',
-                                              color: Colors.blue,
-                                            );
-                                          },
-                                          icon: const Icon(
-                                            Icons.filter_center_focus,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                      if (_selectedCover != null ||
-                                          _shopCoverUrl.trim().isNotEmpty)
-                                        IconButton(
-                                          tooltip: 'Chỉnh vùng hiển thị',
-                                          onPressed: _openCoverPositionEditor,
-                                          icon: const Icon(
-                                            Icons.tune,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                      IconButton(
-                                        tooltip: 'Đổi ảnh bìa',
-                                        onPressed: _pickCover,
-                                        icon: const Icon(
-                                          Icons.camera_alt,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Positioned(
-                                  left: 16,
-                                  bottom: -28,
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      if (_selectedLogo != null ||
-                                          _shopLogoUrl.isNotEmpty) {
-                                        EntityAvatar.showPreview(
-                                          context,
-                                          _selectedLogo != null
-                                              ? _selectedLogo!.path
-                                              : _shopLogoUrl,
-                                          _nameController.text,
-                                        );
-                                      } else {
-                                        _pickLogo();
-                                      }
-                                    },
-                                    child: Stack(
-                                      alignment: Alignment.bottomRight,
+                                    top: 6,
+                                    right: 6,
+                                    child: Row(
                                       children: [
-                                        Container(
-                                          width: 76,
-                                          height: 76,
-                                          decoration: BoxDecoration(
-                                            color: Colors.grey.shade100,
-                                            shape: BoxShape.circle,
-                                            border: Border.all(
-                                              color: Colors.white,
-                                              width: 2,
+                                        if (_selectedCover != null ||
+                                            _shopCoverUrl.trim().isNotEmpty)
+                                          IconButton(
+                                            tooltip: 'Xem ảnh bìa',
+                                            onPressed: () =>
+                                                EntityAvatar.showPreview(
+                                                  context,
+                                                  _selectedCover != null
+                                                      ? _selectedCover!.path
+                                                      : _shopCoverUrl,
+                                                  _nameController.text,
+                                                ),
+                                            icon: const Icon(
+                                              Icons.fullscreen,
+                                              color: AppColors.surface,
                                             ),
                                           ),
-                                          child: ClipOval(
-                                            child: _selectedLogo != null
-                                                ? (kIsWeb
-                                                    ? Image.network(
-                                                        _selectedLogo!.path,
-                                                        fit: BoxFit.cover,
-                                                      )
-                                                    : Image.file(
-                                                        _selectedLogo!,
-                                                        fit: BoxFit.cover,
-                                                      ))
-                                                : _shopLogoUrl.isNotEmpty
-                                                    ? AppCachedImage(
-                                                        imageUrl: _shopLogoUrl,
-                                                        fit: BoxFit.cover,
-                                                        memCacheWidth: 200,
-                                                        memCacheHeight: 200,
-                                                      )
-                                                    : const Icon(
-                                                        Icons.store_rounded,
-                                                        size: 34,
-                                                        color: Colors.grey,
-                                                      ),
+                                        if (_selectedCover != null ||
+                                            _shopCoverUrl.trim().isNotEmpty)
+                                          IconButton(
+                                            tooltip: 'Căn giữa ảnh bìa',
+                                            onPressed: () {
+                                              _safeSetState(() {
+                                                _shopCoverAlignX = 0;
+                                                _shopCoverAlignY = 0;
+                                              });
+                                              NotificationService.showSnackBar(
+                                                'Đã căn giữa. Nhấn Lưu thay đổi để áp dụng.',
+                                                color: AppColors.primary,
+                                              );
+                                            },
+                                            icon: const Icon(
+                                              Icons.filter_center_focus,
+                                              color: AppColors.surface,
+                                            ),
                                           ),
-                                        ),
-                                        GestureDetector(
-                                          onTap: _pickLogo,
-                                          child: Container(
-                                            padding: const EdgeInsets.all(4),
-                                            decoration: BoxDecoration(
-                                              color: AppColors.primary,
-                                              shape: BoxShape.circle,
-                                              border: Border.all(
-                                                color: Colors.white,
-                                                width: 1.5,
-                                              ),
+                                        if (_selectedCover != null ||
+                                            _shopCoverUrl.trim().isNotEmpty)
+                                          IconButton(
+                                            tooltip: 'Chỉnh vùng hiển thị',
+                                            onPressed: _openCoverPositionEditor,
+                                            icon: const Icon(
+                                              Icons.tune,
+                                              color: AppColors.surface,
                                             ),
-                                            child: const Icon(
-                                              Icons.camera_alt,
-                                              color: Colors.white,
-                                              size: 14,
-                                            ),
+                                          ),
+                                        IconButton(
+                                          tooltip: 'Đổi ảnh bìa',
+                                          onPressed: _pickCover,
+                                          icon: const Icon(
+                                            Icons.camera_alt,
+                                            color: AppColors.surface,
                                           ),
                                         ),
                                       ],
                                     ),
                                   ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 34),
-                            ValidatedTextField(
-                              controller: _nameController,
-                              label: "Tên cửa hàng *",
-                              icon: Icons.store,
-                            ),
-                            const SizedBox(height: 10),
-                            ValidatedTextField(
-                              controller: _addressController,
-                              label: "Địa chỉ",
-                              icon: Icons.location_on,
-                            ),
-                            const SizedBox(height: 10),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: ValidatedTextField(
-                                    controller: _phoneController,
-                                    label: "SĐT",
-                                    icon: Icons.phone,
-                                    keyboardType: TextInputType.phone,
+                                  Positioned(
+                                    left: 16,
+                                    bottom: -28,
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        if (_selectedLogo != null ||
+                                            _shopLogoUrl.isNotEmpty) {
+                                          EntityAvatar.showPreview(
+                                            context,
+                                            _selectedLogo != null
+                                                ? _selectedLogo!.path
+                                                : _shopLogoUrl,
+                                            _nameController.text,
+                                          );
+                                        } else {
+                                          _pickLogo();
+                                        }
+                                      },
+                                      child: Stack(
+                                        alignment: Alignment.bottomRight,
+                                        children: [
+                                          Container(
+                                            width: 76,
+                                            height: 76,
+                                            decoration: BoxDecoration(
+                                              color: AppColors.grey100,
+                                              shape: BoxShape.circle,
+                                              border: Border.all(
+                                                color: AppColors.surface,
+                                                width: 2,
+                                              ),
+                                            ),
+                                            child: ClipOval(
+                                              child: _selectedLogo != null
+                                                  ? (kIsWeb
+                                                        ? Image.network(
+                                                            _selectedLogo!.path,
+                                                            fit: BoxFit.cover,
+                                                          )
+                                                        : Image.file(
+                                                            _selectedLogo!,
+                                                            fit: BoxFit.cover,
+                                                          ))
+                                                  : _shopLogoUrl.isNotEmpty
+                                                  ? AppCachedImage(
+                                                      imageUrl: _shopLogoUrl,
+                                                      fit: BoxFit.cover,
+                                                      memCacheWidth: 200,
+                                                      memCacheHeight: 200,
+                                                    )
+                                                  : const Icon(
+                                                      Icons.store_rounded,
+                                                      size: 34,
+                                                      color: AppColors.textHint,
+                                                    ),
+                                            ),
+                                          ),
+                                          GestureDetector(
+                                            onTap: _pickLogo,
+                                            child: Container(
+                                              padding: const EdgeInsets.all(4),
+                                              decoration: BoxDecoration(
+                                                color: AppColors.primary,
+                                                shape: BoxShape.circle,
+                                                border: Border.all(
+                                                  color: AppColors.surface,
+                                                  width: 1.5,
+                                                ),
+                                              ),
+                                              child: const Icon(
+                                                Icons.camera_alt,
+                                                color: AppColors.surface,
+                                                size: 14,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: ValidatedTextField(
-                                    controller: _emailController,
-                                    label: "Email",
-                                    icon: Icons.email,
-                                    keyboardType: TextInputType.emailAddress,
+                                ],
+                              ),
+                              const SizedBox(height: 34),
+                              // Profile header: avatar + name + role
+                              Row(
+                                children: [
+                                  Container(
+                                    width: 56,
+                                    height: 56,
+                                    decoration: BoxDecoration(
+                                      color: AppColors.iconBgBlue,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: AppColors.outline, width: 1.5),
+                                    ),
+                                    child: ClipOval(
+                                      child: _shopLogoUrl.isNotEmpty
+                                          ? AppCachedImage(
+                                              imageUrl: _shopLogoUrl,
+                                              fit: BoxFit.cover,
+                                              memCacheWidth: 112,
+                                              memCacheHeight: 112,
+                                            )
+                                          : const Icon(Icons.store_rounded, size: 28, color: AppColors.primary),
+                                    ),
                                   ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 10),
-                            ValidatedTextField(
-                              controller: _descriptionController,
-                              label: "Mô tả cửa hàng",
-                              icon: Icons.description,
-                              maxLines: 2,
-                            ),
-                          ],
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          _shopName.isNotEmpty ? _shopName : (_userName.isNotEmpty ? _userName : 'Shop của bạn'),
+                                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          _userRole.isNotEmpty ? _getRoleDisplayName(_userRole) : '',
+                                          style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 14),
+                              ValidatedTextField(
+                                controller: _nameController,
+                                label: "Tên cửa hàng *",
+                                icon: Icons.store,
+                              ),
+                              const SizedBox(height: 10),
+                              ValidatedTextField(
+                                controller: _addressController,
+                                label: "Địa chỉ",
+                                icon: Icons.location_on,
+                              ),
+                              const SizedBox(height: 10),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: ValidatedTextField(
+                                      controller: _phoneController,
+                                      label: "SĐT",
+                                      icon: Icons.phone,
+                                      keyboardType: TextInputType.phone,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: ValidatedTextField(
+                                      controller: _emailController,
+                                      label: "Email",
+                                      icon: Icons.email,
+                                      keyboardType: TextInputType.emailAddress,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 10),
+                              ValidatedTextField(
+                                controller: _descriptionController,
+                                label: "Mô tả cửa hàng",
+                                icon: Icons.description,
+                                maxLines: 2,
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 12),
+                      const SizedBox(height: 12),
 
-                    // === LOẠI HÌNH KINH DOANH ===
-                    _buildBusinessTypeSection(),
-                    const SizedBox(height: 12),
+                      // === LOẠI HÌNH KINH DOANH ===
+                      _buildSection("LOẠI HÌNH"),
+                      const SizedBox(height: AppSpacing.sm),
+                      _buildBusinessTypeSection(),
+                      const SizedBox(height: 12),
 
-                    // === VỊ TRÍ CHẤM CÔNG ===
-                    _buildCompactLocationSection(),
-                    const SizedBox(height: 12),
+                      // === VỊ TRÍ CHẤM CÔNG ===
+                      _buildSection("VỊ TRÍ & CHẤM CÔNG"),
+                      const SizedBox(height: AppSpacing.sm),
+                      _buildCompactLocationSection(),
+                      const SizedBox(height: 12),
 
-                    // === QUICK ACTIONS ===
-                    _buildQuickActionsSection(),
-                    const SizedBox(height: 12),
+                      // === QUICK ACTIONS ===
+                      _buildSection("TÍNH NĂNG"),
+                      const SizedBox(height: AppSpacing.sm),
+                      _buildQuickActionsSection(),
+                      const SizedBox(height: 12),
 
-                    // === ADVANCED SETTINGS (Collapsible) ===
-                    _buildAdvancedSettingsSection(),
-                    const SizedBox(height: 12),
+                      // === ADVANCED SETTINGS (Collapsible) ===
+                      _buildSection("NÂNG CAO"),
+                      const SizedBox(height: AppSpacing.sm),
+                      _buildAdvancedSettingsSection(),
+                      const SizedBox(height: 12),
 
-                    // === THÀNH VIÊN ===
-                    _buildSection("THÀNH VIÊN"),
-                    const SizedBox(height: 8),
-                    _buildMembersList(),
+                      // === THÀNH VIÊN ===
+                      _buildSection("THÀNH VIÊN"),
+                      const SizedBox(height: AppSpacing.sm),
+                      _buildMembersList(),
 
-                    const SizedBox(height: 30),
-                  ],
+                      const SizedBox(height: 30),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
     );
   }
 
   Widget _buildSection(String title) {
-    return Text(
-      title,
-      style: TextStyle(
-        fontSize: AppTextStyles.body1.fontSize,
-        fontWeight: FontWeight.bold,
-        color: const Color(0xFF2962FF),
+    return Padding(
+      padding: const EdgeInsets.only(left: 4),
+      child: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: AppColors.textSecondary,
+          letterSpacing: 0.5,
+        ),
       ),
     );
   }
@@ -1346,29 +1453,13 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
   /// Business Type Section - Multi-Industry support
   Widget _buildBusinessTypeSection() {
     final businessType = _shopSettings?.businessType ?? 'electronics';
-    final businessTypeName = _shopSettings?.businessTypeName ?? 'Điện thoại & Điện tử';
-    
-    // Get icon and color based on business type
-    IconData icon;
-    Color color;
-    switch (businessType) {
-      case 'food':
-        icon = Icons.restaurant;
-        color = Colors.orange;
-        break;
-      case 'fashion':
-        icon = Icons.checkroom;
-        color = Colors.pink;
-        break;
-      case 'general':
-        icon = Icons.store;
-        color = Colors.blue;
-        break;
-      default: // electronics
-        icon = Icons.phone_android;
-        color = Colors.indigo;
-    }
-    
+    final businessTypeName =
+        _shopSettings?.businessTypeName ?? 'Điện thoại & Điện tử';
+
+    // Get icon and color based on business type (electronics only)
+    const icon = Icons.phone_android;
+    const color = AppColors.primary;
+
     // Get enabled features
     final features = <String>[];
     if (_shopSettings?.enableRepair == true) features.add('Sửa chữa');
@@ -1377,9 +1468,14 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
     if (_shopSettings?.enableExpiry == true) features.add('Hạn sử dụng');
     if (_shopSettings?.enableBatch == true) features.add('Số lô');
     if (_shopSettings?.enableVariants == true) features.add('Biến thể');
-    
+
     return Card(
       margin: EdgeInsets.zero,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(DesignTokens.radiusMd),
+        side: const BorderSide(color: AppColors.outline),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
@@ -1388,26 +1484,27 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(8),
+                  width: DesignTokens.iconContainer,
+                  height: DesignTokens.iconContainer,
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
+                    color: AppColors.iconBgPurple,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(icon, color: color, size: 24),
+                  child: const Icon(icon, color: color, size: DesignTokens.iconMd),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
                         'Loại hình kinh doanh',
-                        style: TextStyle(fontSize: 13, color: Colors.grey),
+                        style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
                       ),
                       Text(
                         businessTypeName,
-                        style: TextStyle(
-                          fontSize: 16,
+                        style: const TextStyle(
+                          fontSize: 15,
                           fontWeight: FontWeight.bold,
                           color: color,
                         ),
@@ -1416,7 +1513,7 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
                   ),
                 ),
                 // Lock icon instead of edit - business type is fixed after shop creation
-                Icon(Icons.lock_outline, size: 18, color: Colors.grey.shade400),
+                const Icon(Icons.lock_outline, size: 16, color: AppColors.grey400),
               ],
             ),
             if (features.isNotEmpty) ...[
@@ -1424,22 +1521,29 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
               Wrap(
                 spacing: 6,
                 runSpacing: 4,
-                children: features.map((f) => Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    f,
-                      style: TextStyle(fontSize: 13, color: color),
-                    ),
-                  )).toList(),
-                ),
-              ],
+                children: features
+                    .map(
+                      (f) => Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.iconBgPurple,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          f,
+                          style: const TextStyle(fontSize: 13, color: color),
+                        ),
+                      ),
+                    )
+                    .toList(),
+              ),
             ],
-          ),
+          ],
         ),
+      ),
     );
   }
 
@@ -1448,17 +1552,35 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
     final hasLocation = _shopLatitude != null && _shopLongitude != null;
     return Card(
       margin: EdgeInsets.zero,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: const BorderSide(color: AppColors.outline),
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           ListTile(
             dense: true,
-            leading: Icon(
-              hasLocation ? Icons.location_on : Icons.location_off,
-              color: hasLocation ? Colors.green : Colors.orange,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            minLeadingWidth: 30,
+            leading: Container(
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                color: hasLocation ? AppColors.iconBgGreen : AppColors.iconBgOrange,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                hasLocation ? Icons.location_on : Icons.location_off,
+                color: hasLocation ? AppColors.success : AppColors.warning,
+                size: 18,
+              ),
             ),
             title: Text(
-              hasLocation ? 'Vị trí chấm công đã cài' : 'Chưa cài vị trí chấm công',
+              hasLocation
+                  ? 'Vị trí chấm công đã cài'
+                  : 'Chưa cài vị trí chấm công',
               style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
             ),
             subtitle: hasLocation
@@ -1472,7 +1594,11 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
               children: [
                 if (hasLocation)
                   IconButton(
-                    icon: const Icon(Icons.map_outlined, size: 20, color: Colors.blue),
+                    icon: const Icon(
+                      Icons.map_outlined,
+                      size: 20,
+                      color: AppColors.primary,
+                    ),
                     onPressed: _openShopMap,
                     tooltip: 'Mở bản đồ OSM',
                     constraints: const BoxConstraints(),
@@ -1480,7 +1606,11 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
                   ),
                 if (hasLocation)
                   IconButton(
-                    icon: const Icon(Icons.alt_route, size: 20, color: Colors.teal),
+                    icon: const Icon(
+                      Icons.alt_route,
+                      size: 20,
+                      color: AppColors.info,
+                    ),
                     onPressed: _openDirectionsToShop,
                     tooltip: 'Chỉ đường miễn phí tới shop',
                     constraints: const BoxConstraints(),
@@ -1488,7 +1618,11 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
                   ),
                 if (hasLocation)
                   IconButton(
-                    icon: const Icon(Icons.delete_outline, size: 20, color: Colors.red),
+                    icon: const Icon(
+                      Icons.delete_outline,
+                      size: 20,
+                      color: AppColors.error,
+                    ),
                     onPressed: _clearLocation,
                     tooltip: 'Xóa vị trí',
                     constraints: const BoxConstraints(),
@@ -1498,35 +1632,45 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
                   icon: Icon(
                     Icons.my_location,
                     size: 20,
-                    color: hasLocation ? Colors.blue : Colors.green,
+                    color: hasLocation ? AppColors.primary : AppColors.success,
                   ),
-              onPressed: _setCurrentLocation,
-              tooltip: hasLocation ? 'Cập nhật vị trí' : 'Cài vị trí',
-              constraints: const BoxConstraints(),
-              padding: const EdgeInsets.all(8),
+                  onPressed: _setCurrentLocation,
+                  tooltip: hasLocation ? 'Cập nhật vị trí' : 'Cài vị trí',
+                  constraints: const BoxConstraints(),
+                  padding: const EdgeInsets.all(8),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
-      const Divider(height: 1),
-      SwitchListTile(
-        dense: true,
-        value: _requireLocationForAttendance,
-        onChanged: (v) => _safeSetState(() => _requireLocationForAttendance = v),
-        title: const Text(
-          'Bắt buộc vị trí khi chấm công',
-          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-        ),
-        subtitle: const Text(
-          'Nhân viên phải ở trong phạm vi 100m mới được chấm công',
-          style: TextStyle(fontSize: 12),
-        ),
-        secondary: Icon(
-          Icons.location_searching,
-          color: _requireLocationForAttendance ? Colors.green : Colors.grey,
-          size: 20,
-        ),
-      ),
+          ),
+          const Divider(height: 1, indent: 58, endIndent: 0, color: AppColors.divider),
+          SwitchListTile(
+            dense: true,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+            value: _requireLocationForAttendance,
+            onChanged: (v) =>
+                _safeSetState(() => _requireLocationForAttendance = v),
+            title: const Text(
+              'Bắt buộc vị trí khi chấm công',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textPrimary),
+            ),
+            subtitle: const Text(
+              'Nhân viên phải ở trong phạm vi 100m mới được chấm công',
+              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+            ),
+            secondary: Container(
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                color: _requireLocationForAttendance ? AppColors.iconBgGreen : AppColors.iconBgGray,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                Icons.location_searching,
+                color: _requireLocationForAttendance ? AppColors.success : AppColors.grey400,
+                size: 18,
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -1536,46 +1680,147 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
   Widget _buildQuickActionsSection() {
     return Card(
       margin: EdgeInsets.zero,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(DesignTokens.radiusMd),
+        side: const BorderSide(color: AppColors.outline),
+      ),
       child: Column(
         children: [
           ListTile(
             dense: true,
-            leading: Icon(Icons.account_balance_wallet, color: Colors.green.shade700, size: 22),
-            title: const Text('Cài đặt lương & hoa hồng', style: TextStyle(fontSize: 14)),
-            trailing: const Icon(Icons.chevron_right, size: 20),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            minLeadingWidth: 30,
+            leading: Container(
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                color: AppColors.iconBgGreen,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.account_balance_wallet, color: AppColors.success, size: 18),
+            ),
+            title: const Text(
+              'Cài đặt lương & hoa hồng',
+              style: TextStyle(fontSize: 15, color: AppColors.textPrimary),
+            ),
+            trailing: const Icon(Icons.chevron_right, size: 16, color: AppColors.grey400),
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const HRSalarySettingsView()),
             ),
           ),
-          const Divider(height: 1),
+          const Divider(height: 1, indent: 58, endIndent: 0, color: AppColors.divider),
           ListTile(
             dense: true,
-            leading: Icon(Icons.history, color: Colors.orange.shade700, size: 22),
-            title: const Text('Lịch sử điều chỉnh tài chính', style: TextStyle(fontSize: 14)),
-            trailing: const Icon(Icons.chevron_right, size: 20),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            minLeadingWidth: 30,
+            leading: Container(
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                color: AppColors.iconBgOrange,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.history, color: AppColors.warning, size: 18),
+            ),
+            title: const Text(
+              'Lịch sử điều chỉnh tài chính',
+              style: TextStyle(fontSize: 15, color: AppColors.textPrimary),
+            ),
+            trailing: const Icon(Icons.chevron_right, size: 16, color: AppColors.grey400),
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const AdjustmentHistoryView()),
             ),
           ),
-          const Divider(height: 1),
+          const Divider(height: 1, indent: 58, endIndent: 0, color: AppColors.divider),
           ListTile(
             dense: true,
-            leading: Icon(Icons.cloud_download, color: Colors.blue.shade700, size: 22),
-            title: const Text('Tải dữ liệu shop từ cloud', style: TextStyle(fontSize: 14)),
-            trailing: const Icon(Icons.chevron_right, size: 20),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            minLeadingWidth: 30,
+            leading: Container(
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                color: AppColors.iconBgBlue,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.cloud_download, color: AppColors.primary, size: 18),
+            ),
+            title: const Text(
+              'Tải dữ liệu shop từ cloud',
+              style: TextStyle(fontSize: 15, color: AppColors.textPrimary),
+            ),
+            trailing: const Icon(Icons.chevron_right, size: 16, color: AppColors.grey400),
             onTap: _showDownloadDataDialog,
           ),
-          const Divider(height: 1),
+          const Divider(height: 1, indent: 58, endIndent: 0, color: AppColors.divider),
           ListTile(
             dense: true,
-            leading: Icon(Icons.qr_code_2, color: Colors.blue.shade700, size: 22),
-            title: const Text('Thiết kế Tem sản phẩm', style: TextStyle(fontSize: 14)),
-            trailing: const Icon(Icons.chevron_right, size: 20),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            minLeadingWidth: 30,
+            leading: Container(
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                color: AppColors.iconBgBlue,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.qr_code_2, color: AppColors.primary, size: 18),
+            ),
+            title: const Text(
+              'Thiết kế Tem sản phẩm',
+              style: TextStyle(fontSize: 15, color: AppColors.textPrimary),
+            ),
+            trailing: const Icon(Icons.chevron_right, size: 16, color: AppColors.grey400),
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const LabelDesignerView()),
+            ),
+          ),
+          const Divider(height: 1, indent: 58, endIndent: 0, color: AppColors.divider),
+          ListTile(
+            dense: true,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            minLeadingWidth: 30,
+            leading: Container(
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                color: AppColors.iconBgTeal,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.backup, color: Color(0xFF0D9488), size: 18),
+            ),
+            title: const Text('Sao lưu & Khôi phục', style: TextStyle(fontSize: 15, color: AppColors.textPrimary)),
+            subtitle: const Text('Lưu dữ liệu ra máy hoặc lên Cloud', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+            trailing: const Icon(Icons.chevron_right, size: 16, color: AppColors.grey400),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const BackupRestoreView()),
+            ),
+          ),
+          const Divider(height: 1, indent: 58, endIndent: 0, color: AppColors.divider),
+          ListTile(
+            dense: true,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            minLeadingWidth: 30,
+            leading: Container(
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                color: AppColors.iconBgPurple,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.sync_alt, color: Color(0xFF7C3AED), size: 18),
+            ),
+            title: const Text('Kết nối KiotViet', style: TextStyle(fontSize: 15, color: AppColors.textPrimary)),
+            subtitle: const Text('Đồng bộ sản phẩm & khách hàng từ KiotViet', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+            trailing: const Icon(Icons.chevron_right, size: 16, color: AppColors.grey400),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const KiotVietSettingsView()),
             ),
           ),
         ],
@@ -1587,18 +1832,42 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
   Widget _buildAdvancedSettingsSection() {
     return Card(
       margin: EdgeInsets.zero,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(DesignTokens.radiusMd),
+        side: const BorderSide(color: AppColors.outline),
+      ),
       child: ExpansionTile(
         dense: true,
-        tilePadding: const EdgeInsets.symmetric(horizontal: 16),
-        leading: Icon(Icons.settings_suggest, color: Colors.grey.shade600, size: 22),
-        title: const Text('Cài đặt nâng cao', style: TextStyle(fontSize: 14)),
+        tilePadding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+        leading: const Icon(
+          Icons.settings_suggest,
+          color: AppColors.grey600,
+          size: DesignTokens.iconMd,
+        ),
+        title: Text('Cài đặt nâng cao', style: AppTextStyles.body1),
         children: [
           ListTile(
             dense: true,
-            leading: Icon(Icons.restore, color: Colors.amber.shade700, size: 20),
-            title: const Text('Khôi phục dữ liệu cũ', style: TextStyle(fontSize: 14)),
-            subtitle: const Text('Migrate từ shop/tài khoản khác', style: TextStyle(fontSize: 12)),
-            trailing: const Icon(Icons.chevron_right, size: 18),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.xs,
+            ),
+            minLeadingWidth: DesignTokens.iconMd,
+            leading: const Icon(
+              Icons.restore,
+              color: AppColors.warning,
+              size: DesignTokens.iconMd,
+            ),
+            title: Text(
+              'Khôi phục dữ liệu cũ',
+              style: AppTextStyles.body1,
+            ),
+            subtitle: Text(
+              'Migrate từ shop/tài khoản khác',
+              style: AppTextStyles.body2,
+            ),
+            trailing: const Icon(Icons.chevron_right, size: DesignTokens.iconMd),
             onTap: _showDataMigrationDialog,
           ),
         ],
@@ -1637,7 +1906,7 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
           builder: (ctx) => AlertDialog(
             title: const Row(
               children: [
-                Icon(Icons.check_circle, color: Colors.green),
+                Icon(Icons.check_circle, color: AppColors.success),
                 SizedBox(width: 10),
                 Text("KHÔNG CÓ DỮ LIỆU CŨ"),
               ],
@@ -1670,7 +1939,7 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
         builder: (ctx) => AlertDialog(
           title: const Row(
             children: [
-              Icon(Icons.cloud_queue, color: Colors.blue),
+              Icon(Icons.cloud_queue, color: AppColors.primary),
               SizedBox(width: 10),
               Expanded(
                 child: Text(
@@ -1688,14 +1957,14 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
+                    color: AppColors.iconBgBlue,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     "Shop hiện tại: ${currentShopId ?? 'N/A'}",
                     style: TextStyle(
                       fontSize: AppTextStyles.body1.fontSize,
-                      color: Colors.blue.shade800,
+                      color: AppColors.primaryDark,
                     ),
                   ),
                 ),
@@ -1720,9 +1989,9 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
                     margin: const EdgeInsets.only(bottom: 10),
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
+                      color: AppColors.grey100,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.grey.shade300),
+                      border: Border.all(color: AppColors.grey300),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1735,8 +2004,8 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
                                   : Icons.store,
                               size: 16,
                               color: shopId == 'null'
-                                  ? Colors.orange
-                                  : Colors.grey,
+                                  ? AppColors.warning
+                                  : AppColors.textHint,
                             ),
                             const SizedBox(width: 6),
                             Expanded(
@@ -1753,7 +2022,7 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
                             Text(
                               "$totalCount bản ghi",
                               style: TextStyle(
-                                color: Colors.green.shade700,
+                                color: AppColors.success,
                                 fontWeight: FontWeight.bold,
                                 fontSize: AppTextStyles.subtitle1.fontSize,
                               ),
@@ -1794,8 +2063,8 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
                             icon: const Icon(Icons.download, size: 16),
                             label: const Text("MIGRATE VỀ SHOP NÀY"),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green,
-                              foregroundColor: Colors.white,
+                              backgroundColor: AppColors.success,
+                              foregroundColor: AppColors.surface,
                               padding: const EdgeInsets.symmetric(vertical: 8),
                             ),
                           ),
@@ -1817,7 +2086,7 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
       );
     } catch (e) {
       if (mounted) Navigator.pop(context);
-      NotificationService.showSnackBar("❌ Lỗi: $e", color: Colors.red);
+      NotificationService.showSnackBar("❌ Lỗi: $e", color: AppColors.error);
     }
   }
 
@@ -1826,7 +2095,7 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
     if (currentShopId == null) {
       NotificationService.showSnackBar(
         "❌ Không xác định được shop hiện tại",
-        color: Colors.red,
+        color: AppColors.error,
       );
       return;
     }
@@ -1836,7 +2105,7 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
       builder: (ctx) => AlertDialog(
         title: const Row(
           children: [
-            Icon(Icons.warning_amber, color: Colors.orange),
+            Icon(Icons.warning_amber, color: AppColors.warning),
             SizedBox(width: 10),
             Expanded(
               child: Text("XÁC NHẬN MIGRATE", style: TextStyle(fontSize: 17)),
@@ -1852,7 +2121,7 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.red.shade50,
+                color: AppColors.errorLight,
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Text(
@@ -1861,7 +2130,7 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
                     : "Shop: $fromShopId",
                 style: TextStyle(
                   fontSize: AppTextStyles.body1.fontSize,
-                  color: Colors.red.shade800,
+                  color: AppColors.error,
                 ),
               ),
             ),
@@ -1871,14 +2140,14 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.green.shade50,
+                color: AppColors.successLight,
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Text(
                 "Shop: $currentShopId",
                 style: TextStyle(
                   fontSize: AppTextStyles.body1.fontSize,
-                  color: Colors.green.shade800,
+                  color: AppColors.success,
                 ),
               ),
             ),
@@ -1886,7 +2155,7 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
             Text(
               "⚠️ Hành động này không thể hoàn tác!",
               style: TextStyle(
-                color: Colors.red,
+                color: AppColors.error,
                 fontWeight: FontWeight.bold,
                 fontSize: AppTextStyles.subtitle1.fontSize,
               ),
@@ -1900,8 +2169,8 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-            child: const Text("MIGRATE", style: TextStyle(color: Colors.white)),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.success),
+            child: const Text("MIGRATE", style: TextStyle(color: AppColors.surface)),
           ),
         ],
       ),
@@ -1927,7 +2196,7 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
                   _migrationProgress,
                   style: TextStyle(
                     fontSize: AppTextStyles.body1.fontSize,
-                    color: Colors.grey,
+                    color: AppColors.textHint,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -1960,7 +2229,7 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
         builder: (ctx) => AlertDialog(
           title: const Row(
             children: [
-              Icon(Icons.check_circle, color: Colors.green),
+              Icon(Icons.check_circle, color: AppColors.success),
               SizedBox(width: 10),
               Text("MIGRATE THÀNH CÔNG"),
             ],
@@ -1976,7 +2245,7 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
                   padding: const EdgeInsets.only(bottom: 4),
                   child: Row(
                     children: [
-                      const Icon(Icons.check, color: Colors.green, size: 16),
+                      const Icon(Icons.check, color: AppColors.success, size: 16),
                       const SizedBox(width: 8),
                       Text(
                         "${e.key}: ${e.value}",
@@ -1994,7 +2263,7 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
                 style: TextStyle(
                   fontSize: AppTextStyles.body1.fontSize,
                   fontStyle: FontStyle.italic,
-                  color: Colors.grey,
+                  color: AppColors.textHint,
                 ),
               ),
             ],
@@ -2012,7 +2281,7 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
       );
     } catch (e) {
       if (mounted) Navigator.pop(context);
-      NotificationService.showSnackBar("❌ Lỗi migrate: $e", color: Colors.red);
+      NotificationService.showSnackBar("❌ Lỗi migrate: $e", color: AppColors.error);
     }
   }
 
@@ -2052,7 +2321,7 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
                       child: Text(
                         member['name']?.substring(0, 1).toUpperCase() ?? '?',
                         style: const TextStyle(
-                          color: Colors.white,
+                          color: AppColors.surface,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -2101,15 +2370,15 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
   Color _getRoleColor(String? role) {
     switch (role) {
       case 'owner':
-        return Colors.blue;
+        return AppColors.primary;
       case 'manager':
-        return Colors.blue;
+        return AppColors.primary;
       case 'technician':
-        return Colors.orange;
+        return AppColors.warning;
       case 'employee':
-        return Colors.green;
+        return AppColors.success;
       default:
-        return Colors.grey;
+        return AppColors.textHint;
     }
   }
 
@@ -2149,11 +2418,11 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
     final bool? result = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Row(
+        title: const Row(
           children: [
-            Icon(Icons.cloud_download, color: Colors.blue.shade600),
-            const SizedBox(width: 10),
-            const Expanded(
+            Icon(Icons.cloud_download, color: AppColors.primary),
+            SizedBox(width: 10),
+            Expanded(
               child: Text(
                 "TẢI DỮ LIỆU SHOP",
                 style: TextStyle(fontWeight: FontWeight.bold),
@@ -2167,14 +2436,14 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
           children: [
             RichText(
               text: TextSpan(
-                style: const TextStyle(color: Colors.black87, fontSize: 16),
+                style: const TextStyle(color: AppColors.textPrimary, fontSize: 16),
                 children: [
                   const TextSpan(text: 'Tải dữ liệu của shop '),
                   TextSpan(
                     text: '"$_shopName"',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: Colors.blue,
+                      color: AppColors.primary,
                     ),
                   ),
                   const TextSpan(text: ' từ đám mây về máy này.'),
@@ -2185,7 +2454,7 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.blue.shade50,
+                color: AppColors.iconBgBlue,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Column(
@@ -2203,16 +2472,16 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.orange.shade50,
+                color: AppColors.iconBgOrange,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.orange.shade200),
+                border: Border.all(color: AppColors.warningLight),
               ),
               child: Row(
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.info_outline,
                     size: 16,
-                    color: Colors.orange.shade700,
+                    color: AppColors.warning,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
@@ -2220,7 +2489,7 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
                       'Chỉ tải dữ liệu của shop này, không ảnh hưởng shop khác.',
                       style: TextStyle(
                         fontSize: AppTextStyles.body1.fontSize,
-                        color: Colors.orange.shade800,
+                        color: AppColors.secondaryDark,
                       ),
                     ),
                   ),
@@ -2233,7 +2502,7 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
               style: TextStyle(
                 fontSize: AppTextStyles.body1.fontSize,
                 fontStyle: FontStyle.italic,
-                color: Colors.grey,
+                color: AppColors.grey50,
               ),
             ),
           ],
@@ -2247,7 +2516,7 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
             onPressed: () => Navigator.pop(ctx, true),
             icon: const Icon(Icons.download, size: 18),
             label: const Text("BẮT ĐẦU TẢI"),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
           ),
         ],
       ),
@@ -2275,7 +2544,7 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
                   'Vui lòng đợi trong giây lát',
                   style: TextStyle(
                     fontSize: AppTextStyles.subtitle1.fontSize,
-                    color: Colors.grey.shade600,
+                    color: AppColors.grey600,
                   ),
                 ),
               ],
@@ -2289,11 +2558,11 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
         if (mounted) Navigator.of(context).pop(); // Close loading dialog
         NotificationService.showSnackBar(
           "✅ Đã tải xong dữ liệu shop!",
-          color: Colors.green,
+          color: AppColors.success,
         );
       } catch (e) {
         if (mounted) Navigator.of(context).pop(); // Close loading dialog
-        NotificationService.showSnackBar("❌ Lỗi: $e", color: Colors.red);
+        NotificationService.showSnackBar("❌ Lỗi: $e", color: AppColors.error);
       }
     }
   }
@@ -2303,7 +2572,7 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          Icon(icon, size: 16, color: Colors.blue.shade600),
+          Icon(icon, size: 16, color: AppColors.primary),
           const SizedBox(width: 8),
           Text(
             text,
@@ -2325,7 +2594,7 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
         if (permission == LocationPermission.denied) {
           NotificationService.showSnackBar(
             'Cần quyền truy cập vị trí',
-            color: Colors.red,
+            color: AppColors.error,
           );
           return;
         }
@@ -2333,14 +2602,14 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
       if (permission == LocationPermission.deniedForever) {
         NotificationService.showSnackBar(
           'Vui lòng bật quyền vị trí trong cài đặt',
-          color: Colors.red,
+          color: AppColors.error,
         );
         return;
       }
 
       NotificationService.showSnackBar(
         'Đang lấy vị trí...',
-        color: Colors.blue,
+        color: AppColors.primary,
       );
 
       final position = await Geolocator.getCurrentPosition(
@@ -2354,10 +2623,10 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
 
       NotificationService.showSnackBar(
         '✅ Đã cập nhật vị trí! Nhấn Lưu để hoàn tất.',
-        color: Colors.green,
+        color: AppColors.success,
       );
     } catch (e) {
-      NotificationService.showSnackBar('Lỗi lấy vị trí: $e', color: Colors.red);
+      NotificationService.showSnackBar('Lỗi lấy vị trí: $e', color: AppColors.error);
     }
   }
 
@@ -2368,7 +2637,7 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
     });
     NotificationService.showSnackBar(
       'Đã xóa vị trí. Nhấn Lưu để hoàn tất.',
-      color: Colors.orange,
+      color: AppColors.warning,
     );
   }
 
@@ -2376,7 +2645,10 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
     if (_shopLatitude == null || _shopLongitude == null) return;
     final ok = await OsmMapService.openPoint(_shopLatitude!, _shopLongitude!);
     if (!ok && mounted) {
-      NotificationService.showSnackBar('Không thể mở bản đồ OSM', color: Colors.red);
+      NotificationService.showSnackBar(
+        'Không thể mở bản đồ OSM',
+        color: AppColors.error,
+      );
     }
   }
 
@@ -2395,7 +2667,10 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
           toLon: _shopLongitude!,
         );
         if (!ok && mounted) {
-          NotificationService.showSnackBar('Không thể mở chỉ đường OSM', color: Colors.red);
+          NotificationService.showSnackBar(
+            'Không thể mở chỉ đường OSM',
+            color: AppColors.error,
+          );
         }
         return;
       }
@@ -2411,7 +2686,10 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
         toLon: _shopLongitude!,
       );
       if (!ok && mounted) {
-        NotificationService.showSnackBar('Không thể mở chỉ đường OSM', color: Colors.red);
+        NotificationService.showSnackBar(
+          'Không thể mở chỉ đường OSM',
+          color: AppColors.error,
+        );
       }
     } catch (e) {
       final fallback = Uri.parse(
@@ -2419,8 +2697,12 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
       );
       await launchUrl(fallback, mode: LaunchMode.externalApplication);
       if (mounted) {
-        NotificationService.showSnackBar('Đã mở bản đồ shop (không lấy được vị trí hiện tại)', color: Colors.orange);
+        NotificationService.showSnackBar(
+          'Đã mở bản đồ shop (không lấy được vị trí hiện tại)',
+          color: AppColors.warning,
+        );
       }
     }
   }
 }
+

@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
 import '../widgets/responsive_wrapper.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -104,7 +105,7 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
 
     NotificationService.showSnackBar(
       value ? 'Đã bật thông báo' : 'Đã tắt thông báo',
-      color: value ? Colors.green : Colors.orange,
+      color: value ? AppColors.success : AppColors.warning,
     );
   }
 
@@ -124,11 +125,11 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
         ),
         title: Text(
           "CÀI ĐẶT THÔNG BÁO",
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: AppTextStyles.headline3.fontSize, color: Colors.white),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: AppTextStyles.headline3.fontSize, color: AppColors.surface),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        foregroundColor: Colors.white,
+        foregroundColor: AppColors.surface,
       ),
       body: ResponsiveCenter(child: ListView(
         padding: const EdgeInsets.all(16),
@@ -148,7 +149,7 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
             _newOrderEnabled,
             (value) => _updateSetting('new_order', value),
             Icons.shopping_cart,
-            Colors.blue,
+            AppColors.primary,
             enabled: _isRoleAllowed('new_order'),
           ),
           _buildNotificationTile(
@@ -157,7 +158,7 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
             _paymentEnabled,
             (value) => _updateSetting('payment', value),
             Icons.payment,
-            Colors.green,
+            AppColors.success,
             enabled: _isRoleAllowed('payment'),
           ),
 
@@ -169,7 +170,7 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
             _inventoryEnabled,
             (value) => _updateSetting('inventory', value),
             Icons.inventory,
-            Colors.orange,
+            AppColors.warning,
             enabled: _isRoleAllowed('inventory'),
           ),
           _buildNotificationTile(
@@ -178,7 +179,7 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
             _staffEnabled,
             (value) => _updateSetting('staff', value),
             Icons.people,
-            Colors.blue,
+            AppColors.primary,
             enabled: _isRoleAllowed('staff'),
           ),
           _buildNotificationTile(
@@ -187,7 +188,7 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
             _systemEnabled,
             (value) => _updateSetting('system', value),
             Icons.settings,
-            Colors.grey,
+            AppColors.textHint,
             enabled: _isRoleAllowed('system'),
           ),
 
@@ -205,7 +206,7 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
     final isFullyWorking = _permissionGranted && _hasFcmToken;
 
     return Card(
-      color: isFullyWorking ? Colors.green.shade50 : Colors.orange.shade50,
+      color: isFullyWorking ? AppColors.success : AppColors.warning,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
       ),
@@ -218,7 +219,7 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
               children: [
                 Icon(
                   isFullyWorking ? Icons.notifications_active : Icons.notifications_off,
-                  color: isFullyWorking ? Colors.green : Colors.orange,
+                  color: isFullyWorking ? AppColors.success : AppColors.warning,
                 ),
                 const SizedBox(width: 8),
                 Expanded(
@@ -226,7 +227,7 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
                     'Quyền thông báo',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: isFullyWorking ? Colors.green : Colors.orange,
+                      color: isFullyWorking ? AppColors.success : AppColors.warning,
                     ),
                   ),
                 ),
@@ -234,26 +235,26 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
-                    color: _permissionGranted ? Colors.green.shade100 : Colors.red.shade100,
+                    color: _permissionGranted ? AppColors.success : AppColors.error,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     _permissionGranted ? 'Quyền OK' : 'Chưa cấp quyền',
                     style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
-                      color: _permissionGranted ? Colors.green.shade800 : Colors.red.shade800),
+                      color: _permissionGranted ? AppColors.success : AppColors.error),
                   ),
                 ),
                 const SizedBox(width: 4),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
-                    color: _hasFcmToken ? Colors.green.shade100 : Colors.red.shade100,
+                    color: _hasFcmToken ? AppColors.success : AppColors.error,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     _hasFcmToken ? 'Token OK' : 'Chưa có token',
                     style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
-                      color: _hasFcmToken ? Colors.green.shade800 : Colors.red.shade800),
+                      color: _hasFcmToken ? AppColors.success : AppColors.error),
                   ),
                 ),
               ],
@@ -267,7 +268,7 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
                   : 'Đã cấp quyền nhưng chưa có FCM Token. Nhấn "Làm mới FCM Token" bên dưới.',
               style: TextStyle(
                 fontSize: AppTextStyles.subtitle1.fontSize,
-                color: isFullyWorking ? Colors.green.shade700 : Colors.orange.shade700,
+                color: isFullyWorking ? AppColors.success : AppColors.warning,
               ),
             ),
             if (!_permissionGranted) ...[
@@ -279,8 +280,8 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
                   icon: const Icon(Icons.settings),
                   label: const Text('Cấp quyền'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange,
-                    foregroundColor: Colors.white,
+                    backgroundColor: AppColors.warning,
+                    foregroundColor: AppColors.surface,
                   ),
                 ),
               ),
@@ -295,7 +296,7 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
     final roleDisplayName = _getRoleDisplayName(_userRole);
 
     return Card(
-      color: Colors.blue.shade50,
+      color: AppColors.primary,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
       ),
@@ -306,13 +307,13 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
           children: [
             Row(
               children: [
-                const Icon(Icons.person, color: Colors.blue),
+                const Icon(Icons.person, color: AppColors.primary),
                 const SizedBox(width: 8),
                 Text(
                   'Vai trò của bạn: $roleDisplayName',
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: Colors.blue,
+                    color: AppColors.primary,
                   ),
                 ),
               ],
@@ -322,7 +323,7 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
               'Một số loại thông báo chỉ dành cho vai trò nhất định để đảm bảo bảo mật và tránh spam.',
               style: TextStyle(
                 fontSize: AppTextStyles.subtitle1.fontSize,
-                color: Colors.blue.shade700,
+                color: AppColors.primary,
               ),
             ),
           ],
@@ -339,7 +340,7 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
         style: TextStyle(
           fontSize: AppTextStyles.subtitle1.fontSize,
           fontWeight: FontWeight.bold,
-          color: Colors.grey,
+          color: AppColors.textHint,
           letterSpacing: 1.2,
         ),
       ),
@@ -360,22 +361,22 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
       ),
-      color: enabled ? null : Colors.grey.shade100,
+      color: enabled ? null : AppColors.background,
       child: ListTile(
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: enabled ? color.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
+            color: enabled ? color.withAlpha(26) : AppColors.textHint.withAlpha(26),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(icon, color: enabled ? color : Colors.grey),
+          child: Icon(icon, color: enabled ? color : AppColors.textHint),
         ),
         title: Text(
           title,
           style: TextStyle(
             fontWeight: FontWeight.w600,
             fontSize: AppTextStyles.headline3.fontSize,
-            color: enabled ? null : Colors.grey,
+            color: enabled ? null : AppColors.textHint,
           ),
         ),
         subtitle: Column(
@@ -385,7 +386,7 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
               subtitle,
               style: TextStyle(
                 fontSize: AppTextStyles.subtitle1.fontSize,
-                color: enabled ? Colors.grey : Colors.grey.shade600,
+                color: enabled ? AppColors.textHint : AppColors.textSecondary,
               ),
             ),
             if (!enabled) ...[
@@ -394,7 +395,7 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
                 'Không khả dụng cho vai trò hiện tại',
                 style: TextStyle(
                   fontSize: AppTextStyles.caption.fontSize,
-                  color: Colors.red.shade600,
+                  color: AppColors.error,
                   fontStyle: FontStyle.italic,
                 ),
               ),
@@ -418,8 +419,8 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
         icon: const Icon(Icons.refresh),
         label: const Text('LÀM MỚI FCM TOKEN'),
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.orange,
-          foregroundColor: Colors.white,
+          backgroundColor: AppColors.warning,
+          foregroundColor: AppColors.surface,
           minimumSize: const Size(double.infinity, 50),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -437,8 +438,8 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
         icon: const Icon(Icons.notifications_active),
         label: const Text('GỬI THÔNG BÁO TEST'),
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.blue,
-          foregroundColor: Colors.white,
+          backgroundColor: AppColors.primary,
+          foregroundColor: AppColors.surface,
           minimumSize: const Size(double.infinity, 50),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -461,14 +462,14 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
     await _checkPermissionStatus();
 
     if (status.isGranted || _permissionGranted) {
-      NotificationService.showSnackBar('Đã cấp quyền thông báo!', color: Colors.green);
+      NotificationService.showSnackBar('Đã cấp quyền thông báo!', color: AppColors.success);
       // Also refresh FCM token after granting permission
       await NotificationService.forceRefreshFCMToken();
       await _checkPermissionStatus();
     } else if (status.isPermanentlyDenied) {
       _showPermissionSettingsDialog();
     } else {
-      NotificationService.showSnackBar('Cần cấp quyền để nhận thông báo', color: Colors.orange);
+      NotificationService.showSnackBar('Cần cấp quyền để nhận thông báo', color: AppColors.warning);
     }
   }
 
@@ -524,12 +525,12 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
       );
       NotificationService.showSnackBar(
         'Đã gửi thông báo test!',
-        color: Colors.green,
+        color: AppColors.success,
       );
     } catch (e) {
       NotificationService.showSnackBar(
         'Lỗi gửi thông báo: $e',
-        color: Colors.red,
+        color: AppColors.error,
       );
     }
   }
@@ -560,28 +561,28 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
       if (success) {
         NotificationService.showSnackBar(
           '✅ Đã làm mới FCM token thành công!',
-          color: Colors.green,
+          color: AppColors.success,
         );
         // Reload permission status
         await _checkPermissionStatus();
       } else {
         NotificationService.showSnackBar(
           '❌ Không thể làm mới FCM token. Thử lại sau.',
-          color: Colors.red,
+          color: AppColors.error,
         );
       }
     } catch (e) {
       if (mounted) Navigator.of(context).pop(); // Đóng loading
       NotificationService.showSnackBar(
         'Lỗi làm mới token: $e',
-        color: Colors.red,
+        color: AppColors.error,
       );
     }
   }
 
   Widget _buildInfoCard() {
     return Card(
-      color: Colors.grey.shade50,
+      color: AppColors.background,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
       ),
@@ -592,13 +593,13 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
           children: [
             Row(
               children: [
-                Icon(Icons.info_outline, color: Colors.blue.shade700),
+                Icon(Icons.info_outline, color: AppColors.primary),
                 const SizedBox(width: 8),
                 Text(
                   'THÔNG TIN THÔNG BÁO',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: Colors.blue.shade700,
+                    color: AppColors.primary,
                   ),
                 ),
               ],
@@ -609,7 +610,7 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
               '• Admin & Owner nhận tất cả thông báo\n'
               '• Manager & Technician nhận thông báo quan trọng\n'
               '• Employee chỉ nhận thông báo cá nhân',
-              style: TextStyle(fontSize: AppTextStyles.subtitle1.fontSize, color: Colors.grey.shade700),
+              style: TextStyle(fontSize: AppTextStyles.subtitle1.fontSize, color: AppColors.textSecondary),
             ),
           ],
         ),

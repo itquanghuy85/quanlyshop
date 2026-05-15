@@ -132,13 +132,13 @@ class _StaffPermissionsViewState extends State<StaffPermissionsView> {
         );
 
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Đã cập nhật quyền ${_permissionLabel(permissionKey)}"), backgroundColor: Colors.green),
+          SnackBar(content: Text("Đã cập nhật quyền ${_permissionLabel(permissionKey)}"), backgroundColor: AppColors.success),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Lỗi cập nhật quyền: $e"), backgroundColor: Colors.red),
+          SnackBar(content: Text("Lỗi cập nhật quyền: $e"), backgroundColor: AppColors.error),
         );
       }
     }
@@ -184,13 +184,13 @@ class _StaffPermissionsViewState extends State<StaffPermissionsView> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Đã cập nhật vai trò thành ${newRole == 'owner' ? 'Chủ shop' : newRole == 'manager' ? 'Quản lý' : newRole == 'employee' ? 'Nhân viên' : newRole == 'technician' ? 'Kỹ thuật' : newRole}"), backgroundColor: Colors.green),
+          SnackBar(content: Text("Đã cập nhật vai trò thành ${newRole == 'owner' ? 'Chủ shop' : newRole == 'manager' ? 'Quản lý' : newRole == 'employee' ? 'Nhân viên' : newRole == 'technician' ? 'Kỹ thuật' : newRole}"), backgroundColor: AppColors.success),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Lỗi cập nhật vai trò: $e"), backgroundColor: Colors.red),
+          SnackBar(content: Text("Lỗi cập nhật vai trò: $e"), backgroundColor: AppColors.error),
         );
       }
     }
@@ -217,8 +217,8 @@ class _StaffPermissionsViewState extends State<StaffPermissionsView> {
               ),
             ),
           ),
-          backgroundColor: Colors.transparent,
-          foregroundColor: Colors.white,
+          backgroundColor: AppColors.surface,
+          foregroundColor: AppColors.textPrimary,
           elevation: 0,
           title: const Text("QUẢN LÝ PHÂN QUYỀN"),
         ),
@@ -226,12 +226,12 @@ class _StaffPermissionsViewState extends State<StaffPermissionsView> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.admin_panel_settings, size: 64, color: Colors.grey),
+              const Icon(Icons.admin_panel_settings, size: 64, color: AppColors.textHint),
               const SizedBox(height: 16),
               Text(
                 "Bạn không có quyền truy cập\nmàn hình quản lý phân quyền",
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: AppTextStyles.headline3.fontSize, color: Colors.grey),
+                style: TextStyle(fontSize: AppTextStyles.headline3.fontSize, color: AppColors.textHint),
               ),
             ],
           ),
@@ -263,7 +263,7 @@ class _StaffPermissionsViewState extends State<StaffPermissionsView> {
               child: Text(
                 "Chưa có nhân viên nào trong shop\nMời nhân viên qua mã QR trước",
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey),
+                style: TextStyle(color: AppColors.textHint),
               ),
             );
           }
@@ -286,25 +286,25 @@ class _StaffPermissionsViewState extends State<StaffPermissionsView> {
                 child: ExpansionTile(
                   leading: CircleAvatar(
                     backgroundImage: _safeImageProvider(photoUrl),
-                    backgroundColor: role == 'owner' ? Colors.indigo.withAlpha(25) : role == 'manager' ? Colors.orange.withAlpha(25) : role == 'employee' ? Colors.blue.withAlpha(25) : role == 'technician' ? Colors.green.withAlpha(25) : role == 'admin' ? Colors.red.withAlpha(25) : Colors.grey.withAlpha(25),
-                    child: photoUrl == null ? Icon(role == 'owner' ? Icons.business : role == 'manager' ? Icons.supervisor_account : role == 'employee' ? Icons.work : role == 'technician' ? Icons.build : role == 'admin' ? Icons.admin_panel_settings : Icons.person, color: role == 'owner' ? Colors.indigo : role == 'manager' ? Colors.orange : role == 'employee' ? Colors.blue : role == 'technician' ? Colors.green : role == 'admin' ? Colors.red : Colors.grey, size: 20) : null,
+                    backgroundColor: role == 'owner' ? AppColors.primary.withAlpha(25) : role == 'manager' ? AppColors.warning.withAlpha(25) : role == 'employee' ? AppColors.primary.withAlpha(25) : role == 'technician' ? AppColors.success.withAlpha(25) : role == 'admin' ? AppColors.error.withAlpha(25) : AppColors.textHint.withAlpha(25),
+                    child: photoUrl == null ? Icon(role == 'owner' ? Icons.business : role == 'manager' ? Icons.supervisor_account : role == 'employee' ? Icons.work : role == 'technician' ? Icons.build : role == 'admin' ? Icons.admin_panel_settings : Icons.person, color: role == 'owner' ? AppColors.primary : role == 'manager' ? AppColors.warning : role == 'employee' ? AppColors.primary : role == 'technician' ? AppColors.success : role == 'admin' ? AppColors.error : AppColors.textHint, size: 20) : null,
                   ),
                   title: Text(displayName, style: TextStyle(fontWeight: FontWeight.bold, fontSize: AppTextStyles.headline4.fontSize)),
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(email, style: TextStyle(fontSize: AppTextStyles.body1.fontSize, color: Colors.grey)),
-                      Text("SĐT: $phone", style: TextStyle(fontSize: AppTextStyles.body1.fontSize, color: Colors.grey)),
+                      Text(email, style: TextStyle(fontSize: AppTextStyles.body1.fontSize, color: AppColors.textHint)),
+                      Text("SĐT: $phone", style: TextStyle(fontSize: AppTextStyles.body1.fontSize, color: AppColors.textHint)),
                       Row(
                         children: [
-                          Text("Vai trò: ", style: TextStyle(fontSize: AppTextStyles.body1.fontSize, color: Colors.grey)),
+                          Text("Vai trò: ", style: TextStyle(fontSize: AppTextStyles.body1.fontSize, color: AppColors.textHint)),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
-                              color: role == 'owner' ? Colors.indigo : role == 'manager' ? Colors.orange : role == 'employee' ? Colors.blue : role == 'technician' ? Colors.green : role == 'admin' ? Colors.red : Colors.grey,
+                              color: role == 'owner' ? AppColors.primary : role == 'manager' ? AppColors.warning : role == 'employee' ? AppColors.primary : role == 'technician' ? AppColors.success : role == 'admin' ? AppColors.error : AppColors.textHint,
                               borderRadius: BorderRadius.circular(4),
                             ),
-                            child: Text(role == 'owner' ? 'CHỦ SHOP' : role == 'manager' ? 'QUẢN LÝ' : role == 'employee' ? 'NHÂN VIÊN' : role == 'technician' ? 'KỸ THUẬT' : role == 'admin' ? 'ADMIN' : role, style: TextStyle(fontSize: AppTextStyles.caption.fontSize, color: Colors.white, fontWeight: FontWeight.bold)),
+                            child: Text(role == 'owner' ? 'CHỦ SHOP' : role == 'manager' ? 'QUẢN LÝ' : role == 'employee' ? 'NHÂN VIÊN' : role == 'technician' ? 'KỸ THUẬT' : role == 'admin' ? 'ADMIN' : role, style: TextStyle(fontSize: AppTextStyles.caption.fontSize, color: AppColors.surface, fontWeight: FontWeight.bold)),
                           ),
                         ],
                       ),
@@ -317,7 +317,7 @@ class _StaffPermissionsViewState extends State<StaffPermissionsView> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           // Đổi vai trò
-                          Text("VAI TRÒ HỆ THỐNG", style: TextStyle(fontSize: AppTextStyles.subtitle1.fontSize, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+                          Text("VAI TRÒ HỆ THỐNG", style: TextStyle(fontSize: AppTextStyles.subtitle1.fontSize, fontWeight: FontWeight.bold, color: AppColors.textSecondary)),
                           const SizedBox(height: 8),
                           Wrap(
                             spacing: 8,
@@ -332,7 +332,7 @@ class _StaffPermissionsViewState extends State<StaffPermissionsView> {
 
                           // Phân quyền nghiệp vụ
                           if (role != 'owner' && role != 'manager') ...[
-                            Text("QUYỀN XEM NỘI DUNG NGHIỆP VỤ", style: TextStyle(fontSize: AppTextStyles.subtitle1.fontSize, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+                            Text("QUYỀN XEM NỘI DUNG NGHIỆP VỤ", style: TextStyle(fontSize: AppTextStyles.subtitle1.fontSize, fontWeight: FontWeight.bold, color: AppColors.textSecondary)),
                             const SizedBox(height: 8),
                             _buildPermissionRow("BÁN HÀNG", userData['allowViewSales'] ?? false, uid, 'allowViewSales'),
                             _buildPermissionRow("SỬA CHỮA", userData['allowViewRepairs'] ?? false, uid, 'allowViewRepairs'),
@@ -347,7 +347,7 @@ class _StaffPermissionsViewState extends State<StaffPermissionsView> {
                             const SizedBox(height: 15),
 
                             // Phân quyền tài chính nhạy cảm
-                            Text("QUYỀN XEM NỘI DUNG TÀI CHÍNH", style: TextStyle(fontSize: AppTextStyles.subtitle1.fontSize, fontWeight: FontWeight.bold, color: Colors.orange)),
+                            Text("QUYỀN XEM NỘI DUNG TÀI CHÍNH", style: TextStyle(fontSize: AppTextStyles.subtitle1.fontSize, fontWeight: FontWeight.bold, color: AppColors.warning)),
                             const SizedBox(height: 8),
                             _buildPermissionRow("DOANH THU & LỜI LỖ", userData['allowViewRevenue'] ?? false, uid, 'allowViewRevenue'),
                             _buildPermissionRow("CHI PHÍ CỬA HÀNG", userData['allowViewExpenses'] ?? false, uid, 'allowViewExpenses'),
@@ -356,7 +356,7 @@ class _StaffPermissionsViewState extends State<StaffPermissionsView> {
                             const SizedBox(height: 15),
 
                             // Phân quyền quản lý hệ thống
-                            Text("QUYỀN QUẢN LÝ HỆ THỐNG", style: TextStyle(fontSize: AppTextStyles.subtitle1.fontSize, fontWeight: FontWeight.bold, color: Colors.purple)),
+                            Text("QUYỀN QUẢN LÝ HỆ THỐNG", style: TextStyle(fontSize: AppTextStyles.subtitle1.fontSize, fontWeight: FontWeight.bold, color: AppColors.repairDelivered)),
                             const SizedBox(height: 8),
                             _buildPermissionRow("QUẢN LÝ NHÂN VIÊN", userData['allowManageStaff'] ?? false, uid, 'allowManageStaff'),
                             _buildPermissionRow("CÀI ĐẶT HỆ THỐNG", userData['allowViewSettings'] ?? false, uid, 'allowViewSettings'),
@@ -364,18 +364,18 @@ class _StaffPermissionsViewState extends State<StaffPermissionsView> {
                             Container(
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: Colors.green.shade50,
+                                color: AppColors.success,
                                 borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.green.shade200),
+                                border: Border.all(color: AppColors.success),
                               ),
                               child: Row(
                                 children: [
-                                  const Icon(Icons.verified, color: Colors.green, size: 20),
+                                  const Icon(Icons.verified, color: AppColors.success, size: 20),
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
                                       role == 'owner' ? "CHỦ SHOP có toàn quyền truy cập mọi chức năng trong hệ thống" : "QUẢN LÝ có toàn quyền truy cập mọi chức năng trong hệ thống",
-                                      style: TextStyle(fontSize: AppTextStyles.subtitle1.fontSize, color: Colors.green, fontWeight: FontWeight.w500),
+                                      style: TextStyle(fontSize: AppTextStyles.subtitle1.fontSize, color: AppColors.success, fontWeight: FontWeight.w500),
                                     ),
                                   ),
                                 ],
@@ -398,16 +398,16 @@ class _StaffPermissionsViewState extends State<StaffPermissionsView> {
   Widget _buildRoleChip(String roleValue, String roleLabel, String currentRole, String uid) {
     final isSelected = currentRole == roleValue;
     return FilterChip(
-      label: Text(roleLabel, style: TextStyle(fontSize: AppTextStyles.body1.fontSize, color: isSelected ? Colors.white : Colors.black87)),
+      label: Text(roleLabel, style: TextStyle(fontSize: AppTextStyles.body1.fontSize, color: isSelected ? AppColors.surface : AppColors.textPrimary)),
       selected: isSelected,
       onSelected: (selected) {
         if (selected && currentRole != roleValue) {
           _updateUserRole(uid, roleValue);
         }
       },
-      backgroundColor: Colors.grey.shade100,
-      selectedColor: roleValue == 'owner' ? Colors.indigo : roleValue == 'manager' ? Colors.orange : roleValue == 'employee' ? Colors.blue : roleValue == 'technician' ? Colors.green : Colors.grey,
-      checkmarkColor: Colors.white,
+      backgroundColor: AppColors.background,
+      selectedColor: roleValue == 'owner' ? AppColors.primary : roleValue == 'manager' ? AppColors.warning : roleValue == 'employee' ? AppColors.primary : roleValue == 'technician' ? AppColors.success : AppColors.textHint,
+      checkmarkColor: AppColors.surface,
     );
   }
 
@@ -422,7 +422,7 @@ class _StaffPermissionsViewState extends State<StaffPermissionsView> {
           Switch(
             value: value,
             onChanged: (newValue) => _updateUserPermission(uid, permissionKey, newValue),
-            activeThumbColor: Colors.blue,
+            activeThumbColor: AppColors.primary,
             materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
         ],

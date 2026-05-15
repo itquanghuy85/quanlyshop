@@ -1,5 +1,6 @@
 import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -92,7 +93,7 @@ class _SettingsViewState extends State<SettingsView> {
     if (_updatingAvatar) return;
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      NotificationService.showSnackBar('Vui lòng đăng nhập lại', color: Colors.red);
+      NotificationService.showSnackBar('Vui lòng đăng nhập lại', color: AppColors.error);
       return;
     }
 
@@ -207,7 +208,7 @@ class _SettingsViewState extends State<SettingsView> {
     // Hiển thị loading
     NotificationService.showSnackBar(
       loc.loadingShopData,
-      color: Colors.blue,
+      color: AppColors.primary,
     );
 
     try {
@@ -235,13 +236,13 @@ class _SettingsViewState extends State<SettingsView> {
 
       NotificationService.showSnackBar(
         loc.switchedToShop(shopName),
-        color: Colors.green,
+        color: AppColors.success,
       );
     } catch (e) {
       debugPrint('Error switching shop: $e');
       NotificationService.showSnackBar(
         loc.errorSwitchingShop(e.toString()),
-        color: Colors.red,
+        color: AppColors.error,
       );
     }
   }
@@ -309,7 +310,7 @@ class _SettingsViewState extends State<SettingsView> {
     if (!UserService.isCurrentUserSuperAdmin()) {
       NotificationService.showSnackBar(
         loc.onlySuperAdminCanDelete,
-        color: Colors.red,
+        color: AppColors.error,
       );
       return;
     }
@@ -320,7 +321,7 @@ class _SettingsViewState extends State<SettingsView> {
       builder: (ctx) => AlertDialog(
         title: Text(
           loc.dangerWarning,
-          style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+          style: const TextStyle(color: AppColors.error, fontWeight: FontWeight.bold),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -346,10 +347,10 @@ class _SettingsViewState extends State<SettingsView> {
           ElevatedButton(
             onPressed: () =>
                 Navigator.pop(ctx, confirmTextC.text.trim() == "XOA HET"),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
             child: Text(
               loc.confirmDeleteAll,
-              style: const TextStyle(color: Colors.white),
+              style: const TextStyle(color: AppColors.surface),
             ),
           ),
         ],
@@ -364,12 +365,12 @@ class _SettingsViewState extends State<SettingsView> {
       if (errorMessage == null) {
         NotificationService.showSnackBar(
           loc.shopDataDeleted,
-          color: Colors.green,
+          color: AppColors.success,
         );
       } else {
         NotificationService.showSnackBar(
           loc.errorDeletingCloudData(errorMessage),
-          color: Colors.red,
+          color: AppColors.error,
         );
       }
       await SyncService.cancelAllSubscriptions();
@@ -410,20 +411,20 @@ class _SettingsViewState extends State<SettingsView> {
                 // NÚT CHỌN SHOP KHÁC - Chỉ hiện cho Super Admin
                 if (UserService.isCurrentUserSuperAdmin()) ...[
                   Card(
-                    color: Colors.deepPurple.shade50,
+                    color: AppColors.repairDelivered,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(15),
-                      side: BorderSide(color: Colors.deepPurple.shade200),
+                      side: BorderSide(color: AppColors.repairDelivered),
                     ),
                     child: ListTile(
                       leading: const Icon(
                         Icons.swap_horiz,
-                        color: Colors.deepPurple,
+                        color: AppColors.repairDelivered,
                       ),
                       title: Text(
                         localizations.selectOtherShop,
                         style: const TextStyle(
-                          color: Colors.deepPurple,
+                          color: AppColors.repairDelivered,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -466,10 +467,10 @@ class _SettingsViewState extends State<SettingsView> {
                 
                 // Card chính: Hướng dẫn sử dụng đầy đủ
                 Card(
-                  color: Colors.blue.shade50,
+                  color: AppColors.primary,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(18),
-                    side: BorderSide(color: Colors.blue.shade100),
+                    side: BorderSide(color: AppColors.primary),
                   ),
                   child: ListTile(
                     contentPadding: const EdgeInsets.all(10),
@@ -478,14 +479,14 @@ class _SettingsViewState extends State<SettingsView> {
                       padding: const EdgeInsets.all(7),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [Colors.blue.shade400, Colors.blue.shade600],
+                          colors: [AppColors.primary, AppColors.primary],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
                         borderRadius: BorderRadius.circular(10),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.blue.withOpacity(0.3),
+                            color: AppColors.primary.withAlpha(77),
                             blurRadius: 8,
                             offset: const Offset(0, 4),
                           ),
@@ -493,14 +494,14 @@ class _SettingsViewState extends State<SettingsView> {
                       ),
                       child: const Icon(
                         Icons.menu_book_rounded,
-                        color: Colors.white,
+                        color: AppColors.surface,
                         size: 28,
                       ),
                     ),
                     title: Text(
                       loc.userGuideTitle,
                       style: const TextStyle(
-                        color: Colors.blue,
+                        color: AppColors.primary,
                         fontWeight: FontWeight.bold,
                         fontSize: 17,
                       ),
@@ -513,7 +514,7 @@ class _SettingsViewState extends State<SettingsView> {
                           loc.userGuideDesc,
                           style: TextStyle(
                             fontSize: AppTextStyles.body1.fontSize,
-                            color: Colors.blue.shade800,
+                            color: AppColors.primary,
                           ),
                         ),
                         const SizedBox(height: 10),
@@ -521,10 +522,10 @@ class _SettingsViewState extends State<SettingsView> {
                           spacing: 6,
                           runSpacing: 6,
                           children: [
-                            _buildFeatureChip(loc.inventoryFeature, Colors.blue),
-                            _buildFeatureChip(loc.salesFeature, Colors.orange),
-                            _buildFeatureChip(loc.repairFeature, Colors.blue),
-                            _buildFeatureChip(loc.reportFeature, Colors.pink),
+                            _buildFeatureChip(loc.inventoryFeature, AppColors.primary),
+                            _buildFeatureChip(loc.salesFeature, AppColors.warning),
+                            _buildFeatureChip(loc.repairFeature, AppColors.primary),
+                            _buildFeatureChip(loc.reportFeature, AppColors.error),
                           ],
                         ),
                       ],
@@ -532,13 +533,13 @@ class _SettingsViewState extends State<SettingsView> {
                     trailing: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: Colors.blue.shade100,
+                        color: AppColors.primary,
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: const Icon(
                         Icons.arrow_forward_ios,
                         size: 16,
-                        color: Colors.blue,
+                        color: AppColors.primary,
                       ),
                     ),
                     onTap: _openUserGuide,
@@ -550,28 +551,28 @@ class _SettingsViewState extends State<SettingsView> {
                 _buildSection(localizations.syncManagement),
                 // Card đơn giản mở Trung tâm đồng bộ
                 Card(
-                  color: Colors.teal.shade50,
+                  color: AppColors.info,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(15),
-                    side: BorderSide(color: Colors.teal.shade200),
+                    side: BorderSide(color: AppColors.info),
                   ),
                   child: ListTile(
                     leading: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: Colors.teal.shade100,
+                        color: AppColors.info,
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: const Icon(
                         Icons.cloud_sync,
-                        color: Colors.teal,
+                        color: AppColors.info,
                         size: 28,
                       ),
                     ),
                     title: Text(
                       localizations.syncCenter,
                       style: const TextStyle(
-                        color: Colors.teal,
+                        color: AppColors.info,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -582,7 +583,7 @@ class _SettingsViewState extends State<SettingsView> {
                     trailing: const Icon(
                       Icons.arrow_forward_ios,
                       size: 16,
-                      color: Colors.teal,
+                      color: AppColors.info,
                     ),
                     onTap: () {
                       showAppBottomSheet(
@@ -602,28 +603,28 @@ class _SettingsViewState extends State<SettingsView> {
                 // Quản lý danh mục sản phẩm
                 if (_role == 'owner' || UserService.isCurrentUserSuperAdmin())
                   Card(
-                    color: Colors.indigo.shade50,
+                    color: AppColors.primary,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(15),
-                      side: BorderSide(color: Colors.indigo.shade200),
+                      side: BorderSide(color: AppColors.primary),
                     ),
                     child: ListTile(
                       leading: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: Colors.indigo.shade100,
+                          color: AppColors.primary,
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: const Icon(
                           Icons.category,
-                          color: Colors.indigo,
+                          color: AppColors.primary,
                           size: 28,
                         ),
                       ),
                       title: const Text(
                         'Quản lý danh mục',
                         style: TextStyle(
-                          color: Colors.indigo,
+                          color: AppColors.primary,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -633,7 +634,7 @@ class _SettingsViewState extends State<SettingsView> {
                       trailing: const Icon(
                         Icons.arrow_forward_ios,
                         size: 16,
-                        color: Colors.indigo,
+                        color: AppColors.primary,
                       ),
                       onTap: () {
                         Navigator.push(
@@ -653,10 +654,10 @@ class _SettingsViewState extends State<SettingsView> {
 
                   // DROPDOWN CHỌN SHOP
                   Card(
-                    color: Colors.blue.shade50,
+                    color: AppColors.primary,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(15),
-                      side: BorderSide(color: Colors.blue.shade200),
+                      side: BorderSide(color: AppColors.primary),
                     ),
                     child: Padding(
                       padding: const EdgeInsets.all(16),
@@ -665,12 +666,12 @@ class _SettingsViewState extends State<SettingsView> {
                         children: [
                           Row(
                             children: [
-                              Icon(Icons.store, color: Colors.blue.shade700),
+                              Icon(Icons.store, color: AppColors.primary),
                               const SizedBox(width: 10),
                               Text(
                                 localizations.selectShopToViewData,
                                 style: TextStyle(
-                                  color: Colors.blue.shade700,
+                                  color: AppColors.primary,
                                   fontWeight: FontWeight.bold,
                                   fontSize: AppTextStyles.headline3.fontSize,
                                 ),
@@ -684,7 +685,7 @@ class _SettingsViewState extends State<SettingsView> {
                             localizations.viewShopAsAdmin,
                             style: TextStyle(
                               fontSize: AppTextStyles.subtitle1.fontSize,
-                              color: Colors.grey,
+                              color: AppColors.textHint,
                             ),
                           ),
                           const SizedBox(height: 8),
@@ -693,7 +694,7 @@ class _SettingsViewState extends State<SettingsView> {
                           else if (_allShops.isEmpty)
                             Text(
                               localizations.noShops,
-                              style: const TextStyle(color: Colors.grey),
+                              style: const TextStyle(color: AppColors.textHint),
                             )
                           else
                             DropdownButtonFormField<String>(
@@ -708,7 +709,7 @@ class _SettingsViewState extends State<SettingsView> {
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 filled: true,
-                                fillColor: Colors.white,
+                                fillColor: AppColors.surface,
                               ),
                               hint: Text(localizations.selectShopPlaceholder),
                               items: _allShops.map((shop) {
@@ -733,7 +734,7 @@ class _SettingsViewState extends State<SettingsView> {
                                         style: TextStyle(
                                           fontSize:
                                               AppTextStyles.body1.fontSize,
-                                          color: Colors.grey,
+                                          color: AppColors.textHint,
                                         ),
                                       ),
                                     ],
@@ -755,17 +756,17 @@ class _SettingsViewState extends State<SettingsView> {
                             Container(
                               padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(
-                                color: Colors.green.shade50,
+                                color: AppColors.success,
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(
-                                  color: Colors.green.shade200,
+                                  color: AppColors.success,
                                 ),
                               ),
                               child: Row(
                                 children: [
                                   const Icon(
                                     Icons.check_circle,
-                                    color: Colors.green,
+                                    color: AppColors.success,
                                     size: 20,
                                   ),
                                   const SizedBox(width: 8),
@@ -781,7 +782,7 @@ class _SettingsViewState extends State<SettingsView> {
                                             _selectedShopId,
                                       ),
                                       style: const TextStyle(
-                                        color: Colors.green,
+                                        color: AppColors.success,
                                         fontWeight: FontWeight.w500,
                                       ),
                                     ),
@@ -801,20 +802,20 @@ class _SettingsViewState extends State<SettingsView> {
                   const SizedBox(height: 8),
 
                   Card(
-                    color: Colors.orange.shade50,
+                    color: AppColors.warning,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(15),
-                      side: BorderSide(color: Colors.orange.shade200),
+                      side: BorderSide(color: AppColors.warning),
                     ),
                     child: ListTile(
                       leading: const Icon(
                         Icons.admin_panel_settings,
-                        color: Colors.orange,
+                        color: AppColors.warning,
                       ),
                       title: Text(
                         localizations.staffPermissions,
                         style: const TextStyle(
-                          color: Colors.orange,
+                          color: AppColors.warning,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -835,20 +836,20 @@ class _SettingsViewState extends State<SettingsView> {
                   const SizedBox(height: 8),
                   // Nút reset hướng dẫn sử dụng
                   Card(
-                    color: Colors.blue.shade50,
+                    color: AppColors.primary,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(15),
-                      side: BorderSide(color: Colors.blue.shade200),
+                      side: BorderSide(color: AppColors.primary),
                     ),
                     child: ListTile(
                       leading: const Icon(
                         Icons.replay,
-                        color: Colors.blue,
+                        color: AppColors.primary,
                       ),
                       title: Text(
                         loc.reviewUserGuide,
                         style: const TextStyle(
-                          color: Colors.blue,
+                          color: AppColors.primary,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -863,7 +864,7 @@ class _SettingsViewState extends State<SettingsView> {
                         if (mounted) {
                           NotificationService.showSnackBar(
                             loc.guidesReset,
-                            color: Colors.green,
+                            color: AppColors.success,
                           );
                         }
                       },
@@ -871,20 +872,20 @@ class _SettingsViewState extends State<SettingsView> {
                   ),
                   const SizedBox(height: 8),
                   Card(
-                    color: Colors.red.shade50,
+                    color: AppColors.error,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(15),
-                      side: BorderSide(color: Colors.red.shade200),
+                      side: BorderSide(color: AppColors.error),
                     ),
                     child: ListTile(
                       leading: const Icon(
                         Icons.delete_forever,
-                        color: Colors.red,
+                        color: AppColors.error,
                       ),
                       title: Text(
                         localizations.resetShopData,
                         style: const TextStyle(
-                          color: Colors.red,
+                          color: AppColors.error,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -910,7 +911,7 @@ class _SettingsViewState extends State<SettingsView> {
                       return Text(
                         versionText,
                         style: TextStyle(
-                          color: Colors.grey.shade400,
+                          color: AppColors.textHint,
                           fontSize: AppTextStyles.caption.fontSize,
                         ),
                       );
@@ -925,10 +926,10 @@ class _SettingsViewState extends State<SettingsView> {
 
   Widget _buildSuperAdminSecurityCard() {
     return Card(
-      color: Colors.red.shade50,
+      color: AppColors.error,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(15),
-        side: BorderSide(color: Colors.red.shade200),
+        side: BorderSide(color: AppColors.error),
       ),
       child: Padding(
         padding: const EdgeInsets.all(14),
@@ -937,14 +938,14 @@ class _SettingsViewState extends State<SettingsView> {
           children: [
             Row(
               children: [
-                Icon(Icons.shield, color: Colors.red.shade700, size: 22),
+                Icon(Icons.shield, color: AppColors.error, size: 22),
                 const SizedBox(width: 8),
                 Text(
                   'Bảo mật Super Admin',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 15,
-                    color: Colors.red.shade700,
+                    color: AppColors.error,
                   ),
                 ),
               ],
@@ -952,7 +953,7 @@ class _SettingsViewState extends State<SettingsView> {
             const SizedBox(height: 4),
             Text(
               'Mã PIN bảo vệ khi đăng nhập & nhật ký truy cập',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
             ),
             const Divider(height: 16),
             // PIN Setup/Change
@@ -966,7 +967,7 @@ class _SettingsViewState extends State<SettingsView> {
                       contentPadding: EdgeInsets.zero,
                       leading: Icon(
                         hasPin ? Icons.lock : Icons.lock_open,
-                        color: hasPin ? Colors.green : Colors.orange,
+                        color: hasPin ? AppColors.success : AppColors.warning,
                       ),
                       title: Text(
                         hasPin ? 'Mã PIN đã bật' : 'Mã PIN chưa thiết lập',
@@ -998,7 +999,7 @@ class _SettingsViewState extends State<SettingsView> {
                     // Audit Log
                     ListTile(
                       contentPadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.history, color: Colors.deepPurple),
+                      leading: const Icon(Icons.history, color: AppColors.repairDelivered),
                       title: const Text(
                         'Nhật ký truy cập',
                         style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
@@ -1030,7 +1031,7 @@ class _SettingsViewState extends State<SettingsView> {
         builder: (ctx, setDialogState) => AlertDialog(
           title: Row(
             children: [
-              const Icon(Icons.pin, color: Colors.deepPurple),
+              const Icon(Icons.pin, color: AppColors.repairDelivered),
               const SizedBox(width: 8),
               Text(isChange ? 'Đổi mã PIN' : 'Thiết lập mã PIN'),
             ],
@@ -1087,7 +1088,7 @@ class _SettingsViewState extends State<SettingsView> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('✅ Đã thiết lập mã PIN thành công!'),
-                      backgroundColor: Colors.green,
+                      backgroundColor: AppColors.success,
                     ),
                   );
                 } else {
@@ -1111,7 +1112,7 @@ class _SettingsViewState extends State<SettingsView> {
         builder: (ctx, setDialogState) => AlertDialog(
           title: const Row(
             children: [
-              Icon(Icons.lock_open, color: Colors.red),
+              Icon(Icons.lock_open, color: AppColors.error),
               SizedBox(width: 8),
               Text('Tắt mã PIN'),
             ],
@@ -1141,7 +1142,7 @@ class _SettingsViewState extends State<SettingsView> {
               child: const Text('HỦY'),
             ),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
               onPressed: () async {
                 final verified = await SuperAdminSecurityService.verifyPin(pinC.text);
                 if (!verified) {
@@ -1155,12 +1156,12 @@ class _SettingsViewState extends State<SettingsView> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Đã tắt mã PIN'),
-                      backgroundColor: Colors.orange,
+                      backgroundColor: AppColors.warning,
                     ),
                   );
                 }
               },
-              child: const Text('TẮT PIN', style: TextStyle(color: Colors.white)),
+              child: const Text('TẮT PIN', style: TextStyle(color: AppColors.surface)),
             ),
           ],
         ),
@@ -1174,7 +1175,7 @@ class _SettingsViewState extends State<SettingsView> {
       builder: (ctx) => AlertDialog(
         title: const Row(
           children: [
-            Icon(Icons.history, color: Colors.deepPurple),
+            Icon(Icons.history, color: AppColors.repairDelivered),
             SizedBox(width: 8),
             Text('Nhật ký truy cập'),
           ],
@@ -1191,7 +1192,7 @@ class _SettingsViewState extends State<SettingsView> {
               final logs = snap.data ?? [];
               if (logs.isEmpty) {
                 return const Center(
-                  child: Text('Chưa có nhật ký', style: TextStyle(color: Colors.grey)),
+                  child: Text('Chưa có nhật ký', style: TextStyle(color: AppColors.textHint)),
                 );
               }
               return ListView.separated(
@@ -1211,26 +1212,26 @@ class _SettingsViewState extends State<SettingsView> {
                   Color color;
                   if (action.contains('login')) {
                     icon = Icons.login;
-                    color = Colors.blue;
+                    color = AppColors.primary;
                   } else if (action.contains('shop_access')) {
                     icon = Icons.store;
-                    color = Colors.green;
+                    color = AppColors.success;
                   } else if (action.contains('pin_verified')) {
                     icon = Icons.check_circle;
-                    color = Colors.green;
+                    color = AppColors.success;
                   } else if (action.contains('failed')) {
                     icon = Icons.warning;
-                    color = Colors.red;
+                    color = AppColors.error;
                   } else {
                     icon = Icons.info;
-                    color = Colors.grey;
+                    color = AppColors.textHint;
                   }
                   return ListTile(
                     dense: true,
-                    leading: Icon(icon, color: success ? color : Colors.red, size: 20),
+                    leading: Icon(icon, color: success ? color : AppColors.error, size: 20),
                     title: Text(
                       _formatAuditAction(action),
-                      style: TextStyle(fontSize: 13, color: success ? Colors.black87 : Colors.red),
+                      style: TextStyle(fontSize: 13, color: success ? AppColors.textPrimary : AppColors.error),
                     ),
                     subtitle: Text(
                       '$timeStr · $platform',
@@ -1306,7 +1307,7 @@ class _SettingsViewState extends State<SettingsView> {
                       radius: 30,
                       backgroundImage:
                           photoUrl != null ? NetworkImage(photoUrl) : null,
-                      backgroundColor: Colors.blue.shade100,
+                      backgroundColor: AppColors.primary,
                       child: photoUrl == null
                           ? Text(
                               displayName.isNotEmpty
@@ -1315,7 +1316,7 @@ class _SettingsViewState extends State<SettingsView> {
                               style: const TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.blue,
+                                color: AppColors.primary,
                               ),
                             )
                           : null,
@@ -1324,7 +1325,7 @@ class _SettingsViewState extends State<SettingsView> {
                       right: -2,
                       bottom: -2,
                       child: Material(
-                        color: Colors.white,
+                        color: AppColors.surface,
                         shape: const CircleBorder(),
                         elevation: 2,
                         child: InkWell(
@@ -1343,7 +1344,7 @@ class _SettingsViewState extends State<SettingsView> {
                                 : const Icon(
                                     Icons.camera_alt,
                                     size: 14,
-                                    color: Colors.blue,
+                                    color: AppColors.primary,
                                   ),
                           ),
                         ),
@@ -1364,7 +1365,7 @@ class _SettingsViewState extends State<SettingsView> {
                       const SizedBox(height: 2),
                       Text(
                         email,
-                        style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                        style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ],
@@ -1373,7 +1374,7 @@ class _SettingsViewState extends State<SettingsView> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
+                    color: AppColors.primary,
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
@@ -1381,7 +1382,7 @@ class _SettingsViewState extends State<SettingsView> {
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 12,
-                      color: Colors.blue.shade700,
+                      color: AppColors.primary,
                     ),
                   ),
                 ),
@@ -1392,18 +1393,18 @@ class _SettingsViewState extends State<SettingsView> {
             // Linked accounts section
             Row(
               children: [
-                const Icon(Icons.link, color: Colors.indigo, size: 18),
+                const Icon(Icons.link, color: AppColors.primary, size: 18),
                 const SizedBox(width: 6),
                 const Text(
                   'Liên kết tài khoản',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.indigo),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.primary),
                 ),
               ],
             ),
             const SizedBox(height: 8),
             _buildProviderRow(
               icon: Icons.email,
-              color: Colors.blue,
+              color: AppColors.primary,
               label: 'Email/Mật khẩu',
               linked: passwordLinked,
               onLink: null,
@@ -1413,7 +1414,7 @@ class _SettingsViewState extends State<SettingsView> {
             const SizedBox(height: 6),
             _buildProviderRow(
               icon: Icons.g_mobiledata,
-              color: Colors.red,
+              color: AppColors.error,
               label: 'Google',
               linked: googleLinked,
               onLink: () => _linkProvider('google'),
@@ -1426,7 +1427,7 @@ class _SettingsViewState extends State<SettingsView> {
               const SizedBox(height: 6),
               _buildProviderRow(
                 icon: Icons.apple,
-                color: Colors.black,
+                color: AppColors.textPrimary,
                 label: 'Apple',
                 linked: appleLinked,
                 onLink: () => _linkProvider('apple'),
@@ -1438,6 +1439,32 @@ class _SettingsViewState extends State<SettingsView> {
             ],
             const Divider(height: 20),
 
+            // Đổi mật khẩu (chỉ hiển thị khi dùng Email/Password)
+            if (passwordLinked) ...[
+              InkWell(
+                onTap: _showChangePasswordDialog,
+                borderRadius: BorderRadius.circular(10),
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 6),
+                  child: Row(
+                    children: [
+                      Icon(Icons.lock_reset, color: AppColors.warning, size: 20),
+                      SizedBox(width: 10),
+                      Text(
+                        'Đổi mật khẩu',
+                        style: TextStyle(
+                          color: AppColors.warning,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 4),
+            ],
+
             // Logout button
             InkWell(
               onTap: () => _confirmLogout(localizations),
@@ -1446,12 +1473,12 @@ class _SettingsViewState extends State<SettingsView> {
                 padding: const EdgeInsets.symmetric(vertical: 6),
                 child: Row(
                   children: [
-                    const Icon(Icons.logout, color: Colors.red, size: 20),
+                    const Icon(Icons.logout, color: AppColors.error, size: 20),
                     const SizedBox(width: 10),
                     Text(
                       localizations.logoutAccount,
                       style: const TextStyle(
-                        color: Colors.red,
+                        color: AppColors.error,
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
                       ),
@@ -1464,6 +1491,153 @@ class _SettingsViewState extends State<SettingsView> {
         ),
       ),
     );
+  }
+
+  Future<void> _showChangePasswordDialog() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null || user.email == null) return;
+
+    final currentPassCtrl = TextEditingController();
+    final newPassCtrl = TextEditingController();
+    final confirmPassCtrl = TextEditingController();
+    bool obscureCurrent = true;
+    bool obscureNew = true;
+    bool obscureConfirm = true;
+    String? errorText;
+    bool loading = false;
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.lock_reset, color: AppColors.warning),
+              SizedBox(width: 8),
+              Text('Đổi mật khẩu'),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (errorText != null)
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(
+                      color: AppColors.error,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.error),
+                    ),
+                    child: Text(errorText!, style: TextStyle(color: AppColors.error, fontSize: 13)),
+                  ),
+                TextField(
+                  controller: currentPassCtrl,
+                  obscureText: obscureCurrent,
+                  decoration: InputDecoration(
+                    labelText: 'Mật khẩu hiện tại',
+                    prefixIcon: const Icon(Icons.lock_outline),
+                    suffixIcon: IconButton(
+                      icon: Icon(obscureCurrent ? Icons.visibility_off : Icons.visibility),
+                      onPressed: () => setDialogState(() => obscureCurrent = !obscureCurrent),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: newPassCtrl,
+                  obscureText: obscureNew,
+                  decoration: InputDecoration(
+                    labelText: 'Mật khẩu mới (tối thiểu 6 ký tự)',
+                    prefixIcon: const Icon(Icons.lock),
+                    suffixIcon: IconButton(
+                      icon: Icon(obscureNew ? Icons.visibility_off : Icons.visibility),
+                      onPressed: () => setDialogState(() => obscureNew = !obscureNew),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: confirmPassCtrl,
+                  obscureText: obscureConfirm,
+                  decoration: InputDecoration(
+                    labelText: 'Xác nhận mật khẩu mới',
+                    prefixIcon: const Icon(Icons.lock_clock),
+                    suffixIcon: IconButton(
+                      icon: Icon(obscureConfirm ? Icons.visibility_off : Icons.visibility),
+                      onPressed: () => setDialogState(() => obscureConfirm = !obscureConfirm),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: loading ? null : () => Navigator.pop(ctx),
+              child: const Text('Hủy'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.warning),
+              onPressed: loading
+                  ? null
+                  : () async {
+                      final currentPass = currentPassCtrl.text.trim();
+                      final newPass = newPassCtrl.text.trim();
+                      final confirmPass = confirmPassCtrl.text.trim();
+                      if (currentPass.isEmpty || newPass.isEmpty || confirmPass.isEmpty) {
+                        setDialogState(() => errorText = 'Vui lòng điền đầy đủ thông tin');
+                        return;
+                      }
+                      if (newPass.length < 6) {
+                        setDialogState(() => errorText = 'Mật khẩu mới phải có ít nhất 6 ký tự');
+                        return;
+                      }
+                      if (newPass != confirmPass) {
+                        setDialogState(() => errorText = 'Mật khẩu xác nhận không khớp');
+                        return;
+                      }
+                      setDialogState(() { loading = true; errorText = null; });
+                      try {
+                        final credential = EmailAuthProvider.credential(
+                          email: user.email!,
+                          password: currentPass,
+                        );
+                        await user.reauthenticateWithCredential(credential);
+                        await user.updatePassword(newPass);
+                        if (ctx.mounted) Navigator.pop(ctx);
+                        NotificationService.showSnackBar('Đổi mật khẩu thành công', color: AppColors.success);
+                      } on FirebaseAuthException catch (e) {
+                        String msg;
+                        switch (e.code) {
+                          case 'wrong-password':
+                            msg = 'Mật khẩu hiện tại không đúng';
+                          case 'weak-password':
+                            msg = 'Mật khẩu mới quá yếu (tối thiểu 6 ký tự)';
+                          case 'too-many-requests':
+                            msg = 'Quá nhiều lần thử, vui lòng thử lại sau';
+                          default:
+                            msg = 'Lỗi: ${e.message}';
+                        }
+                        setDialogState(() { loading = false; errorText = msg; });
+                      } catch (e) {
+                        setDialogState(() { loading = false; errorText = 'Lỗi không xác định: $e'; });
+                      }
+                    },
+              child: loading
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.surface))
+                  : const Text('Xác nhận', style: TextStyle(color: AppColors.surface)),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    currentPassCtrl.dispose();
+    newPassCtrl.dispose();
+    confirmPassCtrl.dispose();
   }
 
   Future<void> _confirmLogout(AppLocalizations localizations) async {
@@ -1479,10 +1653,10 @@ class _SettingsViewState extends State<SettingsView> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
             child: Text(
               localizations.logout.toUpperCase(),
-              style: const TextStyle(color: Colors.white),
+              style: const TextStyle(color: AppColors.surface),
             ),
           ),
         ],
@@ -1515,10 +1689,10 @@ class _SettingsViewState extends State<SettingsView> {
     final showApple = kIsWeb || (!kIsWeb && Platform.isIOS) || (!kIsWeb && Platform.isMacOS);
 
     return Card(
-      color: Colors.indigo.shade50,
+      color: AppColors.primary,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(15),
-        side: BorderSide(color: Colors.indigo.shade200),
+        side: BorderSide(color: AppColors.primary),
       ),
       child: Padding(
         padding: const EdgeInsets.all(14),
@@ -1527,14 +1701,14 @@ class _SettingsViewState extends State<SettingsView> {
           children: [
             Row(
               children: [
-                const Icon(Icons.link, color: Colors.indigo, size: 20),
+                const Icon(Icons.link, color: AppColors.primary, size: 20),
                 const SizedBox(width: 8),
                 const Text(
                   'Liên kết tài khoản',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 15,
-                    color: Colors.indigo,
+                    color: AppColors.primary,
                   ),
                 ),
               ],
@@ -1542,13 +1716,13 @@ class _SettingsViewState extends State<SettingsView> {
             const SizedBox(height: 4),
             Text(
               'Liên kết để đăng nhập nhanh hơn',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
             ),
             const Divider(height: 16),
             // Email/Password
             _buildProviderRow(
               icon: Icons.email,
-              color: Colors.blue,
+              color: AppColors.primary,
               label: 'Email/Mật khẩu',
               linked: passwordLinked,
               onLink: null, // Always linked by default
@@ -1559,7 +1733,7 @@ class _SettingsViewState extends State<SettingsView> {
             // Google
             _buildProviderRow(
               icon: Icons.g_mobiledata,
-              color: Colors.red,
+              color: AppColors.error,
               label: 'Google',
               linked: googleLinked,
               onLink: () => _linkProvider('google'),
@@ -1573,7 +1747,7 @@ class _SettingsViewState extends State<SettingsView> {
               const SizedBox(height: 8),
               _buildProviderRow(
                 icon: Icons.apple,
-                color: Colors.black,
+                color: AppColors.textPrimary,
                 label: 'Apple',
                 linked: appleLinked,
                 onLink: () => _linkProvider('apple'),
@@ -1608,7 +1782,7 @@ class _SettingsViewState extends State<SettingsView> {
             children: [
               Text(label, style: const TextStyle(fontSize: 14)),
               if (linked && providerEmail != null && providerEmail.isNotEmpty)
-                Text(providerEmail, style: TextStyle(fontSize: 11, color: Colors.grey.shade500), overflow: TextOverflow.ellipsis),
+                Text(providerEmail, style: TextStyle(fontSize: 11, color: AppColors.textHint), overflow: TextOverflow.ellipsis),
             ],
           ),
         ),
@@ -1616,11 +1790,11 @@ class _SettingsViewState extends State<SettingsView> {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.check_circle, color: Colors.green, size: 18),
+              const Icon(Icons.check_circle, color: AppColors.success, size: 18),
               const SizedBox(width: 4),
               Text(
                 'Đã liên kết',
-                style: TextStyle(fontSize: 12, color: Colors.green.shade700),
+                style: TextStyle(fontSize: 12, color: AppColors.success),
               ),
               if (onUnlink != null) ...[
                 const SizedBox(width: 8),
@@ -1630,7 +1804,7 @@ class _SettingsViewState extends State<SettingsView> {
                     'Hủy',
                     style: TextStyle(
                       fontSize: 12,
-                      color: Colors.red.shade400,
+                      color: AppColors.error,
                       decoration: TextDecoration.underline,
                     ),
                   ),
@@ -1673,7 +1847,7 @@ class _SettingsViewState extends State<SettingsView> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('✅ Đã liên kết $provider thành công!'),
-              backgroundColor: Colors.green,
+              backgroundColor: AppColors.success,
             ),
           );
         }
@@ -1684,7 +1858,7 @@ class _SettingsViewState extends State<SettingsView> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(e.message ?? 'Lỗi liên kết $provider'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.error,
           ),
         );
       }
@@ -1694,7 +1868,7 @@ class _SettingsViewState extends State<SettingsView> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(msg, maxLines: 4),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.error,
             duration: const Duration(seconds: 6),
           ),
         );
@@ -1718,8 +1892,8 @@ class _SettingsViewState extends State<SettingsView> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('XÁC NHẬN', style: TextStyle(color: Colors.white)),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('XÁC NHẬN', style: TextStyle(color: AppColors.surface)),
           ),
         ],
       ),
@@ -1738,7 +1912,7 @@ class _SettingsViewState extends State<SettingsView> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Đã hủy liên kết $provider'),
-            backgroundColor: Colors.orange,
+            backgroundColor: AppColors.warning,
           ),
         );
       }
@@ -1758,7 +1932,7 @@ class _SettingsViewState extends State<SettingsView> {
       style: TextStyle(
         fontWeight: FontWeight.bold,
         fontSize: AppTextStyles.caption.fontSize,
-        color: Colors.blueGrey,
+        color: AppColors.textSecondary,
       ),
     ),
   );
@@ -1767,9 +1941,9 @@ class _SettingsViewState extends State<SettingsView> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withAlpha(26),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withAlpha(77)),
       ),
       child: Text(
         label,

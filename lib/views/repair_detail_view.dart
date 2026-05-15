@@ -45,7 +45,11 @@ import '../data/db_helper.dart';
 import '../services/event_bus.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
+import '../theme/app_spacing.dart';
+import '../theme/design_tokens.dart';
 import '../widgets/app_cached_image.dart';
+import '../widgets/clickable_customer_header.dart';
+import '../widgets/clickable_product_chip.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'inventory_view.dart';
 import 'repair_partner_view.dart';
@@ -88,6 +92,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>?
   _repairDocSubscription;
   bool _hasReceivedServerDocSnapshot = false;
+  StreamSubscription? _imageUploadSubscription;
 
   AppLocalizations get loc => AppLocalizations.of(context)!;
 
@@ -103,6 +108,29 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     _loadPartners();
     unawaited(_startRepairRealtimeListener(forceRestart: true));
     unawaited(_loadLastModifierInfo());
+    _setupImageUploadListener();
+  }
+
+  void _setupImageUploadListener() {
+    // Listen for image upload completion events to auto-refresh UI
+    _imageUploadSubscription = EventBus().on('repairs_changed', (_) {
+      _reloadRepairFromDb();
+    });
+  }
+
+  Future<void> _reloadRepairFromDb() async {
+    if (r.id == null) return;
+    try {
+      final updated = await db.getRepairById(r.id!);
+      if (mounted && updated != null && updated.firestoreId == r.firestoreId) {
+        setState(() {
+          r = updated;
+        });
+        debugPrint('📸 RepairDetailView: Refreshed repair after image upload');
+      }
+    } catch (e) {
+      debugPrint('Error reloading repair after image upload: $e');
+    }
   }
 
   Future<void> _startRepairRealtimeListener({bool forceRestart = false}) async {
@@ -216,8 +244,8 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         data.containsKey('price') ||
         data.containsKey('cost') ||
         data.containsKey('totalCost') ||
-      data.containsKey('services') ||
-      data.containsKey('requestedDeliveryPrice');
+        data.containsKey('services') ||
+        data.containsKey('requestedDeliveryPrice');
     final hasCreatedAt = _parseTimestamp(data['createdAt']) > 0;
 
     return !hasIdentity && !hasFinancial && !hasCreatedAt;
@@ -651,6 +679,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
   @override
   void dispose() {
     _repairDocSubscription?.cancel();
+    _imageUploadSubscription?.cancel();
     super.dispose();
   }
 
@@ -688,7 +717,9 @@ class _RepairDetailViewState extends State<RepairDetailView> {
   }
 
   Future<void> _checkPermission() async {
-    final perms = await UserService.getCurrentUserPermissions(forceRefresh: true);
+    final perms = await UserService.getCurrentUserPermissions(
+      forceRefresh: true,
+    );
     // Lấy isManagerLike từ permissions map (cùng nguồn Firestore — tránh stale claims)
     final isManagerLike = perms['isManagerLike'] == true;
     final canViewCostPrice = perms['allowViewCostPrice'] == true;
@@ -701,7 +732,9 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       _canViewCostPrice = canViewCostPrice;
       _isManagerLike = isManagerLike;
       _canEditRepairOrder = isManagerLike;
-      _canEditRepairNotes = perms['allowViewRepairs'] == true; // KTV/nhân viên được ghi chú và thêm dịch vụ
+      _canEditRepairNotes =
+          perms['allowViewRepairs'] ==
+          true; // KTV/nhân viên được ghi chú và thêm dịch vụ
       _canAddRepairImage = perms['allowViewRepairs'] == true;
       _canEditRepairFinancial = isManagerLike && canViewRevenue;
       _canEditRepairCharge = perms['allowViewRepairs'] == true;
@@ -712,7 +745,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     if (_canEditRepairOrder) return true;
     NotificationService.showSnackBar(
       'Nhân viên không có quyền sửa đơn sửa.',
-      color: Colors.orange,
+      color: AppColors.warning,
     );
     return false;
   }
@@ -721,7 +754,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     if (_canEditRepairFinancial) return true;
     NotificationService.showSnackBar(
       'Nhân viên không có quyền sửa tài chính đơn sửa.',
-      color: Colors.orange,
+      color: AppColors.warning,
     );
     return false;
   }
@@ -730,7 +763,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     if (_canEditRepairCharge || _canEditRepairFinancial) return true;
     NotificationService.showSnackBar(
       'Bạn không có quyền sửa giá thu khách.',
-      color: Colors.orange,
+      color: AppColors.warning,
     );
     return false;
   }
@@ -794,8 +827,41 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     if (kIsWeb) {
       return const Icon(Icons.broken_image, color: AppColors.error);
     }
+
+    // Local file with cloud fallback (Fix #5)
     File file = File(normalized);
-    if (file.existsSync()) return Image.file(file, fit: BoxFit.cover);
+    if (file.existsSync()) {
+      return Image.file(file, fit: BoxFit.cover);
+    }
+
+    // Local file missing, try to resolve from cloud storage
+    // This handles cases where local cache was cleared but cloud version exists
+    if (StorageService.isResolvableDisplayPath(normalized)) {
+      return FutureBuilder<String?>(
+        future: _resolveDisplayImagePath(normalized),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(
+              child: SizedBox(
+                width: 30,
+                height: 30,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            );
+          }
+          final url = snapshot.data;
+          if (url != null && url.isNotEmpty) {
+            return AppCachedImage(
+              imageUrl: url,
+              fit: BoxFit.cover,
+              memCacheWidth: 400,
+            );
+          }
+          return const Icon(Icons.broken_image, color: AppColors.error);
+        },
+      );
+    }
+
     return const Icon(Icons.cloud_download, color: AppColors.primary);
   }
 
@@ -833,11 +899,11 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       return;
     }
 
-      // FIX C-03: Set lock TRƯỚC await đầu tiên cho status 1/2/3.
-      // Status 4 delegate sang _approveDelivery/_submitForDeliveryApproval có guard riêng.
-      if (newStatus != 4) _isUpdating = true;
+    // FIX C-03: Set lock TRƯỚC await đầu tiên cho status 1/2/3.
+    // Status 4 delegate sang _approveDelivery/_submitForDeliveryApproval có guard riêng.
+    if (newStatus != 4) _isUpdating = true;
 
-      final currentStaffName = await _resolveCurrentStaffName(fallback: 'NV');
+    final currentStaffName = await _resolveCurrentStaffName(fallback: 'NV');
 
     final repairsBefore = await db.getAllRepairs();
     debugPrint('Repairs count before update: ${repairsBefore.length}');
@@ -857,7 +923,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         if (r.pendingDeliveryApproval) {
           NotificationService.showSnackBar(
             loc.orderPendingApproval,
-            color: Colors.deepOrange,
+            color: AppColors.repairPendingApproval,
           );
           return;
         }
@@ -913,7 +979,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                             selected: selectedWarranty == opt,
                             onSelected: (v) =>
                                 setS(() => selectedWarranty = opt),
-                            selectedColor: AppColors.primary.withOpacity(0.2),
+                            selectedColor: AppColors.primarySurface,
                           ),
                         )
                         .toList(),
@@ -936,7 +1002,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                             selected: payMethod == m,
                             onSelected: (v) => setS(() => payMethod = m),
                             selectedColor:
-                                AppColors.secondary.withOpacity(0.2),
+                                AppColors.secondary.withAlpha(51),
                           ),
                         )
                         .toList(),
@@ -1225,7 +1291,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       case 4:
         return AppColors.primary;
       default:
-        return Colors.grey;
+        return AppColors.textHint;
     }
   }
 
@@ -1292,19 +1358,19 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.orange.shade50,
+                      color: AppColors.warningLight,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.orange.shade200),
+                      border: Border.all(color: AppColors.warning.withAlpha(77)),
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.info_outline, color: Colors.orange.shade700),
+                        Icon(Icons.info_outline, color: AppColors.warning),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             dialogLoc.orderWillBeSentForApproval,
                             style: AppTextStyles.caption.copyWith(
-                              color: Colors.orange.shade700,
+                              color: AppColors.warning,
                             ),
                           ),
                         ),
@@ -1339,7 +1405,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                             selected: selectedWarranty == opt,
                             onSelected: (v) =>
                                 setS(() => selectedWarranty = opt),
-                            selectedColor: AppColors.primary.withOpacity(0.2),
+                            selectedColor: AppColors.primarySurface,
                           ),
                         )
                         .toList(),
@@ -1362,9 +1428,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                                 label: Text(m, style: AppTextStyles.caption),
                                 selected: payMethod == m,
                                 onSelected: (v) => setS(() => payMethod = m),
-                                selectedColor: AppColors.secondary.withOpacity(
-                                  0.2,
-                                ),
+                                selectedColor: AppColors.secondary.withAlpha(51),
                               ),
                             )
                             .toList(),
@@ -1385,11 +1449,11 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                   Navigator.pop(ctx, true);
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.deepOrange,
+                  backgroundColor: AppColors.repairPendingApproval,
                 ),
                 child: Text(
                   dialogLoc.sendApprovalRequest,
-                  style: const TextStyle(color: Colors.white),
+                  style: const TextStyle(color: AppColors.surface),
                 ),
               ),
             ],
@@ -1506,7 +1570,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
 
       NotificationService.showSnackBar(
         loc.sentDeliveryApprovalRequest,
-        color: Colors.deepOrange,
+        color: AppColors.repairPendingApproval,
       );
       _emitRepairChanged(financialImpact: false);
       // Trở về danh sách đơn sửa sau khi gửi yêu cầu giao
@@ -1584,7 +1648,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.green.shade50,
+                      color: AppColors.successLight,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Column(
@@ -1597,14 +1661,16 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                         Text(dialogLoc.deviceInfo(r.model)),
                         Text(
                           dialogLoc.priceInfo(
-                            MoneyUtils.formatCurrency(requestedPriceForApproval),
+                            MoneyUtils.formatCurrency(
+                              requestedPriceForApproval,
+                            ),
                           ),
                         ),
                         if (r.requestedDeliveryPrice != null)
                           Text(
                             'Giá hiện tại trong sổ: ${MoneyUtils.formatCurrency(r.price)}',
                             style: TextStyle(
-                              color: Colors.green.shade700,
+                              color: AppColors.success,
                               fontSize: 12,
                             ),
                           ),
@@ -1650,7 +1716,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                             selected: selectedWarranty == opt,
                             onSelected: (_) =>
                                 setS(() => selectedWarranty = opt),
-                            selectedColor: AppColors.primary.withOpacity(0.2),
+                            selectedColor: AppColors.primarySurface,
                           ),
                         )
                         .toList(),
@@ -1658,7 +1724,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                   const SizedBox(height: 12),
                   Text(
                     dialogLoc.confirmApproveDelivery,
-                    style: const TextStyle(color: Colors.grey),
+                    style: const TextStyle(color: AppColors.textHint),
                   ),
                 ],
               ),
@@ -1674,7 +1740,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                   // Từ chối - quay lại status 3
                   await _rejectDeliveryApproval();
                 },
-                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                style: TextButton.styleFrom(foregroundColor: AppColors.error),
                 child: Text(dialogLoc.reject),
               ),
               ElevatedButton(
@@ -1684,10 +1750,10 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                   }
                   Navigator.pop(ctx, true);
                 },
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.success),
                 child: Text(
                   dialogLoc.approve,
-                  style: const TextStyle(color: Colors.white),
+                  style: const TextStyle(color: AppColors.surface),
                 ),
               ),
             ],
@@ -1883,7 +1949,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
 
       NotificationService.showSnackBar(
         loc.approvedAndCompletedDelivery,
-        color: Colors.green,
+        color: AppColors.success,
       );
       _emitRepairChanged(financialImpact: true, includeDebts: debtImpact);
       // Trở về danh sách đơn sửa sau khi duyệt giao
@@ -1960,7 +2026,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
 
       NotificationService.showSnackBar(
         loc.rejectedBackToRepairDone,
-        color: Colors.red,
+        color: AppColors.error,
       );
       _emitRepairChanged();
     } catch (e) {
@@ -2108,7 +2174,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         builder: (ctx) => AlertDialog(
           title: Row(
             children: [
-              const Icon(Icons.warning_amber_rounded, color: Colors.orange),
+              const Icon(Icons.warning_amber_rounded, color: AppColors.warning),
               const SizedBox(width: 8),
               Text(loc.luuYTitle),
             ],
@@ -2122,7 +2188,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
-              Text(r.partsUsed, style: const TextStyle(color: Colors.blue)),
+              Text(r.partsUsed, style: const TextStyle(color: AppColors.primary)),
               const SizedBox(height: 16),
               Text(
                 loc.partsWillBeAddedAndDeducted,
@@ -2137,10 +2203,10 @@ class _RepairDetailViewState extends State<RepairDetailView> {
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(ctx, true),
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
               child: Text(
                 loc.continueAddMore,
-                style: const TextStyle(color: Colors.white),
+                style: const TextStyle(color: AppColors.surface),
               ),
             ),
           ],
@@ -2172,7 +2238,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         }
       }
 
-      NotificationService.showSnackBar(msg, color: Colors.orange);
+      NotificationService.showSnackBar(msg, color: AppColors.warning);
       return;
     }
 
@@ -2229,8 +2295,9 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       // Tất cả linh kiện đều từ kho → không cần dialog thanh toán
       if (allFromStock) {
         // Cập nhật repair object trong bộ nhớ trước
-        final currentParts =
-            r.partsUsed.isEmpty ? <String>[] : r.partsUsed.split(', ');
+        final currentParts = r.partsUsed.isEmpty
+            ? <String>[]
+            : r.partsUsed.split(', ');
         final newPartsList = [...currentParts, ...usedParts];
         r.partsUsed = newPartsList.join(', ');
         r.cost = r.cost + totalCost;
@@ -2250,7 +2317,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
           r.isSynced = true;
           NotificationService.showSnackBar(
             '❌ ${atomicResult.message ?? "Không thể trừ kho"}',
-            color: Colors.red,
+            color: AppColors.error,
           );
           return;
         }
@@ -2291,7 +2358,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
 
         NotificationService.showSnackBar(
           loc.addedPartsFromInventoryMsg(usedParts.join(', ')),
-          color: Colors.green,
+          color: AppColors.success,
         );
 
         setState(() {});
@@ -2342,7 +2409,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         r.isSynced = true;
         NotificationService.showSnackBar(
           '❌ ${atomicResult.message ?? "Không thể trừ kho"}',
-          color: Colors.red,
+          color: AppColors.error,
         );
         return;
       }
@@ -2375,7 +2442,10 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         try {
           final debtFId = 'debt_parts_${now}_${r.id}';
           final partNamesDetailed = selectedPartsInfo
-              .map((p) => '${p['name']} x${p['qty']} (${MoneyUtils.formatCurrency(p['cost'] as int? ?? 0)}đ/cái)')
+              .map(
+                (p) =>
+                    '${p['name']} x${p['qty']} (${MoneyUtils.formatCurrency(p['cost'] as int? ?? 0)}đ/cái)',
+              )
               .join(', ');
           final debtData = {
             'firestoreId': debtFId,
@@ -2464,7 +2534,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
 
       NotificationService.showSnackBar(
         loc.addedPartsWithPayment(paymentMethod, usedParts.join(', ')),
-        color: Colors.green,
+        color: AppColors.success,
       );
       _emitRepairChanged(financialImpact: true);
     }
@@ -2476,7 +2546,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     if (r.partsUsed.isEmpty) {
       NotificationService.showSnackBar(
         'Đơn sửa chữa chưa có phụ tùng nào.',
-        color: Colors.orange,
+        color: AppColors.warning,
       );
       return;
     }
@@ -2495,7 +2565,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       builder: (ctx) => AlertDialog(
         title: const Row(
           children: [
-            Icon(Icons.delete_sweep, color: Colors.red),
+            Icon(Icons.delete_sweep, color: AppColors.error),
             SizedBox(width: 8),
             Text('XÓA PHỤ TÙNG', style: TextStyle(fontSize: 17)),
           ],
@@ -2506,27 +2576,27 @@ class _RepairDetailViewState extends State<RepairDetailView> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Chọn phụ tùng cần xóa và trả lại kho:',
-                style: TextStyle(fontSize: 14),
+                style: AppTextStyles.body1,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.md),
               ...parts.asMap().entries.map((entry) {
                 return Card(
-                  margin: const EdgeInsets.only(bottom: 6),
+                  margin: const EdgeInsets.only(bottom: AppSpacing.sm),
                   child: ListTile(
                     dense: true,
-                    leading: const Icon(
+                    leading: Icon(
                       Icons.build,
                       size: 18,
-                      color: Colors.blue,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                     title: Text(
                       entry.value,
-                      style: const TextStyle(fontWeight: FontWeight.w500),
+                      style: AppTextStyles.body1.copyWith(fontWeight: FontWeight.w500),
                     ),
                     trailing: IconButton(
-                      icon: const Icon(Icons.remove_circle, color: Colors.red),
+                      icon: const Icon(Icons.remove_circle, color: AppColors.error),
                       onPressed: () => Navigator.pop(ctx, entry.key),
                     ),
                   ),
@@ -2564,6 +2634,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         title: const Text('Xác nhận xóa'),
         content: Text(
           'Xóa "$removedPart" khỏi đơn sửa và trả lại $partQty vào kho?',
+          style: AppTextStyles.body1,
         ),
         actions: [
           TextButton(
@@ -2572,10 +2643,10 @@ class _RepairDetailViewState extends State<RepairDetailView> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text(
+            style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.error),
+            child: Text(
               'XÁC NHẬN XÓA',
-              style: TextStyle(color: Colors.white),
+              style: AppTextStyles.button.copyWith(color: AppColors.surface),
             ),
           ),
         ],
@@ -2647,7 +2718,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
 
     NotificationService.showSnackBar(
       'Đã xóa $removedPart${restored ? " và trả lại kho" : ""}',
-      color: Colors.green,
+      color: AppColors.success,
     );
     _emitRepairChanged(financialImpact: true);
 
@@ -2660,7 +2731,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     if (r.partsUsed.isEmpty) {
       NotificationService.showSnackBar(
         'Đơn sửa chữa chưa có phụ tùng nào để đổi.',
-        color: Colors.orange,
+        color: AppColors.warning,
       );
       return;
     }
@@ -2679,7 +2750,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       builder: (ctx) => AlertDialog(
         title: const Row(
           children: [
-            Icon(Icons.swap_horiz, color: Colors.deepPurple),
+            Icon(Icons.swap_horiz, color: AppColors.repairDelivered),
             SizedBox(width: 8),
             Expanded(
               child: Text('ĐỔI PHỤ TÙNG', style: TextStyle(fontSize: 17)),
@@ -2705,7 +2776,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                     leading: const Icon(
                       Icons.build,
                       size: 18,
-                      color: Colors.blue,
+                      color: AppColors.primary,
                     ),
                     title: Text(
                       entry.value,
@@ -2714,7 +2785,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                     trailing: IconButton(
                       icon: const Icon(
                         Icons.swap_horiz,
-                        color: Colors.deepPurple,
+                        color: AppColors.repairDelivered,
                       ),
                       onPressed: () => Navigator.pop(ctx, entry.key),
                     ),
@@ -2810,7 +2881,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     if (!mounted) return;
     NotificationService.showSnackBar(
       'Đã xóa "$removedPart" — chọn phụ tùng thay thế.',
-      color: Colors.blue,
+      color: AppColors.primary,
     );
     await _selectPartsFromInventory(skipWarning: true);
   }
@@ -2825,7 +2896,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     if (!_canViewAnyFinancial && !_canEditRepairCharge) {
       NotificationService.showSnackBar(
         'Bạn không có quyền xem/chỉnh sửa tài chính',
-        color: Colors.orange,
+        color: AppColors.warning,
       );
       return;
     }
@@ -2834,7 +2905,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     if (r.status == 4) {
       NotificationService.showSnackBar(
         'Đã giao máy — không thể sửa giá',
-        color: Colors.orange,
+        color: AppColors.warning,
       );
       return;
     }
@@ -2994,7 +3065,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
             const SizedBox(height: 8),
             const Text(
               'Ghi chi phí này vào sổ quỹ để cập nhật biến động quỹ tiền mặt / ngân hàng?',
-              style: TextStyle(fontSize: 14, color: Colors.grey),
+              style: TextStyle(fontSize: 14, color: AppColors.textHint),
             ),
           ],
         ),
@@ -3008,8 +3079,8 @@ class _RepairDetailViewState extends State<RepairDetailView> {
             icon: const Icon(Icons.account_balance, size: 18),
             label: const Text('Chuyển khoản'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue,
-              foregroundColor: Colors.white,
+              backgroundColor: AppColors.primary,
+              foregroundColor: AppColors.surface,
             ),
           ),
           ElevatedButton.icon(
@@ -3017,8 +3088,8 @@ class _RepairDetailViewState extends State<RepairDetailView> {
             icon: const Icon(Icons.payments, size: 18),
             label: const Text('Tiền mặt'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-              foregroundColor: Colors.white,
+              backgroundColor: AppColors.success,
+              foregroundColor: AppColors.surface,
             ),
           ),
         ],
@@ -3034,7 +3105,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       });
       NotificationService.showSnackBar(
         'Đã ghi ${MoneyUtils.formatVND(costAmount)} vào sổ quỹ ($fundResult)',
-        color: Colors.green,
+        color: AppColors.success,
       );
     } else {
       setState(() {
@@ -3065,7 +3136,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
             children: [
               Text(
                 dialogLoc.repairProcessNotes,
-                style: const TextStyle(fontSize: 13, color: Colors.grey),
+                style: const TextStyle(fontSize: 13, color: AppColors.textHint),
               ),
               const SizedBox(height: 8),
               TextField(
@@ -3078,7 +3149,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   filled: true,
-                  fillColor: Colors.grey.shade50,
+                  fillColor: AppColors.surfaceVariant,
                 ),
               ),
             ],
@@ -3091,8 +3162,8 @@ class _RepairDetailViewState extends State<RepairDetailView> {
             ElevatedButton(
               onPressed: () => Navigator.pop(ctx, true),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
-                foregroundColor: Colors.white,
+                backgroundColor: AppColors.warning,
+                foregroundColor: AppColors.surface,
               ),
               child: Text(dialogLoc.save),
             ),
@@ -3107,7 +3178,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       _saveData();
       NotificationService.showSnackBar(
         loc.savedTechnicianNotes,
-        color: Colors.green,
+        color: AppColors.success,
       );
     }
   }
@@ -3253,7 +3324,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
           child: Text(
             loc.noAccessPermission,
             style: AppTextStyles.body1.copyWith(
-              color: AppColors.onSurface.withOpacity(0.6),
+              color: AppColors.textSecondary,
             ),
           ),
         ),
@@ -3262,144 +3333,431 @@ class _RepairDetailViewState extends State<RepairDetailView> {
 
     final displayPrice = _displayedChargePrice(r);
     final displayProfit = displayPrice - r.cost;
-    final hideDeliveredSensitiveFinancial =
-      _hideDeliveredSensitiveFinancial(r);
+    final hideDeliveredSensitiveFinancial = _hideDeliveredSensitiveFinancial(r);
     final canShowCost =
-      _isManagerLike && _canViewCostPrice && _canViewRevenue && !hideDeliveredSensitiveFinancial;
+        _isManagerLike &&
+        _canViewCostPrice &&
+        _canViewRevenue &&
+        !hideDeliveredSensitiveFinancial;
     final canShowProfit =
-      _isManagerLike && _canViewRevenue && _canViewCostPrice && !hideDeliveredSensitiveFinancial;
+        _isManagerLike &&
+        _canViewRevenue &&
+        _canViewCostPrice &&
+        !hideDeliveredSensitiveFinancial;
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                const Color(0xFF2962FF),
-                const Color(0xFF2962FF).withOpacity(0.7),
+    return WillPopScope(
+      onWillPop: () async {
+        // Prevent app exit if uploads are pending
+        if (BackgroundUploadService.hasUploadsPending()) {
+          final confirmed = await showDialog<bool>(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: const Text('⚠️ Đang tải ảnh lên'),
+              content: Text(
+                'Có ${BackgroundUploadService.getPendingUploadCount()} ảnh đang được tải lên. '
+                'Thoát bây giờ có thể hủy quá trình tải. Bạn có muốn tiếp tục?',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: const Text('Chờ xong'),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+                  child: const Text(
+                    'Thoát bây giờ',
+                    style: TextStyle(color: AppColors.surface),
+                  ),
+                ),
               ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+            ),
+          );
+          return confirmed ?? false;
+        }
+        return true;
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          flexibleSpace: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  AppColors.primary,
+                  AppColors.primaryDark,
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
             ),
           ),
-        ),
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        title: Tooltip(
-          message: loc.trackRepairProgress,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                loc.repairOrderDetail,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                ),
-              ),
-              Text(
-                r.model,
-                style: const TextStyle(fontSize: 13, color: Colors.white70),
-              ),
-            ],
-          ),
-        ),
-        automaticallyImplyLeading: true,
-        actions: [
-          IconButton(
-            onPressed: _shareToZalo,
-            icon: const Icon(Icons.share_rounded, color: Colors.white),
-          ),
-          IconButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => RepairInvoicePreviewView(
-                    repair: r,
-                    shopInfo: {
-                      'shopName': _shopName,
-                      'shopAddr': _shopAddr,
-                      'shopPhone': _shopPhone,
-                    },
+          backgroundColor: AppColors.surface,
+          foregroundColor: AppColors.textPrimary,
+          title: Tooltip(
+            message: loc.trackRepairProgress,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  loc.repairOrderDetail,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
                   ),
                 ),
-              );
-            },
-            icon: const Icon(Icons.preview, color: Colors.white),
-          ),
-          IconButton(
-            onPressed: _printReceipt,
-            icon: const Icon(Icons.print_rounded, color: Colors.white),
-          ),
-          IconButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const RepairInvoiceTemplateView(),
+                Text(
+                  r.model,
+                  style: const TextStyle(fontSize: 13, color: Colors.white70),
                 ),
-              );
-            },
-            icon: const Icon(Icons.design_services, color: Colors.white),
+              ],
+            ),
           ),
-        ],
-      ),
-      body: ResponsiveCenter(
-        maxWidth: 900,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: Column(
-            children: [
-              // === COMPACT: Status + Actions gộp ===
-              Card(
-                margin: const EdgeInsets.only(bottom: 8),
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    children: [
-                      // Status row
-                      _buildCompactStatusRow(),
-                      const SizedBox(height: 10),
-                      // Action buttons
-                      _buildActionButtons(),
-                    ],
+          automaticallyImplyLeading: true,
+          actions: [
+            IconButton(
+              onPressed: _shareToZalo,
+              icon: const Icon(Icons.share_rounded, color: AppColors.surface),
+            ),
+            IconButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => RepairInvoicePreviewView(
+                      repair: r,
+                      shopInfo: {
+                        'shopName': _shopName,
+                        'shopAddr': _shopAddr,
+                        'shopPhone': _shopPhone,
+                      },
+                    ),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.preview, color: AppColors.surface),
+            ),
+            IconButton(
+              onPressed: _printReceipt,
+              icon: const Icon(Icons.print_rounded, color: AppColors.surface),
+            ),
+            IconButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const RepairInvoiceTemplateView(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.design_services, color: AppColors.surface),
+            ),
+          ],
+        ),
+        body: ResponsiveCenter(
+          maxWidth: 900,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Column(
+              children: [
+                // === UPLOAD STATUS BANNER ===
+                if (BackgroundUploadService.hasUploadsPending())
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.infoLight,
+                      border: Border.all(color: AppColors.info, width: 1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              AppColors.primary,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '📸 Đang tải ${BackgroundUploadService.getPendingUploadCount()} ảnh lên hệ thống...',
+                                style: AppTextStyles.caption.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.info,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Vui lòng không thoát ứng dụng',
+                                style: AppTextStyles.overline.copyWith(
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                // === COMPACT: Status + Actions gộp ===
+                Card(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      children: [
+                        // Status row
+                        _buildCompactStatusRow(),
+                        const SizedBox(height: 8),
+                        // Action buttons
+                        _buildActionButtons(),
+                      ],
+                    ),
                   ),
                 ),
-              ),
 
-              // === COMPACT: Tài chính + Dịch vụ gộp ===
-              Card(
-                margin: const EdgeInsets.only(bottom: 8),
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Header tài chính
-                      if (_canViewAnyFinancial || _canEditRepairCharge) ...[
+                // === COMPACT: Tài chính + Dịch vụ gộp ===
+                Card(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Header tài chính
+                        if (_canViewAnyFinancial || _canEditRepairCharge) ...[
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.account_balance_wallet,
+                                size: 18,
+                                color: AppColors.success,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                loc.financeTitleUpper,
+                                style: AppTextStyles.caption.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.success,
+                                ),
+                              ),
+                              const Spacer(),
+                              if (_canEditRepairFinancial ||
+                                  _canEditRepairCharge)
+                                TextButton.icon(
+                                  onPressed: _editFinancials,
+                                  icon: const Icon(Icons.edit, size: 14),
+                                  label: Text(loc.editButton),
+                                  style: TextButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                    ),
+                                    visualDensity: VisualDensity.compact,
+                                  ),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              if (canShowProfit)
+                                Expanded(
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 6,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color:
+                                          (displayProfit >= 0
+                                                  ? AppColors.success
+                                                  : AppColors.error)
+                                              .withAlpha(26),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          loc.profitLabel,
+                                          style: AppTextStyles.overline
+                                              .copyWith(
+                                                color: displayProfit >= 0
+                                                    ? AppColors.success
+                                                    : AppColors.error,
+                                              ),
+                                        ),
+                                        Text(
+                                          "${MoneyUtils.formatCurrency(displayProfit)} đ",
+                                          style: AppTextStyles.body2.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                            color: displayProfit >= 0
+                                                ? AppColors.success
+                                                : AppColors.error,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              if (canShowProfit && _canViewRevenue)
+                                const SizedBox(width: 8),
+                              if (_canViewRevenue || _canEditRepairCharge)
+                                _miniFinCompact(
+                                  _displayedPriceLabel(r),
+                                  displayPrice,
+                                  AppColors.primary,
+                                ),
+                              if (_canViewRevenue && canShowCost)
+                                const SizedBox(width: 8),
+                              if (canShowCost)
+                                _miniFinCompact(
+                                  loc.costLabel,
+                                  r.cost,
+                                  AppColors.warning,
+                                ),
+                            ],
+                          ),
+                          if (r.pendingDeliveryApproval &&
+                              r.requestedDeliveryPrice != null) ...[
+                            const SizedBox(height: 4),
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                'Đang chờ duyệt giá yêu cầu: ${MoneyUtils.formatCurrency(displayPrice)} đ',
+                                style: AppTextStyles.overline.copyWith(
+                                  color: AppColors.repairPendingApproval,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                          // Indicator: cost recorded in fund
+                          if (canShowCost &&
+                              r.costRecordedInFund &&
+                              r.cost > 0) ...[
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.check_circle,
+                                  size: 12,
+                                  color: AppColors.success,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Đã ghi sổ quỹ (${r.costPaymentMethod ?? ""})',
+                                  style: AppTextStyles.overline.copyWith(
+                                    color: AppColors.success,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ],
+                        // Phụ tùng
+                        if (r.partsUsed.isNotEmpty) ...[
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.build,
+                                size: 14,
+                                color: AppColors.primary,
+                              ),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  loc.partsShort(r.partsUsed),
+                                  style: AppTextStyles.caption.copyWith(
+                                    color: AppColors.primary,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                        // Quick actions
+                        if (r.status < 4 &&
+                            (_canEditRepairOrder || _canEditRepairNotes)) ...[
+                          const SizedBox(height: 6),
+                          Wrap(
+                            spacing: 4,
+                            runSpacing: 4,
+                            children: [
+                              _quickAction(
+                                loc.partsLabel,
+                                Icons.inventory_2,
+                                AppColors.primary,
+                                _selectPartsFromInventory,
+                              ),
+                              _quickAction(
+                                loc.partsInventoryShort,
+                                Icons.warehouse,
+                                AppColors.info,
+                                _navigateToPartsInventory,
+                              ),
+                              if (r.partsUsed.isNotEmpty && _canEditRepairOrder)
+                                _quickAction(
+                                  'Đổi PT',
+                                  Icons.swap_horiz,
+                                  AppColors.repairDelivered,
+                                  _swapPartInRepair,
+                                ),
+                              if (r.partsUsed.isNotEmpty && _canEditRepairOrder)
+                                _quickAction(
+                                  'Xóa PT',
+                                  Icons.delete_sweep,
+                                  AppColors.error,
+                                  _removePartFromRepair,
+                                ),
+                              _quickAction(
+                                loc.techShort,
+                                Icons.note_add,
+                                AppColors.warning,
+                                _editTechnicianNotes,
+                              ),
+                            ],
+                          ),
+                        ],
+
+                        // Divider và Dịch vụ
+                        const Divider(height: 16),
                         Row(
                           children: [
                             Icon(
-                              Icons.account_balance_wallet,
+                              Icons.handyman,
                               size: 18,
-                              color: Colors.green.shade700,
+                              color: AppColors.info,
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              loc.financeTitleUpper,
+                              loc.servicesCount(r.services.length),
                               style: AppTextStyles.caption.copyWith(
                                 fontWeight: FontWeight.bold,
-                                color: Colors.green.shade700,
+                                color: AppColors.info,
                               ),
                             ),
                             const Spacer(),
-                            if (_canEditRepairFinancial || _canEditRepairCharge)
+                            if (r.status != 4 && _canEditRepairNotes)
                               TextButton.icon(
-                                onPressed: _editFinancials,
-                                icon: const Icon(Icons.edit, size: 14),
-                                label: Text(loc.editButton),
+                                onPressed: _showAddServiceDialog,
+                                icon: const Icon(Icons.add, size: 14),
+                                label: Text(loc.add),
                                 style: TextButton.styleFrom(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 8,
@@ -3409,411 +3767,239 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                               ),
                           ],
                         ),
-                        const SizedBox(height: 6),
-                        Row(
-                          children: [
-                            if (canShowProfit)
-                              Expanded(
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 6,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color:
-                                        (displayProfit >= 0
-                                                ? AppColors.success
-                                                : AppColors.error)
-                                            .withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        loc.profitLabel,
-                                        style: AppTextStyles.overline.copyWith(
-                                          color: displayProfit >= 0
-                                              ? AppColors.success
-                                              : AppColors.error,
-                                        ),
-                                      ),
-                                      Text(
-                                        "${MoneyUtils.formatCurrency(displayProfit)} đ",
-                                        style: AppTextStyles.body2.copyWith(
-                                          fontWeight: FontWeight.bold,
-                                          color: displayProfit >= 0
-                                              ? AppColors.success
-                                              : AppColors.error,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            if (canShowProfit && _canViewRevenue)
-                              const SizedBox(width: 8),
-                            if (_canViewRevenue || _canEditRepairCharge)
-                              _miniFinCompact(
-                                _displayedPriceLabel(r),
-                                displayPrice,
-                                AppColors.primary,
-                              ),
-                            if (_canViewRevenue && canShowCost)
-                              const SizedBox(width: 8),
-                            if (canShowCost)
-                              _miniFinCompact(
-                                loc.costLabel,
-                                r.cost,
-                                AppColors.warning,
-                              ),
-                          ],
-                        ),
-                        if (r.pendingDeliveryApproval &&
-                            r.requestedDeliveryPrice != null) ...[
-                          const SizedBox(height: 4),
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              'Đang chờ duyệt giá yêu cầu: ${MoneyUtils.formatCurrency(displayPrice)} đ',
-                              style: AppTextStyles.overline.copyWith(
-                                color: Colors.deepOrange.shade700,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
-                        // Indicator: cost recorded in fund
-                        if (canShowCost &&
-                            r.costRecordedInFund &&
-                            r.cost > 0) ...[
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.check_circle,
-                                size: 12,
-                                color: Colors.green.shade600,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                'Đã ghi sổ quỹ (${r.costPaymentMethod ?? ""})',
-                                style: AppTextStyles.overline.copyWith(
-                                  color: Colors.green.shade600,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ],
-                      // Phụ tùng
-                      if (r.partsUsed.isNotEmpty) ...[
-                        const SizedBox(height: 6),
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.build,
-                              size: 14,
-                              color: Colors.blue,
-                            ),
-                            const SizedBox(width: 4),
-                            Expanded(
-                              child: Text(
-                                loc.partsShort(r.partsUsed),
-                                style: AppTextStyles.caption.copyWith(
-                                  color: Colors.blue,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                      // Quick actions
-                      if (r.status < 4 && (_canEditRepairOrder || _canEditRepairNotes)) ...[
-                        const SizedBox(height: 6),
-                        Wrap(
-                          spacing: 4,
-                          runSpacing: 4,
-                          children: [
-                            _quickAction(
-                              loc.partsLabel,
-                              Icons.inventory_2,
-                              Colors.blue,
-                              _selectPartsFromInventory,
-                            ),
-                            _quickAction(
-                              loc.partsInventoryShort,
-                              Icons.warehouse,
-                              Colors.teal,
-                              _navigateToPartsInventory,
-                            ),
-                            if (r.partsUsed.isNotEmpty && _canEditRepairOrder)
-                              _quickAction(
-                                'Đổi PT',
-                                Icons.swap_horiz,
-                                Colors.deepPurple,
-                                _swapPartInRepair,
-                              ),
-                            if (r.partsUsed.isNotEmpty && _canEditRepairOrder)
-                              _quickAction(
-                                'Xóa PT',
-                                Icons.delete_sweep,
-                                Colors.red,
-                                _removePartFromRepair,
-                              ),
-                            _quickAction(
-                              loc.techShort,
-                              Icons.note_add,
-                              Colors.orange,
-                              _editTechnicianNotes,
-                            ),
-                          ],
-                        ),
-                      ],
-
-                      // Divider và Dịch vụ
-                      const Divider(height: 16),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.handyman,
-                            size: 18,
-                            color: Colors.teal.shade700,
-                          ),
-                          const SizedBox(width: 8),
+                        if (r.services.isEmpty)
                           Text(
-                            loc.servicesCount(r.services.length),
+                            loc.noServicesYet,
                             style: AppTextStyles.caption.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.teal.shade700,
+                              color: AppColors.onSurface.withAlpha(128),
+                              fontStyle: FontStyle.italic,
+                            ),
+                          )
+                        else
+                          ...r.services.asMap().entries.map(
+                            (e) => _buildCompactServiceItem(e.key, e.value),
+                          ),
+                        if (r.services.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 6),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  loc.totalServices,
+                                  style: AppTextStyles.caption.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                if (_canViewAnyFinancial)
+                                  Text(
+                                    "${MoneyUtils.formatCurrency(r.services.fold(0, (sum, s) => sum + s.cost))} đ",
+                                    style: AppTextStyles.body2.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.warning,
+                                    ),
+                                  ),
+                              ],
                             ),
                           ),
-                          const Spacer(),
-                          if (r.status != 4 && _canEditRepairNotes)
+                      ],
+                    ),
+                  ),
+                ),
+
+                // === COMPACT: Khách hàng + Hình ảnh ===
+                Card(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Header row: customer deep-link + actions
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ClickableCustomerHeader(
+                                customerName: r.customerName,
+                                phoneNumber: r.phone,
+                                sourceEvent:
+                                    'customer_profile_opened_from_repair',
+                                tooltip: 'Mở hồ sơ khách hàng từ phiếu sửa',
+                              ),
+                            ),
+                            if (r.status < 4 && _canEditRepairOrder)
+                              IconButton(
+                                onPressed: _editBasicInfo,
+                                icon: const Icon(Icons.edit, size: DesignTokens.iconSm),
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                                tooltip: 'Chỉnh sửa thông tin',
+                              ),
                             TextButton.icon(
-                              onPressed: _showAddServiceDialog,
-                              icon: const Icon(Icons.add, size: 14),
-                              label: Text(loc.add),
+                              onPressed: _callCustomer,
+                              icon: const Icon(Icons.call, size: 14),
+                              label: Text(
+                                r.phone,
+                                style: AppTextStyles.caption,
+                              ),
                               style: TextButton.styleFrom(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
+                                  horizontal: AppSpacing.sm,
                                 ),
                                 visualDensity: VisualDensity.compact,
                               ),
                             ),
-                        ],
-                      ),
-                      if (r.services.isEmpty)
-                        Text(
-                          loc.noServicesYet,
-                          style: AppTextStyles.caption.copyWith(
-                            color: AppColors.onSurface.withOpacity(0.5),
-                            fontStyle: FontStyle.italic,
-                          ),
-                        )
-                      else
-                        ...r.services.asMap().entries.map(
-                          (e) => _buildCompactServiceItem(e.key, e.value),
+                          ],
                         ),
-                      if (r.services.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 6),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        if (r.model.trim().isNotEmpty) ...[
+                          const SizedBox(height: AppSpacing.xs + 2),
+                          ClickableProductChip(
+                            displayName: r.model,
+                            imeiOrSerial: (r.imei ?? '').trim().isEmpty
+                                ? null
+                                : r.imei,
+                            sourceEvent: 'product_detail_opened_from_repair',
+                            tooltip: 'Mở chi tiết sản phẩm theo máy sửa chữa',
+                          ),
+                        ],
+                        const SizedBox(height: AppSpacing.xs + 2),
+                        // Info rows - hiển thị trực tiếp, không ẩn trong dropdown
+                        _compactInfoRow(loc.deviceIssueLabel, r.issue),
+                        _compactInfoRow(
+                          'Nhận',
+                          _formatStageActorWithTime(
+                            actorRaw: r.createdBy,
+                            timestamp: r.createdAt,
+                          ),
+                        ),
+                        _compactInfoRow(
+                          'Sửa',
+                          _formatStageActorWithTime(
+                            actorRaw: r.repairedBy,
+                            timestamp: _repairStageTimestamp(r),
+                          ),
+                        ),
+                        _compactInfoRow(
+                          'Giao',
+                          _formatStageActorWithTime(
+                            actorRaw: r.deliveredBy,
+                            timestamp: _deliveryStageTimestamp(r),
+                          ),
+                        ),
+                        if (_hasModifierInfo)
+                          _compactInfoRow('Sửa đổi', _formatModifierInfo()),
+                        if (r.accessories.isNotEmpty)
+                          _compactInfoRow("PK", r.accessories),
+                        if (r.warranty.isNotEmpty)
+                          _compactInfoRow(loc.warranty, r.warranty),
+                        if (r.notes != null && r.notes!.isNotEmpty)
+                          _compactInfoRow(loc.note, r.notes!),
+
+                        // Hình ảnh
+                        if (_displayableImages(r.receiveImages).isNotEmpty ||
+                            (r.status < 4 && _canAddRepairImage)) ...[
+                          const Divider(height: 12),
+                          Row(
                             children: [
+                              Icon(
+                                Icons.photo_library,
+                                size: 16,
+                                color: AppColors.error,
+                              ),
+                              const SizedBox(width: 4),
                               Text(
-                                loc.totalServices,
+                                loc.imagesCount(
+                                  _displayableImages(r.receiveImages).length,
+                                ),
                                 style: AppTextStyles.caption.copyWith(
                                   fontWeight: FontWeight.bold,
+                                  color: AppColors.error,
                                 ),
                               ),
-                              if (_canViewAnyFinancial)
-                                Text(
-                                  "${MoneyUtils.formatCurrency(r.services.fold(0, (sum, s) => sum + s.cost))} đ",
-                                  style: AppTextStyles.body2.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.warning,
+                              const Spacer(),
+                              if (r.status < 4 && _canAddRepairImage)
+                                GestureDetector(
+                                  onTap: _addReceiveImage,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 3,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.error.withAlpha(20),
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(
+                                        color: AppColors.error,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.add_a_photo,
+                                          size: 13,
+                                          color: AppColors.error,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'Thêm ảnh',
+                                          style: AppTextStyles.overline
+                                              .copyWith(
+                                                color: AppColors.error,
+                                              ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
                             ],
                           ),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-
-              // === COMPACT: Khách hàng + Hình ảnh ===
-              Card(
-                margin: const EdgeInsets.only(bottom: 8),
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Header row: icon + tên + edit + call
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.person,
-                            size: 18,
-                            color: Colors.blue.shade700,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              r.customerName.toUpperCase(),
-                              style: AppTextStyles.body2.copyWith(
-                                fontWeight: FontWeight.bold,
+                          const SizedBox(height: 6),
+                          if (_displayableImages(r.receiveImages).isNotEmpty)
+                            SizedBox(
+                              height: 60,
+                              child: ListView.builder(
+                                scrollDirection: Axis.horizontal,
+                                itemCount: _displayableImages(
+                                  r.receiveImages,
+                                ).length,
+                                itemBuilder: (ctx, i) => GestureDetector(
+                                  onTap: () => _showFullImage(
+                                    _displayableImages(r.receiveImages),
+                                    i,
+                                  ),
+                                  child: Container(
+                                    margin: const EdgeInsets.only(right: 6),
+                                    width: 60,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color: AppColors.outline,
+                                      ),
+                                    ),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: _buildSmartImage(
+                                        _displayableImages(r.receiveImages)[i],
+                                      ),
+                                    ),
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
-                          if (r.status < 4 && _canEditRepairOrder)
-                            IconButton(
-                              onPressed: _editBasicInfo,
-                              icon: const Icon(Icons.edit, size: 16),
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(),
-                              tooltip: 'Chỉnh sửa thông tin',
-                            ),
-                          TextButton.icon(
-                            onPressed: _callCustomer,
-                            icon: const Icon(Icons.call, size: 14),
-                            label: Text(r.phone, style: AppTextStyles.caption),
-                            style: TextButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                              ),
-                              visualDensity: VisualDensity.compact,
-                            ),
-                          ),
                         ],
-                      ),
-                      const SizedBox(height: 6),
-                      // Info rows - hiển thị trực tiếp, không ẩn trong dropdown
-                      _compactInfoRow(loc.deviceIssueLabel, r.issue),
-                      _compactInfoRow(
-                        'Nhận',
-                        _formatStageActorWithTime(
-                          actorRaw: r.createdBy,
-                          timestamp: r.createdAt,
-                        ),
-                      ),
-                      _compactInfoRow(
-                        'Sửa',
-                        _formatStageActorWithTime(
-                          actorRaw: r.repairedBy,
-                          timestamp: _repairStageTimestamp(r),
-                        ),
-                      ),
-                      _compactInfoRow(
-                        'Giao',
-                        _formatStageActorWithTime(
-                          actorRaw: r.deliveredBy,
-                          timestamp: _deliveryStageTimestamp(r),
-                        ),
-                      ),
-                      if (_hasModifierInfo)
-                        _compactInfoRow('Sửa đổi', _formatModifierInfo()),
-                      if (r.accessories.isNotEmpty)
-                        _compactInfoRow("PK", r.accessories),
-                      if (r.warranty.isNotEmpty)
-                        _compactInfoRow(loc.warranty, r.warranty),
-                      if (r.notes != null && r.notes!.isNotEmpty)
-                        _compactInfoRow(loc.note, r.notes!),
-
-                      // Hình ảnh
-                        if (_displayableImages(r.receiveImages).isNotEmpty ||
-                          (r.status < 4 && _canAddRepairImage)) ...[
-                        const Divider(height: 12),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.photo_library,
-                              size: 16,
-                              color: Colors.pink.shade700,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              loc.imagesCount(
-                                _displayableImages(r.receiveImages).length,
-                              ),
-                              style: AppTextStyles.caption.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.pink.shade700,
-                              ),
-                            ),
-                            const Spacer(),
-                            if (r.status < 4 && _canAddRepairImage)
-                              GestureDetector(
-                                onTap: _addReceiveImage,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                  decoration: BoxDecoration(
-                                    color: Colors.pink.withAlpha(20),
-                                    borderRadius: BorderRadius.circular(6),
-                                    border: Border.all(color: Colors.pink.shade200),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(Icons.add_a_photo, size: 13, color: Colors.pink.shade700),
-                                      const SizedBox(width: 4),
-                                      Text('Thêm ảnh', style: AppTextStyles.overline.copyWith(color: Colors.pink.shade700)),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        if (_displayableImages(r.receiveImages).isNotEmpty)
-                        SizedBox(
-                          height: 60,
-                          child: ListView.builder(
-                            scrollDirection: Axis.horizontal,
-                            itemCount: _displayableImages(
-                              r.receiveImages,
-                            ).length,
-                            itemBuilder: (ctx, i) => GestureDetector(
-                              onTap: () => _showFullImage(
-                                _displayableImages(r.receiveImages),
-                                i,
-                              ),
-                              child: Container(
-                                margin: const EdgeInsets.only(right: 6),
-                                width: 60,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(
-                                    color: Colors.grey.shade200,
-                                  ),
-                                ),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: _buildSmartImage(
-                                    _displayableImages(r.receiveImages)[i],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
                       ],
-                    ],
+                    ),
                   ),
                 ),
-              ),
 
-              const SizedBox(height: 10),
-            ],
+                const SizedBox(height: 8),
+              ],
+            ),
           ),
         ),
+        bottomNavigationBar: _buildBottomActions(),
       ),
-      bottomNavigationBar: _buildBottomActions(),
     );
   }
 
@@ -3880,11 +4066,15 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       }
       if (mounted) setState(() {});
       NotificationService.showSnackBar(
-        'Đã thêm ảnh, đang tải nền lên hệ thống',
+        '✅ Ảnh đã được thêm và lưu. 📸 Đang tải lên hệ thống nền (vui lòng không thoát ứng dụng)',
         color: AppColors.success,
+        duration: const Duration(seconds: 10),
       );
     } catch (e) {
-      NotificationService.showSnackBar('Lỗi thêm ảnh: $e', color: AppColors.error);
+      NotificationService.showSnackBar(
+        'Lỗi thêm ảnh: $e',
+        color: AppColors.error,
+      );
     } finally {
       if (mounted) setState(() => _isUpdating = false);
     }
@@ -3897,11 +4087,11 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     IconData icon;
     switch (r.status) {
       case 1:
-        color = Colors.blue;
+        color = AppColors.primary;
         icon = Icons.assignment_turned_in;
         break;
       case 2:
-        color = Colors.orange;
+        color = AppColors.warning;
         icon = Icons.build;
         break;
       case 3:
@@ -3913,13 +4103,13 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         icon = Icons.verified;
         break;
       default:
-        color = Colors.grey;
+        color = AppColors.textHint;
         icon = Icons.help_outline;
     }
     return Row(
       children: [
-        Icon(icon, color: color, size: 28),
-        const SizedBox(width: 10),
+        Icon(icon, color: color, size: 24),
+        const SizedBox(width: 8),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -3943,12 +4133,11 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              if (r.pendingDeliveryApproval &&
-                  r.requestedDeliveryPrice != null)
+              if (r.pendingDeliveryApproval && r.requestedDeliveryPrice != null)
                 Text(
                   'Giá yêu cầu: ${MoneyUtils.formatCurrency(r.requestedDeliveryPrice ?? 0)} đ',
                   style: AppTextStyles.overline.copyWith(
-                    color: Colors.deepOrange.shade700,
+                    color: AppColors.repairPendingApproval,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -3963,7 +4152,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withAlpha(26),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Column(
@@ -3997,7 +4186,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
-          border: Border.all(color: color.withOpacity(0.3)),
+          border: Border.all(color: color.withAlpha(77)),
           borderRadius: BorderRadius.circular(6),
         ),
         child: Row(
@@ -4022,11 +4211,11 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       decoration: BoxDecoration(
         color: AppColors.background,
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppColors.outline),
       ),
       child: Row(
         children: [
-          const Icon(Icons.build_circle, size: 16, color: Colors.blue),
+          const Icon(Icons.build_circle, size: 16, color: AppColors.primary),
           const SizedBox(width: 6),
           Expanded(
             child: Column(
@@ -4041,7 +4230,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                 if (s.partnerName != null)
                   Text(
                     loc.partnerLabel(s.partnerName!),
-                    style: AppTextStyles.overline.copyWith(color: Colors.blue),
+                    style: AppTextStyles.overline.copyWith(color: AppColors.primary),
                   ),
               ],
             ),
@@ -4056,7 +4245,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
             ),
           if (r.status != 4 && _canEditRepairNotes)
             IconButton(
-              icon: const Icon(Icons.edit, size: 14, color: Colors.grey),
+              icon: const Icon(Icons.edit, size: 14, color: AppColors.textHint),
               onPressed: () => _showAddServiceDialog(s, index),
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
@@ -4077,7 +4266,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
             child: Text(
               "$label:",
               style: AppTextStyles.caption.copyWith(
-                color: AppColors.onSurface.withOpacity(0.6),
+                color: AppColors.textSecondary,
               ),
             ),
           ),
@@ -4108,7 +4297,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     return _infoRow(
       label,
       value,
-      labelColor: color.withOpacity(0.9),
+      labelColor: color.withAlpha(230),
       valueColor: isUnknown ? AppColors.onSurface.withOpacity(0.55) : color,
       valueWeight: FontWeight.w700,
     );
@@ -4164,11 +4353,11 @@ class _RepairDetailViewState extends State<RepairDetailView> {
 
     switch (r.status) {
       case 1:
-        color = Colors.blue;
+        color = AppColors.primary;
         icon = Icons.assignment_turned_in;
         break;
       case 2:
-        color = Colors.orange;
+        color = AppColors.warning;
         icon = Icons.build;
         break;
       case 3:
@@ -4180,7 +4369,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         icon = Icons.verified;
         break;
       default:
-        color = Colors.grey;
+        color = AppColors.textHint;
         icon = Icons.help_outline;
     }
 
@@ -4189,7 +4378,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.2)),
+        border: Border.all(color: color.withAlpha(51)),
       ),
       child: Row(
         children: [
@@ -4234,19 +4423,19 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         width: double.infinity,
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: Colors.deepOrange.shade50,
+          color: AppColors.repairPendingApproval,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.deepOrange.shade200),
+          border: Border.all(color: AppColors.repairPendingApproval),
         ),
         child: Row(
           children: [
-            Icon(Icons.hourglass_empty, color: Colors.deepOrange.shade700),
+            Icon(Icons.hourglass_empty, color: AppColors.repairPendingApproval),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
                 loc.waitingManagerApproval,
                 style: TextStyle(
-                  color: Colors.deepOrange.shade700,
+                  color: AppColors.repairPendingApproval,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -4261,19 +4450,19 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         width: double.infinity,
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: Colors.green.shade50,
+          color: AppColors.success,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.green.shade200),
+          border: Border.all(color: AppColors.success),
         ),
         child: Row(
           children: [
-            Icon(Icons.check_circle, color: Colors.green.shade700),
+            Icon(Icons.check_circle, color: AppColors.success),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
                 loc.repairDoneReadyForDelivery,
                 style: TextStyle(
-                  color: Colors.green.shade700,
+                  color: AppColors.success,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -4293,8 +4482,15 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     final displayProfit = displayPrice - r.cost;
     final hideDeliveredSensitiveFinancial = _hideDeliveredSensitiveFinancial(r);
     final canShowCost =
-      _isManagerLike && _canViewCostPrice && _canViewRevenue && !hideDeliveredSensitiveFinancial;
-    final canShowProfit = _isManagerLike && _canViewRevenue && _canViewCostPrice && !hideDeliveredSensitiveFinancial;
+        _isManagerLike &&
+        _canViewCostPrice &&
+        _canViewRevenue &&
+        !hideDeliveredSensitiveFinancial;
+    final canShowProfit =
+        _isManagerLike &&
+        _canViewRevenue &&
+        _canViewCostPrice &&
+        !hideDeliveredSensitiveFinancial;
 
     return Column(
       children: [
@@ -4322,8 +4518,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         Row(
           children: [
             _miniFin(_displayedPriceLabel(r), displayPrice, AppColors.primary),
-            if (canShowCost)
-              _miniFin(loc.costLabel, r.cost, AppColors.warning),
+            if (canShowCost) _miniFin(loc.costLabel, r.cost, AppColors.warning),
           ],
         ),
         if (r.pendingDeliveryApproval && r.requestedDeliveryPrice != null)
@@ -4334,7 +4529,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
               child: Text(
                 'Đang chờ duyệt giá yêu cầu: ${MoneyUtils.formatCurrency(displayPrice)} đ',
                 style: AppTextStyles.overline.copyWith(
-                  color: Colors.deepOrange.shade700,
+                  color: AppColors.repairPendingApproval,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -4346,12 +4541,12 @@ class _RepairDetailViewState extends State<RepairDetailView> {
           const Divider(height: 20),
           Row(
             children: [
-              const Icon(Icons.build, size: 16, color: Colors.blue),
+              const Icon(Icons.build, size: 16, color: AppColors.primary),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   loc.partsUsedLabel(r.partsUsed),
-                  style: AppTextStyles.caption.copyWith(color: Colors.blue),
+                  style: AppTextStyles.caption.copyWith(color: AppColors.primary),
                 ),
               ),
             ],
@@ -4370,20 +4565,20 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                 icon: const Icon(
                   Icons.inventory_2,
                   size: 14,
-                  color: Colors.blue,
+                  color: AppColors.primary,
                 ),
                 label: Text(
                   loc.partsLabel,
-                  style: AppTextStyles.caption.copyWith(color: Colors.blue),
+                  style: AppTextStyles.caption.copyWith(color: AppColors.primary),
                 ),
               ),
               // Lối tắt vào Kho Linh Kiện
               TextButton.icon(
                 onPressed: _navigateToPartsInventory,
-                icon: const Icon(Icons.warehouse, size: 14, color: Colors.teal),
+                icon: const Icon(Icons.warehouse, size: 14, color: AppColors.info),
                 label: Text(
                   loc.partsInventoryShort,
-                  style: AppTextStyles.caption.copyWith(color: Colors.teal),
+                  style: AppTextStyles.caption.copyWith(color: AppColors.info),
                 ),
               ),
               // Đổi phụ tùng chọn nhầm
@@ -4393,12 +4588,12 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                   icon: const Icon(
                     Icons.swap_horiz,
                     size: 14,
-                    color: Colors.deepPurple,
+                    color: AppColors.repairDelivered,
                   ),
                   label: Text(
                     'Đổi PT',
                     style: AppTextStyles.caption.copyWith(
-                      color: Colors.deepPurple,
+                      color: AppColors.repairDelivered,
                     ),
                   ),
                 ),
@@ -4409,11 +4604,11 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                   icon: const Icon(
                     Icons.delete_sweep,
                     size: 14,
-                    color: Colors.red,
+                    color: AppColors.error,
                   ),
                   label: Text(
                     'Xóa PT',
-                    style: AppTextStyles.caption.copyWith(color: Colors.red),
+                    style: AppTextStyles.caption.copyWith(color: AppColors.error),
                   ),
                 ),
               TextButton.icon(
@@ -4421,11 +4616,11 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                 icon: const Icon(
                   Icons.note_add,
                   size: 14,
-                  color: Colors.orange,
+                  color: AppColors.warning,
                 ),
                 label: Text(
                   loc.techShort,
-                  style: AppTextStyles.caption.copyWith(color: Colors.orange),
+                  style: AppTextStyles.caption.copyWith(color: AppColors.warning),
                 ),
               ),
             ],
@@ -4444,11 +4639,11 @@ class _RepairDetailViewState extends State<RepairDetailView> {
             alignment: Alignment.centerRight,
             child: TextButton.icon(
               onPressed: _showAddServiceDialog,
-              icon: const Icon(Icons.add, size: 18, color: Colors.blue),
+              icon: const Icon(Icons.add, size: 18, color: AppColors.primary),
               label: Text(
                 loc.addServiceButton,
                 style: AppTextStyles.caption.copyWith(
-                  color: Colors.blue,
+                  color: AppColors.primary,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -4460,7 +4655,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
             child: Text(
               loc.noServicesMessage,
               style: AppTextStyles.caption.copyWith(
-                color: AppColors.onSurface.withOpacity(0.5),
+                color: AppColors.onSurface.withAlpha(128),
                 fontStyle: FontStyle.italic,
               ),
             ),
@@ -4477,11 +4672,11 @@ class _RepairDetailViewState extends State<RepairDetailView> {
               decoration: BoxDecoration(
                 color: AppColors.background,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade200),
+                border: Border.all(color: AppColors.outline),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.build_circle, size: 20, color: Colors.blue),
+                  const Icon(Icons.build_circle, size: 20, color: AppColors.primary),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(
@@ -4497,7 +4692,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                           Text(
                             loc.partnerLabel(s.partnerName!),
                             style: AppTextStyles.caption.copyWith(
-                              color: Colors.blue,
+                              color: AppColors.primary,
                             ),
                           ),
                       ],
@@ -4515,7 +4710,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                       icon: const Icon(
                         Icons.edit,
                         size: 18,
-                        color: Colors.grey,
+                        color: AppColors.textHint,
                       ),
                       onPressed: () => _showAddServiceDialog(s, i),
                       padding: EdgeInsets.zero,
@@ -4556,7 +4751,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       return Text(
         loc.noImages,
         style: AppTextStyles.caption.copyWith(
-          color: AppColors.onSurface.withOpacity(0.5),
+          color: AppColors.onSurface.withAlpha(128),
           fontStyle: FontStyle.italic,
         ),
       );
@@ -4573,7 +4768,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
             width: 100,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade200),
+              border: Border.all(color: AppColors.outline),
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(12),
@@ -4629,8 +4824,15 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     final displayProfit = displayPrice - r.cost;
     final hideDeliveredSensitiveFinancial = _hideDeliveredSensitiveFinancial(r);
     final canShowCost =
-      _isManagerLike && _canViewCostPrice && _canViewRevenue && !hideDeliveredSensitiveFinancial;
-    final canShowProfit = _isManagerLike && _canViewRevenue && _canViewCostPrice && !hideDeliveredSensitiveFinancial;
+        _isManagerLike &&
+        _canViewCostPrice &&
+        _canViewRevenue &&
+        !hideDeliveredSensitiveFinancial;
+    final canShowProfit =
+        _isManagerLike &&
+        _canViewRevenue &&
+        _canViewCostPrice &&
+        !hideDeliveredSensitiveFinancial;
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -4680,7 +4882,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                 child: Text(
                   'Đang chờ duyệt giá yêu cầu: ${MoneyUtils.formatCurrency(displayPrice)} đ',
                   style: AppTextStyles.overline.copyWith(
-                    color: Colors.deepOrange.shade700,
+                    color: AppColors.repairPendingApproval,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -4692,12 +4894,12 @@ class _RepairDetailViewState extends State<RepairDetailView> {
             const Divider(height: 20),
             Row(
               children: [
-                const Icon(Icons.build, size: 16, color: Colors.blue),
+                const Icon(Icons.build, size: 16, color: AppColors.primary),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     loc.partsUsedLabel(r.partsUsed),
-                    style: AppTextStyles.caption.copyWith(color: Colors.blue),
+                    style: AppTextStyles.caption.copyWith(color: AppColors.primary),
                   ),
                 ),
               ],
@@ -4716,11 +4918,11 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                   icon: const Icon(
                     Icons.inventory_2,
                     size: 14,
-                    color: Colors.blue,
+                    color: AppColors.primary,
                   ),
                   label: Text(
                     loc.partsLabel,
-                    style: AppTextStyles.caption.copyWith(color: Colors.blue),
+                    style: AppTextStyles.caption.copyWith(color: AppColors.primary),
                   ),
                 ),
                 // Lối tắt vào Kho Linh Kiện
@@ -4729,11 +4931,11 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                   icon: const Icon(
                     Icons.warehouse,
                     size: 14,
-                    color: Colors.teal,
+                    color: AppColors.info,
                   ),
                   label: Text(
                     loc.partsInventoryShort,
-                    style: AppTextStyles.caption.copyWith(color: Colors.teal),
+                    style: AppTextStyles.caption.copyWith(color: AppColors.info),
                   ),
                 ),
                 // Đổi phụ tùng chọn nhầm
@@ -4743,12 +4945,12 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                     icon: const Icon(
                       Icons.swap_horiz,
                       size: 14,
-                      color: Colors.deepPurple,
+                      color: AppColors.repairDelivered,
                     ),
                     label: Text(
                       'Đổi PT',
                       style: AppTextStyles.caption.copyWith(
-                        color: Colors.deepPurple,
+                        color: AppColors.repairDelivered,
                       ),
                     ),
                   ),
@@ -4759,11 +4961,11 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                     icon: const Icon(
                       Icons.delete_sweep,
                       size: 14,
-                      color: Colors.red,
+                      color: AppColors.error,
                     ),
                     label: Text(
                       'Xóa PT',
-                      style: AppTextStyles.caption.copyWith(color: Colors.red),
+                      style: AppTextStyles.caption.copyWith(color: AppColors.error),
                     ),
                   ),
                 if (_canEditRepairFinancial || _canEditRepairCharge)
@@ -4777,11 +4979,11 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                   icon: const Icon(
                     Icons.note_add,
                     size: 14,
-                    color: Colors.orange,
+                    color: AppColors.warning,
                   ),
                   label: Text(
                     loc.techShort,
-                    style: AppTextStyles.caption.copyWith(color: Colors.orange),
+                    style: AppTextStyles.caption.copyWith(color: AppColors.warning),
                   ),
                 ),
               ],
@@ -4798,7 +5000,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         Text(
           l,
           style: AppTextStyles.overline.copyWith(
-            color: AppColors.onSurface.withOpacity(0.6),
+            color: AppColors.onSurface.withAlpha(153),
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -4836,11 +5038,11 @@ class _RepairDetailViewState extends State<RepairDetailView> {
               if (r.status != 4)
                 TextButton.icon(
                   onPressed: _showAddServiceDialog,
-                  icon: const Icon(Icons.add, size: 18, color: Colors.blue),
+                  icon: const Icon(Icons.add, size: 18, color: AppColors.primary),
                   label: Text(
                     loc.addService,
                     style: AppTextStyles.caption.copyWith(
-                      color: Colors.blue,
+                      color: AppColors.primary,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -4854,7 +5056,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
               child: Text(
                 loc.noServicesYet,
                 style: AppTextStyles.caption.copyWith(
-                  color: AppColors.onSurface.withOpacity(0.5),
+                  color: AppColors.onSurface.withAlpha(128),
                   fontStyle: FontStyle.italic,
                 ),
               ),
@@ -4871,14 +5073,14 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                 decoration: BoxDecoration(
                   color: AppColors.background,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade200),
+                  border: Border.all(color: AppColors.outline),
                 ),
                 child: Row(
                   children: [
                     const Icon(
                       Icons.build_circle,
                       size: 20,
-                      color: Colors.blue,
+                      color: AppColors.primary,
                     ),
                     const SizedBox(width: 10),
                     Expanded(
@@ -4895,14 +5097,14 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                             Text(
                               loc.partnerLabel(s.partnerName!),
                               style: AppTextStyles.caption.copyWith(
-                                color: Colors.blue,
+                                color: AppColors.primary,
                               ),
                             ),
                           if (s.partnerName != null && s.paymentMethod != null)
                             Text(
                               'TT: ${s.paymentMethod}',
                               style: AppTextStyles.caption.copyWith(
-                                color: Colors.grey,
+                                color: AppColors.textHint,
                                 fontSize: 13,
                               ),
                             ),
@@ -4922,7 +5124,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                         icon: const Icon(
                           Icons.edit,
                           size: 18,
-                          color: Colors.grey,
+                          color: AppColors.textHint,
                         ),
                         onPressed: () => _showAddServiceDialog(s, i),
                         padding: EdgeInsets.zero,
@@ -5017,7 +5219,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                     Navigator.pop(ctx);
                     _navigateToRepairPartners();
                   },
-                  icon: const Icon(Icons.group, color: Colors.teal, size: 20),
+                  icon: const Icon(Icons.group, color: AppColors.info, size: 20),
                   tooltip: dialogLoc.viewRepairPartners,
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
@@ -5080,9 +5282,9 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                         width: double.infinity,
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.orange.shade50,
+                          color: AppColors.warning,
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.orange.shade200),
+                          border: Border.all(color: AppColors.warning),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -5090,7 +5292,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                             Text(
                               'Chưa có đối tác sửa chữa để chọn.',
                               style: AppTextStyles.caption.copyWith(
-                                color: Colors.orange.shade700,
+                                color: AppColors.warning,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -5140,7 +5342,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                   },
                   child: Text(
                     dialogLoc.delete,
-                    style: const TextStyle(color: Colors.red),
+                    style: const TextStyle(color: AppColors.error),
                   ),
                 ),
               TextButton(
@@ -5673,7 +5875,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                 width: 120,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade200),
+                  border: Border.all(color: AppColors.outline),
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12),
@@ -5704,7 +5906,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     showDialog(
       context: context,
       builder: (ctx) => Dialog(
-        backgroundColor: Colors.black,
+        backgroundColor: AppColors.textPrimary,
         insetPadding: EdgeInsets.zero,
         child: Stack(
           children: [
@@ -5728,13 +5930,13 @@ class _RepairDetailViewState extends State<RepairDetailView> {
               },
               pageController: PageController(initialPage: safeInitialIndex),
               scrollPhysics: const BouncingScrollPhysics(),
-              backgroundDecoration: const BoxDecoration(color: Colors.black),
+              backgroundDecoration: const BoxDecoration(color: AppColors.textPrimary),
             ),
             Positioned(
               top: 40,
               right: 20,
               child: IconButton(
-                icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                icon: const Icon(Icons.close, color: AppColors.surface, size: 30),
                 onPressed: () => Navigator.pop(ctx),
               ),
             ),
@@ -5748,7 +5950,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -5805,7 +6007,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         Text(
           l,
           style: AppTextStyles.caption.copyWith(
-            color: labelColor ?? AppColors.onSurface.withOpacity(0.6),
+            color: labelColor ?? AppColors.onSurface.withAlpha(153),
           ),
         ),
         const SizedBox(width: 12),
@@ -5833,7 +6035,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         Text(
           label,
           style: AppTextStyles.caption.copyWith(
-            color: AppColors.onSurface.withOpacity(0.6),
+            color: AppColors.onSurface.withAlpha(153),
           ),
         ),
         Row(
@@ -5873,7 +6075,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     } else {
       NotificationService.showSnackBar(
         'Không thể gọi điện: $phone',
-        color: Colors.red,
+        color: AppColors.error,
       );
     }
   }
@@ -5890,255 +6092,247 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     final isManager = _isManagerLike;
 
     Widget? statusButton;
-        if (r.status < 3) {
-          statusButton = ElevatedButton.icon(
-            onPressed: _isUpdating ? null : () => _updateStatus(3),
-            icon: _isUpdating
-                ? const SizedBox(
-                    width: 12,
-                    height: 12,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : const Icon(Icons.check_circle, color: Colors.white, size: 14),
-            label: const Text(
-              'XONG',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
-                fontSize: 10,
-                height: 1,
-              ),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.success,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-          );
-        } else if (r.status == 3 && r.pendingDeliveryApproval) {
-          if (isManager) {
-            statusButton = ElevatedButton.icon(
-              onPressed: _isUpdating ? null : _approveDelivery,
-              icon: _isUpdating
-                  ? const SizedBox(
-                      width: 12,
-                      height: 12,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Icon(Icons.verified, color: Colors.white, size: 14),
-              label: const Text(
-                'DUYỆT',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 10,
-                  height: 1,
+    if (r.status < 3) {
+      statusButton = ElevatedButton.icon(
+        onPressed: _isUpdating ? null : () => _updateStatus(3),
+        icon: _isUpdating
+            ? const SizedBox(
+                width: 12,
+                height: 12,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppColors.surface,
                 ),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-            );
-          } else {
-            // Nhân viên đã gửi yêu cầu duyệt thì ẩn nút đổi trạng thái.
-            statusButton = null;
-          }
-        } else if (r.status == 3) {
-          if (isManager) {
-            statusButton = ElevatedButton.icon(
-              onPressed: _isUpdating ? null : () => _updateStatus(4),
-              icon: _isUpdating
-                  ? const SizedBox(
-                      width: 12,
-                      height: 12,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Icon(
-                      Icons.local_shipping,
-                      color: Colors.white,
-                      size: 14,
-                    ),
-              label: const Text(
-                'GIAO',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 10,
-                  height: 1,
-                ),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-            );
-          } else {
-            statusButton = ElevatedButton.icon(
-              onPressed: _isUpdating ? null : _submitForDeliveryApproval,
-              icon: _isUpdating
-                  ? const SizedBox(
-                      width: 12,
-                      height: 12,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Icon(Icons.send, color: Colors.white, size: 14),
-              label: const Text(
-                'Y/C DUYỆT',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 10,
-                  height: 1,
-                ),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.deepOrange,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-            );
-          }
-        }
-
-        return Container(
-          padding: const EdgeInsets.fromLTRB(10, 6, 10, 8),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            boxShadow: [
-              BoxShadow(color: Colors.black.withAlpha(10), blurRadius: 8),
-            ],
+              )
+            : const Icon(Icons.check_circle, color: AppColors.surface, size: 14),
+        label: const Text(
+          'XONG',
+          style: TextStyle(
+            color: AppColors.surface,
+            fontWeight: FontWeight.w700,
+            fontSize: 10,
+            height: 1,
           ),
-          child: SafeArea(
-            child: Row(
-              children: [
-                if (statusButton != null) ...[
-                  Expanded(child: statusButton),
-                  const SizedBox(width: 4),
-                ],
-                if (_canEditRepairOrder) ...[
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _isUpdating ? null : _saveData,
-                      icon: _isUpdating
-                          ? const SizedBox(
-                              width: 12,
-                              height: 12,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.save_rounded, size: 14),
-                      label: const Text('LƯU', style: compactLabelStyle),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 8,
-                          horizontal: 2,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                    ),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.success,
+          foregroundColor: AppColors.surface,
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      );
+    } else if (r.status == 3 && r.pendingDeliveryApproval) {
+      if (isManager) {
+        statusButton = ElevatedButton.icon(
+          onPressed: _isUpdating ? null : _approveDelivery,
+          icon: _isUpdating
+              ? const SizedBox(
+                  width: 12,
+                  height: 12,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.surface,
                   ),
-                  const SizedBox(width: 4),
-                ],
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _isPrinting ? null : _printReceipt,
-                    icon: _isPrinting
-                        ? const SizedBox(
-                            width: 12,
-                            height: 12,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Icon(
-                            Icons.print,
-                            color: Colors.white,
-                            size: 14,
-                          ),
-                    label: const Text(
-                      'IN',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 10,
-                        height: 1,
-                      ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2962FF),
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 8,
-                        horizontal: 2,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _shareToZalo,
-                    icon: const Icon(
-                      Icons.send_rounded,
-                      color: Colors.white,
-                      size: 14,
-                    ),
-                    label: const Text(
-                      'ZALO',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 10,
-                        height: 1,
-                      ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green.shade600,
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 8,
-                        horizontal: 2,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+                )
+              : const Icon(Icons.verified, color: AppColors.surface, size: 14),
+          label: const Text(
+            'DUYỆT',
+            style: TextStyle(
+              color: AppColors.surface,
+              fontWeight: FontWeight.w700,
+              fontSize: 10,
+              height: 1,
+            ),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.success,
+            foregroundColor: AppColors.surface,
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
             ),
           ),
         );
+      } else {
+        // Nhân viên đã gửi yêu cầu duyệt thì ẩn nút đổi trạng thái.
+        statusButton = null;
+      }
+    } else if (r.status == 3) {
+      if (isManager) {
+        statusButton = ElevatedButton.icon(
+          onPressed: _isUpdating ? null : () => _updateStatus(4),
+          icon: _isUpdating
+              ? const SizedBox(
+                  width: 12,
+                  height: 12,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.surface,
+                  ),
+                )
+              : const Icon(Icons.local_shipping, color: AppColors.surface, size: 14),
+          label: const Text(
+            'GIAO',
+            style: TextStyle(
+              color: AppColors.surface,
+              fontWeight: FontWeight.w700,
+              fontSize: 10,
+              height: 1,
+            ),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.primary,
+            foregroundColor: AppColors.surface,
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        );
+      } else {
+        statusButton = ElevatedButton.icon(
+          onPressed: _isUpdating ? null : _submitForDeliveryApproval,
+          icon: _isUpdating
+              ? const SizedBox(
+                  width: 12,
+                  height: 12,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.surface,
+                  ),
+                )
+              : const Icon(Icons.send, color: AppColors.surface, size: 14),
+          label: const Text(
+            'Y/C DUYỆT',
+            style: TextStyle(
+              color: AppColors.surface,
+              fontWeight: FontWeight.w700,
+              fontSize: 10,
+              height: 1,
+            ),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.repairPendingApproval,
+            foregroundColor: AppColors.surface,
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        );
+      }
+    }
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(10, 6, 10, 8),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        boxShadow: [
+          BoxShadow(color: AppColors.textPrimary.withAlpha(10), blurRadius: 8),
+        ],
+      ),
+      child: SafeArea(
+        child: Row(
+          children: [
+            if (statusButton != null) ...[
+              Expanded(child: statusButton),
+              const SizedBox(width: 4),
+            ],
+            if (_canEditRepairOrder) ...[
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _isUpdating ? null : _saveData,
+                  icon: _isUpdating
+                      ? const SizedBox(
+                          width: 12,
+                          height: 12,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.save_rounded, size: 14),
+                  label: const Text('LƯU', style: compactLabelStyle),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 8,
+                      horizontal: 2,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 4),
+            ],
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: _isPrinting ? null : _printReceipt,
+                icon: _isPrinting
+                    ? const SizedBox(
+                        width: 12,
+                        height: 12,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.surface,
+                        ),
+                      )
+                    : const Icon(Icons.print, color: AppColors.surface, size: 14),
+                label: const Text(
+                  'IN',
+                  style: TextStyle(
+                    color: AppColors.surface,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 10,
+                    height: 1,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2962FF),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 8,
+                    horizontal: 2,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 4),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: _shareToZalo,
+                icon: const Icon(
+                  Icons.send_rounded,
+                  color: AppColors.surface,
+                  size: 14,
+                ),
+                label: const Text(
+                  'ZALO',
+                  style: TextStyle(
+                    color: AppColors.surface,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 10,
+                    height: 1,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.success,
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 8,
+                    horizontal: 2,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _shareToZalo() async {
@@ -6169,7 +6363,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     if (_isPrinting) return;
     setState(() => _isPrinting = true);
     HapticFeedback.mediumImpact();
-    NotificationService.showSnackBar(loc.preparingPrint, color: Colors.blue);
+    NotificationService.showSnackBar(loc.preparingPrint, color: AppColors.primary);
 
     try {
       final success = await UnifiedPrinterService.printRepairReceiptFromRepair(
@@ -6181,14 +6375,14 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       );
 
       if (success) {
-        NotificationService.showSnackBar(loc.printSuccess, color: Colors.green);
+        NotificationService.showSnackBar(loc.printSuccess, color: AppColors.success);
       } else {
-        NotificationService.showSnackBar(loc.printFailed, color: Colors.red);
+        NotificationService.showSnackBar(loc.printFailed, color: AppColors.error);
       }
     } catch (e) {
       NotificationService.showSnackBar(
         loc.printError(e.toString()),
-        color: Colors.red,
+        color: AppColors.error,
       );
     } finally {
       if (mounted) setState(() => _isPrinting = false);
@@ -6238,14 +6432,14 @@ class _PartsSelectionDialogState extends State<_PartsSelectionDialog> {
     return AlertDialog(
       title: Row(
         children: [
-          const Icon(Icons.inventory_2, color: Colors.blue),
+          const Icon(Icons.inventory_2, color: AppColors.primary),
           const SizedBox(width: 10),
           Expanded(
             child: Text(loc.selectPartsTitle, style: AppTextStyles.headline3),
           ),
           // Shortcut to add new part from PartsInventoryView
           Material(
-            color: Colors.orange.shade50,
+            color: AppColors.warning,
             borderRadius: BorderRadius.circular(8),
             child: InkWell(
               borderRadius: BorderRadius.circular(8),
@@ -6271,7 +6465,7 @@ class _PartsSelectionDialogState extends State<_PartsSelectionDialog> {
                   children: [
                     Icon(
                       Icons.add_circle,
-                      color: Colors.orange.shade700,
+                      color: AppColors.warning,
                       size: 16,
                     ),
                     const SizedBox(width: 4),
@@ -6280,7 +6474,7 @@ class _PartsSelectionDialogState extends State<_PartsSelectionDialog> {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
-                        color: Colors.orange.shade700,
+                        color: AppColors.warning,
                       ),
                     ),
                   ],
@@ -6311,7 +6505,7 @@ class _PartsSelectionDialogState extends State<_PartsSelectionDialog> {
                   ? Center(
                       child: Text(
                         loc.noPartsFound,
-                        style: const TextStyle(color: Colors.grey),
+                        style: const TextStyle(color: AppColors.textHint),
                       ),
                     )
                   : ListView.builder(
@@ -6333,8 +6527,8 @@ class _PartsSelectionDialogState extends State<_PartsSelectionDialog> {
 
                         return Card(
                           color: currentQty > 0
-                              ? Colors.green.shade50
-                              : (isFromProducts ? Colors.blue.shade50 : null),
+                              ? AppColors.success
+                              : (isFromProducts ? AppColors.primary : null),
                           child: Padding(
                             padding: const EdgeInsets.all(8),
                             child: Column(
@@ -6348,8 +6542,8 @@ class _PartsSelectionDialogState extends State<_PartsSelectionDialog> {
                                           ? Icons.inventory
                                           : Icons.build,
                                       color: isFromProducts
-                                          ? Colors.blue
-                                          : Colors.blue,
+                                          ? AppColors.primary
+                                          : AppColors.primary,
                                       size: 20,
                                     ),
                                     const SizedBox(width: 8),
@@ -6368,8 +6562,8 @@ class _PartsSelectionDialogState extends State<_PartsSelectionDialog> {
                                       ),
                                       decoration: BoxDecoration(
                                         color: isFromProducts
-                                            ? Colors.blue.withOpacity(0.2)
-                                            : Colors.blue.withOpacity(0.2),
+                                            ? AppColors.primary.withAlpha(51)
+                                            : AppColors.primary.withAlpha(51),
                                         borderRadius: BorderRadius.circular(4),
                                       ),
                                       child: Text(
@@ -6378,8 +6572,8 @@ class _PartsSelectionDialogState extends State<_PartsSelectionDialog> {
                                             : loc.oldWarehouse,
                                         style: AppTextStyles.caption.copyWith(
                                           color: isFromProducts
-                                              ? Colors.blue
-                                              : Colors.blue,
+                                              ? AppColors.primary
+                                              : AppColors.primary,
                                         ),
                                       ),
                                     ),
@@ -6405,7 +6599,7 @@ class _PartsSelectionDialogState extends State<_PartsSelectionDialog> {
                                     Text(
                                       loc.stockQty(partQty),
                                       style: AppTextStyles.body2.copyWith(
-                                        color: Colors.grey.shade700,
+                                        color: AppColors.textSecondary,
                                       ),
                                     ),
                                     Text(
@@ -6431,8 +6625,8 @@ class _PartsSelectionDialogState extends State<_PartsSelectionDialog> {
                                       // Nút trừ (nhỏ gọn hơn)
                                       Material(
                                         color: currentQty > 0
-                                            ? Colors.red
-                                            : Colors.grey.shade300,
+                                            ? AppColors.error
+                                            : AppColors.outline,
                                         borderRadius: BorderRadius.circular(5),
                                         child: InkWell(
                                           borderRadius: BorderRadius.circular(
@@ -6458,7 +6652,7 @@ class _PartsSelectionDialogState extends State<_PartsSelectionDialog> {
                                             alignment: Alignment.center,
                                             child: const Icon(
                                               Icons.remove,
-                                              color: Colors.white,
+                                              color: AppColors.surface,
                                               size: 14,
                                             ),
                                           ),
@@ -6473,16 +6667,16 @@ class _PartsSelectionDialogState extends State<_PartsSelectionDialog> {
                                           style: AppTextStyles.caption.copyWith(
                                             fontWeight: FontWeight.w600,
                                             color: currentQty > 0
-                                                ? Colors.green.shade700
-                                                : Colors.grey,
+                                                ? AppColors.success
+                                                : AppColors.textHint,
                                           ),
                                         ),
                                       ),
                                       // Nút cộng (nhỏ gọn hơn)
                                       Material(
                                         color: currentQty < partQty
-                                            ? Colors.green
-                                            : Colors.grey.shade300,
+                                            ? AppColors.success
+                                            : AppColors.outline,
                                         borderRadius: BorderRadius.circular(5),
                                         child: InkWell(
                                           borderRadius: BorderRadius.circular(
@@ -6502,7 +6696,7 @@ class _PartsSelectionDialogState extends State<_PartsSelectionDialog> {
                                             alignment: Alignment.center,
                                             child: const Icon(
                                               Icons.add,
-                                              color: Colors.white,
+                                              color: AppColors.surface,
                                               size: 14,
                                             ),
                                           ),
@@ -6520,7 +6714,7 @@ class _PartsSelectionDialogState extends State<_PartsSelectionDialog> {
                                     child: Text(
                                       loc.outOfStock,
                                       style: const TextStyle(
-                                        color: Colors.red,
+                                        color: AppColors.error,
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
@@ -6548,13 +6742,13 @@ class _PartsSelectionDialogState extends State<_PartsSelectionDialog> {
                 )
               : null,
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.blue,
-            disabledBackgroundColor: Colors.grey.shade300,
+            backgroundColor: AppColors.primary,
+            disabledBackgroundColor: AppColors.outline,
           ),
           child: Text(
             totalSelected > 0 ? loc.confirmQty(totalSelected) : loc.confirmBtn,
             style: TextStyle(
-              color: totalSelected > 0 ? Colors.white : Colors.grey,
+              color: totalSelected > 0 ? AppColors.surface : AppColors.textHint,
             ),
           ),
         ),
@@ -6594,7 +6788,7 @@ class _PartsPaymentDialogState extends State<_PartsPaymentDialog> {
     return AlertDialog(
       title: Row(
         children: [
-          const Icon(Icons.payment, color: Colors.green),
+          const Icon(Icons.payment, color: AppColors.success),
           const SizedBox(width: 10),
           Text(loc.partsPaymentTitle, style: const TextStyle(fontSize: 17)),
         ],
@@ -6609,9 +6803,9 @@ class _PartsPaymentDialogState extends State<_PartsPaymentDialog> {
               width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.green.shade50,
+                color: AppColors.success,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.green.shade200),
+                border: Border.all(color: AppColors.success),
               ),
               child: Column(
                 children: [
@@ -6619,7 +6813,7 @@ class _PartsPaymentDialogState extends State<_PartsPaymentDialog> {
                     loc.totalPartsAmount,
                     style: TextStyle(
                       fontSize: 14,
-                      color: Colors.green.shade700,
+                      color: AppColors.success,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -6628,7 +6822,7 @@ class _PartsPaymentDialogState extends State<_PartsPaymentDialog> {
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: Colors.green.shade700,
+                      color: AppColors.success,
                     ),
                   ),
                 ],
@@ -6639,7 +6833,7 @@ class _PartsPaymentDialogState extends State<_PartsPaymentDialog> {
             // Mô tả phụ tùng
             Text(
               loc.partsDesc(widget.partsDescription),
-              style: const TextStyle(fontSize: 14, color: Colors.grey),
+              style: const TextStyle(fontSize: 14, color: AppColors.textHint),
             ),
             const SizedBox(height: 16),
 
@@ -6664,13 +6858,13 @@ class _PartsPaymentDialogState extends State<_PartsPaymentDialog> {
             const SizedBox(height: 8),
 
             // Radio buttons
-            _buildPaymentOption('TIỀN MẶT', Icons.money, Colors.green),
+            _buildPaymentOption('TIỀN MẶT', Icons.money, AppColors.success),
             _buildPaymentOption(
               'CHUYỂN KHOẢN',
               Icons.account_balance,
-              Colors.blue,
+              AppColors.primary,
             ),
-            _buildPaymentOption('CÔNG NỢ', Icons.access_time, Colors.orange),
+            _buildPaymentOption('CÔNG NỢ', Icons.access_time, AppColors.warning),
 
             // Cảnh báo nếu chọn công nợ
             if (_selectedMethod == 'CÔNG NỢ')
@@ -6678,16 +6872,16 @@ class _PartsPaymentDialogState extends State<_PartsPaymentDialog> {
                 margin: const EdgeInsets.only(top: 12),
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.orange.shade50,
+                  color: AppColors.warning,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.orange.shade200),
+                  border: Border.all(color: AppColors.warning),
                 ),
                 child: Row(
                   children: [
                     Icon(
                       Icons.info_outline,
                       size: 16,
-                      color: Colors.orange.shade700,
+                      color: AppColors.warning,
                     ),
                     const SizedBox(width: 8),
                     Expanded(
@@ -6695,7 +6889,7 @@ class _PartsPaymentDialogState extends State<_PartsPaymentDialog> {
                         loc.debtWarning,
                         style: TextStyle(
                           fontSize: 13,
-                          color: Colors.orange.shade700,
+                          color: AppColors.warning,
                         ),
                       ),
                     ),
@@ -6721,12 +6915,12 @@ class _PartsPaymentDialogState extends State<_PartsPaymentDialog> {
           },
           style: ElevatedButton.styleFrom(
             backgroundColor: _selectedMethod == 'CÔNG NỢ'
-                ? Colors.orange
-                : Colors.green,
+                ? AppColors.warning
+                : AppColors.success,
           ),
           child: Text(
             _selectedMethod == 'CÔNG NỢ' ? loc.recordDebt : loc.confirm,
-            style: const TextStyle(color: Colors.white),
+            style: const TextStyle(color: AppColors.surface),
           ),
         ),
       ],
@@ -6741,22 +6935,22 @@ class _PartsPaymentDialogState extends State<_PartsPaymentDialog> {
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.1) : Colors.grey.shade100,
+          color: isSelected ? color.withAlpha(26) : AppColors.background,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: isSelected ? color : Colors.grey.shade300,
+            color: isSelected ? color : AppColors.outline,
             width: isSelected ? 2 : 1,
           ),
         ),
         child: Row(
           children: [
-            Icon(icon, color: isSelected ? color : Colors.grey, size: 20),
+            Icon(icon, color: isSelected ? color : AppColors.textHint, size: 20),
             const SizedBox(width: 10),
             Text(
               method,
               style: TextStyle(
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected ? color : Colors.black87,
+                color: isSelected ? color : AppColors.textPrimary,
               ),
             ),
             const Spacer(),

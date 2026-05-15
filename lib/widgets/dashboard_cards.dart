@@ -111,7 +111,7 @@ class _ActionRequiredCardState extends State<ActionRequiredCard> {
         _ActionItem(
           icon: Icons.build_circle,
           label: '$_pendingRepairs đơn sửa chờ xử lý',
-          color: Colors.blue,
+          color: AppColors.primary,
           onTap: widget.onPendingRepairsTap,
         ),
       );
@@ -121,7 +121,7 @@ class _ActionRequiredCardState extends State<ActionRequiredCard> {
         _ActionItem(
           icon: Icons.pending_actions,
           label: '$_pendingStock hàng chờ xác nhận nhập kho',
-          color: Colors.orange,
+          color: AppColors.warning,
           onTap: widget.onPendingStockTap,
         ),
       );
@@ -131,7 +131,7 @@ class _ActionRequiredCardState extends State<ActionRequiredCard> {
         _ActionItem(
           icon: Icons.shield,
           label: '$_expiringWarranty thiết bị sắp hết bảo hành',
-          color: Colors.amber.shade800,
+          color: AppColors.warning,
           onTap: widget.onWarrantyTap,
         ),
       );
@@ -141,7 +141,7 @@ class _ActionRequiredCardState extends State<ActionRequiredCard> {
         _ActionItem(
           icon: Icons.timer,
           label: '$_expiringProducts sản phẩm sắp hết HSD',
-          color: Colors.red,
+          color: AppColors.error,
           onTap: widget.onExpiryTap,
         ),
       );
@@ -163,9 +163,9 @@ class _ActionRequiredCardState extends State<ActionRequiredCard> {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.orange.shade50,
+        color: AppColors.warning,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.orange.shade200),
+        border: Border.all(color: AppColors.warning),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -174,7 +174,7 @@ class _ActionRequiredCardState extends State<ActionRequiredCard> {
             children: [
               Icon(
                 Icons.notification_important,
-                color: Colors.orange.shade700,
+                color: AppColors.warning,
                 size: 18,
               ),
               const SizedBox(width: 6),
@@ -182,7 +182,7 @@ class _ActionRequiredCardState extends State<ActionRequiredCard> {
                 'CẦN XỬ LÝ (${items.length})',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: Colors.orange.shade800,
+                  color: AppColors.warning,
                   fontSize: 13,
                   letterSpacing: 0.5,
                 ),
@@ -213,14 +213,14 @@ class _ActionRequiredCardState extends State<ActionRequiredCard> {
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
-                          color: Colors.grey.shade800,
+                          color: AppColors.textPrimary,
                         ),
                       ),
                     ),
                     Icon(
                       Icons.arrow_forward_ios,
                       size: 12,
-                      color: Colors.grey.shade400,
+                      color: AppColors.textHint,
                     ),
                   ],
                 ),
@@ -274,11 +274,11 @@ class FinanceSummaryCard extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(14),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: AppColors.textPrimary.withAlpha(13),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -293,12 +293,12 @@ class FinanceSummaryCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
+                    color: AppColors.primary,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
                     Icons.account_balance_wallet,
-                    color: Colors.blue.shade600,
+                    color: AppColors.primary,
                     size: 16,
                   ),
                 ),
@@ -307,7 +307,7 @@ class FinanceSummaryCard extends StatelessWidget {
                   'TÓM TẮT HÔM NAY',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: Colors.blue.shade700,
+                    color: AppColors.primary,
                     fontSize: 14,
                     letterSpacing: 0.5,
                   ),
@@ -315,13 +315,13 @@ class FinanceSummaryCard extends StatelessWidget {
                 const Spacer(),
                 Text(
                   DateFormat('dd/MM').format(DateTime.now()),
-                  style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+                  style: TextStyle(fontSize: 13, color: AppColors.textHint),
                 ),
                 const SizedBox(width: 4),
                 Icon(
                   Icons.arrow_forward_ios,
                   size: 10,
-                  color: Colors.grey.shade400,
+                  color: AppColors.textHint,
                 ),
               ],
             ),
@@ -333,25 +333,25 @@ class FinanceSummaryCard extends StatelessWidget {
                   child: _metricTile(
                     'Doanh thu',
                     MoneyUtils.formatCompact(revenue),
-                    Colors.blue.shade700,
+                    AppColors.primary,
                   ),
                 ),
-                Container(width: 1, height: 36, color: Colors.grey.shade200),
+                Container(width: 1, height: 36, color: AppColors.outline),
                 Expanded(
                   child: _metricTile(
                     '📈 Lợi nhuận',
                     '${netProfit >= 0 ? '+' : ''}${MoneyUtils.formatCompact(netProfit)}',
                     netProfit >= 0
-                        ? Colors.green.shade700
-                        : Colors.red.shade700,
+                        ? AppColors.success
+                        : AppColors.error,
                   ),
                 ),
-                Container(width: 1, height: 36, color: Colors.grey.shade200),
+                Container(width: 1, height: 36, color: AppColors.outline),
                 Expanded(
                   child: _metricTile(
                     '🏦 Quỹ',
                     '${currentFund >= 0 ? '+' : ''}${MoneyUtils.formatCompact(currentFund)}',
-                    currentFund >= 0 ? Colors.indigo : Colors.red.shade700,
+                    currentFund >= 0 ? Colors.indigo : AppColors.error,
                   ),
                 ),
               ],
@@ -367,7 +367,7 @@ class FinanceSummaryCard extends StatelessWidget {
       children: [
         Text(
           label,
-          style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+          style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
         ),
         const SizedBox(height: 4),
         Text(
@@ -528,10 +528,10 @@ class _ActivityFeedCardState extends State<ActivityFeedCard> {
         activities.add(
           _ActivityItem(
             icon: Icons.shopping_cart,
-            color: Colors.green,
+            color: AppColors.success,
             title: 'Bán hàng - $name',
             amount: '+${MoneyUtils.formatCompact(price)}',
-            amountColor: Colors.green,
+            amountColor: AppColors.success,
             timestamp: at,
             referenceType: 'sale',
             referenceId: fid,
@@ -554,12 +554,12 @@ class _ActivityFeedCardState extends State<ActivityFeedCard> {
         activities.add(
           _ActivityItem(
             icon: isDelivered ? Icons.check_circle : Icons.build_circle,
-            color: isDelivered ? Colors.blue : Colors.orange,
+            color: isDelivered ? AppColors.primary : AppColors.warning,
             title: isDelivered
                 ? 'Giao máy - $name'
                 : 'Nhận sửa - ${device.isNotEmpty ? device : name}',
             amount: isDelivered ? '+${MoneyUtils.formatCompact(price)}' : '',
-            amountColor: Colors.blue,
+            amountColor: AppColors.primary,
             timestamp: at,
             referenceType: 'repair',
             referenceId: fid,
@@ -578,12 +578,12 @@ class _ActivityFeedCardState extends State<ActivityFeedCard> {
         activities.add(
           _ActivityItem(
             icon: isIncome ? Icons.add_circle : Icons.remove_circle,
-            color: isIncome ? Colors.teal : Colors.red,
+            color: isIncome ? AppColors.info : AppColors.error,
             title: isIncome ? 'Thu: $title' : 'Chi: $title',
             amount: isIncome
                 ? '+${MoneyUtils.formatCompact(amount)}'
                 : '-${MoneyUtils.formatCompact(amount)}',
-            amountColor: isIncome ? Colors.teal : Colors.red,
+            amountColor: isIncome ? AppColors.info : AppColors.error,
             timestamp: at,
             referenceType: 'expense',
             referenceId: fid,
@@ -682,17 +682,17 @@ class _ActivityFeedCardState extends State<ActivityFeedCard> {
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.grey.shade50,
+          color: AppColors.background,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade200),
+          border: Border.all(color: AppColors.outline),
         ),
         child: Row(
           children: [
-            Icon(Icons.history, color: Colors.grey.shade400, size: 20),
+            Icon(Icons.history, color: AppColors.textHint, size: 20),
             const SizedBox(width: 10),
             Text(
               'Chưa có hoạt động hôm nay',
-              style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+              style: TextStyle(color: AppColors.textHint, fontSize: 13),
             ),
           ],
         ),
@@ -702,11 +702,11 @@ class _ActivityFeedCardState extends State<ActivityFeedCard> {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: AppColors.textPrimary.withOpacity(0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -733,7 +733,7 @@ class _ActivityFeedCardState extends State<ActivityFeedCard> {
                 const Spacer(),
                 Text(
                   '${_activities.length} mục',
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                  style: TextStyle(fontSize: 12, color: AppColors.textHint),
                 ),
               ],
             ),
@@ -747,7 +747,7 @@ class _ActivityFeedCardState extends State<ActivityFeedCard> {
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 decoration: BoxDecoration(
-                  border: Border(top: BorderSide(color: Colors.grey.shade200)),
+                  border: Border(top: BorderSide(color: AppColors.outline)),
                 ),
                 child: Center(
                   child: Text(
@@ -824,7 +824,7 @@ class _ActivityFeedCardState extends State<ActivityFeedCard> {
                 time,
                 style: TextStyle(
                   fontSize: 12,
-                  color: Colors.grey.shade500,
+                  color: AppColors.textHint,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -867,7 +867,7 @@ class _ActivityFeedCardState extends State<ActivityFeedCard> {
                 child: Icon(
                   Icons.chevron_right,
                   size: 16,
-                  color: Colors.grey.shade400,
+                  color: AppColors.textHint,
                 ),
               ),
           ],

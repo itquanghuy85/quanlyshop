@@ -75,7 +75,7 @@ class _SupplierDetailViewState extends State<SupplierDetailView> with TickerProv
         _loading = false;
       });
     } catch (e) {
-      NotificationService.showSnackBar('Lỗi tải chi tiết: $e', color: Colors.red);
+      NotificationService.showSnackBar('Lỗi tải chi tiết: $e', color: AppColors.error);
       setState(() => _loading = false);
     }
   }
@@ -107,11 +107,11 @@ class _SupplierDetailViewState extends State<SupplierDetailView> with TickerProv
               tappableToView: true,
             ),
             const SizedBox(width: 10),
-            Flexible(child: Text(widget.supplier.name, style: const TextStyle(color: Colors.white), overflow: TextOverflow.ellipsis)),
+            Flexible(child: Text(widget.supplier.name, style: const TextStyle(color: AppColors.surface), overflow: TextOverflow.ellipsis)),
           ],
         ),
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
+        backgroundColor: AppColors.surface,
+        foregroundColor: AppColors.textPrimary,
         elevation: 0,
         actions: [
           if (_tab.index == 0 && _imports.isNotEmpty)
@@ -127,9 +127,9 @@ class _SupplierDetailViewState extends State<SupplierDetailView> with TickerProv
         ],
         bottom: TabBar(
           controller: _tab,
-          labelColor: Colors.white,
+          labelColor: AppColors.surface,
           unselectedLabelColor: Colors.white70,
-          indicatorColor: Colors.white,
+          indicatorColor: AppColors.surface,
           tabs: const [
             Tab(text: 'Lịch sử nhập'),
             Tab(text: 'Công nợ'),
@@ -259,9 +259,9 @@ class _SupplierDetailViewState extends State<SupplierDetailView> with TickerProv
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.08),
+          color: color.withAlpha(20),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withOpacity(0.3)),
+          border: Border.all(color: color.withAlpha(77)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -297,7 +297,7 @@ class _SupplierDetailViewState extends State<SupplierDetailView> with TickerProv
     final date = DateFormat('dd/MM/yyyy HH:mm').format(DateTime.fromMillisecondsSinceEpoch(p['paidAt'] as int? ?? 0));
     return Card(
       child: ListTile(
-        leading: const Icon(Icons.check_circle, color: Colors.green),
+        leading: const Icon(Icons.check_circle, color: AppColors.success),
         title: Text('+ ${MoneyUtils.formatCurrency(p['amount'] as int? ?? 0)}'),
         subtitle: Text('$date | ${p['paymentMethod'] ?? ''}'),
         trailing: Text(p['note'] ?? '', style: AppTextStyles.caption),
@@ -373,7 +373,7 @@ class _SupplierDetailViewState extends State<SupplierDetailView> with TickerProv
     ).toList();
     
     if (activeDebts.isEmpty) {
-      NotificationService.showSnackBar('Không có công nợ cần thanh toán', color: Colors.orange);
+      NotificationService.showSnackBar('Không có công nợ cần thanh toán', color: AppColors.warning);
       return;
     }
     
@@ -414,7 +414,7 @@ class _SupplierDetailViewState extends State<SupplierDetailView> with TickerProv
       if (mounted) {
         NotificationService.showSnackBar(
           'Đã thanh toán ${MoneyUtils.formatCurrency(amount)}đ!',
-          color: Colors.green,
+          color: AppColors.success,
         );
         _load();
       }
@@ -422,7 +422,7 @@ class _SupplierDetailViewState extends State<SupplierDetailView> with TickerProv
       if (mounted) {
         NotificationService.showSnackBar(
           result.errorMessage ?? 'Có lỗi xảy ra',
-          color: Colors.red,
+          color: AppColors.error,
         );
       }
     }

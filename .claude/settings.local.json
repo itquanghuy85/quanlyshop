@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Set-Location \"d:\\\\FlutterProjects\\\\quanlyshop\"; flutter analyze --no-fatal-infos 2>&1 | Out-String | Select-String \"error\" -AllMatches | ForEach-Object { $_.Matches } | Select-Object -First 5; flutter analyze --no-fatal-infos 2>&1 | Select-String \"^\\\\s+error\" | Select-Object -First 20)",
+      "PowerShell(Set-Location \"d:\\\\FlutterProjects\\\\quanlyshop\"; flutter analyze --no-fatal-infos 2>&1 | Tee-Object -Variable analyzeOutput | Out-Null; $analyzeOutput | Where-Object { $_ -match \"error\" } | Select-Object -First 20)",
+      "PowerShell(Set-Location \"d:\\\\FlutterProjects\\\\quanlyshop\"; $out = flutter analyze lib/theme/ 2>&1; $out | Where-Object { $_ -match \"\\\\berror\\\\b\" -or $_ -match \"issues found\" })",
+      "Bash(adb -s HE5TAAIJAADIZ9JV install -r build/app/outputs/flutter-apk/app-release.apk)",
+      "Bash(sed -n '1415,1425p' lib/views/advanced_chat_view.dart)",
+      "Bash(sed -n '718,736p' lib/views/cash_closing_view.dart)",
+      "Bash(grep -oP 'lib\\\\\\\\[^ ]+')",
+      "Bash(grep -oP \"lib\\\\\\\\\\\\\\\\[^:']+\")",
+      "Bash(grep -oE \"lib\\\\\\\\\\\\\\\\[a-zA-Z_/\\\\\\\\\\\\\\\\]+\\(\\\\.dart\\)\")",
+      "Bash(flutter analyze *)",
+      "Read(//tmp/**)",
+      "Bash(sed -n '120,130p' lib/views/food/expiry_management_view.dart)",
+      "Bash(sed -n '460,475p' lib/views/food/expiry_management_view.dart)",
+      "PowerShell(flutter devices 2>&1)"
+    ]
+  }
+}

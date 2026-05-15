@@ -120,7 +120,7 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
         accentColor: AppBarAccents.repairs,
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white),
+            icon: const Icon(Icons.refresh, color: AppColors.surface),
             onPressed: () {
               setState(() => _loading = true);
               _load();
@@ -191,7 +191,7 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
           Text(
             value,
             style: const TextStyle(
-              color: Colors.white,
+              color: AppColors.surface,
               fontWeight: FontWeight.w700,
               fontSize: 14,
             ),
@@ -224,13 +224,13 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
         controller: _searchC,
         decoration: InputDecoration(
           hintText: 'Tìm theo tên máy, khách hàng, SĐT, ghi chú...',
-          hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
-          prefixIcon: Icon(Icons.search, color: Colors.grey.shade400, size: 20),
+          hintStyle: TextStyle(color: AppColors.textHint, fontSize: 13),
+          prefixIcon: Icon(Icons.search, color: AppColors.textHint, size: 20),
           suffixIcon: _search.isNotEmpty
               ? IconButton(
                   icon: Icon(
                     Icons.clear,
-                    color: Colors.grey.shade400,
+                    color: AppColors.textHint,
                     size: 18,
                   ),
                   onPressed: () {
@@ -243,15 +243,15 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
                 )
               : null,
           filled: true,
-          fillColor: Colors.white,
+          fillColor: AppColors.surface,
           contentPadding: const EdgeInsets.symmetric(vertical: 8),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide(color: Colors.grey.shade200),
+            borderSide: BorderSide(color: AppColors.outline),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide(color: Colors.grey.shade200),
+            borderSide: BorderSide(color: AppColors.outline),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
@@ -271,11 +271,11 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
   // === STATUS CHIPS ===
   Widget _buildStatusChips() {
     const filters = [
-      ('ALL', 'Tất cả', Icons.apps, Colors.blue),
-      ('STORED', 'Lưu kho', Icons.inventory_2, Colors.blue),
-      ('USED', 'Đã dùng', Icons.build, Colors.orange),
-      ('SOLD', 'Đã bán', Icons.sell, Colors.green),
-      ('DISCARDED', 'Đã hủy', Icons.delete_outline, Colors.grey),
+      ('ALL', 'Tất cả', Icons.apps, AppColors.primary),
+      ('STORED', 'Lưu kho', Icons.inventory_2, AppColors.primary),
+      ('USED', 'Đã dùng', Icons.build, AppColors.warning),
+      ('SOLD', 'Đã bán', Icons.sell, AppColors.success),
+      ('DISCARDED', 'Đã hủy', Icons.delete_outline, AppColors.textHint),
     ];
     return Container(
       height: 38,
@@ -296,20 +296,20 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
                 '${f.$2} ($count)',
                 style: TextStyle(
                   fontSize: 12,
-                  color: selected ? Colors.white : Colors.grey.shade700,
+                  color: selected ? AppColors.surface : AppColors.textSecondary,
                 ),
               ),
               avatar: Icon(
                 f.$3,
                 size: 14,
-                color: selected ? Colors.white : f.$4,
+                color: selected ? AppColors.surface : f.$4,
               ),
               selectedColor: f.$4,
-              backgroundColor: Colors.white,
+              backgroundColor: AppColors.surface,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
                 side: BorderSide(
-                  color: selected ? f.$4 : Colors.grey.shade300,
+                  color: selected ? f.$4 : AppColors.outline,
                 ),
               ),
               showCheckmark: false,
@@ -332,20 +332,20 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.phone_android, size: 80, color: Colors.grey[200]),
+          Icon(Icons.phone_android, size: 80, color: AppColors.divider),
           const SizedBox(height: 16),
           Text(
             _search.isNotEmpty
                 ? 'Không tìm thấy máy xác phù hợp'
                 : 'Chưa có máy xác nào',
-            style: const TextStyle(color: Colors.grey),
+            style: const TextStyle(color: AppColors.textHint),
             textAlign: TextAlign.center,
           ),
           if (_search.isEmpty) ...[
             const SizedBox(height: 8),
             Text(
               'Nhấn + để thêm máy xác mới',
-              style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
+              style: TextStyle(color: AppColors.textHint, fontSize: 12),
             ),
           ],
         ],
@@ -366,9 +366,9 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
         margin: const EdgeInsets.only(bottom: 6),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.grey.shade100),
+          border: Border.all(color: AppColors.background),
         ),
         child: Row(
           children: [
@@ -405,7 +405,7 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
                       '${p.customerName}${p.customerPhone != null && p.customerPhone!.isNotEmpty ? ' · ${p.customerPhone}' : ''}',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey.shade600,
+                        color: AppColors.textSecondary,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -414,7 +414,7 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
                     dateStr,
                     style: TextStyle(
                       fontSize: 11,
-                      color: Colors.grey.shade400,
+                      color: AppColors.textHint,
                     ),
                   ),
                 ],
@@ -436,7 +436,7 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.1),
+                    color: statusColor.withAlpha(26),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
@@ -463,10 +463,10 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
         width: 40,
         height: 40,
         decoration: BoxDecoration(
-          color: Colors.grey.shade100,
+          color: AppColors.background,
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Icon(Icons.phone_android, color: Colors.grey.shade400, size: 22),
+        child: Icon(Icons.phone_android, color: AppColors.textHint, size: 22),
       );
     }
     return ClipRRect(
@@ -480,12 +480,12 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: Colors.grey.shade100,
+            color: AppColors.background,
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(
             Icons.broken_image,
-            color: Colors.grey.shade400,
+            color: AppColors.textHint,
             size: 22,
           ),
         ),
@@ -512,7 +512,7 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
           builder: (_, scrollC) {
             return Container(
               decoration: const BoxDecoration(
-                color: Colors.white,
+                color: AppColors.surface,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
               ),
               child: ListView(
@@ -525,7 +525,7 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
                       width: 40,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade300,
+                        color: AppColors.outline,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -548,7 +548,7 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: statusColor.withOpacity(0.1),
+                          color: statusColor.withAlpha(26),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
@@ -613,7 +613,7 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
                                   errorBuilder: (_, __, ___) => Container(
                                     width: 120,
                                     height: 120,
-                                    color: Colors.grey.shade200,
+                                    color: AppColors.outline,
                                     child: const Icon(Icons.broken_image),
                                   ),
                                 ),
@@ -654,7 +654,7 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
                           icon: const Icon(Icons.swap_horiz, size: 16),
                           label: const Text('Đổi TT'),
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.orange,
+                            foregroundColor: AppColors.warning,
                           ),
                         ),
                       ),
@@ -695,13 +695,13 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 16, color: Colors.grey.shade500),
+          Icon(icon, size: 16, color: AppColors.textHint),
           const SizedBox(width: 8),
           SizedBox(
             width: 80,
             child: Text(
               label,
-              style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+              style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
             ),
           ),
           Flexible(
@@ -1005,7 +1005,7 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
                         },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
+                    foregroundColor: AppColors.surface,
                   ),
                   child: saving
                       ? const SizedBox(
@@ -1013,7 +1013,7 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
                           height: 16,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            color: Colors.white,
+                            color: AppColors.surface,
                           ),
                         )
                       : Text(isEdit ? 'CẬP NHẬT' : 'THÊM'),
@@ -1040,10 +1040,10 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
     if (!showImages && totalImages == 0) {
       return TextButton.icon(
         onPressed: () => onToggle(true),
-        icon: Icon(Icons.add_a_photo, size: 16, color: Colors.grey.shade600),
+        icon: Icon(Icons.add_a_photo, size: 16, color: AppColors.textSecondary),
         label: Text(
           'Thêm hình ảnh (tùy chọn)',
-          style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+          style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
         ),
       );
     }
@@ -1122,7 +1122,7 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
                             errorBuilder: (_, __, ___) => Container(
                               width: 80,
                               height: 80,
-                              color: Colors.grey.shade200,
+                              color: AppColors.outline,
                               child: const Icon(Icons.broken_image, size: 24),
                             ),
                           ),
@@ -1136,13 +1136,13 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
                             child: Container(
                               padding: const EdgeInsets.all(2),
                               decoration: const BoxDecoration(
-                                color: Colors.red,
+                                color: AppColors.error,
                                 shape: BoxShape.circle,
                               ),
                               child: const Icon(
                                 Icons.close,
                                 size: 12,
-                                color: Colors.white,
+                                color: AppColors.surface,
                               ),
                             ),
                           ),
@@ -1161,14 +1161,14 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
                           width: 80,
                           height: 80,
                           decoration: BoxDecoration(
-                            color: Colors.grey.shade100,
+                            color: AppColors.background,
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(color: AppColors.primary),
                           ),
                           child: const Center(
                             child: Icon(
                               Icons.image,
-                              color: Colors.grey,
+                              color: AppColors.textHint,
                               size: 28,
                             ),
                           ),
@@ -1182,13 +1182,13 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
                             child: Container(
                               padding: const EdgeInsets.all(2),
                               decoration: const BoxDecoration(
-                                color: Colors.red,
+                                color: AppColors.error,
                                 shape: BoxShape.circle,
                               ),
                               child: const Icon(
                                 Icons.close,
                                 size: 12,
-                                color: Colors.white,
+                                color: AppColors.surface,
                               ),
                             ),
                           ),
@@ -1207,10 +1207,10 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
   // === CHANGE STATUS ===
   void _showChangeStatus(SalvagePhone p) {
     const statuses = [
-      ('STORED', 'Đang lưu kho', Icons.inventory_2, Colors.blue),
-      ('USED', 'Đã dùng linh kiện', Icons.build, Colors.orange),
-      ('SOLD', 'Đã bán', Icons.sell, Colors.green),
-      ('DISCARDED', 'Đã hủy', Icons.delete_outline, Colors.grey),
+      ('STORED', 'Đang lưu kho', Icons.inventory_2, AppColors.primary),
+      ('USED', 'Đã dùng linh kiện', Icons.build, AppColors.warning),
+      ('SOLD', 'Đã bán', Icons.sell, AppColors.success),
+      ('DISCARDED', 'Đã hủy', Icons.delete_outline, AppColors.textHint),
     ];
 
     showDialog(
@@ -1353,7 +1353,7 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
                   ElevatedButton.styleFrom(backgroundColor: AppColors.error),
               child: const Text(
                 'XÓA',
-                style: TextStyle(color: Colors.white),
+                style: TextStyle(color: AppColors.surface),
               ),
             ),
           ],

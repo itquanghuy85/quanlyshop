@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
 
 /// A reusable widget for lazy loading lists with pagination
 /// Provides infinite scroll functionality with loading indicator
@@ -280,7 +281,7 @@ class _LazyLoadListViewState<T> extends State<LazyLoadListView<T>> {
                   child: Text(
                     'Đã hiển thị ${_filteredItems.length} mục',
                     style: TextStyle(
-                      color: Colors.grey[600],
+                      color: AppColors.textSecondary,
                       fontSize: 14,
                     ),
                   ),
@@ -300,7 +301,7 @@ class _LazyLoadListViewState<T> extends State<LazyLoadListView<T>> {
           Icon(
             Icons.inbox_outlined,
             size: 64,
-            color: Colors.grey[400],
+            color: AppColors.textHint,
           ),
           const SizedBox(height: 16),
           Text(
@@ -309,7 +310,7 @@ class _LazyLoadListViewState<T> extends State<LazyLoadListView<T>> {
                 : 'Chưa có dữ liệu',
             style: TextStyle(
               fontSize: 17,
-              color: Colors.grey[600],
+              color: AppColors.textSecondary,
             ),
           ),
         ],

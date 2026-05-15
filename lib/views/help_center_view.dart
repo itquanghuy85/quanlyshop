@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
 import '../widgets/responsive_wrapper.dart';
 import '../data/help_center_repository.dart';
 import '../theme/app_text_styles.dart';
+import '../theme/app_spacing.dart';
 import '../services/notification_service.dart';
 
 class HelpCenterView extends StatefulWidget {
@@ -92,11 +94,11 @@ class _HelpCenterViewState extends State<HelpCenterView> {
           'Trung tâm hướng dẫn',
           style: TextStyle(
             fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: AppColors.surface,
           ),
         ),
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
+        backgroundColor: AppColors.surface,
+        foregroundColor: AppColors.textPrimary,
         elevation: 0,
       ),
       body: ResponsiveCenter(child: Column(
@@ -113,10 +115,10 @@ class _HelpCenterViewState extends State<HelpCenterView> {
                     prefixIcon: const Icon(Icons.search),
                     hintText: 'Tìm kiếm theo từ khóa, tính năng... ',
                     filled: true,
-                    fillColor: Colors.white,
+                    fillColor: AppColors.surface,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.grey.shade300),
+                      borderSide: BorderSide(color: AppColors.outline),
                     ),
                   ),
                 ),
@@ -168,7 +170,7 @@ class _HelpCenterViewState extends State<HelpCenterView> {
         onPressed: () {
           NotificationService.showSnackBar(
             'Góp ý tính năng mới? Liên hệ support@huluca.com',
-            color: Colors.blue,
+            color: AppColors.primary,
           );
         },
         icon: const Icon(Icons.support_agent),
@@ -221,20 +223,20 @@ class _HelpCenterViewState extends State<HelpCenterView> {
       return const SizedBox.shrink();
     }
     return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      margin: const EdgeInsets.only(bottom: AppSpacing.lg),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.lg)),
       elevation: 0,
-      color: Colors.grey.shade50,
+      color: Theme.of(context).colorScheme.surfaceVariant,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
                 CircleAvatar(
-                  backgroundColor: Colors.blue.shade100,
-                  child: Icon(category.icon, color: Colors.blue.shade700),
+                  backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                  child: Icon(category.icon, color: Theme.of(context).colorScheme.primary),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -245,14 +247,14 @@ class _HelpCenterViewState extends State<HelpCenterView> {
                         category.title,
                         style: AppTextStyles.subtitle1.copyWith(
                           fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         category.description,
-                        style: TextStyle(
-                          color: Colors.grey.shade600,
-                          fontSize: AppTextStyles.caption.fontSize,
+                        style: AppTextStyles.caption.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ],
@@ -270,23 +272,22 @@ class _HelpCenterViewState extends State<HelpCenterView> {
 
   Widget _topicCard(HelpTopic topic, String? categoryName) {
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      margin: const EdgeInsets.only(bottom: AppSpacing.md),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.lg)),
       elevation: 0,
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppSpacing.lg),
         onTap: () => _openTopicDetail(topic),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppSpacing.lg),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (categoryName != null) ...[
                 Text(
                   categoryName,
-                  style: const TextStyle(
-                    fontSize: AppTextStyles.overlineSize,
-                    color: Colors.blue,
+                  style: AppTextStyles.overline.copyWith(
+                    color: Theme.of(context).colorScheme.primary,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -294,12 +295,17 @@ class _HelpCenterViewState extends State<HelpCenterView> {
               ],
               Text(
                 topic.title,
-                style: AppTextStyles.subtitle1.copyWith(fontWeight: FontWeight.bold),
+                style: AppTextStyles.subtitle1.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
               ),
               const SizedBox(height: 8),
               Text(
                 topic.summary,
-                style: TextStyle(color: Colors.grey.shade700),
+                style: AppTextStyles.body2.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
               const SizedBox(height: 12),
               Wrap(
@@ -315,7 +321,7 @@ class _HelpCenterViewState extends State<HelpCenterView> {
                   for (final tag in topic.tags.take(3))
                     Chip(
                       label: Text('#$tag'),
-                      backgroundColor: Colors.grey.shade200,
+                      backgroundColor: AppColors.outline,
                       visualDensity: VisualDensity.compact,
                     ),
                 ],
@@ -329,9 +335,9 @@ class _HelpCenterViewState extends State<HelpCenterView> {
 
   Widget _infoChip(IconData icon, String label) {
     return Chip(
-      avatar: Icon(icon, size: 16, color: Colors.blue),
-      label: Text(label),
-      backgroundColor: Colors.blue.shade50,
+      avatar: Icon(icon, size: 16, color: Theme.of(context).colorScheme.primary),
+      label: Text(label, style: AppTextStyles.caption),
+      backgroundColor: Theme.of(context).colorScheme.primaryContainer,
       visualDensity: VisualDensity.compact,
     );
   }
@@ -339,34 +345,38 @@ class _HelpCenterViewState extends State<HelpCenterView> {
   Widget _buildQuickSummary(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: Colors.deepPurple.shade50,
-        borderRadius: BorderRadius.circular(12),
+        color: Theme.of(context).colorScheme.secondaryContainer,
+        borderRadius: BorderRadius.circular(AppSpacing.md),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             'Hướng dẫn nhanh',
-            style: AppTextStyles.subtitle1.copyWith(fontWeight: FontWeight.bold),
+            style: AppTextStyles.subtitle1.copyWith(
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).colorScheme.onSecondaryContainer,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             'Chọn chủ đề phù hợp hoặc nhập từ khóa để xem hướng dẫn chi tiết từng bước, có hình ảnh và video (nếu có).',
-            style: TextStyle(color: Colors.deepPurple.shade700),
+            style: AppTextStyles.body2.copyWith(
+              color: Theme.of(context).colorScheme.secondary,
+            ),
           ),
           const SizedBox(height: 10),
           Row(
             children: [
-              const Icon(Icons.verified_user, size: 18, color: Colors.blue),
+              const Icon(Icons.verified_user, size: 18, color: AppColors.primary),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   'Mọi nội dung được biên soạn theo quy trình chuẩn của Shopmanager.',
-                  style: TextStyle(
-                    color: Colors.deepPurple.shade600,
-                    fontSize: AppTextStyles.caption.fontSize,
+                  style: AppTextStyles.caption.copyWith(
+                    color: Theme.of(context).colorScheme.onSecondaryContainer,
                   ),
                 ),
               ),
@@ -380,18 +390,17 @@ class _HelpCenterViewState extends State<HelpCenterView> {
   Widget _emptyState(String message) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(AppSpacing.xl),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.support, size: 64, color: Colors.grey),
-            const SizedBox(height: 12),
+            Icon(Icons.support, size: 64, color: Theme.of(context).colorScheme.primary),
+            const SizedBox(height: AppSpacing.md),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.grey.shade600,
-                fontSize: AppTextStyles.subtitle2.fontSize,
+              style: AppTextStyles.subtitle2.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
           ],
@@ -412,7 +421,7 @@ class _HelpCenterViewState extends State<HelpCenterView> {
         label: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 16, color: isActive ? Colors.white : Colors.blue),
+            Icon(icon, size: 16, color: isActive ? AppColors.surface : AppColors.primary),
             const SizedBox(width: 6),
             Text(label),
           ],
@@ -422,10 +431,10 @@ class _HelpCenterViewState extends State<HelpCenterView> {
           _activeCategoryId = id;
           _searchCtrl.clear();
         }),
-        selectedColor: Colors.blue,
-        backgroundColor: Colors.blue.shade50,
+        selectedColor: AppColors.primary,
+        backgroundColor: AppColors.primary,
         labelStyle: TextStyle(
-          color: isActive ? Colors.white : Colors.blue.shade700,
+          color: isActive ? AppColors.surface : AppColors.primary,
           fontWeight: FontWeight.bold,
         ),
       ),
@@ -437,7 +446,7 @@ class _HelpCenterViewState extends State<HelpCenterView> {
     showAppBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -461,7 +470,7 @@ class _HelpCenterViewState extends State<HelpCenterView> {
                       width: 40,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade300,
+                        color: AppColors.outline,
                         borderRadius: BorderRadius.circular(4),
                       ),
                     ),
@@ -473,12 +482,12 @@ class _HelpCenterViewState extends State<HelpCenterView> {
                       children: [
                         Row(
                           children: [
-                            Icon(category.icon, color: Colors.blue),
+                            Icon(category.icon, color: AppColors.primary),
                             const SizedBox(width: 8),
                             Text(
                               category.title,
                               style: AppTextStyles.caption.copyWith(
-                                color: Colors.blue,
+                                color: AppColors.primary,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -501,19 +510,19 @@ class _HelpCenterViewState extends State<HelpCenterView> {
                   const SizedBox(height: 12),
                   Text(
                     topic.summary,
-                    style: TextStyle(color: Colors.grey.shade700),
+                    style: TextStyle(color: AppColors.textSecondary),
                   ),
                   const SizedBox(height: 24),
                   if (topic.estimatedTime != null || topic.difficulty.isNotEmpty)
                     Container(
                       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                       decoration: BoxDecoration(
-                        color: Colors.blue.shade50,
+                        color: AppColors.primary,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.speed, color: Colors.blue),
+                          const Icon(Icons.speed, color: AppColors.primary),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Column(
@@ -523,13 +532,13 @@ class _HelpCenterViewState extends State<HelpCenterView> {
                                   Text(
                                     'Thời gian thực hiện: ${topic.estimatedTime}',
                                     style: AppTextStyles.subtitle2.copyWith(
-                                      color: Colors.blue.shade700,
+                                      color: AppColors.primary,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
                                 Text(
                                   'Độ khó: ${topic.difficulty}',
-                                  style: TextStyle(color: Colors.blue.shade700),
+                                  style: TextStyle(color: AppColors.primary),
                                 ),
                               ],
                             ),
@@ -546,7 +555,7 @@ class _HelpCenterViewState extends State<HelpCenterView> {
                     const SizedBox(height: 8),
                     for (final item in topic.prerequisites)
                       ListTile(
-                        leading: const Icon(Icons.check_circle_outline, color: Colors.teal),
+                        leading: const Icon(Icons.check_circle_outline, color: AppColors.info),
                         title: Text(item),
                         contentPadding: EdgeInsets.zero,
                         dense: true,
@@ -565,10 +574,10 @@ class _HelpCenterViewState extends State<HelpCenterView> {
                         children: [
                           CircleAvatar(
                             radius: 14,
-                            backgroundColor: Colors.blue.shade100,
+                            backgroundColor: AppColors.primary,
                             child: Text(
                               '${i + 1}',
-                              style: TextStyle(color: Colors.blue.shade800),
+                              style: TextStyle(color: AppColors.primary),
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -590,7 +599,7 @@ class _HelpCenterViewState extends State<HelpCenterView> {
                     const SizedBox(height: 8),
                     for (final tip in topic.tips)
                       ListTile(
-                        leading: const Icon(Icons.check_circle, color: Colors.green),
+                        leading: const Icon(Icons.check_circle, color: AppColors.success),
                         title: Text(tip),
                         contentPadding: EdgeInsets.zero,
                       ),
@@ -600,13 +609,13 @@ class _HelpCenterViewState extends State<HelpCenterView> {
                     ElevatedButton.icon(
                       onPressed: () => NotificationService.showSnackBar(
                         'Mở video hướng dẫn: ${topic.videoUrl}',
-                        color: Colors.blue,
+                        color: AppColors.primary,
                       ),
                       icon: const Icon(Icons.play_circle_fill),
                       label: const Text('Xem video minh họa'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.redAccent,
-                        foregroundColor: Colors.white,
+                        foregroundColor: AppColors.surface,
                       ),
                     ),
                   ],
@@ -618,18 +627,18 @@ class _HelpCenterViewState extends State<HelpCenterView> {
                     ),
                     const SizedBox(height: 8),
                     Card(
-                      color: Colors.grey.shade50,
+                      color: AppColors.background,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       child: Column(
                         children: [
                           for (final resource in topic.resources)
                             ListTile(
-                              leading: const Icon(Icons.file_present_outlined, color: Colors.blueGrey),
+                              leading: const Icon(Icons.file_present_outlined, color: AppColors.textSecondary),
                               title: Text(resource),
                               trailing: const Icon(Icons.open_in_new, size: 18),
                               onTap: () => NotificationService.showSnackBar(
                                 'Mở tài liệu: $resource',
-                                color: Colors.blueGrey,
+                                color: AppColors.textSecondary,
                               ),
                             ),
                         ],
@@ -663,7 +672,7 @@ class _HelpCenterViewState extends State<HelpCenterView> {
                   const SizedBox(height: 24),
                   Text(
                     'Khó khăn? Liên hệ team hỗ trợ: support@huluca.com',
-                    style: TextStyle(color: Colors.grey.shade600),
+                    style: TextStyle(color: AppColors.textSecondary),
                   ),
                   const SizedBox(height: 16),
                   SizedBox(
@@ -671,7 +680,7 @@ class _HelpCenterViewState extends State<HelpCenterView> {
                     child: OutlinedButton.icon(
                       onPressed: () => NotificationService.showSnackBar(
                         'Đã đánh dấu hướng dẫn này là đã xem.',
-                        color: Colors.green,
+                        color: AppColors.success,
                       ),
                       icon: const Icon(Icons.check_circle_outline),
                       label: const Text('Tôi đã hiểu hướng dẫn này'),
@@ -689,32 +698,32 @@ class _HelpCenterViewState extends State<HelpCenterView> {
   Widget _buildQuickActions(String role) {
     final chips = [
       ActionChip(
-        avatar: const Icon(Icons.play_circle_outline, size: 18, color: Colors.deepPurple),
+        avatar: const Icon(Icons.play_circle_outline, size: 18, color: AppColors.repairDelivered),
         label: const Text('Video hướng dẫn'),
         onPressed: () {
           NotificationService.showSnackBar(
             'Các video hướng dẫn đang được cập nhật.',
-            color: Colors.deepPurple,
+            color: AppColors.repairDelivered,
           );
         },
       ),
       ActionChip(
-        avatar: const Icon(Icons.support_agent, size: 18, color: Colors.blue),
+        avatar: const Icon(Icons.support_agent, size: 18, color: AppColors.primary),
         label: const Text('Liên hệ hỗ trợ'),
         onPressed: () {
           NotificationService.showSnackBar(
             'Gửi email đến support@huluca.com để được trợ giúp nhanh.',
-            color: Colors.blue,
+            color: AppColors.primary,
           );
         },
       ),
       ActionChip(
-        avatar: const Icon(Icons.feedback_outlined, size: 18, color: Colors.orange),
+        avatar: const Icon(Icons.feedback_outlined, size: 18, color: AppColors.warning),
         label: const Text('Đề xuất cải tiến'),
         onPressed: () {
           NotificationService.showSnackBar(
             'Góp ý của bạn sẽ giúp tài liệu đầy đủ hơn!',
-            color: Colors.orange,
+            color: AppColors.warning,
           );
         },
       ),
@@ -723,13 +732,13 @@ class _HelpCenterViewState extends State<HelpCenterView> {
     if (role != 'all') {
       chips.add(
         ActionChip(
-          avatar: const Icon(Icons.workspace_premium_outlined, size: 18, color: Colors.green),
+          avatar: const Icon(Icons.workspace_premium_outlined, size: 18, color: AppColors.success),
           label: Text('Dành cho ${_localizeRole(role)}'),
           onPressed: () {
             setState(() => _activeCategoryId = 'all');
             NotificationService.showSnackBar(
               'Đã lọc các hướng dẫn phù hợp với vai trò của bạn.',
-              color: Colors.green,
+              color: AppColors.success,
             );
           },
         ),
@@ -749,7 +758,7 @@ class _HelpCenterViewState extends State<HelpCenterView> {
       children: [
         Row(
           children: [
-            const Icon(Icons.star_rounded, color: Colors.amber),
+            const Icon(Icons.star_rounded, color: AppColors.warning),
             const SizedBox(width: 8),
             Text(
               'Nổi bật',
@@ -776,15 +785,15 @@ class _HelpCenterViewState extends State<HelpCenterView> {
                     borderRadius: BorderRadius.circular(18),
                     gradient: LinearGradient(
                       colors: [
-                        Colors.blue.shade400,
-                        Colors.blue.shade200,
+                        AppColors.primary,
+                        AppColors.primary,
                       ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.blue.shade100,
+                        color: AppColors.primary,
                         blurRadius: 10,
                         offset: const Offset(0, 6),
                       ),
@@ -797,7 +806,7 @@ class _HelpCenterViewState extends State<HelpCenterView> {
                         children: [
                           Icon(
                             category?.icon ?? Icons.menu_book,
-                            color: Colors.white,
+                            color: AppColors.surface,
                           ),
                           const SizedBox(width: 8),
                           Expanded(
@@ -806,7 +815,7 @@ class _HelpCenterViewState extends State<HelpCenterView> {
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
-                                color: Colors.white,
+                                color: AppColors.surface,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -847,7 +856,7 @@ class _HelpCenterViewState extends State<HelpCenterView> {
   Widget _supportCard() {
     return Card(
       elevation: 0,
-      color: Colors.blueGrey.shade50,
+      color: AppColors.textSecondary,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -856,7 +865,7 @@ class _HelpCenterViewState extends State<HelpCenterView> {
           children: [
             Row(
               children: [
-                const Icon(Icons.headset_mic, color: Colors.blueGrey),
+                const Icon(Icons.headset_mic, color: AppColors.textSecondary),
                 const SizedBox(width: 8),
                 Text(
                   'Cần thêm trợ giúp?',
@@ -867,7 +876,7 @@ class _HelpCenterViewState extends State<HelpCenterView> {
             const SizedBox(height: 8),
             Text(
               'Đội ngũ Huluca sẵn sàng hỗ trợ qua email, Zalo hoặc hướng dẫn trực tiếp.',
-              style: TextStyle(color: Colors.blueGrey.shade700),
+              style: TextStyle(color: AppColors.textSecondary),
             ),
             const SizedBox(height: 12),
             Wrap(
@@ -877,7 +886,7 @@ class _HelpCenterViewState extends State<HelpCenterView> {
                 OutlinedButton.icon(
                   onPressed: () => NotificationService.showSnackBar(
                     'Đã sao chép email support@huluca.com',
-                    color: Colors.blueGrey,
+                    color: AppColors.textSecondary,
                   ),
                   icon: const Icon(Icons.email_outlined),
                   label: const Text('Email support@huluca.com'),
@@ -885,7 +894,7 @@ class _HelpCenterViewState extends State<HelpCenterView> {
                 OutlinedButton.icon(
                   onPressed: () => NotificationService.showSnackBar(
                     'Liên hệ Zalo CSKH: 0901 234 567',
-                    color: Colors.blueGrey,
+                    color: AppColors.textSecondary,
                   ),
                   icon: const Icon(Icons.chat_bubble_outline),
                   label: const Text('Zalo CSKH'),
@@ -893,7 +902,7 @@ class _HelpCenterViewState extends State<HelpCenterView> {
                 OutlinedButton.icon(
                   onPressed: () => NotificationService.showSnackBar(
                     'Đặt lịch training online trong tuần này.',
-                    color: Colors.blueGrey,
+                    color: AppColors.textSecondary,
                   ),
                   icon: const Icon(Icons.calendar_today_outlined),
                   label: const Text('Đặt lịch training'),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/validated_text_field.dart';
 
@@ -217,7 +218,7 @@ class _SaleInvoiceTemplateViewState extends State<SaleInvoiceTemplateView> {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey),
+                        border: Border.all(color: AppColors.textHint),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(

@@ -258,9 +258,9 @@ class _StaffPublicProfileViewState extends State<StaffPublicProfileView> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppColors.outline),
       ),
       child: Column(
         children: [
@@ -284,7 +284,7 @@ class _StaffPublicProfileViewState extends State<StaffPublicProfileView> {
       children: _monthlySales.take(5).map((sale) {
         return ListTile(
           dense: true,
-          leading: const Icon(Icons.shopping_cart, size: 18, color: Colors.green),
+          leading: const Icon(Icons.shopping_cart, size: 18, color: AppColors.success),
           title: Text(
             sale.customerName.isNotEmpty ? sale.customerName : 'Khách lẻ',
             maxLines: 1,
@@ -314,7 +314,7 @@ class _StaffPublicProfileViewState extends State<StaffPublicProfileView> {
       children: _monthlyRepairs.take(5).map((repair) {
         return ListTile(
           dense: true,
-          leading: const Icon(Icons.build, size: 18, color: Colors.blue),
+          leading: const Icon(Icons.build, size: 18, color: AppColors.primary),
           title: Text(
             repair.customerName,
             maxLines: 1,
@@ -348,7 +348,7 @@ class _StaffPublicProfileViewState extends State<StaffPublicProfileView> {
           leading: Icon(
             a.isLate == 1 ? Icons.warning_amber_rounded : Icons.check_circle_outline,
             size: 18,
-            color: a.isLate == 1 ? Colors.orange : Colors.green,
+            color: a.isLate == 1 ? AppColors.warning : AppColors.success,
           ),
           title: Text(a.dateKey),
           subtitle: Text(
@@ -371,9 +371,9 @@ class _StaffPublicProfileViewState extends State<StaffPublicProfileView> {
       margin: const EdgeInsets.fromLTRB(16, 10, 16, 0),
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppColors.outline),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

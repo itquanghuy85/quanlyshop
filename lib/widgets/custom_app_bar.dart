@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import '../theme/app_text_styles.dart';
 
@@ -7,11 +8,11 @@ class CustomAppBar {
   CustomAppBar._();
 
   // ========== CONSTANTS - ULTRA COMPACT ==========
-  static const double kAppBarHeight = 44.0;
+  static const double kAppBarHeight = 52.0;
   static const double kAppBarElevation = 0.0;
   static const double kTabBarHeight = 44.0;
-  static const double kTitleFontSize = 14.0;
-  static const double kSubtitleFontSize = 10.0;
+  static const double kTitleFontSize = 20.0;
+  static const double kSubtitleFontSize = 12.0;
 
   // ========== COLOR SCHEME ==========
   static const Color kPrimaryColor = Color(0xFF1976D2); // Blue 700
@@ -34,7 +35,7 @@ class CustomAppBar {
   static const Color kAccentRed = Color(0xFFE53935);
   static const Color kAccentPurple = Color(0xFF8E24AA);
 
-  static const Color kSurfaceWhite = Colors.white;
+  static const Color kSurfaceWhite = AppColors.surface;
   static const Color kSurfaceLight = Color(0xFFF5F5F5);
   static const Color kTextPrimary = Color(0xFF212121);
   static const Color kTextSecondary = Color(0xFF616161);
@@ -54,7 +55,7 @@ class CustomAppBar {
     double? elevation,
     VoidCallback? onBackPressed,
     SystemUiOverlayStyle? systemOverlayStyle,
-    bool useGradient = true, // Mặc định dùng gradient
+    bool useGradient = true, // Zalo blue gradient by default
   }) {
     final accent = accentColor ?? kPrimaryColor;
 
@@ -67,7 +68,7 @@ class CustomAppBar {
         surfaceTintColor: Colors.transparent,
         systemOverlayStyle: SystemUiOverlayStyle.light,
         backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
+        foregroundColor: AppColors.surface,
         centerTitle: centerTitle,
         automaticallyImplyLeading: showBackButton,
         flexibleSpace: Container(
@@ -80,7 +81,7 @@ class CustomAppBar {
                     icon: const Icon(
                       Icons.arrow_back_ios_rounded,
                       size: 20,
-                      color: Colors.white,
+                      color: AppColors.surface,
                     ),
                     onPressed: onBackPressed,
                   )
@@ -91,7 +92,7 @@ class CustomAppBar {
                 ...actions.map(
                   (a) => Theme(
                     data: ThemeData(
-                      iconTheme: const IconThemeData(color: Colors.white),
+                      iconTheme: const IconThemeData(color: AppColors.surface),
                     ),
                     child: a,
                   ),
@@ -106,7 +107,7 @@ class CustomAppBar {
     // Nền sáng - chữ tối (legacy style)
     final bgColor = backgroundColor ?? kSurfaceWhite;
     final isLight = bgColor.computeLuminance() > 0.5;
-    final fgColor = isLight ? kTextPrimary : Colors.white;
+    final fgColor = isLight ? kTextPrimary : AppColors.surface;
 
     return AppBar(
       toolbarHeight: kAppBarHeight,
@@ -258,7 +259,7 @@ class CustomAppBar {
         surfaceTintColor: Colors.transparent,
         systemOverlayStyle: SystemUiOverlayStyle.light,
         backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
+        foregroundColor: AppColors.surface,
         automaticallyImplyLeading: showBackButton,
         flexibleSpace: Container(
           decoration: const BoxDecoration(gradient: kDefaultGradient),
@@ -268,7 +269,7 @@ class CustomAppBar {
                 icon: const Icon(
                   Icons.arrow_back_ios_rounded,
                   size: 20,
-                  color: Colors.white,
+                  color: AppColors.surface,
                 ),
                 onPressed: onBackPressed,
               )
@@ -279,7 +280,7 @@ class CustomAppBar {
                 ...actions.map(
                   (a) => Theme(
                     data: ThemeData(
-                      iconTheme: const IconThemeData(color: Colors.white),
+                      iconTheme: const IconThemeData(color: AppColors.surface),
                     ),
                     child: a,
                   ),
@@ -386,7 +387,7 @@ class CustomAppBar {
         style: const TextStyle(
           fontWeight: FontWeight.w600,
           fontSize: kTitleFontSize,
-          color: Colors.white,
+          color: AppColors.surface,
           letterSpacing: -0.3,
         ),
       );
@@ -403,7 +404,7 @@ class CustomAppBar {
           style: const TextStyle(
             fontWeight: FontWeight.w600,
             fontSize: kTitleFontSize,
-            color: Colors.white,
+            color: AppColors.surface,
             letterSpacing: -0.3,
           ),
         ),
@@ -572,7 +573,7 @@ class CustomTabBar {
         controller: controller,
         isScrollable: isScrollable,
         labelColor: const Color(0xFF143E82),
-        unselectedLabelColor: Colors.white.withValues(alpha: 0.82),
+        unselectedLabelColor: AppColors.surface.withValues(alpha: 0.82),
         labelStyle: TextStyle(
           fontWeight: FontWeight.w600,
           fontSize: AppTextStyles.subtitle1.fontSize,
@@ -583,11 +584,11 @@ class CustomTabBar {
         ),
         indicatorSize: TabBarIndicatorSize.tab,
         indicator: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(10),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.12),
+              color: AppColors.textPrimary.withValues(alpha: 0.12),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -681,7 +682,7 @@ class CustomTabBar {
               child: Text(
                 count > 99 ? '99+' : count.toString(),
                 style: TextStyle(
-                  color: Colors.white,
+                  color: AppColors.surface,
                   fontSize: AppTextStyles.caption.fontSize,
                   fontWeight: FontWeight.bold,
                 ),
@@ -747,7 +748,7 @@ class AppBarActions {
               child: Text(
                 badgeCount > 99 ? '99+' : badgeCount.toString(),
                 style: TextStyle(
-                  color: Colors.white,
+                  color: AppColors.surface,
                   fontSize: AppTextStyles.caption.fontSize,
                   fontWeight: FontWeight.bold,
                 ),

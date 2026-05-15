@@ -23,6 +23,7 @@ import 'services/user_service.dart';
 import 'services/notification_service.dart';
 import 'services/connectivity_service.dart';
 import 'services/sync_service.dart';
+import 'services/storage_service.dart'; // For retrying pending uploads
 import 'services/sync_health_check.dart'; // Kiểm tra sync health
 import 'services/sync_orchestrator.dart'; // Quản lý đồng bộ local -> cloud
 import 'services/warranty_reminder_service.dart';
@@ -101,14 +102,19 @@ Future<void> _activateFirebaseAppCheck() async {
 
   final shouldSkipForIOS = !kIsWeb && Platform.isIOS && _disableIosAppCheck;
   final shouldSkipForAndroidDebug =
-      !kIsWeb && Platform.isAndroid && kDebugMode && !_enableAndroidDebugAppCheck;
-  if (_disableFirebaseAppCheck || shouldSkipForIOS || shouldSkipForAndroidDebug) {
+      !kIsWeb &&
+      Platform.isAndroid &&
+      kDebugMode &&
+      !_enableAndroidDebugAppCheck;
+  if (_disableFirebaseAppCheck ||
+      shouldSkipForIOS ||
+      shouldSkipForAndroidDebug) {
     if (!_appCheckSkipLogged) {
       final reason = _disableFirebaseAppCheck
           ? 'DISABLE_FIREBASE_APP_CHECK=true'
           : shouldSkipForAndroidDebug
-              ? 'ENABLE_ANDROID_DEBUG_APP_CHECK=false'
-              : 'DISABLE_IOS_APP_CHECK=true';
+          ? 'ENABLE_ANDROID_DEBUG_APP_CHECK=false'
+          : 'DISABLE_IOS_APP_CHECK=true';
       debugPrint('ℹ️ Firebase App Check activation skipped ($reason)');
       _appCheckSkipLogged = true;
     }
@@ -116,14 +122,16 @@ Future<void> _activateFirebaseAppCheck() async {
   }
 
   try {
-    await FirebaseAppCheck.instance.activate(
-      androidProvider: kDebugMode
-          ? AndroidProvider.debug
-          : AndroidProvider.playIntegrity,
-      appleProvider: kDebugMode
-          ? AppleProvider.debug
-        : AppleProvider.appAttestWithDeviceCheckFallback,
-    ).timeout(_appCheckActivateTimeout);
+    await FirebaseAppCheck.instance
+        .activate(
+          androidProvider: kDebugMode
+              ? AndroidProvider.debug
+              : AndroidProvider.playIntegrity,
+          appleProvider: kDebugMode
+              ? AppleProvider.debug
+              : AppleProvider.appAttestWithDeviceCheckFallback,
+        )
+        .timeout(_appCheckActivateTimeout);
     _appCheckActivated = true;
 
     debugPrint(
@@ -159,7 +167,7 @@ void _enforceFirebaseOnlyMode() {
   if (!hasLegacyBackendFlags) return;
 
   debugPrint(
-      '⚠️ Firebase-only mode active: ignoring deprecated backend/API dart-defines.',
+    '⚠️ Firebase-only mode active: ignoring deprecated backend/API dart-defines.',
   );
   if (_deprecatedLocalApiBaseUrl.trim().isNotEmpty) {
     debugPrint('   - LOCAL_API_BASE_URL is ignored');
@@ -372,7 +380,9 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    NotificationService.registerNavigationHandler(_handleNotificationNavigation);
+    NotificationService.registerNavigationHandler(
+      _handleNotificationNavigation,
+    );
     _loggedOutFallbackTimer = Timer(const Duration(seconds: 4), () {
       if (!mounted) return;
       if (FirebaseAuth.instance.currentUser == null) {
@@ -457,9 +467,9 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
         );
         return;
       }
-      await Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => SaleDetailView(sale: sale)),
-      );
+      await Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => SaleDetailView(sale: sale)));
     }
   }
 
@@ -645,8 +655,8 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
 
     // Kiểm tra super admin TRƯỚC - dựa trên custom claims, không dùng email hardcode.
     final claims = await ClaimsService().getClaimsFromToken();
-    final bool isSuperAdmin = claims?['isSuperAdmin'] == true ||
-        claims?['role'] == 'super_admin';
+    final bool isSuperAdmin =
+        claims?['isSuperAdmin'] == true || claims?['role'] == 'super_admin';
     UserService.setCurrentUserSuperAdmin(isSuperAdmin, uid: uid);
     if (isSuperAdmin) {
       // Vẫn sync nhưng không chặn
@@ -781,6 +791,24 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
             await _initSyncOrchestrator();
             await CashClosingNotifier.instance.init();
             await PaymentIntentService.initialize();
+
+            // Retry any pending image uploads on startup (Fix #3)
+            try {
+              await StorageService.retryPendingUploads();
+              debugPrint(
+                '✅ [WEB] Kiểm tra và tải lại ảnh đang chờ tại startup',
+              );
+            } catch (e) {
+              debugPrint('⚠️ [WEB] Lỗi tải lại ảnh đang chờ tại startup: $e');
+            }
+
+            // Clean up old temp files (Fix #4)
+            try {
+              await StorageService.cleanupOldTempFiles();
+              debugPrint('✅ [WEB] Đã dọn dẹp tệp tạm thời cũ');
+            } catch (e) {
+              debugPrint('⚠️ [WEB] Lỗi dọn dẹp tệp tạm: $e');
+            }
           } catch (e) {
             debugPrint('⚠️ [WEB] Init services error: $e');
           }
@@ -795,6 +823,22 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
             await _initSyncOrchestrator();
             await CashClosingNotifier.instance.init();
             await PaymentIntentService.initialize();
+
+            // Retry any pending image uploads on startup (Fix #3)
+            try {
+              await StorageService.retryPendingUploads();
+              debugPrint('✅ Kiểm tra và tải lại ảnh đang chờ tại startup');
+            } catch (e) {
+              debugPrint('⚠️ Lỗi tải lại ảnh đang chờ tại startup: $e');
+            }
+
+            // Clean up old temp files (Fix #4)
+            try {
+              await StorageService.cleanupOldTempFiles();
+              debugPrint('✅ Đã dọn dẹp tệp tạm thời cũ');
+            } catch (e) {
+              debugPrint('⚠️ Lỗi dọn dẹp tệp tạm: $e');
+            }
           } catch (e) {
             debugPrint('❌ Lỗi đồng bộ background: $e');
           }
@@ -927,8 +971,8 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
                 isSuperAdmin
                     ? 'Đang kiểm tra quyền...'
                     : isCreatingNew
-                        ? 'Đang tạo dữ liệu lần đầu, vui lòng đợi...'
-                        : 'Đang đồng bộ dữ liệu cửa hàng...',
+                    ? 'Đang tạo dữ liệu lần đầu, vui lòng đợi...'
+                    : 'Đang đồng bộ dữ liệu cửa hàng...',
                 showIntro: !isSuperAdmin,
               );
             }

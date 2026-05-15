@@ -3,10 +3,12 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/label_template_model.dart';
 import '../services/label_settings_service.dart';
 import '../services/notification_service.dart';
+import '../theme/app_spacing.dart';
 import '../theme/app_text_styles.dart';
 import 'pty_print_designer_view.dart';
 
@@ -478,10 +480,10 @@ class _LabelDesignerViewState extends State<LabelDesignerView>
 
       NotificationService.showSnackBar(
         '✅ Đã lưu thiết kế tem!',
-        color: Colors.green,
+        color: AppColors.success,
       );
     } catch (e) {
-      NotificationService.showSnackBar('❌ Lỗi: $e', color: Colors.red);
+      NotificationService.showSnackBar('❌ Lỗi: $e', color: AppColors.error);
     } finally {
       setState(() => _isSaving = false);
     }
@@ -492,14 +494,19 @@ class _LabelDesignerViewState extends State<LabelDesignerView>
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Đặt lại mặc định?'),
-        content: const Text('Bố cục tem sẽ trở về cài đặt gốc.'),
+        content: Text(
+          'Bố cục tem sẽ trở về cài đặt gốc.',
+          style: AppTextStyles.body1,
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
             child: const Text('Hủy'),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
             onPressed: () {
               Navigator.pop(ctx);
               setState(() {
@@ -507,7 +514,10 @@ class _LabelDesignerViewState extends State<LabelDesignerView>
                 _selectedElementId = null;
               });
             },
-            child: const Text('Đặt lại', style: TextStyle(color: Colors.white)),
+            child: Text(
+              'Đặt lại',
+              style: AppTextStyles.button.copyWith(color: AppColors.surface),
+            ),
           ),
         ],
       ),
@@ -520,27 +530,30 @@ class _LabelDesignerViewState extends State<LabelDesignerView>
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
         flexibleSpace: Container(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [Color(0xFF0068FF), Color(0xFF0084FF)],
+              colors: [
+                Theme.of(context).colorScheme.primary,
+                Theme.of(context).colorScheme.primaryContainer,
+              ],
             ),
           ),
         ),
         backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
+        foregroundColor: Theme.of(context).colorScheme.onPrimary,
         elevation: 0,
         title: Text(
           'THIẾT KẾ TEM',
-          style: TextStyle(
+          style: AppTextStyles.headline3.copyWith(
             fontWeight: FontWeight.bold,
-            fontSize: AppTextStyles.headline3.fontSize,
+            color: Theme.of(context).colorScheme.onPrimary,
           ),
         ),
         bottom: TabBar(
           controller: _tabController,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          indicatorColor: Colors.white,
+          labelColor: Theme.of(context).colorScheme.onPrimary,
+          unselectedLabelColor: Theme.of(context).colorScheme.onPrimary.withAlpha(179),
+          indicatorColor: Theme.of(context).colorScheme.onPrimary,
           indicatorWeight: 3,
           tabs: const [
             Tab(icon: Icon(Icons.design_services, size: 18), text: 'Bố cục'),
@@ -574,7 +587,7 @@ class _LabelDesignerViewState extends State<LabelDesignerView>
               children: [_buildLayoutTab(), _buildShopSettingsTab()],
             ),
       floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: Colors.green,
+        backgroundColor: AppColors.success,
         onPressed: _isSaving ? null : _saveAll,
         icon: _isSaving
             ? const SizedBox(
@@ -582,14 +595,14 @@ class _LabelDesignerViewState extends State<LabelDesignerView>
                 height: 20,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  color: Colors.white,
+                  color: AppColors.surface,
                 ),
               )
-            : const Icon(Icons.save, color: Colors.white),
+            : const Icon(Icons.save, color: AppColors.surface),
         label: Text(
           _isSaving ? 'Đang lưu...' : 'LƯU',
           style: const TextStyle(
-            color: Colors.white,
+            color: AppColors.surface,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -605,24 +618,24 @@ class _LabelDesignerViewState extends State<LabelDesignerView>
         children: [
           // Paper Size Selection
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.md),
             decoration: BoxDecoration(
-              color: Colors.orange.shade50,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.orange.shade300),
+              color: Theme.of(context).colorScheme.tertiaryContainer,
+              borderRadius: BorderRadius.circular(AppSpacing.lg),
+              border: Border.all(color: Theme.of(context).colorScheme.tertiary.withOpacity(0.45)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    Icon(Icons.tune, color: Colors.orange.shade700),
-                    const SizedBox(width: 12),
-                    const Text(
+                    Icon(Icons.tune, color: Theme.of(context).colorScheme.tertiary),
+                    const SizedBox(width: AppSpacing.md),
+                    Text(
                       'Loại giấy:',
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                      style: AppTextStyles.headline4.copyWith(fontWeight: FontWeight.bold),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: AppSpacing.md),
                     Expanded(
                       child: SegmentedButton<String>(
                         segments: const [
@@ -641,19 +654,15 @@ class _LabelDesignerViewState extends State<LabelDesignerView>
                           _scheduleAutoSave();
                         },
                         style: ButtonStyle(
-                          backgroundColor: WidgetStateProperty.resolveWith((
-                            states,
-                          ) {
+                          backgroundColor: WidgetStateProperty.resolveWith((states) {
                             if (states.contains(WidgetState.selected)) {
-                              return Colors.orange;
+                              return Theme.of(context).colorScheme.tertiary;
                             }
                             return null;
                           }),
-                          foregroundColor: WidgetStateProperty.resolveWith((
-                            states,
-                          ) {
+                          foregroundColor: WidgetStateProperty.resolveWith((states) {
                             if (states.contains(WidgetState.selected)) {
-                              return Colors.white;
+                              return AppColors.surface;
                             }
                             return null;
                           }),
@@ -662,18 +671,18 @@ class _LabelDesignerViewState extends State<LabelDesignerView>
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: AppSpacing.md),
                 Row(
                   children: [
-                    Icon(Icons.receipt_long, color: Colors.orange.shade700),
-                    const SizedBox(width: 12),
-                    const Text(
+                    Icon(Icons.receipt_long, color: Theme.of(context).colorScheme.tertiary),
+                    const SizedBox(width: AppSpacing.md),
+                    Text(
                       'Khổ giấy cuộn (mm):',
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                      style: AppTextStyles.headline4.copyWith(fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: AppSpacing.sm),
                 SegmentedButton<String>(
                   segments: const [
                     ButtonSegment(value: '50', label: Text('50mm (PT-50DC)')),
@@ -682,9 +691,7 @@ class _LabelDesignerViewState extends State<LabelDesignerView>
                     ButtonSegment(value: '80', label: Text('80mm')),
                   ],
                   selected: {
-                    _paperMode == 'roll' && !_paperSize.contains('x')
-                        ? _paperSize
-                        : '80',
+                    _paperMode == 'roll' && !_paperSize.contains('x') ? _paperSize : '80',
                   },
                   onSelectionChanged: _paperMode != 'roll'
                       ? null
@@ -697,22 +704,20 @@ class _LabelDesignerViewState extends State<LabelDesignerView>
                         },
                   style: ButtonStyle(
                     backgroundColor: WidgetStateProperty.resolveWith((states) {
-                      if (states.contains(WidgetState.selected) &&
-                          _paperMode == 'roll') {
-                        return Colors.orange;
+                      if (states.contains(WidgetState.selected) && _paperMode == 'roll') {
+                        return Theme.of(context).colorScheme.tertiary;
                       }
                       return null;
                     }),
                     foregroundColor: WidgetStateProperty.resolveWith((states) {
-                      if (states.contains(WidgetState.selected) &&
-                          _paperMode == 'roll') {
-                        return Colors.white;
+                      if (states.contains(WidgetState.selected) && _paperMode == 'roll') {
+                        return AppColors.surface;
                       }
                       return null;
                     }),
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: AppSpacing.sm),
                 TextField(
                   controller: _customRollSizeCtrl,
                   enabled: _paperMode == 'roll',
@@ -722,7 +727,7 @@ class _LabelDesignerViewState extends State<LabelDesignerView>
                     hintText: 'VD: 76',
                     prefixIcon: const Icon(Icons.straighten),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(AppSpacing.lg),
                     ),
                   ),
                   onChanged: (value) {
@@ -733,18 +738,18 @@ class _LabelDesignerViewState extends State<LabelDesignerView>
                     _scheduleAutoSave();
                   },
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: AppSpacing.md),
                 Row(
                   children: [
-                    Icon(Icons.label, color: Colors.orange.shade700),
-                    const SizedBox(width: 12),
-                    const Text(
+                    Icon(Icons.label, color: Theme.of(context).colorScheme.tertiary),
+                    const SizedBox(width: AppSpacing.md),
+                    Text(
                       'Tem dán (cm):',
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                      style: AppTextStyles.headline4.copyWith(fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: AppSpacing.sm),
                 SegmentedButton<String>(
                   segments: const [
                     ButtonSegment(value: '2x3', label: Text('2x3')),
@@ -752,9 +757,7 @@ class _LabelDesignerViewState extends State<LabelDesignerView>
                     ButtonSegment(value: '4x6', label: Text('4x6')),
                   ],
                   selected: {
-                    _paperMode == 'sticker' && _paperSize.contains('x')
-                        ? _paperSize
-                        : '2x3',
+                    _paperMode == 'sticker' && _paperSize.contains('x') ? _paperSize : '2x3',
                   },
                   onSelectionChanged: _paperMode != 'sticker'
                       ? null
@@ -763,29 +766,26 @@ class _LabelDesignerViewState extends State<LabelDesignerView>
                             _paperSize = s.first;
                             final parts = _paperSize.split('x');
                             _customStickerWidthCtrl.text = parts.first;
-                            _customStickerHeightCtrl.text =
-                                parts.length > 1 ? parts.last : '3';
+                            _customStickerHeightCtrl.text = parts.length > 1 ? parts.last : '3';
                           });
                           _scheduleAutoSave();
                         },
                   style: ButtonStyle(
                     backgroundColor: WidgetStateProperty.resolveWith((states) {
-                      if (states.contains(WidgetState.selected) &&
-                          _paperMode == 'sticker') {
-                        return Colors.orange;
+                      if (states.contains(WidgetState.selected) && _paperMode == 'sticker') {
+                        return Theme.of(context).colorScheme.tertiary;
                       }
                       return null;
                     }),
                     foregroundColor: WidgetStateProperty.resolveWith((states) {
-                      if (states.contains(WidgetState.selected) &&
-                          _paperMode == 'sticker') {
-                        return Colors.white;
+                      if (states.contains(WidgetState.selected) && _paperMode == 'sticker') {
+                        return AppColors.surface;
                       }
                       return null;
                     }),
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: AppSpacing.sm),
                 Row(
                   children: [
                     Expanded(
@@ -798,13 +798,13 @@ class _LabelDesignerViewState extends State<LabelDesignerView>
                           hintText: 'VD: 2.5',
                           prefixIcon: const Icon(Icons.straighten),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(AppSpacing.lg),
                           ),
                         ),
                         onChanged: (_) => _updateCustomStickerSize(),
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: AppSpacing.sm),
                     Expanded(
                       child: TextField(
                         controller: _customStickerHeightCtrl,
@@ -815,7 +815,7 @@ class _LabelDesignerViewState extends State<LabelDesignerView>
                           hintText: 'VD: 3.5',
                           prefixIcon: const Icon(Icons.straighten),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(AppSpacing.lg),
                           ),
                         ),
                         onChanged: (_) => _updateCustomStickerSize(),
@@ -826,25 +826,25 @@ class _LabelDesignerViewState extends State<LabelDesignerView>
               ],
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.md),
 
           // Code Type Selection (QR vs Barcode vs None)
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.md),
             decoration: BoxDecoration(
-              color: Colors.blue.shade50,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.blue.shade300),
+              color: Theme.of(context).colorScheme.primaryContainer,
+              borderRadius: BorderRadius.circular(AppSpacing.lg),
+              border: Border.all(color: Theme.of(context).colorScheme.primary.withOpacity(0.35)),
             ),
             child: Row(
               children: [
-                Icon(Icons.qr_code, color: Colors.blue.shade700),
-                const SizedBox(width: 12),
-                const Text(
+                Icon(Icons.qr_code, color: Theme.of(context).colorScheme.primary),
+                const SizedBox(width: AppSpacing.md),
+                Text(
                   'Loại mã:',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  style: AppTextStyles.headline4.copyWith(fontWeight: FontWeight.bold),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: SegmentedButton<String>(
                     segments: const [
@@ -870,19 +870,15 @@ class _LabelDesignerViewState extends State<LabelDesignerView>
                         _scheduleAutoSave();
                     },
                     style: ButtonStyle(
-                      backgroundColor: WidgetStateProperty.resolveWith((
-                        states,
-                      ) {
+                      backgroundColor: WidgetStateProperty.resolveWith((states) {
                         if (states.contains(WidgetState.selected)) {
-                          return Colors.blue;
+                          return Theme.of(context).colorScheme.primary;
                         }
                         return null;
                       }),
-                      foregroundColor: WidgetStateProperty.resolveWith((
-                        states,
-                      ) {
+                      foregroundColor: WidgetStateProperty.resolveWith((states) {
                         if (states.contains(WidgetState.selected)) {
-                          return Colors.white;
+                          return AppColors.surface;
                         }
                         return null;
                       }),
@@ -892,38 +888,40 @@ class _LabelDesignerViewState extends State<LabelDesignerView>
               ],
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.md),
 
           // Instructions
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(AppSpacing.md),
             decoration: BoxDecoration(
-              color: Colors.blue.shade50,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.blue.shade200),
+              color: Theme.of(context).colorScheme.primaryContainer,
+              borderRadius: BorderRadius.circular(AppSpacing.lg),
+              border: Border.all(color: Theme.of(context).colorScheme.primary.withAlpha(64)),
             ),
             child: Row(
               children: [
-                Icon(Icons.touch_app, color: Colors.blue.shade600),
-                const SizedBox(width: 12),
+                Icon(Icons.touch_app, color: Theme.of(context).colorScheme.primary),
+                const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: Text(
                     '👆 Nhấn vào phần tử trên mẫu để chỉnh sửa\n'
                     '🖐️ Nhấn giữ và kéo thả để hoán đổi vị trí\n'
                     '🔀 Gộp/tách dòng ở bảng điều khiển bên dưới',
-                    style: TextStyle(fontSize: 14, color: Colors.blue.shade700),
+                    style: AppTextStyles.body2.copyWith(
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.sm),
           Row(
             children: [
-              const Icon(Icons.zoom_in, size: 18, color: Colors.blue),
-              const SizedBox(width: 8),
-              const Text('Phóng to mẫu:', style: TextStyle(fontSize: 14)),
-              const SizedBox(width: 8),
+              Icon(Icons.zoom_in, size: 18, color: Theme.of(context).colorScheme.primary),
+              const SizedBox(width: AppSpacing.sm),
+              Text('Phóng to mẫu:', style: AppTextStyles.body1),
+              const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: Slider(
                   value: _previewZoom,
@@ -936,7 +934,7 @@ class _LabelDesignerViewState extends State<LabelDesignerView>
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.lg),
 
           // Visual Preview (Draggable)
           _buildVisualPreview(),
@@ -1006,11 +1004,11 @@ class _LabelDesignerViewState extends State<LabelDesignerView>
           child: Container(
             width: previewWidth,
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: BorderRadius.circular(AppSpacing.lg),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.blue.withValues(alpha: 0.2),
+                  color: Theme.of(context).colorScheme.shadow.withAlpha(20),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
@@ -1020,45 +1018,46 @@ class _LabelDesignerViewState extends State<LabelDesignerView>
               children: [
                 // Header
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(AppSpacing.md),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [Colors.blue.shade100, Colors.blue.shade50],
+                      colors: [
+                        Theme.of(context).colorScheme.primaryContainer,
+                        Theme.of(context).colorScheme.surfaceVariant,
+                      ],
                     ),
                     borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(16),
+                      top: Radius.circular(AppSpacing.lg),
                     ),
                   ),
                   child: Row(
                     children: [
                       Icon(
                         Icons.label,
-                        color: Colors.blue.shade600,
+                        color: Theme.of(context).colorScheme.primary,
                         size: 20,
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: AppSpacing.sm),
                       Text(
                         'MẪU TEM',
-                        style: TextStyle(
+                        style: AppTextStyles.subtitle1.copyWith(
                           fontWeight: FontWeight.bold,
-                          color: Colors.blue.shade700,
+                          color: Theme.of(context).colorScheme.primary,
                         ),
                       ),
                       const Spacer(),
                       Text(
                         sizeLabel,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.blue.shade500,
+                        style: AppTextStyles.caption.copyWith(
+                          color: Theme.of(context).colorScheme.primary,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: AppSpacing.sm),
                       Text(
                         'Nhấn để chọn',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.blue.shade400,
+                        style: AppTextStyles.caption.copyWith(
+                          color: Theme.of(context).colorScheme.primary,
                         ),
                       ),
                     ],
@@ -1068,7 +1067,7 @@ class _LabelDesignerViewState extends State<LabelDesignerView>
                 // Preview Content
                 Container(
                   width: previewWidth,
-                  padding: EdgeInsets.all(16 * paperScale),
+                  padding: EdgeInsets.all(AppSpacing.lg * paperScale),
                   child: previewHeight == null
                       ? content
                       : SizedBox(
@@ -1161,7 +1160,7 @@ class _LabelDesignerViewState extends State<LabelDesignerView>
         child = Icon(
           _codeType == 'barcode' ? Icons.view_week : Icons.qr_code_2,
           size: 36 * el.fontSize * paperScale,
-          color: isSelected ? Colors.blue : Colors.black87,
+          color: isSelected ? AppColors.primary : AppColors.textPrimary,
         );
         break;
       case 'shop_info':
@@ -1186,19 +1185,19 @@ class _LabelDesignerViewState extends State<LabelDesignerView>
     Widget buildContent({required bool isHover}) {
       return AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
         decoration: BoxDecoration(
           color: isSelected
-              ? Colors.blue.shade50
+              ? Theme.of(context).colorScheme.primaryContainer
               : isHover
-              ? Colors.blue.shade100.withValues(alpha: 0.4)
+              ? Theme.of(context).colorScheme.primaryContainer.withAlpha(102)
               : Colors.transparent,
-          borderRadius: BorderRadius.circular(4),
+          borderRadius: BorderRadius.circular(AppSpacing.sm),
           border: Border.all(
             color: isSelected
-                ? Colors.blue
+                ? Theme.of(context).colorScheme.primary
                 : isHover
-                ? Colors.blue.shade300
+                ? Theme.of(context).colorScheme.primary.withAlpha(128)
                 : Colors.transparent,
             width: isSelected || isHover ? 2 : 0,
           ),
@@ -1208,10 +1207,10 @@ class _LabelDesignerViewState extends State<LabelDesignerView>
             Text(
               text,
               textAlign: alignment,
-              style: TextStyle(
+              style: AppTextStyles.body1.copyWith(
                 fontSize: baseFontSize * el.fontSize,
                 fontWeight: el.bold ? FontWeight.bold : FontWeight.normal,
-                color: isSelected ? Colors.blue.shade700 : Colors.black87,
+                color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurface,
               ),
             ),
       );
@@ -1256,22 +1255,22 @@ class _LabelDesignerViewState extends State<LabelDesignerView>
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.blue.shade200, width: 2),
+        border: Border.all(color: AppColors.primary, width: 2),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.edit, color: Colors.blue.shade600, size: 20),
+              Icon(Icons.edit, color: AppColors.primary, size: 20),
               const SizedBox(width: 8),
               Text(
                 'Chỉnh: ${el.label}',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: Colors.blue.shade700,
+                  color: AppColors.primary,
                 ),
               ),
               const Spacer(),
@@ -1288,7 +1287,7 @@ class _LabelDesignerViewState extends State<LabelDesignerView>
             contentPadding: EdgeInsets.zero,
             title: const Text('Hiển thị', style: TextStyle(fontSize: 16)),
             value: el.visible,
-            activeThumbColor: Colors.green,
+            activeThumbColor: AppColors.success,
             onChanged: (v) => _updateElement(el.id, visible: v),
           ),
 
@@ -1304,7 +1303,7 @@ class _LabelDesignerViewState extends State<LabelDesignerView>
                 '${el.fontSize.toStringAsFixed(1)}x',
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: Colors.blue,
+                  color: AppColors.primary,
                 ),
               ),
               Expanded(
@@ -1328,7 +1327,7 @@ class _LabelDesignerViewState extends State<LabelDesignerView>
                 '${el.spacing.round()}px',
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: Colors.orange,
+                  color: AppColors.warning,
                 ),
               ),
               Expanded(
@@ -1337,7 +1336,7 @@ class _LabelDesignerViewState extends State<LabelDesignerView>
                   min: 0,
                   max: 20,
                   divisions: 20,
-                  activeColor: Colors.orange,
+                  activeColor: AppColors.warning,
                   onChanged: (v) => _updateElement(el.id, spacing: v),
                 ),
               ),
@@ -1351,7 +1350,7 @@ class _LabelDesignerViewState extends State<LabelDesignerView>
                 label: const Text('Đậm'),
                 selected: el.bold,
                 onSelected: (v) => _updateElement(el.id, bold: v),
-                selectedColor: Colors.blue.shade100,
+                selectedColor: AppColors.primary,
               ),
               const SizedBox(width: 8),
               SegmentedButton<String>(
@@ -1437,7 +1436,7 @@ class _LabelDesignerViewState extends State<LabelDesignerView>
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -1445,13 +1444,13 @@ class _LabelDesignerViewState extends State<LabelDesignerView>
         children: [
           Row(
             children: [
-              Icon(Icons.view_agenda, color: Colors.teal.shade600, size: 20),
+              Icon(Icons.view_agenda, color: AppColors.info, size: 20),
               const SizedBox(width: 8),
               Text(
                 'Gộp/Tách dòng',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: Colors.teal.shade700,
+                  color: AppColors.info,
                 ),
               ),
             ],
@@ -1539,7 +1538,7 @@ class _LabelDesignerViewState extends State<LabelDesignerView>
           // Individual element toggles
           Text(
             'Ẩn/Hiện từng phần:',
-            style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+            style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
           ),
           const SizedBox(height: 8),
           Wrap(
@@ -1551,8 +1550,8 @@ class _LabelDesignerViewState extends State<LabelDesignerView>
                     label: Text(el.label, style: const TextStyle(fontSize: 14)),
                     selected: el.visible,
                     onSelected: (v) => _updateElement(el.id, visible: v),
-                    selectedColor: Colors.blue.shade100,
-                    checkmarkColor: Colors.blue,
+                    selectedColor: AppColors.primary,
+                    checkmarkColor: AppColors.primary,
                   ),
                 )
                 .toList(),
@@ -1564,11 +1563,11 @@ class _LabelDesignerViewState extends State<LabelDesignerView>
 
   Widget _presetChip(String label, VoidCallback onTap, IconData icon) {
     return ActionChip(
-      avatar: Icon(icon, size: 16, color: Colors.teal),
+      avatar: Icon(icon, size: 16, color: AppColors.info),
       label: Text(label, style: const TextStyle(fontSize: 14)),
       onPressed: onTap,
-      backgroundColor: Colors.teal.shade50,
-      side: BorderSide(color: Colors.teal.shade200),
+      backgroundColor: AppColors.info,
+      side: BorderSide(color: AppColors.info),
     );
   }
 
@@ -1649,9 +1648,9 @@ class _LabelDesignerViewState extends State<LabelDesignerView>
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.orange.shade50,
+              color: AppColors.warning,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.orange.shade200),
+              border: Border.all(color: AppColors.warning),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1667,7 +1666,7 @@ class _LabelDesignerViewState extends State<LabelDesignerView>
                   '• "price + 500000" = Giá bán + 500k\n'
                   '• "price * 1.05" = Giá bán + 5%',
                   style: AppTextStyles.caption.copyWith(
-                    color: Colors.grey.shade600,
+                    color: AppColors.textSecondary,
                   ),
                 ),
               ],
@@ -1679,7 +1678,7 @@ class _LabelDesignerViewState extends State<LabelDesignerView>
           const SizedBox(height: 8),
           Text(
             'Các dòng này luôn hiện trên tem',
-            style: AppTextStyles.caption.copyWith(color: Colors.grey),
+            style: AppTextStyles.caption.copyWith(color: AppColors.textHint),
           ),
           const SizedBox(height: 12),
           _buildTextField(
@@ -1712,13 +1711,13 @@ class _LabelDesignerViewState extends State<LabelDesignerView>
   Widget _sectionTitle(String title, IconData icon) {
     return Row(
       children: [
-        Icon(icon, size: 20, color: Colors.blue),
+        Icon(icon, size: 20, color: AppColors.primary),
         const SizedBox(width: 8),
         Text(
           title,
           style: AppTextStyles.subtitle1.copyWith(
             fontWeight: FontWeight.bold,
-            color: Colors.blue,
+            color: AppColors.primary,
           ),
         ),
       ],
@@ -1741,7 +1740,7 @@ class _LabelDesignerViewState extends State<LabelDesignerView>
         prefixIcon: Icon(icon, size: 20),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         filled: true,
-        fillColor: Colors.white,
+        fillColor: AppColors.surface,
       ),
     );
   }

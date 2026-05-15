@@ -94,7 +94,7 @@ class EntityAvatar extends StatelessWidget {
           ? Text(
               _initials,
               style: TextStyle(
-                color: Colors.white,
+                color: AppColors.surface,
                 fontWeight: FontWeight.bold,
                 fontSize: radius * 0.65,
               ),
@@ -117,11 +117,11 @@ class EntityAvatar extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: AppColors.primary,
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 1.5),
+                  border: Border.all(color: AppColors.surface, width: 1.5),
                 ),
                 child: Icon(
                   Icons.camera_alt,
-                  color: Colors.white,
+                  color: AppColors.surface,
                   size: radius * 0.5,
                 ),
               ),
@@ -156,7 +156,7 @@ class EntityAvatar extends StatelessWidget {
     if (imgProv == null) return;
     showDialog(
       context: context,
-      barrierColor: Colors.black87,
+      barrierColor: AppColors.textPrimary,
       builder: (ctx) => Dialog(
         backgroundColor: Colors.transparent,
         insetPadding:
@@ -168,7 +168,7 @@ class EntityAvatar extends StatelessWidget {
               constraints:
                   const BoxConstraints(maxWidth: 420, maxHeight: 420),
               decoration: BoxDecoration(
-                color: Colors.black,
+                color: AppColors.textPrimary,
                 borderRadius: BorderRadius.circular(20),
               ),
               padding: const EdgeInsets.all(4),
@@ -183,7 +183,7 @@ class EntityAvatar extends StatelessWidget {
                     errorBuilder: (_, __, ___) => Container(
                       width: 200,
                       height: 200,
-                      color: Colors.grey.shade800,
+                      color: AppColors.textPrimary,
                       child: const Icon(Icons.broken_image,
                           color: Colors.white54, size: 64),
                     ),
@@ -195,11 +195,11 @@ class EntityAvatar extends StatelessWidget {
               top: 4,
               right: 4,
               child: Material(
-                color: Colors.black54,
+                color: AppColors.textSecondary,
                 shape: const CircleBorder(),
                 child: IconButton(
                   onPressed: () => Navigator.pop(ctx),
-                  icon: const Icon(Icons.close, color: Colors.white),
+                  icon: const Icon(Icons.close, color: AppColors.surface),
                 ),
               ),
             ),
@@ -213,13 +213,13 @@ class EntityAvatar extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 16, vertical: 6),
                     decoration: BoxDecoration(
-                      color: Colors.black54,
+                      color: AppColors.textSecondary,
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
                       name,
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: AppColors.surface,
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
                       ),

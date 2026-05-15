@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import '../services/user_service.dart';
 import 'sync_service.dart';
+import 'storage_service.dart';
 
 class ConnectivityService {
   static final ConnectivityService _instance = ConnectivityService._internal();
@@ -33,7 +34,9 @@ class ConnectivityService {
       },
     );
 
-    debugPrint('ConnectivityService initialized. Current status: $_currentStatus');
+    debugPrint(
+      'ConnectivityService initialized. Current status: $_currentStatus',
+    );
   }
 
   /// Hủy theo dõi kết nối
@@ -116,6 +119,22 @@ class ConnectivityService {
       // KHÔNG gọi downloadAllFromCloud — real-time listeners tự recover khi có mạng
       await SyncService.syncAllToCloud();
 
+      // Retry any pending image uploads (Fix #3)
+      try {
+        await StorageService.retryPendingUploads();
+        debugPrint('Đã kiểm tra và tải lại các ảnh đang chờ');
+      } catch (e) {
+        debugPrint('Lỗi tải lại ảnh đang chờ: $e');
+      }
+
+      // Clean up old temp files (Fix #4)
+      try {
+        await StorageService.cleanupOldTempFiles();
+        debugPrint('Đã dọn dẹp các tệp tạm thời cũ');
+      } catch (e) {
+        debugPrint('Lỗi dọn dẹp tệp tạm: $e');
+      }
+
       debugPrint('Đồng bộ sau khi khôi phục mạng hoàn thành');
     } catch (e) {
       debugPrint('Lỗi đồng bộ sau khi khôi phục mạng: $e');
@@ -131,7 +150,9 @@ class ConnectivityService {
   /// Thực hiện đồng bộ thủ công (khi user yêu cầu)
   Future<void> manualSync() async {
     if (!_isOnline) {
-      throw Exception('Không có kết nối mạng. Vui lòng kiểm tra kết nối internet.');
+      throw Exception(
+        'Không có kết nối mạng. Vui lòng kiểm tra kết nối internet.',
+      );
     }
 
     try {

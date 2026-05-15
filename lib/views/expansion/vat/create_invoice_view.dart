@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../theme/app_colors.dart';
 
 import '../../../expansion/safe_mode/expansion_feature_flags.dart';
 import '../../../expansion/safe_mode/expansion_module_services.dart';
@@ -185,7 +186,7 @@ class _CreateInvoiceViewState extends State<CreateInvoiceView> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: isError ? Colors.red : Colors.green,
+        backgroundColor: isError ? AppColors.error : AppColors.success,
       ),
     );
   }
@@ -201,13 +202,13 @@ class _CreateInvoiceViewState extends State<CreateInvoiceView> {
       return Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.red.shade50,
+          color: AppColors.error,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.red.shade200),
+          border: Border.all(color: AppColors.error),
         ),
         child: Text(
           'Lỗi hiển thị phần "$sectionName": $e',
-          style: const TextStyle(color: Colors.red),
+          style: const TextStyle(color: AppColors.error),
         ),
       );
     }
@@ -227,7 +228,7 @@ class _CreateInvoiceViewState extends State<CreateInvoiceView> {
               width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppColors.surface,
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: const Color(0xFFE7ECF5)),
               ),
@@ -343,7 +344,7 @@ class _CreateInvoiceViewState extends State<CreateInvoiceView> {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(color: AppColors.outline),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(

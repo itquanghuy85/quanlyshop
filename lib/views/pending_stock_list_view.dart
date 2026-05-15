@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../widgets/responsive_wrapper.dart';
 import '../models/stock_entry_model.dart';
@@ -94,35 +95,35 @@ class _PendingStockListViewState extends State<PendingStockListView> {
       screenKey: FirstTimeGuideService.keyPendingEntries,
       title: 'Hàng Chờ Xác Nhận Nhập Vào Kho',
       icon: Icons.pending_actions,
-      color: Colors.orange,
+      color: AppColors.warning,
       steps: const [
         GuideStep(
           title: '📋 Phiếu nhập tạm',
           description:
               'Danh sách các phiếu đã lưu tạm, chưa vào kho chính thức. Cần bổ sung thông tin để xác nhận.',
           icon: Icons.list_alt,
-          iconColor: Colors.blue,
+          iconColor: AppColors.primary,
         ),
         GuideStep(
           title: '✏️ Chỉnh sửa',
           description:
               'Nhấn vào phiếu để bổ sung thông tin còn thiếu như: Giá vốn, NCC, Phương thức TT.',
           icon: Icons.edit,
-          iconColor: Colors.green,
+          iconColor: AppColors.success,
         ),
         GuideStep(
           title: '✅ Xác nhận',
           description:
               'Khi đủ thông tin (màu xanh), nhấn nút ✓ để xác nhận. Hàng sẽ vào kho ngay.',
           icon: Icons.check_circle,
-          iconColor: Colors.green,
+          iconColor: AppColors.success,
         ),
         GuideStep(
           title: '⚠️ Cảnh báo quá hạn',
           description:
               'Phiếu >3 ngày sẽ có cảnh báo vàng, >7 ngày sẽ đỏ. Hãy xử lý sớm!',
           icon: Icons.warning,
-          iconColor: Colors.red,
+          iconColor: AppColors.error,
         ),
       ],
     );
@@ -196,7 +197,7 @@ class _PendingStockListViewState extends State<PendingStockListView> {
     if (!entry.canConfirm) {
       NotificationService.showSnackBar(
         'Chưa đủ thông tin để xác nhận',
-        color: Colors.red,
+        color: AppColors.error,
       );
       return;
     }
@@ -220,10 +221,10 @@ class _PendingStockListViewState extends State<PendingStockListView> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.success),
             child: const Text(
               'Xác nhận',
-              style: TextStyle(color: Colors.white),
+              style: TextStyle(color: AppColors.surface),
             ),
           ),
         ],
@@ -302,10 +303,10 @@ class _PendingStockListViewState extends State<PendingStockListView> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
             child: const Text(
               'Hủy phiếu',
-              style: TextStyle(color: Colors.white),
+              style: TextStyle(color: AppColors.surface),
             ),
           ),
         ],
@@ -335,7 +336,7 @@ class _PendingStockListViewState extends State<PendingStockListView> {
                 style: TextStyle(
                   fontSize: AppTextStyles.headline3.fontSize,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: AppColors.surface,
                 ),
               ),
             ),
@@ -343,14 +344,14 @@ class _PendingStockListViewState extends State<PendingStockListView> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.3),
+                color: AppColors.surface.withAlpha(77),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
                 '${_filteredEntries.length}',
                 style: TextStyle(
                   fontSize: AppTextStyles.subtitle1.fontSize,
-                  color: Colors.white,
+                  color: AppColors.surface,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -366,8 +367,8 @@ class _PendingStockListViewState extends State<PendingStockListView> {
             ),
           ),
         ),
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
+        backgroundColor: AppColors.surface,
+        foregroundColor: AppColors.textPrimary,
         elevation: 0,
         actions: [
           IconButton(
@@ -422,7 +423,7 @@ class _PendingStockListViewState extends State<PendingStockListView> {
           hintText: 'Tìm tên, ${_terms.specialField1Label}, SKU, NCC...',
           hintStyle: TextStyle(
             fontSize: AppTextStyles.headline5.fontSize,
-            color: Colors.grey.shade500,
+            color: AppColors.textHint,
           ),
           prefixIcon: const Icon(Icons.search, size: 20),
           suffixIcon: _searchQuery.isNotEmpty
@@ -432,22 +433,22 @@ class _PendingStockListViewState extends State<PendingStockListView> {
                 )
               : null,
           filled: true,
-          fillColor: Colors.white,
+          fillColor: AppColors.surface,
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 12,
             vertical: 8,
           ),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide(color: Colors.grey.shade300),
+            borderSide: BorderSide(color: AppColors.outline),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide(color: Colors.grey.shade300),
+            borderSide: BorderSide(color: AppColors.outline),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide(color: Colors.blue.shade400, width: 2),
+            borderSide: BorderSide(color: AppColors.primary, width: 2),
           ),
           isDense: true,
         ),
@@ -459,7 +460,7 @@ class _PendingStockListViewState extends State<PendingStockListView> {
   Widget _buildFilterChips() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      color: Colors.grey.shade100,
+      color: AppColors.background,
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
@@ -491,8 +492,8 @@ class _PendingStockListViewState extends State<PendingStockListView> {
       ),
       selected: isSelected,
       onSelected: (_) => setState(() => _filterType = type),
-      selectedColor: Colors.orange.shade200,
-      checkmarkColor: Colors.white,
+      selectedColor: AppColors.warning,
+      checkmarkColor: AppColors.surface,
       padding: const EdgeInsets.symmetric(horizontal: 4),
       visualDensity: VisualDensity.compact,
     );
@@ -506,14 +507,14 @@ class _PendingStockListViewState extends State<PendingStockListView> {
           Icon(
             Icons.inventory_2_outlined,
             size: 64,
-            color: Colors.grey.shade400,
+            color: AppColors.textHint,
           ),
           const SizedBox(height: 16),
           Text(
             'Không có hàng chờ xác nhận nhập vào kho',
             style: TextStyle(
               fontSize: AppTextStyles.headline4.fontSize,
-              color: Colors.grey.shade600,
+              color: AppColors.textSecondary,
             ),
           ),
           const SizedBox(height: 8),
@@ -521,7 +522,7 @@ class _PendingStockListViewState extends State<PendingStockListView> {
             'Nhấn "NHẬP MỚI" để tạo phiếu nhập',
             style: TextStyle(
               fontSize: AppTextStyles.subtitle1.fontSize,
-              color: Colors.grey.shade500,
+              color: AppColors.textHint,
             ),
           ),
         ],
@@ -550,19 +551,19 @@ class _PendingStockListViewState extends State<PendingStockListView> {
     if (item == null) {
       return Card(
         margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        color: Colors.red.shade50,
+        color: AppColors.error,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
-          side: BorderSide(color: Colors.red.shade300),
+          side: BorderSide(color: AppColors.error),
         ),
         child: ListTile(
-          leading: const Icon(Icons.error_outline, color: Colors.red),
+          leading: const Icon(Icons.error_outline, color: AppColors.error),
           title: Text(
             'Phiếu nhập bị lỗi',
             style: TextStyle(
               fontSize: AppTextStyles.headline5.fontSize,
               fontWeight: FontWeight.bold,
-              color: Colors.red,
+              color: AppColors.error,
             ),
           ),
           subtitle: Text(
@@ -570,7 +571,7 @@ class _PendingStockListViewState extends State<PendingStockListView> {
             style: TextStyle(fontSize: AppTextStyles.body1.fontSize),
           ),
           trailing: IconButton(
-            icon: const Icon(Icons.delete, color: Colors.red),
+            icon: const Icon(Icons.delete, color: AppColors.error),
             onPressed: () async {
               if (entry.firestoreId != null) {
                 final confirm = await showDialog<bool>(
@@ -593,11 +594,11 @@ class _PendingStockListViewState extends State<PendingStockListView> {
                       ElevatedButton(
                         onPressed: () => Navigator.pop(ctx, true),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red,
+                          backgroundColor: AppColors.error,
                         ),
                         child: const Text(
                           'Xóa',
-                          style: TextStyle(color: Colors.white),
+                          style: TextStyle(color: AppColors.surface),
                         ),
                       ),
                     ],
@@ -620,20 +621,20 @@ class _PendingStockListViewState extends State<PendingStockListView> {
 
     // Determine card color based on completeness
     final baseBgColor = entry.canConfirm
-        ? Colors.green.shade50
+        ? AppColors.success
         : entry.daysSinceCreated > 7
-        ? Colors.red.shade50
-        : Colors.orange.shade50;
+        ? AppColors.error
+        : AppColors.warning;
     final isAltRow = index.isEven;
     final bgColor = isAltRow
-        ? Color.alphaBlend(Colors.blue.withOpacity(0.04), baseBgColor)
+        ? Color.alphaBlend(AppColors.primary.withOpacity(0.04), baseBgColor)
         : baseBgColor;
 
     final borderColor = entry.canConfirm
-        ? Colors.green.shade300
+        ? AppColors.success
         : entry.daysSinceCreated > 7
-        ? Colors.red.shade300
-        : Colors.orange.shade300;
+        ? AppColors.error
+        : AppColors.warning;
 
     // Type icon
     String typeIcon = '📦';
@@ -694,7 +695,7 @@ class _PendingStockListViewState extends State<PendingStockListView> {
                                   .join(' • '),
                               style: TextStyle(
                                 fontSize: AppTextStyles.body1.fontSize,
-                                color: Colors.grey.shade700,
+                                color: AppColors.textSecondary,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -704,7 +705,7 @@ class _PendingStockListViewState extends State<PendingStockListView> {
                               '${_terms.specialField1Label}: ${item.imei}',
                               style: TextStyle(
                                 fontSize: AppTextStyles.caption.fontSize,
-                                color: Colors.grey.shade600,
+                                color: AppColors.textSecondary,
                                 fontFamily: 'monospace',
                               ),
                             ),
@@ -713,7 +714,7 @@ class _PendingStockListViewState extends State<PendingStockListView> {
                             'SKU: ${item.sku}',
                             style: TextStyle(
                               fontSize: AppTextStyles.caption.fontSize,
-                              color: Colors.grey.shade600,
+                              color: AppColors.textSecondary,
                             ),
                           ),
                       ],
@@ -728,7 +729,7 @@ class _PendingStockListViewState extends State<PendingStockListView> {
                           vertical: 2,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.blue.shade50,
+                          color: AppColors.primary,
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
@@ -736,7 +737,7 @@ class _PendingStockListViewState extends State<PendingStockListView> {
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: AppTextStyles.subtitle1.fontSize,
-                            color: Colors.blue.shade700,
+                            color: AppColors.primary,
                           ),
                         ),
                       ),
@@ -745,7 +746,7 @@ class _PendingStockListViewState extends State<PendingStockListView> {
                         dateStr,
                         style: TextStyle(
                           fontSize: AppTextStyles.caption.fontSize,
-                          color: Colors.grey.shade600,
+                          color: AppColors.textSecondary,
                         ),
                       ),
                     ],
@@ -763,28 +764,28 @@ class _PendingStockListViewState extends State<PendingStockListView> {
                   if (item.cost != null && _canViewCostPrice)
                     _infoChip(
                       'Vốn: ${MoneyUtils.formatCompactCurrency(item.cost!.round())}',
-                      Colors.orange.shade100,
+                      AppColors.warning,
                     ),
                   if (item.price != null)
                     _infoChip(
                       'Bán: ${MoneyUtils.formatCompactCurrency(item.price!.round())}',
-                      Colors.green.shade100,
+                      AppColors.success,
                     ),
                   if (item.color != null && item.color!.isNotEmpty)
-                    _infoChip('🎨 ${item.color}', Colors.pink.shade50),
+                    _infoChip('🎨 ${item.color}', AppColors.error),
                   if (item.size != null && item.size!.isNotEmpty)
-                    _infoChip('📏 Size ${item.size}', Colors.blue.shade50),
+                    _infoChip('📏 Size ${item.size}', AppColors.primary),
                   if (item.condition != null && item.condition!.isNotEmpty)
-                    _infoChip('📦 ${item.condition}', Colors.cyan.shade50),
+                    _infoChip('📦 ${item.condition}', AppColors.info),
                   if (entry.supplierName != null)
-                    _infoChip('🏭 ${entry.supplierName}', Colors.blue.shade100),
+                    _infoChip('🏭 ${entry.supplierName}', AppColors.primary),
                   if (entry.paymentMethod != null)
                     _infoChip(
                       '💳 ${entry.paymentMethod}',
-                      Colors.teal.shade100,
+                      AppColors.info,
                     ),
                   if (item.labelNote != null && item.labelNote!.isNotEmpty)
-                    _infoChip('📝 ${item.labelNote}', Colors.grey.shade200),
+                    _infoChip('📝 ${item.labelNote}', AppColors.outline),
                 ],
               ),
 
@@ -805,7 +806,7 @@ class _PendingStockListViewState extends State<PendingStockListView> {
                       const Icon(
                         Icons.warning_amber,
                         size: 14,
-                        color: Colors.orange,
+                        color: AppColors.warning,
                       ),
                       const SizedBox(width: 4),
                       Expanded(
@@ -836,7 +837,7 @@ class _PendingStockListViewState extends State<PendingStockListView> {
                     child: TextButton(
                       onPressed: () => _cancelEntry(entry),
                       style: TextButton.styleFrom(
-                        foregroundColor: Colors.red,
+                        foregroundColor: AppColors.error,
                         padding: const EdgeInsets.symmetric(horizontal: 8),
                         minimumSize: Size.zero,
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -892,9 +893,9 @@ class _PendingStockListViewState extends State<PendingStockListView> {
                           : null,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: entry.canConfirm
-                            ? Colors.green
-                            : Colors.grey,
-                        foregroundColor: Colors.white,
+                            ? AppColors.success
+                            : AppColors.textHint,
+                        foregroundColor: AppColors.surface,
                         padding: const EdgeInsets.symmetric(horizontal: 10),
                         minimumSize: Size.zero,
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,

@@ -28,7 +28,7 @@ class ShopSettings {
   final DateTime updatedAt;
   final String? updatedBy;
   final bool isSynced;
-  
+
   // === DEFAULT FLAG ===
   /// True nếu settings được tạo mặc định (shop chưa thiết lập ngành kinh doanh)
   final bool isDefault;
@@ -53,10 +53,10 @@ class ShopSettings {
     this.updatedBy,
     this.isSynced = false,
     this.isDefault = false, // Default false - settings được tạo bình thường
-  })  : createdAt = createdAt ?? DateTime.now(),
-        updatedAt = updatedAt ?? DateTime.now();
+  }) : createdAt = createdAt ?? DateTime.now(),
+       updatedAt = updatedAt ?? DateTime.now();
 
-  /// Factory constructor cho từng loại ngành
+  /// Factory constructor cho electronics (ngành duy nhất được hỗ trợ)
   factory ShopSettings.electronics(String shopId) {
     return ShopSettings(
       shopId: shopId,
@@ -72,89 +72,39 @@ class ShopSettings {
     );
   }
 
-  factory ShopSettings.food(String shopId) {
-    return ShopSettings(
-      shopId: shopId,
-      businessType: 'food',
-      businessTypeName: 'Thực phẩm & Đồ tươi sống',
-      enableRepair: false,
-      enableExpiry: true,
-      enableVariants: false,
-      enableSerial: false,
-      enableWarranty: false,
-      enableBatch: true,
-      defaultUnit: 'kg',
-      expiryWarningDays: 7,
-    );
-  }
-
-  factory ShopSettings.fashion(String shopId) {
-    return ShopSettings(
-      shopId: shopId,
-      businessType: 'fashion',
-      businessTypeName: 'Thời trang & May mặc',
-      enableRepair: false,
-      enableExpiry: false,
-      enableVariants: true,
-      enableSerial: false,
-      enableWarranty: false,
-      enableBatch: false,
-      defaultUnit: 'cái',
-    );
-  }
-
-  factory ShopSettings.general(String shopId) {
-    return ShopSettings(
-      shopId: shopId,
-      businessType: 'general',
-      businessTypeName: 'Tổng hợp',
-      enableRepair: false,
-      enableExpiry: false,
-      enableVariants: false,
-      enableSerial: false,
-      enableWarranty: false,
-      enableBatch: false,
-      defaultUnit: 'cái',
-    );
-  }
-
-  /// Factory tạo từ loại ngành kinh doanh
+  /// Factory tạo từ loại ngành kinh doanh - luôn trả về electronics
+  /// (Backward compatibility: các shop cũ với businessType khác sẽ được force về electronics)
   factory ShopSettings.fromBusinessType(String type, String shopId) {
-    switch (type) {
-      case 'electronics':
-        return ShopSettings.electronics(shopId);
-      case 'food':
-        return ShopSettings.food(shopId);
-      case 'fashion':
-        return ShopSettings.fashion(shopId);
-      case 'general':
-      default:
-        return ShopSettings.general(shopId);
-    }
+    return ShopSettings.electronics(shopId);
   }
 
   /// Tạo từ Map (Firestore hoặc SQLite)
+  /// IMPORTANT: Force businessType về 'electronics' nếu đọc từ dữ liệu cũ
   factory ShopSettings.fromMap(Map<String, dynamic> map) {
+    // Force electronics cho tất cả shop - backward compatibility
+    final businessType = 'electronics';
+
     return ShopSettings(
       id: (map['id'] ?? '').toString(),
       firestoreId: (map['firestoreId'] ?? map['id'] ?? '').toString(),
       shopId: map['shopId'] ?? '',
-      businessType: map['businessType'] ?? 'electronics',
-      businessTypeName: map['businessTypeName'] ?? 'Điện thoại & Điện tử',
-      enableRepair: map['enableRepair'] == true || map['enableRepair'] == 1,
-      enableExpiry: map['enableExpiry'] == true || map['enableExpiry'] == 1,
-      enableVariants: map['enableVariants'] == true || map['enableVariants'] == 1,
-      enableSerial: map['enableSerial'] == true || map['enableSerial'] == 1,
-      enableWarranty: map['enableWarranty'] == true || map['enableWarranty'] == 1,
-      enableBatch: map['enableBatch'] == true || map['enableBatch'] == 1,
-      defaultUnit: map['defaultUnit'] ?? 'cái',
-      expiryWarningDays: (map['expiryWarningDays'] ?? 7).toInt(),
-      lowStockWarning: (map['lowStockWarning'] ?? 5).toInt(),
+      businessType: businessType,
+      businessTypeName: 'Điện thoại & Điện tử',
+      enableRepair: true,
+      enableExpiry: false,
+      enableVariants: false,
+      enableSerial: true,
+      enableWarranty: true,
+      enableBatch: false,
+      defaultUnit: 'cái',
+      expiryWarningDays: 7,
+      lowStockWarning: 5,
       createdAt: _parseDateTime(map['createdAt']),
       updatedAt: _parseDateTime(map['updatedAt']),
       updatedBy: map['updatedBy'],
       isSynced: map['isSynced'] == true || map['isSynced'] == 1,
-      isDefault: false, // Always false when loading from DB/Firestore (already saved)
+      isDefault:
+          false, // Always false when loading from DB/Firestore (already saved)
     );
   }
 
@@ -259,29 +209,17 @@ class ShopSettings {
     );
   }
 
-  /// Kiểm tra có phải ngành điện tử không
-  bool get isElectronics => businessType == 'electronics';
-
-  /// Kiểm tra có phải ngành thực phẩm không
-  bool get isFood => businessType == 'food';
-
-  /// Kiểm tra có phải ngành thời trang không
-  bool get isFashion => businessType == 'fashion';
-
-  /// Kiểm tra có phải ngành tổng hợp không
-  bool get isGeneral => businessType == 'general';
+  /// Kiểm tra có phải ngành điện tử không (luôn true vì chỉ hỗ trợ electronics)
+  bool get isElectronics => true;
 
   @override
   String toString() =>
       'ShopSettings(shopId: $shopId, businessType: $businessType)';
 }
 
-/// Enum các loại ngành kinh doanh
+/// Enum các loại ngành kinh doanh (chỉ hỗ trợ electronics)
 enum BusinessType {
-  electronics('electronics', 'Điện thoại & Điện tử', '📱'),
-  food('food', 'Thực phẩm & Đồ tươi sống', '🍎'),
-  fashion('fashion', 'Thời trang & May mặc', '👕'),
-  general('general', 'Tổng hợp', '📦');
+  electronics('electronics', 'Điện thoại & Điện tử', '📱');
 
   final String code;
   final String displayName;
@@ -290,9 +228,7 @@ enum BusinessType {
   const BusinessType(this.code, this.displayName, this.icon);
 
   static BusinessType fromCode(String code) {
-    return BusinessType.values.firstWhere(
-      (e) => e.code == code,
-      orElse: () => BusinessType.electronics,
-    );
+    // Luôn trả về electronics
+    return BusinessType.electronics;
   }
 }

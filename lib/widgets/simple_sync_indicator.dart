@@ -125,7 +125,7 @@ class _SimpleSyncIndicatorState extends State<SimpleSyncIndicator>
             content: Text('Lỗi đồng bộ: $e'),
             duration: const Duration(seconds: 2),
             behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.error,
           ),
         );
       }
@@ -149,15 +149,15 @@ class _SimpleSyncIndicatorState extends State<SimpleSyncIndicator>
       tooltip = 'Đang đồng bộ...';
     } else if (_status == SyncStatus.noNetwork) {
       icon = Icons.cloud_off;
-      iconColor = Colors.grey;
+      iconColor = AppColors.textHint;
       tooltip = 'Không có mạng';
     } else if (_status == SyncStatus.error) {
       icon = Icons.cloud_off;
-      iconColor = Colors.red;
+      iconColor = AppColors.error;
       tooltip = 'Lỗi đồng bộ - Bấm để thử lại';
     } else if (_pendingCount > 0 || _status == SyncStatus.hasPending) {
       icon = Icons.cloud_upload;
-      iconColor = Colors.orange;
+      iconColor = AppColors.warning;
       tooltip = 'Có $_pendingCount thay đổi chưa đồng bộ';
     } else {
       icon = Icons.cloud_done;
@@ -185,7 +185,7 @@ class _SimpleSyncIndicatorState extends State<SimpleSyncIndicator>
     if (_pendingCount > 0 && !_isSyncing && _status != SyncStatus.syncing) {
       iconWidget = Badge(
         smallSize: 8,
-        backgroundColor: Colors.red,
+        backgroundColor: AppColors.error,
         child: iconWidget,
       );
     }

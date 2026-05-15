@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
 import 'package:intl/intl.dart';
 import '../widgets/responsive_wrapper.dart';
 import '../data/db_helper.dart';
@@ -130,7 +131,7 @@ class _FinancialActivityLogViewState extends State<FinancialActivityLogView> {
         return const Center(
           child: Text(
             'Bạn không có quyền truy cập tính năng này',
-            style: TextStyle(color: Colors.grey),
+            style: TextStyle(color: AppColors.textHint),
           ),
         );
       }
@@ -143,7 +144,7 @@ class _FinancialActivityLogViewState extends State<FinancialActivityLogView> {
         body: const Center(
           child: Text(
             'Bạn không có quyền truy cập tính năng này',
-            style: TextStyle(color: Colors.grey),
+            style: TextStyle(color: AppColors.textHint),
           ),
         ),
       );
@@ -164,7 +165,7 @@ class _FinancialActivityLogViewState extends State<FinancialActivityLogView> {
             icon: const Icon(
               Icons.refresh_rounded,
               size: 20,
-              color: Colors.white,
+              color: AppColors.surface,
             ),
             tooltip: 'Làm mới',
             splashRadius: 18,
@@ -173,7 +174,7 @@ class _FinancialActivityLogViewState extends State<FinancialActivityLogView> {
             icon: const Icon(
               Icons.file_download_outlined,
               size: 20,
-              color: Colors.white,
+              color: AppColors.surface,
             ),
             tooltip: 'Xuất Excel nhật ký hệ thống',
             splashRadius: 18,
@@ -197,7 +198,7 @@ class _FinancialActivityLogViewState extends State<FinancialActivityLogView> {
           preferredSize: const Size.fromHeight(42),
           child: Container(
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
-            color: Colors.white,
+            color: AppColors.surface,
             child: _buildSearchField(),
           ),
         ),
@@ -212,7 +213,7 @@ class _FinancialActivityLogViewState extends State<FinancialActivityLogView> {
     return Container(
       height: 34,
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: AppColors.background,
         borderRadius: BorderRadius.circular(17),
       ),
       child: TextField(
@@ -226,7 +227,7 @@ class _FinancialActivityLogViewState extends State<FinancialActivityLogView> {
         decoration: InputDecoration(
           hintText: 'Tìm theo loại, tiêu đề, người tạo, mô tả...',
           hintStyle: TextStyle(
-            color: Colors.grey.shade500,
+            color: AppColors.textHint,
             fontSize: AppTextStyles.subtitle1.fontSize,
           ),
           prefixIcon: const Icon(
@@ -239,7 +240,7 @@ class _FinancialActivityLogViewState extends State<FinancialActivityLogView> {
               ? IconButton(
                   icon: Icon(
                     Icons.close_rounded,
-                    color: Colors.grey.shade500,
+                    color: AppColors.textHint,
                     size: 16,
                   ),
                   onPressed: () {
@@ -263,7 +264,7 @@ class _FinancialActivityLogViewState extends State<FinancialActivityLogView> {
     return Column(
       children: [
         Container(
-          color: Colors.white,
+          color: AppColors.surface,
           child: Row(
             children: [
               const SizedBox(width: 12),
@@ -296,7 +297,7 @@ class _FinancialActivityLogViewState extends State<FinancialActivityLogView> {
         ),
         Container(
           padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
-          color: Colors.white,
+          color: AppColors.surface,
           child: _buildSearchField(),
         ),
         Expanded(
@@ -338,7 +339,7 @@ class _FinancialActivityLogViewState extends State<FinancialActivityLogView> {
                   'Tìm thấy ${filtered.length} kết quả',
                   style: TextStyle(
                     fontSize: 14,
-                    color: Colors.grey.shade600,
+                    color: AppColors.textSecondary,
                     fontStyle: FontStyle.italic,
                   ),
                 ),
@@ -351,13 +352,13 @@ class _FinancialActivityLogViewState extends State<FinancialActivityLogView> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.history_toggle_off_rounded, size: 80, color: Colors.grey[300]),
+                      Icon(Icons.history_toggle_off_rounded, size: 80, color: AppColors.divider),
                       const SizedBox(height: 10),
                       Text(
                         _searchQuery.isNotEmpty
                             ? 'Không tìm thấy kết quả cho "$_searchQuery"'
                             : 'Chưa có giao dịch tài chính nào',
-                        style: const TextStyle(color: Colors.grey),
+                        style: const TextStyle(color: AppColors.textHint),
                       ),
                     ],
                   ),
@@ -402,10 +403,10 @@ class _FinancialActivityLogViewState extends State<FinancialActivityLogView> {
             ? '-'
             : '';
     final amountColor = activity.direction == 'IN'
-        ? Colors.green
+        ? AppColors.success
         : activity.direction == 'OUT'
-            ? Colors.red
-            : Colors.orange;
+            ? AppColors.error
+            : AppColors.warning;
 
     return GestureDetector(
       onTap: () => _showActivityDetail(activity),
@@ -413,11 +414,11 @@ class _FinancialActivityLogViewState extends State<FinancialActivityLogView> {
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withAlpha(10),
+              color: AppColors.textPrimary.withAlpha(10),
               blurRadius: 6,
               offset: const Offset(0, 2),
             ),
@@ -477,7 +478,7 @@ class _FinancialActivityLogViewState extends State<FinancialActivityLogView> {
                       Text(
                         activity.title,
                         style: TextStyle(
-                          color: Colors.black87,
+                          color: AppColors.textPrimary,
                           fontSize: AppTextStyles.caption.fontSize,
                         ),
                         maxLines: 1,
@@ -502,7 +503,7 @@ class _FinancialActivityLogViewState extends State<FinancialActivityLogView> {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
+                    color: AppColors.background,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -510,7 +511,7 @@ class _FinancialActivityLogViewState extends State<FinancialActivityLogView> {
                     style: TextStyle(
                       fontSize: AppTextStyles.caption.fontSize,
                       fontWeight: FontWeight.bold,
-                      color: Colors.grey.shade700,
+                      color: AppColors.textSecondary,
                     ),
                   ),
                 ),
@@ -522,14 +523,14 @@ class _FinancialActivityLogViewState extends State<FinancialActivityLogView> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
+                  color: AppColors.background,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
                   activity.description ?? '',
                   style: TextStyle(
                     fontSize: AppTextStyles.body1.fontSize,
-                    color: Colors.black87,
+                    color: AppColors.textPrimary,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -545,7 +546,7 @@ class _FinancialActivityLogViewState extends State<FinancialActivityLogView> {
                       vertical: 3,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.blue.shade50,
+                      color: AppColors.primary,
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Row(
@@ -554,7 +555,7 @@ class _FinancialActivityLogViewState extends State<FinancialActivityLogView> {
                         Icon(
                           Icons.person_outline,
                           size: 12,
-                          color: Colors.blue.shade700,
+                          color: AppColors.primary,
                         ),
                         const SizedBox(width: 3),
                         Flexible(
@@ -563,7 +564,7 @@ class _FinancialActivityLogViewState extends State<FinancialActivityLogView> {
                             style: TextStyle(
                               fontSize: AppTextStyles.caption.fontSize,
                               fontWeight: FontWeight.bold,
-                              color: Colors.blue.shade700,
+                              color: AppColors.primary,
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -598,14 +599,14 @@ class _FinancialActivityLogViewState extends State<FinancialActivityLogView> {
                   DateFormat('dd/MM').format(date),
                   style: TextStyle(
                     fontSize: AppTextStyles.caption.fontSize,
-                    color: Colors.grey.shade600,
+                    color: AppColors.textSecondary,
                   ),
                 ),
                 const SizedBox(width: 2),
                 Icon(
                   Icons.chevron_right,
                   size: 14,
-                  color: Colors.grey.shade400,
+                  color: AppColors.textHint,
                 ),
               ],
             ),
@@ -634,7 +635,7 @@ class _FinancialActivityLogViewState extends State<FinancialActivityLogView> {
           maxHeight: MediaQuery.of(ctx).size.height * 0.75,
         ),
         decoration: const BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surface,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: SingleChildScrollView(
@@ -647,7 +648,7 @@ class _FinancialActivityLogViewState extends State<FinancialActivityLogView> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
+                    color: AppColors.outline,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -683,7 +684,7 @@ class _FinancialActivityLogViewState extends State<FinancialActivityLogView> {
                         Text(
                           DateFormat('HH:mm - dd/MM/yyyy').format(date),
                           style: TextStyle(
-                            color: Colors.grey.shade600,
+                            color: AppColors.textSecondary,
                             fontSize: AppTextStyles.body1.fontSize,
                           ),
                         ),
@@ -738,7 +739,7 @@ class _FinancialActivityLogViewState extends State<FinancialActivityLogView> {
             child: Text(
               label,
               style: TextStyle(
-                color: Colors.grey.shade600,
+                color: AppColors.textSecondary,
                 fontSize: AppTextStyles.body1.fontSize,
               ),
             ),
@@ -760,26 +761,26 @@ class _FinancialActivityLogViewState extends State<FinancialActivityLogView> {
   Color _getReferenceTypeColor(String referenceType) {
     switch (referenceType.toUpperCase()) {
       case 'PRODUCT':
-        return Colors.indigo;
+        return AppColors.primary;
       case 'SALE':
-        return Colors.pink;
+        return AppColors.error;
       case 'DEBT':
       case 'DEBT_PAYMENT':
-        return Colors.deepOrange;
+        return AppColors.repairPendingApproval;
       case 'SUPPLIER':
       case 'SUPPLIER_PAYMENT':
-        return Colors.teal;
+        return AppColors.info;
       case 'STAFF':
-        return Colors.orange;
+        return AppColors.warning;
       case 'EXPENSE':
-        return Colors.red;
+        return AppColors.error;
       case 'REPAIR':
-        return Colors.blue;
+        return AppColors.primary;
       case 'CASH_CLOSING':
       case 'CASH_CLOSE':
-        return Colors.green;
+        return AppColors.success;
       default:
-        return Colors.grey;
+        return AppColors.textHint;
     }
   }
 
@@ -812,13 +813,13 @@ class _FinancialActivityLogViewState extends State<FinancialActivityLogView> {
   Color _getActivityColor(FinancialActivity activity) {
     switch (activity.direction) {
       case 'IN':
-        return Colors.green;
+        return AppColors.success;
       case 'OUT':
-        return Colors.red;
+        return AppColors.error;
       case 'DEBT':
-        return Colors.orange;
+        return AppColors.warning;
       default:
-        return Colors.blue;
+        return AppColors.primary;
     }
   }
 

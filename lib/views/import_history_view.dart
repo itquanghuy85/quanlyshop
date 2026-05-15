@@ -205,8 +205,8 @@ class _ImportHistoryViewState extends State<ImportHistoryView> {
           'LỊCH SỬ NHẬP KHO',
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
         ),
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
+        backgroundColor: AppColors.surface,
+        foregroundColor: AppColors.textPrimary,
         elevation: 0,
         actions: [
           IconButton(
@@ -225,7 +225,7 @@ class _ImportHistoryViewState extends State<ImportHistoryView> {
           // Date range selector
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            color: Colors.white,
+            color: AppColors.surface,
             child: Row(
               children: [
                 Expanded(
@@ -237,7 +237,7 @@ class _ImportHistoryViewState extends State<ImportHistoryView> {
                         vertical: 10,
                       ),
                       decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey.shade300),
+                        border: Border.all(color: AppColors.outline),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Row(
@@ -266,7 +266,7 @@ class _ImportHistoryViewState extends State<ImportHistoryView> {
           // Summary row
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            color: Colors.grey.shade50,
+            color: AppColors.background,
             child: Row(
               children: [
                 _summaryChip(
@@ -356,16 +356,16 @@ class _ImportHistoryViewState extends State<ImportHistoryView> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.inventory_2_outlined, size: 64, color: Colors.grey.shade300),
+          Icon(Icons.inventory_2_outlined, size: 64, color: AppColors.outline),
           const SizedBox(height: 12),
           Text(
             'Chưa có phiếu nhập kho',
-            style: TextStyle(fontSize: 16, color: Colors.grey.shade500),
+            style: TextStyle(fontSize: 16, color: AppColors.textHint),
           ),
           const SizedBox(height: 4),
           Text(
             'Phiếu nhập sẽ được tạo tự động khi xác nhận nhập kho',
-            style: TextStyle(fontSize: 13, color: Colors.grey.shade400),
+            style: TextStyle(fontSize: 13, color: AppColors.textHint),
           ),
         ],
       ),
@@ -467,7 +467,7 @@ class _ImportHistoryViewState extends State<ImportHistoryView> {
                         '${order.supplierName ?? 'Không rõ NCC'} • ${order.totalQuantity} SP',
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.grey.shade700,
+                          color: AppColors.textSecondary,
                           fontWeight: FontWeight.w600,
                         ),
                         maxLines: 1,
@@ -486,14 +486,14 @@ class _ImportHistoryViewState extends State<ImportHistoryView> {
                                   vertical: 2,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: Colors.blueGrey.shade50,
+                                  color: AppColors.textSecondary,
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Text(
                                   it,
                                   style: TextStyle(
                                     fontSize: 11,
-                                    color: Colors.blueGrey.shade700,
+                                    color: AppColors.textSecondary,
                                   ),
                                 ),
                               ),
@@ -505,14 +505,14 @@ class _ImportHistoryViewState extends State<ImportHistoryView> {
                                   vertical: 2,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: Colors.grey.shade100,
+                                  color: AppColors.background,
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Text(
                                   '+$remainItems mục',
                                   style: TextStyle(
                                     fontSize: 11,
-                                    color: Colors.grey.shade700,
+                                    color: AppColors.textSecondary,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
@@ -550,7 +550,7 @@ class _ImportHistoryViewState extends State<ImportHistoryView> {
                                 : DateFormat('dd/MM HH:mm').format(date),
                             style: TextStyle(
                               fontSize: 11,
-                              color: Colors.grey.shade600,
+                              color: AppColors.textSecondary,
                             ),
                           ),
                         ],
@@ -561,7 +561,7 @@ class _ImportHistoryViewState extends State<ImportHistoryView> {
                           'Bởi: ${order.importedBy!.trim()}',
                           style: TextStyle(
                             fontSize: 11,
-                            color: Colors.grey.shade600,
+                            color: AppColors.textSecondary,
                           ),
                         ),
                       ],

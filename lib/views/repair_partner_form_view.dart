@@ -89,10 +89,10 @@ class _RepairPartnerFormViewState extends State<RepairPartnerFormView> {
         );
         final success = await _partnerService.updateRepairPartner(updated);
         if (success) {
-          NotificationService.showSnackBar('Đã cập nhật đối tác', color: Colors.green);
+          NotificationService.showSnackBar('Đã cập nhật đối tác', color: AppColors.success);
           if (mounted) Navigator.pop(context, true);
         } else {
-          NotificationService.showSnackBar('Lỗi cập nhật đối tác', color: Colors.red);
+          NotificationService.showSnackBar('Lỗi cập nhật đối tác', color: AppColors.error);
         }
       } else {
         final partner = RepairPartner(
@@ -105,14 +105,14 @@ class _RepairPartnerFormViewState extends State<RepairPartnerFormView> {
         );
         final result = await _partnerService.addRepairPartner(partner);
         if (result != null) {
-          NotificationService.showSnackBar('Đã thêm đối tác mới', color: Colors.green);
+          NotificationService.showSnackBar('Đã thêm đối tác mới', color: AppColors.success);
           if (mounted) Navigator.pop(context, true);
         } else {
-          NotificationService.showSnackBar('Lỗi thêm đối tác', color: Colors.red);
+          NotificationService.showSnackBar('Lỗi thêm đối tác', color: AppColors.error);
         }
       }
     } catch (e) {
-      NotificationService.showSnackBar('Lỗi: $e', color: Colors.red);
+      NotificationService.showSnackBar('Lỗi: $e', color: AppColors.error);
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -132,12 +132,12 @@ class _RepairPartnerFormViewState extends State<RepairPartnerFormView> {
             ),
           ),
         ),
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
+        backgroundColor: AppColors.surface,
+        foregroundColor: AppColors.textPrimary,
         elevation: 0,
         title: Text(
           isEditing ? 'SỬA ĐỐI TÁC' : 'THÊM ĐỐI TÁC MỚI',
-          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+          style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.surface),
         ),
         actions: [
           if (_saving)
@@ -147,7 +147,7 @@ class _RepairPartnerFormViewState extends State<RepairPartnerFormView> {
                 child: SizedBox(
                   width: 24,
                   height: 24,
-                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                  child: CircularProgressIndicator(color: AppColors.surface, strokeWidth: 2),
                 ),
               ),
             )
@@ -241,7 +241,7 @@ class _RepairPartnerFormViewState extends State<RepairPartnerFormView> {
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
-                side: BorderSide(color: AppColors.outline.withOpacity(0.5)),
+                side: BorderSide(color: AppColors.outline.withAlpha(128)),
               ),
               tileColor: AppColors.surface,
             ),
@@ -255,13 +255,13 @@ class _RepairPartnerFormViewState extends State<RepairPartnerFormView> {
                   ? const SizedBox(
                       width: 20,
                       height: 20,
-                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                      child: CircularProgressIndicator(color: AppColors.surface, strokeWidth: 2),
                     )
                   : Icon(isEditing ? Icons.save : Icons.add),
               label: Text(isEditing ? 'CẬP NHẬT' : 'THÊM ĐỐI TÁC'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: isEditing ? AppColors.warning : AppColors.success,
-                foregroundColor: Colors.white,
+                foregroundColor: AppColors.surface,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),

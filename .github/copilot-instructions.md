@@ -67,3 +67,100 @@ Multi-industry expansion (important)
 - Do NOT modify PaymentIntentService or SalaryCalculationService during expansion.
 - Keep backward compatibility: existing shops must continue working without changes.
 - Use feature flags to enable/disable modules per businessType.
+
+MANDATORY DOCUMENTATION PROCESS (REQUIRED FOR ALL TASKS)
+========================================================
+
+TASK COMPLETION REQUIREMENTS:
+Every task is ONLY considered COMPLETE when ALL of these are satisfied:
+1. Code changes implemented and tested
+2. flutter analyze → zero errors
+3. flutter build → success
+4. All documentation updated
+5. Changed files reported
+6. HANDOVER updated with status
+
+AUTOMATIC DOCUMENTATION UPDATES:
+After EVERY code change, automatically update:
+
+1. CLAUDE.md (if: architecture/module/rules change)
+   - Kiến trúc, module mới, quy tắc phát triển
+
+2. .github/copilot-instructions.md (if: AI/workflow change)
+   - Hướng dẫn AI agents, workflow, coding rules
+
+3. docs/CHANGELOG.md (every task)
+   - Add new entry: date, summary, files modified/added/removed, validation results
+
+4. docs/HANDOVER.md (every task)
+   - Update: Current Status, Completed Tasks, Pending Tasks, Known Issues, Next Steps
+
+5. docs/DOCUMENTATION_INDEX.md (if: new/removed doc files)
+   - Add/remove entries from documentation index
+
+6. DOCS/FULL_DOCUMENTATION.md (if: architecture/services change)
+   - Chi tiết services, database schema, core logic
+
+7. Specialized Reports (if: relevant to change):
+   - PERMISSION_AUDIT_REPORT.md → permission logic
+   - FINANCE_V2_MIGRATION.md → finance/payments
+   - KIOTVIET_INTEGRATION_REPORT.md → KiotViet sync
+   - IMAGE_UPLOAD_AUDIT_REPORT.md → image upload
+   - UI_STANDARDIZATION_REPORT.md → UI components
+
+VALIDATION CHECKLIST (before ending task):
+☐ Code implemented
+☐ flutter analyze: no errors
+☐ flutter test: passing (if applicable)
+☐ flutter build: success
+☐ CLAUDE.md updated (if needed)
+☐ .github/copilot-instructions.md updated (if needed)
+☐ docs/CHANGELOG.md entry added
+☐ docs/HANDOVER.md status updated
+☐ docs/DOCUMENTATION_INDEX.md updated (if needed)
+☐ Specialized reports updated (if needed)
+☐ Changed files reported to user
+
+DO NOT SKIP DOCUMENTATION:
+- Documentation updates are MANDATORY, not optional
+- No need to ask user: "Should I update docs?" → Just do it
+- No need to ask user: "Update CHANGELOG?" → Just update it
+- This is default workflow for ALL tasks
+
+DOCUMENTATION FILES STRUCTURE:
+Core Documents:
+- CLAUDE.md (tổng thể cho AI agents)
+- .github/copilot-instructions.md (hướng dẫn)
+- docs/DOCUMENTATION_INDEX.md (chỉ mục)
+- docs/CHANGELOG.md (lịch sử)
+- docs/HANDOVER.md (trạng thái)
+
+Architecture & Standards:
+- docs/ARCHITECTURE.md (chi tiết kiến trúc)
+- docs/DESIGN_SYSTEM.md (design tokens)
+- docs/UI_GUIDELINES.md (hướng dẫn UI)
+- docs/CODING_STANDARDS.md (quy tắc coding)
+
+Project Management:
+- docs/KNOWN_ISSUES.md (vấn đề)
+- docs/TODO.md (công việc)
+- docs/ROADMAP.md (lộ trình)
+
+Implementation:
+- docs/IMPLEMENTATION_REPORT.md (chi tiết)
+- DOCS/FULL_DOCUMENTATION.md (tài liệu toàn bộ)
+
+References:
+- Read CLAUDE.md first (kiến trúc + quy tắc)
+- Read docs/DOCUMENTATION_INDEX.md for overview
+- Read docs/HANDOVER.md for current status
+- Check docs/KNOWN_ISSUES.md before starting task
+
+Key Principle:
+When task ends, someone should understand:
+- What was changed and why
+- Current system state
+- What's coming next
+Just by reading CLAUDE.md + HANDOVER.md + CHANGELOG.md
+
+NO EXCEPTIONS. Documentation is part of every task.

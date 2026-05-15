@@ -15,44 +15,44 @@ class AppTextStyles {
   static const String numberFontFamily = 'Roboto';
 
   // ========== FONT SIZES ==========
-  /// Heading 1 - Page title
-  static const double h1 = 16.0;
+  /// Heading 1 - Page title / Section title
+  static const double h1 = 18.0;
 
-  /// Heading 2 - Section header
-  static const double h2 = 14.0;
+  /// Heading 2 - Section header / Card title
+  static const double h2 = 16.0;
 
-  /// Heading 3 - Card title
-  static const double h3 = 14.0;
+  /// Heading 3 - Subsection / List group title
+  static const double h3 = 15.0;
 
   /// Heading 4 - List item title
-  static const double h4 = 13.0;
+  static const double h4 = 14.0;
 
-  /// Heading 5 - Subtitle
+  /// Heading 5 - Subtitle / secondary title
   static const double h5 = 13.0;
 
   /// Heading 6 - Small header
   static const double h6 = 12.0;
 
   /// Subtitle 1 - Primary subtitle
-  static const double subtitle1Size = 12.0;
+  static const double subtitle1Size = 13.0;
 
   /// Subtitle 2 - Secondary subtitle
-  static const double subtitle2Size = 11.0;
+  static const double subtitle2Size = 12.0;
 
   /// Body 1 - Main content
-  static const double body1Size = 13.0;
+  static const double body1Size = 14.0;
 
   /// Body 2 - Secondary content
-  static const double body2Size = 12.0;
+  static const double body2Size = 13.0;
 
   /// Button text
-  static const double buttonSize = 13.0;
+  static const double buttonSize = 14.0;
 
   /// Caption - Metadata, timestamps
-  static const double captionSize = 10.0;
+  static const double captionSize = 11.0;
 
   /// Overline - Smallest text
-  static const double overlineSize = 10.0;
+  static const double overlineSize = 11.0;
 
   // ========== LINE HEIGHTS ==========
   /// Line height cho heading

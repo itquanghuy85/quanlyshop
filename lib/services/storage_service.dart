@@ -16,6 +16,7 @@ class StorageService {
   static final Map<String, String> _resolvedUrlCache = {};
   static String? _lastUploadErrorMessage;
   static bool _lastUploadPermissionDenied = false;
+  static bool _lastUploadBillingDisabled = false;
   static const Set<String> _storageRoots = {
     'repairs',
     'attendance',
@@ -30,39 +31,55 @@ class StorageService {
 
   static String? get lastUploadErrorMessage => _lastUploadErrorMessage;
   static bool get lastUploadPermissionDenied => _lastUploadPermissionDenied;
+  static bool get lastUploadBillingDisabled => _lastUploadBillingDisabled;
 
   static void _clearLastUploadError() {
     _lastUploadErrorMessage = null;
     _lastUploadPermissionDenied = false;
+    _lastUploadBillingDisabled = false;
   }
 
   static void _setLastUploadError(Object error) {
-    _lastUploadErrorMessage = error.toString();
+    if (_isBillingDisabledStorageError(error)) {
+      _lastUploadErrorMessage =
+          'Không thể tải ảnh lên Firebase Storage: billing của dự án đang bị khóa (delinquent). Vui lòng cập nhật thanh toán trên Firebase/Google Cloud.';
+    } else {
+      _lastUploadErrorMessage = _describeStorageError(error);
+    }
     _lastUploadPermissionDenied = _isUnauthorizedStorageError(error);
+    _lastUploadBillingDisabled = _isBillingDisabledStorageError(error);
   }
 
   static String _pendingEntryKey(String localPath, String folder) {
     return '${folder.trim()}||${localPath.trim()}';
   }
 
-  static Future<void> _enqueuePendingUpload(String localPath, String folder) async {
+  static Future<void> _enqueuePendingUpload(
+    String localPath,
+    String folder,
+  ) async {
     final normalizedPath = localPath.trim();
     final normalizedFolder = folder.trim();
     if (normalizedPath.isEmpty || normalizedFolder.isEmpty) return;
     final key = _pendingEntryKey(normalizedPath, normalizedFolder);
     try {
       final prefs = await SharedPreferences.getInstance();
-      final current = prefs.getStringList(_pendingUploadsKey) ?? const <String>[];
+      final current =
+          prefs.getStringList(_pendingUploadsKey) ?? const <String>[];
       if (current.contains(key)) return;
       await prefs.setStringList(_pendingUploadsKey, [...current, key]);
     } catch (_) {}
   }
 
-  static Future<void> _removePendingUpload(String localPath, String folder) async {
+  static Future<void> _removePendingUpload(
+    String localPath,
+    String folder,
+  ) async {
     final key = _pendingEntryKey(localPath, folder);
     try {
       final prefs = await SharedPreferences.getInstance();
-      final current = prefs.getStringList(_pendingUploadsKey) ?? const <String>[];
+      final current =
+          prefs.getStringList(_pendingUploadsKey) ?? const <String>[];
       if (!current.contains(key)) return;
       final updated = current.where((e) => e != key).toList();
       await prefs.setStringList(_pendingUploadsKey, updated);
@@ -74,7 +91,9 @@ class StorageService {
     _retryingPendingUploads = true;
     try {
       final prefs = await SharedPreferences.getInstance();
-      final entries = List<String>.from(prefs.getStringList(_pendingUploadsKey) ?? const <String>[]);
+      final entries = List<String>.from(
+        prefs.getStringList(_pendingUploadsKey) ?? const <String>[],
+      );
       if (entries.isEmpty) return;
 
       for (final entry in entries.take(maxItems)) {
@@ -86,12 +105,66 @@ class StorageService {
         final url = await uploadAndGetUrl(localPath, folder);
         if (url != null && url.trim().isNotEmpty) {
           await _removePendingUpload(localPath, folder);
+          continue;
+        }
+
+        // Billing disabled (HTTP 402) is not recoverable by retrying now.
+        // Stop current retry cycle to avoid noisy repeated failures.
+        if (_lastUploadBillingDisabled) {
+          debugPrint(
+            'StorageService.retryPendingUploads: stop retry cycle because Firebase Storage billing is disabled (HTTP 402).',
+          );
+          break;
         }
       }
     } catch (e) {
       debugPrint('StorageService.retryPendingUploads error: $e');
     } finally {
       _retryingPendingUploads = false;
+    }
+  }
+
+  /// Clean up old temporary files (older than 24 hours) - Fix #4
+  static Future<void> cleanupOldTempFiles({
+    Duration maxAge = const Duration(hours: 24),
+  }) async {
+    try {
+      final tempDir = await getTemporaryDirectory();
+      final now = DateTime.now();
+      int deletedCount = 0;
+      int errorCount = 0;
+
+      // List all files in temp directory
+      if (!tempDir.existsSync()) return;
+
+      for (final entity in tempDir.listSync()) {
+        if (entity is! File) continue;
+
+        try {
+          final stat = entity.statSync();
+          final age = now.difference(stat.modified);
+
+          // Delete files older than maxAge that look like compressed images
+          if (age > maxAge &&
+              (entity.path.contains('compressed_') ||
+                  entity.path.endsWith('.jpg') ||
+                  entity.path.endsWith('.png'))) {
+            entity.deleteSync();
+            deletedCount++;
+          }
+        } catch (e) {
+          debugPrint('⚠️ Error deleting temp file ${entity.path}: $e');
+          errorCount++;
+        }
+      }
+
+      if (deletedCount > 0 || errorCount > 0) {
+        debugPrint(
+          '🧹 Temp file cleanup: deleted $deletedCount, errors $errorCount',
+        );
+      }
+    } catch (e) {
+      debugPrint('⚠️ cleanupOldTempFiles error: $e');
     }
   }
 
@@ -137,6 +210,21 @@ class StorageService {
     final message = error.toString().toLowerCase();
     return message.contains('firebase_storage/unauthorized') ||
         message.contains('permission denied');
+  }
+
+  static bool _isBillingDisabledStorageError(Object error) {
+    final message = error.toString().toLowerCase();
+    return message.contains('httpresult: 402') ||
+        message.contains('"code": 402') ||
+        (message.contains('billing account') && message.contains('delinquent'));
+  }
+
+  static String _describeStorageError(Object error) {
+    if (error is FirebaseException) {
+      final message = error.message?.trim();
+      return 'code=${error.code}, plugin=${error.plugin}, message=${message?.isNotEmpty == true ? message : error.toString()}';
+    }
+    return error.toString();
   }
 
   static Future<String?> _getCurrentUserShopIdClaim() async {
@@ -242,6 +330,9 @@ class StorageService {
             .timeout(const Duration(seconds: 30));
       } catch (e) {
         lastError = e;
+        debugPrint(
+          'StorageService: putFile failed at "$candidate": ${_describeStorageError(e)}',
+        );
         if (!isLast && _isUnauthorizedStorageError(e)) {
           debugPrint(
             'StorageService: unauthorized at "$candidate", retrying next fallback folder...',
@@ -278,6 +369,9 @@ class StorageService {
             .timeout(const Duration(seconds: 30));
       } catch (e) {
         lastError = e;
+        debugPrint(
+          'StorageService: putData failed at "$candidate": ${_describeStorageError(e)}',
+        );
         if (!isLast && _isUnauthorizedStorageError(e)) {
           debugPrint(
             'StorageService: unauthorized at "$candidate", retrying next fallback folder...',
@@ -293,7 +387,12 @@ class StorageService {
 
   /// Các extension hình ảnh được hỗ trợ nén
   static const List<String> _imageExtensions = [
-    '.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif'
+    '.jpg',
+    '.jpeg',
+    '.png',
+    '.webp',
+    '.heic',
+    '.heif',
   ];
 
   /// Kiểm tra file có phải là hình ảnh không
@@ -333,7 +432,9 @@ class StorageService {
         targetSize = 1280;
       }
 
-      debugPrint('📸 Nén ảnh: ${path.basename(filePath)} - Size gốc: ${(originalSize / 1024).toStringAsFixed(1)} KB');
+      debugPrint(
+        '📸 Nén ảnh: ${path.basename(filePath)} - Size gốc: ${(originalSize / 1024).toStringAsFixed(1)} KB',
+      );
 
       // Tạo đường dẫn file tạm để lưu ảnh nén
       final tempDir = await getTemporaryDirectory();
@@ -349,15 +450,16 @@ class StorageService {
       }
 
       // Nén ảnh
-      final XFile? compressedXFile = await FlutterImageCompress.compressAndGetFile(
-        filePath,
-        targetPath,
-        quality: quality,
-        minWidth: targetSize,
-        minHeight: targetSize,
-        format: format,
-        keepExif: false,
-      ).timeout(const Duration(seconds: 12));
+      final XFile? compressedXFile =
+          await FlutterImageCompress.compressAndGetFile(
+            filePath,
+            targetPath,
+            quality: quality,
+            minWidth: targetSize,
+            minHeight: targetSize,
+            format: format,
+            keepExif: false,
+          ).timeout(const Duration(seconds: 12));
 
       if (compressedXFile == null) {
         debugPrint('⚠️ Không thể nén ảnh, sử dụng file gốc');
@@ -366,9 +468,13 @@ class StorageService {
 
       final compressedFile = File(compressedXFile.path);
       final compressedSize = await compressedFile.length();
-      final savedPercent = ((originalSize - compressedSize) / originalSize * 100).toStringAsFixed(1);
+      final savedPercent =
+          ((originalSize - compressedSize) / originalSize * 100)
+              .toStringAsFixed(1);
 
-      debugPrint('✅ Nén xong: ${(compressedSize / 1024).toStringAsFixed(1)} KB (giảm $savedPercent%)');
+      debugPrint(
+        '✅ Nén xong: ${(compressedSize / 1024).toStringAsFixed(1)} KB (giảm $savedPercent%)',
+      );
 
       // Nếu file nén lớn hơn file gốc, dùng file gốc
       if (compressedSize >= originalSize) {
@@ -385,7 +491,10 @@ class StorageService {
   }
 
   /// Tự động upload và trả về URL để đồng bộ giữa các máy
-  static Future<String?> uploadAndGetUrl(String localPath, String folder) async {
+  static Future<String?> uploadAndGetUrl(
+    String localPath,
+    String folder,
+  ) async {
     _clearLastUploadError();
     if (!_retryingPendingUploads) {
       unawaited(retryPendingUploads());
@@ -422,7 +531,8 @@ class StorageService {
       }
 
       // Đặt tên file theo định dạng chuẩn: shopId_timestamp_name
-      String fileName = "${DateTime.now().millisecondsSinceEpoch}_${path.basename(localPath)}";
+      String fileName =
+          "${DateTime.now().millisecondsSinceEpoch}_${path.basename(localPath)}";
 
       final ext = path.extension(fileToUpload.path).toLowerCase();
       final normalizedExt = ext.isEmpty ? '.jpg' : ext;
@@ -450,13 +560,18 @@ class StorageService {
     } catch (e) {
       _setLastUploadError(e);
       await _enqueuePendingUpload(localPath, folder);
-      debugPrint("STORAGE_ERROR: $e");
+      debugPrint(
+        'STORAGE_ERROR: folder=$folder, localPath=$localPath, detail=${_describeStorageError(e)}',
+      );
       return null;
     }
   }
 
   /// Upload trực tiếp từ XFile (an toàn cho web vì dùng bytes).
-  static Future<String?> uploadXFileAndGetUrl(XFile picked, String folder) async {
+  static Future<String?> uploadXFileAndGetUrl(
+    XFile picked,
+    String folder,
+  ) async {
     _clearLastUploadError();
     if (!_retryingPendingUploads) {
       unawaited(retryPendingUploads());
@@ -522,7 +637,9 @@ class StorageService {
 
       // Clean up temp compressed file
       if (fileToUpload.path != file.path && fileToUpload.existsSync()) {
-        try { await fileToUpload.delete(); } catch (_) {}
+        try {
+          await fileToUpload.delete();
+        } catch (_) {}
       }
 
       final url = await snapshot.ref.getDownloadURL();
@@ -532,7 +649,9 @@ class StorageService {
     } catch (e) {
       _setLastUploadError(e);
       await _enqueuePendingUpload(picked.path, folder);
-      debugPrint("STORAGE_XFILE_ERROR: $e");
+      debugPrint(
+        'STORAGE_XFILE_ERROR: folder=$folder, xfilePath=${picked.path}, detail=${_describeStorageError(e)}',
+      );
       return null;
     }
   }
@@ -610,23 +729,29 @@ class StorageService {
       final ref = isGsStoragePath(normalized)
           ? _storage.refFromURL(normalized)
           : _storage.ref(
-              normalized.startsWith('/')
-                  ? normalized.substring(1)
-                  : normalized,
+              normalized.startsWith('/') ? normalized.substring(1) : normalized,
             );
       final url = await ref.getDownloadURL();
       _resolvedUrlCache[normalized] = url;
       return url;
     } catch (e) {
-      debugPrint('StorageService: failed to resolve image path $normalized: $e');
+      debugPrint(
+        'StorageService: failed to resolve image path $normalized: $e',
+      );
       return null;
     }
   }
 
   /// Xử lý đồng loạt cho danh sách ảnh
-  static Future<String> uploadMultipleAndJoin(String localPathsCsv, String folder) async {
+  static Future<String> uploadMultipleAndJoin(
+    String localPathsCsv,
+    String folder,
+  ) async {
     if (localPathsCsv.isEmpty) return "";
-    List<String> paths = localPathsCsv.split(',').where((e) => e.trim().isNotEmpty).toList();
+    List<String> paths = localPathsCsv
+        .split(',')
+        .where((e) => e.trim().isNotEmpty)
+        .toList();
     List<String> urls = [];
 
     for (String p in paths) {
@@ -640,7 +765,10 @@ class StorageService {
   }
 
   /// Upload multiple images and return list of URLs
-  static Future<List<String>> uploadMultipleImages(List<String> localPaths, String folder) async {
+  static Future<List<String>> uploadMultipleImages(
+    List<String> localPaths,
+    String folder,
+  ) async {
     List<String> urls = [];
     for (String path in localPaths) {
       String? url = await uploadAndGetUrl(path, folder);

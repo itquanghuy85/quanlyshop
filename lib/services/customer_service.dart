@@ -186,6 +186,7 @@ class CustomerService {
       final finalPrice = totalPrice - discount > 0 ? totalPrice - discount : 0;
       return {
         'type': 'sale',
+        'id': s['id'],
         'date': s['soldAt'],
         'amount': finalPrice,
         'description': s['productNames'],
@@ -197,6 +198,7 @@ class CustomerService {
     final repairsData = await db.getCustomerRepairsHistory(phone, shopId);
     final repairs = repairsData.map((r) => {
       'type': 'repair',
+      'id': r['id'],
       'date': r['createdAt'],
       'amount': r['price'],
       'description': '${r['model']} - ${r['issue']}',

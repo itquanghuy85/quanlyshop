@@ -645,7 +645,7 @@ class OrderListViewState extends State<OrderListView> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheetState) => Container(
           decoration: const BoxDecoration(
-            color: Colors.white,
+            color: AppColors.surface,
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
           padding: const EdgeInsets.all(12),
@@ -682,7 +682,7 @@ class OrderListViewState extends State<OrderListView> {
                 loc.statusSelectMultiple,
                 style: AppTextStyles.subtitle1.copyWith(
                   fontWeight: FontWeight.w600,
-                  color: Colors.grey,
+                  color: AppColors.textSecondary,
                 ),
               ),
               const SizedBox(height: 8),
@@ -724,7 +724,7 @@ class OrderListViewState extends State<OrderListView> {
                   child: Text(
                     loc.selectedStatuses(_statusFilters.length),
                     style: AppTextStyles.caption.copyWith(
-                      color: Colors.blue.shade700,
+                      color: AppColors.primary,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -736,7 +736,7 @@ class OrderListViewState extends State<OrderListView> {
                 loc.timeFilter,
                 style: AppTextStyles.subtitle1.copyWith(
                   fontWeight: FontWeight.w600,
-                  color: Colors.grey,
+                  color: AppColors.textSecondary,
                 ),
               ),
               const SizedBox(height: 8),
@@ -778,13 +778,13 @@ class OrderListViewState extends State<OrderListView> {
                       ),
                       decoration: BoxDecoration(
                         color: _timeFilter == 'custom'
-                            ? const Color(0xFF2962FF)
-                            : Colors.grey.shade100,
+                            ? AppColors.primary
+                            : AppColors.grey100,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: _timeFilter == 'custom'
-                              ? const Color(0xFF2962FF)
-                              : Colors.grey.shade300,
+                              ? AppColors.primary
+                              : AppColors.grey300,
                         ),
                       ),
                       child: Row(
@@ -794,16 +794,16 @@ class OrderListViewState extends State<OrderListView> {
                             Icons.calendar_month,
                             size: 16,
                             color: _timeFilter == 'custom'
-                                ? Colors.white
-                                : Colors.black87,
+                                ? AppColors.onPrimary
+                                : AppColors.textPrimary,
                           ),
                           const SizedBox(width: 6),
                           Text(
                             'Tùy chọn',
                             style: TextStyle(
                               color: _timeFilter == 'custom'
-                                  ? Colors.white
-                                  : Colors.black87,
+                                  ? AppColors.onPrimary
+                                  : AppColors.textPrimary,
                               fontWeight: _timeFilter == 'custom'
                                   ? FontWeight.bold
                                   : FontWeight.normal,
@@ -823,7 +823,7 @@ class OrderListViewState extends State<OrderListView> {
                   child: Text(
                     '${DateFormat('dd/MM/yyyy').format(_customStartDate!)} - ${DateFormat('dd/MM/yyyy').format(_customEndDate!)}',
                     style: const TextStyle(
-                      color: Color(0xFF2962FF),
+                      color: AppColors.primary,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -837,8 +837,8 @@ class OrderListViewState extends State<OrderListView> {
                     _onSearch(_currentSearch);
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2962FF),
-                    foregroundColor: Colors.white,
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: AppColors.onPrimary,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -868,7 +868,7 @@ class OrderListViewState extends State<OrderListView> {
     final isSelected = value == null
         ? _statusFilters.isEmpty && !_filterPendingApproval
         : _statusFilters.contains(value);
-    final color = activeColor ?? const Color(0xFF2962FF);
+    final color = activeColor ?? AppColors.primary;
     return GestureDetector(
       onTap: () {
         setSheetState(() {
@@ -890,9 +890,9 @@ class OrderListViewState extends State<OrderListView> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? color : Colors.grey.shade100,
+          color: isSelected ? color : AppColors.grey100,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: isSelected ? color : Colors.grey.shade300),
+          border: Border.all(color: isSelected ? color : AppColors.grey300),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -900,12 +900,12 @@ class OrderListViewState extends State<OrderListView> {
             if (isSelected && value != null)
               const Padding(
                 padding: EdgeInsets.only(right: 4),
-                child: Icon(Icons.check_circle, size: 14, color: Colors.white),
+                child: Icon(Icons.check_circle, size: 14, color: AppColors.onPrimary),
               ),
             Text(
               label,
               style: TextStyle(
-                color: isSelected ? Colors.white : Colors.black87,
+                color: isSelected ? AppColors.onPrimary : AppColors.textPrimary,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),
             ),
@@ -917,7 +917,7 @@ class OrderListViewState extends State<OrderListView> {
 
   Widget _pendingApprovalChip(StateSetter setSheetState) {
     final isSelected = _filterPendingApproval;
-    const color = Colors.deepOrange;
+    const color = AppColors.repairPendingApproval;
     return GestureDetector(
       onTap: () {
         setSheetState(() {
@@ -930,9 +930,9 @@ class OrderListViewState extends State<OrderListView> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? color : Colors.grey.shade100,
+          color: isSelected ? color : AppColors.grey100,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: isSelected ? color : Colors.grey.shade300),
+          border: Border.all(color: isSelected ? color : AppColors.grey300),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -940,12 +940,12 @@ class OrderListViewState extends State<OrderListView> {
             if (isSelected)
               const Padding(
                 padding: EdgeInsets.only(right: 4),
-                child: Icon(Icons.check_circle, size: 14, color: Colors.white),
+                child: Icon(Icons.check_circle, size: 14, color: AppColors.onPrimary),
               ),
             Text(
               'Chờ duyệt',
               style: TextStyle(
-                color: isSelected ? Colors.white : Colors.black87,
+                color: isSelected ? AppColors.onPrimary : AppColors.textPrimary,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),
             ),
@@ -962,16 +962,16 @@ class OrderListViewState extends State<OrderListView> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF2962FF) : Colors.grey.shade100,
+          color: isSelected ? AppColors.primary : AppColors.grey100,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? const Color(0xFF2962FF) : Colors.grey.shade300,
+            color: isSelected ? AppColors.primary : AppColors.grey300,
           ),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: isSelected ? Colors.white : Colors.black87,
+            color: isSelected ? AppColors.onPrimary : AppColors.textPrimary,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
           ),
         ),
@@ -990,7 +990,7 @@ class OrderListViewState extends State<OrderListView> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('❌ Không thể xóa đơn ĐÃ GIAO. Chỉ xóa đơn chưa giao.'),
-          backgroundColor: Colors.red,
+          backgroundColor: AppColors.error,
         ),
       );
       return;
@@ -1010,7 +1010,7 @@ class OrderListViewState extends State<OrderListView> {
               hasAccountingData || hasPartsUsed
                   ? Icons.warning_amber_rounded
                   : Icons.delete_forever,
-              color: Colors.red,
+              color: AppColors.error,
             ),
             const SizedBox(width: 8),
             const Expanded(child: Text("XÁC NHẬN XÓA ĐƠN")),
@@ -1024,7 +1024,7 @@ class OrderListViewState extends State<OrderListView> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.grey.shade100,
+                color: AppColors.grey100,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Column(
@@ -1047,15 +1047,15 @@ class OrderListViewState extends State<OrderListView> {
                 padding: const EdgeInsets.all(8),
                 margin: const EdgeInsets.only(bottom: 8),
                 decoration: BoxDecoration(
-                  color: Colors.orange.shade50,
+                  color: AppColors.iconBgOrange,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.orange),
+                  border: Border.all(color: AppColors.warning),
                 ),
                 child: Row(
                   children: [
                     const Icon(
                       Icons.attach_money,
-                      color: Colors.orange,
+                      color: AppColors.warning,
                       size: 20,
                     ),
                     const SizedBox(width: 8),
@@ -1083,16 +1083,16 @@ class OrderListViewState extends State<OrderListView> {
                 padding: const EdgeInsets.all(8),
                 margin: const EdgeInsets.only(bottom: 8),
                 decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
+                  color: AppColors.infoLight,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.blue),
+                  border: Border.all(color: AppColors.info),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.build, color: Colors.blue, size: 20),
+                        const Icon(Icons.build, color: AppColors.info, size: 20),
                         const SizedBox(width: 8),
                         Text(
                           loc.orderHasParts,
@@ -1106,7 +1106,7 @@ class OrderListViewState extends State<OrderListView> {
                     const SizedBox(height: 4),
                     Text(
                       r.partsUsed,
-                      style: const TextStyle(fontSize: 13, color: Colors.blue),
+                      style: const TextStyle(fontSize: 13, color: AppColors.info),
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -1114,7 +1114,7 @@ class OrderListViewState extends State<OrderListView> {
                       style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
-                        color: Colors.green,
+                        color: AppColors.success,
                       ),
                     ),
                   ],
@@ -1139,9 +1139,9 @@ class OrderListViewState extends State<OrderListView> {
             child: const Text("HỦY"),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
             onPressed: () => _executeDelete(ctx, r, passCtrl.text),
-            child: const Text("XÓA", style: TextStyle(color: Colors.white)),
+            child: const Text("XÓA", style: TextStyle(color: AppColors.onPrimary)),
           ),
         ],
       ),
@@ -1244,14 +1244,14 @@ class OrderListViewState extends State<OrderListView> {
                 ? '✅ Đã xóa đơn và hoàn trả phụ tùng về kho'
                 : '✅ Đã xóa đơn thành công',
           ),
-          backgroundColor: Colors.green,
+          backgroundColor: AppColors.success,
         ),
       );
     } catch (_) {
       messenger.showSnackBar(
         const SnackBar(
           content: Text('❌ Mật khẩu sai'),
-          backgroundColor: Colors.red,
+          backgroundColor: AppColors.error,
         ),
       );
     }
@@ -1291,15 +1291,11 @@ class OrderListViewState extends State<OrderListView> {
     final pendingCount = _displayedRepairs.where((r) => r.status < 3).length;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF0F4F8),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         flexibleSpace: Container(
           decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF0068FF), Color(0xFF0084FF)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            gradient: AppColors.primaryGradient,
           ),
         ),
         title: Column(
@@ -1309,7 +1305,7 @@ class OrderListViewState extends State<OrderListView> {
               "DANH SÁCH ${_terms.productLabel.toUpperCase()} SỬA",
               style: AppTextStyles.headline2.copyWith(
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: AppColors.surface,
               ),
             ),
             Text(
@@ -1318,8 +1314,8 @@ class OrderListViewState extends State<OrderListView> {
             ),
           ],
         ),
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
+        backgroundColor: AppColors.surface,
+        foregroundColor: AppColors.textPrimary,
         elevation: 0,
         automaticallyImplyLeading: true,
         actions: [
@@ -1330,7 +1326,7 @@ class OrderListViewState extends State<OrderListView> {
                 builder: (_) => GlobalSearchView(role: widget.role),
               ),
             ),
-            icon: const Icon(Icons.search_rounded, color: Colors.white),
+            icon: const Icon(Icons.search_rounded, color: AppColors.surface),
             tooltip: 'Tìm kiếm toàn app',
           ),
           if (!widget.todayOnly)
@@ -1340,7 +1336,7 @@ class OrderListViewState extends State<OrderListView> {
                   onPressed: _showFilterSheet,
                   icon: const Icon(
                     Icons.filter_list_rounded,
-                    color: Colors.white,
+                    color: AppColors.surface,
                   ),
                   tooltip: 'Lọc theo thời gian',
                 ),
@@ -1351,13 +1347,13 @@ class OrderListViewState extends State<OrderListView> {
                     child: Container(
                       padding: const EdgeInsets.all(4),
                       decoration: const BoxDecoration(
-                        color: Colors.orange,
+                        color: AppColors.warning,
                         shape: BoxShape.circle,
                       ),
                       child: Text(
                         '$_activeFilterCount',
                         style: AppTextStyles.caption.copyWith(
-                          color: Colors.white,
+                          color: AppColors.surface,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -1366,7 +1362,7 @@ class OrderListViewState extends State<OrderListView> {
               ],
             ),
           IconButton(
-            icon: const Icon(Icons.file_download_outlined, color: Colors.white),
+            icon: const Icon(Icons.file_download_outlined, color: AppColors.surface),
             tooltip: 'Xuất Excel đơn sửa',
             onPressed: () async {
               final result = await ExportDateFilterDialog.show(
@@ -1394,19 +1390,19 @@ class OrderListViewState extends State<OrderListView> {
                   horizontal: 16,
                   vertical: 8,
                 ),
-                color: Colors.blue.shade50,
+                color: AppColors.iconBgBlue,
                 child: Row(
                   children: [
                     const Icon(
                       Icons.filter_list,
                       size: 16,
-                      color: Color(0xFF2962FF),
+                      color: AppColors.primary,
                     ),
                     const SizedBox(width: 8),
                     Text(
                       'Lọc: ${_getTimeFilterLabel()}',
                       style: AppTextStyles.subtitle1.copyWith(
-                        color: const Color(0xFF2962FF),
+                        color: AppColors.primary,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -1423,24 +1419,45 @@ class OrderListViewState extends State<OrderListView> {
                       child: const Icon(
                         Icons.close,
                         size: 18,
-                        color: Color(0xFF2962FF),
+                        color: AppColors.primary,
                       ),
                     ),
                   ],
                 ),
               ),
             Padding(
-              padding: const EdgeInsets.all(16),
-              child: TextField(
-                onChanged: _onSearch,
-                decoration: InputDecoration(
-                  hintText: "Tìm khách, model, lỗi, SĐT...",
-                  prefixIcon: const Icon(Icons.search),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(15),
-                    borderSide: BorderSide.none,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: SizedBox(
+                height: 42,
+                child: TextField(
+                  onChanged: _onSearch,
+                  style: const TextStyle(fontSize: 14),
+                  decoration: InputDecoration(
+                    hintText: "Tìm khách, model, lỗi, SĐT...",
+                    hintStyle: const TextStyle(fontSize: 13),
+                    prefixIcon: const Icon(Icons.search, size: 18),
+                    filled: true,
+                    fillColor: AppColors.surface,
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: AppColors.outline),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(
+                        color: AppColors.primary,
+                        width: 1.5,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -1454,7 +1471,7 @@ class OrderListViewState extends State<OrderListView> {
                   ? const Center(child: CircularProgressIndicator())
                   : ListView.builder(
                     controller: _listScrollController,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      padding: EdgeInsets.zero,
                       itemCount: _displayedRepairs.length + 1,
                       itemBuilder: (ctx, i) {
                         if (i < _displayedRepairs.length) {
@@ -1466,7 +1483,7 @@ class OrderListViewState extends State<OrderListView> {
                             child: Text(
                               loc.displayedRepairs(_displayedRepairs.length),
                               style: AppTextStyles.caption.copyWith(
-                                color: Colors.grey[600],
+                                color: AppColors.textSecondary,
                               ),
                             ),
                           ),
@@ -1498,393 +1515,259 @@ class OrderListViewState extends State<OrderListView> {
   Widget _buildRepairCard(Repair r, int index) {
     final List<String> images = _collectRepairImages(r);
     final String firstImage = _pickBestPreviewImage(images);
-    final int displayCost = r.totalCost;
     final int displayPrice = _displayedChargePrice(r);
-    final int displayProfit = displayPrice - displayCost;
-    final bool hideDeliveredSensitiveFinancial =
-      r.status == 4 && !(_canViewRevenue && _canViewCostPrice);
-    final bool canShowCost =
-      _canViewCostPrice && _canViewRevenue && !hideDeliveredSensitiveFinancial;
-    final bool canShowProfit =
-      _canViewRevenue && _canViewCostPrice && !hideDeliveredSensitiveFinancial;
     final bool hasRequestedCharge =
-      r.pendingDeliveryApproval && r.requestedDeliveryPrice != null;
+        r.pendingDeliveryApproval && r.requestedDeliveryPrice != null;
 
-    // Determine card color based on status
-    Color bgColor;
-    Color borderColor;
-    switch (r.status) {
-      case 1: // TIẾP NHẬN
-        bgColor = Colors.blue.shade50;
-        borderColor = Colors.blue.shade300;
-        break;
-      case 2: // ĐANG SỬA
-        bgColor = Colors.orange.shade50;
-        borderColor = Colors.orange.shade300;
-        break;
-      case 3: // SỬA XONG
-        bgColor = r.pendingDeliveryApproval
-            ? Colors.deepOrange.shade50
-            : Colors.green.shade50;
-        borderColor = r.pendingDeliveryApproval
-            ? Colors.deepOrange.shade300
-            : Colors.green.shade300;
-        break;
-      case 4: // ĐÃ GIAO
-        bgColor = Colors.blue.shade50;
-        borderColor = Colors.blue.shade300;
-        break;
-      default:
-        bgColor = Colors.grey.shade50;
-        borderColor = Colors.grey.shade300;
-    }
+    // Status-based accent color
+    final Color statusColor = _getStatusColor(
+      r.status,
+      pendingApproval: r.pendingDeliveryApproval,
+    );
 
-    final bool isAltRow = index.isEven;
-    final Color cardColor = isAltRow
-        ? bgColor
-        : Color.alphaBlend(const Color(0x14000000), bgColor);
+    // Repair ID: use short firestoreId suffix or date-based fallback
+    final String repairId = r.firestoreId?.isNotEmpty == true
+        ? 'SC${DateFormat('yyMMdd').format(DateTime.fromMillisecondsSinceEpoch(r.createdAt))}-${r.firestoreId!.substring(0, 4).toUpperCase()}'
+        : 'SC${DateFormat('yyMMdd').format(DateTime.fromMillisecondsSinceEpoch(r.createdAt))}-${index.toString().padLeft(3, '0')}';
+
+    // Issue label: first segment before |
+    final String issueLabel = r.issue.isNotEmpty
+        ? r.issue.split('|').first.trim()
+        : '';
+
+    // Customer + model line
+    final String customerModel =
+        '${r.customerName.isNotEmpty ? r.customerName : 'Khách'}  /  ${r.model}';
 
     return Dismissible(
       key: Key(r.firestoreId ?? r.createdAt.toString()),
-      direction: canDelete
-          ? DismissDirection.endToStart
-          : DismissDirection.none,
+      direction: canDelete ? DismissDirection.endToStart : DismissDirection.none,
       background: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 16),
         decoration: BoxDecoration(
-          color: Colors.red,
+          color: AppColors.error,
           borderRadius: BorderRadius.circular(8),
         ),
-        child: const Icon(Icons.delete_forever, color: Colors.white, size: 24),
+        child: const Icon(Icons.delete_forever, color: AppColors.onPrimary, size: 24),
       ),
       confirmDismiss: (_) async {
         _confirmDelete(r);
         return false;
       },
-      child: Card(
-        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-        color: cardColor,
-        elevation: 1.5,
-        shadowColor: borderColor.withValues(alpha: 0.25),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-          side: BorderSide(color: borderColor, width: 1.2),
-        ),
-        child: InkWell(
-          onTap: () async {
-            final res = await Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => RepairDetailView(repair: r)),
+      child: InkWell(
+        onTap: () async {
+          final res = await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => RepairDetailView(repair: r)),
+          );
+          if (res == true) _rebuildDisplayedRepairs();
+        },
+        onLongPress: () {
+          if (!canDelete) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Chỉ quản lý/chủ shop mới có quyền xóa đơn'),
+                backgroundColor: AppColors.warning,
+              ),
             );
-            if (res == true) {
-              _rebuildDisplayedRepairs();
-            }
-          },
-          onLongPress: () {
-            if (!canDelete) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Chỉ quản lý/chủ shop mới có quyền xóa đơn'),
-                  backgroundColor: Colors.orange,
-                ),
-              );
-              return;
-            }
-            if (r.status >= 4) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    '❌ Không thể xóa đơn ĐÃ GIAO. Chỉ xóa đơn chưa giao.',
-                  ),
-                  backgroundColor: Colors.red,
-                ),
-              );
-              return;
-            }
-            _confirmDelete(r);
-          },
-          borderRadius: BorderRadius.circular(8),
-          child: Padding(
-            padding: const EdgeInsets.all(10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header row
-                Row(
-                  children: [
-                    // STT (Số thứ tự)
-                    Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        color: borderColor.withValues(alpha: 0.3),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Center(
-                        child: Text(
-                          '$index',
-                          style: AppTextStyles.body1.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: borderColor,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    // HÌNH ẢNH NHẬN MÁY
-                    SizedBox(
-                      width: 50,
-                      height: 50,
-                      child: Stack(
-                        children: [
-                          Container(
-                            width: 50,
-                            height: 50,
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade100,
-                              borderRadius: BorderRadius.circular(8),
-                              image:
-                                  firstImage.isNotEmpty &&
-                                      !_isGsStoragePath(firstImage) &&
-                                      !_isStorageRelativePath(firstImage) &&
-                                      ((firstImage.startsWith('http') ||
-                                              firstImage.startsWith('blob:') ||
-                                              firstImage.startsWith('data:')) ||
-                                          !kIsWeb)
-                                  ? DecorationImage(
-                                      image:
-                                          (firstImage.startsWith('http') ||
-                                              firstImage.startsWith('blob:') ||
-                                              firstImage.startsWith('data:'))
-                                          ? CachedNetworkImageProvider(
-                                              firstImage,
-                                            )
-                                          : FileImage(File(firstImage))
-                                                as ImageProvider,
-                                      fit: BoxFit.cover,
-                                    )
-                                  : null,
-                            ),
-                            child: firstImage.isEmpty
-                                ? const Icon(
-                                    Icons.phone_android,
-                                    color: Colors.grey,
-                                    size: 24,
-                                  )
-                                : ((_isGsStoragePath(firstImage) ||
-                                          _isStorageRelativePath(firstImage))
-                                      ? FutureBuilder<String?>(
-                                          future: _resolveDisplayImagePath(
-                                            firstImage,
-                                          ),
-                                          builder: (context, snapshot) {
-                                            final url = snapshot.data;
-                                            if (url == null || url.isEmpty) {
-                                              return const Icon(
-                                                Icons.broken_image,
-                                                color: Colors.grey,
-                                                size: 20,
-                                              );
-                                            }
-                                            return ClipRRect(
-                                              borderRadius:
-                                                  BorderRadius.circular(8),
-                                              child: AppCachedImage(
-                                                imageUrl: url,
-                                                fit: BoxFit.cover,
-                                                memCacheWidth: 100,
-                                                memCacheHeight: 100,
-                                              ),
-                                            );
-                                          },
-                                        )
-                                      : null),
-                          ),
-                          if (images.length > 1)
-                            Positioned(
-                              bottom: 2,
-                              right: 2,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 4,
-                                  vertical: 1,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.black54,
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  "+${images.length - 1}",
-                                  style: AppTextStyles.overline.copyWith(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    // Thông tin chính
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            r.model,
-                            style: AppTextStyles.subtitle1.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: const Color(0xFF0F172A),
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-                    ),
-                    // KTV sửa chữa (header) - luôn hiển thị
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color:
-                            (r.repairedBy != null && r.repairedBy!.isNotEmpty)
-                            ? Colors.purple.shade100
-                            : Colors.grey.shade200,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        (r.repairedBy != null && r.repairedBy!.isNotEmpty)
-                            ? '👨‍🔧 ${r.repairedBy!}'
-                            : '👨‍🔧 Chưa có KTV',
-                        style: AppTextStyles.caption.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color:
-                              (r.repairedBy != null && r.repairedBy!.isNotEmpty)
-                              ? Colors.purple.shade800
-                              : Colors.grey.shade600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 6),
-
-                // Info chips row
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 4,
-                  children: [
-                    // Trạng thái (đưa xuống chip để tiêu đề hiển thị được nhiều hơn)
-                    _repairInfoChip(
-                      _getStatusLabel(
-                        r.status,
-                        pendingApproval: r.pendingDeliveryApproval,
-                      ),
-                      _getStatusColor(
-                        r.status,
-                        pendingApproval: r.pendingDeliveryApproval,
-                      ),
-                      textColor: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                    ),
-                    // Khách hàng / SĐT: tách riêng để tránh overflow trên màn hình nhỏ.
-                    if (r.customerName.trim().isNotEmpty)
-                      _repairInfoChip(
-                        '👤 ${r.customerName}',
-                        Colors.blueGrey.shade50,
-                        textColor: Colors.blueGrey.shade800,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12,
-                      ),
-                    if (r.phone.trim().isNotEmpty)
-                      _repairInfoChip(
-                        '📞 ${r.phone}',
-                        Colors.blueGrey.shade50,
-                        textColor: Colors.blueGrey.shade800,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12,
-                      ),
-                    // Ngày tạo
-                    _repairInfoChip(
-                      '⏱ ${DateFormat('dd/MM HH:mm').format(DateTime.fromMillisecondsSinceEpoch(r.createdAt))}',
-                      Colors.blueGrey.shade50,
-                      textColor: Colors.blueGrey.shade800,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 12,
-                    ),
-                    // Lỗi / Vấn đề
-                    if (r.issue.isNotEmpty)
-                      _repairInfoChip(
-                        '🔧 ${r.issue.split('|').first}',
-                        Colors.red.shade100,
-                        maxLines: 2,
-                      ),
-                    // Mô tả lỗi chi tiết (phần sau dấu |)
-                    if (r.issue.contains('|') && r.issue.split('|').length > 1)
-                      _repairInfoChip(
-                        '📋 ${r.issue.split('|').sublist(1).join(', ')}',
-                        Colors.orange.shade50,
-                        textColor: Colors.orange.shade900,
-                        maxLines: 2,
-                      ),
-                    // Giá thu khách (chỉ hiện khi có giá > 0)
-                    if (displayPrice > 0)
-                      _repairInfoChip(
-                        hasRequestedCharge
-                            ? '💰 YC ${MoneyUtils.formatCompactCurrency(displayPrice)}đ'
-                            : '💰 ${MoneyUtils.formatCompactCurrency(displayPrice)}đ',
-                        Colors.green.shade100,
-                        textColor: Colors.green.shade800,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    // Giá vốn + Lợi nhuận (chỉ hiện với người có quyền)
-                    if (canShowCost && displayCost > 0)
-                      _repairInfoChip(
-                        '🏷 Vốn ${MoneyUtils.formatCompactCurrency(displayCost)}đ',
-                        Colors.blue.shade50,
-                        textColor: Colors.blue.shade700,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    if (canShowProfit && displayPrice > 0 && displayCost > 0)
-                      _repairInfoChip(
-                        displayProfit >= 0
-                            ? '📈 Lãi ${MoneyUtils.formatCompactCurrency(displayProfit)}đ'
-                            : '📉 Lỗ ${MoneyUtils.formatCompactCurrency(displayProfit.abs())}đ',
-                        displayProfit >= 0
-                            ? Colors.green.shade50
-                            : Colors.red.shade50,
-                        textColor: displayProfit >= 0
-                            ? Colors.green.shade700
-                            : Colors.red.shade700,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    // Ghi chú KTV (nếu có) - giới hạn 2 dòng tránh overflow
-                    if (r.notes != null && r.notes!.isNotEmpty)
-                      _repairInfoChip(
-                        '📝 ${r.notes!}',
-                        Colors.amber.shade100,
-                        textColor: Colors.amber.shade900,
-                        maxLines: 2,
-                      ),
-                    // Ghi chú phụ kiện (nếu có)
-                    if (r.accessories.isNotEmpty)
-                      _repairInfoChip(
-                        '🧰 ${r.accessories}',
-                        Colors.blue.shade100,
-                      ),
-                  ],
-                ),
-              ],
+            return;
+          }
+          if (r.status >= 4) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('❌ Không thể xóa đơn ĐÃ GIAO. Chỉ xóa đơn chưa giao.'),
+                backgroundColor: AppColors.error,
+              ),
+            );
+            return;
+          }
+          _confirmDelete(r);
+        },
+        child: Container(
+          decoration: const BoxDecoration(
+            color: AppColors.surface,
+            border: Border(
+              bottom: BorderSide(color: AppColors.outline, width: 1),
             ),
           ),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Avatar 36x36
+              _buildAvatarImage(firstImage, images, statusColor),
+              const SizedBox(width: 10),
+              // Main content
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Line 1: repair ID + status chip
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            repairId,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textPrimary,
+                              letterSpacing: 0.2,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        _pillStatusChip(
+                          _getStatusLabel(r.status, pendingApproval: r.pendingDeliveryApproval),
+                          statusColor,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    // Line 2: customer/model + price
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            customerModel,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (displayPrice > 0) ...[
+                          const SizedBox(width: 6),
+                          Text(
+                            hasRequestedCharge
+                                ? 'YC ${MoneyUtils.formatCompactCurrency(displayPrice)} đ'
+                                : '${MoneyUtils.formatCompactCurrency(displayPrice)} đ',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    // Line 3: issue + date
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            issueLabel.isNotEmpty ? issueLabel : (r.accessories.isNotEmpty ? r.accessories : '—'),
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: AppColors.textSecondary,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          DateFormat('HH:mm dd/MM').format(
+                            DateTime.fromMillisecondsSinceEpoch(r.createdAt),
+                          ),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildAvatarImage(String firstImage, List<String> images, Color statusColor) {
+    return SizedBox(
+      width: 36,
+      height: 36,
+      child: Stack(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: AppColors.grey100,
+              borderRadius: BorderRadius.circular(8),
+              image: firstImage.isNotEmpty &&
+                      !_isGsStoragePath(firstImage) &&
+                      !_isStorageRelativePath(firstImage) &&
+                      ((firstImage.startsWith('http') ||
+                              firstImage.startsWith('blob:') ||
+                              firstImage.startsWith('data:')) ||
+                          !kIsWeb)
+                  ? DecorationImage(
+                      image: (firstImage.startsWith('http') ||
+                              firstImage.startsWith('blob:') ||
+                              firstImage.startsWith('data:'))
+                          ? CachedNetworkImageProvider(firstImage)
+                          : FileImage(File(firstImage)) as ImageProvider,
+                      fit: BoxFit.cover,
+                    )
+                  : null,
+            ),
+            child: firstImage.isEmpty
+                ? Icon(Icons.phone_android, color: statusColor.withAlpha(153), size: 20)
+                : ((_isGsStoragePath(firstImage) || _isStorageRelativePath(firstImage))
+                    ? FutureBuilder<String?>(
+                        future: _resolveDisplayImagePath(firstImage),
+                        builder: (context, snapshot) {
+                          final url = snapshot.data;
+                          if (url == null || url.isEmpty) {
+                            return const Icon(Icons.broken_image, color: AppColors.grey400, size: 18);
+                          }
+                          return ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: AppCachedImage(
+                              imageUrl: url,
+                              fit: BoxFit.cover,
+                              memCacheWidth: 100,
+                              memCacheHeight: 100,
+                            ),
+                          );
+                        },
+                      )
+                    : null),
+          ),
+          if (images.length > 1)
+            Positioned(
+              bottom: 1,
+              right: 1,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
+                decoration: BoxDecoration(
+                  color: AppColors.grey800.withAlpha(179),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  '+${images.length - 1}',
+                  style: const TextStyle(
+                    fontSize: 8,
+                    color: AppColors.onPrimary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -1958,40 +1841,6 @@ class OrderListViewState extends State<OrderListView> {
         lower.startsWith('data:');
   }
 
-  Widget _repairInfoChip(
-    String text,
-    Color color, {
-    Color textColor = Colors.black,
-    FontWeight fontWeight = FontWeight.w500,
-    double fontSize = 10,
-    int maxLines = 1,
-  }) {
-    return ConstrainedBox(
-      constraints: BoxConstraints(
-        maxWidth: (MediaQuery.sizeOf(context).width - 100).clamp(
-          0,
-          400,
-        ), // Prevent overflow
-      ),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Text(
-          text,
-          style: AppTextStyles.caption.copyWith(
-            color: textColor,
-            fontWeight: fontWeight,
-          ),
-          maxLines: maxLines,
-          overflow: TextOverflow.ellipsis,
-        ),
-      ),
-    );
-  }
-
   Widget _buildListInsightBar() {
     final modeLabel = _isRealtimeConnected
         ? (_useRealtimeIndexFallback
@@ -2005,20 +1854,20 @@ class OrderListViewState extends State<OrderListView> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppColors.outline),
       ),
       child: Row(
         children: [
-          const Icon(Icons.insights, size: 14, color: Color(0xFF2962FF)),
+          const Icon(Icons.insights, size: 14, color: AppColors.primary),
           const SizedBox(width: 6),
           Expanded(
             child: Text(
               '$modeLabel • Đang hiển thị ${_displayedRepairs.length} đơn',
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 11,
-                color: Colors.grey.shade700,
+                color: AppColors.textSecondary,
                 fontWeight: FontWeight.w600,
               ),
               maxLines: 1,
@@ -2031,8 +1880,8 @@ class OrderListViewState extends State<OrderListView> {
             style: TextStyle(
               fontSize: 10,
               color: _isRealtimeConnected
-                  ? Colors.green.shade700
-                  : Colors.orange.shade700,
+                  ? AppColors.success
+                  : AppColors.warning,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -2073,7 +1922,27 @@ class OrderListViewState extends State<OrderListView> {
       case 4:
         return AppColors.repairDelivered;
       default:
-        return Colors.grey;
+        return AppColors.grey400;
     }
   }
+
+  Widget _pillStatusChip(String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withAlpha(26),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withAlpha(77)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: color,
+        ),
+      ),
+    );
+  }
 }
+

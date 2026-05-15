@@ -190,7 +190,7 @@ class _LoginViewState extends State<LoginView> {
           children: [
             Text(
               AppLocalizations.of(context)!.forgotPasswordDesc,
-              style: const TextStyle(fontSize: 16, color: Colors.grey),
+              style: const TextStyle(fontSize: 16, color: AppColors.textHint),
             ),
             const SizedBox(height: 16),
             TextField(
@@ -220,7 +220,7 @@ class _LoginViewState extends State<LoginView> {
                     content: Text(
                       AppLocalizations.of(context)!.pleaseEnterValidEmail,
                     ),
-                    backgroundColor: Colors.orange,
+                    backgroundColor: AppColors.warning,
                   ),
                 );
                 return;
@@ -237,7 +237,7 @@ class _LoginViewState extends State<LoginView> {
                         context,
                       )!.passwordResetEmailSent(email),
                     ),
-                    backgroundColor: Colors.green,
+                    backgroundColor: AppColors.success,
                     duration: const Duration(seconds: 5),
                   ),
                 );
@@ -253,7 +253,7 @@ class _LoginViewState extends State<LoginView> {
                 messenger.showSnackBar(
                   SnackBar(
                     content: Text(errorMsg),
-                    backgroundColor: Colors.red,
+                    backgroundColor: AppColors.error,
                   ),
                 );
               }
@@ -261,7 +261,7 @@ class _LoginViewState extends State<LoginView> {
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
             child: Text(
               AppLocalizations.of(context)!.sendEmail,
-              style: const TextStyle(color: Colors.white),
+              style: const TextStyle(color: AppColors.surface),
             ),
           ),
         ],
@@ -306,7 +306,7 @@ class _LoginViewState extends State<LoginView> {
                   ),
                   helperText: localizations.emailExample,
                   helperStyle: AppTextStyles.caption.copyWith(
-                    color: AppColors.onSurface.withOpacity(0.6),
+                    color: AppColors.onSurface.withAlpha(153),
                   ),
                 ),
               ),
@@ -371,19 +371,19 @@ class _LoginViewState extends State<LoginView> {
               // ── OR divider ──
               Row(
                 children: [
-                  Expanded(child: Divider(color: Colors.grey.shade300)),
+                  Expanded(child: Divider(color: AppColors.outline)),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Text(
                       'HOẶC',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey.shade500,
+                        color: AppColors.textHint,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
-                  Expanded(child: Divider(color: Colors.grey.shade300)),
+                  Expanded(child: Divider(color: AppColors.outline)),
                 ],
               ),
               const SizedBox(height: 15),
@@ -400,7 +400,7 @@ class _LoginViewState extends State<LoginView> {
                     errorBuilder: (_, __, ___) => const Icon(
                       Icons.g_mobiledata,
                       size: 24,
-                      color: Colors.red,
+                      color: AppColors.error,
                     ),
                   ),
                   label: const Text(
@@ -408,12 +408,12 @@ class _LoginViewState extends State<LoginView> {
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w500,
-                      color: Colors.black87,
+                      color: AppColors.textPrimary,
                     ),
                   ),
                   style: OutlinedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    side: BorderSide(color: Colors.grey.shade300),
+                    backgroundColor: AppColors.surface,
+                    side: BorderSide(color: AppColors.outline),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -437,8 +437,8 @@ class _LoginViewState extends State<LoginView> {
                       ),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.black,
-                      foregroundColor: Colors.white,
+                      backgroundColor: AppColors.textPrimary,
+                      foregroundColor: AppColors.surface,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -451,18 +451,18 @@ class _LoginViewState extends State<LoginView> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
+                  color: AppColors.primary,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.blue.shade100),
+                  border: Border.all(color: AppColors.primary),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.info_outline, color: Colors.blue.shade400, size: 18),
+                    Icon(Icons.info_outline, color: AppColors.primary, size: 18),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'Đã có tài khoản Email? Đăng nhập Email trước, liên kết Google/Apple trong Cài đặt',
-                        style: TextStyle(fontSize: 12, color: Colors.blue.shade700, height: 1.3),
+                        style: TextStyle(fontSize: 12, color: AppColors.primary, height: 1.3),
                       ),
                     ),
                   ],
@@ -607,7 +607,7 @@ class _LoginViewState extends State<LoginView> {
                           '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}',
                         ),
                         style: AppTextStyles.caption.copyWith(
-                          color: AppColors.onPrimary.withOpacity(0.7),
+                          color: AppColors.onPrimary.withAlpha(179),
                         ),
                       ),
                     ],

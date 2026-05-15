@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:excel/excel.dart' as xl;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
 import 'package:intl/intl.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
@@ -200,7 +201,7 @@ class FinanceV2ExcelExport {
         context: context,
         builder: (ctx) {
           return AlertDialog(
-            icon: const Icon(Icons.check_circle, color: Colors.green, size: 48),
+            icon: const Icon(Icons.check_circle, color: AppColors.success, size: 48),
             title: const Text('Xuất file thành công!'),
             content: Column(
               mainAxisSize: MainAxisSize.min,
@@ -209,20 +210,20 @@ class FinanceV2ExcelExport {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.green.shade50,
+                      color: AppColors.success,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.green.shade200),
+                      border: Border.all(color: AppColors.success),
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.folder, color: Colors.green.shade700),
+                        Icon(Icons.folder, color: AppColors.success),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             'Đã lưu:\n$fileName',
                             style: TextStyle(
                               fontSize: 13,
-                              color: Colors.green.shade800,
+                              color: AppColors.success,
                             ),
                           ),
                         ),

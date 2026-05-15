@@ -53,23 +53,8 @@ class BusinessTypeHelper {
     return settings.businessType;
   }
 
-  /// Có phải electronics không (sửa chữa điện thoại)
-  Future<bool> isElectronics() async {
-    final settings = await getSettings();
-    return settings.businessType == 'electronics';
-  }
-
-  /// Có phải food không (thực phẩm)
-  Future<bool> isFood() async {
-    final settings = await getSettings();
-    return settings.businessType == 'food';
-  }
-
-  /// Có phải fashion không (thời trang)
-  Future<bool> isFashion() async {
-    final settings = await getSettings();
-    return settings.businessType == 'fashion';
-  }
+  /// Có phải electronics không (sửa chữ̆a điện thoại) - luôn true
+  Future<bool> isElectronics() async => true;
 
   // === FEATURE FLAGS ===
 
@@ -172,7 +157,10 @@ class BusinessTypeHelper {
 
   /// Class chứa tất cả labels cho một ngành
   BusinessTerminology getTerminology([ShopSettings? settings]) {
-    final type = settings?.businessType ?? _cachedSettings?.businessType ?? 'electronics';
+    final type =
+        settings?.businessType ??
+        _cachedSettings?.businessType ??
+        'electronics';
     return BusinessTerminology.forType(type);
   }
 
@@ -281,169 +269,46 @@ class BusinessTerminology {
     required this.welcomeMessage,
   });
 
-  /// Factory để tạo terminology theo loại ngành
+  /// Factory để tạo terminology - luôn trả về electronics terminology
   factory BusinessTerminology.forType(String businessType) {
-    switch (businessType) {
-      case 'electronics':
-        return const BusinessTerminology(
-          productLabel: 'Điện thoại',
-          productPlural: 'Điện thoại',
-          productIcon: '📱',
-          addProduct: 'Thêm điện thoại',
-          productCode: 'IMEI',
-          productCodeHint: 'Nhập số IMEI 15 chữ số',
-          inventoryLabel: 'Kho máy',
-          stockIn: 'Nhập máy',
-          stockOut: 'Xuất máy',
-          lowStock: 'Sắp hết',
-          outOfStock: 'Hết máy',
-          saleLabel: 'Bán máy',
-          saleOrder: 'Đơn bán máy',
-          customer: 'Khách hàng',
-          sellAction: 'Bán máy',
-          priceLabel: 'Giá bán',
-          costLabel: 'Giá nhập',
-          category1: 'Điện thoại',
-          category2: 'Phụ kiện',
-          category3: 'Linh kiện',
-          quickSale: 'Bán nhanh',
-          quickStock: 'Nhập nhanh',
-          todaySales: 'Doanh số hôm nay',
-          todayOrders: 'Máy bán hôm nay',
-          pendingOrders: 'Đơn chờ xử lý',
-          repairLabel: 'Sửa chữa',
-          repairOrder: 'Đơn sửa',
-          repairPartner: 'Đối tác sửa chữa',
-          specialField1Label: 'IMEI/Serial',
-          specialField1Hint: 'Nhập IMEI hoặc Serial Number',
-          specialField2Label: 'Bảo hành',
-          specialField2Hint: 'Chọn thời hạn bảo hành',
-          defaultUnit: 'cái',
-          suggestedUnits: ['cái', 'chiếc', 'bộ'],
-          appSubtitle: 'Quản lý cửa hàng điện thoại',
-          welcomeMessage: 'Chào mừng đến cửa hàng điện thoại của bạn',
-        );
-
-      case 'food':
-        return const BusinessTerminology(
-          productLabel: 'Món hàng',
-          productPlural: 'Món hàng',
-          productIcon: '🍜',
-          addProduct: 'Thêm món',
-          productCode: 'Mã món',
-          productCodeHint: 'Nhập mã món hoặc barcode',
-          inventoryLabel: 'Kho hàng',
-          stockIn: 'Nhập hàng',
-          stockOut: 'Xuất hàng',
-          lowStock: 'Sắp hết',
-          outOfStock: 'Hết hàng',
-          saleLabel: 'Bán hàng',
-          saleOrder: 'Đơn bán',
-          customer: 'Khách hàng',
-          sellAction: 'Bán',
-          priceLabel: 'Giá bán',
-          costLabel: 'Giá vốn',
-          category1: 'Thực phẩm',
-          category2: 'Đồ uống',
-          category3: 'Nguyên liệu',
-          quickSale: 'Bán nhanh',
-          quickStock: 'Nhập nhanh',
-          todaySales: 'Doanh số hôm nay',
-          todayOrders: 'Đơn bán hôm nay',
-          pendingOrders: 'Đơn chờ xử lý',
-          repairLabel: 'Chế biến',
-          repairOrder: 'Đơn chế biến',
-          repairPartner: 'Nhà cung cấp',
-          specialField1Label: 'Hạn sử dụng',
-          specialField1Hint: 'Chọn ngày hết hạn',
-          specialField2Label: 'Số lô',
-          specialField2Hint: 'Nhập số lô sản xuất',
-          defaultUnit: 'kg',
-          suggestedUnits: ['kg', 'g', 'lít', 'ml', 'hộp', 'chai', 'gói', 'túi'],
-          appSubtitle: 'Quản lý cửa hàng thực phẩm',
-          welcomeMessage: 'Chào mừng đến cửa hàng thực phẩm của bạn',
-        );
-
-      case 'fashion':
-        return const BusinessTerminology(
-          productLabel: 'Sản phẩm',
-          productPlural: 'Sản phẩm',
-          productIcon: '👕',
-          addProduct: 'Thêm sản phẩm',
-          productCode: 'Mã SP',
-          productCodeHint: 'Nhập mã sản phẩm hoặc barcode',
-          inventoryLabel: 'Kho hàng',
-          stockIn: 'Nhập hàng',
-          stockOut: 'Xuất hàng',
-          lowStock: 'Sắp hết size',
-          outOfStock: 'Hết hàng',
-          saleLabel: 'Bán hàng',
-          saleOrder: 'Đơn bán',
-          customer: 'Khách hàng',
-          sellAction: 'Bán',
-          priceLabel: 'Giá bán',
-          costLabel: 'Giá vốn',
-          category1: 'Áo',
-          category2: 'Quần',
-          category3: 'Phụ kiện',
-          quickSale: 'Bán nhanh',
-          quickStock: 'Nhập nhanh',
-          todaySales: 'Doanh số hôm nay',
-          todayOrders: 'Đơn bán hôm nay',
-          pendingOrders: 'Đơn chờ giao',
-          repairLabel: 'Sửa đổ',
-          repairOrder: 'Đơn sửa',
-          repairPartner: 'Thợ may',
-          specialField1Label: 'Size',
-          specialField1Hint: 'Chọn size (S, M, L, XL...)',
-          specialField2Label: 'Màu sắc',
-          specialField2Hint: 'Chọn màu sản phẩm',
-          defaultUnit: 'cái',
-          suggestedUnits: ['cái', 'bộ', 'đôi', 'chiếc'],
-          appSubtitle: 'Quản lý cửa hàng thời trang',
-          welcomeMessage: 'Chào mừng đến cửa hàng thời trang của bạn',
-        );
-
-      case 'general':
-      default:
-        return const BusinessTerminology(
-          productLabel: 'Sản phẩm',
-          productPlural: 'Sản phẩm',
-          productIcon: '📦',
-          addProduct: 'Thêm sản phẩm',
-          productCode: 'Mã SP',
-          productCodeHint: 'Nhập mã sản phẩm',
-          inventoryLabel: 'Kho hàng',
-          stockIn: 'Nhập kho',
-          stockOut: 'Xuất kho',
-          lowStock: 'Sắp hết',
-          outOfStock: 'Hết hàng',
-          saleLabel: 'Bán hàng',
-          saleOrder: 'Đơn bán',
-          customer: 'Khách hàng',
-          sellAction: 'Bán',
-          priceLabel: 'Giá bán',
-          costLabel: 'Giá vốn',
-          category1: 'Sản phẩm A',
-          category2: 'Sản phẩm B',
-          category3: 'Dịch vụ',
-          quickSale: 'Bán nhanh',
-          quickStock: 'Nhập nhanh',
-          todaySales: 'Doanh số hôm nay',
-          todayOrders: 'Đơn bán hôm nay',
-          pendingOrders: 'Đơn chờ xử lý',
-          repairLabel: 'Dịch vụ',
-          repairOrder: 'Đơn dịch vụ',
-          repairPartner: 'Đối tác',
-          specialField1Label: 'Mã vạch',
-          specialField1Hint: 'Quét hoặc nhập mã vạch',
-          specialField2Label: 'Ghi chú',
-          specialField2Hint: 'Nhập ghi chú sản phẩm',
-          defaultUnit: 'cái',
-          suggestedUnits: ['cái', 'hộp', 'thùng', 'kg', 'lít'],
-          appSubtitle: 'Quản lý cửa hàng',
-          welcomeMessage: 'Chào mừng đến cửa hàng của bạn',
-        );
-    }
+    // Luôn trả về electronics terminology (ngành duy nhất được hỗ trợ)
+    return const BusinessTerminology(
+      productLabel: 'Điện thoại',
+      productPlural: 'Điện thoại',
+      productIcon: '📱',
+      addProduct: 'Thêm điện thoại',
+      productCode: 'IMEI',
+      productCodeHint: 'Nhập số IMEI 15 chữ số',
+      inventoryLabel: 'Kho máy',
+      stockIn: 'Nhập máy',
+      stockOut: 'Xuất máy',
+      lowStock: 'Sắp hết',
+      outOfStock: 'Hết máy',
+      saleLabel: 'Bán máy',
+      saleOrder: 'Đơn bán máy',
+      customer: 'Khách hàng',
+      sellAction: 'Bán máy',
+      priceLabel: 'Giá bán',
+      costLabel: 'Giá nhập',
+      category1: 'Điện thoại',
+      category2: 'Phụ kiện',
+      category3: 'Linh kiện',
+      quickSale: 'Bán nhanh',
+      quickStock: 'Nhập nhanh',
+      todaySales: 'Doanh số hôm nay',
+      todayOrders: 'Máy bán hôm nay',
+      pendingOrders: 'Đơn chờ xử lý',
+      repairLabel: 'Sửa chữa',
+      repairOrder: 'Đơn sửa',
+      repairPartner: 'Đối tác sửa chữa',
+      specialField1Label: 'IMEI/Serial',
+      specialField1Hint: 'Nhập IMEI hoặc Serial Number',
+      specialField2Label: 'Bảo hành',
+      specialField2Hint: 'Chọn thời hạn bảo hành',
+      defaultUnit: 'cái',
+      suggestedUnits: ['cái', 'chiếc', 'bộ'],
+      appSubtitle: 'Quản lý cửa hàng điện thoại',
+      welcomeMessage: 'Chào mừng đến cửa hàng điện thoại của bạn',
+    );
   }
 }

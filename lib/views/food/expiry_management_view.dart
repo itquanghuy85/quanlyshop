@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/app_colors.dart';
 import '../../widgets/responsive_wrapper.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/product_model.dart';
@@ -119,10 +120,10 @@ class _ExpiryManagementViewState extends State<ExpiryManagementView>
           controller: _tabController,
           isScrollable: true,
           tabs: [
-            _buildTab('⛔ Hết hạn', _expiredProducts.length, Colors.red),
-            _buildTab('⚠️ Sắp hết', _nearExpiryProducts.length, Colors.orange),
-            _buildTab('✅ Còn hạn', _goodProducts.length, Colors.green),
-            _buildTab('📦 Theo lô', _batches.length, Colors.blue),
+            _buildTab('⛔ Hết hạn', _expiredProducts.length, AppColors.error),
+            _buildTab('⚠️ Sắp hết', _nearExpiryProducts.length, AppColors.warning),
+            _buildTab('✅ Còn hạn', _goodProducts.length, AppColors.success),
+            _buildTab('📦 Theo lô', _batches.length, AppColors.primary),
           ],
         ),
       ),
@@ -150,7 +151,7 @@ class _ExpiryManagementViewState extends State<ExpiryManagementView>
     );
   }
 
-  Widget _buildTab(String label, int count, MaterialColor color) {
+  Widget _buildTab(String label, int count, Color color) {
     return Tab(
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -161,7 +162,7 @@ class _ExpiryManagementViewState extends State<ExpiryManagementView>
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
-                color: color.shade100,
+                color: color.withAlpha(31),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
@@ -169,7 +170,7 @@ class _ExpiryManagementViewState extends State<ExpiryManagementView>
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
-                  color: color.shade700,
+                  color: color,
                 ),
               ),
             ),
@@ -185,14 +186,14 @@ class _ExpiryManagementViewState extends State<ExpiryManagementView>
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Colors.orange.shade400, Colors.red.shade400],
+          colors: [AppColors.warning, AppColors.error],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.orange.shade200,
+            color: AppColors.warning,
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -215,7 +216,7 @@ class _ExpiryManagementViewState extends State<ExpiryManagementView>
                 Text(
                   '${_stats!.totalWithExpiry} ${_terms.productLabel} có HSD',
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: AppColors.surface,
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
@@ -224,12 +225,12 @@ class _ExpiryManagementViewState extends State<ExpiryManagementView>
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      const Icon(Icons.warning_amber, color: Colors.white, size: 16),
+                      const Icon(Icons.warning_amber, color: AppColors.surface, size: 16),
                       const SizedBox(width: 6),
                       Text(
                         'Rủi ro: ${_formatCurrency(_stats!.valueAtRisk)}',
                         style: const TextStyle(
-                          color: Colors.white,
+                          color: AppColors.surface,
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
                         ),
@@ -251,7 +252,7 @@ class _ExpiryManagementViewState extends State<ExpiryManagementView>
                 Text(
                   '${_stats!.atRiskCount}',
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: AppColors.surface,
                     fontSize: 32,
                     fontWeight: FontWeight.bold,
                   ),
@@ -284,7 +285,7 @@ class _ExpiryManagementViewState extends State<ExpiryManagementView>
                       ? Icons.thumb_up
                       : Icons.inventory_2,
               size: 64,
-              color: Colors.grey.shade300,
+              color: AppColors.outline,
             ),
             const SizedBox(height: 16),
             Text(
@@ -294,7 +295,7 @@ class _ExpiryManagementViewState extends State<ExpiryManagementView>
                       ? 'Không có ${_terms.productLabel} sắp hết hạn'
                       : 'Không có ${_terms.productLabel}',
               style: TextStyle(
-                color: Colors.grey.shade500,
+                color: AppColors.textHint,
                 fontSize: 17,
               ),
             ),
@@ -353,23 +354,23 @@ class _ExpiryManagementViewState extends State<ExpiryManagementView>
                     Row(
                       children: [
                         Icon(Icons.inventory_2,
-                            size: 14, color: Colors.grey.shade500),
+                            size: 14, color: AppColors.textHint),
                         const SizedBox(width: 4),
                         Text(
                           '${product.quantity} ${product.unit ?? 'cái'}',
                           style: TextStyle(
-                            color: Colors.grey.shade600,
+                            color: AppColors.textSecondary,
                             fontSize: 14,
                           ),
                         ),
                         const SizedBox(width: 12),
                         Icon(Icons.attach_money,
-                            size: 14, color: Colors.grey.shade500),
+                            size: 14, color: AppColors.textHint),
                         const SizedBox(width: 2),
                         Text(
                           _formatCurrency(product.cost * product.quantity),
                           style: TextStyle(
-                            color: Colors.grey.shade600,
+                            color: AppColors.textSecondary,
                             fontSize: 14,
                           ),
                         ),
@@ -381,12 +382,12 @@ class _ExpiryManagementViewState extends State<ExpiryManagementView>
                       Row(
                         children: [
                           Icon(Icons.qr_code,
-                              size: 14, color: Colors.grey.shade500),
+                              size: 14, color: AppColors.textHint),
                           const SizedBox(width: 4),
                           Text(
                             'Lô: ${product.batchNumber}',
                             style: TextStyle(
-                              color: Colors.grey.shade600,
+                              color: AppColors.textSecondary,
                               fontSize: 14,
                             ),
                           ),
@@ -411,7 +412,7 @@ class _ExpiryManagementViewState extends State<ExpiryManagementView>
                       _formatDate(expiryDate),
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey.shade600,
+                        color: AppColors.textSecondary,
                       ),
                     ),
                   ],
@@ -430,11 +431,11 @@ class _ExpiryManagementViewState extends State<ExpiryManagementView>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.inventory_2, size: 64, color: Colors.grey.shade300),
+            Icon(Icons.inventory_2, size: 64, color: AppColors.outline),
             const SizedBox(height: 16),
             Text(
               'Chưa có lô hàng nào',
-              style: TextStyle(color: Colors.grey.shade500, fontSize: 17),
+              style: TextStyle(color: AppColors.textHint, fontSize: 17),
             ),
           ],
         ),
@@ -455,20 +456,20 @@ class _ExpiryManagementViewState extends State<ExpiryManagementView>
   }
 
   Widget _buildBatchCard(BatchInfo batch) {
-    MaterialColor statusColor;
+    Color statusColor;
     String statusText;
     IconData statusIcon;
 
     if (batch.hasExpired) {
-      statusColor = Colors.red;
+      statusColor = AppColors.error;
       statusText = 'Có ${_terms.productLabel} hết hạn';
       statusIcon = Icons.error;
     } else if (batch.isNearExpiry) {
-      statusColor = Colors.orange;
+      statusColor = AppColors.warning;
       statusText = 'Sắp hết hạn';
       statusIcon = Icons.warning;
     } else {
-      statusColor = Colors.green;
+      statusColor = AppColors.success;
       statusText = 'Còn hạn';
       statusIcon = Icons.check_circle;
     }
@@ -478,7 +479,7 @@ class _ExpiryManagementViewState extends State<ExpiryManagementView>
       elevation: 1,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: statusColor.shade100),
+        side: BorderSide(color: statusColor.withAlpha(77)),
       ),
       child: InkWell(
         onTap: () => _viewBatchProducts(batch),
@@ -490,10 +491,10 @@ class _ExpiryManagementViewState extends State<ExpiryManagementView>
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: statusColor.shade50,
+                  color: statusColor.withAlpha(26),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(statusIcon, color: statusColor.shade700, size: 24),
+                child: Icon(statusIcon, color: statusColor, size: 24),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -511,7 +512,7 @@ class _ExpiryManagementViewState extends State<ExpiryManagementView>
                     Text(
                       '${batch.productCount} SP • ${batch.totalQuantity} đơn vị',
                       style: TextStyle(
-                        color: Colors.grey.shade600,
+                        color: AppColors.textSecondary,
                         fontSize: 14,
                       ),
                     ),
@@ -520,7 +521,7 @@ class _ExpiryManagementViewState extends State<ExpiryManagementView>
                       Text(
                         'HSD: ${_formatDate(batch.earliestExpiry!)}',
                         style: TextStyle(
-                          color: Colors.grey.shade600,
+                          color: AppColors.textSecondary,
                           fontSize: 14,
                         ),
                       ),
@@ -535,13 +536,13 @@ class _ExpiryManagementViewState extends State<ExpiryManagementView>
                     padding:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: statusColor.shade50,
+                      color: statusColor.withAlpha(26),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
                       statusText,
                       style: TextStyle(
-                        color: statusColor.shade700,
+                        color: statusColor,
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
                       ),
@@ -553,7 +554,7 @@ class _ExpiryManagementViewState extends State<ExpiryManagementView>
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      color: Colors.grey.shade700,
+                      color: AppColors.textSecondary,
                     ),
                   ),
                 ],
@@ -604,14 +605,14 @@ class _ExpiryManagementViewState extends State<ExpiryManagementView>
                       padding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: Colors.orange.shade100,
+                        color: AppColors.warning,
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
                         '$tempDays ngày',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: Colors.orange.shade700,
+                          color: AppColors.warning,
                         ),
                       ),
                     ),
@@ -621,7 +622,7 @@ class _ExpiryManagementViewState extends State<ExpiryManagementView>
                 Text(
                   '${_terms.productLabel[0].toUpperCase()}${_terms.productLabel.substring(1).toLowerCase()} sẽ được cảnh báo khi còn $tempDays ngày đến HSD',
                   style: TextStyle(
-                    color: Colors.grey.shade600,
+                    color: AppColors.textSecondary,
                     fontSize: 14,
                   ),
                 ),
@@ -685,8 +686,8 @@ class _ExpiryManagementViewState extends State<ExpiryManagementView>
                       },
                       icon: const Icon(Icons.check),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        foregroundColor: Colors.white,
+                        backgroundColor: AppColors.success,
+                        foregroundColor: AppColors.surface,
                       ),
                       label: const Text('Đã xử lý'),
                     ),

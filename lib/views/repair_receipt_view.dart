@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
 import 'package:intl/intl.dart';
 import '../widgets/responsive_wrapper.dart';
 import '../utils/money_utils.dart';
@@ -162,8 +163,8 @@ class _RepairReceiptViewState extends State<RepairReceiptView> {
             ),
           ),
         ),
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
+        backgroundColor: AppColors.surface,
+        foregroundColor: AppColors.textPrimary,
         elevation: 0,
         title: const Text('PHIẾ́U TIẾ́P NHẬN SỬa CHỮa'),
       ),
@@ -178,13 +179,13 @@ class _RepairReceiptViewState extends State<RepairReceiptView> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
+                  color: AppColors.primary,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.blue.shade200),
+                  border: Border.all(color: AppColors.primary),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.receipt_long, color: Colors.blue, size: 32),
+                    const Icon(Icons.receipt_long, color: AppColors.primary, size: 32),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
@@ -195,7 +196,7 @@ class _RepairReceiptViewState extends State<RepairReceiptView> {
                             style: TextStyle(
                               fontSize: AppTextStyles.subtitle1.fontSize,
                               fontWeight: FontWeight.bold,
-                              color: Colors.blue,
+                              color: AppColors.primary,
                             ),
                           ),
                           Text(
@@ -203,7 +204,7 @@ class _RepairReceiptViewState extends State<RepairReceiptView> {
                             style: TextStyle(
                               fontSize: AppTextStyles.headline2.fontSize,
                               fontWeight: FontWeight.bold,
-                              color: Colors.blue,
+                              color: AppColors.primary,
                             ),
                           ),
                         ],
@@ -211,7 +212,7 @@ class _RepairReceiptViewState extends State<RepairReceiptView> {
                     ),
                     IconButton(
                       onPressed: _generateReceiptCode,
-                      icon: const Icon(Icons.refresh, color: Colors.blue),
+                      icon: const Icon(Icons.refresh, color: AppColors.primary),
                       tooltip: 'Tạo mã mới',
                     ),
                   ],
@@ -305,13 +306,13 @@ class _RepairReceiptViewState extends State<RepairReceiptView> {
                           ? const SizedBox(
                               width: 20,
                               height: 20,
-                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                              child: CircularProgressIndicator(color: AppColors.surface, strokeWidth: 2),
                             )
                           : const Icon(Icons.save),
                       label: Text(_isLoading ? 'ĐANG XỬ LÝ...' : 'LƯU & IN PHIẾU'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        foregroundColor: Colors.white,
+                        backgroundColor: AppColors.success,
+                        foregroundColor: AppColors.surface,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),

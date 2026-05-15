@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
 import '../data/db_helper.dart';
 import '../models/product_model.dart';
 import '../models/shop_settings_model.dart';
@@ -82,7 +83,7 @@ class _ImeiQrPrinterViewState extends State<ImeiQrPrinterView> {
       setState(() => _isLoading = false);
       NotificationService.showSnackBar(
         'Lỗi tải danh sách ${_terms.specialField1Label}: $e',
-        color: Colors.red,
+        color: AppColors.error,
       );
     }
   }
@@ -116,7 +117,7 @@ class _ImeiQrPrinterViewState extends State<ImeiQrPrinterView> {
     if (items.isEmpty) {
       NotificationService.showSnackBar(
         'Không có ${_terms.specialField1Label} để in',
-        color: Colors.orange,
+        color: AppColors.warning,
       );
       return;
     }
@@ -152,13 +153,13 @@ class _ImeiQrPrinterViewState extends State<ImeiQrPrinterView> {
 
       NotificationService.showSnackBar(
         ok ? 'In QR ${_terms.specialField1Label} thành công' : 'In QR ${_terms.specialField1Label} thất bại',
-        color: ok ? Colors.green : Colors.red,
+        color: ok ? AppColors.success : AppColors.error,
       );
     } catch (e) {
       if (!mounted) return;
       NotificationService.showSnackBar(
         'Lỗi in QR ${_terms.specialField1Label}: $e',
-        color: Colors.red,
+        color: AppColors.error,
       );
     } finally {
       if (mounted) setState(() => _isPrinting = false);
@@ -388,7 +389,7 @@ class _ImeiQrPrinterViewState extends State<ImeiQrPrinterView> {
                             icon: const Icon(Icons.print),
                             label: const Text('In tất cả'),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue,
+                              backgroundColor: AppColors.primary,
                               padding: const EdgeInsets.symmetric(vertical: 12),
                             ),
                           ),
@@ -411,7 +412,7 @@ class _ImeiQrPrinterViewState extends State<ImeiQrPrinterView> {
                               'In đã chọn ($selectedCount)',
                             ),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green,
+                              backgroundColor: AppColors.success,
                               padding: const EdgeInsets.symmetric(vertical: 12),
                             ),
                           ),

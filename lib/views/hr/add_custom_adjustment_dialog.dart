@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/app_colors.dart';
 import 'package:intl/intl.dart';
 import '../../models/shop_deduction_settings.dart';
 import '../../theme/app_text_styles.dart';
@@ -100,7 +101,7 @@ class _AddCustomAdjustmentDialogState extends State<AddCustomAdjustmentDialog> {
       if (finalStaffId.isEmpty || finalStaffName.isEmpty) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Vui lòng chọn nhân viên'), backgroundColor: Colors.orange),
+            const SnackBar(content: Text('Vui lòng chọn nhân viên'), backgroundColor: AppColors.warning),
           );
         }
         return;
@@ -135,14 +136,14 @@ class _AddCustomAdjustmentDialogState extends State<AddCustomAdjustmentDialog> {
                     ? '✅ Đã thêm khoản thưởng'
                     : '✅ Đã thêm khoản khấu trừ',
               ),
-              backgroundColor: Colors.green,
+              backgroundColor: AppColors.success,
             ),
           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('❌ Lỗi khi lưu'),
-              backgroundColor: Colors.red,
+              backgroundColor: AppColors.error,
             ),
           );
         }
@@ -202,7 +203,7 @@ class _AddCustomAdjustmentDialogState extends State<AddCustomAdjustmentDialog> {
                                 : 'Cho ${widget.staffName} - T${widget.month}/${widget.year}',
                             style: TextStyle(
                               fontSize: AppTextStyles.subtitle1.fontSize,
-                              color: Colors.grey[600],
+                              color: AppColors.textSecondary,
                             ),
                           ),
                         ],
@@ -224,7 +225,7 @@ class _AddCustomAdjustmentDialogState extends State<AddCustomAdjustmentDialog> {
                         'bonus',
                         'Thưởng',
                         Icons.add_circle,
-                        Colors.green,
+                        AppColors.success,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -233,7 +234,7 @@ class _AddCustomAdjustmentDialogState extends State<AddCustomAdjustmentDialog> {
                         'deduction',
                         'Khấu trừ',
                         Icons.remove_circle,
-                        Colors.red,
+                        AppColors.error,
                       ),
                     ),
                   ],
@@ -318,7 +319,7 @@ class _AddCustomAdjustmentDialogState extends State<AddCustomAdjustmentDialog> {
                     prefixIcon: const Icon(Icons.attach_money),
                     suffixText: 'đ',
                     suffixStyle: TextStyle(
-                      color: _type == 'bonus' ? Colors.green : Colors.red,
+                      color: _type == 'bonus' ? AppColors.success : AppColors.error,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -386,8 +387,8 @@ class _AddCustomAdjustmentDialogState extends State<AddCustomAdjustmentDialog> {
                       ),
                       style: FilledButton.styleFrom(
                         backgroundColor: _type == 'bonus'
-                            ? Colors.green
-                            : Colors.red,
+                            ? AppColors.success
+                            : AppColors.error,
                       ),
                     ),
                   ],
@@ -413,22 +414,22 @@ class _AddCustomAdjustmentDialogState extends State<AddCustomAdjustmentDialog> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected ? color.withAlpha(30) : Colors.grey.shade100,
+          color: isSelected ? color.withAlpha(30) : AppColors.background,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? color : Colors.grey.shade300,
+            color: isSelected ? color : AppColors.outline,
             width: isSelected ? 2 : 1,
           ),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: isSelected ? color : Colors.grey, size: 20),
+            Icon(icon, color: isSelected ? color : AppColors.textHint, size: 20),
             const SizedBox(width: 8),
             Text(
               label,
               style: TextStyle(
-                color: isSelected ? color : Colors.grey[700],
+                color: isSelected ? color : AppColors.textSecondary,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),
             ),

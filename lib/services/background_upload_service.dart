@@ -17,6 +17,20 @@ class BackgroundUploadService {
 
   static final _db = FirebaseFirestore.instance;
 
+  // Track pending uploads for UI notification
+  static final Map<String, int> _uploadProgress = {}; // entityId -> count
+  static int _totalPendingUploads = 0;
+
+  /// Get current number of pending uploads
+  static int getPendingUploadCount() => _totalPendingUploads;
+
+  /// Check if any uploads are in progress
+  static bool hasUploadsPending() => _totalPendingUploads > 0;
+
+  /// Get upload progress for specific repair
+  static int getUploadProgressForRepair(String repairId) =>
+      _uploadProgress[repairId] ?? 0;
+
   static void _warmNetworkImageCache(List<String> urls) {
     for (final raw in urls) {
       final url = raw.trim();
@@ -116,6 +130,11 @@ class BackgroundUploadService {
     List<XFile> images,
   ) async {
     try {
+      // Track upload progress
+      _totalPendingUploads++;
+      _uploadProgress[firestoreId] = images.length;
+      EventBus().emit('upload_started'); // Notify UI
+
       final dbHelper = DBHelper();
       final dbConn = await dbHelper.database;
 
@@ -130,28 +149,35 @@ class BackgroundUploadService {
       if (currentRows.isNotEmpty) {
         final current = currentRows.first;
         final alreadySynced = (current['isSynced'] as int? ?? 0) == 1;
-        if (alreadySynced) {
-          debugPrint(
-            '📸 BackgroundUpload: Skip upload because repair is already synced',
-          );
-          return;
-        }
-
-        final currentPaths = _splitPaths((current['imagePath'] ?? '').toString());
+        final currentPaths = _splitPaths(
+          (current['imagePath'] ?? '').toString(),
+        );
         final hasLocalPath = currentPaths.any((p) => !_isCloudPath(p));
         if (!hasLocalPath && currentPaths.isNotEmpty) {
           debugPrint(
             '📸 BackgroundUpload: Skip upload because local paths are already replaced',
           );
+          _totalPendingUploads--;
+          _uploadProgress.remove(firestoreId);
           return;
+        }
+
+        // Do not skip only by isSynced. In practice, sync status can be true
+        // while local image paths are still pending background upload.
+        if (alreadySynced && hasLocalPath) {
+          debugPrint(
+            '📸 BackgroundUpload: Repair is marked synced but still has local images, continue upload',
+          );
         }
       }
 
-        final currentPaths = currentRows.isNotEmpty
+      final currentPaths = currentRows.isNotEmpty
           ? _splitPaths((currentRows.first['imagePath'] ?? '').toString())
           : const <String>[];
 
-      debugPrint('📸 BackgroundUpload: Starting ${images.length} repair image(s)...');
+      debugPrint(
+        '📸 BackgroundUpload: Starting ${images.length} repair image(s) for $firestoreId...',
+      );
       final uploadedResults = await Future.wait<String?>(
         images.map(
           (picked) => StorageService.uploadXFileAndGetUrl(picked, 'repairs'),
@@ -165,6 +191,9 @@ class BackgroundUploadService {
 
       if (uploadedUrls.isEmpty) {
         debugPrint('📸 BackgroundUpload: No repair images uploaded');
+        _totalPendingUploads--;
+        _uploadProgress.remove(firestoreId);
+        EventBus().emit('upload_failed');
         return;
       }
 
@@ -191,23 +220,37 @@ class BackgroundUploadService {
         await _db.collection('repairs').doc(firestoreId).update(encData);
         cloudUpdated = true;
       } catch (e) {
-        debugPrint('📸 BackgroundUpload: Firestore update failed (will sync later): $e');
+        debugPrint(
+          '📸 BackgroundUpload: Firestore update failed (will sync later): $e',
+        );
       }
 
-      final hasPendingQueue = await _hasPendingRepairQueue(dbConn, localRepairId);
+      final hasPendingQueue = await _hasPendingRepairQueue(
+        dbConn,
+        localRepairId,
+      );
       await dbConn.update(
         'repairs',
-        {
-          'isSynced': cloudUpdated && !hasPendingQueue ? 1 : 0,
-        },
+        {'isSynced': cloudUpdated && !hasPendingQueue ? 1 : 0},
         where: 'id = ?',
         whereArgs: [localRepairId],
       );
 
       EventBus().emit('repairs_changed');
-      debugPrint('📸 BackgroundUpload: Repair images done (${uploadedUrls.length})');
+
+      // Clean up tracking and emit completion event
+      _totalPendingUploads--;
+      _uploadProgress.remove(firestoreId);
+      EventBus().emit('upload_completed');
+
+      debugPrint(
+        '📸 BackgroundUpload: Repair images done (${uploadedUrls.length}), pending: $_totalPendingUploads',
+      );
     } catch (e) {
       debugPrint('📸 BackgroundUpload: Error uploading repair images: $e');
+      _totalPendingUploads--;
+      _uploadProgress.remove(firestoreId);
+      EventBus().emit('upload_failed');
     }
   }
 
@@ -228,10 +271,21 @@ class BackgroundUploadService {
     String? shopId,
   ) async {
     try {
-      debugPrint('📸 BackgroundUpload: Starting attendance photo...');
-      final cloudUrl = await StorageService.uploadXFileAndGetUrl(photo, 'attendance');
+      // Track upload progress
+      _totalPendingUploads++;
+      EventBus().emit('upload_started');
+
+      debugPrint(
+        '📸 BackgroundUpload: Starting attendance photo for $firestoreId...',
+      );
+      final cloudUrl = await StorageService.uploadXFileAndGetUrl(
+        photo,
+        'attendance',
+      );
       if (cloudUrl == null) {
         debugPrint('📸 BackgroundUpload: Attendance photo upload failed');
+        _totalPendingUploads--;
+        EventBus().emit('upload_failed');
         return;
       }
 
@@ -257,13 +311,24 @@ class BackgroundUploadService {
           'syncedAt': FieldValue.serverTimestamp(),
         });
       } catch (e) {
-        debugPrint('📸 BackgroundUpload: Firestore attendance update failed: $e');
+        debugPrint(
+          '📸 BackgroundUpload: Firestore attendance update failed: $e',
+        );
       }
 
       EventBus().emit('attendance_changed');
-      debugPrint('📸 BackgroundUpload: Attendance photo done');
+
+      // Clean up tracking and emit completion event
+      _totalPendingUploads--;
+      EventBus().emit('upload_completed');
+
+      debugPrint(
+        '📸 BackgroundUpload: Attendance photo done, pending: $_totalPendingUploads',
+      );
     } catch (e) {
       debugPrint('📸 BackgroundUpload: Error uploading attendance photo: $e');
+      _totalPendingUploads--;
+      EventBus().emit('upload_failed');
     }
   }
 }

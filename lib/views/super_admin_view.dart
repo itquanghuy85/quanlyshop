@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../widgets/responsive_wrapper.dart';
 import '../services/user_service.dart';
 import '../services/claims_service.dart';
 import '../services/super_admin_security_service.dart';
 import '../theme/app_text_styles.dart';
+import '../theme/app_spacing.dart';
 import '../l10n/app_localizations.dart';
 
 String getRoleDisplayName(String role) {
@@ -46,8 +48,8 @@ class SuperAdminView extends StatelessWidget {
               ),
             ),
           ),
-          backgroundColor: Colors.transparent,
-          foregroundColor: Colors.white,
+          backgroundColor: AppColors.surface,
+          foregroundColor: AppColors.textPrimary,
           elevation: 0,
           title: Text(
             'SUPER ADMIN CONTROL',
@@ -57,9 +59,9 @@ class SuperAdminView extends StatelessWidget {
             ),
           ),
           bottom: const TabBar(
-            labelColor: Colors.white,
+            labelColor: AppColors.surface,
             unselectedLabelColor: Colors.white70,
-            indicatorColor: Colors.white,
+            indicatorColor: AppColors.surface,
             tabs: [
               Tab(text: 'SHOPS'),
               Tab(text: 'USERS'),
@@ -146,7 +148,7 @@ class _ShopsTabState extends State<ShopsTab> {
               '✅ Đồng bộ hoàn tất!\n'
               'Tổng: $total | Thành công: $success | Bỏ qua: $skipped | Lỗi: $failed',
             ),
-            backgroundColor: Colors.green,
+            backgroundColor: AppColors.success,
             duration: const Duration(seconds: 5),
           ),
         );
@@ -154,14 +156,14 @@ class _ShopsTabState extends State<ShopsTab> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('❌ Lỗi: ${result['error'] ?? 'Không xác định'}'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.error,
           ),
         );
       }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('❌ Lỗi: $e'), backgroundColor: Colors.red),
+        SnackBar(content: Text('❌ Lỗi: $e'), backgroundColor: AppColors.error),
       );
     } finally {
       if (mounted) {
@@ -185,7 +187,7 @@ class _ShopsTabState extends State<ShopsTab> {
               children: [
                 const Text(
                   'Chưa có shop nào được tạo',
-                  style: TextStyle(color: Colors.grey),
+                  style: TextStyle(color: AppColors.textHint),
                 ),
                 const SizedBox(height: 12),
                 ElevatedButton.icon(
@@ -224,14 +226,14 @@ class _ShopsTabState extends State<ShopsTab> {
                     Icon(
                       Icons.cloud_off,
                       size: 14,
-                      color: Colors.orange.shade700,
+                      color: AppColors.warning,
                     ),
                     const SizedBox(width: 6),
                     Text(
                       'Dữ liệu từ cache — kéo xuống để tải lại',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.orange.shade700,
+                        color: AppColors.warning,
                       ),
                     ),
                   ],
@@ -275,14 +277,14 @@ class _ShopsTabState extends State<ShopsTab> {
                   },
                   leading: Icon(
                     appLocked ? Icons.lock : Icons.store_mall_directory,
-                    color: appLocked ? Colors.red : Colors.blueAccent,
+                    color: appLocked ? AppColors.error : Colors.blueAccent,
                   ),
                   title: Text(
                     shopName,
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: AppTextStyles.headline4.fontSize,
-                      color: appLocked ? Colors.red : Colors.black87,
+                      color: appLocked ? AppColors.error : AppColors.textPrimary,
                     ),
                   ),
                   subtitle: Column(
@@ -292,14 +294,14 @@ class _ShopsTabState extends State<ShopsTab> {
                         'ID: $shopId',
                         style: TextStyle(
                           fontSize: AppTextStyles.body1.fontSize,
-                          color: Colors.grey,
+                          color: AppColors.textHint,
                         ),
                       ),
                       Text(
                         ownerEmail,
                         style: TextStyle(
                           fontSize: AppTextStyles.body1.fontSize,
-                          color: Colors.grey,
+                          color: AppColors.textHint,
                         ),
                       ),
                     ],
@@ -314,14 +316,14 @@ class _ShopsTabState extends State<ShopsTab> {
                             'Owner UID: $ownerUid',
                             style: TextStyle(
                               fontSize: AppTextStyles.body1.fontSize,
-                              color: Colors.grey,
+                              color: AppColors.textHint,
                             ),
                           ),
                           Text(
                             createdText,
                             style: TextStyle(
                               fontSize: AppTextStyles.body1.fontSize,
-                              color: Colors.grey,
+                              color: AppColors.textHint,
                             ),
                           ),
                           const Divider(height: 20),
@@ -330,7 +332,7 @@ class _ShopsTabState extends State<ShopsTab> {
                             style: TextStyle(
                               fontSize: AppTextStyles.headline5.fontSize,
                               fontWeight: FontWeight.bold,
-                              color: Colors.deepPurple,
+                              color: AppColors.repairDelivered,
                             ),
                           ),
                           const SizedBox(height: 8),
@@ -369,7 +371,7 @@ class _ShopsTabState extends State<ShopsTab> {
                             style: TextStyle(
                               fontSize: AppTextStyles.headline5.fontSize,
                               fontWeight: FontWeight.bold,
-                              color: Colors.orange,
+                              color: AppColors.warning,
                             ),
                           ),
                           const SizedBox(height: 8),
@@ -430,13 +432,12 @@ class _ShopsTabState extends State<ShopsTab> {
                           const Divider(height: 20),
                           Text(
                             '👥 THÀNH VIÊN TRONG SHOP',
-                            style: TextStyle(
-                              fontSize: AppTextStyles.headline5.fontSize,
+                            style: AppTextStyles.headline5.copyWith(
                               fontWeight: FontWeight.bold,
-                              color: Colors.teal,
+                              color: Theme.of(context).colorScheme.primary,
                             ),
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: AppSpacing.sm),
                           _buildShopMembersList(shopId),
                         ],
                       ),
@@ -456,15 +457,15 @@ class _ShopsTabState extends State<ShopsTab> {
     final members = _shopMembersCache[shopId];
 
     if (isLoading) {
-      return const Padding(
-        padding: EdgeInsets.all(8),
-        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+      return Padding(
+        padding: const EdgeInsets.all(AppSpacing.sm),
+        child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
       );
     }
 
     if (members == null) {
       return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
         child: TextButton.icon(
           onPressed: () => _loadShopMembers(shopId, force: true),
           icon: const Icon(Icons.refresh, size: 16),
@@ -475,12 +476,11 @@ class _ShopsTabState extends State<ShopsTab> {
 
     if (members.isEmpty) {
       return Padding(
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.all(AppSpacing.sm),
         child: Text(
           'Không có thành viên',
-          style: TextStyle(
-            color: Colors.grey,
-            fontSize: AppTextStyles.subtitle1.fontSize,
+          style: AppTextStyles.subtitle1.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
       );
@@ -501,80 +501,77 @@ class _ShopsTabState extends State<ShopsTab> {
             switch (role) {
               case 'owner':
                 roleText = 'Chủ shop';
-                roleColor = Colors.blue;
+                roleColor = AppColors.primary;
                 roleIcon = Icons.star;
                 break;
               case 'manager':
                 roleText = 'Quản lý';
-                roleColor = Colors.blue;
+                roleColor = AppColors.primary;
                 roleIcon = Icons.manage_accounts;
                 break;
               case 'employee':
                 roleText = 'Nhân viên';
-                roleColor = Colors.green;
+                roleColor = AppColors.success;
                 roleIcon = Icons.person;
                 break;
               case 'technician':
                 roleText = 'Kỹ thuật';
-                roleColor = Colors.orange;
+                roleColor = AppColors.warning;
                 roleIcon = Icons.build;
                 break;
               case 'admin':
                 roleText = 'Admin';
-                roleColor = Colors.red;
+                roleColor = AppColors.error;
                 roleIcon = Icons.admin_panel_settings;
                 break;
               default:
                 roleText = 'Người dùng';
-                roleColor = Colors.grey;
+                roleColor = AppColors.textHint;
                 roleIcon = Icons.person_outline;
             }
 
             return Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.all(10),
+              margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+              padding: const EdgeInsets.all(AppSpacing.md),
               decoration: BoxDecoration(
-                color: roleColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: roleColor.withOpacity(0.3)),
+                color: roleColor.withAlpha(20),
+                borderRadius: BorderRadius.circular(AppSpacing.lg),
+                border: Border.all(color: roleColor.withOpacity(0.18)),
               ),
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.all(AppSpacing.sm),
                     decoration: BoxDecoration(
-                      color: roleColor.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(8),
+                      color: roleColor.withAlpha(38),
+                      borderRadius: BorderRadius.circular(AppSpacing.md),
                     ),
                     child: Icon(roleIcon, color: roleColor, size: 20),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: AppSpacing.md),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           displayName.isNotEmpty ? displayName : email,
-                          style: TextStyle(
+                          style: AppTextStyles.headline5.copyWith(
                             fontWeight: FontWeight.w600,
-                            fontSize: AppTextStyles.headline5.fontSize,
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
                         if (displayName.isNotEmpty)
                           Text(
                             email,
-                            style: TextStyle(
-                              fontSize: AppTextStyles.body1.fontSize,
-                              color: Colors.grey,
+                            style: AppTextStyles.body1.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
                             ),
                           ),
                         if (phone.isNotEmpty)
                           Text(
                             '📞 $phone',
-                            style: TextStyle(
-                              fontSize: AppTextStyles.body1.fontSize,
-                              color: Colors.grey,
+                            style: AppTextStyles.body1.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
                             ),
                           ),
                       ],
@@ -582,18 +579,17 @@ class _ShopsTabState extends State<ShopsTab> {
                   ),
                   Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
+                      horizontal: AppSpacing.md,
+                      vertical: AppSpacing.xs,
                     ),
                     decoration: BoxDecoration(
                       color: roleColor,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(AppSpacing.lg),
                     ),
                     child: Text(
                       roleText,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: AppTextStyles.caption.fontSize,
+                      style: AppTextStyles.caption.copyWith(
+                        color: AppColors.surface,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -607,14 +603,14 @@ class _ShopsTabState extends State<ShopsTab> {
 
   Widget _buildStatsCard(int totalShops) {
     return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-      color: Colors.blue.shade50,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.lg)),
+      color: Theme.of(context).colorScheme.surfaceVariant,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         child: Row(
           children: [
-            const Icon(Icons.analytics, color: Colors.blue, size: 32),
-            const SizedBox(width: 12),
+            Icon(Icons.analytics, color: Theme.of(context).colorScheme.primary, size: 32),
+            const SizedBox(width: AppSpacing.md),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -622,7 +618,7 @@ class _ShopsTabState extends State<ShopsTab> {
                   'Tổng số Shop',
                   style: TextStyle(
                     fontSize: AppTextStyles.subtitle1.fontSize,
-                    color: Colors.grey,
+                    color: AppColors.textHint,
                   ),
                 ),
                 Text(
@@ -630,7 +626,7 @@ class _ShopsTabState extends State<ShopsTab> {
                   style: TextStyle(
                     fontSize: AppTextStyles.headline1.fontSize,
                     fontWeight: FontWeight.bold,
-                    color: Colors.blue,
+                    color: AppColors.primary,
                   ),
                 ),
               ],
@@ -656,18 +652,18 @@ class _ShopsTabState extends State<ShopsTab> {
         style: TextStyle(
           fontSize: AppTextStyles.subtitle1.fontSize,
           fontWeight: FontWeight.bold,
-          color: isDestructive && value ? Colors.red : Colors.black87,
+          color: isDestructive && value ? AppColors.error : AppColors.textPrimary,
         ),
       ),
       subtitle: Text(
         subtitle,
         style: TextStyle(
           fontSize: AppTextStyles.body1.fontSize,
-          color: Colors.grey,
+          color: AppColors.textHint,
         ),
       ),
       value: value,
-      activeThumbColor: isDestructive ? Colors.red : Colors.blue,
+      activeThumbColor: isDestructive ? AppColors.error : AppColors.primary,
       onChanged: onChanged,
     );
   }
@@ -698,7 +694,7 @@ class _ShopsTabState extends State<ShopsTab> {
               ? 'ĐÃ KHÓA $featureName cho shop $shopId'
               : 'ĐÃ MỞ KHÓA $featureName cho shop $shopId',
         ),
-        backgroundColor: value ? Colors.orange : Colors.green,
+        backgroundColor: value ? AppColors.warning : AppColors.success,
       ),
     );
   }
@@ -732,7 +728,7 @@ class _ShopsTabState extends State<ShopsTab> {
               'Ứng dụng quản lý cửa hàng đa ngành HULUCA - giải pháp toàn diện cho: Điện tử (IMEI, bảo hành), Thực phẩm (HSD), Thời trang (biến thể size/màu) và nhiều loại hình kinh doanh khác. Hỗ trợ offline và đồng bộ thời gian thực với Firebase.',
               style: TextStyle(
                 fontSize: AppTextStyles.subtitle1.fontSize,
-                color: Colors.black87,
+                color: AppColors.textPrimary,
               ),
             ),
             const SizedBox(height: 8),
@@ -740,7 +736,7 @@ class _ShopsTabState extends State<ShopsTab> {
               'Ứng dụng được xây dựng và vận hành bởi HULUCA (itquanghuy85@gmail.com) với mục tiêu hỗ trợ các cửa hàng bán lẻ vừa và nhỏ quản lý công việc hiệu quả, minh bạch và chuyên nghiệp hơn.',
               style: TextStyle(
                 fontSize: AppTextStyles.subtitle1.fontSize,
-                color: Colors.black87,
+                color: AppColors.textPrimary,
               ),
             ),
           ],
@@ -753,7 +749,7 @@ class _ShopsTabState extends State<ShopsTab> {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-      color: Colors.deepPurple.shade50,
+      color: AppColors.repairDelivered,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -761,7 +757,7 @@ class _ShopsTabState extends State<ShopsTab> {
           children: [
             Row(
               children: [
-                const Icon(Icons.sync, color: Colors.deepPurple),
+                const Icon(Icons.sync, color: AppColors.repairDelivered),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -769,7 +765,7 @@ class _ShopsTabState extends State<ShopsTab> {
                     style: TextStyle(
                       fontSize: AppTextStyles.headline4.fontSize,
                       fontWeight: FontWeight.bold,
-                      color: Colors.deepPurple,
+                      color: AppColors.repairDelivered,
                     ),
                   ),
                 ),
@@ -780,7 +776,7 @@ class _ShopsTabState extends State<ShopsTab> {
               'Sau khi thay đổi Firestore Rules để sử dụng Custom Claims, bạn cần đồng bộ claims cho TẤT CẢ user để họ có thể truy cập được dữ liệu.',
               style: TextStyle(
                 fontSize: AppTextStyles.subtitle1.fontSize,
-                color: Colors.black87,
+                color: AppColors.textPrimary,
               ),
             ),
             const SizedBox(height: 12),
@@ -794,7 +790,7 @@ class _ShopsTabState extends State<ShopsTab> {
                         height: 18,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: Colors.white,
+                          color: AppColors.surface,
                         ),
                       )
                     : const Icon(Icons.cloud_sync),
@@ -804,8 +800,8 @@ class _ShopsTabState extends State<ShopsTab> {
                       : 'ĐỒNG BỘ TẤT CẢ CLAIMS',
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.deepPurple,
-                  foregroundColor: Colors.white,
+                  backgroundColor: AppColors.repairDelivered,
+                  foregroundColor: AppColors.surface,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                 ),
               ),
@@ -845,7 +841,7 @@ class _UsersTabState extends State<UsersTab> {
           return const Center(
             child: Text(
               'Chưa có user nào',
-              style: TextStyle(color: Colors.grey),
+              style: TextStyle(color: AppColors.textHint),
             ),
           );
         }
@@ -887,12 +883,12 @@ class _UsersTabState extends State<UsersTab> {
                           ),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.edit, color: Colors.orange),
+                          icon: const Icon(Icons.edit, color: AppColors.warning),
                           onPressed: () =>
                               _showEditUserDialog(context, uid, data),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.red),
+                          icon: const Icon(Icons.delete, color: AppColors.error),
                           onPressed: () =>
                               _showDeleteUserDialog(context, uid, email),
                         ),
@@ -927,7 +923,7 @@ class _UsersTabState extends State<UsersTab> {
                       'Shop ID: $shopId',
                       style: TextStyle(
                         fontSize: AppTextStyles.subtitle1.fontSize,
-                        color: Colors.grey,
+                        color: AppColors.textHint,
                       ),
                     ),
                   ],
@@ -1090,7 +1086,7 @@ class _UsersTabState extends State<UsersTab> {
                 );
               }
             },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
             child: const Text('Xóa dữ liệu'),
           ),
         ],

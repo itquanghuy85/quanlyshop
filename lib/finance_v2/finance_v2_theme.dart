@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
 
 class FinanceV2Theme {
   static const Color pageBg = Color(0xFFF3F7FC);
@@ -76,7 +77,7 @@ class FinanceV2Theme {
   static const TextStyle amountHero = TextStyle(
     fontSize: 32,
     fontWeight: FontWeight.w700,
-    color: Colors.white,
+    color: AppColors.surface,
     letterSpacing: -0.5,
   );
 

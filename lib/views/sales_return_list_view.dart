@@ -96,8 +96,8 @@ class _SalesReturnListViewState extends State<SalesReturnListView> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Danh sách trả hàng'),
-        backgroundColor: Colors.red.shade700,
-        foregroundColor: Colors.white,
+        backgroundColor: AppColors.error,
+        foregroundColor: AppColors.surface,
       ),
       body: ResponsiveCenter(
         child: Column(
@@ -111,9 +111,9 @@ class _SalesReturnListViewState extends State<SalesReturnListView> {
                   hintText: 'Tìm khách hàng, SĐT...',
                   hintStyle: TextStyle(
                     fontSize: 14,
-                    color: Colors.grey.shade400,
+                    color: AppColors.textHint,
                   ),
-                  prefixIcon: Icon(Icons.search, color: Colors.grey.shade500),
+                  prefixIcon: Icon(Icons.search, color: AppColors.textHint),
                   suffixIcon: _searchController.text.isNotEmpty
                       ? IconButton(
                           icon: const Icon(Icons.close, size: 18),
@@ -123,14 +123,14 @@ class _SalesReturnListViewState extends State<SalesReturnListView> {
                         )
                       : null,
                   filled: true,
-                  fillColor: Colors.grey.shade50,
+                  fillColor: AppColors.background,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey.shade200),
+                    borderSide: BorderSide(color: AppColors.outline),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey.shade200),
+                    borderSide: BorderSide(color: AppColors.outline),
                   ),
                   contentPadding: const EdgeInsets.symmetric(vertical: 10),
                 ),
@@ -160,7 +160,7 @@ class _SalesReturnListViewState extends State<SalesReturnListView> {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.red.shade50,
+                          color: AppColors.error,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
@@ -168,7 +168,7 @@ class _SalesReturnListViewState extends State<SalesReturnListView> {
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            color: Colors.red.shade700,
+                            color: AppColors.error,
                           ),
                         ),
                       ),
@@ -206,12 +206,12 @@ class _SalesReturnListViewState extends State<SalesReturnListView> {
         label,
         style: TextStyle(
           fontSize: 13,
-          color: isActive ? Colors.white : Colors.grey.shade700,
+          color: isActive ? AppColors.surface : AppColors.textSecondary,
         ),
       ),
       selected: isActive,
-      selectedColor: Colors.red.shade600,
-      backgroundColor: Colors.grey.shade100,
+      selectedColor: AppColors.error,
+      backgroundColor: AppColors.background,
       visualDensity: const VisualDensity(horizontal: -4, vertical: -4),
       padding: const EdgeInsets.symmetric(horizontal: 4),
       onSelected: (_) {
@@ -226,13 +226,13 @@ class _SalesReturnListViewState extends State<SalesReturnListView> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.assignment_return, size: 60, color: Colors.grey.shade300),
+          Icon(Icons.assignment_return, size: 60, color: AppColors.outline),
           const SizedBox(height: 12),
           Text(
             _searchController.text.isNotEmpty || _timeFilter != 'all'
                 ? 'Không tìm thấy phiếu trả hàng phù hợp'
                 : 'Chưa có phiếu trả hàng nào',
-            style: TextStyle(color: Colors.grey.shade500, fontSize: 16),
+            style: TextStyle(color: AppColors.textHint, fontSize: 16),
           ),
           if (_searchController.text.isNotEmpty || _timeFilter != 'all') ...[
             const SizedBox(height: 8),
@@ -261,10 +261,10 @@ class _SalesReturnListViewState extends State<SalesReturnListView> {
     return Card(
       elevation: 0,
       margin: const EdgeInsets.only(bottom: 6),
-      color: isAltRow ? const Color(0xFFFFFAFA) : Colors.white,
+      color: isAltRow ? const Color(0xFFFFFAFA) : AppColors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10),
-        side: BorderSide(color: Colors.red.shade100),
+        side: BorderSide(color: AppColors.error),
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(10),
@@ -279,13 +279,13 @@ class _SalesReturnListViewState extends State<SalesReturnListView> {
                   Container(
                     padding: const EdgeInsets.all(5),
                     decoration: BoxDecoration(
-                      color: Colors.red.shade50,
+                      color: AppColors.error,
                       borderRadius: BorderRadius.circular(7),
                     ),
                     child: Icon(
                       Icons.assignment_return,
                       size: 16,
-                      color: Colors.red.shade700,
+                      color: AppColors.error,
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -304,7 +304,7 @@ class _SalesReturnListViewState extends State<SalesReturnListView> {
                           dateStr,
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.grey.shade600,
+                            color: AppColors.textSecondary,
                           ),
                         ),
                       ],
@@ -318,7 +318,7 @@ class _SalesReturnListViewState extends State<SalesReturnListView> {
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
-                          color: Colors.red.shade700,
+                          color: AppColors.error,
                         ),
                       ),
                       Container(
@@ -328,8 +328,8 @@ class _SalesReturnListViewState extends State<SalesReturnListView> {
                         ),
                         decoration: BoxDecoration(
                           color: isDebt
-                              ? Colors.orange.shade50
-                              : Colors.green.shade50,
+                              ? AppColors.warning
+                              : AppColors.success,
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
@@ -338,8 +338,8 @@ class _SalesReturnListViewState extends State<SalesReturnListView> {
                             fontSize: 10,
                             fontWeight: FontWeight.w600,
                             color: isDebt
-                                ? Colors.orange.shade800
-                                : Colors.green.shade800,
+                                ? AppColors.warning
+                                : AppColors.success,
                           ),
                         ),
                       ),
@@ -351,14 +351,14 @@ class _SalesReturnListViewState extends State<SalesReturnListView> {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    Icon(Icons.note, size: 14, color: Colors.grey.shade400),
+                    Icon(Icons.note, size: 14, color: AppColors.textHint),
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
                         ret.note!,
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.grey.shade600,
+                          color: AppColors.textSecondary,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -371,7 +371,7 @@ class _SalesReturnListViewState extends State<SalesReturnListView> {
                 const SizedBox(height: 4),
                 Text(
                   'NV: ${ret.createdBy}',
-                  style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                  style: TextStyle(fontSize: 11, color: AppColors.textHint),
                 ),
               ],
             ],
@@ -410,21 +410,21 @@ class _SalesReturnListViewState extends State<SalesReturnListView> {
                   height: 4,
                   margin: const EdgeInsets.only(bottom: 16),
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
+                    color: AppColors.outline,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
               ),
               Row(
                 children: [
-                  Icon(Icons.assignment_return, color: Colors.red.shade700),
+                  Icon(Icons.assignment_return, color: AppColors.error),
                   const SizedBox(width: 8),
                   Text(
                     'Chi tiết phiếu trả hàng',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Colors.red.shade700,
+                      color: AppColors.error,
                     ),
                   ),
                 ],
@@ -452,7 +452,7 @@ class _SalesReturnListViewState extends State<SalesReturnListView> {
                   margin: const EdgeInsets.only(bottom: 8),
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Colors.red.shade50,
+                    color: AppColors.error,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
@@ -474,7 +474,7 @@ class _SalesReturnListViewState extends State<SalesReturnListView> {
                                 'IMEI: ${item.productImei}',
                                 style: TextStyle(
                                   fontSize: 13,
-                                  color: Colors.grey.shade600,
+                                  color: AppColors.textSecondary,
                                 ),
                               ),
                           ],
@@ -489,7 +489,7 @@ class _SalesReturnListViewState extends State<SalesReturnListView> {
                         '${MoneyUtils.formatCurrency(item.amount)}đ',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: Colors.red.shade700,
+                          color: AppColors.error,
                           fontSize: 14,
                         ),
                       ),
@@ -510,7 +510,7 @@ class _SalesReturnListViewState extends State<SalesReturnListView> {
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Colors.red.shade700,
+                      color: AppColors.error,
                     ),
                   ),
                 ],
@@ -532,7 +532,7 @@ class _SalesReturnListViewState extends State<SalesReturnListView> {
             width: 120,
             child: Text(
               label,
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
             ),
           ),
           Expanded(

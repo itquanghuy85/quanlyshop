@@ -23,6 +23,7 @@ import 'shift_swap_view.dart';
 import '../widgets/app_cached_image.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
+import '../theme/design_tokens.dart';
 import '../widgets/custom_app_bar.dart';
 import '../l10n/app_localizations.dart';
 import '../utils/excel_export_helper.dart';
@@ -60,7 +61,8 @@ class _AttendanceViewState extends State<AttendanceView>
   double? _shopLatitude;
   double? _shopLongitude;
   bool _locationRequired = false;
-  bool _requireLocationForAttendance = false; // Bắt buộc cấu hình vị trí mới được chấm công
+  bool _requireLocationForAttendance =
+      false; // Bắt buộc cấu hình vị trí mới được chấm công
 
   @override
   void initState() {
@@ -170,10 +172,14 @@ class _AttendanceViewState extends State<AttendanceView>
     try {
       final shopId = await UserService.getCurrentShopId();
       // Pull cloud data with timeout to prevent infinite spinner on iOS
-      await _pullOwnCloudData(uid: uid, shopId: shopId)
-          .timeout(const Duration(seconds: 10), onTimeout: () {
-        debugPrint('⚠️ Pull attendance cloud data timed out, using local data');
-      });
+      await _pullOwnCloudData(uid: uid, shopId: shopId).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          debugPrint(
+            '⚠️ Pull attendance cloud data timed out, using local data',
+          );
+        },
+      );
       final rec = await db.getAttendance(
         DateFormat('yyyy-MM-dd').format(DateTime.now()),
         uid,
@@ -274,7 +280,7 @@ class _AttendanceViewState extends State<AttendanceView>
       NotificationService.showSnackBar(
         '⚠️ Quản trị viên đã bật yêu cầu vị trí nhưng chưa cấu hình tọa độ shop. '
         'Vui lòng vào Cài đặt → Vị trí để thiết lập trước khi chấm công.',
-        color: Colors.orange,
+        color: AppColors.warning,
       );
       return;
     }
@@ -292,7 +298,7 @@ class _AttendanceViewState extends State<AttendanceView>
     if (picked == null) {
       NotificationService.showSnackBar(
         "Bắt buộc chụp ảnh để chấm công!",
-        color: Colors.orange,
+        color: AppColors.warning,
       );
       return;
     }
@@ -386,9 +392,7 @@ class _AttendanceViewState extends State<AttendanceView>
         action: isIn ? 'ATTENDANCE_CHECKIN' : 'ATTENDANCE_CHECKOUT',
         entityType: 'ATTENDANCE',
         entityId: firestoreId,
-        summary: isIn
-            ? 'Nhân viên chấm công vào'
-            : 'Nhân viên chấm công ra',
+        summary: isIn ? 'Nhân viên chấm công vào' : 'Nhân viên chấm công ra',
         payload: {
           'dateKey': attendance.dateKey,
           'staffName': attendance.name,
@@ -410,13 +414,13 @@ class _AttendanceViewState extends State<AttendanceView>
 
       NotificationService.showSnackBar(
         isIn ? "Chấm công vào thành công!" : "Chấm công ra thành công!",
-        color: Colors.green,
+        color: AppColors.success,
       );
 
       NotificationService.showSnackBar(
-        "Ảnh chấm công đang tải lên hệ thống, vui lòng không thoát ứng dụng.",
-        color: Colors.blue,
-        duration: const Duration(seconds: 7),
+        "📸 Ảnh chấm công đang tải lên nền (vui lòng không thoát)",
+        color: AppColors.info,
+        duration: const Duration(seconds: 10),
       );
 
       // Upload photo to cloud in background
@@ -427,7 +431,7 @@ class _AttendanceViewState extends State<AttendanceView>
         shopId: shopId,
       );
     } catch (e) {
-      NotificationService.showSnackBar("Lỗi: $e", color: Colors.red);
+      NotificationService.showSnackBar("Lỗi: $e", color: AppColors.error);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -442,7 +446,7 @@ class _AttendanceViewState extends State<AttendanceView>
         if (permission == LocationPermission.denied) {
           NotificationService.showSnackBar(
             'Cần quyền truy cập vị trí để chấm công',
-            color: Colors.red,
+            color: AppColors.error,
           );
           return false;
         }
@@ -450,14 +454,14 @@ class _AttendanceViewState extends State<AttendanceView>
       if (permission == LocationPermission.deniedForever) {
         NotificationService.showSnackBar(
           'Vui lòng bật quyền vị trí trong cài đặt',
-          color: Colors.red,
+          color: AppColors.error,
         );
         return false;
       }
 
       NotificationService.showSnackBar(
         'Đang kiểm tra vị trí...',
-        color: Colors.blue,
+        color: AppColors.info,
       );
 
       final position = await Geolocator.getCurrentPosition(
@@ -476,7 +480,7 @@ class _AttendanceViewState extends State<AttendanceView>
         // 100 meters radius
         NotificationService.showSnackBar(
           'Bạn đang ở cách shop ${distanceInMeters.toInt()}m. Cần ở trong phạm vi 100m để chấm công.',
-          color: Colors.red,
+          color: AppColors.error,
         );
         return false;
       }
@@ -485,7 +489,7 @@ class _AttendanceViewState extends State<AttendanceView>
     } catch (e) {
       NotificationService.showSnackBar(
         'Lỗi kiểm tra vị trí: $e',
-        color: Colors.red,
+        color: AppColors.error,
       );
       return false;
     }
@@ -557,9 +561,9 @@ class _AttendanceViewState extends State<AttendanceView>
         ],
         bottom: TabBar(
           controller: _tabController,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          indicatorColor: Colors.white,
+          labelColor: AppColors.onPrimary,
+          unselectedLabelColor: AppColors.onPrimary.withAlpha(179),
+          indicatorColor: AppColors.onPrimary,
           tabs: [
             Tab(text: AppLocalizations.of(context)?.today ?? "HÔM NAY"),
             Tab(text: AppLocalizations.of(context)?.history ?? "LỊCH SỪ"),
@@ -628,7 +632,9 @@ class _AttendanceViewState extends State<AttendanceView>
               ),
               title: Text(
                 "Cấu hình lịch làm việc",
-                style: FinanceV2Theme.bodyMd.copyWith(fontWeight: FontWeight.w700),
+                style: FinanceV2Theme.bodyMd.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               subtitle: Text(
                 "Thiết lập giờ vào/ra cho thợ",
@@ -651,15 +657,13 @@ class _AttendanceViewState extends State<AttendanceView>
   Widget _buildClockCard() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [AppColors.primaryDark, AppColors.primary],
         ),
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(color: AppColors.primary.withOpacity(0.3), blurRadius: 8),
-        ],
+        borderRadius: DesignTokens.brLg,
+        border: Border.all(color: AppColors.primary.withAlpha(77)),
       ),
       child: Column(
         children: [
@@ -668,7 +672,7 @@ class _AttendanceViewState extends State<AttendanceView>
             style: AppTextStyles.headline1.copyWith(
               color: AppColors.onPrimary,
               fontWeight: FontWeight.w900,
-              fontSize: 40,
+              fontSize: 36,
             ),
           ),
           const SizedBox(height: 4),
@@ -678,7 +682,7 @@ class _AttendanceViewState extends State<AttendanceView>
               'vi_VN',
             ).format(_clockNow).toUpperCase(),
             style: AppTextStyles.overline.copyWith(
-              color: AppColors.onPrimary.withOpacity(0.7),
+              color: AppColors.onPrimary.withAlpha(179),
               letterSpacing: 1.2,
             ),
           ),
@@ -687,7 +691,7 @@ class _AttendanceViewState extends State<AttendanceView>
             Text(
               _userName,
               style: AppTextStyles.body1.copyWith(
-                color: AppColors.onPrimary.withOpacity(0.9),
+                color: AppColors.onPrimary.withAlpha(230),
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -716,12 +720,12 @@ class _AttendanceViewState extends State<AttendanceView>
         style: ElevatedButton.styleFrom(
           backgroundColor: color,
           foregroundColor: AppColors.onPrimary,
-          disabledBackgroundColor: AppColors.inactive.withOpacity(0.3),
+          disabledBackgroundColor: AppColors.inactive.withAlpha(77),
           padding: const EdgeInsets.symmetric(vertical: 12),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: DesignTokens.brMd,
           ),
-          elevation: enabled ? 3 : 0,
+          elevation: enabled ? 1 : 0,
         ),
       ),
     );
@@ -801,7 +805,7 @@ class _AttendanceViewState extends State<AttendanceView>
       return const Center(child: Text("Chưa có dữ liệu lịch sử"));
     }
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       itemCount: _history.length + 1,
       itemBuilder: (ctx, i) {
         if (i == _history.length) {
@@ -829,18 +833,23 @@ class _AttendanceViewState extends State<AttendanceView>
 
         final item = _history[i];
         return Card(
-          margin: const EdgeInsets.only(bottom: 12),
+          margin: const EdgeInsets.only(bottom: 8),
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: DesignTokens.brMd,
+            side: const BorderSide(color: AppColors.outline),
+          ),
           child: InkWell(
             onTap: () => _showAttendanceDetail(item),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: DesignTokens.brMd,
             child: Padding(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               child: Row(
                 children: [
                   CircleAvatar(
                     backgroundColor: item.isLate == 1
-                        ? AppColors.error.withOpacity(0.1)
-                        : AppColors.success.withOpacity(0.1),
+                        ? AppColors.error.withAlpha(26)
+                        : AppColors.success.withAlpha(26),
                     child: Icon(
                       item.isLate == 1 ? Icons.warning : Icons.check,
                       color: item.isLate == 1
@@ -857,17 +866,20 @@ class _AttendanceViewState extends State<AttendanceView>
                         Text(item.dateKey, style: FinanceV2Theme.titleMd),
                         Text(
                           "Vào: ${item.checkInAt != null ? DateFormat('HH:mm').format(DateTime.fromMillisecondsSinceEpoch(item.checkInAt!)) : '--'} | Ra: ${item.checkOutAt != null ? DateFormat('HH:mm').format(DateTime.fromMillisecondsSinceEpoch(item.checkOutAt!)) : '--'}",
-                          style: FinanceV2Theme.micro.copyWith(color: FinanceV2Theme.subInk),
+                          style: FinanceV2Theme.micro.copyWith(
+                            color: FinanceV2Theme.subInk,
+                          ),
                         ),
                       ],
                     ),
                   ),
                   if (item.photoIn != null || item.photoOut != null)
                     Container(
-                      padding: const EdgeInsets.all(6),
+                      width: 30,
+                      height: 30,
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
+                        color: AppColors.primary.withAlpha(26),
+                        borderRadius: DesignTokens.brSm,
                       ),
                       child: const Icon(
                         Icons.photo_library,
@@ -876,7 +888,7 @@ class _AttendanceViewState extends State<AttendanceView>
                       ),
                     ),
                   const SizedBox(width: 8),
-                  const Icon(Icons.chevron_right, color: Colors.grey, size: 18),
+                  const Icon(Icons.chevron_right, color: AppColors.grey400, size: 18),
                 ],
               ),
             ),
@@ -926,7 +938,11 @@ class _AttendanceViewState extends State<AttendanceView>
                   label: Text(loc.leaveRequests),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
+                    foregroundColor: AppColors.onPrimary,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: DesignTokens.brSm,
+                    ),
                   ),
                 ),
               ),
@@ -970,7 +986,9 @@ class _AttendanceViewState extends State<AttendanceView>
           if (items.isEmpty)
             Text(
               loc.noLeaveRequests,
-              style: FinanceV2Theme.bodySm.copyWith(color: FinanceV2Theme.subInk),
+              style: FinanceV2Theme.bodySm.copyWith(
+                color: FinanceV2Theme.subInk,
+              ),
             )
           else
             ...items.map(_buildLeaveRequestItem),
@@ -995,8 +1013,9 @@ class _AttendanceViewState extends State<AttendanceView>
       margin: const EdgeInsets.only(top: 8),
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: statusColor.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(10),
+        color: statusColor.withAlpha(20),
+        border: Border.all(color: statusColor.withAlpha(51)),
+        borderRadius: DesignTokens.brMd,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1038,7 +1057,9 @@ class _AttendanceViewState extends State<AttendanceView>
               padding: const EdgeInsets.only(top: 4),
               child: Text(
                 'Từ chối: ${request.rejectReason}',
-                style: FinanceV2Theme.caption.copyWith(color: FinanceV2Theme.negative),
+                style: FinanceV2Theme.caption.copyWith(
+                  color: FinanceV2Theme.negative,
+                ),
               ),
             ),
         ],
@@ -1160,7 +1181,7 @@ class _AttendanceViewState extends State<AttendanceView>
                   if (checkInTime == null) {
                     NotificationService.showSnackBar(
                       'Chọn giờ vào',
-                      color: Colors.red,
+                      color: AppColors.error,
                     );
                     return;
                   }
@@ -1320,14 +1341,16 @@ class _AttendanceViewState extends State<AttendanceView>
                     width: double.infinity,
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.08),
-                      borderRadius: BorderRadius.circular(6),
+                      color: AppColors.primarySurface,
+                      borderRadius: DesignTokens.brSm,
+                      border: Border.all(color: AppColors.primary.withAlpha(31)),
                     ),
                     child: Text(
                       '${AppLocalizations.of(context)!.totalDays}: $days ngày',
                       style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
+                        color: AppColors.primary,
                       ),
                     ),
                   ),
@@ -1399,9 +1422,10 @@ class _AttendanceViewState extends State<AttendanceView>
         constraints: BoxConstraints(
           maxHeight: MediaQuery.of(context).size.height * 0.8,
         ),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          border: Border.all(color: AppColors.outline),
         ),
         padding: const EdgeInsets.all(12),
         child: Column(
@@ -1412,12 +1436,13 @@ class _AttendanceViewState extends State<AttendanceView>
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(10),
+                  width: 30,
+                  height: 30,
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
+                    color: AppColors.primary.withAlpha(26),
+                    borderRadius: DesignTokens.brSm,
                   ),
-                  child: const Icon(Icons.event_note, color: AppColors.primary),
+                  child: const Icon(Icons.event_note, color: AppColors.primary, size: 18),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -1433,7 +1458,7 @@ class _AttendanceViewState extends State<AttendanceView>
                       Text(
                         item.dateKey,
                         style: TextStyle(
-                          color: Colors.grey,
+                          color: AppColors.textSecondary,
                           fontSize: AppTextStyles.subtitle1.fontSize,
                         ),
                       ),
@@ -1446,7 +1471,7 @@ class _AttendanceViewState extends State<AttendanceView>
                 ),
               ],
             ),
-            const Divider(height: 24),
+            const Divider(height: 16),
 
             // Info rows
             _detailRow('Nhân viên', item.name, Icons.person),
@@ -1515,7 +1540,7 @@ class _AttendanceViewState extends State<AttendanceView>
                 ),
               ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 10),
 
             // Photos section
             if (item.photoIn != null || item.photoOut != null) ...[
@@ -1526,7 +1551,7 @@ class _AttendanceViewState extends State<AttendanceView>
                   fontSize: AppTextStyles.headline5.fontSize,
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               Row(
                 children: [
                   if (item.photoIn != null)
@@ -1566,12 +1591,12 @@ class _AttendanceViewState extends State<AttendanceView>
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: Colors.grey),
+          Icon(icon, size: 18, color: AppColors.textSecondary),
           const SizedBox(width: 10),
           Text(
             '$label:',
             style: TextStyle(
-              color: Colors.grey,
+              color: AppColors.textSecondary,
               fontSize: AppTextStyles.headline5.fontSize,
             ),
           ),
@@ -1600,15 +1625,15 @@ class _AttendanceViewState extends State<AttendanceView>
           Container(
             height: 120,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade300),
+              borderRadius: DesignTokens.brMd,
+              border: Border.all(color: AppColors.outline),
             ),
             child: AppCachedImage(
               imageUrl: url,
               fit: BoxFit.cover,
               width: double.infinity,
               memCacheHeight: 240,
-              borderRadius: BorderRadius.circular(11),
+              borderRadius: DesignTokens.brMd,
             ),
           ),
           const SizedBox(height: 6),
@@ -1626,7 +1651,7 @@ class _AttendanceViewState extends State<AttendanceView>
               ).format(DateTime.fromMillisecondsSinceEpoch(time)),
               style: TextStyle(
                 fontSize: AppTextStyles.caption.fontSize,
-                color: Colors.grey,
+                color: AppColors.textSecondary,
               ),
             ),
         ],
@@ -1729,7 +1754,7 @@ class _AttendanceViewState extends State<AttendanceView>
                 child: _statCard(
                   "Tỷ lệ đúng giờ",
                   "${onTimeRate.toStringAsFixed(0)}%",
-                  Colors.teal,
+                  AppColors.info,
                   Icons.trending_up,
                 ),
               ),
@@ -1738,7 +1763,7 @@ class _AttendanceViewState extends State<AttendanceView>
                 child: _statCard(
                   "TB giờ/ngày",
                   _formatMinutes(avgMinutes),
-                  Colors.indigo,
+                  AppColors.primary,
                   Icons.hourglass_bottom,
                 ),
               ),
@@ -1748,7 +1773,7 @@ class _AttendanceViewState extends State<AttendanceView>
           _statCard(
             "Tổng giờ làm việc",
             _formatMinutes(totalMinutes),
-            Colors.deepPurple,
+            AppColors.repairDelivered,
             Icons.work_history,
           ),
         ],
@@ -1769,21 +1794,22 @@ class _AttendanceViewState extends State<AttendanceView>
 
   Widget _statCard(String l, String v, Color c, IconData icon) => Container(
     width: double.infinity,
-    padding: const EdgeInsets.all(14),
+    padding: const EdgeInsets.all(10),
     decoration: BoxDecoration(
-      color: c.withOpacity(0.06),
-      borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: c.withOpacity(0.2)),
+      color: c.withAlpha(13),
+      borderRadius: DesignTokens.brMd,
+      border: Border.all(color: c.withAlpha(51)),
     ),
     child: Row(
       children: [
         Container(
-          padding: const EdgeInsets.all(8),
+          width: 30,
+          height: 30,
           decoration: BoxDecoration(
-            color: c.withOpacity(0.12),
-            borderRadius: BorderRadius.circular(8),
+            color: c.withAlpha(31),
+            borderRadius: DesignTokens.brSm,
           ),
-          child: Icon(icon, color: c, size: 20),
+          child: Icon(icon, color: c, size: 18),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -1791,7 +1817,7 @@ class _AttendanceViewState extends State<AttendanceView>
             l,
             style: AppTextStyles.body2.copyWith(
               fontWeight: FontWeight.w600,
-              color: AppColors.onSurface.withOpacity(0.7),
+              color: AppColors.textSecondary,
             ),
           ),
         ),

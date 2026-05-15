@@ -1,175 +1,111 @@
 import 'package:flutter/material.dart';
 
-/// Bộ màu thống nhất cho toàn bộ ứng dụng
-/// Định nghĩa tất cả màu sắc được sử dụng trong app
 class AppColors {
-  // Private constructor để ngăn tạo instance
   AppColors._();
 
-  // ========== PRIMARY COLORS ==========
-  /// Màu chính của app - Xanh Zalo
-  static const Color primary = Color.fromARGB(255, 77, 142, 233); // Blue
+  // ========== PRIMARY ==========
+  static const Color primary = Color(0xFF2563EB);
+  static const Color primaryLight = Color(0xFF3B82F6);
+  static const Color primaryDark = Color(0xFF1D4ED8);
+  static const Color primarySurface = Color(0xFFEFF6FF); // blue-50
 
-  /// Màu chính nhạt hơn
-  static const Color primaryLight = Color(0xFF42A5F5); // Blue 400
+  // ========== SECONDARY ==========
+  static const Color secondary = Color(0xFFF59E0B);
+  static const Color secondaryLight = Color(0xFFFBBF24);
+  static const Color secondaryDark = Color(0xFFD97706);
 
-  /// Màu chính tối hơn
-  static const Color primaryDark = Color(0xFF0068FF); // Zalo Blue
+  // ========== SEMANTIC ==========
+  static const Color success = Color(0xFF16A34A);
+  static const Color successLight = Color(0xFFDCFCE7);
+  static const Color warning = Color(0xFFF59E0B);
+  static const Color warningLight = Color(0xFFFEF3C7);
+  static const Color error = Color(0xFFEF4444);
+  static const Color errorLight = Color(0xFFFEE2E2);
+  static const Color info = Color(0xFF0EA5E9);
+  static const Color infoLight = Color(0xFFE0F2FE);
 
-  /// Màu phụ - Cam
-  static const Color secondary = Color(0xFFFF9800); // Orange 500
+  // ========== SURFACE ==========
+  static const Color background = Color(0xFFF7F8FA);
+  static const Color surface = Color(0xFFFFFFFF);
+  static const Color surfaceVariant = Color(0xFFF8FAFC);
+  static const Color shadow = Color(0x14000000);
 
-  /// Màu phụ nhạt hơn
-  static const Color secondaryLight = Color(0xFFFFB74D); // Orange 300
+  // ========== BORDER ==========
+  static const Color divider = Color(0xFFF1F3F5);
+  static const Color outline = Color(0xFFE5E7EB);
+  static const Color outlineFocus = primary;
 
-  /// Màu phụ tối hơn
-  static const Color secondaryDark = Color(0xFFF57C00); // Orange 700
+  // ========== TEXT ==========
+  static const Color onPrimary = Color(0xFFFFFFFF);
+  static const Color onSecondary = Color(0xFFFFFFFF);
+  static const Color onSurface = Color(0xFF0F172A);
+  static const Color onBackground = Color(0xFF0F172A);
+  static const Color onError = Color(0xFFFFFFFF);
+  static const Color onSuccess = Color(0xFFFFFFFF);
+  static const Color textPrimary = Color(0xFF0F172A);
+  static const Color textSecondary = Color(0xFF64748B);
+  static const Color textDisabled = Color(0xFFCBD5E1);
+  static const Color textHint = Color(0xFF94A3B8);
 
-  // ========== SURFACE COLORS ==========
-  /// Màu nền chính
-  static const Color background = Color(0xFFF8FAFF);
+  // ========== STATUS ==========
+  static const Color active = Color(0xFF16A34A);
+  static const Color inactive = Color(0xFF94A3B8);
+  static const Color pending = Color(0xFFF59E0B);
+  static const Color completed = Color(0xFF16A34A);
+  static const Color cancelled = Color(0xFFEF4444);
 
-  /// Màu bề mặt (card, dialog, etc.)
-  static const Color surface = Colors.white;
+  // ========== REPAIR STATUS ==========
+  static const Color repairReceived = Color(0xFF2563EB);
+  static const Color repairRepairing = Color(0xFFF59E0B);
+  static const Color repairDone = Color(0xFF16A34A);
+  static const Color repairPendingApproval = Color(0xFFEA580C);
+  static const Color repairDelivered = Color(0xFF7C3AED);
 
-  /// Màu bóng đổ
-  static const Color shadow = Color(0x1F000000);
-
-  /// Màu đường kẻ phân cách
-  static const Color divider = Color(0xFFE0E0E0);
-
-  /// Màu viền outline
-  static const Color outline = Color(0xFFE0E0E0);
-
-  // ========== TEXT COLORS ==========
-  /// Màu chữ trên primary color
-  static const Color onPrimary = Colors.white;
-
-  /// Màu chữ trên secondary color
-  static const Color onSecondary = Colors.white;
-
-  /// Màu chữ trên surface
-  static const Color onSurface = Color(0xFF1C1B1F);
-
-  /// Màu chữ trên background
-  static const Color onBackground = Color(0xFF1C1B1F);
-
-  // ========== SEMANTIC COLORS ==========
-  /// Màu lỗi
-  static const Color error = Color(0xFFD32F2F); // Red 700
-
-  /// Màu chữ trên error
-  static const Color onError = Colors.white;
-
-  /// Màu thành công
-  static const Color success = Color(0xFF388E3C); // Green 700
-
-  /// Màu chữ trên success
-  static const Color onSuccess = Colors.white;
-
-  /// Màu cảnh báo
-  static const Color warning = Color(0xFFF57C00); // Orange 700
-
-  /// Màu chữ trên warning
-  static const Color onWarning = Colors.white;
-
-  /// Màu thông tin
-  static const Color info = Color(0xFF0068FF); // Zalo Blue
-
-  /// Màu chữ trên info
-  static const Color onInfo = Colors.white;
-
-  // ========== STATUS COLORS ==========
-  /// Màu trạng thái active
-  static const Color active = Color(0xFF4CAF50); // Green 500
-
-  /// Màu trạng thái inactive
-  static const Color inactive = Color(0xFF9E9E9E); // Grey 500
-
-  /// Màu trạng thái pending
-  static const Color pending = Color(0xFFFF9800); // Orange 500
-
-  /// Màu trạng thái completed
-  static const Color completed = Color(0xFF4CAF50); // Green 500
-
-  /// Màu trạng thái cancelled
-  static const Color cancelled = Color(0xFFF44336); // Red 500
-
-  // ========== REPAIR STATUS COLORS ==========
-  /// Đã nhận - Xanh dương
-  static const Color repairReceived = Color(0xFF1976D2); // Blue 700
-  /// Đang sửa - Cam
-  static const Color repairRepairing = Color(0xFFFF9800); // Orange 500
-  /// Đã sửa xong - Xanh lá đậm
-  static const Color repairDone = Color(0xFF2E7D32); // Green 800
-  /// Chờ duyệt giao - Cam đậm
-  static const Color repairPendingApproval = Color(0xFFE65100); // Deep Orange
-  /// Đã giao - Tím
-  static const Color repairDelivered = Color(0xFF7B1FA2); // Purple 700
+  // ========== PASTEL ICON BACKGROUNDS ==========
+  static const Color iconBgBlue = Color(0xFFEFF6FF);
+  static const Color iconBgGreen = Color(0xFFF0FDF4);
+  static const Color iconBgOrange = Color(0xFFFFF7ED);
+  static const Color iconBgRed = Color(0xFFFFF1F2);
+  static const Color iconBgPurple = Color(0xFFF5F3FF);
+  static const Color iconBgTeal = Color(0xFFF0FDFA);
+  static const Color iconBgYellow = Color(0xFFFEFCE8);
+  static const Color iconBgGray = Color(0xFFF8FAFC);
+  static const Color iconBgPink = Color(0xFFFDF2F8);
 
   // ========== GREY SCALE ==========
-  /// Grey 50
-  static const Color grey50 = Color(0xFFFAFAFA);
+  static const Color grey50  = Color(0xFFF8FAFC);
+  static const Color grey100 = Color(0xFFF1F5F9);
+  static const Color grey200 = Color(0xFFE2E8F0);
+  static const Color grey300 = Color(0xFFCBD5E1);
+  static const Color grey400 = Color(0xFF94A3B8);
+  static const Color grey500 = Color(0xFF64748B);
+  static const Color grey600 = Color(0xFF475569);
+  static const Color grey700 = Color(0xFF334155);
+  static const Color grey800 = Color(0xFF1E293B);
+  static const Color grey900 = Color(0xFF0F172A);
 
-  /// Grey 100
-  static const Color grey100 = Color(0xFFF5F5F5);
+  // ========== INTERACTION ==========
+  static const Color hover = Color(0x0A2563EB);
+  static const Color ripple = Color(0x1A2563EB);
+  static const Color focusBorder = primary;
 
-  /// Grey 200
-  static const Color grey200 = Color(0xFFEEEEEE);
+  // ========== APP BAR ==========
+  static const Color appBarBg = Color(0xFF0068FF);   // Zalo Blue
+  static const Color appBarFg = Color(0xFFFFFFFF);   // White
 
-  /// Grey 300
-  static const Color grey300 = Color(0xFFE0E0E0);
-
-  /// Grey 400
-  static const Color grey400 = Color(0xFFBDBDBD);
-
-  /// Grey 500
-  static const Color grey500 = Color(0xFF9E9E9E);
-
-  /// Grey 600
-  static const Color grey600 = Color(0xFF757575);
-
-  /// Grey 700
-  static const Color grey700 = Color(0xFF616161);
-
-  /// Grey 800
-  static const Color grey800 = Color(0xFF424242);
-
-  /// Grey 900
-  static const Color grey900 = Color(0xFF212121);
-
-  // ========== SPECIAL COLORS ==========
-  /// Màu cho border focus
-  static const Color focusBorder = Color(0xFF0068FF);
-
-  /// Màu cho hover state
-  static const Color hover = Color(0x1F0068FF);
-
-  /// Màu cho ripple effect
-  static const Color ripple = Color(0x330068FF);
-
-  // ========== UTILITY METHODS ==========
-  /// Tạo màu với opacity
-  static Color withOpacity(Color color, double opacity) {
-    return color.withOpacity(opacity);
-  }
-
-  /// Blend 2 màu
-  static Color blend(Color color1, Color color2, double ratio) {
-    return Color.lerp(color1, color2, ratio)!;
-  }
-
-  /// Tạo gradient từ primary colors
-  static LinearGradient primaryGradient = const LinearGradient(
-    colors: [Color(0xFF0068FF), Color(0xFF0084FF)],
+  // ========== GRADIENTS ==========
+  static const LinearGradient primaryGradient = LinearGradient(
+    colors: [Color(0xFF2563EB), Color(0xFF3B82F6)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
-  /// Tạo gradient từ secondary colors
-  static LinearGradient secondaryGradient = const LinearGradient(
-    colors: [secondary, secondaryLight],
+  static const LinearGradient secondaryGradient = LinearGradient(
+    colors: [Color(0xFFF59E0B), Color(0xFFFBBF24)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
+
+  static Color withAlpha(Color color, int alpha) =>
+      color.withAlpha(alpha);
 }

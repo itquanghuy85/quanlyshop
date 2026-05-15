@@ -211,24 +211,24 @@ class _PartnerManagementViewState extends State<PartnerManagementView>
             ),
           ),
         ),
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
+        backgroundColor: AppColors.surface,
+        foregroundColor: AppColors.textPrimary,
         title: const Text(
           'Quản lý đối tác & NCC',
           style: TextStyle(
             fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: AppColors.surface,
             fontSize: 16,
           ),
         ),
         bottom: TabBar(
           controller: _tabController,
           labelStyle: const TextStyle(
-            color: Colors.white,
+            color: AppColors.surface,
             fontWeight: FontWeight.w700,
           ),
-          unselectedLabelStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
-          indicatorColor: Colors.white,
+          unselectedLabelStyle: TextStyle(color: AppColors.surface.withAlpha(179)),
+          indicatorColor: AppColors.surface,
           tabs: const [
             Tab(text: 'ĐỐI TÁC SỬA CHỮA'),
             Tab(text: 'NHÀ CUNG CẤP'),
@@ -329,11 +329,11 @@ class _PartnerManagementViewState extends State<PartnerManagementView>
               mainAxisSize: MainAxisSize.min,
               children: [
                 IconButton(
-                  icon: const Icon(Icons.edit, color: Colors.blue),
+                  icon: const Icon(Icons.edit, color: AppColors.primary),
                   onPressed: () => _verifyAndEditPartner(partner),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.delete, color: Colors.red),
+                  icon: const Icon(Icons.delete, color: AppColors.error),
                   onPressed: () => _verifyAndDeletePartner(partner),
                 ),
               ],
@@ -360,11 +360,11 @@ class _PartnerManagementViewState extends State<PartnerManagementView>
               mainAxisSize: MainAxisSize.min,
               children: [
                 IconButton(
-                  icon: const Icon(Icons.edit, color: Colors.blue),
+                  icon: const Icon(Icons.edit, color: AppColors.primary),
                   onPressed: () => _verifyAndEditSupplier(supplier),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.delete, color: Colors.red),
+                  icon: const Icon(Icons.delete, color: AppColors.error),
                   onPressed: () => _verifyAndDeleteSupplier(supplier),
                 ),
               ],
@@ -383,16 +383,16 @@ class _PartnerManagementViewState extends State<PartnerManagementView>
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.history, size: 64, color: Colors.grey),
+              Icon(Icons.history, size: 64, color: AppColors.textHint),
               SizedBox(height: 16),
               Text(
                 'Chưa có lịch sử công việc',
-                style: TextStyle(color: Colors.grey, fontSize: 17),
+                style: TextStyle(color: AppColors.textHint, fontSize: 17),
               ),
               SizedBox(height: 8),
               Text(
                 'Lịch sử công việc gửi đối tác sẽ hiển thị từ các đơn sửa chữa',
-                style: TextStyle(color: Colors.grey, fontSize: 14),
+                style: TextStyle(color: AppColors.textHint, fontSize: 14),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -612,7 +612,7 @@ class _PartnerManagementViewState extends State<PartnerManagementView>
             style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: Colors.green,
+              color: AppColors.success,
             ),
           ),
 
@@ -624,7 +624,7 @@ class _PartnerManagementViewState extends State<PartnerManagementView>
             style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: Colors.red,
+              color: AppColors.error,
             ),
           ),
 
@@ -642,9 +642,9 @@ class _PartnerManagementViewState extends State<PartnerManagementView>
                 margin: const EdgeInsets.only(bottom: 8),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.red.shade50,
+                  color: AppColors.error,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.red.shade200),
+                  border: Border.all(color: AppColors.error),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -658,7 +658,7 @@ class _PartnerManagementViewState extends State<PartnerManagementView>
                     Text(
                       '${MoneyUtils.formatVND(entry.value['totalOwed'])}₫ (${entry.value['debtCount']} khoản)',
                       style: const TextStyle(
-                        color: Colors.red,
+                        color: AppColors.error,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -981,7 +981,7 @@ class _PartnerManagementViewState extends State<PartnerManagementView>
             const Expanded(child: Text('Chỉnh sửa đối tác sửa chữa')),
             // Nút xóa đối tác
             IconButton(
-              icon: const Icon(Icons.delete_forever, color: Colors.red),
+              icon: const Icon(Icons.delete_forever, color: AppColors.error),
               tooltip: 'Xóa đối tác',
               onPressed: () {
                 Navigator.pop(ctx);
@@ -1011,8 +1011,8 @@ class _PartnerManagementViewState extends State<PartnerManagementView>
               Navigator.pop(ctx);
               _confirmDeletePartner(partner);
             },
-            icon: const Icon(Icons.delete, color: Colors.red, size: 18),
-            label: const Text('Xóa', style: TextStyle(color: Colors.red)),
+            icon: const Icon(Icons.delete, color: AppColors.error, size: 18),
+            label: const Text('Xóa', style: TextStyle(color: AppColors.error)),
           ),
           const Spacer(),
           TextButton(
@@ -1072,7 +1072,7 @@ class _PartnerManagementViewState extends State<PartnerManagementView>
             const Expanded(child: Text('Chỉnh sửa nhà cung cấp')),
             // Nút xóa nhà cung cấp
             IconButton(
-              icon: const Icon(Icons.delete_forever, color: Colors.red),
+              icon: const Icon(Icons.delete_forever, color: AppColors.error),
               tooltip: 'Xóa nhà cung cấp',
               onPressed: () {
                 Navigator.pop(ctx);
@@ -1104,8 +1104,8 @@ class _PartnerManagementViewState extends State<PartnerManagementView>
               Navigator.pop(ctx);
               _confirmDeleteSupplier(supplier);
             },
-            icon: const Icon(Icons.delete, color: Colors.red, size: 18),
-            label: const Text('Xóa', style: TextStyle(color: Colors.red)),
+            icon: const Icon(Icons.delete, color: AppColors.error, size: 18),
+            label: const Text('Xóa', style: TextStyle(color: AppColors.error)),
           ),
           const Spacer(),
           TextButton(
@@ -1168,7 +1168,7 @@ class _PartnerManagementViewState extends State<PartnerManagementView>
             child: const Text('Hủy'),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
             onPressed: () async {
               Navigator.pop(ctx);
               try {
@@ -1205,7 +1205,7 @@ class _PartnerManagementViewState extends State<PartnerManagementView>
                 }
               }
             },
-            child: const Text('Xóa', style: TextStyle(color: Colors.white)),
+            child: const Text('Xóa', style: TextStyle(color: AppColors.surface)),
           ),
         ],
       ),
@@ -1226,7 +1226,7 @@ class _PartnerManagementViewState extends State<PartnerManagementView>
             child: const Text('Hủy'),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
             onPressed: () async {
               Navigator.pop(ctx);
               try {
@@ -1265,7 +1265,7 @@ class _PartnerManagementViewState extends State<PartnerManagementView>
                 }
               }
             },
-            child: const Text('Xóa', style: TextStyle(color: Colors.white)),
+            child: const Text('Xóa', style: TextStyle(color: AppColors.surface)),
           ),
         ],
       ),

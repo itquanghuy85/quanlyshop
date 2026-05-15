@@ -99,7 +99,7 @@ extension PermissionGateCheck on PermissionGate {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Bạn không có quyền truy cập "$label".\nLiên hệ Chủ shop để được cấp quyền.'),
-        backgroundColor: Colors.red,
+        backgroundColor: AppColors.error,
         duration: const Duration(seconds: 3),
       ),
     );
@@ -117,8 +117,8 @@ class _NoAccessScreen extends StatelessWidget {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: Text(featureName),
-        backgroundColor: Colors.orange,
-        foregroundColor: Colors.white,
+        backgroundColor: AppColors.warning,
+        foregroundColor: AppColors.surface,
       ),
       body: Center(
         child: SingleChildScrollView(
@@ -129,13 +129,13 @@ class _NoAccessScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.orange.withAlpha(25),
+                  color: AppColors.warning.withAlpha(25),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
                   Icons.lock_person,
                   size: 80,
-                  color: Colors.orange,
+                  color: AppColors.warning,
                 ),
               ),
               const SizedBox(height: 32),
@@ -150,7 +150,7 @@ class _NoAccessScreen extends StatelessWidget {
               Text(
                 'Bạn không có quyền truy cập tính năng "$featureName".\n'
                 'Vui lòng liên hệ Chủ shop để được cấp quyền.',
-                style: AppTextStyles.subtitle1.copyWith(color: Colors.grey),
+                style: AppTextStyles.subtitle1.copyWith(color: AppColors.textHint),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 32),

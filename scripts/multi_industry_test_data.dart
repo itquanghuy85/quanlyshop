@@ -10,14 +10,9 @@ import 'package:quanlyshop/models/product_model.dart';
 
 /// Class chứa tất cả dữ liệu test
 class MultiIndustryTestData {
-  /// Tạo ShopSettings mẫu cho tất cả loại ngành
+  /// Tạo ShopSettings mẫu - chỉ hỗ trợ electronics
   static Map<String, ShopSettings> generateShopSettings() {
-    return {
-      'electronics': ShopSettings.electronics('test_shop_electronics'),
-      'food': ShopSettings.food('test_shop_food'),
-      'fashion': ShopSettings.fashion('test_shop_fashion'),
-      'general': ShopSettings.general('test_shop_general'),
-    };
+    return {'electronics': ShopSettings.electronics('test_shop_electronics')};
   }
 
   /// Tạo danh mục sản phẩm mẫu cho ngành Điện tử
@@ -73,7 +68,12 @@ class MultiIndustryTestData {
         trackSerial: true,
         hasWarranty: true,
         defaultWarrantyDays: 730,
-        customFields: {'serial': 'Serial Number', 'cpu': 'CPU', 'ram': 'RAM', 'ssd': 'SSD'},
+        customFields: {
+          'serial': 'Serial Number',
+          'cpu': 'CPU',
+          'ram': 'RAM',
+          'ssd': 'SSD',
+        },
       ),
     ];
   }
@@ -118,7 +118,8 @@ class MultiIndustryTestData {
         categoryId: 'cat_electronics_phone',
         unit: 'cái',
         createdAt: now,
-        customData: '{"screen_size":"6.8 inch","ram":"12GB","chip":"Snapdragon 8 Gen 3"}',
+        customData:
+            '{"screen_size":"6.8 inch","ram":"12GB","chip":"Snapdragon 8 Gen 3"}',
       ),
       Product(
         firestoreId: 'prod_elec_003',
@@ -242,12 +243,24 @@ class MultiIndustryTestData {
   /// Tạo sản phẩm mẫu cho ngành Thực phẩm
   static List<Product> generateFoodProducts(String shopId) {
     final now = DateTime.now().millisecondsSinceEpoch;
-    final threeDays = DateTime.now().add(const Duration(days: 3)).millisecondsSinceEpoch;
-    final oneWeek = DateTime.now().add(const Duration(days: 7)).millisecondsSinceEpoch;
-    final twoWeeks = DateTime.now().add(const Duration(days: 14)).millisecondsSinceEpoch;
-    final oneMonth = DateTime.now().add(const Duration(days: 30)).millisecondsSinceEpoch;
-    final sixMonths = DateTime.now().add(const Duration(days: 180)).millisecondsSinceEpoch;
-    final expired = DateTime.now().subtract(const Duration(days: 2)).millisecondsSinceEpoch;
+    final threeDays = DateTime.now()
+        .add(const Duration(days: 3))
+        .millisecondsSinceEpoch;
+    final oneWeek = DateTime.now()
+        .add(const Duration(days: 7))
+        .millisecondsSinceEpoch;
+    final twoWeeks = DateTime.now()
+        .add(const Duration(days: 14))
+        .millisecondsSinceEpoch;
+    final oneMonth = DateTime.now()
+        .add(const Duration(days: 30))
+        .millisecondsSinceEpoch;
+    final sixMonths = DateTime.now()
+        .add(const Duration(days: 180))
+        .millisecondsSinceEpoch;
+    final expired = DateTime.now()
+        .subtract(const Duration(days: 2))
+        .millisecondsSinceEpoch;
 
     return [
       // Sản phẩm đã hết hạn - để test cảnh báo
@@ -400,7 +413,11 @@ class MultiIndustryTestData {
         hasVariants: true,
         trackSerial: false,
         trackExpiry: false,
-        customFields: {'size': 'Kích cỡ', 'color': 'Màu sắc', 'material': 'Chất liệu'},
+        customFields: {
+          'size': 'Kích cỡ',
+          'color': 'Màu sắc',
+          'material': 'Chất liệu',
+        },
       ),
       ProductCategory(
         firestoreId: 'cat_fashion_pants',
@@ -409,7 +426,11 @@ class MultiIndustryTestData {
         icon: '👖',
         sortOrder: 2,
         hasVariants: true,
-        customFields: {'size': 'Kích cỡ', 'color': 'Màu sắc', 'material': 'Chất liệu'},
+        customFields: {
+          'size': 'Kích cỡ',
+          'color': 'Màu sắc',
+          'material': 'Chất liệu',
+        },
       ),
       ProductCategory(
         firestoreId: 'cat_fashion_dress',
@@ -418,7 +439,11 @@ class MultiIndustryTestData {
         icon: '👗',
         sortOrder: 3,
         hasVariants: true,
-        customFields: {'size': 'Kích cỡ', 'color': 'Màu sắc', 'style': 'Kiểu dáng'},
+        customFields: {
+          'size': 'Kích cỡ',
+          'color': 'Màu sắc',
+          'style': 'Kiểu dáng',
+        },
       ),
       ProductCategory(
         firestoreId: 'cat_fashion_shoes',
@@ -788,9 +813,11 @@ class MultiIndustryTestData {
         final settings = ShopSettings.electronics(shopId);
         final categories = generateElectronicsCategories(shopId);
         final products = generateElectronicsProducts(shopId);
-        
+
         buffer.writeln('📱 NGÀNH ĐIỆN TỬ');
-        buffer.writeln('───────────────────────────────────────────────────────');
+        buffer.writeln(
+          '───────────────────────────────────────────────────────',
+        );
         buffer.writeln('CÀI ĐẶT SHOP:');
         buffer.writeln('  • Sửa chữa: ${settings.enableRepair ? "✅" : "❌"}');
         buffer.writeln('  • Serial/IMEI: ${settings.enableSerial ? "✅" : "❌"}');
@@ -802,95 +829,19 @@ class MultiIndustryTestData {
         for (final cat in categories) {
           buffer.writeln('  ${cat.icon} ${cat.name}');
           buffer.writeln('     - Serial: ${cat.trackSerial ? "✅" : "❌"}');
-          buffer.writeln('     - Warranty: ${cat.hasWarranty ? "${cat.defaultWarrantyDays} ngày" : "❌"}');
+          buffer.writeln(
+            '     - Warranty: ${cat.hasWarranty ? "${cat.defaultWarrantyDays} ngày" : "❌"}',
+          );
         }
         buffer.writeln('');
         buffer.writeln('SẢN PHẨM (${products.length}):');
         for (final prod in products) {
           buffer.writeln('  • ${prod.name}');
-          buffer.writeln('    Giá vốn: ${_formatPrice(prod.cost)} | Giá bán: ${_formatPrice(prod.price)}');
+          buffer.writeln(
+            '    Giá vốn: ${_formatPrice(prod.cost)} | Giá bán: ${_formatPrice(prod.price)}',
+          );
           buffer.writeln('    Tồn kho: ${prod.quantity} ${prod.unit ?? "cái"}');
           if (prod.imei != null) buffer.writeln('    IMEI: ${prod.imei}');
-        }
-        break;
-
-      case 'food':
-        final settings = ShopSettings.food(shopId);
-        final categories = generateFoodCategories(shopId);
-        final products = generateFoodProducts(shopId);
-        
-        buffer.writeln('🍎 NGÀNH THỰC PHẨM');
-        buffer.writeln('───────────────────────────────────────────────────────');
-        buffer.writeln('CÀI ĐẶT SHOP:');
-        buffer.writeln('  • Sửa chữa: ${settings.enableRepair ? "✅" : "❌"}');
-        buffer.writeln('  • Hạn sử dụng: ${settings.enableExpiry ? "✅" : "❌"}');
-        buffer.writeln('  • Số lô: ${settings.enableBatch ? "✅" : "❌"}');
-        buffer.writeln('  • Đơn vị mặc định: ${settings.defaultUnit}');
-        buffer.writeln('  • Cảnh báo HSD: ${settings.expiryWarningDays} ngày');
-        buffer.writeln('');
-        buffer.writeln('DANH MỤC (${categories.length}):');
-        for (final cat in categories) {
-          buffer.writeln('  ${cat.icon} ${cat.name} - Theo dõi HSD: ${cat.trackExpiry ? "✅" : "❌"}');
-        }
-        buffer.writeln('');
-        buffer.writeln('SẢN PHẨM (${products.length}):');
-        final now = DateTime.now();
-        for (final prod in products) {
-          buffer.writeln('  • ${prod.name}');
-          buffer.writeln('    Giá vốn: ${_formatPrice(prod.cost)} | Giá bán: ${_formatPrice(prod.price)}');
-          buffer.writeln('    Tồn kho: ${prod.quantity} ${prod.unit ?? "cái"}');
-          if (prod.expiryDate != null) {
-            final expiry = DateTime.fromMillisecondsSinceEpoch(prod.expiryDate!);
-            final diff = expiry.difference(now).inDays;
-            String status;
-            if (diff < 0) {
-              status = '⛔ ĐÃ HẾT HẠN ${-diff} ngày';
-            } else if (diff <= 7) {
-              status = '⚠️ Còn $diff ngày';
-            } else {
-              status = '✅ Còn $diff ngày';
-            }
-            buffer.writeln('    HSD: ${_formatDate(expiry)} $status');
-          }
-          if (prod.batchNumber != null) buffer.writeln('    Số lô: ${prod.batchNumber}');
-        }
-        break;
-
-      case 'fashion':
-        final settings = ShopSettings.fashion(shopId);
-        final categories = generateFashionCategories(shopId);
-        final products = generateFashionProducts(shopId);
-        final variants = generateFashionVariants(shopId);
-        
-        buffer.writeln('👕 NGÀNH THỜI TRANG');
-        buffer.writeln('───────────────────────────────────────────────────────');
-        buffer.writeln('CÀI ĐẶT SHOP:');
-        buffer.writeln('  • Biến thể (size/màu): ${settings.enableVariants ? "✅" : "❌"}');
-        buffer.writeln('  • Sửa chữa: ${settings.enableRepair ? "✅" : "❌"}');
-        buffer.writeln('  • Serial: ${settings.enableSerial ? "✅" : "❌"}');
-        buffer.writeln('');
-        buffer.writeln('DANH MỤC (${categories.length}):');
-        for (final cat in categories) {
-          buffer.writeln('  ${cat.icon} ${cat.name} - Biến thể: ${cat.hasVariants ? "✅" : "❌"}');
-        }
-        buffer.writeln('');
-        buffer.writeln('SẢN PHẨM & BIẾN THỂ:');
-        for (final prod in products) {
-          final prodVariants = variants.where((v) => v.productId == prod.firestoreId).toList();
-          final summary = VariantSummary.fromVariants(prod.firestoreId ?? '', prodVariants);
-          
-          buffer.writeln('  📦 ${prod.name}');
-          buffer.writeln('     Giá gốc: ${_formatPrice(prod.cost)} - ${_formatPrice(prod.price)}');
-          buffer.writeln('     Số biến thể: ${summary.totalVariants}');
-          buffer.writeln('     Tổng tồn kho: ${summary.totalStock}');
-          buffer.writeln('     Size: ${summary.availableSizes.join(", ")}');
-          buffer.writeln('     Màu: ${summary.availableColors.join(", ")}');
-          buffer.writeln('     Range giá: ${summary.priceRange}');
-          buffer.writeln('');
-          for (final v in prodVariants) {
-            buffer.writeln('       └ ${v.displayName}');
-            buffer.writeln('         SKU: ${v.sku} | Qty: ${v.quantity} | Giá: ${_formatPrice(v.salePrice)}');
-          }
         }
         break;
     }
@@ -899,7 +850,7 @@ class MultiIndustryTestData {
     buffer.writeln('═══════════════════════════════════════════════════════');
     buffer.writeln('                   KẾT THÚC BÁO CÁO');
     buffer.writeln('═══════════════════════════════════════════════════════');
-    
+
     return buffer.toString();
   }
 
@@ -920,9 +871,13 @@ class MultiIndustryTestData {
 /// Entry point để chạy test data generation
 void main() {
   // Tạo báo cáo cho từng ngành
-  print(MultiIndustryTestData.generateDataReport('shop_elec_001', 'electronics'));
+  print(
+    MultiIndustryTestData.generateDataReport('shop_elec_001', 'electronics'),
+  );
   print('');
   print(MultiIndustryTestData.generateDataReport('shop_food_001', 'food'));
   print('');
-  print(MultiIndustryTestData.generateDataReport('shop_fashion_001', 'fashion'));
+  print(
+    MultiIndustryTestData.generateDataReport('shop_fashion_001', 'fashion'),
+  );
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/app_colors.dart';
 import '../../expansion/safe_mode/expansion_feature_flags.dart';
 import '../../expansion/safe_mode/expansion_module_models.dart';
 
@@ -51,8 +52,8 @@ class ExpansionModulesHubView extends StatelessWidget {
                       Chip(
                         label: Text(enabled ? 'Enabled' : 'Disabled'),
                         backgroundColor: enabled
-                            ? Colors.green.withValues(alpha: 0.15)
-                            : Colors.orange.withValues(alpha: 0.15),
+                            ? AppColors.success.withValues(alpha: 0.15)
+                            : AppColors.warning.withValues(alpha: 0.15),
                       ),
                       const Spacer(),
                       ElevatedButton(

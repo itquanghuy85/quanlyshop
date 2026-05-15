@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
 import '../services/stock_entry_service.dart';
 import '../views/pending_stock_list_view.dart';
 import '../theme/app_text_styles.dart';
@@ -64,10 +65,10 @@ class _PendingStockWidgetState extends State<PendingStockWidget> {
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      color: Colors.orange.shade50,
+      color: AppColors.warning,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.orange.shade300),
+        side: BorderSide(color: AppColors.warning),
       ),
       child: InkWell(
         onTap: _openPendingList,
@@ -91,13 +92,13 @@ class _PendingStockWidgetState extends State<PendingStockWidget> {
                           width: 48,
                           height: 48,
                           decoration: BoxDecoration(
-                            color: Colors.orange.shade100,
+                            color: AppColors.warning,
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Icon(
                             Icons.pending_actions,
                             size: 28,
-                            color: Colors.orange.shade700,
+                            color: AppColors.warning,
                           ),
                         ),
                         Positioned(
@@ -106,13 +107,13 @@ class _PendingStockWidgetState extends State<PendingStockWidget> {
                           child: Container(
                             padding: const EdgeInsets.all(4),
                             decoration: const BoxDecoration(
-                              color: Colors.red,
+                              color: AppColors.error,
                               shape: BoxShape.circle,
                             ),
                             child: Text(
                               '$_pendingCount',
                               style: TextStyle(
-                                color: Colors.white,
+                                color: AppColors.surface,
                                 fontSize: AppTextStyles.caption.fontSize,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -134,14 +135,14 @@ class _PendingStockWidgetState extends State<PendingStockWidget> {
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: AppTextStyles.headline4.fontSize,
-                                  color: Colors.orange.shade800,
+                                  color: AppColors.warning,
                                 ),
                               ),
                               const Spacer(),
                               Icon(
                                 Icons.arrow_forward_ios,
                                 size: 14,
-                                color: Colors.orange.shade600,
+                                color: AppColors.warning,
                               ),
                             ],
                           ),
@@ -167,7 +168,7 @@ class _PendingStockWidgetState extends State<PendingStockWidget> {
                               '⚠️ Có phiếu quá ${_stats['oldestDays']} ngày!',
                               style: TextStyle(
                                 fontSize: AppTextStyles.body1.fontSize,
-                                color: Colors.red,
+                                color: AppColors.error,
                               ),
                             ),
                           ],
@@ -185,7 +186,7 @@ class _PendingStockWidgetState extends State<PendingStockWidget> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
@@ -216,9 +217,9 @@ class PendingStockCompactWidget extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: Colors.orange.shade100,
+          color: AppColors.warning,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.orange.shade300),
+          border: Border.all(color: AppColors.warning),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -226,14 +227,14 @@ class PendingStockCompactWidget extends StatelessWidget {
             Icon(
               Icons.pending_actions,
               size: 18,
-              color: Colors.orange.shade700,
+              color: AppColors.warning,
             ),
             const SizedBox(width: 6),
             Text(
               'Chờ XN',
               style: TextStyle(
                 fontSize: AppTextStyles.subtitle1.fontSize,
-                color: Colors.orange.shade700,
+                color: AppColors.warning,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -241,13 +242,13 @@ class PendingStockCompactWidget extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: Colors.red,
+                color: AppColors.error,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
                 '$pendingCount',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: AppColors.surface,
                   fontSize: AppTextStyles.caption.fontSize,
                   fontWeight: FontWeight.bold,
                 ),
@@ -279,10 +280,10 @@ class PendingStockStreamWidget extends StatelessWidget {
 
         return Card(
           margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          color: Colors.orange.shade50,
+          color: AppColors.warning,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
-            side: BorderSide(color: Colors.orange.shade300),
+            side: BorderSide(color: AppColors.warning),
           ),
           child: InkWell(
             onTap: () {
@@ -304,13 +305,13 @@ class PendingStockStreamWidget extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: Colors.orange.shade100,
+                          color: AppColors.warning,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Icon(
                           Icons.inventory_2,
                           size: 24,
-                          color: Colors.orange.shade700,
+                          color: AppColors.warning,
                         ),
                       ),
                       Positioned(
@@ -319,13 +320,13 @@ class PendingStockStreamWidget extends StatelessWidget {
                         child: Container(
                           padding: const EdgeInsets.all(4),
                           decoration: const BoxDecoration(
-                            color: Colors.red,
+                            color: AppColors.error,
                             shape: BoxShape.circle,
                           ),
                           child: Text(
                             count > 99 ? '99+' : '$count',
                             style: TextStyle(
-                              color: Colors.white,
+                              color: AppColors.surface,
                               fontSize: AppTextStyles.caption.fontSize,
                               fontWeight: FontWeight.bold,
                             ),
@@ -346,14 +347,14 @@ class PendingStockStreamWidget extends StatelessWidget {
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: AppTextStyles.headline4.fontSize,
-                            color: Colors.orange.shade800,
+                            color: AppColors.warning,
                           ),
                         ),
                         Text(
                           'Nhấn để xem và xác nhận',
                           style: TextStyle(
                             fontSize: AppTextStyles.body1.fontSize,
-                            color: Colors.grey.shade600,
+                            color: AppColors.textSecondary,
                           ),
                         ),
                       ],
@@ -362,7 +363,7 @@ class PendingStockStreamWidget extends StatelessWidget {
                   Icon(
                     Icons.arrow_forward_ios,
                     size: 16,
-                    color: Colors.orange.shade600,
+                    color: AppColors.warning,
                   ),
                 ],
               ),

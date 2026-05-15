@@ -2,6 +2,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_esc_pos_utils/flutter_esc_pos_utils.dart';
 import 'package:intl/intl.dart';
@@ -277,7 +278,7 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     final custom = _timeFilter == _TimeFilter.custom;
     return Container(
       decoration: const BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         border: Border(bottom: BorderSide(color: Color(0xFFEEF1F7))),
       ),
       padding: EdgeInsets.fromLTRB(_hPad, 16, _hPad, 16),
@@ -323,7 +324,7 @@ class _FinanceV2ViewState extends State<FinanceV2View>
       label: Text(
         label,
         style: FinanceV2Theme.meta.copyWith(
-          color: selected ? Colors.white : FinanceV2Theme.subInk,
+          color: selected ? AppColors.surface : FinanceV2Theme.subInk,
           fontWeight: FontWeight.w600,
         ),
       ),
@@ -433,7 +434,7 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     final maxPage = _maxPage(total, pageSize);
     if (total <= pageSize) return const SizedBox.shrink();
     return Container(
-      color: Colors.white,
+      color: AppColors.surface,
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
       child: Row(
         children: [
@@ -490,7 +491,7 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(ok ? 'Đã gửi lệnh in' : 'Không thể in, vui lòng kiểm tra máy in'),
-        backgroundColor: ok ? Colors.green : Colors.red,
+        backgroundColor: ok ? AppColors.success : AppColors.error,
       ),
     );
   }
@@ -741,7 +742,7 @@ class _FinanceV2ViewState extends State<FinanceV2View>
         scrolledUnderElevation: 0,
         surfaceTintColor: Colors.transparent,
         automaticallyImplyLeading: false,
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.surface,
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(_tabStripHeight + 1),
           child: Container(
@@ -976,9 +977,9 @@ class _FinanceV2ViewState extends State<FinanceV2View>
       decoration: const BoxDecoration(gradient:FinanceV2Theme.heroGradient),
       padding: const EdgeInsets.fromLTRB(20,20,20,24),
       child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-        Text('Dòng tiền ròng',style:FinanceV2Theme.bodyMd.copyWith(color:Colors.white.withValues(alpha:0.8))),
+        Text('Dòng tiền ròng',style:FinanceV2Theme.bodyMd.copyWith(color:AppColors.surface.withValues(alpha:0.8))),
         const SizedBox(height:4),
-        Text(_signedCmp(s.netCashflow),style:FinanceV2Theme.amountHero.copyWith(color:s.netCashflow>=0?Colors.white:const Color(0xFFFFB3B0))),
+        Text(_signedCmp(s.netCashflow),style:FinanceV2Theme.amountHero.copyWith(color:s.netCashflow>=0?AppColors.surface:const Color(0xFFFFB3B0))),
         const SizedBox(height:12),
         SingleChildScrollView(scrollDirection:Axis.horizontal,child:Row(children:[
           _qc(Icons.remove_circle_outline_rounded,'Ghi chi',()=>_goExp('CHI')),const SizedBox(width:8),
@@ -993,8 +994,8 @@ class _FinanceV2ViewState extends State<FinanceV2View>
 
   Widget _qc(IconData icon,String lbl,VoidCallback onTap) => GestureDetector(onTap:onTap,child:Container(
     padding:const EdgeInsets.symmetric(horizontal:10,vertical:6),
-    decoration:BoxDecoration(color:Colors.white.withValues(alpha:0.2),borderRadius:BorderRadius.circular(20),border:Border.all(color:Colors.white.withValues(alpha:0.4))),
-    child:Row(mainAxisSize:MainAxisSize.min,children:[Icon(icon,size:14,color:Colors.white),const SizedBox(width:4),Text(lbl,style:FinanceV2Theme.bodySm.copyWith(color:Colors.white))])));
+    decoration:BoxDecoration(color:AppColors.surface.withValues(alpha:0.2),borderRadius:BorderRadius.circular(20),border:Border.all(color:AppColors.surface.withValues(alpha:0.4))),
+    child:Row(mainAxisSize:MainAxisSize.min,children:[Icon(icon,size:14,color:AppColors.surface),const SizedBox(width:4),Text(lbl,style:FinanceV2Theme.bodySm.copyWith(color:AppColors.surface))])));
 
   Widget _alerts(FinanceV2Snapshot s) {
     final list=<Map<String,dynamic>>[];
@@ -1128,8 +1129,8 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     final inF=(inR*100).round().clamp(1,99); final outF=(100-inF).clamp(1,99);
     return Column(children:[
       ClipRRect(borderRadius:BorderRadius.circular(8),child:Row(children:[
-        Expanded(flex:inF,child:GestureDetector(onTap:()=>_goTx('IN'),child:Container(height:32,color:FinanceV2Theme.positive,alignment:Alignment.center,child:inF>15?Text(_cmp(s.totalIn),style:FinanceV2Theme.caption.copyWith(color:Colors.white,fontWeight:FontWeight.w600)):null))),
-        Expanded(flex:outF,child:GestureDetector(onTap:()=>_goTx('OUT'),child:Container(height:32,color:FinanceV2Theme.negative,alignment:Alignment.center,child:outF>15?Text(_cmp(s.totalOut),style:FinanceV2Theme.caption.copyWith(color:Colors.white,fontWeight:FontWeight.w600)):null))),
+        Expanded(flex:inF,child:GestureDetector(onTap:()=>_goTx('IN'),child:Container(height:32,color:FinanceV2Theme.positive,alignment:Alignment.center,child:inF>15?Text(_cmp(s.totalIn),style:FinanceV2Theme.caption.copyWith(color:AppColors.surface,fontWeight:FontWeight.w600)):null))),
+        Expanded(flex:outF,child:GestureDetector(onTap:()=>_goTx('OUT'),child:Container(height:32,color:FinanceV2Theme.negative,alignment:Alignment.center,child:outF>15?Text(_cmp(s.totalOut),style:FinanceV2Theme.caption.copyWith(color:AppColors.surface,fontWeight:FontWeight.w600)):null))),
       ])),
       const SizedBox(height:6),
       Row(children:[_dot(FinanceV2Theme.positive),const SizedBox(width:4),Text('Tiền vào',style:FinanceV2Theme.caption),const SizedBox(width:12),_dot(FinanceV2Theme.negative),const SizedBox(width:4),Text('Tiền ra',style:FinanceV2Theme.caption)]),
@@ -1180,7 +1181,7 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     final txPageNow = _txPage.clamp(1, txPageMax);
     final txView = _slicePage(tx, txPageNow, _txPageSize);
     return ResponsiveCenter(child:Column(children:[
-      Container(color:Colors.white,padding:EdgeInsets.fromLTRB(_hPad,6,_hPad,0),child:_sf(_txCtrl,'Tìm giao dịch...',_txQuery,(){_txCtrl.clear();setState(()=>_txQuery='');})),
+      Container(color:AppColors.surface,padding:EdgeInsets.fromLTRB(_hPad,6,_hPad,0),child:_sf(_txCtrl,'Tìm giao dịch...',_txQuery,(){_txCtrl.clear();setState(()=>_txQuery='');})),
       Container(
         color: const Color(0xFFF8F9FA),
         padding: EdgeInsets.fromLTRB(_hPad, 6, _hPad, 6),
@@ -1321,12 +1322,12 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     final debtView = _slicePage(items, debtPageNow, _debtPageSize);
     final total=_showRec?s.receivableTotal:s.payableTotal;
     return ResponsiveCenter(child:Column(children:[
-      Container(color:Colors.white,padding:EdgeInsets.fromLTRB(_hPad,8,_hPad,8),child:Row(children:[
-        Expanded(child:GestureDetector(onTap:()=>setState((){_showRec=true;_debtPage=1;}),child:AnimatedContainer(duration:const Duration(milliseconds:200),padding:const EdgeInsets.symmetric(vertical:9,horizontal:8),decoration:BoxDecoration(color:_showRec?FinanceV2Theme.warn:const Color(0xFFF0F3F9),borderRadius:BorderRadius.circular(10)),alignment:Alignment.center,child:Text('Phải thu  ${_cmp(s.receivableTotal)}',maxLines:1,overflow:TextOverflow.ellipsis,textAlign:TextAlign.center,style:FinanceV2Theme.bodyMd.copyWith(fontWeight:FontWeight.w600,color:_showRec?Colors.white:FinanceV2Theme.subInk))))),
+      Container(color:AppColors.surface,padding:EdgeInsets.fromLTRB(_hPad,8,_hPad,8),child:Row(children:[
+        Expanded(child:GestureDetector(onTap:()=>setState((){_showRec=true;_debtPage=1;}),child:AnimatedContainer(duration:const Duration(milliseconds:200),padding:const EdgeInsets.symmetric(vertical:9,horizontal:8),decoration:BoxDecoration(color:_showRec?FinanceV2Theme.warn:const Color(0xFFF0F3F9),borderRadius:BorderRadius.circular(10)),alignment:Alignment.center,child:Text('Phải thu  ${_cmp(s.receivableTotal)}',maxLines:1,overflow:TextOverflow.ellipsis,textAlign:TextAlign.center,style:FinanceV2Theme.bodyMd.copyWith(fontWeight:FontWeight.w600,color:_showRec?AppColors.surface:FinanceV2Theme.subInk))))),
         const SizedBox(width:8),
-        Expanded(child:GestureDetector(onTap:()=>setState((){_showRec=false;_debtPage=1;}),child:AnimatedContainer(duration:const Duration(milliseconds:200),padding:const EdgeInsets.symmetric(vertical:9,horizontal:8),decoration:BoxDecoration(color:!_showRec?FinanceV2Theme.negative:const Color(0xFFF0F3F9),borderRadius:BorderRadius.circular(10)),alignment:Alignment.center,child:Text('Phải trả  ${_cmp(s.payableTotal)}',maxLines:1,overflow:TextOverflow.ellipsis,textAlign:TextAlign.center,style:FinanceV2Theme.bodyMd.copyWith(fontWeight:FontWeight.w600,color:!_showRec?Colors.white:FinanceV2Theme.subInk))))),
+        Expanded(child:GestureDetector(onTap:()=>setState((){_showRec=false;_debtPage=1;}),child:AnimatedContainer(duration:const Duration(milliseconds:200),padding:const EdgeInsets.symmetric(vertical:9,horizontal:8),decoration:BoxDecoration(color:!_showRec?FinanceV2Theme.negative:const Color(0xFFF0F3F9),borderRadius:BorderRadius.circular(10)),alignment:Alignment.center,child:Text('Phải trả  ${_cmp(s.payableTotal)}',maxLines:1,overflow:TextOverflow.ellipsis,textAlign:TextAlign.center,style:FinanceV2Theme.bodyMd.copyWith(fontWeight:FontWeight.w600,color:!_showRec?AppColors.surface:FinanceV2Theme.subInk))))),
       ])),
-      if(_showRec&&s.totalDebtAging>0) Container(color:Colors.white,padding:const EdgeInsets.fromLTRB(12,0,12,10),child:Row(children:[
+      if(_showRec&&s.totalDebtAging>0) Container(color:AppColors.surface,padding:const EdgeInsets.fromLTRB(12,0,12,10),child:Row(children:[
         Expanded(child:_aging('0-30 ngày',s.debtAging['0-30']??0,FinanceV2Theme.positive)),const SizedBox(width:6),
         Expanded(child:_aging('31-60 ngày',s.debtAging['30-60']??0,FinanceV2Theme.warn)),const SizedBox(width:6),
         Expanded(child:_aging('>60 ngày',s.debtAging['>60']??0,FinanceV2Theme.negative)),
@@ -1376,7 +1377,7 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     final timelineView = _slicePage(ents, timelinePageNow, _timelinePageSize);
     return ResponsiveCenter(child:Column(children:[
       Container(
-        color: Colors.white,
+        color: AppColors.surface,
         padding: EdgeInsets.fromLTRB(_hPad, 6, _hPad, 0),
         child: _sf(_tlCtrl,'Tìm trong nhật ký...',_tlQ,(){_tlCtrl.clear();setState(()=>_tlQ='');}),
       ),
@@ -2238,7 +2239,7 @@ class _FinanceV2ViewState extends State<FinanceV2View>
       context: context,
       builder: (ctx) {
         return AlertDialog(
-          icon: const Icon(Icons.error_outline, color: Colors.red, size: 42),
+          icon: const Icon(Icons.error_outline, color: AppColors.error, size: 42),
           title: const Text('RECONCILIATION FAIL'),
           content: SizedBox(
             width: 520,

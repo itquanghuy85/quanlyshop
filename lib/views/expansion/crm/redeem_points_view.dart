@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../theme/app_colors.dart';
 
 import '../../../expansion/safe_mode/expansion_feature_flags.dart';
 import '../../../expansion/safe_mode/expansion_module_services.dart';
@@ -94,7 +95,7 @@ class _RedeemPointsViewState extends State<RedeemPointsView> {
             const SizedBox(height: 8),
             Text(
               'Điểm còn lại: ${widget.currentPoints - _selectedPoints} điểm',
-              style: const TextStyle(color: Colors.grey),
+              style: const TextStyle(color: AppColors.textHint),
             ),
           ],
         ),
@@ -128,7 +129,7 @@ class _RedeemPointsViewState extends State<RedeemPointsView> {
           content: Text(
             'Đổi điểm thành công! Chiết khấu ${_formatMoney(_discountAmount)}',
           ),
-          backgroundColor: Colors.green,
+          backgroundColor: AppColors.success,
         ),
       );
       // Trả về điểm mới để màn cha cập nhật ngay, tránh cảm giác trễ reload.
@@ -147,7 +148,7 @@ class _RedeemPointsViewState extends State<RedeemPointsView> {
   void _showError(String msg) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), backgroundColor: Colors.red),
+      SnackBar(content: Text(msg), backgroundColor: AppColors.error),
     );
   }
 
@@ -185,17 +186,17 @@ class _RedeemPointsViewState extends State<RedeemPointsView> {
 
   Widget _buildCurrentPointsBanner() {
     return Card(
-      color: Colors.blue.shade50,
+      color: AppColors.primary,
       child: Padding(
         padding: const EdgeInsets.all(14),
         child: Row(
           children: [
-            const Icon(Icons.stars, color: Colors.amber, size: 28),
+            const Icon(Icons.stars, color: AppColors.warning, size: 28),
             const SizedBox(width: 10),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Điểm hiện có', style: TextStyle(color: Colors.grey)),
+                const Text('Điểm hiện có', style: TextStyle(color: AppColors.textHint)),
                 Text(
                   '${widget.currentPoints} điểm',
                   style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
@@ -212,13 +213,13 @@ class _RedeemPointsViewState extends State<RedeemPointsView> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.green.shade50,
+        color: AppColors.success,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.green.shade200),
+        border: Border.all(color: AppColors.success),
       ),
       child: const Row(
         children: [
-          Icon(Icons.info_outline, color: Colors.green, size: 18),
+          Icon(Icons.info_outline, color: AppColors.success, size: 18),
           SizedBox(width: 8),
           Text('500 điểm → giảm 50.000₫'),
         ],
@@ -249,7 +250,7 @@ class _RedeemPointsViewState extends State<RedeemPointsView> {
                       '$_selectedPoints',
                       style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold),
                     ),
-                    const Text('điểm', style: TextStyle(color: Colors.grey)),
+                    const Text('điểm', style: TextStyle(color: AppColors.textHint)),
                   ],
                 ),
                 const SizedBox(width: 16),
@@ -265,7 +266,7 @@ class _RedeemPointsViewState extends State<RedeemPointsView> {
             const SizedBox(height: 8),
             Text(
               'Tối đa có thể đổi: $_maxRedeemablePoints điểm',
-              style: const TextStyle(color: Colors.grey, fontSize: 12),
+              style: const TextStyle(color: AppColors.textHint, fontSize: 12),
             ),
           ],
         ),
@@ -275,24 +276,24 @@ class _RedeemPointsViewState extends State<RedeemPointsView> {
 
   Widget _buildDiscountPreview() {
     return Card(
-      color: Colors.amber.shade50,
+      color: AppColors.warning,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            const Text('Chiết khấu nhận được', style: TextStyle(color: Colors.grey)),
+            const Text('Chiết khấu nhận được', style: TextStyle(color: AppColors.textHint)),
             const SizedBox(height: 6),
             Text(
               _formatMoney(_discountAmount),
               style: const TextStyle(
                 fontSize: 32,
                 fontWeight: FontWeight.bold,
-                color: Colors.green,
+                color: AppColors.success,
               ),
             ),
             Text(
               '$_stepsCount lần × 50.000₫',
-              style: const TextStyle(color: Colors.grey, fontSize: 12),
+              style: const TextStyle(color: AppColors.textHint, fontSize: 12),
             ),
           ],
         ),
@@ -308,7 +309,7 @@ class _RedeemPointsViewState extends State<RedeemPointsView> {
             ? const SizedBox(
                 width: 18,
                 height: 18,
-                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.surface),
               )
             : const Icon(Icons.check_circle_outline),
         label: Text(_canRedeem ? 'Xác nhận đổi $_selectedPoints điểm' : 'Không đủ điểm'),

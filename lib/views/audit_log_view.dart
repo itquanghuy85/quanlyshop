@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
 import 'package:intl/intl.dart';
 import '../widgets/responsive_wrapper.dart';
 import '../widgets/custom_app_bar.dart';
 import '../data/db_helper.dart';
+import '../theme/app_spacing.dart';
 import '../theme/app_text_styles.dart';
 import '../services/user_service.dart';
 
@@ -68,22 +70,24 @@ class _AuditLogViewState extends State<AuditLogView> {
   Widget build(BuildContext context) {
     if (!_hasPermission) {
       return Scaffold(
-        backgroundColor: const Color(0xFFF0F4F8),
+        backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
         appBar: CustomAppBar.build(
           title: 'NHẬT KÝ HỆ THỐNG',
           accentColor: AppBarAccents.finance,
         ),
-        body: const Center(
+        body: Center(
           child: Text(
             'Bạn không có quyền truy cập tính năng này',
-            style: TextStyle(color: Colors.grey),
+            style: AppTextStyles.body1.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
         ),
       );
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF0F4F8),
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
       appBar: CustomAppBar.build(
         title: 'NHẬT KÝ HỆ THỐNG',
         subtitle: '${_logs.length} ghi chép đã tải',
@@ -91,7 +95,7 @@ class _AuditLogViewState extends State<AuditLogView> {
         actions: [
           IconButton(
             onPressed: _refresh,
-            icon: const Icon(Icons.refresh, color: Colors.white),
+            icon: const Icon(Icons.refresh, color: AppColors.surface),
             splashRadius: 18,
           ),
         ],
@@ -102,7 +106,7 @@ class _AuditLogViewState extends State<AuditLogView> {
             : _logs.isEmpty
             ? _buildEmpty()
             : ListView.builder(
-                padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(AppSpacing.lg),
                 itemCount: _logs.length + 1,
                 itemBuilder: (ctx, i) {
                   if (i == _logs.length) {
@@ -141,12 +145,12 @@ class _AuditLogViewState extends State<AuditLogView> {
           Icon(
             Icons.history_toggle_off_rounded,
             size: 80,
-            color: Colors.grey[300],
+            color: AppColors.divider,
           ),
           const SizedBox(height: 10),
           const Text(
             "Chưa có ghi chép hoạt động nào",
-            style: TextStyle(color: Colors.grey),
+            style: TextStyle(color: AppColors.textHint),
           ),
         ],
       ),
@@ -164,14 +168,14 @@ class _AuditLogViewState extends State<AuditLogView> {
     return GestureDetector(
       onTap: () => _showLogDetail(log),
       child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(12),
+        margin: const EdgeInsets.only(bottom: AppSpacing.md),
+        padding: const EdgeInsets.all(AppSpacing.md),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(AppSpacing.md),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withAlpha(10),
+              color: AppColors.textPrimary.withAlpha(10),
               blurRadius: 6,
               offset: const Offset(0, 2),
             ),
@@ -202,7 +206,7 @@ class _AuditLogViewState extends State<AuditLogView> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: AppSpacing.sm),
                 // Icon
                 Container(
                   padding: const EdgeInsets.all(8),
@@ -216,15 +220,14 @@ class _AuditLogViewState extends State<AuditLogView> {
                     size: 18,
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: AppSpacing.sm),
                 // Action name
                 Expanded(
                   child: Text(
                     actionLabel,
-                    style: TextStyle(
+                    style: AppTextStyles.body1.copyWith(
                       color: actionColor,
                       fontWeight: FontWeight.bold,
-                      fontSize: AppTextStyles.body1.fontSize,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -237,41 +240,39 @@ class _AuditLogViewState extends State<AuditLogView> {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(8),
+                    color: Theme.of(context).colorScheme.surfaceVariant,
+                    borderRadius: BorderRadius.circular(AppSpacing.sm),
                   ),
                   child: Text(
                     DateFormat('HH:mm').format(date),
-                    style: TextStyle(
-                      fontSize: AppTextStyles.caption.fontSize,
+                    style: AppTextStyles.caption.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: Colors.grey.shade700,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: AppSpacing.sm),
             // Content row: Description
             if (description.isNotEmpty)
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.all(AppSpacing.sm),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
-                  borderRadius: BorderRadius.circular(8),
+                  color: Theme.of(context).colorScheme.surfaceVariant,
+                  borderRadius: BorderRadius.circular(AppSpacing.sm),
                 ),
                 child: Text(
                   description,
-                  style: TextStyle(
-                    fontSize: AppTextStyles.body1.fontSize,
-                    color: Colors.black87,
+                  style: AppTextStyles.body1.copyWith(
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-            const SizedBox(height: 10),
+            const SizedBox(height: AppSpacing.sm),
             // Footer row: User, EntityType, Date
             Row(
               children: [
@@ -282,7 +283,7 @@ class _AuditLogViewState extends State<AuditLogView> {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
+                    color: AppColors.primary,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
@@ -291,7 +292,7 @@ class _AuditLogViewState extends State<AuditLogView> {
                       Icon(
                         Icons.person_outline,
                         size: 14,
-                        color: Colors.blue.shade700,
+                        color: AppColors.primary,
                       ),
                       const SizedBox(width: 4),
                       Text(
@@ -299,7 +300,7 @@ class _AuditLogViewState extends State<AuditLogView> {
                         style: TextStyle(
                           fontSize: AppTextStyles.caption.fontSize,
                           fontWeight: FontWeight.bold,
-                          color: Colors.blue.shade700,
+                          color: AppColors.primary,
                         ),
                       ),
                     ],
@@ -330,16 +331,15 @@ class _AuditLogViewState extends State<AuditLogView> {
                 // Date
                 Text(
                   DateFormat('dd/MM/yyyy').format(date),
-                  style: TextStyle(
-                    fontSize: AppTextStyles.caption.fontSize,
-                    color: Colors.grey.shade600,
+                  style: AppTextStyles.caption.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
                 const SizedBox(width: 4),
                 Icon(
                   Icons.chevron_right,
                   size: 16,
-                  color: Colors.grey.shade400,
+                  color: AppColors.textHint,
                 ),
               ],
             ),
@@ -365,12 +365,12 @@ class _AuditLogViewState extends State<AuditLogView> {
         constraints: BoxConstraints(
           maxHeight: MediaQuery.of(ctx).size.height * 0.75,
         ),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(AppSpacing.xxl)),
         ),
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(AppSpacing.md),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -380,12 +380,12 @@ class _AuditLogViewState extends State<AuditLogView> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
+                    color: AppColors.outline,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: AppSpacing.xl),
               // Header
               Row(
                 children: [
@@ -401,24 +401,22 @@ class _AuditLogViewState extends State<AuditLogView> {
                       size: 24,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: AppSpacing.md),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           actionLabel,
-                          style: TextStyle(
+                          style: AppTextStyles.headline2.copyWith(
                             fontWeight: FontWeight.bold,
-                            fontSize: AppTextStyles.headline2.fontSize,
                             color: actionColor,
                           ),
                         ),
                         Text(
                           DateFormat('HH:mm - dd/MM/yyyy').format(date),
-                          style: TextStyle(
-                            color: Colors.grey.shade600,
-                            fontSize: AppTextStyles.body1.fontSize,
+                          style: AppTextStyles.body1.copyWith(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ],
@@ -426,9 +424,9 @@ class _AuditLogViewState extends State<AuditLogView> {
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: AppSpacing.xl),
               const Divider(),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.md),
               // Details
               _buildDetailRow('Người thực hiện', log['userName'] ?? 'Unknown'),
               if (log['email'] != null && log['email'].toString().isNotEmpty)
@@ -453,7 +451,7 @@ class _AuditLogViewState extends State<AuditLogView> {
 
   Widget _buildDetailRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: AppSpacing.md),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -461,18 +459,16 @@ class _AuditLogViewState extends State<AuditLogView> {
             width: 120,
             child: Text(
               label,
-              style: TextStyle(
-                color: Colors.grey.shade600,
-                fontSize: AppTextStyles.body1.fontSize,
+              style: AppTextStyles.body1.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
           ),
           Expanded(
             child: Text(
               value,
-              style: TextStyle(
+              style: AppTextStyles.body1.copyWith(
                 fontWeight: FontWeight.w500,
-                fontSize: AppTextStyles.body1.fontSize,
               ),
             ),
           ),
@@ -486,25 +482,25 @@ class _AuditLogViewState extends State<AuditLogView> {
     if (upper.contains('XÓA') ||
         upper.contains('DELETE') ||
         upper.contains('REMOVE'))
-      return Colors.red;
+      return AppColors.error;
     if (upper.contains('NHẬP') ||
         upper.contains('THÊM') ||
         upper.contains('CREATE') ||
         upper.contains('ADD'))
-      return Colors.green;
+      return AppColors.success;
     if (upper.contains('SỬA') ||
         upper.contains('CẬP NHẬT') ||
         upper.contains('UPDATE') ||
         upper.contains('EDIT'))
-      return Colors.orange;
-    if (upper.contains('BÁN') || upper.contains('SALE')) return Colors.pink;
+      return AppColors.warning;
+    if (upper.contains('BÁN') || upper.contains('SALE')) return AppColors.error;
     if (upper.contains('THU NỢ') || upper.contains('DEBT_COLLECT'))
-      return Colors.teal;
+      return AppColors.info;
     if (upper.contains('TRẢ NỢ') ||
         upper.contains('DEBT_PAY') ||
         upper.contains('SUPPLIER_PAID'))
-      return Colors.deepOrange;
-    return Colors.blue;
+      return AppColors.repairPendingApproval;
+    return AppColors.primary;
   }
 
   IconData _getActionIcon(String action) {
@@ -591,21 +587,21 @@ class _AuditLogViewState extends State<AuditLogView> {
   Color _getEntityTypeColor(String entityType) {
     switch (entityType.toUpperCase()) {
       case 'PRODUCT':
-        return Colors.indigo;
+        return AppColors.primary;
       case 'SALE':
-        return Colors.pink;
+        return AppColors.error;
       case 'SUPPLIER':
-        return Colors.teal;
+        return AppColors.info;
       case 'STAFF':
-        return Colors.orange;
+        return AppColors.warning;
       case 'EXPENSE':
-        return Colors.red;
+        return AppColors.error;
       case 'REPAIR':
-        return Colors.blue;
+        return AppColors.primary;
       case 'CASH_CLOSE':
-        return Colors.green;
+        return AppColors.success;
       default:
-        return Colors.grey;
+        return AppColors.textHint;
     }
   }
 
