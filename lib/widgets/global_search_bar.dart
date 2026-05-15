@@ -43,10 +43,10 @@ class _GlobalSearchBarState extends State<GlobalSearchBar> {
   Widget build(BuildContext context) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
-      height: 56,
+      height: 42,
       decoration: BoxDecoration(
         color: _isFocused ? Colors.white : const Color(0xFFF0F2F5),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         boxShadow: _isFocused 
           ? [BoxShadow(color: Colors.blue.withAlpha(25), blurRadius: 15, offset: const Offset(0, 4))]
           : [],
@@ -83,7 +83,8 @@ class _GlobalSearchBarState extends State<GlobalSearchBar> {
               )
             : null,
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 16),
+          isDense: true,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         ),
       ),
     );

@@ -4,6 +4,43 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-05-16] - Compact Listview + KiotViet Credentials UI + Clickable Navigation
+
+### Summary
+Khôi phục giao diện cũ (git revert về `3185ff9f`) và tái tích hợp các cải tiến chức năng bị mất. Thêm UI nhập Client ID/Secret cho KiotViet, tinh gọn search box và listview tiles trên các màn hình danh sách.
+
+### Tính Năng Mới
+- **Clickable customer header** trong phiếu sửa và đơn bán → mở hồ sơ khách hàng
+- **Clickable product list** trong đơn bán → xem chi tiết sản phẩm
+- **Order navigation** từ hồ sơ khách hàng → mở đơn sửa / đơn bán tương ứng
+- **Backup & KiotViet tiles** trong Cài đặt → điều hướng nhanh
+- **KiotViet credentials UI**: nhập Client ID và Client Secret trực tiếp trong ứng dụng (lưu mã hóa trên thiết bị, không cần dart-define)
+
+### Compact Listview
+- `order_list_view.dart`: search box height 42, isDense, padding 12h/6v
+- `customer_management_view.dart`: tile dense, avatar radius 18, card elevation 0, borderRadius 12
+- `inventory_view.dart`: search box height 42, isDense, padding 12h/8v
+- `global_search_bar.dart`: height 56 → 42, borderRadius 16 → 12, padding 8v
+
+### Files Modified
+- `lib/views/kiotviet_settings_view.dart` — thêm phần nhập Client ID + Client Secret với eye icon
+- `lib/services/kiotviet_service.dart` — hỗ trợ runtime credentials qua SharedPreferences
+- `lib/views/order_list_view.dart` — compact search box
+- `lib/views/customer_management_view.dart` — compact tiles
+- `lib/views/inventory_view.dart` — compact search box
+- `lib/widgets/global_search_bar.dart` — height 42
+- `lib/views/repair_detail_view.dart` — ClickableCustomerHeader
+- `lib/views/sale_detail_view.dart` — ClickableCustomerHeader + ClickableProductList
+- `lib/views/customer_profile_view.dart` — _openOrder() navigation
+- `lib/views/shop_settings_view.dart` — Backup & KiotViet quick tiles
+- `lib/widgets/clickable_customer_header.dart` — widget mới
+- `lib/widgets/clickable_customer_chip.dart` — widget mới
+- `lib/widgets/clickable_product_chip.dart` — widget mới
+- `lib/widgets/clickable_product_list.dart` — widget mới
+- `lib/widgets/deep_link_navigator.dart` — widget mới
+
+---
+
 ## [2026-05-15] - Restore Legacy Color Palette (Git Forensics)
 
 ### Summary

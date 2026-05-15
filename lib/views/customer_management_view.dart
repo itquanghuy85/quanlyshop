@@ -385,7 +385,7 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
           children: [
             // Search bar
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               child: GlobalSearchBar(
                 hintText: AppLocalizations.of(context)!.searchCustomers,
                 onSearch: _filterCustomers,
@@ -506,13 +506,17 @@ class CustomerListItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
+      elevation: 0,
       margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: ListTile(
+        dense: true,
         leading: CircleAvatar(
+          radius: 18,
           child: EntityAvatar(
             imageUrl: customer.avatarUrl,
             name: customer.name,
-            radius: 22,
+            radius: 18,
             heroTag:
                 'hero_customer_avatar_${customer.id ?? customer.phone}',
           ),

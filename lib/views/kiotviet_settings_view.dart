@@ -20,6 +20,14 @@ class KiotVietSettingsViewDelegate {
     return KiotVietService.loadConnectionSnapshot(onLog: onLog);
   }
 
+  Future<void> saveClientCredentials(String clientId, String clientSecret) {
+    return KiotVietService.saveClientCredentials(clientId, clientSecret);
+  }
+
+  Future<void> clearClientCredentials() {
+    return KiotVietService.clearClientCredentials();
+  }
+
   Future<KiotVietSyncResult> connectAndSync(
     String retailerCode, {
     void Function(String message)? onProgress,
@@ -56,12 +64,17 @@ class KiotVietSettingsView extends StatefulWidget {
 class _KiotVietSettingsViewState extends State<KiotVietSettingsView> {
   final _formKey = GlobalKey<FormState>();
   final _retailerController = TextEditingController();
+  final _clientIdController = TextEditingController();
+  final _clientSecretController = TextEditingController();
 
   bool _initializing = true;
   bool _connecting = false;
+  bool _obscureSecret = true;
+  bool _savingCredentials = false;
   String? _initError;
   String? _operationError;
   String? _fieldErrorText;
+  String? _credentialsSavedMsg;
   String? _normalizedPreview;
   KiotVietConnectionSnapshot? _snapshot;
   KiotVietSyncResult? _result;
@@ -81,6 +94,8 @@ class _KiotVietSettingsViewState extends State<KiotVietSettingsView> {
   void dispose() {
     _retailerController.removeListener(_handleRetailerInputChanged);
     _retailerController.dispose();
+    _clientIdController.dispose();
+    _clientSecretController.dispose();
     super.dispose();
   }
 
@@ -94,6 +109,10 @@ class _KiotVietSettingsViewState extends State<KiotVietSettingsView> {
       final snapshot = await widget.delegate.loadSnapshot(onLog: _logEvent);
       if (!mounted) return;
       _retailerController.text = snapshot.retailerCode;
+      // Pre-fill client id if already saved (don't pre-fill secret for security)
+      if (snapshot.savedClientId.isNotEmpty) {
+        _clientIdController.text = snapshot.savedClientId;
+      }
       _safeSetState(() {
         _snapshot = snapshot;
         _operationError = snapshot.lastError;
@@ -110,6 +129,42 @@ class _KiotVietSettingsViewState extends State<KiotVietSettingsView> {
             'Không thể tải cấu hình kết nối KiotViet. Vui lòng thử lại.';
       });
     }
+  }
+
+  Future<void> _handleSaveCredentials() async {
+    final clientId = _clientIdController.text.trim();
+    final clientSecret = _clientSecretController.text.trim();
+    if (clientId.isEmpty || clientSecret.isEmpty) {
+      NotificationService.showSnackBar(
+        'Vui lòng nhập đủ Client ID và Client Secret',
+        color: AppColors.warning,
+      );
+      return;
+    }
+    _safeSetState(() => _savingCredentials = true);
+    try {
+      await widget.delegate.saveClientCredentials(clientId, clientSecret);
+      if (!mounted) return;
+      _safeSetState(() {
+        _savingCredentials = false;
+        _credentialsSavedMsg = 'Đã lưu thông tin xác thực';
+      });
+      NotificationService.showSnackBar('Đã lưu Client ID & Secret', color: AppColors.success);
+    } catch (e) {
+      if (!mounted) return;
+      _safeSetState(() => _savingCredentials = false);
+      NotificationService.showSnackBar('Lỗi khi lưu: $e', color: AppColors.error);
+    }
+  }
+
+  Future<void> _handleClearCredentials() async {
+    await widget.delegate.clearClientCredentials();
+    if (!mounted) return;
+    _clientIdController.clear();
+    _clientSecretController.clear();
+    _safeSetState(() => _credentialsSavedMsg = null);
+    NotificationService.showSnackBar('Đã xóa thông tin xác thực', color: AppColors.warning);
+    await _initialize();
   }
 
   Future<void> _handleConnect() async {
@@ -416,6 +471,124 @@ class _KiotVietSettingsViewState extends State<KiotVietSettingsView> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // --- Credentials section ---
+              const Text(
+                'Thông tin xác thực API',
+                style: AppTypography.titleSmall,
+              ),
+              AppSpacing.gapSm,
+              Text(
+                'Nhập Client ID và Client Secret từ ứng dụng KiotViet của bạn. Thông tin được lưu mã hoá trên thiết bị.',
+                style: AppTypography.bodySmall.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              AppSpacing.gapMd,
+              TextFormField(
+                controller: _clientIdController,
+                textInputAction: TextInputAction.next,
+                decoration: InputDecoration(
+                  labelText: 'Client ID',
+                  hintText: 'Nhập Client ID',
+                  prefixIcon: const Icon(Icons.vpn_key_outlined),
+                  filled: true,
+                  fillColor: AppColors.surfaceVariant,
+                  border: OutlineInputBorder(
+                    borderRadius: DesignTokens.brMd,
+                    borderSide: const BorderSide(color: AppColors.outline),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: DesignTokens.brMd,
+                    borderSide: const BorderSide(color: AppColors.outline),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: DesignTokens.brMd,
+                    borderSide: const BorderSide(color: AppColors.primary),
+                  ),
+                ),
+              ),
+              AppSpacing.gapSm,
+              TextFormField(
+                controller: _clientSecretController,
+                textInputAction: TextInputAction.done,
+                obscureText: _obscureSecret,
+                decoration: InputDecoration(
+                  labelText: 'Client Secret',
+                  hintText: 'Nhập Client Secret',
+                  prefixIcon: const Icon(Icons.lock_outline),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscureSecret ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                    ),
+                    onPressed: () => _safeSetState(() => _obscureSecret = !_obscureSecret),
+                  ),
+                  filled: true,
+                  fillColor: AppColors.surfaceVariant,
+                  border: OutlineInputBorder(
+                    borderRadius: DesignTokens.brMd,
+                    borderSide: const BorderSide(color: AppColors.outline),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: DesignTokens.brMd,
+                    borderSide: const BorderSide(color: AppColors.outline),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: DesignTokens.brMd,
+                    borderSide: const BorderSide(color: AppColors.primary),
+                  ),
+                ),
+              ),
+              AppSpacing.gapSm,
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: _savingCredentials ? null : _handleSaveCredentials,
+                      style: AppButtonStyles.elevatedButtonStyle,
+                      icon: _savingCredentials
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.save_outlined, size: 18),
+                      label: Text(_savingCredentials ? 'Đang lưu...' : 'Lưu thông tin xác thực'),
+                    ),
+                  ),
+                  if (_snapshot?.hasUserCredentials == true) ...[
+                    AppSpacing.hSm,
+                    TextButton(
+                      onPressed: _savingCredentials ? null : _handleClearCredentials,
+                      style: AppButtonStyles.textButtonStyle,
+                      child: const Text('Xóa'),
+                    ),
+                  ],
+                ],
+              ),
+              if (_credentialsSavedMsg != null) ...[
+                AppSpacing.gapSm,
+                Container(
+                  padding: AppSpacing.pSm,
+                  decoration: BoxDecoration(
+                    color: AppColors.successLight,
+                    borderRadius: DesignTokens.brMd,
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.check_circle_outline, size: 16, color: AppColors.success),
+                      AppSpacing.hSm,
+                      Text(
+                        _credentialsSavedMsg!,
+                        style: AppTypography.bodySmall.copyWith(color: AppColors.success),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              AppSpacing.gapLg,
+              const Divider(),
+              AppSpacing.gapMd,
+              // --- Retailer section ---
               const Text(
                 'Mã cửa hàng KiotViet',
                 style: AppTypography.titleSmall,

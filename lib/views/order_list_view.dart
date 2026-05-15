@@ -1430,17 +1430,22 @@ class OrderListViewState extends State<OrderListView> {
                 ),
               ),
             Padding(
-              padding: const EdgeInsets.all(16),
-              child: TextField(
-                onChanged: _onSearch,
-                decoration: InputDecoration(
-                  hintText: "Tìm khách, model, lỗi, SĐT...",
-                  prefixIcon: const Icon(Icons.search),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(15),
-                    borderSide: BorderSide.none,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              child: SizedBox(
+                height: 42,
+                child: TextField(
+                  onChanged: _onSearch,
+                  decoration: InputDecoration(
+                    hintText: "Tìm khách, model, lỗi, SĐT...",
+                    prefixIcon: const Icon(Icons.search, size: 20),
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
                   ),
                 ),
               ),

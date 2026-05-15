@@ -7,7 +7,7 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 ## Current Status
 
 **Version:** 1.x (develop)  
-**Last Updated:** 2026-05-15  
+**Last Updated:** 2026-05-16  
 **Build Status:** ✓ Passing  
 **Database Version:** SQLite v17  
 
@@ -21,6 +21,13 @@ Dự án HULUCA Shop Manager là ứng dụng Flutter quản lý cửa hàng s�
 ---
 
 ## Completed Tasks (Recent)
+
+- [x] **Compact Listview + KiotViet Credentials UI + Clickable Navigation** (2026-05-16)
+  - Khôi phục giao diện về `3185ff9f` sau khi revert broken color commit
+  - Tái tích hợp: clickable customer header (phiếu sửa/đơn bán), clickable product (đơn bán), order navigation (hồ sơ KH)
+  - KiotViet: nhập Client ID/Secret trực tiếp trong app (SharedPreferences), không cần dart-define
+  - Compact listview: search box 42px, dense tiles, borderRadius 12 trên order_list, customer, inventory
+  - Thêm Backup & KiotViet tiles trong Cài đặt cửa hàng
 
 - [x] **Restore Legacy Color Palette** (2026-05-15)
   - Truy vết palette gốc từ commit `3d6b3109` bằng `git show`
@@ -225,7 +232,7 @@ Dự án HULUCA Shop Manager là ứng dụng Flutter quản lý cửa hàng s�
 ## Communication
 
 - **Documentation Owner:** GitHub Copilot
-- **Last Updated:** 2026-05-15
+- **Last Updated:** 2026-05-16
 - **Next Review:** Before next major task
 - **Questions?** Check CLAUDE.md or docs/DOCUMENTATION_INDEX.md
 

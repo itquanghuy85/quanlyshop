@@ -3003,59 +3003,58 @@ class _InventoryViewState extends State<InventoryView>
       children: [
         // Search box và toggle hết hàng
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
           child: Row(
             children: [
               Expanded(
-                child: TextField(
-                  controller: _searchController,
-                  onChanged: (v) {
-                    final wasFullData = _needsFullData;
-                    setState(() => _searchQuery = v.trim());
-                    final isFullData = _needsFullData;
-
-                    // Chỉ reload khi chuyển mode pagination <-> full data để tránh giật.
-                    if (wasFullData != isFullData) {
-                      _searchDebounce?.cancel();
-                      _searchDebounce = Timer(
-                        const Duration(milliseconds: 280),
-                        () {
-                          if (!mounted) return;
-                          _refreshLocalData();
-                        },
-                      );
-                    }
-                  },
-                  decoration: InputDecoration(
-                    hintText:
-                        "Tìm ${_terms.productLabel.toLowerCase()}, ${_terms.category2.toLowerCase()} hoặc ${_terms.specialField1Label}...",
-                    prefixIcon: const Icon(
-                      Icons.search,
-                      color: Color(0xFF2962FF),
+                child: SizedBox(
+                  height: 42,
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: (v) {
+                      final wasFullData = _needsFullData;
+                      setState(() => _searchQuery = v.trim());
+                      final isFullData = _needsFullData;
+                      if (wasFullData != isFullData) {
+                        _searchDebounce?.cancel();
+                        _searchDebounce = Timer(
+                          const Duration(milliseconds: 280),
+                          () {
+                            if (!mounted) return;
+                            _refreshLocalData();
+                          },
+                        );
+                      }
+                    },
+                    decoration: InputDecoration(
+                      hintText:
+                          "Tìm ${_terms.productLabel.toLowerCase()}, ${_terms.category2.toLowerCase()} hoặc ${_terms.specialField1Label}...",
+                      prefixIcon: const Icon(Icons.search, color: Color(0xFF2962FF), size: 20),
+                      suffixIcon: _searchQuery.isNotEmpty
+                          ? IconButton(
+                              tooltip: 'Xóa từ khóa',
+                              onPressed: () {
+                                final wasFullData = _needsFullData;
+                                _searchDebounce?.cancel();
+                                _searchController.clear();
+                                setState(() => _searchQuery = '');
+                                final isFullData = _needsFullData;
+                                if (wasFullData != isFullData) {
+                                  _refreshLocalData();
+                                }
+                              },
+                              icon: const Icon(Icons.clear_rounded, size: 18),
+                            )
+                          : null,
+                      isDense: true,
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     ),
-                    suffixIcon: _searchQuery.isNotEmpty
-                        ? IconButton(
-                            tooltip: 'Xóa từ khóa',
-                            onPressed: () {
-                              final wasFullData = _needsFullData;
-                              _searchDebounce?.cancel();
-                              _searchController.clear();
-                              setState(() => _searchQuery = '');
-                              final isFullData = _needsFullData;
-                              if (wasFullData != isFullData) {
-                                _refreshLocalData();
-                              }
-                            },
-                            icon: const Icon(Icons.clear_rounded, size: 18),
-                          )
-                        : null,
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(18),
-                      borderSide: BorderSide.none,
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(vertical: 8),
                   ),
                 ),
               ),

@@ -54,6 +54,8 @@ class KiotVietSyncResult {
 class KiotVietConnectionSnapshot {
   final String retailerCode;
   final bool hasSecureConfiguration;
+  final bool hasUserCredentials;
+  final String savedClientId;
   final bool hasCachedToken;
   final int? tokenExpiresAt;
   final int? lastConnectedAt;
@@ -62,6 +64,8 @@ class KiotVietConnectionSnapshot {
   const KiotVietConnectionSnapshot({
     required this.retailerCode,
     required this.hasSecureConfiguration,
+    this.hasUserCredentials = false,
+    this.savedClientId = '',
     required this.hasCachedToken,
     this.tokenExpiresAt,
     this.lastConnectedAt,
@@ -82,6 +86,8 @@ class KiotVietService {
   static const String _prefTokenExpiresAt = 'kv_token_expires_at';
   static const String _prefLastConnectedAt = 'kv_last_connected_at';
   static const String _prefLastError = 'kv_last_error';
+  static const String _prefClientId = 'kv_client_id';
+  static const String _prefClientSecret = 'kv_client_secret';
 
   static const String _configuredClientId = String.fromEnvironment(
     'KIOTVIET_CLIENT_ID',
@@ -92,9 +98,13 @@ class KiotVietService {
     defaultValue: '',
   );
 
+  // Runtime credentials — populated from SharedPreferences at loadConnectionSnapshot
+  static String _runtimeClientId = '';
+  static String _runtimeClientSecret = '';
+
   static bool get hasSecureConfiguration =>
-      _configuredClientId.trim().isNotEmpty &&
-      _configuredClientSecret.trim().isNotEmpty;
+      (_configuredClientId.trim().isNotEmpty && _configuredClientSecret.trim().isNotEmpty) ||
+      (_runtimeClientId.trim().isNotEmpty && _runtimeClientSecret.trim().isNotEmpty);
 
   static String normalizeRetailerCode(String input) {
     var normalized = input.trim().toLowerCase();
@@ -157,6 +167,24 @@ class KiotVietService {
     await prefs.setString(_prefRetailer, normalizeRetailerCode(rawRetailer));
   }
 
+  static Future<void> saveClientCredentials(String clientId, String clientSecret) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_prefClientId, clientId.trim());
+    await prefs.setString(_prefClientSecret, clientSecret.trim());
+    _runtimeClientId = clientId.trim();
+    _runtimeClientSecret = clientSecret.trim();
+    // Clear cached token — new credentials need fresh auth
+    await prefs.remove(_prefAccessToken);
+    await prefs.remove(_prefTokenExpiresAt);
+  }
+
+  static Future<bool> hasUserSavedCredentials() async {
+    final prefs = await SharedPreferences.getInstance();
+    final id = prefs.getString(_prefClientId) ?? '';
+    final secret = prefs.getString(_prefClientSecret) ?? '';
+    return id.isNotEmpty && secret.isNotEmpty;
+  }
+
   static Future<void> clearConnection() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_prefRetailer);
@@ -166,12 +194,30 @@ class KiotVietService {
     await prefs.remove(_prefLastError);
   }
 
+  static Future<void> clearClientCredentials() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_prefClientId);
+    await prefs.remove(_prefClientSecret);
+    _runtimeClientId = '';
+    _runtimeClientSecret = '';
+    await prefs.remove(_prefAccessToken);
+    await prefs.remove(_prefTokenExpiresAt);
+  }
+
   static Future<KiotVietConnectionSnapshot> loadConnectionSnapshot({
     KiotVietLogHandler? onLog,
   }) async {
     _dispatchLog(onLog, 'init_start');
     try {
       final prefs = await SharedPreferences.getInstance();
+      // Load runtime credentials from prefs into static fields
+      final savedClientId = prefs.getString(_prefClientId)?.trim() ?? '';
+      final savedClientSecret = prefs.getString(_prefClientSecret)?.trim() ?? '';
+      if (savedClientId.isNotEmpty && savedClientSecret.isNotEmpty) {
+        _runtimeClientId = savedClientId;
+        _runtimeClientSecret = savedClientSecret;
+      }
+
       final storedRetailer = prefs.getString(_prefRetailer)?.trim() ?? '';
       final retailerCode = storedRetailer.isEmpty
           ? ''
@@ -182,6 +228,8 @@ class KiotVietService {
       final snapshot = KiotVietConnectionSnapshot(
         retailerCode: retailerCode,
         hasSecureConfiguration: hasSecureConfiguration,
+        hasUserCredentials: savedClientId.isNotEmpty && savedClientSecret.isNotEmpty,
+        savedClientId: savedClientId,
         hasCachedToken:
             (prefs.getString(_prefAccessToken)?.isNotEmpty ?? false) &&
             tokenExpiresAt != null &&
@@ -655,16 +703,23 @@ class KiotVietService {
   }
 
   static KiotVietCredentials _buildInternalCredentials(String retailer) {
-    if (!hasSecureConfiguration) {
+    final clientId = _configuredClientId.trim().isNotEmpty
+        ? _configuredClientId.trim()
+        : _runtimeClientId.trim();
+    final clientSecret = _configuredClientSecret.trim().isNotEmpty
+        ? _configuredClientSecret.trim()
+        : _runtimeClientSecret.trim();
+
+    if (clientId.isEmpty || clientSecret.isEmpty) {
       throw StateError(
-        'KiotViet chưa được cấu hình bảo mật. Hãy truyền KIOTVIET_CLIENT_ID và KIOTVIET_CLIENT_SECRET qua dart-define.',
+        'KiotViet chưa được cấu hình. Vui lòng nhập Client ID và Client Secret trong phần Kết nối KiotViet.',
       );
     }
 
     return KiotVietCredentials(
       retailer: normalizeRetailerCode(retailer),
-      clientId: _configuredClientId.trim(),
-      clientSecret: _configuredClientSecret.trim(),
+      clientId: clientId,
+      clientSecret: clientSecret,
     );
   }
 
