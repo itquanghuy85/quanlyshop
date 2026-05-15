@@ -106,31 +106,31 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView>
       screenKey: FirstTimeGuideService.keyFastInventoryInput,
       title: 'Nhập Nhanh (Siêu Tốc)',
       icon: Icons.flash_on,
-      color: AppColors.warning,
+      color: Colors.orange,
       steps: [
         GuideStep(
           title: '📷 Quét mã liên tục',
           description: 'Quét barcode/QR nhiều ${_terms.productLabel} liên tục. Hệ thống tự động điền thông tin từ thư viện.',
           icon: Icons.qr_code_scanner,
-          iconColor: AppColors.primary,
+          iconColor: Colors.blue,
         ),
         GuideStep(
           title: '📝 Nhập theo lô',
           description: 'Chế độ batch cho phép quét nhiều mã rồi xác nhận 1 lần. Tiết kiệm thời gian.',
           icon: Icons.layers,
-          iconColor: AppColors.primary,
+          iconColor: Colors.blue,
         ),
         GuideStep(
           title: '🏢 Chọn NCC trước',
           description: 'Nhớ tạo và chọn NCC trước khi nhập. Tất cả ${_terms.productLabel} sẽ được gắn với NCC đã chọn.',
           icon: Icons.store,
-          iconColor: AppColors.info,
+          iconColor: Colors.teal,
         ),
         GuideStep(
           title: '⚡ Xác nhận ngay',
           description: 'Khác với "Nhập Mới", ở đây hàng vào kho ngay sau khi nhập. Phù hợp nhập số lượng lớn.',
           icon: Icons.check_circle,
-          iconColor: AppColors.success,
+          iconColor: Colors.green,
         ),
       ],
     );
@@ -209,7 +209,7 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView>
           _imeiController.text = code;
           _isScanning = false;
         });
-        NotificationService.showSnackBar("Đã scan: $code", color: AppColors.success);
+        NotificationService.showSnackBar("Đã scan: $code", color: Colors.green);
         _scannerController.stop();
       }
     }
@@ -243,7 +243,7 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView>
       setState(() => _batchItems.clear());
       NotificationService.showSnackBar(
         "Đã nhập kho ${_batchItems.length} ${_terms.productLabel} thành công!",
-        color: AppColors.success,
+        color: Colors.green,
       );
       HapticFeedback.lightImpact();
 
@@ -254,7 +254,7 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView>
     } catch (e) {
       NotificationService.showSnackBar(
         "Lỗi khi nhập batch: $e",
-        color: AppColors.error,
+        color: Colors.red,
       );
     } finally {
       setState(() => _isSaving = false);
@@ -288,10 +288,10 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView>
         ),
         title: const Text(
           "NHẬP KHO SIÊU TỐC",
-          style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.surface),
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
-        backgroundColor: AppColors.surface,
-        foregroundColor: AppColors.textPrimary,
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
         elevation: 0,
         automaticallyImplyLeading: true,
         bottom: TabBar(
@@ -301,9 +301,9 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView>
             Tab(icon: Icon(Icons.qr_code_scanner, size: 18), text: "Scan"),
             Tab(icon: Icon(Icons.inventory, size: 18), text: "Batch"),
           ],
-          labelColor: AppColors.surface,
+          labelColor: Colors.white,
           unselectedLabelColor: Colors.white70,
-          indicatorColor: AppColors.surface,
+          indicatorColor: Colors.white,
         ),
         actions: [
           IconButton(
@@ -316,7 +316,7 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView>
           if (_isBatchMode && _batchItems.isNotEmpty)
             IconButton(
               onPressed: _saveBatch,
-              icon: const Icon(Icons.save, color: AppColors.success),
+              icon: const Icon(Icons.save, color: Colors.green),
               tooltip: "Lưu batch",
             ),
           IconButton(
@@ -325,7 +325,7 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView>
               _isBatchMode
                   ? Icons.batch_prediction
                   : Icons.batch_prediction_outlined,
-              color: _isBatchMode ? AppColors.primary : AppColors.textHint,
+              color: _isBatchMode ? Colors.blue : Colors.grey,
             ),
             tooltip: _isBatchMode ? "Tắt chế độ batch" : "Bật chế độ batch",
           ),
@@ -359,11 +359,11 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView>
                   onDetect: _onScanResult,
                 )
               : Container(
-                  color: AppColors.textPrimary,
+                  color: Colors.black,
                   child: const Center(
                     child: Text(
                       "Camera chưa được khởi động",
-                      style: TextStyle(color: AppColors.surface),
+                      style: TextStyle(color: Colors.white),
                     ),
                   ),
                 ),
@@ -389,9 +389,9 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView>
                       label: Text(_isScanning ? "DỪNG SCAN" : "BẮT ĐẦU SCAN"),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _isScanning
-                            ? AppColors.error
-                            : AppColors.success,
-                        foregroundColor: AppColors.surface,
+                            ? Colors.red
+                            : Colors.green,
+                        foregroundColor: Colors.white,
                       ),
                     ),
                   ),
@@ -421,11 +421,11 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView>
                       onPressed: _openQRScannerForIMEI,
                       icon: const Icon(
                         Icons.qr_code_scanner,
-                        color: AppColors.success,
+                        color: Colors.green,
                       ),
                       tooltip: 'Quét QR lấy 5 số cuối IMEI',
                       style: IconButton.styleFrom(
-                        backgroundColor: AppColors.success.withAlpha(26),
+                        backgroundColor: Colors.green.withOpacity(0.1),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
@@ -445,7 +445,7 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView>
       children: [
         Container(
           padding: const EdgeInsets.all(16),
-          color: AppColors.surface,
+          color: Colors.white,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -478,20 +478,20 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView>
                       const Icon(
                         Icons.inventory_2_outlined,
                         size: 80,
-                        color: AppColors.textHint,
+                        color: Colors.grey,
                       ),
                       const SizedBox(height: 16),
                       Text(
                         "Chưa có ${_terms.productLabel} nào trong batch",
                         style: AppTextStyles.body2.copyWith(
-                          color: AppColors.onSurface.withAlpha(153),
+                          color: AppColors.onSurface.withOpacity(0.6),
                         ),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         "Chuyển sang tab 'Nhập đơn' và bật chế độ batch",
                         style: AppTextStyles.caption.copyWith(
-                          color: AppColors.onSurface.withAlpha(153),
+                          color: AppColors.onSurface.withOpacity(0.6),
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -515,7 +515,7 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView>
                         trailing: IconButton(
                           onPressed: () =>
                               setState(() => _batchItems.removeAt(index)),
-                          icon: const Icon(Icons.delete, color: AppColors.error),
+                          icon: const Icon(Icons.delete, color: Colors.red),
                         ),
                       ),
                     );
@@ -619,7 +619,7 @@ class _IMEIScannerSheetState extends State<_IMEIScannerSheet> {
         widget.onIMEISelected(last5);
         NotificationService.showSnackBar(
           '✅ IMEI: ${IMEIExtractor.formatIMEI(imei)} → 5 số cuối: $last5',
-          color: AppColors.success,
+          color: Colors.green,
         );
       }
       // Nếu có nhiều candidates hoặc QR phức tạp -> hiện dialog chọn
@@ -637,7 +637,7 @@ class _IMEIScannerSheetState extends State<_IMEIScannerSheet> {
           widget.onIMEISelected(selected);
           NotificationService.showSnackBar(
             '✅ Đã chọn: $selected',
-            color: AppColors.success,
+            color: Colors.green,
           );
         } else {
           // User đóng dialog, resume camera
@@ -655,17 +655,17 @@ class _IMEIScannerSheetState extends State<_IMEIScannerSheet> {
           widget.onIMEISelected(last5);
           NotificationService.showSnackBar(
             '⚠️ Không tìm thấy IMEI, dùng 5 số cuối: $last5',
-            color: AppColors.warning,
+            color: Colors.orange,
           );
         } else {
           NotificationService.showSnackBar(
             '❌ Không tìm thấy số IMEI trong QR',
-            color: AppColors.error,
+            color: Colors.red,
           );
         }
       }
     } catch (e) {
-      NotificationService.showSnackBar('❌ Lỗi xử lý QR: $e', color: AppColors.error);
+      NotificationService.showSnackBar('❌ Lỗi xử lý QR: $e', color: Colors.red);
     } finally {
       if (mounted) {
         setState(() => _isProcessing = false);
@@ -678,7 +678,7 @@ class _IMEIScannerSheetState extends State<_IMEIScannerSheet> {
     return Container(
       height: MediaQuery.of(context).size.height * 0.7,
       decoration: const BoxDecoration(
-        color: AppColors.surface,
+        color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: Column(
@@ -687,7 +687,7 @@ class _IMEIScannerSheetState extends State<_IMEIScannerSheet> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppColors.success,
+              color: Colors.green.shade50,
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(20),
               ),
@@ -697,21 +697,21 @@ class _IMEIScannerSheetState extends State<_IMEIScannerSheet> {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.qr_code_scanner, color: AppColors.success),
+                    const Icon(Icons.qr_code_scanner, color: Colors.green),
                     const SizedBox(width: 8),
                     Text(
                       'QUÉT QR/BARCODE IMEI',
                       style: TextStyle(
                         fontSize: AppTextStyles.headline3.fontSize,
                         fontWeight: FontWeight.bold,
-                        color: AppColors.success,
+                        color: Colors.green,
                       ),
                     ),
                   ],
                 ),
                 IconButton(
                   onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close, color: AppColors.textHint),
+                  icon: const Icon(Icons.close, color: Colors.grey),
                 ),
               ],
             ),
@@ -720,16 +720,16 @@ class _IMEIScannerSheetState extends State<_IMEIScannerSheet> {
           // Hướng dẫn
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            color: AppColors.primary,
+            color: Colors.blue.shade50,
             child: Row(
               children: [
-                const Icon(Icons.info_outline, size: 20, color: AppColors.primary),
+                const Icon(Icons.info_outline, size: 20, color: Colors.blue),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'Hỗ trợ QR nhiều dòng (Apple, Samsung...).\n'
                     'Tự động trích xuất IMEI và cho phép chọn nếu có nhiều số.',
-                    style: TextStyle(fontSize: AppTextStyles.subtitle1.fontSize, color: AppColors.primary),
+                    style: TextStyle(fontSize: AppTextStyles.subtitle1.fontSize, color: Colors.blue),
                   ),
                 ),
               ],
@@ -752,7 +752,7 @@ class _IMEIScannerSheetState extends State<_IMEIScannerSheet> {
                 // Countdown overlay khi chưa sẵn sàng
                 if (!_isScanReady)
                   Container(
-                    color: AppColors.textSecondary,
+                    color: Colors.black54,
                     child: Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -760,7 +760,7 @@ class _IMEIScannerSheetState extends State<_IMEIScannerSheet> {
                           const Icon(
                             Icons.hourglass_top,
                             size: 48,
-                            color: AppColors.surface,
+                            color: Colors.white,
                           ),
                           const SizedBox(height: 16),
                           Text(
@@ -771,7 +771,7 @@ class _IMEIScannerSheetState extends State<_IMEIScannerSheet> {
                             style: TextStyle(
                               fontSize: AppTextStyles.headline1.fontSize,
                               fontWeight: FontWeight.bold,
-                              color: AppColors.surface,
+                              color: Colors.white,
                             ),
                           ),
                           const SizedBox(height: 8),
@@ -790,7 +790,7 @@ class _IMEIScannerSheetState extends State<_IMEIScannerSheet> {
                     width: 280,
                     height: 150,
                     decoration: BoxDecoration(
-                      border: Border.all(color: AppColors.success, width: 3),
+                      border: Border.all(color: Colors.green, width: 3),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Column(
@@ -799,16 +799,16 @@ class _IMEIScannerSheetState extends State<_IMEIScannerSheet> {
                         const Icon(
                           Icons.center_focus_weak,
                           size: 40,
-                          color: AppColors.success,
+                          color: Colors.green,
                         ),
                         const SizedBox(height: 8),
                         Text(
                           'Đưa mã QR/Barcode vào khung',
                           style: TextStyle(
-                            color: AppColors.surface,
+                            color: Colors.white,
                             fontSize: AppTextStyles.subtitle1.fontSize,
                             shadows: const [
-                              Shadow(color: AppColors.textPrimary, blurRadius: 4),
+                              Shadow(color: Colors.black, blurRadius: 4),
                             ],
                           ),
                         ),
@@ -820,16 +820,16 @@ class _IMEIScannerSheetState extends State<_IMEIScannerSheet> {
                 // Processing indicator
                 if (_isProcessing)
                   Container(
-                    color: AppColors.textSecondary,
+                    color: Colors.black54,
                     child: Center(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const CircularProgressIndicator(color: AppColors.surface),
+                          const CircularProgressIndicator(color: Colors.white),
                           const SizedBox(height: 16),
                           Text(
                             'Đang xử lý...',
-                            style: TextStyle(color: AppColors.surface, fontSize: AppTextStyles.headline4.fontSize),
+                            style: TextStyle(color: Colors.white, fontSize: AppTextStyles.headline4.fontSize),
                           ),
                         ],
                       ),
@@ -850,7 +850,7 @@ class _IMEIScannerSheetState extends State<_IMEIScannerSheet> {
                   icon: const Icon(Icons.flashlight_on),
                   tooltip: 'Bật/tắt đèn flash',
                   style: IconButton.styleFrom(
-                    backgroundColor: AppColors.outline,
+                    backgroundColor: Colors.grey.shade200,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -860,7 +860,7 @@ class _IMEIScannerSheetState extends State<_IMEIScannerSheet> {
                   icon: const Icon(Icons.cameraswitch),
                   tooltip: 'Đổi camera',
                   style: IconButton.styleFrom(
-                    backgroundColor: AppColors.outline,
+                    backgroundColor: Colors.grey.shade200,
                   ),
                 ),
                 const Spacer(),

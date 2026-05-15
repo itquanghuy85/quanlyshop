@@ -11,7 +11,6 @@ import '../services/event_bus.dart';
 import '../services/storage_service.dart';
 import '../core/utils/money_utils.dart';
 import '../theme/app_colors.dart';
-import '../theme/design_tokens.dart';
 import '../theme/app_text_styles.dart';
 import '../widgets/global_search_bar.dart';
 import '../widgets/entity_avatar.dart';
@@ -241,7 +240,7 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: Text(AppLocalizations.of(context)!.deleteButton),
           ),
         ],
@@ -337,15 +336,25 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: AppColors.surface,
-        foregroundColor: AppColors.textPrimary,
-        elevation: 0,
-        scrolledUnderElevation: 0.5,
-        surfaceTintColor: Colors.transparent,
-        titleTextStyle: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600, fontSize: 17),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF0068FF), Color(0xFF0084FF)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
         title: Text(
           AppLocalizations.of(context)!.customerManagement,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
         ),
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
+        elevation: 0,
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
@@ -376,7 +385,7 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
           children: [
             // Search bar
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.all(16),
               child: GlobalSearchBar(
                 hintText: AppLocalizations.of(context)!.searchCustomers,
                 onSearch: _filterCustomers,
@@ -395,7 +404,7 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
                           Icon(
                             Icons.people_outline,
                             size: 64,
-                            color: AppColors.textDisabled,
+                            color: Colors.grey.shade400,
                           ),
                           const SizedBox(height: 8),
                           Text(
@@ -405,7 +414,7 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
                                     context,
                                   )!.customerNotFound,
                             style: AppTextStyles.body1.copyWith(
-                              color: AppColors.textSecondary,
+                              color: Colors.grey.shade600,
                             ),
                           ),
                         ],
@@ -497,52 +506,65 @@ class CustomerListItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: AppColors.outline, width: 1),
-      ),
+      margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
       child: ListTile(
-        dense: true,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        leading: EntityAvatar(
-          imageUrl: customer.avatarUrl,
-          name: customer.name,
-          radius: 18,
-          heroTag: 'hero_customer_avatar_${customer.id ?? customer.phone}',
+        leading: CircleAvatar(
+          child: EntityAvatar(
+            imageUrl: customer.avatarUrl,
+            name: customer.name,
+            radius: 22,
+            heroTag:
+                'hero_customer_avatar_${customer.id ?? customer.phone}',
+          ),
         ),
         title: Text(
           customer.name,
           style: AppTextStyles.body1.copyWith(fontWeight: FontWeight.w600),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
         ),
-        subtitle: Text(
-          customer.phone,
-          style: AppTextStyles.caption,
-          maxLines: 1,
-        ),
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.end,
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              MoneyUtils.formatCompact(customer.totalSpent),
-              style: AppTextStyles.body2.copyWith(
-                fontWeight: FontWeight.bold,
-                color: const Color(0xFF16A34A),
-              ),
-            ),
-            if (customer.totalRepairs > 0)
+            Text(customer.phone, style: AppTextStyles.caption),
+            if (customer.address?.isNotEmpty == true)
               Text(
-                '${customer.totalRepairs} lần sửa',
+                customer.address!,
                 style: AppTextStyles.caption.copyWith(
-                  color: const Color(0xFF64748B),
+                  color: Colors.grey.shade600,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
+            if (customer.notes?.isNotEmpty == true)
+              Text(
+                'Ghi chú: ${customer.notes!}',
+                style: AppTextStyles.caption.copyWith(
+                  color: Colors.blue.shade600,
+                  fontStyle: FontStyle.italic,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            Wrap(
+              spacing: 8,
+              runSpacing: 2,
+              children: [
+                Text(
+                  'Đã mua: ${MoneyUtils.formatCompact(customer.totalSpent)}',
+                  style: AppTextStyles.caption.copyWith(
+                    color: AppColors.success,
+                  ),
+                ),
+                Text(
+                  'Sửa: ${customer.totalRepairs} lần',
+                  style: AppTextStyles.caption.copyWith(
+                    color: AppColors.warning,
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
+        trailing: const Icon(Icons.chevron_right_rounded, color: Colors.grey),
         onTap: onOpenProfile ?? onViewHistory,
       ),
     );
@@ -834,7 +856,7 @@ class CustomerHistoryDialog extends StatelessWidget {
                       'Đóng tiền',
                       '${NumberFormat('#,###').format(totalPaymentAmount)}đ',
                       '$totalPayments lần',
-                      AppColors.primary,
+                      Colors.blue,
                     ),
                   ),
                 ],
@@ -853,13 +875,13 @@ class CustomerHistoryDialog extends StatelessWidget {
                           Icon(
                             Icons.history,
                             size: 48,
-                            color: AppColors.textDisabled,
+                            color: Colors.grey.shade400,
                           ),
                           const SizedBox(height: 8),
                           Text(
                             'Chưa có lịch sử',
                             style: AppTextStyles.body1.copyWith(
-                              color: AppColors.textSecondary,
+                              color: Colors.grey.shade600,
                             ),
                           ),
                         ],
@@ -888,9 +910,9 @@ class CustomerHistoryDialog extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.withAlpha(26),
+        color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withAlpha(77)),
+        border: Border.all(color: color.withOpacity(0.3)),
       ),
       child: Column(
         children: [
@@ -924,7 +946,7 @@ class CustomerHistoryDialog extends StatelessWidget {
     final bool isSale = type == 'sale';
     final bool isPayment = type == 'payment';
     final Color color = isPayment
-        ? AppColors.primary
+        ? Colors.blue
         : (isSale ? AppColors.success : AppColors.warning);
     final IconData icon = isPayment
         ? Icons.receipt_long
@@ -932,15 +954,9 @@ class CustomerHistoryDialog extends StatelessWidget {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: AppColors.outline, width: 1),
-      ),
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         leading: CircleAvatar(
-          backgroundColor: color.withAlpha(26),
+          backgroundColor: color.withOpacity(0.1),
           child: Icon(icon, color: color, size: 20),
         ),
         title: Text(

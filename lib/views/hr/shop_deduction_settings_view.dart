@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import '../../widgets/responsive_wrapper.dart';
 import 'package:intl/intl.dart';
@@ -90,14 +89,14 @@ class _ShopDeductionSettingsViewState extends State<ShopDeductionSettingsView>
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('✅ Đã lưu cài đặt thành công'),
-            backgroundColor: AppColors.success,
+            backgroundColor: Colors.green,
           ),
         );
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('❌ Lỗi khi lưu cài đặt'),
-            backgroundColor: AppColors.error,
+            backgroundColor: Colors.red,
           ),
         );
       }
@@ -107,7 +106,7 @@ class _ShopDeductionSettingsViewState extends State<ShopDeductionSettingsView>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('❌ Lỗi: $e'),
-            backgroundColor: AppColors.error,
+            backgroundColor: Colors.red,
           ),
         );
       }
@@ -133,7 +132,7 @@ class _ShopDeductionSettingsViewState extends State<ShopDeductionSettingsView>
         bottom: TabBar(
           controller: _tabController,
           labelColor: colorScheme.onPrimaryContainer,
-          unselectedLabelColor: colorScheme.onPrimaryContainer.withAlpha(128),
+          unselectedLabelColor: colorScheme.onPrimaryContainer.withOpacity(0.5),
           indicatorColor: colorScheme.onPrimaryContainer,
           indicatorWeight: 2,
           labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
@@ -189,7 +188,7 @@ class _ShopDeductionSettingsViewState extends State<ShopDeductionSettingsView>
         _buildSectionCard(
           title: 'Trừ đi muộn',
           icon: Icons.schedule,
-          iconColor: AppColors.warning,
+          iconColor: Colors.orange,
           enabled: _settings.enableLateDeduction,
           onEnabledChanged: (v) {
             setState(() {
@@ -223,7 +222,7 @@ class _ShopDeductionSettingsViewState extends State<ShopDeductionSettingsView>
               style: TextStyle(
                 fontSize: 13,
                 fontStyle: FontStyle.italic,
-                color: AppColors.textSecondary,
+                color: Colors.grey[600],
               ),
             ),
           ],
@@ -234,7 +233,7 @@ class _ShopDeductionSettingsViewState extends State<ShopDeductionSettingsView>
         _buildSectionCard(
           title: 'Trừ về sớm',
           icon: Icons.exit_to_app,
-          iconColor: AppColors.primary,
+          iconColor: Colors.blue,
           enabled: _settings.enableEarlyLeaveDeduction,
           onEnabledChanged: (v) {
             setState(() {
@@ -270,7 +269,7 @@ class _ShopDeductionSettingsViewState extends State<ShopDeductionSettingsView>
         _buildSectionCard(
           title: 'Trừ nghỉ quá phép',
           icon: Icons.event_busy,
-          iconColor: AppColors.error,
+          iconColor: Colors.red,
           enabled: _settings.enableAbsenceDeduction,
           onEnabledChanged: (v) {
             setState(() {
@@ -304,7 +303,7 @@ class _ShopDeductionSettingsViewState extends State<ShopDeductionSettingsView>
               style: TextStyle(
                 fontSize: 13,
                 fontStyle: FontStyle.italic,
-                color: AppColors.textSecondary,
+                color: Colors.grey[600],
               ),
             ),
           ],
@@ -323,7 +322,7 @@ class _ShopDeductionSettingsViewState extends State<ShopDeductionSettingsView>
       children: [
         // Info card
         Card(
-          color: AppColors.primary,
+          color: Colors.blue.shade50,
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: Column(
@@ -331,13 +330,13 @@ class _ShopDeductionSettingsViewState extends State<ShopDeductionSettingsView>
               children: [
                 Row(
                   children: [
-                    Icon(Icons.info, color: AppColors.primary, size: 18),
+                    Icon(Icons.info, color: Colors.blue.shade700, size: 18),
                     const SizedBox(width: 6),
                     Text(
                       'Tỷ lệ đóng BH người lao động theo luật:',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        color: AppColors.primary,
+                        color: Colors.blue.shade900,
                         fontSize: 14,
                       ),
                     ),
@@ -349,7 +348,7 @@ class _ShopDeductionSettingsViewState extends State<ShopDeductionSettingsView>
                   '• BHYT: 1.5% lương đóng BH\n'
                   '• BHTN: 1% lương đóng BH\n'
                   '• Tổng: 10.5% lương đóng BH',
-                  style: TextStyle(color: AppColors.primary, fontSize: 13),
+                  style: TextStyle(color: Colors.blue.shade800, fontSize: 13),
                 ),
               ],
             ),
@@ -361,7 +360,7 @@ class _ShopDeductionSettingsViewState extends State<ShopDeductionSettingsView>
         _buildSectionCard(
           title: 'Mức lương đóng BH',
           icon: Icons.account_balance_wallet,
-          iconColor: AppColors.info,
+          iconColor: Colors.teal,
           enabled: true,
           showSwitch: false,
           children: [
@@ -380,7 +379,7 @@ class _ShopDeductionSettingsViewState extends State<ShopDeductionSettingsView>
               style: TextStyle(
                 fontSize: 13,
                 fontStyle: FontStyle.italic,
-                color: AppColors.textSecondary,
+                color: Colors.grey[600],
               ),
             ),
           ],
@@ -391,7 +390,7 @@ class _ShopDeductionSettingsViewState extends State<ShopDeductionSettingsView>
         _buildSectionCard(
           title: 'BHXH (Bảo hiểm xã hội)',
           icon: Icons.security,
-          iconColor: AppColors.success,
+          iconColor: Colors.green,
           enabled: _settings.enableSocialInsurance,
           onEnabledChanged: (v) {
             setState(() {
@@ -416,7 +415,7 @@ class _ShopDeductionSettingsViewState extends State<ShopDeductionSettingsView>
         _buildSectionCard(
           title: 'BHYT (Bảo hiểm y tế)',
           icon: Icons.local_hospital,
-          iconColor: AppColors.error,
+          iconColor: Colors.red,
           enabled: _settings.enableHealthInsurance,
           onEnabledChanged: (v) {
             setState(() {
@@ -441,7 +440,7 @@ class _ShopDeductionSettingsViewState extends State<ShopDeductionSettingsView>
         _buildSectionCard(
           title: 'BHTN (Bảo hiểm thất nghiệp)',
           icon: Icons.work_off,
-          iconColor: AppColors.warning,
+          iconColor: Colors.orange,
           enabled: _settings.enableUnemploymentInsurance,
           onEnabledChanged: (v) {
             setState(() {
@@ -464,7 +463,7 @@ class _ShopDeductionSettingsViewState extends State<ShopDeductionSettingsView>
 
         // Summary
         Card(
-          color: AppColors.success,
+          color: Colors.green.shade50,
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: Row(
@@ -474,7 +473,7 @@ class _ShopDeductionSettingsViewState extends State<ShopDeductionSettingsView>
                   'Tổng % BH người lao động đóng:',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: AppColors.success,
+                    color: Colors.green.shade900,
                     fontSize: 14,
                   ),
                 ),
@@ -483,7 +482,7 @@ class _ShopDeductionSettingsViewState extends State<ShopDeductionSettingsView>
                   style: TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.success,
+                    color: Colors.green.shade700,
                   ),
                 ),
               ],
@@ -504,7 +503,7 @@ class _ShopDeductionSettingsViewState extends State<ShopDeductionSettingsView>
       children: [
         // Info card
         Card(
-          color: AppColors.warning,
+          color: Colors.amber.shade50,
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: Column(
@@ -512,13 +511,13 @@ class _ShopDeductionSettingsViewState extends State<ShopDeductionSettingsView>
               children: [
                 Row(
                   children: [
-                    Icon(Icons.info, color: AppColors.warning, size: 18),
+                    Icon(Icons.info, color: Colors.amber.shade700, size: 18),
                     const SizedBox(width: 6),
                     Text(
                       'Biểu thuế TNCN lũy tiến:',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        color: AppColors.warning,
+                        color: Colors.amber.shade900,
                         fontSize: 14,
                       ),
                     ),
@@ -533,7 +532,7 @@ class _ShopDeductionSettingsViewState extends State<ShopDeductionSettingsView>
                   '• 32-52 triệu: 25%\n'
                   '• 52-80 triệu: 30%\n'
                   '• Trên 80 triệu: 35%',
-                  style: TextStyle(color: AppColors.warning, fontSize: 13),
+                  style: TextStyle(color: Colors.amber.shade800, fontSize: 13),
                 ),
               ],
             ),
@@ -545,7 +544,7 @@ class _ShopDeductionSettingsViewState extends State<ShopDeductionSettingsView>
         _buildSectionCard(
           title: 'Tính thuế TNCN',
           icon: Icons.receipt_long,
-          iconColor: AppColors.primary,
+          iconColor: Colors.indigo,
           enabled: _settings.enablePIT,
           onEnabledChanged: (v) {
             setState(() {
@@ -576,7 +575,7 @@ class _ShopDeductionSettingsViewState extends State<ShopDeductionSettingsView>
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: AppColors.background,
+                color: Colors.grey.shade100,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Column(
@@ -589,12 +588,12 @@ class _ShopDeductionSettingsViewState extends State<ShopDeductionSettingsView>
                   const SizedBox(height: 4),
                   Text(
                     'Thu nhập chịu thuế = GROSS - BH - Giảm trừ bản thân - Giảm trừ người phụ thuộc',
-                    style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                    style: TextStyle(fontSize: 13, color: Colors.grey[700]),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     'Thuế TNCN = Áp dụng biểu thuế lũy tiến',
-                    style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                    style: TextStyle(fontSize: 13, color: Colors.grey[700]),
                   ),
                 ],
               ),
@@ -686,7 +685,7 @@ class _ShopDeductionSettingsViewState extends State<ShopDeductionSettingsView>
             style: TextStyle(
               fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
               fontSize: 14,
-              color: isRed ? AppColors.error : (value < 0 ? AppColors.textSecondary : null),
+              color: isRed ? Colors.red : (value < 0 ? Colors.grey[600] : null),
             ),
           ),
         ],
@@ -708,15 +707,15 @@ class _ShopDeductionSettingsViewState extends State<ShopDeductionSettingsView>
         // Month/Year picker row
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          color: AppColors.textHint,
+          color: Colors.grey[50],
           child: Row(
             children: [
-              const Icon(Icons.date_range, size: 18, color: AppColors.textHint),
+              const Icon(Icons.date_range, size: 18, color: Colors.grey),
               const SizedBox(width: 8),
               DropdownButton<int>(
                 value: _adjMonth,
                 underline: const SizedBox(),
-                style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
+                style: const TextStyle(fontSize: 14, color: Colors.black87),
                 items: List.generate(12, (i) => DropdownMenuItem(
                   value: i + 1,
                   child: Text('Tháng ${i + 1}'),
@@ -732,7 +731,7 @@ class _ShopDeductionSettingsViewState extends State<ShopDeductionSettingsView>
               DropdownButton<int>(
                 value: _adjYear,
                 underline: const SizedBox(),
-                style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
+                style: const TextStyle(fontSize: 14, color: Colors.black87),
                 items: List.generate(5, (i) {
                   final y = DateTime.now().year - 2 + i;
                   return DropdownMenuItem(value: y, child: Text('$y'));
@@ -763,7 +762,7 @@ class _ShopDeductionSettingsViewState extends State<ShopDeductionSettingsView>
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: AppColors.primary,
+            color: Colors.blue[50],
             borderRadius: BorderRadius.circular(10),
           ),
           child: Row(
@@ -771,27 +770,27 @@ class _ShopDeductionSettingsViewState extends State<ShopDeductionSettingsView>
               Expanded(
                 child: Column(
                   children: [
-                    const Text('Thưởng', style: TextStyle(fontSize: 13, color: AppColors.textHint)),
+                    const Text('Thưởng', style: TextStyle(fontSize: 13, color: Colors.grey)),
                     const SizedBox(height: 2),
                     Text(
                       '+${_currencyFormat.format(totalBonus)}đ',
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.success),
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.green),
                     ),
-                    Text('${bonuses.length} khoản', style: const TextStyle(fontSize: 12, color: AppColors.textHint)),
+                    Text('${bonuses.length} khoản', style: const TextStyle(fontSize: 12, color: Colors.grey)),
                   ],
                 ),
               ),
-              Container(width: 1, height: 36, color: AppColors.divider),
+              Container(width: 1, height: 36, color: Colors.grey[300]),
               Expanded(
                 child: Column(
                   children: [
-                    const Text('Khấu trừ', style: TextStyle(fontSize: 13, color: AppColors.textHint)),
+                    const Text('Khấu trừ', style: TextStyle(fontSize: 13, color: Colors.grey)),
                     const SizedBox(height: 2),
                     Text(
                       '-${_currencyFormat.format(totalDeduction)}đ',
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.error),
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.red),
                     ),
-                    Text('${deductions.length} khoản', style: const TextStyle(fontSize: 12, color: AppColors.textHint)),
+                    Text('${deductions.length} khoản', style: const TextStyle(fontSize: 12, color: Colors.grey)),
                   ],
                 ),
               ),
@@ -808,12 +807,12 @@ class _ShopDeductionSettingsViewState extends State<ShopDeductionSettingsView>
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.inbox_outlined, size: 48, color: AppColors.divider),
+                          Icon(Icons.inbox_outlined, size: 48, color: Colors.grey[300]),
                           const SizedBox(height: 8),
                           Text(
                             'Chưa có khoản thưởng/trừ nào\ntháng $_adjMonth/$_adjYear',
                             textAlign: TextAlign.center,
-                            style: TextStyle(color: AppColors.textHint, fontSize: 14),
+                            style: TextStyle(color: Colors.grey[500], fontSize: 14),
                           ),
                           const SizedBox(height: 12),
                           OutlinedButton.icon(
@@ -843,10 +842,10 @@ class _ShopDeductionSettingsViewState extends State<ShopDeductionSettingsView>
                             alignment: Alignment.centerRight,
                             padding: const EdgeInsets.only(right: 16),
                             decoration: BoxDecoration(
-                              color: AppColors.error,
+                              color: Colors.red[400],
                               borderRadius: BorderRadius.circular(10),
                             ),
-                            child: const Icon(Icons.delete, color: AppColors.surface),
+                            child: const Icon(Icons.delete, color: Colors.white),
                           ),
                           confirmDismiss: (_) async {
                             return await showDialog<bool>(
@@ -858,7 +857,7 @@ class _ShopDeductionSettingsViewState extends State<ShopDeductionSettingsView>
                                   TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('HỦY')),
                                   FilledButton(
                                     onPressed: () => Navigator.pop(ctx, true),
-                                    style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+                                    style: FilledButton.styleFrom(backgroundColor: Colors.red),
                                     child: const Text('XÓA'),
                                   ),
                                 ],
@@ -869,12 +868,12 @@ class _ShopDeductionSettingsViewState extends State<ShopDeductionSettingsView>
                           child: Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: AppColors.surface,
+                              color: Colors.white,
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(
-                                color: isBonus ? AppColors.success.withAlpha(77) : AppColors.error.withAlpha(77),
+                                color: isBonus ? Colors.green.withOpacity(0.3) : Colors.red.withOpacity(0.3),
                               ),
-                              boxShadow: [BoxShadow(color: AppColors.textPrimary.withOpacity(0.04), blurRadius: 4, offset: const Offset(0, 2))],
+                              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 4, offset: const Offset(0, 2))],
                             ),
                             child: Row(
                               children: [
@@ -882,12 +881,12 @@ class _ShopDeductionSettingsViewState extends State<ShopDeductionSettingsView>
                                   width: 36,
                                   height: 36,
                                   decoration: BoxDecoration(
-                                    color: (isBonus ? AppColors.success : AppColors.error).withAlpha(26),
+                                    color: (isBonus ? Colors.green : Colors.red).withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Icon(
                                     isBonus ? Icons.trending_up : Icons.trending_down,
-                                    color: isBonus ? AppColors.success : AppColors.error,
+                                    color: isBonus ? Colors.green : Colors.red,
                                     size: 18,
                                   ),
                                 ),
@@ -903,7 +902,7 @@ class _ShopDeductionSettingsViewState extends State<ShopDeductionSettingsView>
                                       const SizedBox(height: 2),
                                       Text(
                                         '${adj.staffName}${adj.note != null && adj.note!.isNotEmpty ? ' • ${adj.note}' : ''}',
-                                        style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                                        style: TextStyle(fontSize: 13, color: Colors.grey[600]),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                       ),
@@ -915,7 +914,7 @@ class _ShopDeductionSettingsViewState extends State<ShopDeductionSettingsView>
                                   style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.bold,
-                                    color: isBonus ? AppColors.success : AppColors.error,
+                                    color: isBonus ? Colors.green : Colors.red,
                                   ),
                                 ),
                               ],
@@ -941,7 +940,7 @@ class _ShopDeductionSettingsViewState extends State<ShopDeductionSettingsView>
     if (result == true && mounted) {
       _loadAdjustments();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('✅ Đã thêm khoản thưởng/trừ'), backgroundColor: AppColors.success),
+        const SnackBar(content: Text('✅ Đã thêm khoản thưởng/trừ'), backgroundColor: Colors.green),
       );
     }
   }
@@ -952,11 +951,11 @@ class _ShopDeductionSettingsViewState extends State<ShopDeductionSettingsView>
       if (ok) {
         setState(() => _adjustments.removeWhere((a) => a.id == adj.id));
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Đã xóa'), backgroundColor: AppColors.warning),
+          const SnackBar(content: Text('Đã xóa'), backgroundColor: Colors.orange),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('❌ Lỗi khi xóa'), backgroundColor: AppColors.error),
+          const SnackBar(content: Text('❌ Lỗi khi xóa'), backgroundColor: Colors.red),
         );
         _loadAdjustments(); // Reload to restore
       }
@@ -1079,7 +1078,7 @@ class _CurrencyFieldState extends State<_CurrencyField> {
         labelText: widget.label,
         labelStyle: const TextStyle(fontSize: 14),
         suffixText: 'đ',
-        suffixStyle: const TextStyle(fontSize: 14, color: AppColors.textHint),
+        suffixStyle: const TextStyle(fontSize: 14, color: Colors.grey),
         isDense: true,
         contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
         border: const OutlineInputBorder(),
@@ -1144,7 +1143,7 @@ class _PercentFieldState extends State<_PercentField> {
         labelText: widget.label,
         labelStyle: const TextStyle(fontSize: 14),
         suffixText: '%',
-        suffixStyle: const TextStyle(fontSize: 14, color: AppColors.textHint),
+        suffixStyle: const TextStyle(fontSize: 14, color: Colors.grey),
         isDense: true,
         contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
         border: const OutlineInputBorder(),
@@ -1211,7 +1210,7 @@ class _NumberFieldState extends State<_NumberField> {
         labelText: widget.label,
         labelStyle: const TextStyle(fontSize: 14),
         suffixText: widget.suffix,
-        suffixStyle: const TextStyle(fontSize: 14, color: AppColors.textHint),
+        suffixStyle: const TextStyle(fontSize: 14, color: Colors.grey),
         isDense: true,
         contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
         border: const OutlineInputBorder(),

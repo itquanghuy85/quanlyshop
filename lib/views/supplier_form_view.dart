@@ -65,7 +65,7 @@ class _SupplierFormViewState extends State<SupplierFormView> {
 
   Future<void> _save() async {
     if (_nameCtrl.text.trim().isEmpty) {
-      NotificationService.showSnackBar('Tên NCC bắt buộc', color: AppColors.error);
+      NotificationService.showSnackBar('Tên NCC bắt buộc', color: Colors.red);
       return;
     }
     setState(() => _saving = true);
@@ -98,14 +98,14 @@ class _SupplierFormViewState extends State<SupplierFormView> {
       );
       if (widget.editing == null) {
         await _service.addSupplier(supplier);
-        NotificationService.showSnackBar('Đã tạo NCC', color: AppColors.success);
+        NotificationService.showSnackBar('Đã tạo NCC', color: Colors.green);
       } else {
         await _service.updateSupplier(supplier);
-        NotificationService.showSnackBar('Đã cập nhật NCC', color: AppColors.success);
+        NotificationService.showSnackBar('Đã cập nhật NCC', color: Colors.green);
       }
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
-      NotificationService.showSnackBar('Lỗi lưu NCC: $e', color: AppColors.error);
+      NotificationService.showSnackBar('Lỗi lưu NCC: $e', color: Colors.red);
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -126,9 +126,9 @@ class _SupplierFormViewState extends State<SupplierFormView> {
             ),
           ),
         ),
-        title: Text(isEdit ? 'SỬA NCC' : 'THÊM NCC', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.surface)),
-        backgroundColor: AppColors.surface,
-        foregroundColor: AppColors.textPrimary,
+        title: Text(isEdit ? 'SỬA NCC' : 'THÊM NCC', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
         elevation: 0,
       ),
       body: ResponsiveCenter(child: SingleChildScrollView(
@@ -202,7 +202,7 @@ class _SupplierFormViewState extends State<SupplierFormView> {
                 onPressed: _saving ? null : _save,
                 style: AppButtonStyles.elevatedButtonStyle,
                 child: _saving
-                    ? const CircularProgressIndicator(color: AppColors.surface)
+                    ? const CircularProgressIndicator(color: Colors.white)
                     : Text(isEdit ? 'LƯU THAY ĐỔI' : 'TẠO MỚI', style: AppTextStyles.button.copyWith(color: AppColors.onPrimary)),
               ),
             ),

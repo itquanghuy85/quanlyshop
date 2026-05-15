@@ -7,8 +7,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../data/db_helper.dart';
 import '../theme/app_text_styles.dart';
-import '../theme/app_colors.dart';
-import '../theme/design_tokens.dart';
 import '../models/sale_order_model.dart';
 import '../models/repair_model.dart';
 import '../models/shop_settings_model.dart';
@@ -657,7 +655,7 @@ class _CashClosingViewState extends State<CashClosingView>
         body: const Center(
           child: Text(
             'Bạn không có quyền truy cập tính năng này',
-            style: TextStyle(color: AppColors.textHint),
+            style: TextStyle(color: Colors.grey),
           ),
         ),
       );
@@ -671,7 +669,7 @@ class _CashClosingViewState extends State<CashClosingView>
           subtitle: _txEndDate != null
               ? '${DateFormat('dd/MM').format(_selectedDate)} - ${DateFormat('dd/MM/yyyy').format(_txEndDate!)}'
               : DateFormat('dd/MM/yyyy').format(_selectedDate),
-          accentColor: AppColors.primary,
+          accentColor: Colors.indigo,
           actions: [
             IconButton(
               icon: Badge(
@@ -679,7 +677,7 @@ class _CashClosingViewState extends State<CashClosingView>
                 child: const Icon(
                   Icons.filter_list_rounded,
                   size: 20,
-                  color: AppColors.surface,
+                  color: Colors.white,
                 ),
               ),
               onPressed: _showTxFilterSheet,
@@ -690,7 +688,7 @@ class _CashClosingViewState extends State<CashClosingView>
               icon: const Icon(
                 Icons.calendar_month,
                 size: 20,
-                color: AppColors.surface,
+                color: Colors.white,
               ),
               onPressed: _pickDateRange,
               splashRadius: 18,
@@ -700,11 +698,11 @@ class _CashClosingViewState extends State<CashClosingView>
             preferredSize: const Size.fromHeight(42),
             child: Container(
               padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
-              color: AppColors.surface,
+              color: Colors.white,
               child: Container(
                 height: 34,
                 decoration: BoxDecoration(
-                  color: AppColors.background,
+                  color: Colors.grey.shade100,
                   borderRadius: BorderRadius.circular(17),
                 ),
                 child: TextField(
@@ -714,16 +712,16 @@ class _CashClosingViewState extends State<CashClosingView>
                     color: CustomAppBar.kTextPrimary,
                     fontSize: AppTextStyles.subtitle1.fontSize,
                   ),
-                  cursorColor: AppColors.primary,
+                  cursorColor: Colors.indigo,
                   decoration: InputDecoration(
                     hintText: 'Tìm theo tên, mô tả, ghi chú...',
                     hintStyle: TextStyle(
-                      color: AppColors.textHint,
+                      color: Colors.grey.shade500,
                       fontSize: AppTextStyles.subtitle1.fontSize,
                     ),
                     prefixIcon: const Icon(
                       Icons.search_rounded,
-                      color: AppColors.primary,
+                      color: Colors.indigo,
                       size: 16,
                     ),
                     prefixIconConstraints: const BoxConstraints(minWidth: 34),
@@ -731,7 +729,7 @@ class _CashClosingViewState extends State<CashClosingView>
                         ? IconButton(
                             icon: Icon(
                               Icons.close_rounded,
-                              color: AppColors.textHint,
+                              color: Colors.grey.shade500,
                               size: 16,
                             ),
                             onPressed: () {
@@ -788,7 +786,7 @@ class _CashClosingViewState extends State<CashClosingView>
       pinned: true,
       toolbarHeight: CustomAppBar.kAppBarHeight,
       backgroundColor: CustomAppBar.kGradientStart,
-      foregroundColor: AppColors.surface,
+      foregroundColor: Colors.white,
       elevation: 0,
       titleSpacing: 8,
       flexibleSpace: Container(
@@ -808,7 +806,7 @@ class _CashClosingViewState extends State<CashClosingView>
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: CustomAppBar.kTitleFontSize,
-              color: AppColors.surface,
+              color: Colors.white,
             ),
           ),
           const SizedBox(width: 8),
@@ -817,9 +815,9 @@ class _CashClosingViewState extends State<CashClosingView>
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
               decoration: BoxDecoration(
-                color: AppColors.surface.withAlpha(51),
+                color: Colors.white.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.surface.withAlpha(77)),
+                border: Border.all(color: Colors.white.withOpacity(0.3)),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -827,20 +825,20 @@ class _CashClosingViewState extends State<CashClosingView>
                   const Icon(
                     Icons.calendar_today,
                     size: 12,
-                    color: AppColors.surface,
+                    color: Colors.white,
                   ),
                   const SizedBox(width: 4),
                   Text(
                     DateFormat('dd/MM/yyyy', 'vi').format(_selectedDate),
                     style: const TextStyle(
-                      color: AppColors.surface,
+                      color: Colors.white,
                       fontWeight: FontWeight.w600,
                       fontSize: CustomAppBar.kSubtitleFontSize + 1,
                     ),
                   ),
                   const Icon(
                     Icons.arrow_drop_down,
-                    color: AppColors.surface,
+                    color: Colors.white,
                     size: 16,
                   ),
                 ],
@@ -852,21 +850,21 @@ class _CashClosingViewState extends State<CashClosingView>
       actions: [
         IconButton(
           tooltip: 'Xuất Excel sổ quỹ',
-          icon: const Icon(Icons.file_download, size: 20, color: AppColors.surface),
+          icon: const Icon(Icons.file_download, size: 20, color: Colors.white),
           onPressed: _exportCashClosingExcel,
           splashRadius: 18,
         ),
         IconButton(
-          icon: const Icon(Icons.calendar_month, size: 20, color: AppColors.surface),
+          icon: const Icon(Icons.calendar_month, size: 20, color: Colors.white),
           onPressed: _pickDate,
           splashRadius: 18,
         ),
       ],
       bottom: TabBar(
         controller: _tabController,
-        labelColor: AppColors.primary,
+        labelColor: Colors.white,
         unselectedLabelColor: Colors.white70,
-        indicatorColor: AppColors.primary,
+        indicatorColor: Colors.white,
         indicatorWeight: 2,
         labelPadding: EdgeInsets.zero,
         tabs: [
@@ -942,9 +940,9 @@ class _CashClosingViewState extends State<CashClosingView>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: AppColors.surface.withAlpha(38),
+        color: Colors.white.withOpacity(0.15),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.surface.withAlpha(77)),
+        border: Border.all(color: Colors.white.withOpacity(0.3)),
       ),
       child: Row(
         children: [
@@ -961,14 +959,14 @@ class _CashClosingViewState extends State<CashClosingView>
                 Text(
                   label,
                   style: TextStyle(
-                    color: AppColors.surface.withAlpha(204),
+                    color: Colors.white.withOpacity(0.8),
                     fontSize: AppTextStyles.overlineSize,
                   ),
                 ),
                 Text(
                   MoneyUtils.formatCompactCurrency(amount),
                   style: TextStyle(
-                    color: AppColors.surface,
+                    color: Colors.white,
                     fontSize: AppTextStyles.body1.fontSize,
                     fontWeight: FontWeight.bold,
                   ),
@@ -1044,7 +1042,7 @@ class _CashClosingViewState extends State<CashClosingView>
           _buildSectionCard(
             "SỐ DƯ DỰ KIẾN CUỐI NGÀY",
             Icons.savings,
-            AppColors.success,
+            Colors.green,
             [
               _infoRow(
                 "Tiền mặt",
@@ -1059,7 +1057,7 @@ class _CashClosingViewState extends State<CashClosingView>
                 "Tổng dự kiến",
                 MoneyUtils.formatCompactCurrency(expectedCash + expectedBank),
                 bold: true,
-                color: AppColors.success,
+                color: Colors.green,
               ),
             ],
           ),
@@ -1077,12 +1075,12 @@ class _CashClosingViewState extends State<CashClosingView>
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [AppColors.primary, AppColors.primary],
+          colors: [Colors.indigo.shade600, Colors.indigo.shade400],
         ),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withAlpha(77),
+            color: Colors.indigo.withOpacity(0.3),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -1094,7 +1092,7 @@ class _CashClosingViewState extends State<CashClosingView>
             children: [
               const Icon(
                 Icons.account_balance_wallet,
-                color: AppColors.surface,
+                color: Colors.white,
                 size: 24,
               ),
               const SizedBox(width: 8),
@@ -1110,13 +1108,13 @@ class _CashClosingViewState extends State<CashClosingView>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: diff >= 0 ? AppColors.success : AppColors.error,
+                  color: diff >= 0 ? Colors.green : Colors.red,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
                   "${diff >= 0 ? '↑' : '↓'} ${MoneyUtils.formatCompactCurrency(diff.abs())}",
                   style: TextStyle(
-                    color: AppColors.surface,
+                    color: Colors.white,
                     fontSize: AppTextStyles.body1.fontSize,
                     fontWeight: FontWeight.bold,
                   ),
@@ -1128,7 +1126,7 @@ class _CashClosingViewState extends State<CashClosingView>
           Text(
             MoneyUtils.formatCompactCurrency(total),
             style: TextStyle(
-              color: AppColors.surface,
+              color: Colors.white,
               fontSize: AppTextStyles.headline1.fontSize,
               fontWeight: FontWeight.bold,
             ),
@@ -1140,7 +1138,7 @@ class _CashClosingViewState extends State<CashClosingView>
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AppColors.surface.withAlpha(38),
+                    color: Colors.white.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Column(
@@ -1156,7 +1154,7 @@ class _CashClosingViewState extends State<CashClosingView>
                       Text(
                         MoneyUtils.formatCompactCurrency(cash),
                         style: TextStyle(
-                          color: AppColors.surface,
+                          color: Colors.white,
                           fontWeight: FontWeight.bold,
                           fontSize: AppTextStyles.headline4.fontSize,
                         ),
@@ -1170,7 +1168,7 @@ class _CashClosingViewState extends State<CashClosingView>
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AppColors.surface.withAlpha(38),
+                    color: Colors.white.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Column(
@@ -1186,7 +1184,7 @@ class _CashClosingViewState extends State<CashClosingView>
                       Text(
                         MoneyUtils.formatCompactCurrency(bank),
                         style: TextStyle(
-                          color: AppColors.surface,
+                          color: Colors.white,
                           fontWeight: FontWeight.bold,
                           fontSize: AppTextStyles.headline4.fontSize,
                         ),
@@ -1211,11 +1209,11 @@ class _CashClosingViewState extends State<CashClosingView>
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: AppColors.textPrimary.withAlpha(13),
+            color: Colors.black.withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -1229,7 +1227,7 @@ class _CashClosingViewState extends State<CashClosingView>
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: color.withAlpha(26),
+                  color: color.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(icon, color: color, size: 20),
@@ -1267,7 +1265,7 @@ class _CashClosingViewState extends State<CashClosingView>
             label,
             style: TextStyle(
               fontSize: AppTextStyles.headline5.fontSize,
-              color: AppColors.textSecondary,
+              color: Colors.black54,
             ),
           ),
           Text(
@@ -1288,11 +1286,11 @@ class _CashClosingViewState extends State<CashClosingView>
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: AppColors.textPrimary.withAlpha(13),
+            color: Colors.black.withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -1306,12 +1304,12 @@ class _CashClosingViewState extends State<CashClosingView>
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withAlpha(26),
+                  color: Colors.blue.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(
                   Icons.account_balance_wallet,
-                  color: AppColors.primary,
+                  color: Colors.blue,
                   size: 20,
                 ),
               ),
@@ -1321,7 +1319,7 @@ class _CashClosingViewState extends State<CashClosingView>
                   "SỐ DƯ ĐẦU NGÀY",
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: AppColors.primary,
+                    color: Colors.blue,
                     fontSize: AppTextStyles.headline4.fontSize,
                   ),
                 ),
@@ -1359,15 +1357,15 @@ class _CashClosingViewState extends State<CashClosingView>
               child: Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: AppColors.warning,
+                  color: Colors.orange.shade50,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.warning),
+                  border: Border.all(color: Colors.orange.shade200),
                 ),
                 child: Row(
                   children: [
                     Icon(
                       Icons.info_outline,
-                      color: AppColors.warning,
+                      color: Colors.orange.shade700,
                       size: 18,
                     ),
                     const SizedBox(width: 8),
@@ -1376,7 +1374,7 @@ class _CashClosingViewState extends State<CashClosingView>
                         "Chưa có số dư đầu kỳ. Bấm \"Nhập\" để thiết lập.",
                         style: TextStyle(
                           fontSize: AppTextStyles.body1.fontSize,
-                          color: AppColors.warning,
+                          color: Colors.orange.shade700,
                         ),
                       ),
                     ),
@@ -1409,7 +1407,7 @@ class _CashClosingViewState extends State<CashClosingView>
           bottom: MediaQuery.of(context).viewInsets.bottom,
         ),
         decoration: const BoxDecoration(
-          color: AppColors.surface,
+          color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: SingleChildScrollView(
@@ -1421,7 +1419,7 @@ class _CashClosingViewState extends State<CashClosingView>
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.outline,
+                  color: Colors.grey.shade300,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -1431,14 +1429,14 @@ class _CashClosingViewState extends State<CashClosingView>
                 style: TextStyle(
                   fontSize: AppTextStyles.headline2.fontSize,
                   fontWeight: FontWeight.bold,
-                  color: AppColors.primary,
+                  color: Colors.indigo,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
                 "Số dư này sẽ được dùng làm điểm bắt đầu cho ${DateFormat('dd/MM/yyyy').format(_selectedDate)}",
                 style: TextStyle(
-                  color: AppColors.textHint,
+                  color: Colors.grey,
                   fontSize: AppTextStyles.subtitle1.fontSize,
                 ),
                 textAlign: TextAlign.center,
@@ -1466,9 +1464,9 @@ class _CashClosingViewState extends State<CashClosingView>
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  prefixIcon: const Icon(Icons.money, color: AppColors.warning),
+                  prefixIcon: const Icon(Icons.money, color: Colors.amber),
                   filled: true,
-                  fillColor: AppColors.warning,
+                  fillColor: Colors.amber.shade50,
                 ),
               ),
               const SizedBox(height: 16),
@@ -1496,10 +1494,10 @@ class _CashClosingViewState extends State<CashClosingView>
                   ),
                   prefixIcon: const Icon(
                     Icons.account_balance,
-                    color: AppColors.primary,
+                    color: Colors.blue,
                   ),
                   filled: true,
-                  fillColor: AppColors.primary,
+                  fillColor: Colors.blue.shade50,
                 ),
               ),
               const SizedBox(height: 24),
@@ -1540,8 +1538,8 @@ class _CashClosingViewState extends State<CashClosingView>
                       icon: const Icon(Icons.save),
                       label: const Text("LƯU SỐ DƯ ĐẦU KỲ"),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: AppColors.surface,
+                        backgroundColor: Colors.indigo,
+                        foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
                     ),
@@ -1628,7 +1626,7 @@ class _CashClosingViewState extends State<CashClosingView>
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("✅ Đã lưu số dư đầu kỳ"),
-            backgroundColor: AppColors.primary,
+            backgroundColor: Colors.indigo,
           ),
         );
         await _loadAllData();
@@ -1638,7 +1636,7 @@ class _CashClosingViewState extends State<CashClosingView>
       debugPrint('Stack trace: $stackTrace');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("❌ Lỗi: $e"), backgroundColor: AppColors.error),
+          SnackBar(content: Text("❌ Lỗi: $e"), backgroundColor: Colors.red),
         );
       }
     }
@@ -1656,11 +1654,11 @@ class _CashClosingViewState extends State<CashClosingView>
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: AppColors.textPrimary.withAlpha(13),
+            color: Colors.black.withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -1674,12 +1672,12 @@ class _CashClosingViewState extends State<CashClosingView>
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: AppColors.warning.withAlpha(26),
+                  color: Colors.orange.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(
                   Icons.bar_chart,
-                  color: AppColors.warning,
+                  color: Colors.orange,
                   size: 20,
                 ),
               ),
@@ -1688,7 +1686,7 @@ class _CashClosingViewState extends State<CashClosingView>
                 "BIẾN ĐỘNG TRONG NGÀY",
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: AppColors.warning,
+                  color: Colors.orange,
                   fontSize: AppTextStyles.headline4.fontSize,
                 ),
               ),
@@ -1711,8 +1709,8 @@ class _CashClosingViewState extends State<CashClosingView>
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
                             colors: [
-                              AppColors.success,
-                              AppColors.success,
+                              Colors.green.shade300,
+                              Colors.green.shade600,
                             ],
                           ),
                           borderRadius: const BorderRadius.vertical(
@@ -1732,7 +1730,7 @@ class _CashClosingViewState extends State<CashClosingView>
                     Text(
                       "+${MoneyUtils.formatCompactCurrency(totalIncome)}",
                       style: TextStyle(
-                        color: AppColors.success,
+                        color: Colors.green,
                         fontWeight: FontWeight.bold,
                         fontSize: AppTextStyles.headline5.fontSize,
                       ),
@@ -1753,7 +1751,7 @@ class _CashClosingViewState extends State<CashClosingView>
                           gradient: LinearGradient(
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
-                            colors: [AppColors.error, AppColors.error],
+                            colors: [Colors.red.shade300, Colors.red.shade600],
                           ),
                           borderRadius: const BorderRadius.vertical(
                             top: Radius.circular(8),
@@ -1772,7 +1770,7 @@ class _CashClosingViewState extends State<CashClosingView>
                     Text(
                       "-${MoneyUtils.formatCompactCurrency(totalExpense)}",
                       style: TextStyle(
-                        color: AppColors.error,
+                        color: Colors.red,
                         fontWeight: FontWeight.bold,
                         fontSize: AppTextStyles.headline5.fontSize,
                       ),
@@ -1797,36 +1795,36 @@ class _CashClosingViewState extends State<CashClosingView>
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: AppTextStyles.body1.fontSize,
-                        color: AppColors.success,
+                        color: Colors.green,
                       ),
                     ),
                     const SizedBox(height: 4),
                     _breakdownItem(
                       "Bán hàng",
                       analysis.saleIncome,
-                      AppColors.success,
+                      Colors.green,
                     ),
                     // FIX BUG-CC-005: Hiển thị tiền tất toán ngân hàng (trả góp)
                     _breakdownItem(
                       "Tất toán NH",
                       analysis.settlementIncome,
-                      AppColors.success,
+                      Colors.green,
                     ),
                     if (_enableRepair)
                       _breakdownItem(
                         "Sửa chữa",
                         analysis.repairIncome,
-                        AppColors.success,
+                        Colors.green,
                       ),
                     _breakdownItem(
                       "Thu nợ KH",
                       analysis.debtCollected,
-                      AppColors.success,
+                      Colors.green,
                     ),
                     _breakdownItem(
                       "Thu phát sinh",
                       analysis.miscIncome,
-                      AppColors.info,
+                      Colors.teal,
                     ),
                   ],
                 ),
@@ -1840,28 +1838,28 @@ class _CashClosingViewState extends State<CashClosingView>
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: AppTextStyles.body1.fontSize,
-                        color: AppColors.error,
+                        color: Colors.red,
                       ),
                     ),
                     const SizedBox(height: 4),
-                    _breakdownItem("Chi phí", analysis.expenseOut, AppColors.error),
-                    _breakdownItem("Nhập hàng", analysis.importOut, AppColors.error),
+                    _breakdownItem("Chi phí", analysis.expenseOut, Colors.red),
+                    _breakdownItem("Nhập hàng", analysis.importOut, Colors.red),
                     _breakdownItem(
                       "Trả nợ NCC",
                       analysis.supplierPaid,
-                      AppColors.error,
+                      Colors.red,
                     ),
                     if (analysis.partnerPaid > 0)
                       _breakdownItem(
                         "TT đối tác SC",
                         analysis.partnerPaid,
-                        AppColors.error,
+                        Colors.red,
                       ),
                     if (analysis.repairPartsCostFund > 0)
                       _breakdownItem(
                         "Vốn LK SC",
                         analysis.repairPartsCostFund,
-                        AppColors.error,
+                        Colors.red,
                       ),
                   ],
                 ),
@@ -1876,13 +1874,13 @@ class _CashClosingViewState extends State<CashClosingView>
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: analysis.netProfit >= 0
-                  ? AppColors.success
-                  : AppColors.error,
+                  ? Colors.green.shade50
+                  : Colors.red.shade50,
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
                 color: analysis.netProfit >= 0
-                    ? AppColors.success
-                    : AppColors.error,
+                    ? Colors.green.shade200
+                    : Colors.red.shade200,
               ),
             ),
             child: Column(
@@ -1903,8 +1901,8 @@ class _CashClosingViewState extends State<CashClosingView>
                         fontWeight: FontWeight.bold,
                         fontSize: AppTextStyles.headline3.fontSize,
                         color: analysis.netProfit >= 0
-                            ? AppColors.success
-                            : AppColors.error,
+                            ? Colors.green
+                            : Colors.red,
                       ),
                     ),
                   ],
@@ -1917,14 +1915,14 @@ class _CashClosingViewState extends State<CashClosingView>
                         child: _breakdownItem(
                           "Giá vốn bán",
                           analysis.saleCost,
-                          AppColors.warning,
+                          Colors.orange,
                         ),
                       ),
                       Expanded(
                         child: _breakdownItem(
                           "Giá vốn SC",
                           analysis.repairCost,
-                          AppColors.warning,
+                          Colors.orange,
                         ),
                       ),
                     ],
@@ -1935,7 +1933,7 @@ class _CashClosingViewState extends State<CashClosingView>
                     "= Doanh thu - Chi phí - Giá vốn",
                     style: TextStyle(
                       fontSize: AppTextStyles.caption.fontSize,
-                      color: AppColors.textSecondary,
+                      color: Colors.grey.shade600,
                       fontStyle: FontStyle.italic,
                     ),
                   ),
@@ -1963,7 +1961,7 @@ class _CashClosingViewState extends State<CashClosingView>
               label,
               style: TextStyle(
                 fontSize: AppTextStyles.body1.fontSize,
-                color: AppColors.textSecondary,
+                color: Colors.black54,
               ),
             ),
           ),
@@ -1990,10 +1988,10 @@ class _CashClosingViewState extends State<CashClosingView>
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isClosed ? AppColors.success : AppColors.warning,
+        color: isClosed ? Colors.green.shade50 : Colors.orange.shade50,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isClosed ? AppColors.success : AppColors.warning,
+          color: isClosed ? Colors.green.shade200 : Colors.orange.shade200,
         ),
       ),
       child: Column(
@@ -2001,7 +1999,7 @@ class _CashClosingViewState extends State<CashClosingView>
           Icon(
             isClosed ? Icons.check_circle : Icons.pending_actions,
             size: 48,
-            color: isClosed ? AppColors.success : AppColors.warning,
+            color: isClosed ? Colors.green : Colors.orange,
           ),
           const SizedBox(height: 12),
           Text(
@@ -2009,7 +2007,7 @@ class _CashClosingViewState extends State<CashClosingView>
             style: TextStyle(
               fontSize: AppTextStyles.headline3.fontSize,
               fontWeight: FontWeight.bold,
-              color: isClosed ? AppColors.success : AppColors.warning,
+              color: isClosed ? Colors.green.shade700 : Colors.orange.shade700,
             ),
           ),
           if (isClosed) ...[
@@ -2018,7 +2016,7 @@ class _CashClosingViewState extends State<CashClosingView>
               "Chốt lúc ${_formatTime(_todayClosing!['closedAt'])} bởi ${_todayClosing!['closedBy'] ?? 'N/A'}",
               style: TextStyle(
                 fontSize: AppTextStyles.subtitle1.fontSize,
-                color: AppColors.success,
+                color: Colors.green.shade600,
               ),
               textAlign: TextAlign.center,
             ),
@@ -2042,8 +2040,8 @@ class _CashClosingViewState extends State<CashClosingView>
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.success,
-                  foregroundColor: AppColors.surface,
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -2097,8 +2095,8 @@ class _CashClosingViewState extends State<CashClosingView>
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                AppColors.success,
-                AppColors.success.withAlpha(128),
+                Colors.green.shade50,
+                Colors.green.shade100.withOpacity(0.5),
               ],
             ),
           ),
@@ -2114,14 +2112,14 @@ class _CashClosingViewState extends State<CashClosingView>
                         'TỔNG THU',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: AppColors.success,
+                          color: Colors.green.shade800,
                           fontSize: AppTextStyles.body1.fontSize,
                         ),
                       ),
                       Text(
                         '${incomeList.length} giao dịch',
                         style: TextStyle(
-                          color: AppColors.success,
+                          color: Colors.green.shade600,
                           fontSize: AppTextStyles.caption.fontSize,
                         ),
                       ),
@@ -2132,7 +2130,7 @@ class _CashClosingViewState extends State<CashClosingView>
                     style: TextStyle(
                       fontSize: AppTextStyles.headline2.fontSize,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.success,
+                      color: Colors.green.shade700,
                     ),
                   ),
                 ],
@@ -2144,22 +2142,22 @@ class _CashClosingViewState extends State<CashClosingView>
                   runSpacing: 4,
                   children: [
                     if (saleTotal > 0)
-                      _summaryChip('🛒 Bán hàng', saleTotal, AppColors.success),
+                      _summaryChip('🛒 Bán hàng', saleTotal, Colors.green),
                     if (_enableRepair && repairTotal > 0)
-                      _summaryChip('🔧 Sửa chữa', repairTotal, AppColors.success),
+                      _summaryChip('🔧 Sửa chữa', repairTotal, Colors.green),
                     if (debtTotal > 0)
-                      _summaryChip('💳 Thu nợ', debtTotal, AppColors.success),
+                      _summaryChip('💳 Thu nợ', debtTotal, Colors.green),
                     if (settlementTotal > 0)
                       _summaryChip(
                         '🏦 Tất toán',
                         settlementTotal,
-                        AppColors.success,
+                        Colors.green,
                       ),
                     if (miscIncomeTotal > 0)
                       _summaryChip(
                         '💰 Thu phát sinh',
                         miscIncomeTotal,
-                        AppColors.success,
+                        Colors.green,
                       ),
                   ],
                 ),
@@ -2176,12 +2174,12 @@ class _CashClosingViewState extends State<CashClosingView>
                       Icon(
                         Icons.inbox_outlined,
                         size: 48,
-                        color: AppColors.outline,
+                        color: Colors.grey.shade300,
                       ),
                       const SizedBox(height: 8),
                       Text(
                         'Chưa có giao dịch thu',
-                        style: TextStyle(color: AppColors.textHint),
+                        style: TextStyle(color: Colors.grey.shade400),
                       ),
                     ],
                   ),
@@ -2230,8 +2228,8 @@ class _CashClosingViewState extends State<CashClosingView>
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                AppColors.error,
-                AppColors.error.withAlpha(128),
+                Colors.red.shade50,
+                Colors.red.shade100.withOpacity(0.5),
               ],
             ),
           ),
@@ -2247,14 +2245,14 @@ class _CashClosingViewState extends State<CashClosingView>
                         'TỔNG CHI',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: AppColors.error,
+                          color: Colors.red.shade800,
                           fontSize: AppTextStyles.body1.fontSize,
                         ),
                       ),
                       Text(
                         '${expenseList.length} giao dịch',
                         style: TextStyle(
-                          color: AppColors.error,
+                          color: Colors.red.shade600,
                           fontSize: AppTextStyles.caption.fontSize,
                         ),
                       ),
@@ -2265,7 +2263,7 @@ class _CashClosingViewState extends State<CashClosingView>
                     style: TextStyle(
                       fontSize: AppTextStyles.headline2.fontSize,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.error,
+                      color: Colors.red.shade700,
                     ),
                   ),
                 ],
@@ -2277,18 +2275,18 @@ class _CashClosingViewState extends State<CashClosingView>
                   runSpacing: 4,
                   children: [
                     if (expenseOnly > 0)
-                      _summaryChip('💸 Chi phí', expenseOnly, AppColors.error),
+                      _summaryChip('💸 Chi phí', expenseOnly, Colors.red),
                     if (importTotal > 0)
-                      _summaryChip('📦 Nhập hàng', importTotal, AppColors.error),
+                      _summaryChip('📦 Nhập hàng', importTotal, Colors.red),
                     if (supplierPayTotal > 0)
-                      _summaryChip('🏭 Trả NCC', supplierPayTotal, AppColors.error),
+                      _summaryChip('🏭 Trả NCC', supplierPayTotal, Colors.red),
                     if (partnerPayTotal > 0)
-                      _summaryChip('🔧 Đối tác', partnerPayTotal, AppColors.error),
+                      _summaryChip('🔧 Đối tác', partnerPayTotal, Colors.red),
                     if (repairPartsCostTotal > 0)
                       _summaryChip(
                         '🔩 Vốn LK SC',
                         repairPartsCostTotal,
-                        AppColors.error,
+                        Colors.red,
                       ),
                   ],
                 ),
@@ -2305,12 +2303,12 @@ class _CashClosingViewState extends State<CashClosingView>
                       Icon(
                         Icons.inbox_outlined,
                         size: 48,
-                        color: AppColors.outline,
+                        color: Colors.grey.shade300,
                       ),
                       const SizedBox(height: 8),
                       Text(
                         'Chưa có giao dịch chi',
-                        style: TextStyle(color: AppColors.textHint),
+                        style: TextStyle(color: Colors.grey.shade400),
                       ),
                     ],
                   ),
@@ -2328,7 +2326,7 @@ class _CashClosingViewState extends State<CashClosingView>
   }
 
   Widget _transactionCard(Map<String, dynamic> t, bool isIncome) {
-    final color = isIncome ? AppColors.success : AppColors.error;
+    final color = isIncome ? Colors.green : Colors.red;
     final type = t['type'] as String? ?? '';
     final payMethod = t['paymentMethod'] as String? ?? '';
     final isCash = payMethod == 'TIỀN MẶT';
@@ -2346,12 +2344,12 @@ class _CashClosingViewState extends State<CashClosingView>
         margin: EdgeInsets.zero,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.outline),
+          border: Border.all(color: Colors.grey.shade200),
           boxShadow: [
             BoxShadow(
-              color: AppColors.textPrimary.withOpacity(0.03),
+              color: Colors.black.withOpacity(0.03),
               blurRadius: 6,
               offset: const Offset(0, 2),
             ),
@@ -2368,7 +2366,7 @@ class _CashClosingViewState extends State<CashClosingView>
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    color: color.withAlpha(26),
+                    color: color.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Center(
@@ -2389,7 +2387,7 @@ class _CashClosingViewState extends State<CashClosingView>
                         style: TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: AppTextStyles.headline5.fontSize,
-                          color: AppColors.textPrimary,
+                          color: Colors.black87,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -2400,14 +2398,14 @@ class _CashClosingViewState extends State<CashClosingView>
                           Icon(
                             Icons.access_time,
                             size: 11,
-                            color: AppColors.textHint,
+                            color: Colors.grey.shade500,
                           ),
                           const SizedBox(width: 3),
                           Text(
                             t['time'] as String? ?? '',
                             style: TextStyle(
                               fontSize: AppTextStyles.caption.fontSize,
-                              color: AppColors.textHint,
+                              color: Colors.grey.shade500,
                             ),
                           ),
                           if (note != null) ...[
@@ -2417,7 +2415,7 @@ class _CashClosingViewState extends State<CashClosingView>
                                 '• $note',
                                 style: TextStyle(
                                   fontSize: AppTextStyles.caption.fontSize,
-                                  color: AppColors.warning,
+                                  color: Colors.orange.shade700,
                                   fontStyle: FontStyle.italic,
                                 ),
                                 maxLines: 1,
@@ -2449,7 +2447,7 @@ class _CashClosingViewState extends State<CashClosingView>
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
                 decoration: BoxDecoration(
-                  color: AppColors.background,
+                  color: Colors.grey.shade50,
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Row(
@@ -2458,14 +2456,14 @@ class _CashClosingViewState extends State<CashClosingView>
                       Icon(
                         Icons.person_outline,
                         size: 13,
-                        color: AppColors.textSecondary,
+                        color: Colors.grey.shade600,
                       ),
                       const SizedBox(width: 3),
                       Text(
                         customerName,
                         style: TextStyle(
                           fontSize: AppTextStyles.body1.fontSize,
-                          color: AppColors.textPrimary,
+                          color: Colors.black87,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -2473,7 +2471,7 @@ class _CashClosingViewState extends State<CashClosingView>
                         Text(
                           '  •  ',
                           style: TextStyle(
-                            color: AppColors.textHint,
+                            color: Colors.grey.shade400,
                             fontSize: AppTextStyles.caption.fontSize,
                           ),
                         ),
@@ -2484,7 +2482,7 @@ class _CashClosingViewState extends State<CashClosingView>
                           detail,
                           style: TextStyle(
                             fontSize: AppTextStyles.body1.fontSize,
-                            color: AppColors.textSecondary,
+                            color: Colors.grey.shade700,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -2523,7 +2521,7 @@ class _CashClosingViewState extends State<CashClosingView>
                   Icon(
                     Icons.info_outline,
                     size: 14,
-                    color: AppColors.textHint,
+                    color: Colors.grey.shade400,
                   ),
               ],
             ),
@@ -2537,10 +2535,10 @@ class _CashClosingViewState extends State<CashClosingView>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: isCash ? AppColors.warning : AppColors.primary,
+        color: isCash ? Colors.amber.shade50 : Colors.blue.shade50,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isCash ? AppColors.warning : AppColors.primary,
+          color: isCash ? Colors.amber.shade200 : Colors.blue.shade200,
         ),
       ),
       child: Row(
@@ -2553,7 +2551,7 @@ class _CashClosingViewState extends State<CashClosingView>
             style: TextStyle(
               fontSize: AppTextStyles.caption.fontSize,
               fontWeight: FontWeight.w500,
-              color: isCash ? AppColors.warning : AppColors.primary,
+              color: isCash ? Colors.amber.shade900 : Colors.blue.shade900,
             ),
           ),
         ],
@@ -2565,9 +2563,9 @@ class _CashClosingViewState extends State<CashClosingView>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withAlpha(77)),
+        border: Border.all(color: color.withOpacity(0.3)),
       ),
       child: Text(
         '$label: ${MoneyUtils.formatCompactCurrency(amount)}',
@@ -2604,13 +2602,13 @@ class _CashClosingViewState extends State<CashClosingView>
 
   /// Show bottom sheet detail for non-navigable transactions (expenses, debts, imports)
   void _showTransactionDetail(Map<String, dynamic> t, bool isIncome) {
-    final color = isIncome ? AppColors.success : AppColors.error;
+    final color = isIncome ? Colors.green : Colors.red;
     showAppBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
         decoration: const BoxDecoration(
-          color: AppColors.surface,
+          color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         padding: const EdgeInsets.all(20),
@@ -2621,7 +2619,7 @@ class _CashClosingViewState extends State<CashClosingView>
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: AppColors.outline,
+                color: Colors.grey.shade300,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -2633,7 +2631,7 @@ class _CashClosingViewState extends State<CashClosingView>
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: color.withAlpha(26),
+                    color: color.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: Center(
@@ -2658,7 +2656,7 @@ class _CashClosingViewState extends State<CashClosingView>
                       Text(
                         '${t['time'] ?? ''} • ${DateFormat('dd/MM/yyyy').format(_selectedDate)}',
                         style: TextStyle(
-                          color: AppColors.textHint,
+                          color: Colors.grey,
                           fontSize: AppTextStyles.body1.fontSize,
                         ),
                       ),
@@ -2673,9 +2671,9 @@ class _CashClosingViewState extends State<CashClosingView>
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: color.withAlpha(13),
+                color: color.withOpacity(0.05),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: color.withAlpha(51)),
+                border: Border.all(color: color.withOpacity(0.2)),
               ),
               child: Column(
                 children: [
@@ -2736,14 +2734,14 @@ class _CashClosingViewState extends State<CashClosingView>
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 18, color: AppColors.textSecondary),
+          Icon(icon, size: 18, color: Colors.grey.shade600),
           const SizedBox(width: 10),
           SizedBox(
             width: 100,
             child: Text(
               label,
               style: TextStyle(
-                color: AppColors.textSecondary,
+                color: Colors.grey.shade600,
                 fontSize: AppTextStyles.body1.fontSize,
               ),
             ),
@@ -2790,7 +2788,7 @@ class _CashClosingViewState extends State<CashClosingView>
         builder: (ctx, setSheetState) {
           return Container(
             decoration: const BoxDecoration(
-              color: AppColors.surface,
+              color: Colors.white,
               borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
             ),
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
@@ -2803,7 +2801,7 @@ class _CashClosingViewState extends State<CashClosingView>
                     width: 36,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: AppColors.outline,
+                      color: Colors.grey.shade300,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -2833,7 +2831,7 @@ class _CashClosingViewState extends State<CashClosingView>
                         ),
                       ),
                       selected: selected,
-                      selectedColor: AppColors.primary,
+                      selectedColor: Colors.indigo.shade100,
                       onSelected: (_) {
                         setSheetState(() {});
                         setState(() {
@@ -2931,8 +2929,8 @@ class _CashClosingViewState extends State<CashClosingView>
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                AppColors.primary,
-                AppColors.primary.withAlpha(128),
+                Colors.indigo.shade50,
+                Colors.indigo.shade100.withOpacity(0.5),
               ],
             ),
           ),
@@ -2948,14 +2946,14 @@ class _CashClosingViewState extends State<CashClosingView>
                         'TẤT CẢ GIAO DỊCH',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: AppColors.primary,
+                          color: Colors.indigo.shade800,
                           fontSize: AppTextStyles.body1.fontSize,
                         ),
                       ),
                       Text(
                         '${allTransactions.length} giao dịch',
                         style: TextStyle(
-                          color: AppColors.primary,
+                          color: Colors.indigo.shade600,
                           fontSize: AppTextStyles.caption.fontSize,
                         ),
                       ),
@@ -2967,8 +2965,8 @@ class _CashClosingViewState extends State<CashClosingView>
                       fontSize: AppTextStyles.headline2.fontSize,
                       fontWeight: FontWeight.bold,
                       color: (totalIn - totalOut) >= 0
-                          ? AppColors.success
-                          : AppColors.error,
+                          ? Colors.green.shade700
+                          : Colors.red.shade700,
                     ),
                   ),
                 ],
@@ -2977,9 +2975,9 @@ class _CashClosingViewState extends State<CashClosingView>
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  _summaryChip('↓ Thu', totalIn, AppColors.success),
+                  _summaryChip('↓ Thu', totalIn, Colors.green),
                   const SizedBox(width: 8),
-                  _summaryChip('↑ Chi', totalOut, AppColors.error),
+                  _summaryChip('↑ Chi', totalOut, Colors.red),
                 ],
               ),
             ],
@@ -2994,12 +2992,12 @@ class _CashClosingViewState extends State<CashClosingView>
                       Icon(
                         Icons.receipt_long,
                         size: 48,
-                        color: AppColors.outline,
+                        color: Colors.grey.shade300,
                       ),
                       const SizedBox(height: 8),
                       Text(
                         'Chưa có giao dịch nào',
-                        style: TextStyle(color: AppColors.textHint),
+                        style: TextStyle(color: Colors.grey.shade400),
                       ),
                     ],
                   ),
@@ -3098,10 +3096,10 @@ class _CashClosingViewState extends State<CashClosingView>
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(color: AppColors.textPrimary.withAlpha(13), blurRadius: 10),
+          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
         ],
       ),
       child: Column(
@@ -3145,10 +3143,10 @@ class _CashClosingViewState extends State<CashClosingView>
                               end: Alignment.bottomCenter,
                               colors: total >= 0
                                   ? [
-                                      AppColors.primary,
-                                      AppColors.primary,
+                                      Colors.indigo.shade300,
+                                      Colors.indigo.shade600,
                                     ]
-                                  : [AppColors.error, AppColors.error],
+                                  : [Colors.red.shade300, Colors.red.shade600],
                             ),
                             borderRadius: const BorderRadius.vertical(
                               top: Radius.circular(4),
@@ -3160,7 +3158,7 @@ class _CashClosingViewState extends State<CashClosingView>
                           day,
                           style: TextStyle(
                             fontSize: AppTextStyles.caption.fontSize,
-                            color: AppColors.textHint,
+                            color: Colors.grey,
                           ),
                         ),
                       ],
@@ -3183,9 +3181,9 @@ class _CashClosingViewState extends State<CashClosingView>
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.success.withAlpha(51)),
+        border: Border.all(color: Colors.green.withOpacity(0.2)),
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -3196,12 +3194,12 @@ class _CashClosingViewState extends State<CashClosingView>
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: AppColors.success,
+                  color: Colors.green.shade50,
                   borderRadius: BorderRadius.circular(9),
                 ),
                 child: const Icon(
                   Icons.check_circle,
-                  color: AppColors.success,
+                  color: Colors.green,
                   size: 20,
                 ),
               ),
@@ -3221,7 +3219,7 @@ class _CashClosingViewState extends State<CashClosingView>
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: AppTextStyles.body1.fontSize,
-                        color: AppColors.textSecondary,
+                        color: Colors.black54,
                       ),
                     ),
                   ],
@@ -3239,7 +3237,7 @@ class _CashClosingViewState extends State<CashClosingView>
                       MoneyUtils.formatCompactCurrency(cashEnd + bankEnd),
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        color: AppColors.success,
+                        color: Colors.green,
                         fontSize: AppTextStyles.headline3.fontSize,
                       ),
                     ),
@@ -3275,7 +3273,7 @@ class _CashClosingViewState extends State<CashClosingView>
               bottom: MediaQuery.of(context).viewInsets.bottom,
             ),
             decoration: const BoxDecoration(
-              color: AppColors.surface,
+              color: Colors.white,
               borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
             ),
             child: SingleChildScrollView(
@@ -3287,7 +3285,7 @@ class _CashClosingViewState extends State<CashClosingView>
                     width: 40,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: AppColors.outline,
+                      color: Colors.grey.shade300,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -3301,7 +3299,7 @@ class _CashClosingViewState extends State<CashClosingView>
                   ),
                   Text(
                     DateFormat('dd/MM/yyyy').format(_selectedDate),
-                    style: const TextStyle(color: AppColors.textHint),
+                    style: const TextStyle(color: Colors.grey),
                   ),
                   const SizedBox(height: 24),
                   _closingInputCard(
@@ -3332,7 +3330,7 @@ class _CashClosingViewState extends State<CashClosingView>
                           borderRadius: BorderRadius.circular(12),
                         ),
                         filled: true,
-                        fillColor: AppColors.warning,
+                        fillColor: Colors.orange.shade50,
                       ),
                     ),
                   ],
@@ -3367,7 +3365,7 @@ class _CashClosingViewState extends State<CashClosingView>
                                     );
                                     NotificationService.showSnackBar(
                                       "Lỗi: $e",
-                                      color: AppColors.error,
+                                      color: Colors.red,
                                     );
                                   }
                                 },
@@ -3377,7 +3375,7 @@ class _CashClosingViewState extends State<CashClosingView>
                                   height: 16,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
-                                    color: AppColors.surface,
+                                    color: Colors.white,
                                   ),
                                 )
                               : const Icon(Icons.check),
@@ -3385,8 +3383,8 @@ class _CashClosingViewState extends State<CashClosingView>
                             isSavingClosing ? "ĐANG LƯU..." : "XÁC NHẬN CHỐT",
                           ),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.success,
-                            foregroundColor: AppColors.surface,
+                            backgroundColor: Colors.green,
+                            foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 14),
                           ),
                         ),
@@ -3413,10 +3411,10 @@ class _CashClosingViewState extends State<CashClosingView>
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isOk ? AppColors.success : AppColors.warning,
+        color: isOk ? Colors.green.shade50 : Colors.orange.shade50,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isOk ? AppColors.success : AppColors.warning,
+          color: isOk ? Colors.green.shade200 : Colors.orange.shade200,
         ),
       ),
       child: Column(
@@ -3430,7 +3428,7 @@ class _CashClosingViewState extends State<CashClosingView>
                 "Dự kiến: ",
                 style: TextStyle(
                   fontSize: AppTextStyles.subtitle1.fontSize,
-                  color: AppColors.textSecondary,
+                  color: Colors.black54,
                 ),
               ),
               Text(
@@ -3453,7 +3451,7 @@ class _CashClosingViewState extends State<CashClosingView>
                 borderRadius: BorderRadius.circular(10),
               ),
               filled: true,
-              fillColor: AppColors.surface,
+              fillColor: Colors.white,
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 12,
                 vertical: 10,
@@ -3471,14 +3469,14 @@ class _CashClosingViewState extends State<CashClosingView>
                 "${diff >= 0 ? '+' : ''}${MoneyUtils.formatCompactCurrency(diff)}",
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: isOk ? AppColors.success : AppColors.warning,
+                  color: isOk ? Colors.green : Colors.orange,
                 ),
               ),
               const SizedBox(width: 4),
               Icon(
                 isOk ? Icons.check_circle : Icons.warning,
                 size: 16,
-                color: isOk ? AppColors.success : AppColors.warning,
+                color: isOk ? Colors.green : Colors.orange,
               ),
             ],
           ),
@@ -3498,7 +3496,7 @@ class _CashClosingViewState extends State<CashClosingView>
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text("❌ Chỉ được chốt quỹ cho ngày hôm nay"),
-              backgroundColor: AppColors.warning,
+              backgroundColor: Colors.orange,
             ),
           );
         }
@@ -3510,7 +3508,7 @@ class _CashClosingViewState extends State<CashClosingView>
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text("⚠️ Ngày hôm nay đã chốt quỹ, không thể chốt lại"),
-              backgroundColor: AppColors.warning,
+              backgroundColor: Colors.orange,
             ),
           );
         }
@@ -3531,7 +3529,7 @@ class _CashClosingViewState extends State<CashClosingView>
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text("⚠️ Vui lòng nhập ghi chú khi có chênh lệch"),
-              backgroundColor: AppColors.warning,
+              backgroundColor: Colors.orange,
             ),
           );
         }
@@ -3608,7 +3606,7 @@ class _CashClosingViewState extends State<CashClosingView>
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("✅ ĐÃ CHỐT QUỸ THÀNH CÔNG"),
-            backgroundColor: AppColors.success,
+            backgroundColor: Colors.green,
           ),
         );
         await _loadAllData();
@@ -3617,7 +3615,7 @@ class _CashClosingViewState extends State<CashClosingView>
       debugPrint('Error saving closing: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("❌ Lỗi: $e"), backgroundColor: AppColors.error),
+          SnackBar(content: Text("❌ Lỗi: $e"), backgroundColor: Colors.red),
         );
       }
     }

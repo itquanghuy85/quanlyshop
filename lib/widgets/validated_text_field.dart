@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import '../services/user_service.dart';
 import '../theme/app_text_styles.dart';
@@ -155,43 +154,43 @@ class _ValidatedTextFieldState extends State<ValidatedTextField> {
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide(
-              color: _errorText != null ? AppColors.error : AppColors.outline,
+              color: _errorText != null ? Colors.red : Colors.grey.shade300,
             ),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide(
-              color: _errorText != null ? AppColors.error : AppColors.outline,
+              color: _errorText != null ? Colors.red : Colors.grey.shade300,
             ),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide(
               color: _errorText != null
-                  ? AppColors.error
+                  ? Colors.red
                   : Theme.of(context).primaryColor,
             ),
           ),
           errorBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: AppColors.error),
+            borderSide: const BorderSide(color: Colors.red),
           ),
           focusedErrorBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: AppColors.error, width: 2),
+            borderSide: const BorderSide(color: Colors.red, width: 2),
           ),
           errorText: _errorText,
           errorStyle: TextStyle(
-            color: AppColors.error,
+            color: Colors.red,
             fontSize: AppTextStyles.subtitle1.fontSize,
           ),
           counterText: widget.maxLength != null ? null : '',
           filled: true,
-          fillColor: widget.enabled ? AppColors.surface : AppColors.background,
+          fillColor: widget.enabled ? Colors.white : Colors.grey.shade100,
         ),
         style: TextStyle(
           fontSize: AppTextStyles.headline3.fontSize,
-          color: widget.enabled ? AppColors.textPrimary : AppColors.textHint,
+          color: widget.enabled ? Colors.black87 : Colors.grey,
         ),
       ),
     );

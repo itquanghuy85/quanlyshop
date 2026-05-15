@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
-import '../theme/app_spacing.dart';
 import '../theme/app_text_styles.dart';
-import '../theme/design_tokens.dart';
 
 /// Widget Card với header chuyên nghiệp dùng cho các sections trong form
 /// Thiết kế: Header có icon + tiêu đề + badge tùy chọn, body có padding và border radius
@@ -31,13 +29,13 @@ class SectionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: AppSpacing.lg),
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: DesignTokens.brLg,
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: AppColors.textPrimary.withOpacity(0.04),
+            color: Colors.black.withOpacity(0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -49,29 +47,29 @@ class SectionCard extends StatelessWidget {
           // Header
           InkWell(
             onTap: onHeaderTap,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(DesignTokens.radiusLg)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.md),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
                 color: (iconColor ?? AppColors.primary).withOpacity(0.08),
                 borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(DesignTokens.radiusLg)),
+                    const BorderRadius.vertical(top: Radius.circular(16)),
               ),
               child: Row(
                 children: [
                   Container(
-                    padding: AppSpacing.pSm,
+                    padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       color: (iconColor ?? AppColors.primary).withOpacity(0.15),
-                      borderRadius: DesignTokens.brSm,
+                      borderRadius: BorderRadius.circular(10),
                     ),
                     child: Icon(
                       icon,
                       color: iconColor ?? AppColors.primary,
-                      size: DesignTokens.iconMd,
+                      size: 20,
                     ),
                   ),
-                  AppSpacing.hMd,
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       title,
@@ -92,11 +90,11 @@ class SectionCard extends StatelessWidget {
             Divider(
               height: 1,
               thickness: 1,
-              color: AppColors.outline.withAlpha(77),
+              color: AppColors.outline.withOpacity(0.3),
             ),
           // Content
           Padding(
-            padding: padding ?? AppSpacing.pLg,
+            padding: padding ?? const EdgeInsets.all(16),
             child: child,
           ),
         ],
@@ -125,15 +123,15 @@ class SimpleCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: margin ?? const EdgeInsets.only(bottom: AppSpacing.md),
-      padding: padding ?? AppSpacing.pLg,
+      margin: margin ?? const EdgeInsets.only(bottom: 12),
+      padding: padding ?? const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: backgroundColor ?? AppColors.surface,
-        borderRadius: DesignTokens.brMd,
+        borderRadius: BorderRadius.circular(12),
         border: borderColor != null ? Border.all(color: borderColor!) : null,
         boxShadow: [
           BoxShadow(
-            color: AppColors.textPrimary.withOpacity(0.03),
+            color: Colors.black.withOpacity(0.03),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
@@ -166,13 +164,13 @@ class InfoRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final content = Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs + 2),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (icon != null) ...[
-            Icon(icon, size: DesignTokens.iconSm, color: AppColors.grey600),
-            AppSpacing.hSm,
+            Icon(icon, size: 16, color: AppColors.grey600),
+            const SizedBox(width: 8),
           ],
           SizedBox(
             width: 100,
@@ -195,7 +193,7 @@ class InfoRow extends StatelessWidget {
           if (onTap != null)
             const Icon(
               Icons.chevron_right,
-              size: DesignTokens.iconSm + 2,
+              size: 18,
               color: AppColors.grey600,
             ),
         ],
@@ -205,7 +203,7 @@ class InfoRow extends StatelessWidget {
     if (onTap != null) {
       return InkWell(
         onTap: onTap,
-        borderRadius: DesignTokens.brSm,
+        borderRadius: BorderRadius.circular(8),
         child: content,
       );
     }
@@ -233,7 +231,7 @@ class StatusBadge extends StatelessWidget {
       decoration: BoxDecoration(
         color: color.withOpacity(0.15),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withAlpha(77)),
+        border: Border.all(color: color.withOpacity(0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -297,7 +295,7 @@ class CompactActionButton extends StatelessWidget {
       label: Text(label, style: AppTextStyles.caption),
       style: ElevatedButton.styleFrom(
         backgroundColor: buttonColor,
-        foregroundColor: AppColors.surface,
+        foregroundColor: Colors.white,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         minimumSize: Size.zero,
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -305,4 +303,3 @@ class CompactActionButton extends StatelessWidget {
     );
   }
 }
-

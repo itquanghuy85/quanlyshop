@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
 import 'package:intl/intl.dart';
 
 /// Dialog for selecting date range filter before Excel export.
@@ -59,7 +58,7 @@ class _ExportDateFilterDialogState extends State<ExportDateFilterDialog> {
             Text(
               'Chọn khoảng thời gian:',
               style: TextStyle(
-                color: isDark ? Colors.white70 : AppColors.textSecondary,
+                color: isDark ? Colors.white70 : Colors.black54,
                 fontSize: 16,
               ),
             ),
@@ -124,7 +123,7 @@ class _ExportDateFilterDialogState extends State<ExportDateFilterDialog> {
             Icon(
               icon,
               size: 20,
-              color: isSelected ? theme.colorScheme.primary : AppColors.textHint,
+              color: isSelected ? theme.colorScheme.primary : Colors.grey,
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -155,7 +154,7 @@ class _ExportDateFilterDialogState extends State<ExportDateFilterDialog> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         decoration: BoxDecoration(
-          border: Border.all(color: AppColors.textHint),
+          border: Border.all(color: Colors.grey.shade400),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
@@ -167,7 +166,7 @@ class _ExportDateFilterDialogState extends State<ExportDateFilterDialog> {
                   ? DateFormat('dd/MM/yyyy').format(date)
                   : label,
               style: TextStyle(
-                color: date != null ? null : AppColors.textHint,
+                color: date != null ? null : Colors.grey,
               ),
             ),
           ],

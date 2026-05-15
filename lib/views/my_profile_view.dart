@@ -104,9 +104,9 @@ class _MyProfileViewState extends State<MyProfileView> {
             ),
           ),
         ),
-        title: const Text('HỒ SƠ CÁ NHÂN', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.surface)),
-        backgroundColor: AppColors.surface,
-        foregroundColor: AppColors.textPrimary,
+        title: const Text('HỒ SƠ CÁ NHÂN', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
         elevation: 0,
       ),
       body: ResponsiveCenter(
@@ -132,7 +132,7 @@ class _MyProfileViewState extends State<MyProfileView> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(_getRoleDisplayName(_role), style: AppTextStyles.caption.copyWith(color: AppColors.onSurface.withAlpha(153))),
+                          Text(_getRoleDisplayName(_role), style: AppTextStyles.caption.copyWith(color: AppColors.onSurface.withOpacity(0.6))),
                           const SizedBox(height: 4),
                         ],
                       )

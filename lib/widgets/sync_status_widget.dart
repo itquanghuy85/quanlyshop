@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
 import '../services/connectivity_service.dart';
 import '../theme/app_text_styles.dart';
 
@@ -27,7 +26,7 @@ class _SyncStatusWidgetState extends State<SyncStatusWidget> {
       messenger.showSnackBar(
         const SnackBar(
           content: Text('Không có kết nối mạng'),
-          backgroundColor: AppColors.error,
+          backgroundColor: Colors.red,
         ),
       );
       return;
@@ -39,14 +38,14 @@ class _SyncStatusWidgetState extends State<SyncStatusWidget> {
       messenger.showSnackBar(
         const SnackBar(
           content: Text('Đồng bộ thành công'),
-          backgroundColor: AppColors.success,
+          backgroundColor: Colors.green,
         ),
       );
     } catch (e) {
       messenger.showSnackBar(
         SnackBar(
           content: Text('Lỗi đồng bộ: ${e.toString()}'),
-          backgroundColor: AppColors.error,
+          backgroundColor: Colors.red,
         ),
       );
     } finally {
@@ -63,9 +62,9 @@ class _SyncStatusWidgetState extends State<SyncStatusWidget> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: isOnline ? AppColors.success : AppColors.error,
+        color: isOnline ? Colors.green.shade50 : Colors.red.shade50,
         border: Border.all(
-          color: isOnline ? AppColors.success : AppColors.error,
+          color: isOnline ? Colors.green.shade200 : Colors.red.shade200,
         ),
         borderRadius: BorderRadius.circular(8),
       ),
@@ -74,7 +73,7 @@ class _SyncStatusWidgetState extends State<SyncStatusWidget> {
         children: [
           Icon(
             isOnline ? Icons.wifi : Icons.wifi_off,
-            color: isOnline ? AppColors.success : AppColors.error,
+            color: isOnline ? Colors.green : Colors.red,
             size: 20,
           ),
           const SizedBox(width: 8),
@@ -83,7 +82,7 @@ class _SyncStatusWidgetState extends State<SyncStatusWidget> {
                 ? 'Trực tuyến'
                 : 'Ngoại tuyến',
             style: TextStyle(
-              color: isOnline ? AppColors.success : AppColors.error,
+              color: isOnline ? Colors.green.shade700 : Colors.red.shade700,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -106,8 +105,8 @@ class _SyncStatusWidgetState extends State<SyncStatusWidget> {
                       : 'Đồng bộ',
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.success,
-                  foregroundColor: AppColors.surface,
+                  backgroundColor: Colors.green.shade600,
+                  foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
                     vertical: 0,

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import '../widgets/responsive_wrapper.dart';
 import 'package:intl/intl.dart';
@@ -72,7 +71,7 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> {
       if (mounted) {
         NotificationService.showSnackBar(
           'Lỗi khởi tạo dữ liệu: $e',
-          color: AppColors.error,
+          color: Colors.red,
         );
       }
     } finally {
@@ -137,7 +136,7 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> {
       if (mounted) {
         NotificationService.showSnackBar(
           'Lỗi tải mã nhập nhanh: $e',
-          color: AppColors.error,
+          color: Colors.red,
         );
       }
     }
@@ -193,11 +192,11 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> {
       // Real-time listeners handle downloads — chỉ push local changes
       NotificationService.showSnackBar(
         'Đã đồng bộ thành công!',
-        color: AppColors.success,
+        color: Colors.green,
       );
       await _loadCodes();
     } catch (e) {
-      NotificationService.showSnackBar('Lỗi đồng bộ: $e', color: AppColors.error);
+      NotificationService.showSnackBar('Lỗi đồng bộ: $e', color: Colors.red);
     } finally {
       if (mounted) {
         setState(() => _isSyncing = false);
@@ -211,12 +210,12 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> {
       await _loadCodes();
       NotificationService.showSnackBar(
         code.isActive ? 'Đã tắt mã nhập nhanh' : 'Đã bật mã nhập nhanh',
-        color: AppColors.success,
+        color: Colors.green,
       );
     } catch (e) {
       NotificationService.showSnackBar(
         'Lỗi cập nhật trạng thái: $e',
-        color: AppColors.error,
+        color: Colors.red,
       );
     }
   }
@@ -227,7 +226,7 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> {
       builder: (ctx) => AlertDialog(
         title: Row(
           children: [
-            Icon(Icons.warning_amber_rounded, color: AppColors.error),
+            Icon(Icons.warning_amber_rounded, color: Colors.red.shade400),
             const SizedBox(width: 10),
             const Text('XÁC NHẬN XÓA'),
           ],
@@ -241,7 +240,7 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.background,
+                color: Colors.grey.shade100,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
@@ -251,8 +250,8 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> {
                         ? Icons.smartphone
                         : Icons.inventory_2,
                     color: code.type == 'DIEN_THOAI'
-                        ? AppColors.primary
-                        : AppColors.warning,
+                        ? Colors.blue
+                        : Colors.orange,
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -273,7 +272,7 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('XÓA'),
           ),
         ],
@@ -296,12 +295,12 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> {
         }
         NotificationService.showSnackBar(
           'Đã xóa mã nhập nhanh',
-          color: AppColors.success,
+          color: Colors.green,
         );
       } catch (e) {
         NotificationService.showSnackBar(
           'Lỗi xóa mã nhập nhanh: $e',
-          color: AppColors.error,
+          color: Colors.red,
         );
       }
     }
@@ -319,20 +318,20 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> {
               await db.insertQuickInputCode(newCode);
               NotificationService.showSnackBar(
                 'Đã thêm mã nhập nhanh',
-                color: AppColors.success,
+                color: Colors.green,
               );
             } else {
               await db.updateQuickInputCode(newCode);
               NotificationService.showSnackBar(
                 'Đã cập nhật mã nhập nhanh',
-                color: AppColors.success,
+                color: Colors.green,
               );
             }
             await _loadCodes();
           } catch (e) {
             NotificationService.showSnackBar(
               'Lỗi lưu mã nhập nhanh: $e',
-              color: AppColors.error,
+              color: Colors.red,
             );
           }
         },
@@ -365,7 +364,7 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> {
     Clipboard.setData(ClipboardData(text: info));
     NotificationService.showSnackBar(
       'Đã sao chép thông tin',
-      color: AppColors.success,
+      color: Colors.green,
     );
   }
 
@@ -388,11 +387,11 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> {
           style: TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 18,
-            color: AppColors.surface,
+            color: Colors.white,
           ),
         ),
-        backgroundColor: AppColors.surface,
-        foregroundColor: AppColors.textPrimary,
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
         elevation: 0,
         actions: [
           // Sync button với badge
@@ -406,7 +405,7 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> {
                         height: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: AppColors.surface,
+                          color: Colors.white,
                         ),
                       )
                     : const Icon(Icons.cloud_sync),
@@ -419,7 +418,7 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> {
                   child: Container(
                     padding: const EdgeInsets.all(4),
                     decoration: const BoxDecoration(
-                      color: AppColors.warning,
+                      color: Colors.orange,
                       shape: BoxShape.circle,
                     ),
                     child: Text(
@@ -447,25 +446,25 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> {
                 children: [
                   // Search bar
                   Container(
-                    color: AppColors.primary,
+                    color: Colors.blue.shade700,
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                     child: TextField(
                       controller: _searchController,
-                      style: const TextStyle(color: AppColors.surface),
+                      style: const TextStyle(color: Colors.white),
                       decoration: InputDecoration(
                         hintText: 'Tìm kiếm mã nhập nhanh...',
                         hintStyle: TextStyle(
-                          color: AppColors.surface.withAlpha(179),
+                          color: Colors.white.withOpacity(0.7),
                         ),
                         prefixIcon: Icon(
                           Icons.search,
-                          color: AppColors.surface.withAlpha(179),
+                          color: Colors.white.withOpacity(0.7),
                         ),
                         suffixIcon: _searchQuery.isNotEmpty
                             ? IconButton(
                                 icon: const Icon(
                                   Icons.clear,
-                                  color: AppColors.surface,
+                                  color: Colors.white,
                                 ),
                                 onPressed: () {
                                   _searchController.clear();
@@ -474,7 +473,7 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> {
                               )
                             : null,
                         filled: true,
-                        fillColor: AppColors.surface.withAlpha(51),
+                        fillColor: Colors.white.withOpacity(0.2),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: BorderSide.none,
@@ -495,7 +494,7 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> {
                       horizontal: 16,
                       vertical: 12,
                     ),
-                    color: AppColors.surface,
+                    color: Colors.white,
                     child: SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: Row(
@@ -503,25 +502,25 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> {
                           _buildFilterChip(
                             label: 'Tất cả (${_codes.length})',
                             filter: QuickInputFilter.all,
-                            color: AppColors.primary,
+                            color: Colors.blue,
                           ),
                           const SizedBox(width: 8),
                           _buildFilterChip(
                             label: 'Đang bật ($_activeCount)',
                             filter: QuickInputFilter.active,
-                            color: AppColors.success,
+                            color: Colors.green,
                           ),
                           const SizedBox(width: 8),
                           _buildFilterChip(
                             label: 'Đang tắt ($_inactiveCount)',
                             filter: QuickInputFilter.inactive,
-                            color: AppColors.textHint,
+                            color: Colors.grey,
                           ),
                           const SizedBox(width: 8),
                           _buildFilterChip(
                             label: 'Chưa đồng bộ ($_unsyncedCount)',
                             filter: QuickInputFilter.unsynced,
-                            color: AppColors.warning,
+                            color: Colors.orange,
                           ),
                         ],
                       ),
@@ -563,19 +562,19 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> {
       label: Text(
         label,
         style: TextStyle(
-          color: isSelected ? AppColors.surface : color,
+          color: isSelected ? Colors.white : color,
           fontWeight: FontWeight.w600,
           fontSize: 14,
         ),
       ),
       selected: isSelected,
       onSelected: (_) => setState(() => _currentFilter = filter),
-      backgroundColor: color.withAlpha(26),
+      backgroundColor: color.withOpacity(0.1),
       selectedColor: color,
-      checkmarkColor: AppColors.surface,
+      checkmarkColor: Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: color.withAlpha(77)),
+        side: BorderSide(color: color.withOpacity(0.3)),
       ),
     );
   }
@@ -589,27 +588,27 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> {
       case QuickInputFilter.active:
         message = 'Không có mã nào đang bật';
         icon = Icons.toggle_off;
-        color = AppColors.success;
+        color = Colors.green;
         break;
       case QuickInputFilter.inactive:
         message = 'Không có mã nào đang tắt';
         icon = Icons.toggle_on;
-        color = AppColors.textHint;
+        color = Colors.grey;
         break;
       case QuickInputFilter.unsynced:
         message = 'Tất cả mã đã được đồng bộ!';
         icon = Icons.cloud_done;
-        color = AppColors.success;
+        color = Colors.green;
         break;
       default:
         if (_searchQuery.isNotEmpty) {
           message = 'Không tìm thấy mã phù hợp';
           icon = Icons.search_off;
-          color = AppColors.textHint;
+          color = Colors.grey;
         } else {
           message = 'Chưa có mã nhập nhanh nào';
           icon = Icons.qr_code_2;
-          color = AppColors.primary;
+          color = Colors.blue;
         }
     }
 
@@ -617,18 +616,18 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 80, color: color.withAlpha(77)),
+          Icon(icon, size: 80, color: color.withOpacity(0.3)),
           const SizedBox(height: 16),
           Text(
             message,
-            style: TextStyle(color: AppColors.textSecondary, fontSize: 17),
+            style: TextStyle(color: Colors.grey.shade600, fontSize: 17),
           ),
           if (_currentFilter == QuickInputFilter.all &&
               _searchQuery.isEmpty) ...[
             const SizedBox(height: 8),
             Text(
               'Tạo mã để nhập kho nhanh hơn',
-              style: TextStyle(color: AppColors.textHint, fontSize: 14),
+              style: TextStyle(color: Colors.grey.shade400, fontSize: 14),
             ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
@@ -636,8 +635,8 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> {
               icon: const Icon(Icons.add),
               label: const Text('TẠO MÃ ĐẦU TIÊN'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: AppColors.surface,
+                backgroundColor: Colors.blue.shade700,
+                foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 24,
                   vertical: 12,
@@ -652,19 +651,19 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> {
 
   Widget _buildCodeCard(QuickInputCode code) {
     final isPhone = code.type == 'DIEN_THOAI';
-    final mainColor = isPhone ? AppColors.primary : AppColors.warning;
+    final mainColor = isPhone ? Colors.blue : Colors.orange;
 
     // Determine card color based on sync and active status
     final bgColor = !code.isActive
-        ? AppColors.background
+        ? Colors.grey.shade100
         : code.isSynced
-        ? AppColors.success
-        : AppColors.warning;
+        ? Colors.green.shade50
+        : Colors.orange.shade50;
     final borderColor = !code.isActive
-        ? AppColors.textHint
+        ? Colors.grey.shade400
         : code.isSynced
-        ? AppColors.success
-        : AppColors.warning;
+        ? Colors.green.shade300
+        : Colors.orange.shade300;
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -699,7 +698,7 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> {
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
-                            color: code.isActive ? AppColors.textPrimary : AppColors.textHint,
+                            color: code.isActive ? Colors.black87 : Colors.grey,
                             decoration: code.isActive
                                 ? null
                                 : TextDecoration.lineThrough,
@@ -717,7 +716,7 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> {
                                 : code.description ?? '',
                             style: TextStyle(
                               fontSize: 13,
-                              color: AppColors.textSecondary,
+                              color: Colors.grey.shade600,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -732,7 +731,7 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> {
                       child: Icon(
                         Icons.cloud_off,
                         size: 14,
-                        color: AppColors.warning,
+                        color: Colors.orange.shade600,
                       ),
                     ),
                   Container(
@@ -741,13 +740,13 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> {
                       vertical: 2,
                     ),
                     decoration: BoxDecoration(
-                      color: code.isActive ? mainColor : AppColors.textHint,
+                      color: code.isActive ? mainColor : Colors.grey,
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
                       code.isActive ? 'BẬT' : 'TẮT',
                       style: const TextStyle(
-                        color: AppColors.surface,
+                        color: Colors.white,
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
                       ),
@@ -764,14 +763,14 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> {
                   if (code.cost != null && code.cost! > 0)
                     _quickCodeInfoChip(
                       'Vốn: ${MoneyUtils.formatCompactCurrency(code.cost!)}',
-                      AppColors.error,
+                      Colors.red.shade100,
                     ),
                   if (code.cost != null && code.cost! > 0)
                     const SizedBox(width: 4),
                   if (code.price != null && code.price! > 0)
                     _quickCodeInfoChip(
                       'Bán: ${MoneyUtils.formatCompactCurrency(code.price!)}',
-                      AppColors.success,
+                      Colors.green.shade100,
                     ),
                   const Spacer(),
                   // Compact action buttons
@@ -782,8 +781,8 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> {
                           ? () => _fastImportToInventory(code)
                           : null,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.success,
-                        foregroundColor: AppColors.surface,
+                        backgroundColor: Colors.green,
+                        foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(horizontal: 8),
                         minimumSize: Size.zero,
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -825,7 +824,7 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> {
                       icon: const Icon(Icons.delete_outline, size: 16),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
-                      color: AppColors.error,
+                      color: Colors.red.shade400,
                     ),
                   ),
                 ],
@@ -859,7 +858,7 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> {
             width: 100,
             child: Text(
               label,
-              style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+              style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
             ),
           ),
           Expanded(
@@ -877,9 +876,9 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: color.withAlpha(26),
+        color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withAlpha(77)),
+        border: Border.all(color: color.withOpacity(0.3)),
       ),
       child: Column(
         children: [
@@ -911,7 +910,7 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
-            color: color.withAlpha(26),
+            color: color.withOpacity(0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Column(
@@ -982,23 +981,23 @@ class _QuickInputCodeDialogState extends State<_QuickInputCodeDialog> {
 
   // Danh sách màu sắc với color code - đồng bộ với constants
   final Map<String, Color> _colorOptions = {
-    'ĐEN': AppColors.textPrimary,
-    'TRẮNG': AppColors.surface,
-    'XANH': AppColors.primary,
-    'ĐỎ': AppColors.error,
-    'VÀNG': AppColors.warning,
-    'TÍM': AppColors.primary,
-    'HỒNG': AppColors.error,
+    'ĐEN': Colors.black,
+    'TRẮNG': Colors.white,
+    'XANH': Colors.blue,
+    'ĐỎ': Colors.red,
+    'VÀNG': Colors.amber,
+    'TÍM': Colors.blue,
+    'HỒNG': Colors.pink,
     'BẠC': const Color(0xFFC0C0C0),
-    'XANH LÁ': AppColors.success,
-    'CAM': AppColors.warning,
-    'XANH DƯƠNG': AppColors.primary,
+    'XANH LÁ': Colors.green,
+    'CAM': Colors.orange,
+    'XANH DƯƠNG': Colors.blue,
     'GOLD': const Color(0xFFFFD700),
     'TITAN TỰ NHIÊN': const Color(0xFF8B7355),
     'TITAN ĐEN': const Color(0xFF2C2C2C),
     'TITAN TRẮNG': const Color(0xFFF5F5F5),
     'TITAN XÁM': const Color(0xFF808080),
-    'KHÁC': AppColors.textHint,
+    'KHÁC': Colors.grey,
   };
 
   @override
@@ -1149,7 +1148,7 @@ class _QuickInputCodeDialogState extends State<_QuickInputCodeDialog> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.primary,
+                color: Colors.blue.shade700,
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(20),
                   topRight: Radius.circular(20),
@@ -1159,14 +1158,14 @@ class _QuickInputCodeDialogState extends State<_QuickInputCodeDialog> {
                 children: [
                   Icon(
                     isEditing ? Icons.edit : Icons.add_circle,
-                    color: AppColors.surface,
+                    color: Colors.white,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       isEditing ? 'SỬA MÃ NHẬP NHANH' : 'THÊM MÃ NHẬP NHANH',
                       style: const TextStyle(
-                        color: AppColors.surface,
+                        color: Colors.white,
                         fontSize: 17,
                         fontWeight: FontWeight.bold,
                       ),
@@ -1175,7 +1174,7 @@ class _QuickInputCodeDialogState extends State<_QuickInputCodeDialog> {
                   ),
                   IconButton(
                     onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close, color: AppColors.surface),
+                    icon: const Icon(Icons.close, color: Colors.white),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                   ),
@@ -1198,7 +1197,7 @@ class _QuickInputCodeDialogState extends State<_QuickInputCodeDialog> {
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
-                          color: AppColors.textHint,
+                          color: Colors.grey,
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -1209,7 +1208,7 @@ class _QuickInputCodeDialogState extends State<_QuickInputCodeDialog> {
                               'DIEN_THOAI',
                               _terms.category1,
                               Icons.smartphone,
-                              AppColors.primary,
+                              Colors.blue,
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -1218,7 +1217,7 @@ class _QuickInputCodeDialogState extends State<_QuickInputCodeDialog> {
                               'PHỤ KIỆN',
                               _terms.category2,
                               Icons.inventory_2,
-                              AppColors.warning,
+                              Colors.orange,
                             ),
                           ),
                         ],
@@ -1345,7 +1344,7 @@ class _QuickInputCodeDialogState extends State<_QuickInputCodeDialog> {
                         // Màu sắc - Color Chips Selector
                         const Text(
                           'Màu sắc',
-                          style: TextStyle(fontSize: 14, color: AppColors.textHint),
+                          style: TextStyle(fontSize: 14, color: Colors.grey),
                         ),
                         const SizedBox(height: 8),
                         Wrap(
@@ -1369,13 +1368,13 @@ class _QuickInputCodeDialogState extends State<_QuickInputCodeDialog> {
                                 ),
                                 decoration: BoxDecoration(
                                   color: isSelected
-                                      ? color.withAlpha(51)
-                                      : AppColors.background,
+                                      ? color.withOpacity(0.2)
+                                      : Colors.grey.shade100,
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
                                     color: isSelected
                                         ? color
-                                        : AppColors.outline,
+                                        : Colors.grey.shade300,
                                     width: isSelected ? 2 : 1,
                                   ),
                                 ),
@@ -1389,8 +1388,8 @@ class _QuickInputCodeDialogState extends State<_QuickInputCodeDialog> {
                                         color: color,
                                         shape: BoxShape.circle,
                                         border: Border.all(
-                                          color: color == AppColors.surface
-                                              ? AppColors.textHint
+                                          color: color == Colors.white
+                                              ? Colors.grey
                                               : Colors.transparent,
                                         ),
                                       ),
@@ -1405,7 +1404,7 @@ class _QuickInputCodeDialogState extends State<_QuickInputCodeDialog> {
                                             : FontWeight.normal,
                                         color: isSelected
                                             ? color
-                                            : AppColors.textPrimary,
+                                            : Colors.black87,
                                       ),
                                     ),
                                   ],
@@ -1462,7 +1461,7 @@ class _QuickInputCodeDialogState extends State<_QuickInputCodeDialog> {
                         // Màu sắc cho phụ kiện - Color Chips Selector
                         const Text(
                           'Màu sắc (nếu có)',
-                          style: TextStyle(fontSize: 14, color: AppColors.textHint),
+                          style: TextStyle(fontSize: 14, color: Colors.grey),
                         ),
                         const SizedBox(height: 8),
                         Wrap(
@@ -1486,13 +1485,13 @@ class _QuickInputCodeDialogState extends State<_QuickInputCodeDialog> {
                                 ),
                                 decoration: BoxDecoration(
                                   color: isSelected
-                                      ? color.withAlpha(51)
-                                      : AppColors.background,
+                                      ? color.withOpacity(0.2)
+                                      : Colors.grey.shade100,
                                   borderRadius: BorderRadius.circular(16),
                                   border: Border.all(
                                     color: isSelected
                                         ? color
-                                        : AppColors.outline,
+                                        : Colors.grey.shade300,
                                     width: isSelected ? 2 : 1,
                                   ),
                                 ),
@@ -1506,8 +1505,8 @@ class _QuickInputCodeDialogState extends State<_QuickInputCodeDialog> {
                                         color: color,
                                         shape: BoxShape.circle,
                                         border: Border.all(
-                                          color: color == AppColors.surface
-                                              ? AppColors.textHint
+                                          color: color == Colors.white
+                                              ? Colors.grey
                                               : Colors.transparent,
                                         ),
                                       ),
@@ -1522,7 +1521,7 @@ class _QuickInputCodeDialogState extends State<_QuickInputCodeDialog> {
                                             : FontWeight.normal,
                                         color: isSelected
                                             ? color
-                                            : AppColors.textPrimary,
+                                            : Colors.black87,
                                       ),
                                     ),
                                   ],
@@ -1540,7 +1539,7 @@ class _QuickInputCodeDialogState extends State<_QuickInputCodeDialog> {
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
-                          color: AppColors.textHint,
+                          color: Colors.grey,
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -1569,7 +1568,7 @@ class _QuickInputCodeDialogState extends State<_QuickInputCodeDialog> {
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
-                          color: AppColors.textHint,
+                          color: Colors.grey,
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -1665,7 +1664,7 @@ class _QuickInputCodeDialogState extends State<_QuickInputCodeDialog> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.background,
+                color: Colors.grey.shade50,
                 borderRadius: const BorderRadius.only(
                   bottomLeft: Radius.circular(20),
                   bottomRight: Radius.circular(20),
@@ -1693,8 +1692,8 @@ class _QuickInputCodeDialogState extends State<_QuickInputCodeDialog> {
                       icon: Icon(isEditing ? Icons.save : Icons.add),
                       label: Text(isEditing ? 'LƯU THAY ĐỔI' : 'THÊM MÃ'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: AppColors.surface,
+                        backgroundColor: Colors.blue.shade700,
+                        foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -1724,22 +1723,22 @@ class _QuickInputCodeDialogState extends State<_QuickInputCodeDialog> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
-          color: isSelected ? color.withAlpha(38) : AppColors.background,
+          color: isSelected ? color.withOpacity(0.15) : Colors.grey.shade100,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? color : AppColors.outline,
+            color: isSelected ? color : Colors.grey.shade300,
             width: isSelected ? 2 : 1,
           ),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: isSelected ? color : AppColors.textHint, size: 20),
+            Icon(icon, color: isSelected ? color : Colors.grey, size: 20),
             const SizedBox(width: 8),
             Text(
               label,
               style: TextStyle(
-                color: isSelected ? color : AppColors.textHint,
+                color: isSelected ? color : Colors.grey,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),
             ),

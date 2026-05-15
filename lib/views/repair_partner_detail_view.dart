@@ -135,7 +135,7 @@ class _RepairPartnerDetailViewState extends State<RepairPartnerDetailView>
     } catch (e) {
       NotificationService.showSnackBar(
         'Lỗi tải dữ liệu: $e',
-        color: AppColors.error,
+        color: Colors.red,
       );
       setState(() => _loading = false);
     }
@@ -181,11 +181,11 @@ class _RepairPartnerDetailViewState extends State<RepairPartnerDetailView>
               tappableToView: true,
             ),
             const SizedBox(width: 10),
-            Flexible(child: Text(widget.partner.name, style: const TextStyle(color: AppColors.surface), overflow: TextOverflow.ellipsis)),
+            Flexible(child: Text(widget.partner.name, style: const TextStyle(color: Colors.white), overflow: TextOverflow.ellipsis)),
           ],
         ),
-        backgroundColor: AppColors.surface,
-        foregroundColor: AppColors.textPrimary,
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
         elevation: 0,
         actions: [
           if (_tab.index == 0 && _histories.isNotEmpty)
@@ -201,9 +201,9 @@ class _RepairPartnerDetailViewState extends State<RepairPartnerDetailView>
         ],
         bottom: TabBar(
           controller: _tab,
-          labelColor: AppColors.surface,
+          labelColor: Colors.white,
           unselectedLabelColor: Colors.white70,
-          indicatorColor: AppColors.surface,
+          indicatorColor: Colors.white,
           tabs: const [
             Tab(text: 'ĐƠN GỬI SỬA'),
             Tab(text: 'CÔNG NỢ'),
@@ -236,13 +236,13 @@ class _RepairPartnerDetailViewState extends State<RepairPartnerDetailView>
             Icon(
               Icons.history,
               size: 64,
-              color: AppColors.onSurface.withAlpha(77),
+              color: AppColors.onSurface.withOpacity(0.3),
             ),
             const SizedBox(height: 16),
             Text(
               'Chưa có đơn gửi sửa nào',
               style: AppTextStyles.body1.copyWith(
-                color: AppColors.onSurface.withAlpha(153),
+                color: AppColors.onSurface.withOpacity(0.6),
               ),
             ),
           ],
@@ -283,7 +283,7 @@ class _RepairPartnerDetailViewState extends State<RepairPartnerDetailView>
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withAlpha(26),
+                        color: AppColors.primary.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
@@ -308,7 +308,7 @@ class _RepairPartnerDetailViewState extends State<RepairPartnerDetailView>
                 Text(
                   'Ngày gửi: $date',
                   style: AppTextStyles.caption.copyWith(
-                    color: AppColors.onSurface.withAlpha(128),
+                    color: AppColors.onSurface.withOpacity(0.5),
                   ),
                 ),
               ],
@@ -351,7 +351,7 @@ class _RepairPartnerDetailViewState extends State<RepairPartnerDetailView>
                     child: Text(
                       'Chưa có khoản nợ nào',
                       style: AppTextStyles.caption.copyWith(
-                        color: AppColors.onSurface.withAlpha(128),
+                        color: AppColors.onSurface.withOpacity(0.5),
                       ),
                     ),
                   ),
@@ -368,7 +368,7 @@ class _RepairPartnerDetailViewState extends State<RepairPartnerDetailView>
                     child: Text(
                       'Chưa có thanh toán trực tiếp',
                       style: AppTextStyles.caption.copyWith(
-                        color: AppColors.onSurface.withAlpha(128),
+                        color: AppColors.onSurface.withOpacity(0.5),
                       ),
                     ),
                   ),
@@ -387,7 +387,7 @@ class _RepairPartnerDetailViewState extends State<RepairPartnerDetailView>
                     child: Text(
                       'Chưa có thanh toán công nợ',
                       style: AppTextStyles.caption.copyWith(
-                        color: AppColors.onSurface.withAlpha(128),
+                        color: AppColors.onSurface.withOpacity(0.5),
                       ),
                     ),
                   ),
@@ -479,9 +479,9 @@ class _RepairPartnerDetailViewState extends State<RepairPartnerDetailView>
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
-          color: color.withAlpha(20),
+          color: color.withOpacity(0.08),
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: color.withAlpha(77)),
+          border: Border.all(color: color.withOpacity(0.3)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -513,7 +513,7 @@ class _RepairPartnerDetailViewState extends State<RepairPartnerDetailView>
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
-        leading: const Icon(Icons.check_circle, color: AppColors.success),
+        leading: const Icon(Icons.check_circle, color: Colors.green),
         title: Text(
           '$prefix${MoneyUtils.formatCurrency(p['amount'] as int? ?? 0)}',
         ),
@@ -586,7 +586,7 @@ class _RepairPartnerDetailViewState extends State<RepairPartnerDetailView>
                           label: Text(m),
                           selected: method == m,
                           onSelected: (v) => setDialogState(() => method = m),
-                          selectedColor: AppColors.primary.withAlpha(51),
+                          selectedColor: AppColors.primary.withOpacity(0.2),
                         ),
                       )
                       .toList(),
@@ -619,7 +619,7 @@ class _RepairPartnerDetailViewState extends State<RepairPartnerDetailView>
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.success,
-                foregroundColor: AppColors.surface,
+                foregroundColor: Colors.white,
               ),
               child: const Text('XÁC NHẬN'),
             ),
@@ -644,7 +644,7 @@ class _RepairPartnerDetailViewState extends State<RepairPartnerDetailView>
     if (activeDebts.isEmpty) {
       NotificationService.showSnackBar(
         'Không có công nợ cần thanh toán',
-        color: AppColors.warning,
+        color: Colors.orange,
       );
       return;
     }
@@ -688,7 +688,7 @@ class _RepairPartnerDetailViewState extends State<RepairPartnerDetailView>
       if (mounted) {
         NotificationService.showSnackBar(
           'Đã thanh toán ${MoneyUtils.formatCurrency(amount)}đ!',
-          color: AppColors.success,
+          color: Colors.green,
         );
         _load();
       }
@@ -696,7 +696,7 @@ class _RepairPartnerDetailViewState extends State<RepairPartnerDetailView>
       if (mounted) {
         NotificationService.showSnackBar(
           result.errorMessage ?? 'Có lỗi xảy ra',
-          color: AppColors.error,
+          color: Colors.red,
         );
       }
     }

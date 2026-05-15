@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
 import 'dart:math' as math;
 import '../l10n/app_localizations.dart';
 import '../utils/app_info.dart';
@@ -259,7 +258,7 @@ class _LoadingIntroScreenState extends State<LoadingIntroScreen>
               height: p.size,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppColors.surface.withOpacity(0.15),
+                color: Colors.white.withOpacity(0.15),
               ),
             ),
           ),
@@ -291,7 +290,7 @@ class _LoadingIntroScreenState extends State<LoadingIntroScreen>
                     spreadRadius: 2,
                   ),
                   BoxShadow(
-                    color: AppColors.textPrimary.withAlpha(51),
+                    color: Colors.black.withOpacity(0.2),
                     blurRadius: 20,
                     offset: const Offset(0, 8),
                   ),
@@ -300,7 +299,7 @@ class _LoadingIntroScreenState extends State<LoadingIntroScreen>
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(26),
                 child: Container(
-                  color: AppColors.surface,
+                  color: Colors.white,
                   child: Image.asset(
                     'assets/images/logo.png',
                     fit: BoxFit.cover,
@@ -309,7 +308,7 @@ class _LoadingIntroScreenState extends State<LoadingIntroScreen>
                       child: const Icon(
                         Icons.store_rounded,
                         size: 52,
-                        color: AppColors.surface,
+                        color: Colors.white,
                       ),
                     ),
                   ),
@@ -334,7 +333,7 @@ class _LoadingIntroScreenState extends State<LoadingIntroScreen>
               style: const TextStyle(
                 fontSize: 30,
                 fontWeight: FontWeight.w800,
-                color: AppColors.surface,
+                color: Colors.white,
                 letterSpacing: 1.5,
                 height: 1.2,
                 shadows: [
@@ -350,7 +349,7 @@ class _LoadingIntroScreenState extends State<LoadingIntroScreen>
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               decoration: BoxDecoration(
-                color: AppColors.surface.withOpacity(0.12),
+                color: Colors.white.withOpacity(0.12),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
@@ -358,7 +357,7 @@ class _LoadingIntroScreenState extends State<LoadingIntroScreen>
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
-                  color: AppColors.surface.withOpacity(0.85),
+                  color: Colors.white.withOpacity(0.85),
                   letterSpacing: 0.5,
                 ),
               ),
@@ -398,18 +397,18 @@ class _LoadingIntroScreenState extends State<LoadingIntroScreen>
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              AppColors.surface.withOpacity(0.14),
-              AppColors.surface.withOpacity(0.06),
+              Colors.white.withOpacity(0.14),
+              Colors.white.withOpacity(0.06),
             ],
           ),
           borderRadius: BorderRadius.circular(22),
           border: Border.all(
-            color: AppColors.surface.withOpacity(0.18),
+            color: Colors.white.withOpacity(0.18),
             width: 1.0,
           ),
           boxShadow: [
             BoxShadow(
-              color: AppColors.textPrimary.withOpacity(0.08),
+              color: Colors.black.withOpacity(0.08),
               blurRadius: 16,
               offset: const Offset(0, 6),
             ),
@@ -430,13 +429,13 @@ class _LoadingIntroScreenState extends State<LoadingIntroScreen>
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: feature.gradient.first.withAlpha(77),
+                    color: feature.gradient.first.withOpacity(0.3),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
                 ],
               ),
-              child: Icon(feature.icon, size: 28, color: AppColors.surface),
+              child: Icon(feature.icon, size: 28, color: Colors.white),
             ),
             const SizedBox(width: 16),
             // Text content
@@ -450,7 +449,7 @@ class _LoadingIntroScreenState extends State<LoadingIntroScreen>
                     style: const TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.surface,
+                      color: Colors.white,
                       height: 1.2,
                     ),
                     maxLines: 1,
@@ -461,7 +460,7 @@ class _LoadingIntroScreenState extends State<LoadingIntroScreen>
                     feature.subtitle,
                     style: TextStyle(
                       fontSize: 14.5,
-                      color: AppColors.surface.withOpacity(0.75),
+                      color: Colors.white.withOpacity(0.75),
                       height: 1.3,
                     ),
                     maxLines: 2,
@@ -494,8 +493,8 @@ class _LoadingIntroScreenState extends State<LoadingIntroScreen>
                 margin: const EdgeInsets.symmetric(horizontal: 3),
                 decoration: BoxDecoration(
                   color: i == _currentFeatureIndex
-                      ? AppColors.surface
-                      : AppColors.surface.withAlpha(77),
+                      ? Colors.white
+                      : Colors.white.withOpacity(0.3),
                   borderRadius: BorderRadius.circular(4),
                 ),
               ),
@@ -509,9 +508,9 @@ class _LoadingIntroScreenState extends State<LoadingIntroScreen>
             child: SizedBox(
               height: 5,
               child: LinearProgressIndicator(
-                backgroundColor: AppColors.surface.withOpacity(0.15),
+                backgroundColor: Colors.white.withOpacity(0.15),
                 valueColor: const AlwaysStoppedAnimation<Color>(
-                  AppColors.surface,
+                  Colors.white,
                 ),
               ),
             ),
@@ -524,7 +523,7 @@ class _LoadingIntroScreenState extends State<LoadingIntroScreen>
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: AppColors.surface,
+              color: Colors.white,
               letterSpacing: 0.3,
             ),
             textAlign: TextAlign.center,
@@ -535,7 +534,7 @@ class _LoadingIntroScreenState extends State<LoadingIntroScreen>
               widget.subMessage!,
               style: TextStyle(
                 fontSize: 14,
-                color: AppColors.surface.withAlpha(153),
+                color: Colors.white.withOpacity(0.6),
               ),
               textAlign: TextAlign.center,
             ),
@@ -557,7 +556,7 @@ class _LoadingIntroScreenState extends State<LoadingIntroScreen>
           versionText,
           style: TextStyle(
             fontSize: 13,
-            color: AppColors.surface.withOpacity(0.4),
+            color: Colors.white.withOpacity(0.4),
             letterSpacing: 0.5,
           ),
         );

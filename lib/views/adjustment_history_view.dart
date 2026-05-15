@@ -6,7 +6,6 @@ import '../data/db_helper.dart';
 import '../services/adjustment_service.dart';
 import '../services/user_service.dart';
 import '../theme/app_colors.dart';
-import '../theme/app_spacing.dart';
 import '../theme/app_text_styles.dart';
 
 /// View hiển thị lịch sử bút toán điều chỉnh
@@ -71,14 +70,24 @@ class _AdjustmentHistoryViewState extends State<AdjustmentHistoryView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
+      backgroundColor: const Color(0xFFF0F4F8),
       appBar: AppBar(
-        title: const Text("LỊCH SỬ ĐIỀU CHỈNH"),
-        backgroundColor: AppColors.surface,
-        foregroundColor: AppColors.textPrimary,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF0068FF), Color(0xFF0084FF)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+        title: Text(
+          "LỊCH SỬ ĐIỀU CHỈNH",
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: AppTextStyles.headline3.fontSize, color: Colors.white),
+        ),
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
         elevation: 0,
-        scrolledUnderElevation: 0.5,
-        surfaceTintColor: Colors.transparent,
         actions: [
           IconButton(
             onPressed: _loadAdjustments,
@@ -102,14 +111,12 @@ class _AdjustmentHistoryViewState extends State<AdjustmentHistoryView> {
           Icon(
             Icons.history_toggle_off_rounded,
             size: 80,
-            color: Theme.of(context).colorScheme.outlineVariant,
+            color: Colors.grey[300],
           ),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
+          const SizedBox(height: 10),
+          const Text(
             "Chưa có bút toán điều chỉnh nào",
-            style: AppTextStyles.body1.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
+            style: TextStyle(color: Colors.grey),
           ),
         ],
       ),
@@ -118,7 +125,7 @@ class _AdjustmentHistoryViewState extends State<AdjustmentHistoryView> {
 
   Widget _buildList() {
     return ListView.builder(
-      padding: const EdgeInsets.all(AppSpacing.lg),
+      padding: const EdgeInsets.all(16),
       itemCount: _adjustments.length,
       itemBuilder: (ctx, i) => _buildAdjustmentCard(_adjustments[i]),
     );
@@ -155,12 +162,12 @@ class _AdjustmentHistoryViewState extends State<AdjustmentHistoryView> {
     final typeLabel = _getTypeLabel(adjustmentType);
 
     return Container(
-      margin: const EdgeInsets.only(bottom: AppSpacing.md),
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(AppSpacing.lg),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(15),
         boxShadow: [
-          BoxShadow(color: AppColors.textPrimary.withAlpha(10), blurRadius: 8),
+          BoxShadow(color: Colors.black.withAlpha(10), blurRadius: 8),
         ],
       ),
       child: Column(
@@ -168,33 +175,34 @@ class _AdjustmentHistoryViewState extends State<AdjustmentHistoryView> {
         children: [
           // Header
           Container(
-            padding: const EdgeInsets.all(AppSpacing.md),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: typeColor.withAlpha(26),
+              color: typeColor.withOpacity(0.1),
               borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(AppSpacing.lg),
+                top: Radius.circular(15),
               ),
             ),
             child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(AppSpacing.sm),
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: typeColor.withAlpha(51),
+                    color: typeColor.withOpacity(0.2),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(typeIcon, color: typeColor, size: 20),
                 ),
-                const SizedBox(width: AppSpacing.md),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         typeLabel,
-                        style: AppTextStyles.headline5.copyWith(
+                        style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color: typeColor,
+                          fontSize: AppTextStyles.headline5.fontSize,
                         ),
                       ),
                       Text(
@@ -211,14 +219,14 @@ class _AdjustmentHistoryViewState extends State<AdjustmentHistoryView> {
           ),
           // Content
           Padding(
-            padding: const EdgeInsets.all(AppSpacing.md),
+            padding: const EdgeInsets.all(12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Dates
                 Row(
                   children: [
-                    const Icon(Icons.event_note, size: 14, color: AppColors.textHint),
+                    const Icon(Icons.event_note, size: 14, color: Colors.grey),
                     const SizedBox(width: 4),
                     Text(
                       "Ngày gốc: ${DateFormat('dd/MM/yyyy').format(originalDate)}",
@@ -228,7 +236,7 @@ class _AdjustmentHistoryViewState extends State<AdjustmentHistoryView> {
                     const Icon(
                       Icons.edit_calendar,
                       size: 14,
-                      color: AppColors.textHint,
+                      color: Colors.grey,
                     ),
                     const SizedBox(width: 4),
                     Text(
@@ -237,14 +245,14 @@ class _AdjustmentHistoryViewState extends State<AdjustmentHistoryView> {
                     ),
                   ],
                 ),
-                const SizedBox(height: AppSpacing.sm),
+                const SizedBox(height: 8),
                 // Reason
                 if (reason.isNotEmpty) ...[
                   Container(
-                    padding: const EdgeInsets.all(AppSpacing.sm),
+                    padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppColors.warning.withAlpha(26),
-                      borderRadius: BorderRadius.circular(AppSpacing.sm),
+                      color: AppColors.warning.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
                       children: [
@@ -253,7 +261,7 @@ class _AdjustmentHistoryViewState extends State<AdjustmentHistoryView> {
                           size: 14,
                           color: AppColors.warning,
                         ),
-                        const SizedBox(width: AppSpacing.sm),
+                        const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             "Lý do: $reason",
@@ -265,7 +273,7 @@ class _AdjustmentHistoryViewState extends State<AdjustmentHistoryView> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: AppSpacing.sm),
+                  const SizedBox(height: 8),
                 ],
                 // Deltas
                 if ((_canViewCostPrice && costDelta != 0) || debtDelta != 0)
@@ -275,22 +283,22 @@ class _AdjustmentHistoryViewState extends State<AdjustmentHistoryView> {
                         _buildDeltaChip(
                           "Chi phí",
                           costDelta,
-                          costDelta > 0 ? AppColors.error : AppColors.success,
+                          costDelta > 0 ? Colors.red : Colors.green,
                         ),
                       if (_canViewCostPrice && costDelta != 0) const SizedBox(width: 8),
                       if (debtDelta != 0)
                         _buildDeltaChip(
                           "Công nợ",
                           debtDelta,
-                          debtDelta > 0 ? AppColors.warning : AppColors.success,
+                          debtDelta > 0 ? Colors.orange : Colors.green,
                         ),
                     ],
                   ),
-                const SizedBox(height: AppSpacing.sm),
+                const SizedBox(height: 8),
                 // Old -> New values
                 if (oldValues.isNotEmpty || newValues.isNotEmpty)
                   _buildValueComparison(oldValues, newValues),
-                const SizedBox(height: AppSpacing.sm),
+                const SizedBox(height: 8),
                 // Footer
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -298,23 +306,24 @@ class _AdjustmentHistoryViewState extends State<AdjustmentHistoryView> {
                     Text(
                       "Người thực hiện: $createdBy",
                       style: AppTextStyles.overline.copyWith(
-                        color: AppColors.textHint,
+                        color: Colors.grey,
                       ),
                     ),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.sm,
-                        vertical: AppSpacing.xs,
+                        horizontal: 8,
+                        vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: AppColors.success.withAlpha(26),
-                        borderRadius: BorderRadius.circular(AppSpacing.md),
+                        color: Colors.green.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
                         "ĐÃ DUYỆT",
-                        style: AppTextStyles.caption.copyWith(
+                        style: TextStyle(
+                          fontSize: AppTextStyles.caption.fontSize,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.success,
+                          color: Colors.green,
                         ),
                       ),
                     ),
@@ -331,15 +340,16 @@ class _AdjustmentHistoryViewState extends State<AdjustmentHistoryView> {
   Widget _buildDeltaChip(String label, int delta, Color color) {
     final sign = delta > 0 ? '+' : '';
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withAlpha(26),
-        borderRadius: BorderRadius.circular(AppSpacing.md),
-        border: Border.all(color: color.withAlpha(77)),
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.3)),
       ),
       child: Text(
         "$label: $sign${NumberFormat('#,###').format(delta)}đ",
-        style: AppTextStyles.body1.copyWith(
+        style: TextStyle(
+          fontSize: AppTextStyles.body1.fontSize,
           fontWeight: FontWeight.bold,
           color: color,
         ),
@@ -354,19 +364,19 @@ class _AdjustmentHistoryViewState extends State<AdjustmentHistoryView> {
     final allKeys = {...oldVals.keys, ...newVals.keys};
 
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.sm),
+      padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: AppColors.textHint.withAlpha(13),
-        borderRadius: BorderRadius.circular(AppSpacing.sm),
+        color: Colors.grey.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             "Chi tiết thay đổi:",
-            style: AppTextStyles.body1.copyWith(fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: AppTextStyles.body1.fontSize, fontWeight: FontWeight.bold),
           ),
-          const SizedBox(height: AppSpacing.xs),
+          const SizedBox(height: 4),
           ...allKeys.map((key) {
             // Hide cost values when no permission
             if (!_canViewCostPrice && (key == 'cost' || key == 'totalCost')) {
@@ -385,21 +395,23 @@ class _AdjustmentHistoryViewState extends State<AdjustmentHistoryView> {
                 children: [
                   Text(
                     "${_translateKey(key)}: ",
-                    style: AppTextStyles.body1.copyWith(color: AppColors.textHint),
+                    style: TextStyle(fontSize: AppTextStyles.body1.fontSize, color: Colors.grey),
                   ),
                   Text(
                     oldStr,
-                    style: AppTextStyles.body1.copyWith(
+                    style: TextStyle(
+                      fontSize: AppTextStyles.body1.fontSize,
                       decoration: TextDecoration.lineThrough,
-                      color: AppColors.error,
+                      color: Colors.red,
                     ),
                   ),
-                  Text(" → ", style: AppTextStyles.body1),
+                  Text(" → ", style: TextStyle(fontSize: AppTextStyles.body1.fontSize)),
                   Text(
                     newStr,
-                    style: AppTextStyles.body1.copyWith(
+                    style: TextStyle(
+                      fontSize: AppTextStyles.body1.fontSize,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.success,
+                      color: Colors.green,
                     ),
                   ),
                 ],
@@ -439,17 +451,17 @@ class _AdjustmentHistoryViewState extends State<AdjustmentHistoryView> {
   Color _getTypeColor(String type) {
     switch (type) {
       case 'COST_ADJUSTMENT':
-        return AppColors.warning;
+        return Colors.orange;
       case 'PAYMENT_ADJUSTMENT':
-        return AppColors.primary;
+        return Colors.blue;
       case 'DEBT_ADJUSTMENT':
-        return AppColors.primary;
+        return Colors.blue;
       case 'SALES_RETURN_INVENTORY':
-        return AppColors.info;
+        return Colors.teal;
       case 'SALES_RETURN_REFUND':
-        return AppColors.error;
+        return Colors.red;
       default:
-        return AppColors.textHint;
+        return Colors.grey;
     }
   }
 

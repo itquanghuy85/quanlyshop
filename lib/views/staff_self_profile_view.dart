@@ -137,7 +137,7 @@ class _StaffSelfProfileViewState extends State<StaffSelfProfileView> {
 
       await _loadStatsAndSchedule();
     } catch (e) {
-      NotificationService.showSnackBar(_friendlyFirestoreError(e), color: AppColors.warning);
+      NotificationService.showSnackBar(_friendlyFirestoreError(e), color: Colors.orange);
     } finally {
       if (mounted) {
         setState(() => _loading = false);
@@ -245,7 +245,7 @@ class _StaffSelfProfileViewState extends State<StaffSelfProfileView> {
     try {
       final uploadedUrl = await StorageService.uploadXFileAndGetUrl(picked, 'user_photos/$_uid');
       if (uploadedUrl == null || uploadedUrl.trim().isEmpty) {
-        NotificationService.showSnackBar('Không thể tải ảnh đại diện', color: AppColors.error);
+        NotificationService.showSnackBar('Không thể tải ảnh đại diện', color: Colors.red);
         return;
       }
       await FirebaseFirestore.instance.collection('users').doc(_uid).set({
@@ -255,7 +255,7 @@ class _StaffSelfProfileViewState extends State<StaffSelfProfileView> {
       if (!mounted) return;
       setState(() => _avatarUrl = uploadedUrl);
       EventBus().emit('user_profile_changed');
-      NotificationService.showSnackBar('Đã cập nhật ảnh đại diện', color: AppColors.success);
+      NotificationService.showSnackBar('Đã cập nhật ảnh đại diện', color: Colors.green);
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -318,10 +318,10 @@ class _StaffSelfProfileViewState extends State<StaffSelfProfileView> {
       });
       NotificationService.showSnackBar(
         'Đã chọn vùng ảnh bìa. Nhấn Lưu hồ sơ để tải lên.',
-        color: AppColors.primary,
+        color: Colors.blue,
       );
     } catch (e) {
-      NotificationService.showSnackBar('Không thể chọn ảnh bìa: $e', color: AppColors.error);
+      NotificationService.showSnackBar('Không thể chọn ảnh bìa: $e', color: Colors.red);
     }
   }
 
@@ -331,7 +331,7 @@ class _StaffSelfProfileViewState extends State<StaffSelfProfileView> {
     if (source == null) {
       NotificationService.showSnackBar(
         'Không có ảnh gốc để chỉnh. Hãy chọn ảnh mới.',
-        color: AppColors.warning,
+        color: Colors.orange,
       );
       return;
     }
@@ -345,7 +345,7 @@ class _StaffSelfProfileViewState extends State<StaffSelfProfileView> {
     });
     NotificationService.showSnackBar(
       'Đã cập nhật vùng crop ảnh bìa.',
-      color: AppColors.primary,
+      color: Colors.blue,
     );
   }
 
@@ -378,7 +378,7 @@ class _StaffSelfProfileViewState extends State<StaffSelfProfileView> {
       if (_selectedCover != null && _selectedCoverOriginal != null) {
         NotificationService.showSnackBar(
           'Đang tải ảnh bìa và ảnh gốc lên hệ thống...',
-          color: AppColors.primary,
+          color: Colors.blue,
           duration: const Duration(seconds: 6),
         );
 
@@ -397,7 +397,7 @@ class _StaffSelfProfileViewState extends State<StaffSelfProfileView> {
         if (croppedUrl == null || croppedUrl.trim().isEmpty || originalUrl == null || originalUrl.trim().isEmpty) {
           NotificationService.showSnackBar(
             'Tải ảnh bìa thất bại, vui lòng thử lại',
-            color: AppColors.error,
+            color: Colors.red,
           );
           return;
         }
@@ -426,11 +426,11 @@ class _StaffSelfProfileViewState extends State<StaffSelfProfileView> {
       _selectedCoverOriginal = null;
       EventBus().emit('user_profile_changed');
       if (!mounted) return;
-      NotificationService.showSnackBar('Đã lưu hồ sơ nhân viên', color: AppColors.success);
+      NotificationService.showSnackBar('Đã lưu hồ sơ nhân viên', color: Colors.green);
       await _loadStatsAndSchedule();
       setState(() {});
     } catch (e) {
-      NotificationService.showSnackBar('Lỗi lưu hồ sơ: $e', color: AppColors.error);
+      NotificationService.showSnackBar('Lỗi lưu hồ sơ: $e', color: Colors.red);
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -473,7 +473,7 @@ class _StaffSelfProfileViewState extends State<StaffSelfProfileView> {
     final sourceBytes = await sourceFile.readAsBytes();
     final decoded = img.decodeImage(sourceBytes);
     if (decoded == null) {
-      NotificationService.showSnackBar('Không đọc được ảnh đã chọn.', color: AppColors.error);
+      NotificationService.showSnackBar('Không đọc được ảnh đã chọn.', color: Colors.red);
       return null;
     }
     if (!mounted) return null;
@@ -502,14 +502,14 @@ class _StaffSelfProfileViewState extends State<StaffSelfProfileView> {
                         children: [
                           IconButton(
                             onPressed: () => Navigator.pop(dialogContext),
-                            icon: const Icon(Icons.close, color: AppColors.surface),
+                            icon: const Icon(Icons.close, color: Colors.white),
                           ),
                           const SizedBox(width: 8),
                           const Expanded(
                             child: Text(
                               'Chỉnh ảnh bìa',
                               style: TextStyle(
-                                color: AppColors.surface,
+                                color: Colors.white,
                                 fontWeight: FontWeight.w700,
                                 fontSize: 18,
                               ),
@@ -600,7 +600,7 @@ class _StaffSelfProfileViewState extends State<StaffSelfProfileView> {
                                   child: DecoratedBox(
                                     decoration: BoxDecoration(
                                       border: Border.all(
-                                        color: AppColors.surface,
+                                        color: Colors.white,
                                         width: 2,
                                       ),
                                     ),
@@ -614,14 +614,14 @@ class _StaffSelfProfileViewState extends State<StaffSelfProfileView> {
                     ),
                     Container(
                       width: double.infinity,
-                      color: AppColors.textPrimary.withValues(alpha: 0.35),
+                      color: Colors.black.withValues(alpha: 0.35),
                       padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
                       child: Column(
                         children: [
                           Text(
                             'Dùng 2 ngón để pinch zoom ảnh, sau đó kéo khung trắng để chọn vùng bìa.',
                             style: AppTextStyles.caption.copyWith(
-                              color: AppColors.surface,
+                              color: Colors.white,
                             ),
                             textAlign: TextAlign.center,
                           ),
@@ -630,7 +630,7 @@ class _StaffSelfProfileViewState extends State<StaffSelfProfileView> {
                             children: [
                               const Text(
                                 'Zoom',
-                                style: TextStyle(color: AppColors.surface),
+                                style: TextStyle(color: Colors.white),
                               ),
                               const SizedBox(width: 8),
                               Expanded(
@@ -668,7 +668,7 @@ class _StaffSelfProfileViewState extends State<StaffSelfProfileView> {
                                 if (croppedFile == null) {
                                   NotificationService.showSnackBar(
                                     'Không thể crop ảnh bìa.',
-                                    color: AppColors.error,
+                                    color: Colors.red,
                                   );
                                   return;
                                 }
@@ -709,7 +709,7 @@ class _StaffSelfProfileViewState extends State<StaffSelfProfileView> {
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => Dialog.fullscreen(
-        backgroundColor: AppColors.textPrimary,
+        backgroundColor: Colors.black,
         child: Stack(
           children: [
             Positioned.fill(
@@ -729,7 +729,7 @@ class _StaffSelfProfileViewState extends State<StaffSelfProfileView> {
               right: 16,
               child: IconButton(
                 onPressed: () => Navigator.pop(dialogContext),
-                icon: const Icon(Icons.close, color: AppColors.surface),
+                icon: const Icon(Icons.close, color: Colors.white),
               ),
             ),
           ],
@@ -866,28 +866,28 @@ class _StaffSelfProfileViewState extends State<StaffSelfProfileView> {
           right: containerSize.width - imageRect.right,
           top: imageRect.top,
           height: (cropRect.top - imageRect.top).clamp(0, imageRect.height),
-          child: Container(color: AppColors.textPrimary.withValues(alpha: 0.45)),
+          child: Container(color: Colors.black.withValues(alpha: 0.45)),
         ),
         Positioned(
           left: imageRect.left,
           right: containerSize.width - imageRect.right,
           top: cropRect.bottom,
           height: (imageRect.bottom - cropRect.bottom).clamp(0, imageRect.height),
-          child: Container(color: AppColors.textPrimary.withValues(alpha: 0.45)),
+          child: Container(color: Colors.black.withValues(alpha: 0.45)),
         ),
         Positioned(
           left: imageRect.left,
           width: (cropRect.left - imageRect.left).clamp(0, imageRect.width),
           top: cropRect.top,
           height: cropRect.height,
-          child: Container(color: AppColors.textPrimary.withValues(alpha: 0.45)),
+          child: Container(color: Colors.black.withValues(alpha: 0.45)),
         ),
         Positioned(
           left: cropRect.right,
           width: (imageRect.right - cropRect.right).clamp(0, imageRect.width),
           top: cropRect.top,
           height: cropRect.height,
-          child: Container(color: AppColors.textPrimary.withValues(alpha: 0.45)),
+          child: Container(color: Colors.black.withValues(alpha: 0.45)),
         ),
       ],
     );
@@ -905,8 +905,8 @@ class _StaffSelfProfileViewState extends State<StaffSelfProfileView> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Hồ sơ nhân viên'),
-        backgroundColor: AppColors.surface,
-        foregroundColor: AppColors.textPrimary,
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
         flexibleSpace: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
@@ -951,12 +951,12 @@ class _StaffSelfProfileViewState extends State<StaffSelfProfileView> {
                                   width: 52,
                                   height: 52,
                                   decoration: BoxDecoration(
-                                    color: AppColors.textPrimary.withValues(alpha: 0.18),
+                                    color: Colors.black.withValues(alpha: 0.18),
                                     shape: BoxShape.circle,
                                   ),
                                   child: const Icon(
                                     Icons.add_photo_alternate_outlined,
-                                    color: AppColors.surface,
+                                    color: Colors.white,
                                     size: 28,
                                   ),
                                 ),
@@ -965,7 +965,7 @@ class _StaffSelfProfileViewState extends State<StaffSelfProfileView> {
                               right: 10,
                               bottom: 10,
                               child: Material(
-                                color: AppColors.textPrimary.withValues(alpha: 0.32),
+                                color: Colors.black.withValues(alpha: 0.32),
                                 borderRadius: BorderRadius.circular(999),
                                 child: InkWell(
                                   borderRadius: BorderRadius.circular(999),
@@ -974,7 +974,7 @@ class _StaffSelfProfileViewState extends State<StaffSelfProfileView> {
                                     padding: EdgeInsets.all(10),
                                     child: Icon(
                                       Icons.camera_alt_outlined,
-                                      color: AppColors.surface,
+                                      color: Colors.white,
                                       size: 20,
                                     ),
                                   ),
@@ -987,7 +987,7 @@ class _StaffSelfProfileViewState extends State<StaffSelfProfileView> {
                                 left: 10,
                                 bottom: 10,
                                 child: Material(
-                                  color: AppColors.textPrimary.withValues(alpha: 0.32),
+                                  color: Colors.black.withValues(alpha: 0.32),
                                   borderRadius: BorderRadius.circular(999),
                                   child: InkWell(
                                     borderRadius: BorderRadius.circular(999),
@@ -996,7 +996,7 @@ class _StaffSelfProfileViewState extends State<StaffSelfProfileView> {
                                       padding: EdgeInsets.all(10),
                                       child: Icon(
                                         Icons.tune,
-                                        color: AppColors.surface,
+                                        color: Colors.white,
                                         size: 20,
                                       ),
                                     ),
@@ -1036,7 +1036,7 @@ class _StaffSelfProfileViewState extends State<StaffSelfProfileView> {
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 child: Text(
                   '${_roleLabel(_role)} thuộc shop ${_shopName.trim()}',
-                  style: AppTextStyles.subtitle1.copyWith(color: AppColors.textSecondary),
+                  style: AppTextStyles.subtitle1.copyWith(color: Colors.grey.shade700),
                 ),
               ),
             const SizedBox(height: 12),
@@ -1084,12 +1084,12 @@ class _StaffSelfProfileViewState extends State<StaffSelfProfileView> {
                       child: ElevatedButton.icon(
                         onPressed: _saving ? null : _saveInfo,
                         icon: _saving
-                            ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.surface))
+                            ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                             : const Icon(Icons.save),
                         label: Text(_saving ? 'ĐANG LƯU...' : 'LƯU HỒ SƠ'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF0B66D1),
-                          foregroundColor: AppColors.surface,
+                          foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
                       ),
@@ -1110,7 +1110,7 @@ class _StaffSelfProfileViewState extends State<StaffSelfProfileView> {
                       children: [
                         Text('Chấm công cá nhân', style: AppTextStyles.headline6),
                         const Spacer(),
-                        Text('Đi muộn: $_lateCount', style: AppTextStyles.caption.copyWith(color: AppColors.warning)),
+                        Text('Đi muộn: $_lateCount', style: AppTextStyles.caption.copyWith(color: Colors.orange.shade700)),
                       ],
                     ),
                     const SizedBox(height: 10),
@@ -1129,11 +1129,11 @@ class _StaffSelfProfileViewState extends State<StaffSelfProfileView> {
                           contentPadding: EdgeInsets.zero,
                           leading: CircleAvatar(
                             radius: 14,
-                            backgroundColor: a.isLate == 1 ? AppColors.warning : AppColors.success,
+                            backgroundColor: a.isLate == 1 ? Colors.orange.shade100 : Colors.green.shade100,
                             child: Icon(
                               a.isLate == 1 ? Icons.warning_amber_rounded : Icons.check,
                               size: 14,
-                              color: a.isLate == 1 ? AppColors.warning : AppColors.success,
+                              color: a.isLate == 1 ? Colors.orange.shade700 : Colors.green.shade700,
                             ),
                           ),
                           title: Text(a.dateKey, style: AppTextStyles.body1),
@@ -1173,8 +1173,8 @@ class _StaffSelfProfileViewState extends State<StaffSelfProfileView> {
                             contentPadding: EdgeInsets.zero,
                             leading: CircleAvatar(
                               radius: 14,
-                              backgroundColor: AppColors.primary,
-                              child: Icon(Icons.point_of_sale, size: 14, color: AppColors.primary),
+                              backgroundColor: Colors.blue.shade50,
+                              child: Icon(Icons.point_of_sale, size: 14, color: Colors.blue.shade700),
                             ),
                             title: Text(
                               sale.customerName.isEmpty ? 'Khách lẻ' : sale.customerName,
@@ -1227,8 +1227,8 @@ class _StaffSelfProfileViewState extends State<StaffSelfProfileView> {
                             contentPadding: EdgeInsets.zero,
                             leading: CircleAvatar(
                               radius: 14,
-                              backgroundColor: AppColors.warning,
-                              child: Icon(Icons.build_circle_outlined, size: 14, color: AppColors.warning),
+                              backgroundColor: Colors.orange.shade50,
+                              child: Icon(Icons.build_circle_outlined, size: 14, color: Colors.orange.shade700),
                             ),
                             title: Text(
                               '${repair.customerName} • ${repair.model}',
@@ -1262,9 +1262,9 @@ class _StaffSelfProfileViewState extends State<StaffSelfProfileView> {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.outline),
+        border: Border.all(color: Colors.grey.shade200),
       ),
       child: Column(
         children: [
@@ -1353,8 +1353,8 @@ class _StaffSelfProfileViewState extends State<StaffSelfProfileView> {
                       contentPadding: EdgeInsets.zero,
                       leading: CircleAvatar(
                         radius: 16,
-                        backgroundColor: AppColors.primary,
-                        child: Icon(Icons.point_of_sale, size: 16, color: AppColors.primary),
+                        backgroundColor: Colors.blue.shade50,
+                        child: Icon(Icons.point_of_sale, size: 16, color: Colors.blue.shade700),
                       ),
                       title: Text(
                         sale.customerName.isEmpty ? 'Khách lẻ' : sale.customerName,
@@ -1414,8 +1414,8 @@ class _StaffSelfProfileViewState extends State<StaffSelfProfileView> {
                       contentPadding: EdgeInsets.zero,
                       leading: CircleAvatar(
                         radius: 16,
-                        backgroundColor: AppColors.warning,
-                        child: Icon(Icons.build_circle_outlined, size: 16, color: AppColors.warning),
+                        backgroundColor: Colors.orange.shade50,
+                        child: Icon(Icons.build_circle_outlined, size: 16, color: Colors.orange.shade700),
                       ),
                       title: Text(
                         '${repair.customerName} • ${repair.model}',

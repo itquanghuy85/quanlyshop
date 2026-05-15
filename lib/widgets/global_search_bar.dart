@@ -43,15 +43,15 @@ class _GlobalSearchBarState extends State<GlobalSearchBar> {
   Widget build(BuildContext context) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
-      height: 44,
+      height: 56,
       decoration: BoxDecoration(
-        color: _isFocused ? AppColors.surface : const Color(0xFFF0F2F5),
-        borderRadius: BorderRadius.circular(12),
+        color: _isFocused ? Colors.white : const Color(0xFFF0F2F5),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: _isFocused 
-          ? [BoxShadow(color: AppColors.primary.withAlpha(25), blurRadius: 15, offset: const Offset(0, 4))]
+          ? [BoxShadow(color: Colors.blue.withAlpha(25), blurRadius: 15, offset: const Offset(0, 4))]
           : [],
         border: Border.all(
-          color: _isFocused ? AppColors.primary : Colors.transparent,
+          color: _isFocused ? Colors.blue.shade300 : Colors.transparent,
           width: 1.5,
         ),
       ),
@@ -71,11 +71,11 @@ class _GlobalSearchBarState extends State<GlobalSearchBar> {
         },
         decoration: InputDecoration(
           hintText: widget.hintText,
-          hintStyle: AppTextStyles.body2.copyWith(color: AppColors.onSurface.withAlpha(128)),
-          prefixIcon: Icon(Icons.search_rounded, color: _isFocused ? AppColors.primary : AppColors.textHint),
+          hintStyle: AppTextStyles.body2.copyWith(color: AppColors.onSurface.withOpacity(0.5)),
+          prefixIcon: Icon(Icons.search_rounded, color: _isFocused ? Colors.blue : Colors.grey),
           suffixIcon: _controller.text.isNotEmpty 
             ? IconButton(
-                icon: const Icon(Icons.cancel_rounded, color: AppColors.textHint),
+                icon: const Icon(Icons.cancel_rounded, color: Colors.grey),
                 onPressed: () {
                   _controller.clear();
                   setState(() {});
@@ -83,7 +83,7 @@ class _GlobalSearchBarState extends State<GlobalSearchBar> {
               )
             : null,
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 10),
+          contentPadding: const EdgeInsets.symmetric(vertical: 16),
         ),
       ),
     );

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
 import 'package:intl/intl.dart';
 import '../widgets/responsive_wrapper.dart';
 import '../models/quick_input_code_model.dart';
@@ -51,7 +50,7 @@ class _QuickInputManagementViewState extends State<QuickInputManagementView> {
     } catch (e) {
       debugPrint('Error initializing data: $e');
       if (mounted) {
-        NotificationService.showSnackBar('Lỗi khởi tạo dữ liệu: $e', color: AppColors.error);
+        NotificationService.showSnackBar('Lỗi khởi tạo dữ liệu: $e', color: Colors.red);
       }
     } finally {
       if (mounted) {
@@ -74,7 +73,7 @@ class _QuickInputManagementViewState extends State<QuickInputManagementView> {
     } catch (e) {
       debugPrint('Error loading codes: $e');
       if (mounted) {
-        NotificationService.showSnackBar('Lỗi tải mã nhập nhanh: $e', color: AppColors.error);
+        NotificationService.showSnackBar('Lỗi tải mã nhập nhanh: $e', color: Colors.red);
       }
     }
   }
@@ -111,10 +110,10 @@ class _QuickInputManagementViewState extends State<QuickInputManagementView> {
     try {
       await SyncService.syncQuickInputCodesToCloud();
       // Real-time listeners handle downloads — chỉ push local changes
-      NotificationService.showSnackBar('Đã đồng bộ thành công mã nhập nhanh!', color: AppColors.success);
+      NotificationService.showSnackBar('Đã đồng bộ thành công mã nhập nhanh!', color: Colors.green);
       await _loadCodes();
     } catch (e) {
-      NotificationService.showSnackBar('Lỗi đồng bộ: $e', color: AppColors.error);
+      NotificationService.showSnackBar('Lỗi đồng bộ: $e', color: Colors.red);
     } finally {
       if (mounted) {
         setState(() => _isSyncing = false);
@@ -128,10 +127,10 @@ class _QuickInputManagementViewState extends State<QuickInputManagementView> {
       await _loadCodes();
       NotificationService.showSnackBar(
         code.isActive ? 'Đã tắt mã nhập nhanh' : 'Đã bật mã nhập nhanh',
-        color: AppColors.success,
+        color: Colors.green,
       );
     } catch (e) {
-      NotificationService.showSnackBar('Lỗi cập nhật trạng thái: $e', color: AppColors.error);
+      NotificationService.showSnackBar('Lỗi cập nhật trạng thái: $e', color: Colors.red);
     }
   }
 
@@ -148,7 +147,7 @@ class _QuickInputManagementViewState extends State<QuickInputManagementView> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Xóa'),
           ),
         ],
@@ -170,9 +169,9 @@ class _QuickInputManagementViewState extends State<QuickInputManagementView> {
         // Sau đó xóa local
         await db.deleteQuickInputCode(code.id!);
         await _loadCodes();
-        NotificationService.showSnackBar('Đã xóa mã nhập nhanh', color: AppColors.success);
+        NotificationService.showSnackBar('Đã xóa mã nhập nhanh', color: Colors.green);
       } catch (e) {
-        NotificationService.showSnackBar('Lỗi xóa mã nhập nhanh: $e', color: AppColors.error);
+        NotificationService.showSnackBar('Lỗi xóa mã nhập nhanh: $e', color: Colors.red);
       }
     }
   }
@@ -188,12 +187,12 @@ class _QuickInputManagementViewState extends State<QuickInputManagementView> {
         );
       }
     } catch (e) {
-      NotificationService.showSnackBar('Lỗi nhập kho: $e', color: AppColors.error);
+      NotificationService.showSnackBar('Lỗi nhập kho: $e', color: Colors.red);
     }
   }
 
   void _showCreateDialog() {
-    NotificationService.showSnackBar('Tính năng tạo mã mới đang được phát triển', color: AppColors.primary);
+    NotificationService.showSnackBar('Tính năng tạo mã mới đang được phát triển', color: Colors.blue);
   }
 
   Widget _buildLibraryTab() {
@@ -233,8 +232,8 @@ class _QuickInputManagementViewState extends State<QuickInputManagementView> {
                     : const Icon(Icons.cloud_upload),
                 label: Text(_isSyncing ? 'Đang đồng bộ...' : 'Đồng bộ lên Cloud'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: AppColors.surface,
+                  backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
                 ),
               ),
             ),
@@ -246,11 +245,11 @@ class _QuickInputManagementViewState extends State<QuickInputManagementView> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.library_books, size: 64, color: AppColors.textHint),
+                      Icon(Icons.library_books, size: 64, color: Colors.grey.shade400),
                       const SizedBox(height: 16),
                       Text(
                         'Chưa có mã nhập nhanh nào',
-                        style: TextStyle(color: AppColors.textSecondary, fontSize: AppTextStyles.headline3.fontSize),
+                        style: TextStyle(color: Colors.grey.shade600, fontSize: AppTextStyles.headline3.fontSize),
                       ),
                     ],
                   ),
@@ -306,13 +305,13 @@ class _QuickInputManagementViewState extends State<QuickInputManagementView> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.qr_code, size: 64, color: AppColors.textHint),
+                      Icon(Icons.qr_code, size: 64, color: Colors.grey.shade400),
                       const SizedBox(height: 16),
                       Text(
                         _searchQuery.isEmpty
                             ? 'Chưa có mã nhập nhanh nào'
                             : 'Không tìm thấy mã nhập nhanh phù hợp',
-                        style: TextStyle(color: AppColors.textSecondary, fontSize: AppTextStyles.headline3.fontSize),
+                        style: TextStyle(color: Colors.grey.shade600, fontSize: AppTextStyles.headline3.fontSize),
                       ),
                     ],
                   ),
@@ -338,13 +337,13 @@ class _QuickInputManagementViewState extends State<QuickInputManagementView> {
           height: 40,
           decoration: BoxDecoration(
             color: code.type == 'DIEN_THOAI'
-                ? AppColors.primary
-                : AppColors.success,
+                ? Colors.blue.shade100
+                : Colors.green.shade100,
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(
             code.type == 'DIEN_THOAI' ? Icons.smartphone : Icons.devices_other,
-            color: code.type == 'DIEN_THOAI' ? AppColors.primary : AppColors.success,
+            color: code.type == 'DIEN_THOAI' ? Colors.blue : Colors.green,
           ),
         ),
         title: Text(
@@ -352,7 +351,7 @@ class _QuickInputManagementViewState extends State<QuickInputManagementView> {
           style: TextStyle(
             fontWeight: FontWeight.w500,
             decoration: !code.isActive ? TextDecoration.lineThrough : null,
-            color: !code.isActive ? AppColors.textHint : null,
+            color: !code.isActive ? Colors.grey : null,
           ),
         ),
         subtitle: Column(
@@ -367,7 +366,7 @@ class _QuickInputManagementViewState extends State<QuickInputManagementView> {
             if (!code.isSynced)
               Text(
                 'Chưa đồng bộ',
-                style: TextStyle(color: AppColors.warning, fontSize: AppTextStyles.subtitle1.fontSize),
+                style: TextStyle(color: Colors.orange, fontSize: AppTextStyles.subtitle1.fontSize),
               ),
           ],
         ),
@@ -414,7 +413,7 @@ class _QuickInputManagementViewState extends State<QuickInputManagementView> {
                     value: 'delete',
                     child: Row(
                       children: [
-                        Icon(Icons.delete, size: 20, color: AppColors.error),
+                        Icon(Icons.delete, size: 20, color: Colors.red),
                         SizedBox(width: 8),
                         Text('Xóa'),
                       ],
@@ -442,8 +441,8 @@ class _QuickInputManagementViewState extends State<QuickInputManagementView> {
           setState(() => _currentFilter = filter);
         }
       },
-      backgroundColor: AppColors.background,
-      selectedColor: Theme.of(context).primaryColor.withAlpha(51),
+      backgroundColor: Colors.grey.shade100,
+      selectedColor: Theme.of(context).primaryColor.withOpacity(0.2),
       checkmarkColor: Theme.of(context).primaryColor,
     );
   }
@@ -461,9 +460,9 @@ class _QuickInputManagementViewState extends State<QuickInputManagementView> {
             ),
           ),
         ),
-        title: const Text('Quản lý Mã Nhập Nhanh', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.surface)),
-        backgroundColor: AppColors.surface,
-        foregroundColor: AppColors.textPrimary,
+        title: const Text('Quản lý Mã Nhập Nhanh', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
         elevation: 0,
         actions: [
           IconButton(

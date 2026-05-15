@@ -350,7 +350,7 @@ class _SaleListViewState extends State<SaleListView> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheetState) => Container(
           decoration: const BoxDecoration(
-            color: AppColors.surface,
+            color: Colors.white,
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
           padding: const EdgeInsets.all(12),
@@ -388,7 +388,7 @@ class _SaleListViewState extends State<SaleListView> {
                   'THỜI GIAN',
                   style: AppTextStyles.caption.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: AppColors.onSurface.withAlpha(153),
+                    color: AppColors.onSurface.withOpacity(0.6),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -465,7 +465,7 @@ class _SaleListViewState extends State<SaleListView> {
                 'TRẠNG THÁI THANH TOÁN',
                 style: AppTextStyles.caption.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: AppColors.onSurface.withAlpha(153),
+                  color: AppColors.onSurface.withOpacity(0.6),
                 ),
               ),
               const SizedBox(height: 8),
@@ -517,7 +517,7 @@ class _SaleListViewState extends State<SaleListView> {
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
-                    foregroundColor: AppColors.surface,
+                    foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -554,13 +554,13 @@ class _SaleListViewState extends State<SaleListView> {
           border: Border.all(
             color: isSelected
                 ? AppColors.primary
-                : AppColors.onSurface.withAlpha(51),
+                : AppColors.onSurface.withOpacity(0.2),
           ),
         ),
         child: Text(
           label,
           style: AppTextStyles.caption.copyWith(
-            color: isSelected ? AppColors.surface : AppColors.onSurface,
+            color: isSelected ? Colors.white : AppColors.onSurface,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
           ),
         ),
@@ -597,7 +597,7 @@ class _SaleListViewState extends State<SaleListView> {
             ).then((_) => _refresh()),
             icon: const Icon(
               Icons.add_circle_outline_rounded,
-              color: AppColors.surface,
+              color: Colors.white,
             ),
             tooltip: 'Tạo đơn bán',
           ),
@@ -616,7 +616,7 @@ class _SaleListViewState extends State<SaleListView> {
                 endMs: result['endMs'],
               );
             },
-            icon: const Icon(Icons.file_download_outlined, color: AppColors.surface),
+            icon: const Icon(Icons.file_download_outlined, color: Colors.white),
             tooltip: 'Xuất Excel',
           ),
           // Bộ lọc
@@ -626,7 +626,7 @@ class _SaleListViewState extends State<SaleListView> {
                 onPressed: _showFilterSheet,
                 icon: const Icon(
                   Icons.filter_list_rounded,
-                  color: AppColors.surface,
+                  color: Colors.white,
                 ),
                 tooltip: 'Bộ lọc',
               ),
@@ -637,13 +637,13 @@ class _SaleListViewState extends State<SaleListView> {
                   child: Container(
                     padding: const EdgeInsets.all(4),
                     decoration: const BoxDecoration(
-                      color: AppColors.error,
+                      color: Colors.red,
                       shape: BoxShape.circle,
                     ),
                     child: Text(
                       '$_activeFilterCount',
                       style: TextStyle(
-                        color: AppColors.surface,
+                        color: Colors.white,
                         fontSize: AppTextStyles.caption.fontSize,
                         fontWeight: FontWeight.bold,
                       ),
@@ -657,7 +657,7 @@ class _SaleListViewState extends State<SaleListView> {
           preferredSize: const Size.fromHeight(48),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            color: AppColors.surface,
+            color: Colors.white,
             child: TextField(
               onChanged: (v) => setState(() => _search = v),
               style: TextStyle(fontSize: AppTextStyles.headline5.fontSize),
@@ -666,7 +666,7 @@ class _SaleListViewState extends State<SaleListView> {
                     "Tìm theo tên khách, ${_terms.productLabel.toLowerCase()} hoặc ${_terms.specialField1Label}...",
                 hintStyle: TextStyle(
                   fontSize: AppTextStyles.headline5.fontSize,
-                  color: AppColors.textHint,
+                  color: Colors.grey.shade500,
                 ),
                 prefixIcon: const Icon(
                   Icons.search_rounded,
@@ -675,7 +675,7 @@ class _SaleListViewState extends State<SaleListView> {
                 ),
                 prefixIconConstraints: const BoxConstraints(minWidth: 40),
                 filled: true,
-                fillColor: AppColors.background,
+                fillColor: Colors.grey.shade100,
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 12,
                   vertical: 8,
@@ -723,7 +723,7 @@ class _SaleListViewState extends State<SaleListView> {
                         Text(
                           ' • ',
                           style: TextStyle(
-                            color: AppColors.textHint,
+                            color: Colors.grey.shade400,
                             fontSize: 11,
                           ),
                         ),
@@ -739,7 +739,7 @@ class _SaleListViewState extends State<SaleListView> {
                           Text(
                             ' • ',
                             style: TextStyle(
-                              color: AppColors.textHint,
+                              color: Colors.grey.shade400,
                               fontSize: 11,
                             ),
                           ),
@@ -770,7 +770,7 @@ class _SaleListViewState extends State<SaleListView> {
                                 vertical: 3,
                               ),
                               decoration: BoxDecoration(
-                                color: AppColors.primary.withAlpha(26),
+                                color: AppColors.primary.withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Row(
@@ -800,7 +800,7 @@ class _SaleListViewState extends State<SaleListView> {
                               : '${list.length} đơn',
                           style: TextStyle(
                             fontSize: 10,
-                            color: AppColors.textHint,
+                            color: Colors.grey.shade500,
                           ),
                         ),
                       ],
@@ -819,13 +819,13 @@ class _SaleListViewState extends State<SaleListView> {
                                 Icon(
                                   Icons.shopping_bag_outlined,
                                   size: 80,
-                                  color: AppColors.onSurface.withAlpha(77),
+                                  color: AppColors.onSurface.withOpacity(0.3),
                                 ),
                                 const SizedBox(height: 10),
                                 Text(
                                   "Không có đơn hàng nào",
                                   style: AppTextStyles.body1.copyWith(
-                                    color: AppColors.onSurface.withAlpha(153),
+                                    color: AppColors.onSurface.withOpacity(0.6),
                                   ),
                                 ),
                                 if (_activeFilterCount > 0)
@@ -883,7 +883,7 @@ class _SaleListViewState extends State<SaleListView> {
                                     child: Text(
                                       'Đã hiển thị ${list.length} đơn bán',
                                       style: TextStyle(
-                                        color: AppColors.textSecondary,
+                                        color: Colors.grey[600],
                                         fontSize:
                                             AppTextStyles.subtitle1.fontSize,
                                       ),
@@ -913,12 +913,12 @@ class _SaleListViewState extends State<SaleListView> {
                               final isFullyReturned =
                                   returnInfo?.allReturned == true;
                                 final accentColor = isFullyReturned
-                                  ? AppColors.textHint
+                                  ? Colors.grey.shade500
                                   : (isInstallment && !hasBankSettlement)
-                                  ? AppColors.warning
+                                  ? Colors.orange.shade600
                                   : (isPaid
-                                    ? AppColors.success
-                                    : AppColors.warning);
+                                    ? Colors.green.shade600
+                                    : Colors.orange.shade600);
                                 final borderColor = accentColor.withValues(
                                 alpha: 0.22,
                                 );
@@ -936,7 +936,7 @@ class _SaleListViewState extends State<SaleListView> {
                                 ),
                                 elevation: 0.5,
                                 shadowColor: accentColor.withValues(alpha: 0.15),
-                                color: AppColors.surface,
+                                color: Colors.white,
                                 child: InkWell(
                                   onTap: () {
                                     HapticFeedback.lightImpact();
@@ -984,7 +984,7 @@ class _SaleListViewState extends State<SaleListView> {
                                                     height: 16,
                                                     margin: const EdgeInsets.only(right: 5),
                                                     decoration: BoxDecoration(
-                                                      color: AppColors.primary.withAlpha(26),
+                                                      color: AppColors.primary.withOpacity(0.1),
                                                       borderRadius: BorderRadius.circular(3),
                                                     ),
                                                     child: Center(
@@ -1025,7 +1025,7 @@ class _SaleListViewState extends State<SaleListView> {
                                                           ? 'CHỜ NH'
                                                           : (isPaid ? 'ĐÃ THU' : 'CÒN NỢ'),
                                                       style: const TextStyle(
-                                                        color: AppColors.surface,
+                                                        color: Colors.white,
                                                         fontSize: 9,
                                                         fontWeight: FontWeight.bold,
                                                       ),
@@ -1053,7 +1053,7 @@ class _SaleListViewState extends State<SaleListView> {
                                                       const Spacer(),
                                                     Text(
                                                       date,
-                                                      style: TextStyle(fontSize: 9, color: AppColors.textHint),
+                                                      style: TextStyle(fontSize: 9, color: Colors.grey.shade500),
                                                     ),
                                                   ],
                                                 ),
@@ -1121,8 +1121,8 @@ class _SaleListViewState extends State<SaleListView> {
                                                     isFullyReturned
                                                         ? MoneyUtils.formatCompactCurrency(returnInfo.totalReturnedAmount)
                                                         : '${MoneyUtils.formatCompactCurrency(returnInfo.totalReturnedAmount)} (${returnInfo.returnCount} lần)',
-                                                    AppColors.textSecondary,
-                                                    AppColors.background,
+                                                    Colors.grey.shade700,
+                                                    Colors.grey.shade100,
                                                   ),
                                                 ),
                                               // ROW 7: Installment note
@@ -1144,7 +1144,7 @@ class _SaleListViewState extends State<SaleListView> {
                                                   padding: const EdgeInsets.only(top: 2),
                                                   child: Text(
                                                     s.sellerName,
-                                                    style: TextStyle(fontSize: 10, color: AppColors.textHint),
+                                                    style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
                                                   ),
                                                 ),
                                             ],
@@ -1171,7 +1171,7 @@ class _SaleListViewState extends State<SaleListView> {
         Text(
           label,
           style: AppTextStyles.overline.copyWith(
-            color: AppColors.onSurface.withAlpha(153),
+            color: AppColors.onSurface.withOpacity(0.6),
           ),
         ),
         const SizedBox(height: 4),
@@ -1244,9 +1244,9 @@ class _SaleListViewState extends State<SaleListView> {
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.outline),
+        border: Border.all(color: Colors.grey.shade200),
       ),
       child: Row(
         children: [
@@ -1256,7 +1256,7 @@ class _SaleListViewState extends State<SaleListView> {
             child: Text(
               '$modeLabel • Đang hiển thị $shownCount đơn',
               style: AppTextStyles.caption.copyWith(
-                color: AppColors.textSecondary,
+                color: Colors.grey.shade700,
                 fontWeight: FontWeight.w600,
               ),
               maxLines: 1,
@@ -1268,8 +1268,8 @@ class _SaleListViewState extends State<SaleListView> {
             statusLabel,
             style: AppTextStyles.overline.copyWith(
               color: (!_needsFullData && _hasMore)
-                  ? AppColors.warning
-                  : AppColors.success,
+                  ? Colors.orange.shade700
+                  : Colors.green.shade700,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -1283,9 +1283,9 @@ class _SaleListViewState extends State<SaleListView> {
       margin: const EdgeInsets.only(right: 8),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: AppColors.primary.withAlpha(26),
+        color: AppColors.primary.withOpacity(0.1),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.primary.withAlpha(77)),
+        border: Border.all(color: AppColors.primary.withOpacity(0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -1345,7 +1345,7 @@ class _SaleListViewState extends State<SaleListView> {
           label,
           style: TextStyle(
             fontSize: AppTextStyles.overlineSize,
-            color: AppColors.onSurface.withAlpha(153),
+            color: AppColors.onSurface.withOpacity(0.6),
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -1424,7 +1424,7 @@ class _SaleListViewState extends State<SaleListView> {
       return [
         _saleInfoChip(
           '↩️ Trả hết ${MoneyUtils.formatCompactCurrency(info.totalReturnedAmount)}',
-          AppColors.outline,
+          Colors.grey.shade300,
         ),
       ];
     }
@@ -1433,7 +1433,7 @@ class _SaleListViewState extends State<SaleListView> {
         onTap: () => _openReturn(s),
         child: _saleInfoChip(
           '↩️ Trả ${MoneyUtils.formatCompactCurrency(info.totalReturnedAmount)} (${info.returnCount} lần)',
-          AppColors.repairDelivered,
+          Colors.purple.shade100,
         ),
       ),
     ];
@@ -1445,7 +1445,7 @@ class _SaleListViewState extends State<SaleListView> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Đơn này đã trả hết hàng'),
-          backgroundColor: AppColors.warning,
+          backgroundColor: Colors.orange,
         ),
       );
       return;

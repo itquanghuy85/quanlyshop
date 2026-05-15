@@ -1,6 +1,5 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../main.dart';
@@ -191,17 +190,17 @@ class _IntroViewState extends State<IntroView> with TickerProviderStateMixin {
                 child: TextButton(
                   onPressed: _completeIntro,
                   style: TextButton.styleFrom(
-                    backgroundColor: AppColors.surface.withAlpha(26),
+                    backgroundColor: Colors.white.withOpacity(0.1),
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20),
-                      side: BorderSide(color: AppColors.surface.withAlpha(51)),
+                      side: BorderSide(color: Colors.white.withOpacity(0.2)),
                     ),
                   ),
                   child: Text(
                     AppLocalizations.of(context)!.skip,
                     style: TextStyle(
-                      color: AppColors.surface.withAlpha(179),
+                      color: Colors.white.withOpacity(0.7),
                       fontWeight: FontWeight.w600,
                       fontSize: 14,
                     ),
@@ -301,17 +300,17 @@ class _IntroViewState extends State<IntroView> with TickerProviderStateMixin {
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                         colors: [
-                          accent.withAlpha(51),
-                          accent.withAlpha(13),
+                          accent.withOpacity(0.2),
+                          accent.withOpacity(0.05),
                         ],
                       ),
                       border: Border.all(
-                        color: accent.withAlpha(77),
+                        color: accent.withOpacity(0.3),
                         width: 2,
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: accent.withAlpha(64),
+                          color: accent.withOpacity(0.25),
                           blurRadius: 40,
                           spreadRadius: 5,
                         ),
@@ -327,7 +326,7 @@ class _IntroViewState extends State<IntroView> with TickerProviderStateMixin {
                 Text(
                   "${index + 1} / ${_introData.length}",
                   style: TextStyle(
-                    color: accent.withAlpha(153),
+                    color: accent.withOpacity(0.6),
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 2,
@@ -339,7 +338,7 @@ class _IntroViewState extends State<IntroView> with TickerProviderStateMixin {
                 // ── Title ──
                 ShaderMask(
                   shaderCallback: (bounds) => LinearGradient(
-                    colors: [AppColors.surface, accent.withAlpha(204)],
+                    colors: [Colors.white, accent.withOpacity(0.8)],
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                   ).createShader(bounds),
@@ -349,7 +348,7 @@ class _IntroViewState extends State<IntroView> with TickerProviderStateMixin {
                     style: const TextStyle(
                       fontSize: 26,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.surface,
+                      color: Colors.white,
                       letterSpacing: 0.5,
                       height: 1.3,
                     ),
@@ -366,7 +365,7 @@ class _IntroViewState extends State<IntroView> with TickerProviderStateMixin {
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 17,
-                      color: AppColors.surface.withOpacity(0.65),
+                      color: Colors.white.withOpacity(0.65),
                       height: 1.6,
                       fontWeight: FontWeight.w400,
                     ),
@@ -381,8 +380,8 @@ class _IntroViewState extends State<IntroView> with TickerProviderStateMixin {
                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: accent.withAlpha(77)),
-                      color: accent.withAlpha(20),
+                      border: Border.all(color: accent.withOpacity(0.3)),
+                      color: accent.withOpacity(0.08),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -425,7 +424,7 @@ class _IntroViewState extends State<IntroView> with TickerProviderStateMixin {
           end: Alignment.bottomCenter,
           colors: [
             Colors.transparent,
-            AppColors.textPrimary.withAlpha(77),
+            Colors.black.withOpacity(0.3),
           ],
         ),
       ),
@@ -443,10 +442,10 @@ class _IntroViewState extends State<IntroView> with TickerProviderStateMixin {
                   width: isActive ? 28 : 6,
                   margin: const EdgeInsets.only(right: 6),
                   decoration: BoxDecoration(
-                    color: isActive ? accent : AppColors.surface.withAlpha(64),
+                    color: isActive ? accent : Colors.white.withOpacity(0.25),
                     borderRadius: BorderRadius.circular(3),
                     boxShadow: isActive
-                        ? [BoxShadow(color: accent.withAlpha(102), blurRadius: 8)]
+                        ? [BoxShadow(color: accent.withOpacity(0.4), blurRadius: 8)]
                         : null,
                   ),
                 );
@@ -473,11 +472,11 @@ class _IntroViewState extends State<IntroView> with TickerProviderStateMixin {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(isLast ? 28 : 16),
                 gradient: LinearGradient(
-                  colors: [accent, accent.withAlpha(179)],
+                  colors: [accent, accent.withOpacity(0.7)],
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: accent.withAlpha(102),
+                    color: accent.withOpacity(0.4),
                     blurRadius: 16,
                     offset: const Offset(0, 4),
                   ),
@@ -490,7 +489,7 @@ class _IntroViewState extends State<IntroView> with TickerProviderStateMixin {
                     const Text(
                       "Bắt đầu",
                       style: TextStyle(
-                        color: AppColors.surface,
+                        color: Colors.white,
                         fontSize: 17,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 0.5,
@@ -499,7 +498,7 @@ class _IntroViewState extends State<IntroView> with TickerProviderStateMixin {
                   if (isLast) const SizedBox(width: 6),
                   Icon(
                     isLast ? Icons.arrow_forward_rounded : Icons.arrow_forward_rounded,
-                    color: AppColors.surface,
+                    color: Colors.white,
                     size: 22,
                   ),
                 ],

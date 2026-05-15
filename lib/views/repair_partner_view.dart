@@ -159,7 +159,7 @@ class _RepairPartnerViewState extends State<RepairPartnerView> {
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
             style: TextButton.styleFrom(
-              foregroundColor: AppColors.onSurface.withAlpha(179),
+              foregroundColor: AppColors.onSurface.withOpacity(0.7),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             ),
             child: Text("HỦY", style: AppTextStyles.button),
@@ -237,7 +237,7 @@ class _RepairPartnerViewState extends State<RepairPartnerView> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withAlpha(26),
+                      color: AppColors.primary.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(Icons.handshake, color: AppColors.primary, size: 24),
@@ -271,7 +271,7 @@ class _RepairPartnerViewState extends State<RepairPartnerView> {
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
-                      child: Text("HỦY", style: AppTextStyles.button.copyWith(color: AppColors.onSurface.withAlpha(179))),
+                      child: Text("HỦY", style: AppTextStyles.button.copyWith(color: AppColors.onSurface.withOpacity(0.7))),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -357,7 +357,7 @@ class _RepairPartnerViewState extends State<RepairPartnerView> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppColors.warning.withAlpha(26),
+                      color: AppColors.warning.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(Icons.edit, color: AppColors.warning, size: 24),
@@ -391,7 +391,7 @@ class _RepairPartnerViewState extends State<RepairPartnerView> {
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
-                      child: Text("HỦY", style: AppTextStyles.button.copyWith(color: AppColors.onSurface.withAlpha(179))),
+                      child: Text("HỦY", style: AppTextStyles.button.copyWith(color: AppColors.onSurface.withOpacity(0.7))),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -437,7 +437,7 @@ class _RepairPartnerViewState extends State<RepairPartnerView> {
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.warning,
-                        foregroundColor: AppColors.surface,
+                        foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                         elevation: 2,
@@ -467,7 +467,7 @@ class _RepairPartnerViewState extends State<RepairPartnerView> {
           style: AppTextStyles.body1,
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: AppTextStyles.body2.copyWith(color: AppColors.onSurface.withAlpha(128)),
+            hintStyle: AppTextStyles.body2.copyWith(color: AppColors.onSurface.withOpacity(0.5)),
             prefixIcon: Icon(icon, color: AppColors.primary, size: 20),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -504,14 +504,14 @@ class _RepairPartnerViewState extends State<RepairPartnerView> {
             ),
           ),
         ),
-        backgroundColor: AppColors.surface,
-        foregroundColor: AppColors.textPrimary,
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
         elevation: 0,
         title: Row(
           children: [
-            const Icon(Icons.handshake, color: AppColors.surface, size: 28),
+            const Icon(Icons.handshake, color: Colors.white, size: 28),
             const SizedBox(width: 12),
-            Text("ĐỐI TÁC SỬA CHỮA", style: AppTextStyles.headline6.copyWith(color: AppColors.surface)),
+            Text("ĐỐI TÁC SỬA CHỮA", style: AppTextStyles.headline6.copyWith(color: Colors.white)),
           ],
         ),
         automaticallyImplyLeading: true,
@@ -521,7 +521,7 @@ class _RepairPartnerViewState extends State<RepairPartnerView> {
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [AppColors.primary.withAlpha(26), AppColors.primary.withAlpha(13)],
+                colors: [AppColors.primary.withOpacity(0.1), AppColors.primary.withOpacity(0.05)],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
               ),
@@ -532,11 +532,11 @@ class _RepairPartnerViewState extends State<RepairPartnerView> {
               style: AppTextStyles.body1.copyWith(color: AppColors.onPrimary),
               decoration: InputDecoration(
                 hintText: "Tìm kiếm đối tác...",
-                hintStyle: AppTextStyles.body2.copyWith(color: AppColors.onPrimary.withAlpha(179)),
-                prefixIcon: Icon(Icons.search, color: AppColors.onPrimary.withAlpha(179)),
+                hintStyle: AppTextStyles.body2.copyWith(color: AppColors.onPrimary.withOpacity(0.7)),
+                prefixIcon: Icon(Icons.search, color: AppColors.onPrimary.withOpacity(0.7)),
                 suffixIcon: _searchQuery.isNotEmpty
                     ? IconButton(
-                        icon: Icon(Icons.clear, color: AppColors.onPrimary.withAlpha(179)),
+                        icon: Icon(Icons.clear, color: AppColors.onPrimary.withOpacity(0.7)),
                         onPressed: () {
                           _searchController.clear();
                           setState(() => _searchQuery = '');
@@ -545,18 +545,18 @@ class _RepairPartnerViewState extends State<RepairPartnerView> {
                     : null,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide(color: AppColors.onPrimary.withAlpha(77)),
+                  borderSide: BorderSide(color: AppColors.onPrimary.withOpacity(0.3)),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide(color: AppColors.onPrimary.withAlpha(77)),
+                  borderSide: BorderSide(color: AppColors.onPrimary.withOpacity(0.3)),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
                   borderSide: const BorderSide(color: AppColors.onPrimary, width: 2),
                 ),
                 filled: true,
-                fillColor: AppColors.onPrimary.withAlpha(26),
+                fillColor: AppColors.onPrimary.withOpacity(0.1),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               ),
             ),
@@ -570,7 +570,7 @@ class _RepairPartnerViewState extends State<RepairPartnerView> {
               children: [
                 const CircularProgressIndicator(color: AppColors.primary),
                 const SizedBox(height: 16),
-                Text("Đang tải danh sách...", style: AppTextStyles.body2.copyWith(color: AppColors.onSurface.withAlpha(179))),
+                Text("Đang tải danh sách...", style: AppTextStyles.body2.copyWith(color: AppColors.onSurface.withOpacity(0.7))),
               ],
             ),
           )
@@ -601,22 +601,22 @@ class _RepairPartnerViewState extends State<RepairPartnerView> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppColors.primary.withAlpha(26),
+              color: AppColors.primary.withOpacity(0.1),
               shape: BoxShape.circle,
             ),
-            child: Icon(Icons.handshake, size: 64, color: AppColors.primary.withAlpha(128)),
+            child: Icon(Icons.handshake, size: 64, color: AppColors.primary.withOpacity(0.5)),
           ),
           const SizedBox(height: 24),
           Text(
             _searchQuery.isEmpty ? "Chưa có đối tác nào" : "Không tìm thấy đối tác",
-            style: AppTextStyles.headline6.copyWith(color: AppColors.onSurface.withAlpha(179)),
+            style: AppTextStyles.headline6.copyWith(color: AppColors.onSurface.withOpacity(0.7)),
           ),
           const SizedBox(height: 8),
           Text(
             _searchQuery.isEmpty
                 ? "Thêm đối tác sửa chữa để quản lý công nợ & lịch sử gửi sửa"
                 : "Thử tìm kiếm với từ khóa khác",
-            style: AppTextStyles.body2.copyWith(color: AppColors.onSurface.withAlpha(128)),
+            style: AppTextStyles.body2.copyWith(color: AppColors.onSurface.withOpacity(0.5)),
             textAlign: TextAlign.center,
           ),
           if (_searchQuery.isEmpty) ...[
@@ -656,13 +656,13 @@ class _RepairPartnerViewState extends State<RepairPartnerView> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: AppColors.shadow.withAlpha(26),
+            color: AppColors.shadow.withOpacity(0.1),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
         ],
         border: Border.all(
-          color: isActive ? AppColors.primary.withAlpha(51) : AppColors.warning.withAlpha(51),
+          color: isActive ? AppColors.primary.withOpacity(0.2) : AppColors.warning.withOpacity(0.2),
           width: 1.5,
         ),
       ),
@@ -692,17 +692,17 @@ class _RepairPartnerViewState extends State<RepairPartnerView> {
               const SizedBox(height: 4),
               Row(
                 children: [
-                  Icon(Icons.build, size: 16, color: AppColors.onSurface.withAlpha(153)),
+                  Icon(Icons.build, size: 16, color: AppColors.onSurface.withOpacity(0.6)),
                   const SizedBox(width: 4),
                   Text(
                     "$totalOrders đơn gửi sửa",
-                    style: AppTextStyles.caption.copyWith(color: AppColors.onSurface.withAlpha(153)),
+                    style: AppTextStyles.caption.copyWith(color: AppColors.onSurface.withOpacity(0.6)),
                   ),
                   const SizedBox(width: 12),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: isActive ? AppColors.success.withAlpha(26) : AppColors.warning.withAlpha(26),
+                      color: isActive ? AppColors.success.withOpacity(0.1) : AppColors.warning.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
@@ -718,7 +718,7 @@ class _RepairPartnerViewState extends State<RepairPartnerView> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: AppColors.warning.withAlpha(38),
+                        color: AppColors.warning.withOpacity(0.15),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Row(
@@ -736,7 +736,7 @@ class _RepairPartnerViewState extends State<RepairPartnerView> {
           ),
           trailing: Icon(
             Icons.expand_more,
-            color: AppColors.onSurface.withAlpha(153),
+            color: AppColors.onSurface.withOpacity(0.6),
           ),
           children: [
             const Divider(height: 32, thickness: 1),
@@ -749,9 +749,9 @@ class _RepairPartnerViewState extends State<RepairPartnerView> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppColors.primary.withAlpha(13),
+                color: AppColors.primary.withOpacity(0.05),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.primary.withAlpha(51)),
+                border: Border.all(color: AppColors.primary.withOpacity(0.2)),
               ),
               child: Column(
                 children: [
@@ -814,7 +814,7 @@ class _RepairPartnerViewState extends State<RepairPartnerView> {
                   icon: const Icon(Icons.edit_outlined, size: 22),
                   tooltip: 'Sửa thông tin',
                   style: IconButton.styleFrom(
-                    backgroundColor: AppColors.warning.withAlpha(26),
+                    backgroundColor: AppColors.warning.withOpacity(0.1),
                     foregroundColor: AppColors.warning,
                     padding: const EdgeInsets.all(12),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -827,7 +827,7 @@ class _RepairPartnerViewState extends State<RepairPartnerView> {
                   icon: const Icon(Icons.delete_outline, size: 22),
                   tooltip: 'Xóa đối tác',
                   style: IconButton.styleFrom(
-                    backgroundColor: AppColors.error.withAlpha(26),
+                    backgroundColor: AppColors.error.withOpacity(0.1),
                     foregroundColor: AppColors.error,
                     padding: const EdgeInsets.all(12),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -845,9 +845,9 @@ class _RepairPartnerViewState extends State<RepairPartnerView> {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: color.withAlpha(20),
+        color: color.withOpacity(0.08),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withAlpha(77)),
+        border: Border.all(color: color.withOpacity(0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -871,7 +871,7 @@ class _RepairPartnerViewState extends State<RepairPartnerView> {
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: AppColors.primary.withAlpha(26),
+              color: AppColors.primary.withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(icon, size: 18, color: AppColors.primary),
@@ -884,7 +884,7 @@ class _RepairPartnerViewState extends State<RepairPartnerView> {
                 Text(
                   label,
                   style: AppTextStyles.body2.copyWith(
-                    color: AppColors.onSurface.withAlpha(179),
+                    color: AppColors.onSurface.withOpacity(0.7),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -932,7 +932,7 @@ class _RepairPartnerViewState extends State<RepairPartnerView> {
           children: [
             Text(
               'Chỉ chủ shop/quản lý được phép xóa đối tác.\nNhập mật khẩu tài khoản để xác nhận:',
-              style: AppTextStyles.body2.copyWith(color: AppColors.onSurface.withAlpha(179)),
+              style: AppTextStyles.body2.copyWith(color: AppColors.onSurface.withOpacity(0.7)),
             ),
             const SizedBox(height: 16),
             TextField(
@@ -941,7 +941,7 @@ class _RepairPartnerViewState extends State<RepairPartnerView> {
               style: AppTextStyles.body1,
               decoration: InputDecoration(
                 hintText: 'Mật khẩu',
-                hintStyle: AppTextStyles.body2.copyWith(color: AppColors.onSurface.withAlpha(128)),
+                hintStyle: AppTextStyles.body2.copyWith(color: AppColors.onSurface.withOpacity(0.5)),
                 prefixIcon: const Icon(Icons.password, color: AppColors.primary, size: 20),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -966,7 +966,7 @@ class _RepairPartnerViewState extends State<RepairPartnerView> {
           TextButton(
             onPressed: () => Navigator.pop(ctx),
             style: TextButton.styleFrom(
-              foregroundColor: AppColors.onSurface.withAlpha(179),
+              foregroundColor: AppColors.onSurface.withOpacity(0.7),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             ),
             child: Text('HỦY', style: AppTextStyles.button),

@@ -27,8 +27,8 @@ class _NotificationsViewState extends State<NotificationsView> {
             ),
           ),
         ),
-        backgroundColor: AppColors.surface,
-        foregroundColor: AppColors.textPrimary,
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
         elevation: 0,
         title: const Text('Thông báo'),
         actions: [
@@ -60,7 +60,7 @@ class _NotificationsViewState extends State<NotificationsView> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.notifications_none, size: 64, color: AppColors.onSurface.withAlpha(128)),
+                  Icon(Icons.notifications_none, size: 64, color: AppColors.onSurface.withOpacity(0.5)),
                   const SizedBox(height: 16),
                   const Text('Chưa có thông báo nào'),
                 ],

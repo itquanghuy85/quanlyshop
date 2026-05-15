@@ -6,9 +6,7 @@ import '../models/sale_order_model.dart';
 import '../utils/money_utils.dart';
 import '../services/event_bus.dart';
 import '../services/user_service.dart';
-import '../theme/app_spacing.dart';
 import '../theme/app_text_styles.dart';
-import '../theme/app_colors.dart';
 import 'sale_detail_view.dart';
 
 /// Màn hình thống kê đơn trả góp ngân hàng
@@ -261,20 +259,34 @@ class _BankInstallmentReportViewState extends State<BankInstallmentReportView> {
   Widget build(BuildContext context) {
     if (!_hasPermission) {
       if (widget.embedded) {
-        return Center(
+        return const Center(
           child: Text(
             'Bạn không có quyền truy cập tính năng này',
-            style: AppTextStyles.body1.copyWith(color: AppColors.textSecondary),
+            style: TextStyle(color: Colors.grey),
           ),
         );
       }
       return Scaffold(
-        backgroundColor: AppColors.background,
-        appBar: AppBar(title: const Text('TRẢ GÓP NGÂN HÀNG'), backgroundColor: AppColors.surface, foregroundColor: AppColors.textPrimary, elevation: 0, scrolledUnderElevation: 0.5, surfaceTintColor: Colors.transparent),
-        body: Center(
+        backgroundColor: const Color(0xFFF8FAFF),
+        appBar: AppBar(
+          flexibleSpace: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF0068FF), Color(0xFF0084FF)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+          ),
+          backgroundColor: Colors.transparent,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          title: const Text('TRẢ GÓP NGÂN HÀNG'),
+        ),
+        body: const Center(
           child: Text(
             'Bạn không có quyền truy cập tính năng này',
-            style: AppTextStyles.body1.copyWith(color: AppColors.textSecondary),
+            style: TextStyle(color: Colors.grey),
           ),
         ),
       );
@@ -301,17 +313,23 @@ class _BankInstallmentReportViewState extends State<BankInstallmentReportView> {
     if (widget.embedded) return ResponsiveCenter(child: body);
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: const Color(0xFFF8FAFF),
       appBar: AppBar(
-        title: Text(
-          'THỐNG KÊ TRẢ GÓP NH',
-          style: AppTextStyles.headline3.copyWith(
-            fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF0068FF), Color(0xFF0084FF)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
           ),
         ),
-        backgroundColor: AppColors.surface,
-        foregroundColor: AppColors.textPrimary,
+        title: Text(
+          'THỐNG KÊ TRẢ GÓP NH',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: AppTextStyles.headline3.fontSize, color: Colors.white),
+        ),
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
         elevation: 0,
         actions: [
           IconButton(
@@ -327,12 +345,12 @@ class _BankInstallmentReportViewState extends State<BankInstallmentReportView> {
 
   Widget _buildFilters() {
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: AppColors.textPrimary.withAlpha(13),
+            color: Colors.black.withOpacity(0.05),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -353,20 +371,18 @@ class _BankInstallmentReportViewState extends State<BankInstallmentReportView> {
                   avatar: Icon(
                     Icons.date_range,
                     size: 16,
-                    color: _timeFilter == 'custom'
-                        ? Theme.of(context).colorScheme.onPrimary
-                        : Theme.of(context).colorScheme.primary,
+                    color: _timeFilter == 'custom' ? Colors.white : Colors.indigo,
                   ),
                   label: Text(
                     _timeFilter == 'custom' && _customStartDate != null
                         ? '${DateFormat('dd/MM').format(_customStartDate!)} - ${DateFormat('dd/MM').format(_customEndDate!)}'
                         : 'Tùy chọn',
                     style: TextStyle(
-                      color: _timeFilter == 'custom' ? AppColors.surface : AppColors.primary,
+                      color: _timeFilter == 'custom' ? Colors.white : Colors.indigo,
                       fontSize: AppTextStyles.subtitle1.fontSize,
                     ),
                   ),
-                  backgroundColor: _timeFilter == 'custom' ? AppColors.primary : AppColors.primary,
+                  backgroundColor: _timeFilter == 'custom' ? Colors.indigo : Colors.indigo.shade50,
                   onPressed: _selectDateRange,
                 ),
               ],
@@ -383,7 +399,7 @@ class _BankInstallmentReportViewState extends State<BankInstallmentReportView> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   decoration: BoxDecoration(
-                    border: Border.all(color: AppColors.outline),
+                    border: Border.all(color: Colors.grey.shade300),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: DropdownButtonHideUnderline(
@@ -429,13 +445,13 @@ class _BankInstallmentReportViewState extends State<BankInstallmentReportView> {
         label: Text(
           label,
           style: TextStyle(
-            color: isSelected ? AppColors.surface : AppColors.primary,
+            color: isSelected ? Colors.white : Colors.indigo,
             fontSize: AppTextStyles.subtitle1.fontSize,
           ),
         ),
         selected: isSelected,
-        selectedColor: AppColors.primary,
-        backgroundColor: AppColors.primary,
+        selectedColor: Colors.indigo,
+        backgroundColor: Colors.indigo.shade50,
         onSelected: (_) {
           setState(() => _timeFilter = value);
         },
@@ -456,7 +472,7 @@ class _BankInstallmentReportViewState extends State<BankInstallmentReportView> {
                   'Tổng đơn',
                   '${totals['count']}',
                   Icons.receipt_long,
-                  AppColors.primary,
+                  Colors.blue,
                   subtitle: '${totals['countReceived']} đã TT / ${totals['countPending']} chờ TT',
                 ),
               ),
@@ -466,7 +482,7 @@ class _BankInstallmentReportViewState extends State<BankInstallmentReportView> {
                   'Tổng tiền NH',
                   _money(totals['totalLoanAmount'] ?? 0),
                   Icons.account_balance,
-                  AppColors.primary,
+                  Colors.blue,
                 ),
               ),
             ],
@@ -481,7 +497,7 @@ class _BankInstallmentReportViewState extends State<BankInstallmentReportView> {
                   'Đã nhận từ NH',
                   _money(totals['totalReceived'] ?? 0),
                   Icons.check_circle,
-                  AppColors.success,
+                  Colors.green,
                 ),
               ),
               const SizedBox(width: 8),
@@ -490,7 +506,7 @@ class _BankInstallmentReportViewState extends State<BankInstallmentReportView> {
                   'Chờ NH chuyển',
                   _money(totals['totalPending'] ?? 0),
                   Icons.hourglass_empty,
-                  AppColors.warning,
+                  Colors.orange,
                 ),
               ),
             ],
@@ -503,7 +519,7 @@ class _BankInstallmentReportViewState extends State<BankInstallmentReportView> {
               'Phí NH đã trừ',
               _money(totals['totalFee'] ?? 0),
               Icons.money_off,
-              AppColors.error,
+              Colors.red,
               fullWidth: true,
             ),
         ],
@@ -516,16 +532,16 @@ class _BankInstallmentReportViewState extends State<BankInstallmentReportView> {
       width: fullWidth ? double.infinity : null,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.withAlpha(26),
+        color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withAlpha(77)),
+        border: Border.all(color: color.withOpacity(0.3)),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: color.withAlpha(51),
+              color: color.withOpacity(0.2),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(icon, color: color, size: 20),
@@ -539,7 +555,7 @@ class _BankInstallmentReportViewState extends State<BankInstallmentReportView> {
                   title,
                   style: TextStyle(
                     fontSize: AppTextStyles.subtitle1.fontSize,
-                    color: AppColors.textSecondary,
+                    color: Colors.grey.shade700,
                   ),
                 ),
                 Text(
@@ -555,7 +571,7 @@ class _BankInstallmentReportViewState extends State<BankInstallmentReportView> {
                     subtitle,
                     style: TextStyle(
                       fontSize: AppTextStyles.caption.fontSize,
-                      color: AppColors.textSecondary,
+                      color: Colors.grey.shade600,
                     ),
                   ),
               ],
@@ -572,12 +588,12 @@ class _BankInstallmentReportViewState extends State<BankInstallmentReportView> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.account_balance_outlined, size: 64, color: AppColors.textHint),
+            Icon(Icons.account_balance_outlined, size: 64, color: Colors.grey.shade400),
             const SizedBox(height: 16),
             Text(
               'Không có đơn trả góp\ntrong khoảng thời gian này',
               textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.textSecondary),
+              style: TextStyle(color: Colors.grey.shade600),
             ),
           ],
         ),
@@ -617,10 +633,10 @@ class _BankInstallmentReportViewState extends State<BankInstallmentReportView> {
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: AppColors.primary,
+                          color: Colors.indigo.shade50,
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Icon(Icons.account_balance, color: AppColors.primary, size: 24),
+                        child: Icon(Icons.account_balance, color: Colors.indigo.shade700, size: 24),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -637,14 +653,14 @@ class _BankInstallmentReportViewState extends State<BankInstallmentReportView> {
                             Text(
                               '${data['count']} đơn',
                               style: TextStyle(
-                                color: AppColors.textSecondary,
+                                color: Colors.grey.shade600,
                                 fontSize: AppTextStyles.subtitle1.fontSize,
                               ),
                             ),
                           ],
                         ),
                       ),
-                      const Icon(Icons.chevron_right, color: AppColors.textHint),
+                      const Icon(Icons.chevron_right, color: Colors.grey),
                     ],
                   ),
                   const Divider(height: 24),
@@ -654,21 +670,21 @@ class _BankInstallmentReportViewState extends State<BankInstallmentReportView> {
                         child: _bankStatItem(
                           'Tổng tiền',
                           _money(data['totalAmount'] ?? 0),
-                          AppColors.primary,
+                          Colors.blue,
                         ),
                       ),
                       Expanded(
                         child: _bankStatItem(
                           'Đã nhận',
                           _money(data['totalReceived'] ?? 0),
-                          AppColors.success,
+                          Colors.green,
                         ),
                       ),
                       Expanded(
                         child: _bankStatItem(
                           'Chờ nhận',
                           _money(data['totalPending'] ?? 0),
-                          AppColors.warning,
+                          Colors.orange,
                         ),
                       ),
                     ],
@@ -689,7 +705,7 @@ class _BankInstallmentReportViewState extends State<BankInstallmentReportView> {
           label,
           style: TextStyle(
             fontSize: AppTextStyles.body1.fontSize,
-            color: AppColors.textSecondary,
+            color: Colors.grey.shade600,
           ),
         ),
         const SizedBox(height: 4),
@@ -711,12 +727,12 @@ class _BankInstallmentReportViewState extends State<BankInstallmentReportView> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.receipt_long_outlined, size: 64, color: AppColors.textHint),
+            Icon(Icons.receipt_long_outlined, size: 64, color: Colors.grey.shade400),
             const SizedBox(height: 16),
             Text(
               'Không có đơn trả góp\ncho ngân hàng "$_selectedBank"',
               textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.textSecondary),
+              style: TextStyle(color: Colors.grey.shade600),
             ),
             const SizedBox(height: 16),
             TextButton.icon(
@@ -744,7 +760,7 @@ class _BankInstallmentReportViewState extends State<BankInstallmentReportView> {
               const Spacer(),
               Text(
                 '${sales.length} đơn',
-                style: TextStyle(color: AppColors.textSecondary),
+                style: TextStyle(color: Colors.grey.shade600),
               ),
             ],
           ),
@@ -792,7 +808,7 @@ class _BankInstallmentReportViewState extends State<BankInstallmentReportView> {
                                   Text(
                                     s.productNames,
                                     style: TextStyle(
-                                      color: AppColors.textSecondary,
+                                      color: Colors.grey.shade600,
                                       fontSize: AppTextStyles.subtitle1.fontSize,
                                     ),
                                     maxLines: 1,
@@ -804,13 +820,13 @@ class _BankInstallmentReportViewState extends State<BankInstallmentReportView> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(
-                                color: isReceived ? AppColors.success : AppColors.warning,
+                                color: isReceived ? Colors.green.shade50 : Colors.orange.shade50,
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
                                 isReceived ? 'Đã TT' : 'Chờ TT',
                                 style: TextStyle(
-                                  color: isReceived ? AppColors.success : AppColors.warning,
+                                  color: isReceived ? Colors.green.shade700 : Colors.orange.shade700,
                                   fontSize: AppTextStyles.body1.fontSize,
                                   fontWeight: FontWeight.w500,
                                 ),
@@ -824,7 +840,7 @@ class _BankInstallmentReportViewState extends State<BankInstallmentReportView> {
                             _saleInfoChip(
                               Icons.account_balance,
                               s.bankName ?? '?',
-                              AppColors.primary,
+                              Colors.indigo,
                             ),
                             const SizedBox(width: 8),
                             _saleInfoChip(
@@ -832,14 +848,14 @@ class _BankInstallmentReportViewState extends State<BankInstallmentReportView> {
                               DateFormat('dd/MM/yy').format(
                                 DateTime.fromMillisecondsSinceEpoch(s.soldAt),
                               ),
-                              AppColors.textHint,
+                              Colors.grey,
                             ),
                             const Spacer(),
                             Text(
                               _money(s.loanAmount),
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
-                                color: AppColors.primary,
+                                color: Colors.indigo.shade700,
                               ),
                             ),
                           ],
@@ -860,7 +876,7 @@ class _BankInstallmentReportViewState extends State<BankInstallmentReportView> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withAlpha(26),
+        color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(

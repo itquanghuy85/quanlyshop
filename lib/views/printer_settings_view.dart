@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
 import '../l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
@@ -13,7 +12,6 @@ import '../services/wifi_printer_service.dart';
 import '../services/network_printer_scanner.dart';
 import '../services/user_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../theme/app_spacing.dart';
 import '../theme/app_text_styles.dart';
 import 'label_designer_view.dart';
 import 'imei_qr_printer_view.dart';
@@ -137,7 +135,7 @@ class _PrinterSettingsViewState extends State<PrinterSettingsView> {
     }
 
     if (!mounted) return;
-    NotificationService.showSnackBar(AppLocalizations.of(context)!.printerSettingsSaved, color: AppColors.success);
+    NotificationService.showSnackBar(AppLocalizations.of(context)!.printerSettingsSaved, color: Colors.green);
   }
 
   Future<void> _scanBluetooth() async {
@@ -146,14 +144,14 @@ class _PrinterSettingsViewState extends State<PrinterSettingsView> {
     try {
       final hasPermission = await BluetoothPrinterService.requestBluetoothPermissions();
       if (!hasPermission) {
-        NotificationService.showSnackBar(AppLocalizations.of(context)!.bluetoothPermissionRequired, color: AppColors.warning);
+        NotificationService.showSnackBar(AppLocalizations.of(context)!.bluetoothPermissionRequired, color: Colors.orange);
         setState(() => _isScanning = false);
         return;
       }
 
       final isEnabled = await BluetoothPrinterService.isBluetoothEnabled();
       if (!isEnabled) {
-        NotificationService.showSnackBar(AppLocalizations.of(context)!.enableBluetoothToScan, color: AppColors.warning);
+        NotificationService.showSnackBar(AppLocalizations.of(context)!.enableBluetoothToScan, color: Colors.orange);
         setState(() => _isScanning = false);
         return;
       }
@@ -167,13 +165,13 @@ class _PrinterSettingsViewState extends State<PrinterSettingsView> {
       });
 
       if (devices.isEmpty) {
-        NotificationService.showSnackBar(AppLocalizations.of(context)!.noDevicesFound, color: AppColors.warning);
+        NotificationService.showSnackBar(AppLocalizations.of(context)!.noDevicesFound, color: Colors.orange);
       } else {
         _showBluetoothDevicesDialog();
       }
     } catch (e) {
       setState(() => _isScanning = false);
-      NotificationService.showSnackBar(AppLocalizations.of(context)!.bluetoothScanError(e.toString()), color: AppColors.error);
+      NotificationService.showSnackBar(AppLocalizations.of(context)!.bluetoothScanError(e.toString()), color: Colors.red);
     }
   }
 
@@ -193,11 +191,11 @@ class _PrinterSettingsViewState extends State<PrinterSettingsView> {
               return ListTile(
                 leading: Icon(
                   Icons.print,
-                  color: isSelected ? AppColors.success : AppColors.textHint,
+                  color: isSelected ? Colors.green : Colors.grey,
                 ),
                 title: Text(device.name),
                 subtitle: Text(device.macAdress),
-                trailing: isSelected ? const Icon(Icons.check_circle, color: AppColors.success) : null,
+                trailing: isSelected ? const Icon(Icons.check_circle, color: Colors.green) : null,
                 onTap: () async {
                   Navigator.pop(ctx);
                   final config = BluetoothPrinterConfig(
@@ -213,11 +211,11 @@ class _PrinterSettingsViewState extends State<PrinterSettingsView> {
                     await prefs.setString('label_code_type', 'qr');
                     NotificationService.showSnackBar(
                       'Đã áp dụng preset PT-50DC (khổ 50mm).',
-                      color: AppColors.success,
+                      color: Colors.green,
                     );
                   }
                   setState(() => _selectedBT = config);
-                  NotificationService.showSnackBar(AppLocalizations.of(context)!.selected(device.name), color: AppColors.success);
+                  NotificationService.showSnackBar(AppLocalizations.of(context)!.selected(device.name), color: Colors.green);
                 },
               );
             },
@@ -236,7 +234,7 @@ class _PrinterSettingsViewState extends State<PrinterSettingsView> {
   Future<void> _testWifiPrinter() async {
     final ip = _ipCtrl.text.trim();
     if (ip.isEmpty) {
-      NotificationService.showSnackBar(AppLocalizations.of(context)!.enterIpFirst, color: AppColors.warning);
+      NotificationService.showSnackBar(AppLocalizations.of(context)!.enterIpFirst, color: Colors.orange);
       return;
     }
     
@@ -247,7 +245,7 @@ class _PrinterSettingsViewState extends State<PrinterSettingsView> {
       await prefs.setString('backup_printer_ip', _backupIpCtrl.text.trim());
     }
     
-    NotificationService.showSnackBar(AppLocalizations.of(context)!.testingConnection, color: AppColors.primary);
+    NotificationService.showSnackBar(AppLocalizations.of(context)!.testingConnection, color: Colors.blue);
     try {
       print('WIFI_TEST: Connecting to $ip:9100...');
       // Test connection by trying to connect to printer port
@@ -277,16 +275,16 @@ class _PrinterSettingsViewState extends State<PrinterSettingsView> {
       await socket.close();
       print('WIFI_TEST: Socket closed');
       
-      NotificationService.showSnackBar('✅ In thử WiFi thành công!', color: AppColors.success);
+      NotificationService.showSnackBar('✅ In thử WiFi thành công!', color: Colors.green);
     } on SocketException catch (e) {
       print('WIFI_TEST: SocketException: $e');
-      NotificationService.showSnackBar('❌ Lỗi kết nối: ${e.message}', color: AppColors.error);
+      NotificationService.showSnackBar('❌ Lỗi kết nối: ${e.message}', color: Colors.red);
     } on TimeoutException catch (e) {
       print('WIFI_TEST: Timeout: $e');
-      NotificationService.showSnackBar('❌ Timeout: Không kết nối được $ip', color: AppColors.error);
+      NotificationService.showSnackBar('❌ Timeout: Không kết nối được $ip', color: Colors.red);
     } catch (e) {
       print('WIFI_TEST: Error: $e');
-      NotificationService.showSnackBar(AppLocalizations.of(context)!.connectionFailed(e.toString()), color: AppColors.error);
+      NotificationService.showSnackBar(AppLocalizations.of(context)!.connectionFailed(e.toString()), color: Colors.red);
     }
   }
 
@@ -321,14 +319,14 @@ class _PrinterSettingsViewState extends State<PrinterSettingsView> {
       if (results.isEmpty) {
         NotificationService.showSnackBar(
           'Không tìm thấy máy in nào trong mạng',
-          color: AppColors.warning,
+          color: Colors.orange,
         );
       } else {
         _showDiscoveredPrintersDialog();
       }
     } catch (e) {
       if (mounted) setState(() => _isScanningNetwork = false);
-      NotificationService.showSnackBar('Lỗi quét mạng: $e', color: AppColors.error);
+      NotificationService.showSnackBar('Lỗi quét mạng: $e', color: Colors.red);
     }
   }
 
@@ -343,10 +341,10 @@ class _PrinterSettingsViewState extends State<PrinterSettingsView> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                gradient: LinearGradient(colors: [AppColors.primary, AppColors.info]),
+                gradient: LinearGradient(colors: [Colors.blue.shade400, Colors.cyan.shade400]),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(Icons.print, color: AppColors.surface, size: 20),
+              child: const Icon(Icons.print, color: Colors.white, size: 20),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -354,7 +352,7 @@ class _PrinterSettingsViewState extends State<PrinterSettingsView> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text('Máy in tìm thấy', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
-                  Text('${_discoveredPrinters.length} thiết bị', style: TextStyle(fontSize: 14, color: AppColors.textSecondary)),
+                  Text('${_discoveredPrinters.length} thiết bị', style: TextStyle(fontSize: 14, color: Colors.grey.shade600)),
                 ],
               ),
             ),
@@ -374,12 +372,12 @@ class _PrinterSettingsViewState extends State<PrinterSettingsView> {
                 leading: Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: isCurrentIp ? AppColors.success : AppColors.primary,
+                    color: isCurrentIp ? Colors.green.shade50 : Colors.blue.shade50,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
                     Icons.print,
-                    color: isCurrentIp ? AppColors.success : AppColors.primary,
+                    color: isCurrentIp ? Colors.green : Colors.blue.shade600,
                     size: 24,
                   ),
                 ),
@@ -387,23 +385,23 @@ class _PrinterSettingsViewState extends State<PrinterSettingsView> {
                   printer.name,
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
-                    color: isCurrentIp ? AppColors.success : null,
+                    color: isCurrentIp ? Colors.green.shade700 : null,
                   ),
                 ),
                 subtitle: Row(
                   children: [
-                    Icon(Icons.lan, size: 14, color: AppColors.textHint),
+                    Icon(Icons.lan, size: 14, color: Colors.grey.shade500),
                     const SizedBox(width: 4),
-                    Text(printer.ip, style: TextStyle(fontSize: 14, color: AppColors.textSecondary)),
+                    Text(printer.ip, style: TextStyle(fontSize: 14, color: Colors.grey.shade600)),
                     const SizedBox(width: 8),
-                    Icon(Icons.speed, size: 14, color: AppColors.textHint),
+                    Icon(Icons.speed, size: 14, color: Colors.grey.shade500),
                     const SizedBox(width: 2),
-                    Text('${printer.responseTimeMs}ms', style: TextStyle(fontSize: 14, color: AppColors.textHint)),
+                    Text('${printer.responseTimeMs}ms', style: TextStyle(fontSize: 14, color: Colors.grey.shade500)),
                   ],
                 ),
                 trailing: isCurrentIp
-                    ? const Icon(Icons.check_circle, color: AppColors.success)
-                    : Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.textHint),
+                    ? const Icon(Icons.check_circle, color: Colors.green)
+                    : Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey.shade400),
                 onTap: () async {
                   Navigator.pop(ctx);
                   // Set IP and save printer name
@@ -417,7 +415,7 @@ class _PrinterSettingsViewState extends State<PrinterSettingsView> {
                   await prefs.setString('printer_name', printer.name);
                   NotificationService.showSnackBar(
                     '✅ Đã chọn ${printer.name} (${printer.ip})',
-                    color: AppColors.success,
+                    color: Colors.green,
                   );
                 },
               );
@@ -444,11 +442,11 @@ class _PrinterSettingsViewState extends State<PrinterSettingsView> {
 
   Future<void> _testBluetoothPrinter() async {
     if (_selectedBT == null) {
-      NotificationService.showSnackBar(AppLocalizations.of(context)!.selectBluetoothPrinterFirst, color: AppColors.warning);
+      NotificationService.showSnackBar(AppLocalizations.of(context)!.selectBluetoothPrinterFirst, color: Colors.orange);
       return;
     }
     
-    NotificationService.showSnackBar(AppLocalizations.of(context)!.testingConnection, color: AppColors.primary);
+    NotificationService.showSnackBar(AppLocalizations.of(context)!.testingConnection, color: Colors.blue);
     print('BT_TEST: Connecting to ${_selectedBT!.macAddress}...');
     
     final success = await BluetoothPrinterService.connect(_selectedBT!.macAddress);
@@ -475,42 +473,33 @@ class _PrinterSettingsViewState extends State<PrinterSettingsView> {
       print('BT_TEST: Print result: $printResult');
       
       if (printResult) {
-        NotificationService.showSnackBar('✅ In thử Bluetooth thành công!', color: AppColors.success);
+        NotificationService.showSnackBar('✅ In thử Bluetooth thành công!', color: Colors.green);
       } else {
-        NotificationService.showSnackBar('❌ Kết nối OK nhưng gửi dữ liệu thất bại!', color: AppColors.warning);
+        NotificationService.showSnackBar('❌ Kết nối OK nhưng gửi dữ liệu thất bại!', color: Colors.orange);
       }
     } else {
-      NotificationService.showSnackBar(AppLocalizations.of(context)!.bluetoothConnectionFailed, color: AppColors.error);
+      NotificationService.showSnackBar(AppLocalizations.of(context)!.bluetoothConnectionFailed, color: Colors.red);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
+      backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
         flexibleSpace: Container(
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             gradient: LinearGradient(
-              colors: [
-                Theme.of(context).colorScheme.primary,
-                Theme.of(context).colorScheme.primaryContainer,
-              ],
+              colors: [Color(0xFF0068FF), Color(0xFF0084FF)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
           ),
         ),
         backgroundColor: Colors.transparent,
-        foregroundColor: Theme.of(context).colorScheme.onPrimary,
+        foregroundColor: Colors.white,
         elevation: 0,
-        title: Text(
-          AppLocalizations.of(context)!.printerSettings,
-          style: AppTextStyles.headline3.copyWith(
-            fontWeight: FontWeight.bold,
-            color: Theme.of(context).colorScheme.onPrimary,
-          ),
-        ),
+        title: Text(AppLocalizations.of(context)!.printerSettings, style: TextStyle(fontWeight: FontWeight.bold, fontSize: AppTextStyles.headline3.fontSize)),
         actions: [
           IconButton(
             icon: const Icon(Icons.save),
@@ -520,20 +509,20 @@ class _PrinterSettingsViewState extends State<PrinterSettingsView> {
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSpacing.lg),
+        padding: const EdgeInsets.all(16),
         child: Column(
           children: [
             // THIẾT KẾ TEM - Card nổi bật
             _buildLabelDesignCard(),
-            const SizedBox(height: AppSpacing.lg),
+            const SizedBox(height: 16),
             
             // KẾT NỐI MÁY IN WIFI
             _buildWifiPrinterCard(),
-            const SizedBox(height: AppSpacing.lg),
+            const SizedBox(height: 16),
             
             // KẾT NỐI MÁY IN BLUETOOTH
             _buildBluetoothPrinterCard(),
-            const SizedBox(height: AppSpacing.lg),
+            const SizedBox(height: 16),
             
             // CÀI ĐẶT HÓA ĐƠN
             _buildReceiptSettingsCard(),
@@ -545,100 +534,65 @@ class _PrinterSettingsViewState extends State<PrinterSettingsView> {
 
   Widget _buildLabelDesignCard() {
     return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.lg)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       elevation: 3,
       child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(AppSpacing.lg),
+          borderRadius: BorderRadius.circular(16),
           gradient: LinearGradient(
-            colors: [
-              Theme.of(context).colorScheme.primaryContainer,
-              Theme.of(context).colorScheme.secondaryContainer,
-            ],
+            colors: [Colors.blue.shade50, Colors.pink.shade50],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
         ),
-        padding: const EdgeInsets.all(AppSpacing.lg),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(AppSpacing.md),
+                  padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        Theme.of(context).colorScheme.primary,
-                        Theme.of(context).colorScheme.secondary,
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(AppSpacing.md),
+                    gradient: LinearGradient(colors: [Colors.blue.shade400, Colors.pink.shade400]),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.design_services, color: AppColors.surface, size: 24),
+                  child: const Icon(Icons.design_services, color: Colors.white, size: 24),
                 ),
-                const SizedBox(width: AppSpacing.md),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        AppLocalizations.of(context)!.productLabelDesign,
-                        style: AppTextStyles.headline3.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                      ),
-                      Text(
-                        AppLocalizations.of(context)!.customizeContentAndFontSize,
-                        style: AppTextStyles.body2.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                      ),
+                      Text(AppLocalizations.of(context)!.productLabelDesign, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: Colors.blue)),
+                      Text(AppLocalizations.of(context)!.customizeContentAndFontSize, style: const TextStyle(color: Colors.grey, fontSize: 14)),
                     ],
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: AppSpacing.lg),
+            const SizedBox(height: 16),
             
             // Thiết kế tem PRO
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: Container(
-                padding: const EdgeInsets.all(AppSpacing.sm),
+                padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primaryContainer,
-                  borderRadius: BorderRadius.circular(AppSpacing.sm),
+                  color: Colors.blue.shade100,
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(
-                  Icons.tune,
-                  color: Theme.of(context).colorScheme.primary,
-                  size: 20,
-                ),
+                child: const Icon(Icons.tune, color: Colors.blue, size: 20),
               ),
-              title: Text(
-                AppLocalizations.of(context)!.labelDesignTitle,
-                style: AppTextStyles.body1.copyWith(fontWeight: FontWeight.w600),
-              ),
-              subtitle: Text(
-                AppLocalizations.of(context)!.layoutShopInfoFormula,
-                style: AppTextStyles.body2,
-              ),
+              title: Text(AppLocalizations.of(context)!.labelDesignTitle, style: const TextStyle(fontWeight: FontWeight.w600)),
+              subtitle: Text(AppLocalizations.of(context)!.layoutShopInfoFormula),
               trailing: Container(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.tertiaryContainer,
-                  borderRadius: BorderRadius.circular(AppSpacing.sm),
+                  color: Colors.orange.shade100,
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                child: Text(
-                  AppLocalizations.of(context)!.hot,
-                  style: AppTextStyles.caption.copyWith(
-                    color: Theme.of(context).colorScheme.tertiary,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                child: Text(AppLocalizations.of(context)!.hot, style: const TextStyle(color: Colors.deepOrange, fontWeight: FontWeight.bold, fontSize: 12)),
               ),
               onTap: () => Navigator.push(
                 context,
@@ -651,10 +605,10 @@ class _PrinterSettingsViewState extends State<PrinterSettingsView> {
               leading: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: AppColors.outline,
+                  color: Colors.black12,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.print, color: AppColors.textPrimary, size: 20),
+                child: const Icon(Icons.print, color: Colors.black, size: 20),
               ),
               title: const Text('PTY 1:1 Designer', style: TextStyle(fontWeight: FontWeight.w600)),
               subtitle: const Text('Thiết kế tem 1:1, kéo thả và in bitmap'),
@@ -667,16 +621,16 @@ class _PrinterSettingsViewState extends State<PrinterSettingsView> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.surface,
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.primary),
+                border: Border.all(color: Colors.blue.shade100),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.receipt_long, color: AppColors.primary, size: 18),
+                      Icon(Icons.receipt_long, color: Colors.blue.shade600, size: 18),
                       const SizedBox(width: 8),
                       const Text(
                         'MẪU IN HÓA ĐƠN',
@@ -691,10 +645,10 @@ class _PrinterSettingsViewState extends State<PrinterSettingsView> {
                     leading: Container(
                       padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
-                        color: AppColors.primary,
+                        color: Colors.blue.shade50,
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(Icons.build_circle, color: AppColors.primary, size: 18),
+                      child: const Icon(Icons.build_circle, color: Colors.blue, size: 18),
                     ),
                     title: const Text('Mẫu phiếu sửa', style: TextStyle(fontWeight: FontWeight.w600)),
                     subtitle: const Text('Chỉnh sửa mẫu in phiếu sửa chữa'),
@@ -709,10 +663,10 @@ class _PrinterSettingsViewState extends State<PrinterSettingsView> {
                     leading: Container(
                       padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
-                        color: AppColors.success,
+                        color: Colors.green.shade50,
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(Icons.shopping_bag, color: AppColors.success, size: 18),
+                      child: const Icon(Icons.shopping_bag, color: Colors.green, size: 18),
                     ),
                     title: const Text('Mẫu hóa đơn bán', style: TextStyle(fontWeight: FontWeight.w600)),
                     subtitle: const Text('Chỉnh sửa mẫu in hóa đơn bán hàng'),
@@ -724,16 +678,16 @@ class _PrinterSettingsViewState extends State<PrinterSettingsView> {
                 ],
               ),
             ),
-            const Divider(height: AppSpacing.lg),
+            const Divider(height: 16),
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: AppColors.success,
+                  color: Colors.green.shade100,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.qr_code_2, color: AppColors.success, size: 20),
+                child: const Icon(Icons.qr_code_2, color: Colors.green, size: 20),
               ),
               title: const Text(
                 'In tem QR/Barcode IMEI hàng loạt',
@@ -754,33 +708,30 @@ class _PrinterSettingsViewState extends State<PrinterSettingsView> {
   Widget _buildWifiPrinterCard() {
     final hasIp = _ipCtrl.text.trim().isNotEmpty;
     return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.lg)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.lg),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(AppSpacing.sm),
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(AppSpacing.md),
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Icon(Icons.wifi, color: Theme.of(context).colorScheme.primary, size: 22),
+                  child: Icon(Icons.wifi, color: Colors.blue.shade600, size: 22),
                 ),
-                const SizedBox(width: AppSpacing.sm),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        AppLocalizations.of(context)!.wifiPrinter,
-                        style: AppTextStyles.headline3.copyWith(fontWeight: FontWeight.bold),
-                      ),
+                      Text(AppLocalizations.of(context)!.wifiPrinter, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
                       if (_localIp != null)
-                        Text('Mạng: $_localIp', style: TextStyle(fontSize: 13, color: AppColors.textHint)),
+                        Text('Mạng: $_localIp', style: TextStyle(fontSize: 13, color: Colors.grey.shade500)),
                     ],
                   ),
                 ),
@@ -788,16 +739,16 @@ class _PrinterSettingsViewState extends State<PrinterSettingsView> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: AppColors.success,
+                      color: Colors.green.shade50,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppColors.success),
+                      border: Border.all(color: Colors.green.shade200),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.check_circle, size: 14, color: AppColors.success),
+                        Icon(Icons.check_circle, size: 14, color: Colors.green.shade600),
                         const SizedBox(width: 4),
-                        Text('Đã cấu hình', style: TextStyle(fontSize: 13, color: AppColors.success, fontWeight: FontWeight.w500)),
+                        Text('Đã cấu hình', style: TextStyle(fontSize: 13, color: Colors.green.shade700, fontWeight: FontWeight.w500)),
                       ],
                     ),
                   ),
@@ -811,28 +762,28 @@ class _PrinterSettingsViewState extends State<PrinterSettingsView> {
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [AppColors.primary, AppColors.info],
+                    colors: [Colors.blue.shade50, Colors.cyan.shade50],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.primary),
+                  border: Border.all(color: Colors.blue.shade100),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.print, color: AppColors.primary, size: 28),
+                    Icon(Icons.print, color: Colors.blue.shade600, size: 28),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(_savedPrinterName!, style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary)),
-                          Text(_ipCtrl.text.trim(), style: TextStyle(fontSize: 14, color: AppColors.textSecondary)),
+                          Text(_savedPrinterName!, style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue.shade800)),
+                          Text(_ipCtrl.text.trim(), style: TextStyle(fontSize: 14, color: Colors.grey.shade600)),
                         ],
                       ),
                     ),
                     IconButton(
-                      icon: Icon(Icons.close, size: 18, color: AppColors.textHint),
+                      icon: Icon(Icons.close, size: 18, color: Colors.grey.shade400),
                       onPressed: () async {
                         final prefs = await SharedPreferences.getInstance();
                         await prefs.remove('printer_name');
@@ -873,7 +824,7 @@ class _PrinterSettingsViewState extends State<PrinterSettingsView> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.primary,
+                  color: Colors.blue.shade50,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Column(
@@ -884,26 +835,26 @@ class _PrinterSettingsViewState extends State<PrinterSettingsView> {
                           width: 18, height: 18,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation(AppColors.primary),
+                            valueColor: AlwaysStoppedAnimation(Colors.blue.shade600),
                           ),
                         ),
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
                             'Đang quét mạng... ${(_scanProgress * 100).toInt()}%',
-                            style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w500),
+                            style: TextStyle(color: Colors.blue.shade700, fontWeight: FontWeight.w500),
                           ),
                         ),
                         if (_discoveredPrinters.isNotEmpty)
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
-                              color: AppColors.success,
+                              color: Colors.green.shade100,
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
                               'Tìm thấy ${_discoveredPrinters.length}',
-                              style: TextStyle(fontSize: 14, color: AppColors.success, fontWeight: FontWeight.w500),
+                              style: TextStyle(fontSize: 14, color: Colors.green.shade700, fontWeight: FontWeight.w500),
                             ),
                           ),
                       ],
@@ -913,8 +864,8 @@ class _PrinterSettingsViewState extends State<PrinterSettingsView> {
                       borderRadius: BorderRadius.circular(4),
                       child: LinearProgressIndicator(
                         value: _scanProgress,
-                        backgroundColor: AppColors.primary,
-                        valueColor: AlwaysStoppedAnimation(AppColors.primary),
+                        backgroundColor: Colors.blue.shade100,
+                        valueColor: AlwaysStoppedAnimation(Colors.blue.shade600),
                         minHeight: 4,
                       ),
                     ),
@@ -931,12 +882,12 @@ class _PrinterSettingsViewState extends State<PrinterSettingsView> {
                   child: ElevatedButton.icon(
                     onPressed: _isScanningNetwork ? null : _scanNetworkPrinters,
                     icon: _isScanningNetwork
-                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.surface))
+                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                         : const Icon(Icons.radar, size: 20),
                     label: Text(_isScanningNetwork ? 'Đang quét...' : 'QUÉT TÌM MÁY IN'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.info,
-                      foregroundColor: AppColors.surface,
+                      backgroundColor: Colors.teal,
+                      foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       elevation: 2,
@@ -950,8 +901,8 @@ class _PrinterSettingsViewState extends State<PrinterSettingsView> {
                     icon: const Icon(Icons.wifi_find, size: 20),
                     label: Text(AppLocalizations.of(context)!.testWifiConnection),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: AppColors.surface,
+                      backgroundColor: Colors.blue,
+                      foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       elevation: 2,
@@ -970,21 +921,21 @@ class _PrinterSettingsViewState extends State<PrinterSettingsView> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
-                    color: AppColors.success,
+                    color: Colors.green.shade50,
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: AppColors.success),
+                    border: Border.all(color: Colors.green.shade200),
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.devices, size: 18, color: AppColors.success),
+                      Icon(Icons.devices, size: 18, color: Colors.green.shade600),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           'Tìm thấy ${_discoveredPrinters.length} máy in - Nhấn để xem',
-                          style: TextStyle(color: AppColors.success, fontWeight: FontWeight.w500, fontSize: 14),
+                          style: TextStyle(color: Colors.green.shade700, fontWeight: FontWeight.w500, fontSize: 14),
                         ),
                       ),
-                      Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.success),
+                      Icon(Icons.arrow_forward_ios, size: 14, color: Colors.green.shade400),
                     ],
                   ),
                 ),
@@ -1006,7 +957,7 @@ class _PrinterSettingsViewState extends State<PrinterSettingsView> {
           children: [
             Row(
               children: [
-                Icon(Icons.bluetooth, color: AppColors.primary),
+                Icon(Icons.bluetooth, color: Colors.indigo.shade600),
                 const SizedBox(width: 8),
                 Text(AppLocalizations.of(context)!.bluetoothPrinter, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
               ],
@@ -1018,20 +969,20 @@ class _PrinterSettingsViewState extends State<PrinterSettingsView> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.success,
+                  color: Colors.green.shade50,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.success),
+                  border: Border.all(color: Colors.green.shade200),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.check_circle, color: AppColors.success),
+                    const Icon(Icons.check_circle, color: Colors.green),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(_selectedBT!.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                          Text(_selectedBT!.macAddress, style: TextStyle(fontSize: 14, color: AppColors.textSecondary)),
+                          Text(_selectedBT!.macAddress, style: TextStyle(fontSize: 14, color: Colors.grey.shade600)),
                         ],
                       ),
                     ),
@@ -1049,14 +1000,14 @@ class _PrinterSettingsViewState extends State<PrinterSettingsView> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.background,
+                  color: Colors.grey.shade100,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.info_outline, color: AppColors.textHint),
+                    const Icon(Icons.info_outline, color: Colors.grey),
                     const SizedBox(width: 12),
-                    Text(AppLocalizations.of(context)!.noBluetoothPrinterSelected, style: const TextStyle(color: AppColors.textHint)),
+                    Text(AppLocalizations.of(context)!.noBluetoothPrinterSelected, style: const TextStyle(color: Colors.grey)),
                   ],
                 ),
               ),
@@ -1068,12 +1019,12 @@ class _PrinterSettingsViewState extends State<PrinterSettingsView> {
                   child: ElevatedButton.icon(
                     onPressed: _isScanning ? null : _scanBluetooth,
                     icon: _isScanning 
-                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.surface))
+                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                         : const Icon(Icons.bluetooth_searching),
                     label: Text(_isScanning ? AppLocalizations.of(context)!.scanning : AppLocalizations.of(context)!.scanBluetooth),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: AppColors.surface,
+                      backgroundColor: Colors.indigo,
+                      foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
@@ -1086,8 +1037,8 @@ class _PrinterSettingsViewState extends State<PrinterSettingsView> {
                     icon: const Icon(Icons.print),
                     label: Text(AppLocalizations.of(context)!.test),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.success,
-                      foregroundColor: AppColors.surface,
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
@@ -1111,7 +1062,7 @@ class _PrinterSettingsViewState extends State<PrinterSettingsView> {
           children: [
             Row(
               children: [
-                Icon(Icons.receipt_long, color: AppColors.warning),
+                Icon(Icons.receipt_long, color: Colors.orange.shade600),
                 const SizedBox(width: 8),
                 Text(AppLocalizations.of(context)!.receiptSettings, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
               ],
@@ -1155,7 +1106,7 @@ class _PrinterSettingsViewState extends State<PrinterSettingsView> {
                 prefixIcon: const Icon(Icons.verified_user),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 helperText: 'Dùng {warrantyPolicy} trong mẫu hóa đơn',
-                helperStyle: const TextStyle(fontSize: 13, color: AppColors.textHint),
+                helperStyle: const TextStyle(fontSize: 13, color: Colors.grey),
               ),
             ),
             const SizedBox(height: 12),
@@ -1168,7 +1119,7 @@ class _PrinterSettingsViewState extends State<PrinterSettingsView> {
                 prefixIcon: const Icon(Icons.swap_horiz),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 helperText: 'Dùng {returnPolicy} trong mẫu hóa đơn',
-                helperStyle: const TextStyle(fontSize: 13, color: AppColors.textHint),
+                helperStyle: const TextStyle(fontSize: 13, color: Colors.grey),
               ),
             ),
           ],

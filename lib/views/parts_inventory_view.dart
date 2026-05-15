@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
 import 'package:intl/intl.dart';
 import '../widgets/responsive_wrapper.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -414,7 +413,7 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                       backgroundColor: _primaryColor,
                       child: const Icon(
                         Icons.keyboard_arrow_up,
-                        color: AppColors.surface,
+                        color: Colors.white,
                       ),
                     ),
                   ),
@@ -426,11 +425,11 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                     heroTag: 'addPartFAB',
                     onPressed: _showAddNewPartDialog,
                     backgroundColor: _primaryColor,
-                    icon: const Icon(Icons.add, color: AppColors.surface),
+                    icon: const Icon(Icons.add, color: Colors.white),
                     label: Text(
                       'Thêm ${_terms.category3}',
                       style: const TextStyle(
-                        color: AppColors.surface,
+                        color: Colors.white,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -461,8 +460,8 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                       ? FontWeight.bold
                       : FontWeight.normal,
                   color: _selectedModelCategory == null
-                      ? AppColors.surface
-                      : AppColors.textPrimary,
+                      ? Colors.white
+                      : Colors.black87,
                 ),
               ),
               selected: _selectedModelCategory == null,
@@ -473,15 +472,15 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                 });
               },
               selectedColor: _primaryColor,
-              backgroundColor: AppColors.surface,
-              checkmarkColor: AppColors.surface,
+              backgroundColor: Colors.white,
+              checkmarkColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 4),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
                 side: BorderSide(
                   color: _selectedModelCategory == null
                       ? _primaryColor
-                      : AppColors.outline,
+                      : Colors.grey.shade300,
                 ),
               ),
             ),
@@ -514,7 +513,7 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                     fontWeight: isSelected
                         ? FontWeight.bold
                         : FontWeight.normal,
-                    color: isSelected ? AppColors.surface : AppColors.textPrimary,
+                    color: isSelected ? Colors.white : Colors.black87,
                   ),
                 ),
                 selected: isSelected,
@@ -525,13 +524,13 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                   });
                 },
                 selectedColor: _primaryColor,
-                backgroundColor: AppColors.surface,
-                checkmarkColor: AppColors.surface,
+                backgroundColor: Colors.white,
+                checkmarkColor: Colors.white,
                 padding: const EdgeInsets.symmetric(horizontal: 4),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                   side: BorderSide(
-                    color: isSelected ? _primaryColor : AppColors.outline,
+                    color: isSelected ? _primaryColor : Colors.grey.shade300,
                   ),
                 ),
               ),
@@ -555,7 +554,7 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: _primaryColor.withAlpha(77),
+            color: _primaryColor.withOpacity(0.3),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
@@ -580,7 +579,7 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
               Icons.warning_amber,
               '$lowStock',
               'Sắp hết',
-              AppColors.warning,
+              Colors.amber,
             ),
           ],
         ],
@@ -606,7 +605,7 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
               Text(
                 value,
                 style: TextStyle(
-                  color: AppColors.surface,
+                  color: Colors.white,
                   fontSize: AppTextStyles.headline3.fontSize,
                   fontWeight: FontWeight.bold,
                 ),
@@ -640,11 +639,11 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
             child: Container(
               height: 40,
               decoration: BoxDecoration(
-                color: AppColors.surface,
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.textPrimary.withAlpha(13),
+                    color: Colors.black.withOpacity(0.05),
                     blurRadius: 4,
                   ),
                 ],
@@ -660,7 +659,7 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                 decoration: InputDecoration(
                   hintText: 'Tìm ${_terms.category3}, model...',
                   hintStyle: TextStyle(
-                    color: AppColors.textHint,
+                    color: Colors.grey.shade400,
                     fontSize: AppTextStyles.headline5.fontSize,
                   ),
                   prefixIcon: const Icon(
@@ -731,12 +730,12 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
       value: value,
       child: Row(
         children: [
-          Icon(icon, size: 18, color: isSelected ? _primaryColor : AppColors.textHint),
+          Icon(icon, size: 18, color: isSelected ? _primaryColor : Colors.grey),
           const SizedBox(width: 8),
           Text(
             label,
             style: TextStyle(
-              color: isSelected ? _primaryColor : AppColors.textPrimary,
+              color: isSelected ? _primaryColor : Colors.black87,
               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
             ),
           ),
@@ -761,22 +760,22 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         decoration: BoxDecoration(
-          color: selected ? _primaryColor.withAlpha(26) : AppColors.surface,
+          color: selected ? _primaryColor.withOpacity(0.1) : Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: selected ? _primaryColor : AppColors.outline,
+            color: selected ? _primaryColor : Colors.grey.shade300,
           ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 14, color: selected ? _primaryColor : AppColors.textHint),
+            Icon(icon, size: 14, color: selected ? _primaryColor : Colors.grey),
             const SizedBox(width: 4),
             Text(
               label,
               style: TextStyle(
                 fontSize: AppTextStyles.body1.fontSize,
-                color: selected ? _primaryColor : AppColors.textHint,
+                color: selected ? _primaryColor : Colors.grey,
                 fontWeight: selected ? FontWeight.bold : FontWeight.normal,
               ),
             ),
@@ -788,12 +787,12 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
 
   Widget _buildSelectionHeader() {
     return Container(
-      color: _primaryColor.withAlpha(26),
+      color: _primaryColor.withOpacity(0.1),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(Icons.close, color: AppColors.error),
+            icon: const Icon(Icons.close, color: Colors.red),
             onPressed: () => setState(() {
               _isSelectionMode = false;
               _selectedIds.clear();
@@ -809,8 +808,8 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
           const Spacer(),
           TextButton.icon(
             onPressed: _deleteSelectedParts,
-            icon: const Icon(Icons.delete, color: AppColors.error, size: 20),
-            label: const Text('Xóa', style: TextStyle(color: AppColors.error)),
+            icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+            label: const Text('Xóa', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -838,15 +837,15 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
 
     // Color coding
     final bgColor = isOut
-        ? AppColors.background
+        ? Colors.grey.shade50
         : (isLow
-              ? AppColors.warning
-              : (isAltRow ? const Color(0xFFF7FAFF) : AppColors.surface));
+              ? Colors.orange.shade50
+              : (isAltRow ? const Color(0xFFF7FAFF) : Colors.white));
     final borderColor = isSelected
         ? _primaryColor
         : (isOut
-              ? AppColors.outline
-              : (isLow ? AppColors.warning : AppColors.outline));
+              ? Colors.grey.shade300
+              : (isLow ? Colors.orange.shade200 : Colors.grey.shade200));
 
     return Card(
       margin: const EdgeInsets.only(bottom: 6),
@@ -888,7 +887,7 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                       '$index',
                       style: TextStyle(
                         fontSize: 10,
-                        color: AppColors.textHint,
+                        color: Colors.grey.shade400,
                       ),
                     ),
                     Container(
@@ -896,10 +895,10 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                       height: 30,
                       decoration: BoxDecoration(
                         color: isOut
-                            ? AppColors.outline
+                            ? Colors.grey.shade200
                             : isLow
-                            ? AppColors.warning.withAlpha(38)
-                            : _primaryColor.withAlpha(26),
+                            ? Colors.orange.withOpacity(0.15)
+                            : _primaryColor.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Center(
@@ -909,9 +908,9 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                             fontSize: 13,
                             fontWeight: FontWeight.bold,
                             color: isOut
-                                ? AppColors.textHint
+                                ? Colors.grey
                                 : isLow
-                                ? AppColors.warning
+                                ? Colors.orange
                                 : _primaryColor,
                           ),
                         ),
@@ -935,7 +934,7 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 13,
-                              color: isOut ? AppColors.textHint : AppColors.textPrimary,
+                              color: isOut ? Colors.grey : Colors.black87,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -948,14 +947,14 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                               vertical: 1,
                             ),
                             decoration: BoxDecoration(
-                              color: AppColors.warning.withAlpha(38),
+                              color: Colors.orange.withOpacity(0.15),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: const Text(
                               'SẮP HẾT',
                               style: TextStyle(
                                 fontSize: 9,
-                                color: AppColors.warning,
+                                color: Colors.orange,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -967,14 +966,14 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                               vertical: 1,
                             ),
                             decoration: BoxDecoration(
-                              color: AppColors.outline,
+                              color: Colors.grey.shade200,
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: const Text(
                               'HẾT HÀNG',
                               style: TextStyle(
                                 fontSize: 9,
-                                color: AppColors.textHint,
+                                color: Colors.grey,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -988,7 +987,7 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                         'Dùng cho: ${p['compatibleModels']}',
                         style: TextStyle(
                           fontSize: 10,
-                          color: AppColors.textSecondary,
+                          color: Colors.grey.shade600,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -1003,12 +1002,12 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                           _infoChip(
                             Icons.attach_money,
                             'Vốn: ${MoneyUtils.formatCompact(cost)}',
-                            AppColors.success,
+                            Colors.green.shade700,
                           ),
                         _infoChip(
                           Icons.sell,
                           'Bán: ${MoneyUtils.formatCompact(price)}',
-                          AppColors.error,
+                          Colors.red.shade600,
                         ),
                         if (supplierName != 'Không xác định')
                           ConstrainedBox(
@@ -1027,7 +1026,7 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                         dateText,
                         style: TextStyle(
                           fontSize: 10,
-                          color: AppColors.textHint,
+                          color: Colors.grey.shade400,
                         ),
                       ),
                     ],
@@ -1042,9 +1041,9 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                 child: Container(
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
-                    color: AppColors.success.withAlpha(26),
+                    color: Colors.green.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.success),
+                    border: Border.all(color: Colors.green.shade200),
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -1052,13 +1051,13 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                       Icon(
                         Icons.add_shopping_cart,
                         size: 18,
-                        color: AppColors.success,
+                        color: Colors.green.shade700,
                       ),
                       Text(
                         MoneyUtils.formatCompact(price),
                         style: TextStyle(
                           fontSize: 9,
-                          color: AppColors.error,
+                          color: Colors.red.shade600,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -1077,7 +1076,7 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withAlpha(26),
+        color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(4),
       ),
       child: Row(
@@ -1106,7 +1105,7 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
           Icon(
             Icons.build_circle_outlined,
             size: 80,
-            color: AppColors.outline,
+            color: Colors.grey.shade300,
           ),
           const SizedBox(height: 16),
           Text(
@@ -1115,7 +1114,7 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                 : 'Chưa có ${_terms.category3} trong kho',
             style: TextStyle(
               fontSize: AppTextStyles.headline3.fontSize,
-              color: AppColors.textSecondary,
+              color: Colors.grey.shade600,
             ),
           ),
           const SizedBox(height: 8),
@@ -1125,7 +1124,7 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                 : 'Nhấn "THÊM ${_terms.category3.toUpperCase()}" để bắt đầu',
             style: TextStyle(
               fontSize: AppTextStyles.headline5.fontSize,
-              color: AppColors.textHint,
+              color: Colors.grey.shade400,
             ),
           ),
         ],
@@ -1153,7 +1152,7 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
               children: [
                 Icon(
                   Icons.add_shopping_cart,
-                  color: AppColors.success,
+                  color: Colors.green.shade700,
                   size: 22,
                 ),
                 const SizedBox(width: 8),
@@ -1194,14 +1193,14 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                               Text(
                                 'Tồn kho hiện tại: $currentQty',
                                 style: TextStyle(
-                                  color: AppColors.textSecondary,
+                                  color: Colors.grey[600],
                                   fontSize: 12,
                                 ),
                               ),
                               Text(
                                 'Giá vốn hiện tại: ${MoneyUtils.formatVND(currentCost)}',
                                 style: TextStyle(
-                                  color: AppColors.textSecondary,
+                                  color: Colors.grey[700],
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -1254,7 +1253,7 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                         child: Text(
                           'Giá vốn sau nhập: ${MoneyUtils.formatVND(weightedCost)}',
                           style: TextStyle(
-                            color: AppColors.primary,
+                            color: Colors.blue.shade700,
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
                           ),
@@ -1298,15 +1297,15 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                 child: const Text('HỦY'),
               ),
               ElevatedButton.icon(
-                icon: const Icon(Icons.check, color: AppColors.surface),
+                icon: const Icon(Icons.check, color: Colors.white),
                 label: const Text(
                   'NHẬP KHO',
                   style: TextStyle(
-                    color: AppColors.surface,
+                    color: Colors.white,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                style: ElevatedButton.styleFrom(backgroundColor: AppColors.success),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
                 onPressed: () async {
                   CurrencyTextField.finalizeAll();
                   final addQty = int.tryParse(qtyCtrl.text) ?? 0;
@@ -1314,7 +1313,7 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('Vui lòng nhập số lượng hợp lệ'),
-                        backgroundColor: AppColors.error,
+                        backgroundColor: Colors.red,
                       ),
                     );
                     return;
@@ -1326,7 +1325,7 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                         content: Text(
                           'Vui lòng chọn nhà cung cấp cho linh kiện này trước khi ghi công nợ.',
                         ),
-                        backgroundColor: AppColors.error,
+                        backgroundColor: Colors.red,
                       ),
                     );
                     return;
@@ -1378,7 +1377,7 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Vui lòng nhập giá vốn hợp lệ (> 0) để ghi nhận tài chính.'),
-            backgroundColor: AppColors.error,
+            backgroundColor: Colors.red,
           ),
         );
         return;
@@ -1388,7 +1387,7 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Thiếu nhà cung cấp, không thể ghi công nợ.'),
-            backgroundColor: AppColors.error,
+            backgroundColor: Colors.red,
           ),
         );
         return;
@@ -1558,14 +1557,14 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('✅ Đã nhập thêm $addQty $partName (tổng: $newQty)'),
-          backgroundColor: AppColors.success,
+          backgroundColor: Colors.green,
         ),
       );
     } catch (e) {
       debugPrint('Quick part stock-in error: $e');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi: $e'), backgroundColor: AppColors.error),
+        SnackBar(content: Text('Lỗi: $e'), backgroundColor: Colors.red),
       );
     }
   }
@@ -1602,7 +1601,7 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: AppColors.outline,
+                    color: Colors.grey.shade300,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -1614,7 +1613,7 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: _primaryColor.withAlpha(26),
+                      color: _primaryColor.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(
@@ -1637,7 +1636,7 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                         ),
                         Text(
                           p['compatibleModels'] ?? 'N/A',
-                          style: TextStyle(color: AppColors.textSecondary),
+                          style: TextStyle(color: Colors.grey.shade600),
                         ),
                       ],
                     ),
@@ -1649,7 +1648,7 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppColors.background,
+                  color: Colors.grey.shade50,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Column(
@@ -1675,7 +1674,7 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                         'Tổng vốn tồn',
                         '${NumberFormat('#,###').format(totalCost)}đ',
                         Icons.account_balance_wallet,
-                        AppColors.success,
+                        Colors.green,
                       ),
                     ],
                     const Divider(height: 20),
@@ -1722,8 +1721,8 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                       icon: const Icon(Icons.add_shopping_cart),
                       label: const Text('Nhập thêm'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.success,
-                        foregroundColor: AppColors.surface,
+                        backgroundColor: Colors.green,
+                        foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
                     ),
@@ -1752,11 +1751,11 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                           ElevatedButton(
                             onPressed: () => Navigator.pop(c, true),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.error,
+                              backgroundColor: Colors.red,
                             ),
                             child: const Text(
                               'XÓA',
-                              style: TextStyle(color: AppColors.surface),
+                              style: TextStyle(color: Colors.white),
                             ),
                           ),
                         ],
@@ -1766,13 +1765,13 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                       await _deleteSinglePart(p);
                     }
                   },
-                  icon: const Icon(Icons.delete_outline, color: AppColors.error),
+                  icon: const Icon(Icons.delete_outline, color: Colors.red),
                   label: const Text(
                     'Xóa linh kiện',
-                    style: TextStyle(color: AppColors.error),
+                    style: TextStyle(color: Colors.red),
                   ),
                   style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: AppColors.error),
+                    side: const BorderSide(color: Colors.red),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
                 ),
@@ -1792,16 +1791,16 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
   ]) {
     return Row(
       children: [
-        Icon(icon, size: 18, color: AppColors.textHint),
+        Icon(icon, size: 18, color: Colors.grey),
         const SizedBox(width: 12),
         Expanded(
-          child: Text(label, style: TextStyle(color: AppColors.textSecondary)),
+          child: Text(label, style: TextStyle(color: Colors.grey.shade600)),
         ),
         Text(
           value,
           style: TextStyle(
             fontWeight: FontWeight.bold,
-            color: valueColor ?? AppColors.textPrimary,
+            color: valueColor ?? Colors.black87,
           ),
         ),
       ],
@@ -1847,20 +1846,20 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                   padding: const EdgeInsets.all(10),
                   margin: const EdgeInsets.only(bottom: 8),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withAlpha(20),
+                    color: Colors.blue.withOpacity(0.08),
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: AppColors.primary.withAlpha(77)),
+                    border: Border.all(color: Colors.blue.withOpacity(0.3)),
                   ),
                   child: const Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.info_outline, color: AppColors.primary, size: 18),
+                      Icon(Icons.info_outline, color: Colors.blue, size: 18),
                       SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           'Chỉ sửa thông tin & giá bán. Muốn nhập thêm số lượng → dùng nút NHẬP THÊM.',
                           style: TextStyle(
-                            color: AppColors.primary,
+                            color: Colors.blue,
                             height: 1.3,
                             fontSize: 13,
                           ),
@@ -1878,7 +1877,7 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                     ),
                     margin: const EdgeInsets.only(bottom: 8),
                     decoration: BoxDecoration(
-                      color: AppColors.textHint.withAlpha(20),
+                      color: Colors.grey.withOpacity(0.08),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
@@ -1886,7 +1885,7 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                         const Icon(
                           Icons.attach_money,
                           size: 18,
-                          color: AppColors.textHint,
+                          color: Colors.grey,
                         ),
                         const SizedBox(width: 8),
                         Text(
@@ -1909,7 +1908,7 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                     vertical: 10,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.textHint.withAlpha(20),
+                    color: Colors.grey.withOpacity(0.08),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
@@ -1917,7 +1916,7 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                       const Icon(
                         Icons.inventory_2,
                         size: 18,
-                        color: AppColors.textHint,
+                        color: Colors.grey,
                       ),
                       const SizedBox(width: 8),
                       Text(
@@ -1997,14 +1996,14 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('✅ Đã cập nhật $partName'),
-                    backgroundColor: AppColors.success,
+                    backgroundColor: Colors.green,
                   ),
                 );
               } catch (e) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('Lỗi: $e'),
-                    backgroundColor: AppColors.error,
+                    backgroundColor: Colors.red,
                   ),
                 );
               }
@@ -2059,10 +2058,10 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: AppColors.warning.withAlpha(26),
+                          color: Colors.orange.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: AppColors.warning.withAlpha(77),
+                            color: Colors.orange.withOpacity(0.3),
                           ),
                         ),
                         child: Column(
@@ -2071,7 +2070,7 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                               children: [
                                 Icon(
                                   Icons.info_outline,
-                                  color: AppColors.warning,
+                                  color: Colors.orange,
                                   size: 18,
                                 ),
                                 SizedBox(width: 8),
@@ -2097,8 +2096,8 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                                 icon: const Icon(Icons.add, size: 16),
                                 label: const Text('THÊM NCC MỚI'),
                                 style: OutlinedButton.styleFrom(
-                                  foregroundColor: AppColors.warning,
-                                  side: const BorderSide(color: AppColors.warning),
+                                  foregroundColor: Colors.orange,
+                                  side: const BorderSide(color: Colors.orange),
                                 ),
                               ),
                             ),
@@ -2140,7 +2139,7 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                                 style: TextStyle(fontSize: 14),
                               ),
                               style: TextButton.styleFrom(
-                                foregroundColor: AppColors.info,
+                                foregroundColor: Colors.teal,
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 8,
                                 ),
@@ -2200,11 +2199,11 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                           label: Text(
                             m,
                             style: TextStyle(
-                              color: selected ? AppColors.surface : AppColors.textPrimary,
+                              color: selected ? Colors.white : Colors.black,
                             ),
                           ),
                           selected: selected,
-                          selectedColor: AppColors.primary,
+                          selectedColor: Colors.blue,
                           onSelected: (_) => setS(() => paymentMethod = m),
                         );
                       }).toList(),
@@ -2217,14 +2216,14 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                           children: [
                             const Icon(
                               Icons.warning_amber_rounded,
-                              color: AppColors.warning,
+                              color: Colors.orange,
                               size: 18,
                             ),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
                                 'Sẽ tạo công nợ với: ${_getSupplierName(selectedSupplierId)}',
-                                style: const TextStyle(color: AppColors.warning),
+                                style: const TextStyle(color: Colors.orange),
                               ),
                             ),
                           ],
@@ -2238,14 +2237,14 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                           children: [
                             Icon(
                               Icons.error_outline,
-                              color: AppColors.error,
+                              color: Colors.red,
                               size: 18,
                             ),
                             SizedBox(width: 8),
                             Expanded(
                               child: Text(
                                 'Chọn nhà cung cấp để ghi nhận công nợ.',
-                                style: TextStyle(color: AppColors.error),
+                                style: TextStyle(color: Colors.red),
                               ),
                             ),
                           ],
@@ -2274,7 +2273,7 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                         content: Text(
                           'Vui lòng chọn nhà cung cấp khi nhập công nợ.',
                         ),
-                        backgroundColor: AppColors.error,
+                        backgroundColor: Colors.red,
                       ),
                     );
                     return;
@@ -2448,14 +2447,14 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text('✅ Đã nhập $partName x$qty'),
-                        backgroundColor: AppColors.success,
+                        backgroundColor: Colors.green,
                       ),
                     );
                   } catch (e) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text('Lỗi: $e'),
-                        backgroundColor: AppColors.error,
+                        backgroundColor: Colors.red,
                       ),
                     );
                   }
@@ -2499,13 +2498,13 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Đã xóa ${p['partName']}'),
-          backgroundColor: AppColors.success,
+          backgroundColor: Colors.green,
         ),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi khi xóa: $e'), backgroundColor: AppColors.error),
+        SnackBar(content: Text('Lỗi khi xóa: $e'), backgroundColor: Colors.red),
       );
     }
   }
@@ -2528,8 +2527,8 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-            child: const Text('XÓA', style: TextStyle(color: AppColors.surface)),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('XÓA', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -2580,13 +2579,13 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Đã xóa $deletedCount ${_terms.category3}'),
-          backgroundColor: AppColors.success,
+          backgroundColor: Colors.green,
         ),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi khi xóa: $e'), backgroundColor: AppColors.error),
+        SnackBar(content: Text('Lỗi khi xóa: $e'), backgroundColor: Colors.red),
       );
     }
   }
@@ -2619,7 +2618,7 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
   final Set<int> _selectedIds = {};
 
   // Theme colors cho màn hình phụ tùng
-  final Color _primaryColor = AppColors.primary; // Màu chính cho phụ tùng
+  final Color _primaryColor = Colors.blue; // Màu chính cho phụ tùng
   final Color _backgroundColor = const Color(0xFFF8FAFF);
 
   // Dynamic terminology
@@ -2829,10 +2828,10 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                         padding: const EdgeInsets.all(10),
                         margin: const EdgeInsets.only(bottom: 8),
                         decoration: BoxDecoration(
-                          color: AppColors.primary.withAlpha(20),
+                          color: Colors.blue.withOpacity(0.08),
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
-                            color: AppColors.primary.withAlpha(77),
+                            color: Colors.blue.withOpacity(0.3),
                           ),
                         ),
                         child: const Row(
@@ -2840,7 +2839,7 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                           children: [
                             Icon(
                               Icons.info_outline,
-                              color: AppColors.primary,
+                              color: Colors.blue,
                               size: 18,
                             ),
                             SizedBox(width: 8),
@@ -2848,7 +2847,7 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                               child: Text(
                                 'Chỉ sửa thông tin & giá bán. Muốn nhập thêm số lượng → dùng nút NHẬP THÊM ở danh sách.',
                                 style: TextStyle(
-                                  color: AppColors.primary,
+                                  color: Colors.blue,
                                   height: 1.3,
                                   fontSize: 14,
                                 ),
@@ -2861,10 +2860,10 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: AppColors.warning.withAlpha(26),
+                          color: Colors.orange.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: AppColors.warning.withAlpha(77),
+                            color: Colors.orange.withOpacity(0.3),
                           ),
                         ),
                         child: Column(
@@ -2873,7 +2872,7 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                               children: [
                                 Icon(
                                   Icons.info_outline,
-                                  color: AppColors.warning,
+                                  color: Colors.orange,
                                   size: 18,
                                 ),
                                 SizedBox(width: 8),
@@ -2899,8 +2898,8 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                                 icon: const Icon(Icons.add, size: 16),
                                 label: const Text('THÊM NCC MỚI'),
                                 style: OutlinedButton.styleFrom(
-                                  foregroundColor: AppColors.warning,
-                                  side: const BorderSide(color: AppColors.warning),
+                                  foregroundColor: Colors.orange,
+                                  side: const BorderSide(color: Colors.orange),
                                 ),
                               ),
                             ),
@@ -2944,7 +2943,7 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                                 style: TextStyle(fontSize: 14),
                               ),
                               style: TextButton.styleFrom(
-                                foregroundColor: AppColors.info,
+                                foregroundColor: Colors.teal,
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 8,
                                 ),
@@ -2963,12 +2962,12 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                             const Icon(
                               Icons.local_shipping,
                               size: 16,
-                              color: AppColors.textHint,
+                              color: Colors.grey,
                             ),
                             const SizedBox(width: 8),
                             Text(
                               'NCC: ${_getSupplierName(selectedSupplierId)}',
-                              style: const TextStyle(color: AppColors.textHint),
+                              style: const TextStyle(color: Colors.grey),
                             ),
                           ],
                         ),
@@ -3004,7 +3003,7 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                           vertical: 10,
                         ),
                         decoration: BoxDecoration(
-                          color: AppColors.textHint.withAlpha(20),
+                          color: Colors.grey.withOpacity(0.08),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Row(
@@ -3012,7 +3011,7 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                             const Icon(
                               Icons.inventory_2,
                               size: 18,
-                              color: AppColors.textHint,
+                              color: Colors.grey,
                             ),
                             const SizedBox(width: 8),
                             Text(
@@ -3054,11 +3053,11 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                             label: Text(
                               m,
                               style: TextStyle(
-                                color: selected ? AppColors.surface : AppColors.textPrimary,
+                                color: selected ? Colors.white : Colors.black,
                               ),
                             ),
                             selected: selected,
-                            selectedColor: AppColors.primary,
+                            selectedColor: Colors.blue,
                             onSelected: (_) => setS(() => paymentMethod = m),
                           );
                         }).toList(),
@@ -3071,14 +3070,14 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                             children: [
                               const Icon(
                                 Icons.warning_amber_rounded,
-                                color: AppColors.warning,
+                                color: Colors.orange,
                                 size: 18,
                               ),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
                                   'Sẽ tạo công nợ với: ${_getSupplierName(selectedSupplierId)}',
-                                  style: const TextStyle(color: AppColors.warning),
+                                  style: const TextStyle(color: Colors.orange),
                                 ),
                               ),
                             ],
@@ -3092,14 +3091,14 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                             children: [
                               Icon(
                                 Icons.error_outline,
-                                color: AppColors.error,
+                                color: Colors.red,
                                 size: 18,
                               ),
                               SizedBox(width: 8),
                               Expanded(
                                 child: Text(
                                   'Chọn nhà cung cấp để ghi nhận công nợ.',
-                                  style: TextStyle(color: AppColors.error),
+                                  style: TextStyle(color: Colors.red),
                                 ),
                               ),
                             ],
@@ -3376,7 +3375,7 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text('Lỗi: $e'),
-                        backgroundColor: AppColors.error,
+                        backgroundColor: Colors.red,
                       ),
                     );
                   }
@@ -3424,16 +3423,16 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                       padding: const EdgeInsets.all(10),
                       margin: const EdgeInsets.only(bottom: 12),
                       decoration: BoxDecoration(
-                        color: AppColors.info.withAlpha(20),
+                        color: Colors.teal.withOpacity(0.08),
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: AppColors.info.withAlpha(77)),
+                        border: Border.all(color: Colors.teal.withOpacity(0.3)),
                       ),
                       child: Row(
                         children: [
                           const Icon(
                             Icons.inventory_2,
                             size: 18,
-                            color: AppColors.info,
+                            color: Colors.teal,
                           ),
                           const SizedBox(width: 8),
                           Expanded(
@@ -3444,13 +3443,13 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                                   'Tồn kho hiện tại: $currentQty',
                                   style: const TextStyle(
                                     fontWeight: FontWeight.w600,
-                                    color: AppColors.info,
+                                    color: Colors.teal,
                                   ),
                                 ),
                                 Text(
                                   'Giá vốn hiện tại: ${MoneyUtils.formatVND(currentCost)}',
                                   style: TextStyle(
-                                    color: AppColors.info,
+                                    color: Colors.teal.shade700,
                                     fontSize: 12,
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -3505,7 +3504,7 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                           child: Text(
                             'Giá vốn sau nhập: ${MoneyUtils.formatVND(weightedCost)}',
                             style: TextStyle(
-                              color: AppColors.primary,
+                              color: Colors.blue.shade700,
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
                             ),
@@ -3543,7 +3542,7 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                             style: TextStyle(fontSize: 14),
                           ),
                           style: TextButton.styleFrom(
-                            foregroundColor: AppColors.info,
+                            foregroundColor: Colors.teal,
                             padding: const EdgeInsets.symmetric(horizontal: 8),
                             visualDensity: VisualDensity.compact,
                           ),
@@ -3567,11 +3566,11 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                           label: Text(
                             m,
                             style: TextStyle(
-                              color: selected ? AppColors.surface : AppColors.textPrimary,
+                              color: selected ? Colors.white : Colors.black,
                             ),
                           ),
                           selected: selected,
-                          selectedColor: AppColors.primary,
+                          selectedColor: Colors.blue,
                           onSelected: (_) => setS(() => paymentMethod = m),
                         );
                       }).toList(),
@@ -3584,14 +3583,14 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                           children: [
                             const Icon(
                               Icons.warning_amber_rounded,
-                              color: AppColors.warning,
+                              color: Colors.orange,
                               size: 18,
                             ),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
                                 'Sẽ tạo công nợ với: ${_getSupplierName(selectedSupplierId)}',
-                                style: const TextStyle(color: AppColors.warning),
+                                style: const TextStyle(color: Colors.orange),
                               ),
                             ),
                           ],
@@ -3605,14 +3604,14 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                           children: [
                             Icon(
                               Icons.error_outline,
-                              color: AppColors.error,
+                              color: Colors.red,
                               size: 18,
                             ),
                             SizedBox(width: 8),
                             Expanded(
                               child: Text(
                                 'Chọn nhà cung cấp để ghi nhận công nợ.',
-                                style: TextStyle(color: AppColors.error),
+                                style: TextStyle(color: Colors.red),
                               ),
                             ),
                           ],
@@ -3641,7 +3640,7 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                           content: Text(
                             'Vui lòng chọn nhà cung cấp khi ghi công nợ.',
                           ),
-                          backgroundColor: AppColors.error,
+                          backgroundColor: Colors.red,
                         ),
                       );
                       return;
@@ -3658,7 +3657,7 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                           content: Text(
                             'Vui lòng nhập giá vốn hợp lệ (> 0) để ghi nhận tài chính.',
                           ),
-                          backgroundColor: AppColors.error,
+                          backgroundColor: Colors.red,
                         ),
                       );
                       return;
@@ -3865,7 +3864,7 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                           content: Text(
                             'Đã nhập thêm $addQty $partName (tổng: $newQty)',
                           ),
-                          backgroundColor: AppColors.success,
+                          backgroundColor: Colors.green,
                         ),
                       );
                     }
@@ -3873,7 +3872,7 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text('Lỗi: $e'),
-                        backgroundColor: AppColors.error,
+                        backgroundColor: Colors.red,
                       ),
                     );
                   }
@@ -3943,9 +3942,9 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
             child: const Text('HỦY'),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('XÓA', style: TextStyle(color: AppColors.surface)),
+            child: const Text('XÓA', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -3988,7 +3987,7 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Đã xóa $deletedCount ${_terms.category3}'),
-          backgroundColor: AppColors.success,
+          backgroundColor: Colors.green,
         ),
       );
 
@@ -4002,7 +4001,7 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi khi xóa: $e'), backgroundColor: AppColors.error),
+        SnackBar(content: Text('Lỗi khi xóa: $e'), backgroundColor: Colors.red),
       );
     }
   }
@@ -4049,9 +4048,9 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                 ),
               ),
         backgroundColor: _isSelectionMode
-            ? AppColors.error
+            ? Colors.red.shade700
             : Colors.transparent,
-        foregroundColor: AppColors.surface,
+        foregroundColor: Colors.white,
         elevation: 0,
         automaticallyImplyLeading: !_isSelectionMode,
         actions: _isSelectionMode
@@ -4116,7 +4115,7 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                                   Icon(
                                     Icons.inventory_2_outlined,
                                     size: 64,
-                                    color: AppColors.outline,
+                                    color: Colors.grey.shade300,
                                   ),
                                   const SizedBox(height: 16),
                                   Text(
@@ -4124,7 +4123,7 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                                     style: TextStyle(
                                       fontSize: 17,
                                       fontWeight: FontWeight.bold,
-                                      color: AppColors.textHint,
+                                      color: Colors.grey.shade500,
                                     ),
                                   ),
                                   const SizedBox(height: 8),
@@ -4135,7 +4134,7 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
                                       fontSize: 14,
-                                      color: AppColors.textHint,
+                                      color: Colors.grey.shade400,
                                       height: 1.4,
                                     ),
                                   ),
@@ -4175,29 +4174,29 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                                   borderRadius: BorderRadius.circular(15),
                                   side: isSelected
                                       ? BorderSide(
-                                          color: AppColors.error,
+                                          color: Colors.red.shade700,
                                           width: 2,
                                         )
                                       : BorderSide.none,
                                 ),
-                                color: isSelected ? AppColors.error : null,
+                                color: isSelected ? Colors.red.shade50 : null,
                                 child: ListTile(
                                   leading: _isSelectionMode
                                       ? Checkbox(
                                           value: isSelected,
-                                          activeColor: AppColors.error,
+                                          activeColor: Colors.red.shade700,
                                           onChanged: partId != null
                                               ? (_) => _toggleSelection(partId)
                                               : null,
                                         )
                                       : CircleAvatar(
                                           backgroundColor: isLow
-                                              ? AppColors.error.withAlpha(25)
+                                              ? Colors.red.withAlpha(25)
                                               : _primaryColor.withAlpha(25),
                                           child: Icon(
                                             Icons.settings_input_component,
                                             color: isLow
-                                                ? AppColors.error
+                                                ? Colors.red
                                                 : _primaryColor,
                                           ),
                                         ),
@@ -4222,7 +4221,7 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                                             IconButton(
                                               icon: const Icon(
                                                 Icons.add_shopping_cart,
-                                                color: AppColors.info,
+                                                color: Colors.teal,
                                                 size: 20,
                                               ),
                                               tooltip: 'Nhập thêm',
@@ -4241,7 +4240,7 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                                               "${NumberFormat('#,###').format(p['price'] ?? 0)} đ",
                                               style: const TextStyle(
                                                 fontWeight: FontWeight.bold,
-                                                color: AppColors.error,
+                                                color: Colors.red,
                                               ),
                                             ),
                                           ],
@@ -4250,7 +4249,7 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                                           "${NumberFormat('#,###').format(p['price'] ?? 0)} đ",
                                           style: const TextStyle(
                                             fontWeight: FontWeight.bold,
-                                            color: AppColors.error,
+                                            color: Colors.red,
                                           ),
                                         ),
                                   onTap: _isSelectionMode
@@ -4352,7 +4351,7 @@ class _SupplierSearchField extends StatelessWidget {
         child: Text(
           selectedName.isEmpty ? '-- Chọn NCC --' : selectedName,
           style: TextStyle(
-            color: selectedName.isEmpty ? AppColors.textHint : AppColors.textPrimary,
+            color: selectedName.isEmpty ? Colors.grey : Colors.black87,
           ),
         ),
       ),
@@ -4410,7 +4409,7 @@ class _SupplierPickerSheetState extends State<_SupplierPickerSheet> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.outline,
+                  color: Colors.grey.shade300,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -4420,7 +4419,7 @@ class _SupplierPickerSheetState extends State<_SupplierPickerSheet> {
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
               child: Row(
                 children: [
-                  const Icon(Icons.store, color: AppColors.info, size: 20),
+                  const Icon(Icons.store, color: Colors.teal, size: 20),
                   const SizedBox(width: 8),
                   Text(
                     'Chọn nhà cung cấp (${widget.suppliers.length})',
@@ -4470,7 +4469,7 @@ class _SupplierPickerSheetState extends State<_SupplierPickerSheet> {
                   ? const Center(
                       child: Text(
                         'Không tìm thấy NCC',
-                        style: TextStyle(color: AppColors.textHint),
+                        style: TextStyle(color: Colors.grey),
                       ),
                     )
                   : ListView.builder(
@@ -4485,18 +4484,18 @@ class _SupplierPickerSheetState extends State<_SupplierPickerSheet> {
                         return ListTile(
                           dense: true,
                           selected: isSelected,
-                          selectedTileColor: AppColors.primary.withAlpha(20),
+                          selectedTileColor: Colors.blue.withOpacity(0.08),
                           leading: CircleAvatar(
                             radius: 16,
                             backgroundColor: isSelected
-                                ? AppColors.primary.withAlpha(38)
-                                : AppColors.textHint.withAlpha(26),
+                                ? Colors.blue.withOpacity(0.15)
+                                : Colors.grey.withOpacity(0.1),
                             child: Icon(
                               isSelected
                                   ? Icons.check_circle
                                   : Icons.store_outlined,
                               size: 18,
-                              color: isSelected ? AppColors.primary : AppColors.textHint,
+                              color: isSelected ? Colors.blue : Colors.grey,
                             ),
                           ),
                           title: Text(

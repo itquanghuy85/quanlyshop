@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' as m;
-import '../theme/app_colors.dart';
 import 'package:intl/intl.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
@@ -72,10 +71,10 @@ class _CustomerHistoryViewState extends State<CustomerHistoryView> {
   m.Widget _buildThumbImage(String thumb) {
     if (!StorageService.isResolvableDisplayPath(thumb)) {
       return m.Container(
-        color: AppColors.outline,
+        color: m.Colors.grey.shade200,
         child: m.Icon(
           m.Icons.photo_outlined,
-          color: AppColors.textHint,
+          color: m.Colors.grey.shade400,
           size: 20,
         ),
       );
@@ -98,10 +97,10 @@ class _CustomerHistoryViewState extends State<CustomerHistoryView> {
           final url = snapshot.data;
           if (url == null || url.isEmpty) {
             return m.Container(
-              color: AppColors.outline,
+              color: m.Colors.grey.shade200,
               child: m.Icon(
                 m.Icons.broken_image,
-                color: AppColors.textHint,
+                color: m.Colors.grey.shade400,
                 size: 20,
               ),
             );
@@ -119,8 +118,8 @@ class _CustomerHistoryViewState extends State<CustomerHistoryView> {
 
     if (kIsWeb) {
       return m.Container(
-        color: AppColors.outline,
-        child: m.Icon(m.Icons.image, color: AppColors.textHint, size: 20),
+        color: m.Colors.grey.shade200,
+        child: m.Icon(m.Icons.image, color: m.Colors.grey.shade400, size: 20),
       );
     }
     return m.Image.file(File(thumb), fit: m.BoxFit.cover);
@@ -203,10 +202,10 @@ class _CustomerHistoryViewState extends State<CustomerHistoryView> {
       m.MaterialPageRoute(
         builder: (_) => m.Scaffold(
           appBar: m.AppBar(
-            backgroundColor: AppColors.textPrimary,
-            iconTheme: const m.IconThemeData(color: AppColors.surface),
+            backgroundColor: m.Colors.black,
+            iconTheme: const m.IconThemeData(color: m.Colors.white),
           ),
-          backgroundColor: AppColors.textPrimary,
+          backgroundColor: m.Colors.black,
           body: PhotoViewGallery.builder(
             itemCount: validImages.length,
             builder: (context, i) => PhotoViewGalleryPageOptions(
@@ -267,11 +266,11 @@ class _CustomerHistoryViewState extends State<CustomerHistoryView> {
                     return m.Container(
                       margin: const m.EdgeInsets.only(bottom: 12),
                       decoration: m.BoxDecoration(
-                        color: AppColors.surface,
+                        color: m.Colors.white,
                         borderRadius: m.BorderRadius.circular(15),
                         boxShadow: [
                           m.BoxShadow(
-                            color: AppColors.textPrimary.withAlpha(5),
+                            color: m.Colors.black.withAlpha(5),
                             blurRadius: 10,
                           ),
                         ],
@@ -287,8 +286,8 @@ class _CustomerHistoryViewState extends State<CustomerHistoryView> {
                             height: 55,
                             decoration: m.BoxDecoration(
                               color: isRepair
-                                  ? AppColors.warning.withAlpha(25)
-                                  : AppColors.error.withAlpha(25),
+                                  ? m.Colors.orange.withAlpha(25)
+                                  : m.Colors.pink.withAlpha(25),
                               borderRadius: m.BorderRadius.circular(10),
                             ),
                             child: hasThumb
@@ -301,8 +300,8 @@ class _CustomerHistoryViewState extends State<CustomerHistoryView> {
                                         ? m.Icons.build
                                         : m.Icons.shopping_bag,
                                     color: isRepair
-                                        ? AppColors.warning
-                                        : AppColors.error,
+                                        ? m.Colors.orange
+                                        : m.Colors.pink,
                                     size: 24,
                                   ),
                           ),
@@ -327,70 +326,39 @@ class _CustomerHistoryViewState extends State<CustomerHistoryView> {
                               _fmtDate(item['time']),
                               style: m.TextStyle(
                                 fontSize: AppTextStyles.body1.fontSize,
-                                color: AppColors.textHint,
+                                color: m.Colors.grey,
                               ),
                             ),
                           ],
                         ),
                         trailing: const m.Icon(m.Icons.chevron_right, size: 18),
                         onTap: () async {
-                          try {
-                            if (isRepair) {
-                              final repair = item['data'];
-                              if (repair == null || repair is! Repair) {
-                                _showDataErrorDialog('Không thể mở chi tiết đơn sửa chữa. Dữ liệu bị thiếu hoặc lỗi.\n\nVui lòng đồng bộ lại dữ liệu hoặc liên hệ hỗ trợ.');
-                                return;
-                              }
-                              await m.Navigator.push(
-                                context,
-                                m.MaterialPageRoute(
-                                  builder: (_) => RepairDetailView(repair: repair),
+                          if (isRepair) {
+                            await m.Navigator.push(
+                              context,
+                              m.MaterialPageRoute(
+                                builder: (_) => RepairDetailView(
+                                  repair: item['data'] as Repair,
                                 ),
-                              );
-                            } else {
-                              final sale = item['data'];
-                              if (sale == null || sale is! SaleOrder) {
-                                _showDataErrorDialog('Không thể mở chi tiết đơn bán. Dữ liệu bị thiếu hoặc lỗi.\n\nVui lòng đồng bộ lại dữ liệu sản phẩm hoặc liên hệ hỗ trợ.');
-                                return;
-                              }
-                              // Kiểm tra sản phẩm có tồn tại không
-                              if ((sale.productNames.trim().isEmpty) && ((sale.itemSnapshotsJson ?? '').trim().isEmpty)) {
-                                _showDataErrorDialog('Không tìm thấy thông tin sản phẩm trong đơn bán này.\n\nBạn hãy đồng bộ lại dữ liệu sản phẩm (menu Cài đặt > Đồng bộ dữ liệu) hoặc kiểm tra lại dữ liệu gốc.');
-                                return;
-                              }
-                              await m.Navigator.push(
-                                context,
-                                m.MaterialPageRoute(
-                                  builder: (_) => SaleDetailView(sale: sale),
+                              ),
+                            );
+                          } else {
+                            await m.Navigator.push(
+                              context,
+                              m.MaterialPageRoute(
+                                builder: (_) => SaleDetailView(
+                                  sale: item['data'] as SaleOrder,
                                 ),
-                              );
-                            }
-                            _loadUnifiedHistory();
-                          } catch (e) {
-                            _showDataErrorDialog('Đã xảy ra lỗi khi mở chi tiết giao dịch.\n\nVui lòng đồng bộ lại dữ liệu hoặc liên hệ hỗ trợ.\n\nChi tiết: $e');
+                              ),
+                            );
                           }
+                          _loadUnifiedHistory();
                         },
                       ),
                     );
                   },
                 ),
         ),
-      ),
-    );
-  }
-
-  void _showDataErrorDialog(String message) {
-    m.showDialog(
-      context: context,
-      builder: (ctx) => m.AlertDialog(
-        title: const m.Text('Lỗi dữ liệu', style: m.TextStyle(color: AppColors.error)),
-        content: m.Text(message),
-        actions: [
-          m.TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const m.Text('Đóng'),
-          ),
-        ],
       ),
     );
   }

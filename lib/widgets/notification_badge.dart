@@ -29,7 +29,7 @@ class NotificationBadge extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.all(2),
                   decoration: BoxDecoration(
-                    color: AppColors.error,
+                    color: Colors.red,
                     borderRadius: BorderRadius.circular(10),
                   ),
                   constraints: const BoxConstraints(

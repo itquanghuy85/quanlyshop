@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as img;
@@ -452,7 +451,7 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
         decoration: const BoxDecoration(
-          color: AppColors.surface,
+          color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
@@ -511,10 +510,10 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
                     width: 108,
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: AppColors.surface,
+                      color: Colors.white,
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
-                        color: selected ? AppBarAccents.chat : AppColors.outline,
+                        color: selected ? AppBarAccents.chat : Colors.grey.shade300,
                         width: selected ? 2 : 1,
                       ),
                     ),
@@ -574,7 +573,7 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
     if (avatarUrl != null && avatarUrl.isNotEmpty) {
       return CircleAvatar(
         radius: radius,
-        backgroundColor: AppColors.background,
+        backgroundColor: Colors.grey.shade100,
         child: ClipOval(
           child: CachedNetworkImage(
             imageUrl: avatarUrl,
@@ -586,7 +585,7 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
               style: TextStyle(
                 fontSize: radius - 2,
                 fontWeight: FontWeight.w700,
-                color: AppColors.textSecondary,
+                color: Colors.blueGrey.shade700,
               ),
             ),
           ),
@@ -595,13 +594,13 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
     }
     return CircleAvatar(
       radius: radius,
-      backgroundColor: AppColors.textSecondary,
+      backgroundColor: Colors.blueGrey.shade100,
       child: Text(
         _avatarInitial(message.senderName),
         style: TextStyle(
           fontSize: radius - 2,
           fontWeight: FontWeight.w700,
-          color: AppColors.textSecondary,
+          color: Colors.blueGrey.shade700,
         ),
       ),
     );
@@ -842,7 +841,7 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
       builder: (ctx) => Container(
         padding: const EdgeInsets.all(12),
         decoration: const BoxDecoration(
-          color: AppColors.surface,
+          color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: Column(
@@ -870,11 +869,11 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: hasReacted
-                          ? AppColors.primary
-                          : AppColors.background,
+                          ? Colors.blue.shade50
+                          : Colors.grey.shade100,
                       borderRadius: BorderRadius.circular(12),
                       border: hasReacted
-                          ? Border.all(color: AppColors.primary, width: 2)
+                          ? Border.all(color: Colors.blue, width: 2)
                           : null,
                     ),
                     child: Text(emoji, style: const TextStyle(fontSize: 28)),
@@ -899,7 +898,7 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
       builder: (ctx) => Container(
         padding: const EdgeInsets.all(16),
         decoration: const BoxDecoration(
-          color: AppColors.surface,
+          color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: Column(
@@ -909,7 +908,7 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: AppColors.outline,
+                color: Colors.grey.shade300,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -961,7 +960,7 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
               _actionTile(
                 icon: Icons.delete_outline,
                 label: 'Xóa',
-                color: AppColors.error,
+                color: Colors.red,
                 onTap: () {
                   Navigator.pop(ctx);
                   _confirmDelete(message);
@@ -1035,12 +1034,12 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
             child: const Text('Hủy'),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () {
               Navigator.pop(ctx);
               if (message.id != null) ChatService.deleteMessage(message.id!);
             },
-            child: const Text('Xóa', style: TextStyle(color: AppColors.surface)),
+            child: const Text('Xóa', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -1060,7 +1059,7 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
         return Container(
           height: MediaQuery.of(ctx).size.height * 0.7,
           decoration: const BoxDecoration(
-            color: AppColors.surface,
+            color: Colors.white,
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
           child: DefaultTabController(
@@ -1075,7 +1074,7 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
                         width: 40,
                         height: 4,
                         decoration: BoxDecoration(
-                          color: AppColors.outline,
+                          color: Colors.grey.shade300,
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
@@ -1091,7 +1090,7 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
                   ),
                 ),
                 TabBar(
-                  labelColor: AppColors.primary,
+                  labelColor: Colors.blue,
                   tabs: [
                     if (showRepair)
                       const Tab(icon: Icon(Icons.build, size: 18), text: 'Sửa'),
@@ -1137,7 +1136,7 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
               child: ListTile(
                 leading: CircleAvatar(
                   backgroundColor: _getStatusColor(r.status),
-                  child: const Icon(Icons.build, color: AppColors.surface, size: 20),
+                  child: const Icon(Icons.build, color: Colors.white, size: 20),
                 ),
                 title: Text(
                   r.customerName,
@@ -1186,10 +1185,10 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
             return Card(
               child: ListTile(
                 leading: const CircleAvatar(
-                  backgroundColor: AppColors.success,
+                  backgroundColor: Colors.green,
                   child: Icon(
                     Icons.shopping_cart,
-                    color: AppColors.surface,
+                    color: Colors.white,
                     size: 20,
                   ),
                 ),
@@ -1205,7 +1204,7 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
                 trailing: Text(
                   MoneyUtils.formatCompactCurrency(s.totalPrice),
                   style: const TextStyle(
-                    color: AppColors.success,
+                    color: Colors.green,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -1284,14 +1283,14 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
   void _showError(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: AppColors.error),
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
     );
   }
 
   void _showSuccess(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: AppColors.success),
+      SnackBar(content: Text(message), backgroundColor: Colors.green),
     );
   }
 
@@ -1315,15 +1314,15 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
   Color _getStatusColor(int status) {
     switch (status) {
       case 1:
-        return AppColors.primary;
+        return Colors.blue;
       case 2:
-        return AppColors.warning;
+        return Colors.orange;
       case 3:
-        return AppColors.success;
+        return Colors.green;
       case 4:
-        return AppColors.primary;
+        return Colors.blue;
       default:
-        return AppColors.textHint;
+        return Colors.grey;
     }
   }
 
@@ -1387,13 +1386,13 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
       elevation: 0,
       scrolledUnderElevation: 0,
       surfaceTintColor: Colors.transparent,
-      backgroundColor: AppColors.surface,
-      foregroundColor: AppColors.textPrimary,
-      systemOverlayStyle: SystemUiOverlayStyle.dark,
+      backgroundColor: Colors.transparent,
+      foregroundColor: Colors.white,
+      systemOverlayStyle: SystemUiOverlayStyle.light,
       flexibleSpace: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [AppBarAccents.chat, AppBarAccents.chat.withAlpha(204)],
+            colors: [AppBarAccents.chat, AppBarAccents.chat.withOpacity(0.8)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -1403,22 +1402,22 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
           ? Container(
               height: 40,
               decoration: BoxDecoration(
-                color: AppColors.surface,
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: TextField(
                 autofocus: true,
                 style: TextStyle(
-                  color: AppColors.textPrimary,
+                  color: Colors.black87,
                   fontSize: AppTextStyles.headline3.fontSize,
                 ),
                 cursorColor: AppBarAccents.chat,
                 decoration: InputDecoration(
                   hintText: 'Tìm tin nhắn...',
-                  hintStyle: TextStyle(color: AppColors.textHint),
+                  hintStyle: TextStyle(color: Colors.grey.shade500),
                   prefixIcon: Icon(
                     Icons.search,
-                    color: AppColors.textHint,
+                    color: Colors.grey.shade500,
                     size: 20,
                   ),
                   border: InputBorder.none,
@@ -1438,7 +1437,7 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
                   style: TextStyle(
                     fontSize: AppTextStyles.headline3.fontSize,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.surface,
+                    color: Colors.white,
                   ),
                 ),
                 if (_onlineUsers.isNotEmpty)
@@ -1454,7 +1453,7 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
             ),
       actions: [
         IconButton(
-          icon: const Icon(Icons.groups_2_outlined, size: 22, color: AppColors.surface),
+          icon: const Icon(Icons.groups_2_outlined, size: 22, color: Colors.white),
           onPressed: () {
             Navigator.push(
               context,
@@ -1468,13 +1467,13 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
           icon: Icon(
             _isSearching ? Icons.close : Icons.search_rounded,
             size: 22,
-            color: AppColors.surface,
+            color: Colors.white,
           ),
           onPressed: _toggleSearch,
           splashRadius: 20,
         ),
         PopupMenuButton<String>(
-          icon: const Icon(Icons.more_vert, size: 22, color: AppColors.surface),
+          icon: const Icon(Icons.more_vert, size: 22, color: Colors.white),
           splashRadius: 20,
           onSelected: (value) {
             switch (value) {
@@ -1513,7 +1512,7 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
       ],
       bottom: PreferredSize(
         preferredSize: const Size.fromHeight(1),
-        child: Container(color: AppColors.surface.withAlpha(51), height: 1),
+        child: Container(color: Colors.white.withOpacity(0.2), height: 1),
       ),
     );
   }
@@ -1527,13 +1526,13 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [AppColors.warning, AppColors.warning],
+          colors: [Colors.amber.shade100, Colors.amber.shade50],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.warning.withAlpha(40),
+            color: Colors.amber.withAlpha(40),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -1551,13 +1550,13 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
                 Container(
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
-                    color: AppColors.warning,
+                    color: Colors.amber,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Icon(
                     Icons.push_pin,
                     size: 16,
-                    color: AppColors.surface,
+                    color: Colors.white,
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -1573,7 +1572,7 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
                             style: TextStyle(
                               fontSize: AppTextStyles.body1.fontSize,
                               fontWeight: FontWeight.bold,
-                              color: AppColors.warning,
+                              color: Colors.amber.shade800,
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -1581,7 +1580,7 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
                             '• ${latestPin.senderName}',
                             style: TextStyle(
                               fontSize: AppTextStyles.caption.fontSize,
-                              color: AppColors.warning,
+                              color: Colors.amber.shade700,
                             ),
                           ),
                         ],
@@ -1593,7 +1592,7 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
                             : latestPin.message,
                         style: TextStyle(
                           fontSize: AppTextStyles.headline5.fontSize,
-                          color: AppColors.textPrimary,
+                          color: Colors.grey.shade800,
                           fontWeight: FontWeight.w500,
                         ),
                         maxLines: 1,
@@ -1605,13 +1604,13 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
                 Container(
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
-                    color: AppColors.warning,
+                    color: Colors.amber.shade200,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
                     Icons.expand_more,
                     size: 18,
-                    color: AppColors.warning,
+                    color: Colors.amber.shade800,
                   ),
                 ),
               ],
@@ -1630,7 +1629,7 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
       builder: (ctx) => Container(
         height: MediaQuery.of(ctx).size.height * 0.6,
         decoration: const BoxDecoration(
-          color: AppColors.surface,
+          color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: Column(
@@ -1639,7 +1638,7 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
               padding: const EdgeInsets.all(16),
               child: Row(
                 children: [
-                  const Icon(Icons.push_pin, color: AppColors.warning),
+                  const Icon(Icons.push_pin, color: Colors.amber),
                   const SizedBox(width: 8),
                   Text(
                     'Tin nhắn đã ghim',
@@ -1673,14 +1672,14 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
   Widget _buildOnlineIndicator() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      color: AppColors.success,
+      color: Colors.green.shade50,
       child: Row(
         children: [
           Container(
             width: 8,
             height: 8,
             decoration: const BoxDecoration(
-              color: AppColors.success,
+              color: Colors.green,
               shape: BoxShape.circle,
             ),
           ),
@@ -1690,7 +1689,7 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
               _onlineUsers.map((u) => u.userName).join(', '),
               style: TextStyle(
                 fontSize: AppTextStyles.subtitle1.fontSize,
-                color: AppColors.success,
+                color: Colors.green,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -1710,18 +1709,18 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
             Icon(
               Icons.chat_bubble_outline,
               size: 80,
-              color: AppColors.outline,
+              color: Colors.grey.shade300,
             ),
             const SizedBox(height: 16),
             Text(
               'Chưa có tin nhắn',
-              style: TextStyle(color: AppColors.textHint),
+              style: TextStyle(color: Colors.grey.shade500),
             ),
             const SizedBox(height: 8),
             Text(
               'Hãy gửi tin nhắn đầu tiên!',
               style: TextStyle(
-                color: AppColors.textHint,
+                color: Colors.grey.shade400,
                 fontSize: AppTextStyles.headline5.fontSize,
               ),
             ),
@@ -1781,10 +1780,10 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
               ),
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppColors.outline,
+                color: Colors.grey.shade200,
                 borderRadius: BorderRadius.circular(8),
                 border: const Border(
-                  left: BorderSide(color: AppColors.primary, width: 3),
+                  left: BorderSide(color: Colors.blue, width: 3),
                 ),
               ),
               child: Column(
@@ -1795,14 +1794,14 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
                     style: TextStyle(
                       fontSize: AppTextStyles.body1.fontSize,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
+                      color: Colors.blue,
                     ),
                   ),
                   Text(
                     message.replyToMessage!,
                     style: TextStyle(
                       fontSize: AppTextStyles.subtitle1.fontSize,
-                      color: AppColors.textHint,
+                      color: Colors.grey,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -1842,7 +1841,7 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
                       vertical: 10,
                     ),
                     decoration: BoxDecoration(
-                      color: isMe ? const Color(0xFF2962FF) : AppColors.surface,
+                      color: isMe ? const Color(0xFF2962FF) : Colors.white,
                       borderRadius: BorderRadius.only(
                         topLeft: const Radius.circular(16),
                         topRight: const Radius.circular(16),
@@ -1851,7 +1850,7 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.textPrimary.withAlpha(10),
+                          color: Colors.black.withAlpha(10),
                           blurRadius: 4,
                           offset: const Offset(0, 2),
                         ),
@@ -1867,7 +1866,7 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
                             style: TextStyle(
                               fontSize: AppTextStyles.body1.fontSize,
                               fontWeight: FontWeight.bold,
-                              color: AppColors.primary,
+                              color: Colors.blue.shade700,
                             ),
                           ),
 
@@ -1906,8 +1905,8 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
                           color: isMe
-                              ? AppColors.surface.withAlpha(30)
-                              : AppColors.background,
+                              ? Colors.white.withAlpha(30)
+                              : Colors.grey.shade100,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Row(
@@ -1918,7 +1917,7 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
                                   ? Icons.build
                                   : Icons.shopping_cart,
                               size: 16,
-                              color: isMe ? Colors.white70 : AppColors.primary,
+                              color: isMe ? Colors.white70 : Colors.blue,
                             ),
                             const SizedBox(width: 6),
                             Flexible(
@@ -1926,7 +1925,7 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
                                 message.linkedSummary!,
                                 style: TextStyle(
                                   fontSize: AppTextStyles.subtitle1.fontSize,
-                                  color: isMe ? AppColors.surface : AppColors.textPrimary,
+                                  color: isMe ? Colors.white : Colors.black87,
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
@@ -1935,7 +1934,7 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
                             Icon(
                               Icons.chevron_right,
                               size: 16,
-                              color: isMe ? Colors.white54 : AppColors.textHint,
+                              color: isMe ? Colors.white54 : Colors.grey,
                             ),
                           ],
                         ),
@@ -1975,7 +1974,7 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
                                   placeholder: (_, __) => Container(
                                     width: 150,
                                     height: 150,
-                                    color: AppColors.outline,
+                                    color: Colors.grey.shade200,
                                     child: const Center(
                                       child: CircularProgressIndicator(
                                         strokeWidth: 2,
@@ -1999,7 +1998,7 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
                               DateFormat('HH:mm').format(message.createdAt),
                               style: TextStyle(
                                 fontSize: AppTextStyles.caption.fontSize,
-                                color: isMe ? Colors.white60 : AppColors.textHint,
+                                color: isMe ? Colors.white60 : Colors.grey,
                               ),
                             ),
                             if (message.isEdited) ...[
@@ -2009,7 +2008,7 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
                                 style: TextStyle(
                                   fontSize: AppTextStyles.caption.fontSize,
                                   fontStyle: FontStyle.italic,
-                                  color: isMe ? Colors.white60 : AppColors.textHint,
+                                  color: isMe ? Colors.white60 : Colors.grey,
                                 ),
                               ),
                             ],
@@ -2019,7 +2018,7 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
                                 Icons.push_pin,
                                 size: 12,
                                 color:
-                                    isMe ? AppColors.warning : AppColors.warning,
+                                    isMe ? Colors.amber.shade200 : Colors.amber,
                               ),
                             ],
                           ],
@@ -2066,11 +2065,11 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
                           ),
                           decoration: BoxDecoration(
                             color: e.value.contains(userId)
-                                ? AppColors.primary
-                                : AppColors.background,
+                                ? Colors.blue.shade50
+                                : Colors.grey.shade100,
                             borderRadius: BorderRadius.circular(12),
                             border: e.value.contains(userId)
-                                ? Border.all(color: AppColors.primary)
+                                ? Border.all(color: Colors.blue.shade200)
                                 : null,
                           ),
                           child: Text(
@@ -2096,14 +2095,14 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
         margin: const EdgeInsets.symmetric(vertical: 8),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: AppColors.outline,
+          color: Colors.grey.shade200,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Text(
           message.message,
           style: TextStyle(
             fontSize: AppTextStyles.subtitle1.fontSize,
-            color: AppColors.textHint,
+            color: Colors.grey,
           ),
         ),
       ),
@@ -2113,7 +2112,7 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
   Widget _buildMessageText(ChatMessage message, bool isMe) {
     final text = message.message;
     final baseStyle = TextStyle(
-      color: isMe ? AppColors.surface : AppColors.textPrimary,
+      color: isMe ? Colors.white : Colors.black87,
       fontStyle: message.isDeleted ? FontStyle.italic : FontStyle.normal,
     );
     if (message.isDeleted) {
@@ -2141,7 +2140,7 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
           style: baseStyle.copyWith(
             decoration: TextDecoration.underline,
             fontWeight: FontWeight.w600,
-            color: isMe ? AppColors.surface : AppColors.primary,
+            color: isMe ? Colors.white : Colors.blue.shade700,
           ),
           recognizer: TapGestureRecognizer()
             ..onTap = () {
@@ -2301,7 +2300,7 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
             '${_typingUsers.map((u) => u.userName).join(', ')} đang nhập...',
             style: TextStyle(
               fontSize: AppTextStyles.subtitle1.fontSize,
-              color: AppColors.textHint,
+              color: Colors.grey,
               fontStyle: FontStyle.italic,
             ),
           ),
@@ -2314,8 +2313,8 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.background,
-        border: Border(top: BorderSide(color: AppColors.outline)),
+        color: Colors.grey.shade100,
+        border: Border(top: BorderSide(color: Colors.grey.shade300)),
       ),
       child: Row(
         children: [
@@ -2323,7 +2322,7 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
             width: 4,
             height: 40,
             decoration: BoxDecoration(
-              color: AppColors.primary,
+              color: Colors.blue,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -2337,14 +2336,14 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
                   style: TextStyle(
                     fontSize: AppTextStyles.subtitle1.fontSize,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.primary,
+                    color: Colors.blue,
                   ),
                 ),
                 Text(
                   _replyingTo!.message,
                   style: TextStyle(
                     fontSize: AppTextStyles.subtitle1.fontSize,
-                    color: AppColors.textHint,
+                    color: Colors.grey,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -2366,10 +2365,10 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: AppColors.textPrimary.withAlpha(10),
+              color: Colors.black.withAlpha(10),
               blurRadius: 10,
               offset: const Offset(0, -2),
             ),
@@ -2379,14 +2378,14 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
           children: [
             // Image button
             IconButton(
-              icon: const Icon(Icons.image, color: AppColors.primary),
+              icon: const Icon(Icons.image, color: Colors.blue),
               onPressed: _isSending ? null : _pickAndSendImage,
               tooltip: 'Gửi hình ảnh',
             ),
 
             // Pin order button
             IconButton(
-              icon: const Icon(Icons.attach_file, color: AppColors.warning),
+              icon: const Icon(Icons.attach_file, color: Colors.orange),
               onPressed: _showPinOrderDialog,
               tooltip: 'Gim đơn hàng',
             ),
@@ -2395,7 +2394,7 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
             Expanded(
               child: Container(
                 decoration: BoxDecoration(
-                  color: AppColors.background,
+                  color: Colors.grey.shade100,
                   borderRadius: BorderRadius.circular(24),
                 ),
                 child: TextField(
@@ -2407,7 +2406,7 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
                   onSubmitted: (_) => _sendMessage(),
                   decoration: InputDecoration(
                     hintText: 'Nhập tin nhắn...',
-                    hintStyle: TextStyle(color: AppColors.textHint),
+                    hintStyle: TextStyle(color: Colors.grey.shade500),
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 16,
@@ -2433,10 +2432,10 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
                         height: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation(AppColors.surface),
+                          valueColor: AlwaysStoppedAnimation(Colors.white),
                         ),
                       )
-                    : const Icon(Icons.send, color: AppColors.surface),
+                    : const Icon(Icons.send, color: Colors.white),
                 onPressed: _isSending ? null : _sendMessage,
               ),
             ),
@@ -2483,10 +2482,10 @@ class _ImageViewerDialogState extends State<_ImageViewerDialog> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.textPrimary,
+      backgroundColor: Colors.black,
       appBar: AppBar(
-        backgroundColor: AppColors.textPrimary,
-        foregroundColor: AppColors.surface,
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -2536,7 +2535,7 @@ class _ImageViewerDialogState extends State<_ImageViewerDialog> {
                   imageUrl: widget.imageUrls[index],
                   fit: BoxFit.contain,
                   placeholder: (_, __) => const Center(
-                    child: CircularProgressIndicator(color: AppColors.surface),
+                    child: CircularProgressIndicator(color: Colors.white),
                   ),
                   errorWidget: (_, __, ___) => const Center(
                     child: Icon(
@@ -2623,7 +2622,7 @@ class _TypingDotsState extends State<_TypingDots>
                 width: 6,
                 height: 6,
                 decoration: BoxDecoration(
-                  color: AppColors.textHint,
+                  color: Colors.grey.shade500,
                   shape: BoxShape.circle,
                 ),
               ),

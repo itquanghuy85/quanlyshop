@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import '../widgets/responsive_wrapper.dart';
 import 'dart:async';
@@ -147,35 +146,35 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
       context: context,
       screenKey: FirstTimeGuideService.keyFastInventoryCheck,
       title: 'Kiểm Kho Nhanh',
-      color: AppColors.primary,
+      color: Colors.blue,
       steps: const [
         GuideStep(
           title: '📋 Danh sách cần kiểm',
           description:
               'Hệ thống hiển thị tất cả sản phẩm trong kho. Quét để đánh dấu đã kiểm.',
           icon: Icons.checklist,
-          iconColor: AppColors.primary,
+          iconColor: Colors.blue,
         ),
         GuideStep(
           title: '📷 Quét IMEI/Barcode',
           description:
               'Nhấn "Bắt đầu quét" và đưa camera vào mã. Hệ thống tự nhận diện và check.',
           icon: Icons.qr_code_scanner,
-          iconColor: AppColors.primary,
+          iconColor: Colors.blue,
         ),
         GuideStep(
           title: '✅ Đã kiểm vs ❌ Thiếu',
           description:
               'Màu xanh = đã quét thấy. Màu đỏ = chưa quét hoặc thiếu. Dễ dàng phát hiện hàng mất.',
           icon: Icons.compare_arrows,
-          iconColor: AppColors.warning,
+          iconColor: Colors.orange,
         ),
         GuideStep(
           title: '📊 Báo cáo kiểm kê',
           description:
               'Sau khi quét xong, xem báo cáo tổng hợp: Đã kiểm, Thiếu, Thừa (không có trong hệ thống).',
           icon: Icons.assessment,
-          iconColor: AppColors.info,
+          iconColor: Colors.teal,
         ),
       ],
     );
@@ -253,7 +252,7 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
       if (mounted) {
         NotificationService.showSnackBar(
           'Lỗi tải dữ liệu kho: $e',
-          color: AppColors.error,
+          color: Colors.red,
         );
         setState(() => _isLoading = false);
       }
@@ -481,7 +480,7 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
     // Show warning notification
     NotificationService.showSnackBar(
       '⚠️ Đã scan mã này gần đây! Đợi 3 giây trước khi scan lại',
-      color: AppColors.warning,
+      color: Colors.orange,
     );
 
     // Set timer to clear the warning after 3 seconds
@@ -528,7 +527,7 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
         setState(() => _isProcessingScan = false);
       }
       HapticFeedback.vibrate();
-      NotificationService.showSnackBar('❌ Lỗi xử lý QR: $e', color: AppColors.error);
+      NotificationService.showSnackBar('❌ Lỗi xử lý QR: $e', color: Colors.red);
     }
   }
 
@@ -538,7 +537,7 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
       _provideScanFeedback(isSuccess: false);
       NotificationService.showSnackBar(
         '❌ QR ${_terms.productLabel.toLowerCase()} thiếu ${_terms.specialField1Label}',
-        color: AppColors.error,
+        color: Colors.red,
       );
       return;
     }
@@ -589,7 +588,7 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
           : imei;
       NotificationService.showSnackBar(
         '🚨 Thừa: $extraImeiSuffix',
-        color: AppColors.error,
+        color: Colors.red,
       );
 
       // Add to checklist as extra
@@ -603,7 +602,7 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
       _provideScanFeedback(isSuccess: false);
       NotificationService.showSnackBar(
         '❌ QR phụ kiện thiếu code',
-        color: AppColors.error,
+        color: Colors.red,
       );
       return;
     }
@@ -708,7 +707,7 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
       if (imeiResult.hasMultipleCandidates) {
         NotificationService.showSnackBar(
           'ℹ️ QR có ${imeiResult.candidates.length} IMEI, đã dùng IMEI đầu tiên',
-          color: AppColors.primary,
+          color: Colors.blue,
         );
       }
       return;
@@ -735,7 +734,7 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
     HapticFeedback.vibrate();
     NotificationService.showSnackBar(
       '⚠️ QR không hợp lệ cho kiểm kho - cần ${_terms.specialField1Label} hoặc mã ${_terms.productLabel.toLowerCase()}',
-      color: AppColors.warning,
+      color: Colors.orange,
     );
   }
 
@@ -758,7 +757,7 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
         HapticFeedback.vibrate();
         NotificationService.showSnackBar(
           '🚨 Không tìm thấy ${_terms.productLabel.toLowerCase()} với ID: $productId',
-          color: AppColors.error,
+          color: Colors.red,
         );
         return;
       }
@@ -779,14 +778,14 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
         HapticFeedback.vibrate();
         NotificationService.showSnackBar(
           '⚠️ ${_terms.productLabel} không hỗ trợ kiểm kho: ${product.name}',
-          color: AppColors.warning,
+          color: Colors.orange,
         );
       }
     } catch (e) {
       HapticFeedback.vibrate();
       NotificationService.showSnackBar(
         '❌ Lỗi kiểm tra ${_terms.productLabel.toLowerCase()}: $e',
-        color: AppColors.error,
+        color: Colors.red,
       );
     }
   }
@@ -844,7 +843,7 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
                     '⚡ Mẹo: Giữ khoảng cách 20-30cm với QR code\n⏱️ Thời gian chờ giữa các lần scan: 1.5 giây\n🚫 Tránh scan cùng mã quá nhanh',
                     style: TextStyle(
                       fontSize: AppTextStyles.subtitle1.fontSize,
-                      color: AppColors.textHint,
+                      color: Colors.grey,
                     ),
                   ),
                 ],
@@ -871,7 +870,7 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
       builder: (ctx) => AlertDialog(
         title: Row(
           children: [
-            const Icon(Icons.keyboard, color: AppColors.primary),
+            const Icon(Icons.keyboard, color: Colors.blue),
             const SizedBox(width: 8),
             Expanded(
               child: Text('NHẬP ${_terms.specialField1Label.toUpperCase()} THỦ CÔNG', style: const TextStyle(fontSize: 17)),
@@ -889,15 +888,15 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: AppColors.primary,
+                    color: Colors.blue.shade50,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.primary),
+                    border: Border.all(color: Colors.blue.shade200),
                   ),
                   child: Row(
                     children: [
                       Icon(
                         Icons.info_outline,
-                        color: AppColors.primary,
+                        color: Colors.blue.shade700,
                         size: 18,
                       ),
                       const SizedBox(width: 8),
@@ -943,7 +942,7 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
                   const SizedBox(height: 8),
                   const Text(
                     'Đã scan gần đây:',
-                    style: TextStyle(fontSize: 13, color: AppColors.textHint),
+                    style: TextStyle(fontSize: 13, color: Colors.grey),
                   ),
                   const SizedBox(height: 4),
                   Wrap(
@@ -987,8 +986,8 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
             icon: const Icon(Icons.check, size: 18),
             label: const Text('CHECK VÀO LIST'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: AppColors.surface,
+              backgroundColor: Colors.blue,
+              foregroundColor: Colors.white,
             ),
           ),
         ],
@@ -1015,7 +1014,7 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
     } else {
       NotificationService.showSnackBar(
         '⚠️ Vui lòng nhập ${_terms.specialField1Label} hoặc mã ${_terms.productLabel.toLowerCase()} hợp lệ',
-        color: AppColors.warning,
+        color: Colors.orange,
       );
     }
   }
@@ -1050,7 +1049,7 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
     // Chỉ lưu khi có tiến trình
     if (_totalScanned == 0 && _checkedPhoneImeis.isEmpty && _scannedAccessoryCounts.isEmpty) {
       if (!silent) {
-        NotificationService.showSnackBar('Chưa có dữ liệu kiểm kho để lưu', color: AppColors.warning);
+        NotificationService.showSnackBar('Chưa có dữ liệu kiểm kho để lưu', color: Colors.orange);
       }
       return;
     }
@@ -1082,12 +1081,12 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
       if (!silent && mounted) {
         NotificationService.showSnackBar(
           '💾 Đã lưu tạm kiểm kho (${_totalScanned} mục đã quét)',
-          color: AppColors.success,
+          color: Colors.green,
         );
       }
     } catch (e) {
       if (!silent && mounted) {
-        NotificationService.showSnackBar('Lỗi lưu tạm: $e', color: AppColors.error);
+        NotificationService.showSnackBar('Lỗi lưu tạm: $e', color: Colors.red);
       }
     }
   }
@@ -1095,7 +1094,7 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
   /// Save inventory check results to DB for history tracking
   Future<void> _saveResultsToDB() async {
     if (_totalScanned == 0 && _checkedPhoneImeis.isEmpty && _scannedAccessoryCounts.isEmpty) {
-      NotificationService.showSnackBar('Chưa có dữ liệu kiểm kho để lưu', color: AppColors.warning);
+      NotificationService.showSnackBar('Chưa có dữ liệu kiểm kho để lưu', color: Colors.orange);
       return;
     }
 
@@ -1168,13 +1167,13 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
       if (mounted) {
         NotificationService.showSnackBar(
           '✅ Đã lưu kết quả kiểm kho ($checkedCount/${items.length} mục)',
-          color: AppColors.success,
+          color: Colors.green,
         );
       }
     } catch (e) {
       debugPrint('Error saving inventory check: $e');
       if (mounted) {
-        NotificationService.showSnackBar('Lỗi lưu kiểm kho: $e', color: AppColors.error);
+        NotificationService.showSnackBar('Lỗi lưu kiểm kho: $e', color: Colors.red);
       }
     }
   }
@@ -1307,7 +1306,7 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
         builder: (ctx) => AlertDialog(
           title: const Row(
             children: [
-              Icon(Icons.restore, color: AppColors.primary),
+              Icon(Icons.restore, color: Colors.blue),
               SizedBox(width: 8),
               Expanded(child: Text('Khôi phục kiểm kho')),
             ],
@@ -1321,7 +1320,7 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.primary,
+                  color: Colors.blue.shade50,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Column(
@@ -1331,7 +1330,7 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
                         style: const TextStyle(fontWeight: FontWeight.bold)),
                     const SizedBox(height: 4),
                     Text('🕐 Lưu: $timeAgo',
-                        style: TextStyle(color: AppColors.textSecondary)),
+                        style: TextStyle(color: Colors.grey.shade600)),
                   ],
                 ),
               ),
@@ -1351,8 +1350,8 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
               icon: const Icon(Icons.restore, size: 18),
               label: const Text('TIẾP TỤC'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: AppColors.surface,
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
               ),
             ),
           ],
@@ -1364,7 +1363,7 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
         if (restored && mounted) {
           NotificationService.showSnackBar(
             '✅ Đã khôi phục phiên kiểm kho ($totalScanned mục)',
-            color: AppColors.success,
+            color: Colors.green,
           );
         }
       } else {
@@ -1392,7 +1391,7 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
       builder: (ctx) => AlertDialog(
         title: const Row(
           children: [
-            Icon(Icons.warning_amber, color: AppColors.warning),
+            Icon(Icons.warning_amber, color: Colors.orange),
             SizedBox(width: 8),
             Text('Đang kiểm kho'),
           ],
@@ -1403,7 +1402,7 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, 'discard'),
-            child: const Text('BỎ QUA', style: TextStyle(color: AppColors.error)),
+            child: const Text('BỎ QUA', style: TextStyle(color: Colors.red)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, 'cancel'),
@@ -1414,8 +1413,8 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
             icon: const Icon(Icons.save, size: 18),
             label: const Text('LƯU TẠM'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: AppColors.surface,
+              backgroundColor: Colors.blue,
+              foregroundColor: Colors.white,
             ),
           ),
         ],
@@ -1646,7 +1645,7 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
           padding: const EdgeInsets.all(16),
           child: Text(
             'Không có ${_terms.productLabel.toLowerCase()} nào trong kho',
-            style: TextStyle(color: AppColors.textSecondary),
+            style: TextStyle(color: Colors.grey[600]),
             textAlign: TextAlign.center,
           ),
         ),
@@ -1670,8 +1669,8 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
             decoration: BoxDecoration(
-              color: isChecked ? AppColors.success : null,
-              border: Border(bottom: BorderSide(color: AppColors.outline)),
+              color: isChecked ? Colors.green.shade50 : null,
+              border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
             ),
             child: Row(
               children: [
@@ -1681,12 +1680,12 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
                   height: 20,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: isChecked ? AppColors.success : AppColors.outline,
+                    color: isChecked ? Colors.green : Colors.grey.shade300,
                   ),
                   child: Icon(
                     isChecked ? Icons.check : Icons.circle_outlined,
                     size: 14,
-                    color: isChecked ? AppColors.surface : AppColors.textSecondary,
+                    color: isChecked ? Colors.white : Colors.grey.shade600,
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -1699,11 +1698,11 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
-                          color: isChecked ? AppColors.success : null,
+                          color: isChecked ? Colors.green.shade700 : null,
                           decoration: isChecked
                               ? TextDecoration.lineThrough
                               : null,
-                          decorationColor: AppColors.success,
+                          decorationColor: Colors.green.shade700,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -1713,8 +1712,8 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
                         style: TextStyle(
                           fontSize: 12,
                           color: isChecked
-                              ? AppColors.success
-                              : AppColors.textSecondary,
+                              ? Colors.green.shade600
+                              : Colors.grey[600],
                           decoration: isChecked
                               ? TextDecoration.lineThrough
                               : null,
@@ -1727,7 +1726,7 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
                 ),
                 // Icon gợi ý có thể nhấn để check
                 if (!isChecked)
-                  Icon(Icons.touch_app, size: 12, color: AppColors.textHint),
+                  Icon(Icons.touch_app, size: 12, color: Colors.grey.shade400),
               ],
             ),
           ),
@@ -1779,7 +1778,7 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
           padding: const EdgeInsets.all(16),
           child: Text(
             'Không có ${_terms.productLabel.toLowerCase()} nào trong kho',
-            style: TextStyle(color: AppColors.textSecondary),
+            style: TextStyle(color: Colors.grey[600]),
             textAlign: TextAlign.center,
           ),
         ),
@@ -1800,8 +1799,8 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: isChecked ? AppColors.success : null,
-              border: Border(bottom: BorderSide(color: AppColors.outline)),
+              color: isChecked ? Colors.green.shade50 : null,
+              border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
             ),
             child: Row(
               children: [
@@ -1819,7 +1818,7 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
                         style: TextStyle(
                           fontSize: AppTextStyles.body1.fontSize,
                           fontWeight: FontWeight.w500,
-                          color: isChecked ? AppColors.success : null,
+                          color: isChecked ? Colors.green.shade700 : null,
                           decoration: isChecked
                               ? TextDecoration.lineThrough
                               : null,
@@ -1831,7 +1830,7 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
                         item['identifier'],
                         style: TextStyle(
                           fontSize: AppTextStyles.overlineSize,
-                          color: AppColors.textSecondary,
+                          color: Colors.grey[600],
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -1841,7 +1840,7 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
                 ),
                 // Icon gợi ý có thể nhấn để check
                 if (!isChecked)
-                  Icon(Icons.touch_app, size: 14, color: AppColors.textHint),
+                  Icon(Icons.touch_app, size: 14, color: Colors.grey.shade400),
               ],
             ),
           ),
@@ -1861,7 +1860,7 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
           children: [
             Icon(
               isPhone ? Icons.phone_android : Icons.inventory_2,
-              color: AppColors.primary,
+              color: Colors.blue,
             ),
             const SizedBox(width: 8),
             const Expanded(child: Text('CHECK THỦ CÔNG')),
@@ -1873,13 +1872,13 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
           children: [
             Text(
               'Đánh dấu đã kiểm cho:',
-              style: TextStyle(color: AppColors.textSecondary),
+              style: TextStyle(color: Colors.grey.shade700),
             ),
             const SizedBox(height: 8),
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.primary,
+                color: Colors.blue.shade50,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
@@ -1901,7 +1900,7 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
                           item['identifier'] as String,
                           style: TextStyle(
                             fontSize: 14,
-                            color: AppColors.textSecondary,
+                            color: Colors.grey.shade600,
                           ),
                         ),
                       ],
@@ -1914,15 +1913,15 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppColors.warning,
+                color: Colors.orange.shade50,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.warning),
+                border: Border.all(color: Colors.orange.shade200),
               ),
               child: Row(
                 children: [
                   Icon(
                     Icons.warning_amber,
-                    color: AppColors.warning,
+                    color: Colors.orange.shade700,
                     size: 18,
                   ),
                   const SizedBox(width: 8),
@@ -1950,8 +1949,8 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
             icon: const Icon(Icons.check, size: 18),
             label: const Text('XÁC NHẬN ĐÃ KIỂM'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.success,
-              foregroundColor: AppColors.surface,
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
             ),
           ),
         ],
@@ -2060,10 +2059,10 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
         ),
         title: const Text(
           'KIỂM KHO NHANH',
-          style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.surface),
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
-        backgroundColor: AppColors.surface,
-        foregroundColor: AppColors.textPrimary,
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
         elevation: 0,
         actions: [
           // Zone selector
@@ -2072,12 +2071,12 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
                 setState(() => _showZoneSelector = !_showZoneSelector),
             icon: Icon(
               _showZoneSelector ? Icons.expand_less : Icons.expand_more,
-              color: AppColors.surface,
+              color: Colors.white,
             ),
             label: Text(
               _currentZone?.name ?? 'Chọn Zone',
               style: TextStyle(
-                color: AppColors.surface,
+                color: Colors.white,
                 fontSize: AppTextStyles.headline4.fontSize,
               ),
             ),
@@ -2150,7 +2149,7 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
           // Status bar - chỉ hiện stats phù hợp với zone hiện tại
           Container(
             padding: const EdgeInsets.all(16),
-            color: AppColors.primary,
+            color: Colors.blue.shade50,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: _buildZoneStats(phoneResults, accessoryResults),
@@ -2207,7 +2206,7 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
                                       child: Container(
                                         padding: const EdgeInsets.all(4),
                                         decoration: BoxDecoration(
-                                          color: AppColors.textPrimary.withAlpha(128),
+                                          color: Colors.black.withOpacity(0.5),
                                           borderRadius: BorderRadius.circular(
                                             8,
                                           ),
@@ -2230,7 +2229,7 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
                                                   Icons.add,
                                                   size: 16,
                                                 ),
-                                                color: AppColors.surface,
+                                                color: Colors.white,
                                                 tooltip: 'Zoom +',
                                                 padding: EdgeInsets.zero,
                                               ),
@@ -2259,7 +2258,7 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
                                                     max: 1.0,
                                                     onChanged: (v) =>
                                                         _setZoom(v),
-                                                    activeColor: AppColors.surface,
+                                                    activeColor: Colors.white,
                                                     inactiveColor:
                                                         Colors.white24,
                                                   ),
@@ -2281,7 +2280,7 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
                                                   Icons.remove,
                                                   size: 16,
                                                 ),
-                                                color: AppColors.surface,
+                                                color: Colors.white,
                                                 tooltip: 'Zoom -',
                                                 padding: EdgeInsets.zero,
                                               ),
@@ -2301,7 +2300,7 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
                                   const Icon(
                                     Icons.qr_code_scanner,
                                     size: 100,
-                                    color: AppColors.textHint,
+                                    color: Colors.grey,
                                   ),
                                   const SizedBox(height: 16),
                                   Text(
@@ -2309,14 +2308,14 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
                                     style: TextStyle(
                                       fontSize:
                                           AppTextStyles.headline2.fontSize,
-                                      color: AppColors.textHint,
+                                      color: Colors.grey,
                                     ),
                                     textAlign: TextAlign.center,
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
                                     '${_terms.productLabel}: scan ${_terms.specialField1Label}\nPhụ kiện: scan từng món',
-                                    style: TextStyle(color: AppColors.textSecondary),
+                                    style: TextStyle(color: Colors.grey[600]),
                                     textAlign: TextAlign.center,
                                   ),
                                 ],
@@ -2326,21 +2325,21 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
                       // Processing overlay
                       if (_isProcessingScan)
                         Container(
-                          color: AppColors.textPrimary.withAlpha(77),
+                          color: Colors.black.withOpacity(0.3),
                           child: Center(
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 const CircularProgressIndicator(
                                   valueColor: AlwaysStoppedAnimation<Color>(
-                                    AppColors.surface,
+                                    Colors.white,
                                   ),
                                 ),
                                 const SizedBox(height: 16),
                                 Text(
                                   'Đang xử lý...',
                                   style: TextStyle(
-                                    color: AppColors.surface,
+                                    color: Colors.white,
                                     fontSize: AppTextStyles.headline3.fontSize,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -2358,13 +2357,13 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
                   Container(
                     width: 220,
                     decoration: BoxDecoration(
-                      color: AppColors.surface,
+                      color: Colors.white,
                       border: Border(
-                        left: BorderSide(color: AppColors.outline),
+                        left: BorderSide(color: Colors.grey.shade300),
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.textPrimary.withAlpha(26),
+                          color: Colors.black.withOpacity(0.1),
                           blurRadius: 4,
                           offset: const Offset(-2, 0),
                         ),
@@ -2375,7 +2374,7 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
                         // Checklist Header with tabs
                         Container(
                           padding: const EdgeInsets.all(8),
-                          color: AppColors.primary,
+                          color: Colors.blue.shade50,
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
@@ -2412,14 +2411,14 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
           if (_isScanning)
             Container(
               padding: const EdgeInsets.all(16),
-              color: AppColors.textPrimary,
+              color: Colors.black87,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
                     'Đã scan: $_totalScanned',
                     style: TextStyle(
-                      color: AppColors.surface,
+                      color: Colors.white,
                       fontSize: AppTextStyles.headline3.fontSize,
                     ),
                   ),
@@ -2452,17 +2451,17 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
 
     if (showPhones) {
       items.addAll([
-        _buildStatusItem('📱 Đã kiểm', phoneResults['checked']!, AppColors.success),
-        _buildStatusItem('📱 Thiếu', phoneResults['missing']!, AppColors.error),
-        _buildStatusItem('📱 Thừa', phoneResults['extra']!, AppColors.warning),
+        _buildStatusItem('📱 Đã kiểm', phoneResults['checked']!, Colors.green),
+        _buildStatusItem('📱 Thiếu', phoneResults['missing']!, Colors.red),
+        _buildStatusItem('📱 Thừa', phoneResults['extra']!, Colors.orange),
       ]);
     }
 
     if (showAccessories) {
       items.addAll([
-        _buildStatusItem('🔧 Đã kiểm', accessoryResults['checked']!, AppColors.success),
-        _buildStatusItem('🔧 Thiếu', accessoryResults['missing']!, AppColors.error),
-        _buildStatusItem('🔧 Thừa', accessoryResults['extra']!, AppColors.warning),
+        _buildStatusItem('🔧 Đã kiểm', accessoryResults['checked']!, Colors.green),
+        _buildStatusItem('🔧 Thiếu', accessoryResults['missing']!, Colors.red),
+        _buildStatusItem('🔧 Thừa', accessoryResults['extra']!, Colors.orange),
       ]);
     }
 
@@ -2494,13 +2493,13 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
 
   Widget _buildZoneSelector() {
     return Container(
-      color: AppColors.surface,
+      color: Colors.white,
       child: Column(
         children: [
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
-              border: Border(bottom: BorderSide(color: AppColors.outline)),
+              border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
             ),
             child: Row(
               children: [
@@ -2535,13 +2534,13 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
                   margin: const EdgeInsets.only(right: 12),
                   child: Card(
                     elevation: isSelected ? 4 : 1,
-                    color: isSelected ? AppColors.primary : AppColors.surface,
+                    color: isSelected ? Colors.blue.shade50 : Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                       side: BorderSide(
                         color: isSelected
                             ? const Color(0xFF2962FF)
-                            : AppColors.outline,
+                            : Colors.grey.shade300,
                         width: isSelected ? 2 : 1,
                       ),
                     ),
@@ -2560,7 +2559,7 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
                                       ? Icons.check_circle
                                       : Icons.location_on,
                                   color: zone.isCompleted
-                                      ? AppColors.success
+                                      ? Colors.green
                                       : const Color(0xFF2962FF),
                                   size: 20,
                                 ),
@@ -2581,7 +2580,7 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
                                 fontSize: AppTextStyles.headline4.fontSize,
                                 color: isSelected
                                     ? const Color(0xFF2962FF)
-                                    : AppColors.textPrimary,
+                                    : Colors.black87,
                               ),
                             ),
                             const SizedBox(height: 2),
@@ -2589,7 +2588,7 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
                               '${zone.totalScanned}/${zone.totalExpected} items',
                               style: TextStyle(
                                 fontSize: AppTextStyles.subtitle1.fontSize,
-                                color: AppColors.textSecondary,
+                                color: Colors.grey[600],
                               ),
                             ),
                           ],
@@ -2615,14 +2614,14 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      color: isCompleted ? AppColors.success : AppColors.primary,
+      color: isCompleted ? Colors.green.shade50 : Colors.blue.shade50,
       child: Column(
         children: [
           Row(
             children: [
               Icon(
                 isCompleted ? Icons.check_circle : Icons.location_on,
-                color: isCompleted ? AppColors.success : const Color(0xFF2962FF),
+                color: isCompleted ? Colors.green : const Color(0xFF2962FF),
                 size: 20,
               ),
               const SizedBox(width: 8),
@@ -2641,7 +2640,7 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
                       zone.description,
                       style: TextStyle(
                         fontSize: AppTextStyles.subtitle1.fontSize,
-                        color: AppColors.textSecondary,
+                        color: Colors.grey[600],
                       ),
                     ),
                   ],
@@ -2650,13 +2649,13 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: isCompleted ? AppColors.success : const Color(0xFF2962FF),
+                  color: isCompleted ? Colors.green : const Color(0xFF2962FF),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
                   '${zone.totalScanned}/${zone.totalExpected}',
                   style: TextStyle(
-                    color: AppColors.surface,
+                    color: Colors.white,
                     fontSize: AppTextStyles.subtitle1.fontSize,
                     fontWeight: FontWeight.w500,
                   ),
@@ -2669,9 +2668,9 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
               value: progress,
-              backgroundColor: AppColors.surface,
+              backgroundColor: Colors.white,
               valueColor: AlwaysStoppedAnimation(
-                isCompleted ? AppColors.success : const Color(0xFF2962FF),
+                isCompleted ? Colors.green : const Color(0xFF2962FF),
               ),
               minHeight: 6,
             ),
@@ -2680,12 +2679,12 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
             const SizedBox(height: 4),
             Row(
               children: [
-                const Icon(Icons.celebration, color: AppColors.success, size: 16),
+                const Icon(Icons.celebration, color: Colors.green, size: 16),
                 const SizedBox(width: 4),
                 Text(
                   'Hoàn thành!',
                   style: TextStyle(
-                    color: AppColors.success,
+                    color: Colors.green[700],
                     fontSize: AppTextStyles.subtitle1.fontSize,
                     fontWeight: FontWeight.w500,
                   ),

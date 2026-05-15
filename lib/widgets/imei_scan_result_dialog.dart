@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import '../utils/imei_extractor.dart';
 import '../theme/app_text_styles.dart';
@@ -44,7 +43,7 @@ class IMEIScanResultDialog extends StatelessWidget {
         children: [
           Icon(
             hasMultiple ? Icons.warning_amber : Icons.qr_code_scanner,
-            color: hasMultiple ? AppColors.warning : AppColors.success,
+            color: hasMultiple ? Colors.orange : Colors.green,
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -66,7 +65,7 @@ class IMEIScanResultDialog extends StatelessWidget {
                 padding: const EdgeInsets.all(8),
                 margin: const EdgeInsets.only(bottom: 12),
                 decoration: BoxDecoration(
-                  color: AppColors.primary,
+                  color: Colors.blue.shade50,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -74,7 +73,7 @@ class IMEIScanResultDialog extends StatelessWidget {
                     const Icon(
                       Icons.info_outline,
                       size: 16,
-                      color: AppColors.primary,
+                      color: Colors.blue,
                     ),
                     const SizedBox(width: 8),
                     Expanded(
@@ -82,7 +81,7 @@ class IMEIScanResultDialog extends StatelessWidget {
                         'QR chứa ${result.allLines.length} dòng dữ liệu',
                         style: TextStyle(
                           fontSize: AppTextStyles.subtitle1.fontSize,
-                          color: AppColors.primary,
+                          color: Colors.blue.shade700,
                         ),
                       ),
                     ),
@@ -141,7 +140,7 @@ class IMEIScanResultDialog extends StatelessWidget {
                   'Dữ liệu gốc',
                   style: TextStyle(
                     fontSize: AppTextStyles.subtitle1.fontSize,
-                    color: AppColors.textHint,
+                    color: Colors.grey,
                   ),
                 ),
                 tilePadding: EdgeInsets.zero,
@@ -151,7 +150,7 @@ class IMEIScanResultDialog extends StatelessWidget {
                     width: double.infinity,
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppColors.background,
+                      color: Colors.grey.shade100,
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: SelectableText(
@@ -171,14 +170,14 @@ class IMEIScanResultDialog extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppColors.error,
+                  color: Colors.red.shade50,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Column(
                   children: [
                     const Icon(
                       Icons.error_outline,
-                      color: AppColors.error,
+                      color: Colors.red,
                       size: 32,
                     ),
                     const SizedBox(height: 8),
@@ -186,7 +185,7 @@ class IMEIScanResultDialog extends StatelessWidget {
                       'Không tìm thấy IMEI hợp lệ',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        color: AppColors.error,
+                        color: Colors.red,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -241,11 +240,11 @@ class _IMEIOptionTile extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
         border: Border.all(
-          color: isRecommended ? AppColors.success : AppColors.outline,
+          color: isRecommended ? Colors.green : Colors.grey.shade300,
           width: isRecommended ? 2 : 1,
         ),
         borderRadius: BorderRadius.circular(8),
-        color: isRecommended ? AppColors.success : null,
+        color: isRecommended ? Colors.green.shade50 : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -263,14 +262,14 @@ class _IMEIOptionTile extends StatelessWidget {
                     ),
                     margin: const EdgeInsets.only(right: 8),
                     decoration: BoxDecoration(
-                      color: AppColors.success,
+                      color: Colors.green,
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: const Text(
                       'Đề xuất',
                       style: TextStyle(
                         fontSize: AppTextStyles.captionSize,
-                        color: AppColors.surface,
+                        color: Colors.white,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -291,7 +290,7 @@ class _IMEIOptionTile extends StatelessWidget {
                         '5 số cuối: $last5',
                         style: TextStyle(
                           fontSize: AppTextStyles.subtitle1.fontSize,
-                          color: AppColors.textSecondary,
+                          color: Colors.grey.shade600,
                         ),
                       ),
                     ],
@@ -324,8 +323,8 @@ class _IMEIOptionTile extends StatelessWidget {
                     icon: const Icon(Icons.short_text, size: 16),
                     label: Text('Dùng $last5'),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.primary,
-                      side: const BorderSide(color: AppColors.primary),
+                      foregroundColor: Colors.blue,
+                      side: const BorderSide(color: Colors.blue),
                     ),
                   ),
                 ),
@@ -336,8 +335,8 @@ class _IMEIOptionTile extends StatelessWidget {
                     icon: const Icon(Icons.check, size: 16),
                     label: const Text('Dùng đầy đủ'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.success,
-                      foregroundColor: AppColors.surface,
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
                     ),
                   ),
                 ),
@@ -366,13 +365,13 @@ class _InfoRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, size: 16, color: AppColors.textHint),
+        Icon(icon, size: 16, color: Colors.grey),
         const SizedBox(width: 8),
         Text(
           '$label: ',
           style: TextStyle(
             fontSize: AppTextStyles.subtitle1.fontSize,
-            color: AppColors.textHint,
+            color: Colors.grey,
           ),
         ),
         Expanded(

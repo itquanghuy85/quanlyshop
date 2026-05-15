@@ -139,7 +139,7 @@ class _CommunityViewState extends State<CommunityView> {
       setState(() {});
       NotificationService.showSnackBar(
         'Đăng bài thành công',
-        color: AppColors.success,
+        color: Colors.green,
       );
     } finally {
       if (mounted) setState(() => _posting = false);
@@ -179,7 +179,7 @@ class _CommunityViewState extends State<CommunityView> {
                       height: 4,
                       margin: const EdgeInsets.only(top: 8, bottom: 8),
                       decoration: BoxDecoration(
-                        color: AppColors.textHint,
+                        color: Colors.grey.shade400,
                         borderRadius: BorderRadius.circular(99),
                       ),
                     ),
@@ -208,7 +208,7 @@ class _CommunityViewState extends State<CommunityView> {
                                 child: Text(
                                   _friendlyCommentError(snap.error),
                                   style: AppTextStyles.caption.copyWith(
-                                    color: AppColors.error,
+                                    color: Colors.red.shade700,
                                   ),
                                   textAlign: TextAlign.center,
                                 ),
@@ -249,7 +249,7 @@ class _CommunityViewState extends State<CommunityView> {
                               return Container(
                                 padding: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
-                                  color: AppColors.background,
+                                  color: Colors.grey.shade100,
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: Row(
@@ -345,7 +345,7 @@ class _CommunityViewState extends State<CommunityView> {
                                     height: 16,
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2,
-                                      color: AppColors.surface,
+                                      color: Colors.white,
                                     ),
                                   )
                                 : const Icon(Icons.send),
@@ -402,7 +402,7 @@ class _CommunityViewState extends State<CommunityView> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.groups_2_outlined, size: 38, color: AppColors.textHint),
+                const Icon(Icons.groups_2_outlined, size: 38, color: Colors.grey),
                 const SizedBox(height: 10),
                 Text(
                   'Không tìm thấy thông tin shop cho tài khoản hiện tại.',
@@ -444,9 +444,9 @@ class _CommunityViewState extends State<CommunityView> {
               margin: const EdgeInsets.fromLTRB(12, 8, 12, 6),
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: AppColors.surface,
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.outline),
+                border: Border.all(color: Colors.grey.shade200),
               ),
               child: Column(
                 children: [
@@ -494,7 +494,7 @@ class _CommunityViewState extends State<CommunityView> {
                                 height: 14,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  color: AppColors.surface,
+                                  color: Colors.white,
                                 ),
                               )
                             : const Icon(Icons.send_rounded),
@@ -545,7 +545,7 @@ class _CommunityViewState extends State<CommunityView> {
                           children: [
                             const Icon(
                               Icons.error_outline,
-                              color: AppColors.error,
+                              color: Colors.red,
                               size: 30,
                             ),
                             const SizedBox(height: 8),
@@ -559,7 +559,7 @@ class _CommunityViewState extends State<CommunityView> {
                             Text(
                               _friendlyError(snapshot.error),
                               style: AppTextStyles.caption.copyWith(
-                                color: AppColors.error,
+                                color: Colors.red.shade700,
                               ),
                               textAlign: TextAlign.center,
                             ),
@@ -690,10 +690,10 @@ class _CommunityViewState extends State<CommunityView> {
                         return Container(
                           margin: const EdgeInsets.only(bottom: 10),
                           decoration: BoxDecoration(
-                            color: AppColors.surface,
+                            color: Colors.white,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: isTarget ? AppColors.primary : AppColors.outline,
+                              color: isTarget ? Colors.blue.shade300 : Colors.grey.shade200,
                               width: isTarget ? 1.5 : 1,
                             ),
                           ),
@@ -739,7 +739,7 @@ class _CommunityViewState extends State<CommunityView> {
                                     ),
                                     const Icon(
                                       Icons.chevron_right,
-                                      color: AppColors.textHint,
+                                      color: Colors.grey,
                                     ),
                                   ],
                                 ),
@@ -762,7 +762,7 @@ class _CommunityViewState extends State<CommunityView> {
                                     showDialog<void>(
                                       context: context,
                                       builder: (ctx) => Dialog.fullscreen(
-                                        backgroundColor: AppColors.textPrimary,
+                                        backgroundColor: Colors.black,
                                         child: Stack(
                                           children: [
                                             Positioned.fill(
@@ -786,7 +786,7 @@ class _CommunityViewState extends State<CommunityView> {
                                                 onPressed: () => Navigator.pop(ctx),
                                                 icon: const Icon(
                                                   Icons.close,
-                                                  color: AppColors.surface,
+                                                  color: Colors.white,
                                                 ),
                                               ),
                                             ),
@@ -803,7 +803,7 @@ class _CommunityViewState extends State<CommunityView> {
                                         minHeight: 120,
                                         maxHeight: 320,
                                       ),
-                                      color: AppColors.textPrimary.withValues(alpha: 0.04),
+                                      color: Colors.black.withValues(alpha: 0.04),
                                       child: Image(
                                         image: CachedNetworkImageProvider(imageUrl),
                                         fit: BoxFit.contain,
@@ -828,8 +828,8 @@ class _CommunityViewState extends State<CommunityView> {
                                           ? Icons.favorite
                                           : Icons.favorite_border,
                                       color: isLiked
-                                          ? AppColors.error
-                                          : AppColors.textSecondary,
+                                          ? Colors.red
+                                          : Colors.grey.shade700,
                                       size: 18,
                                     ),
                                     label: Text('Thích ($likeCount)'),
@@ -855,14 +855,14 @@ class _CommunityViewState extends State<CommunityView> {
                         return Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: AppColors.surface,
+                            color: Colors.white,
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: AppColors.warning),
+                            border: Border.all(color: Colors.orange.shade200),
                           ),
                           child: Text(
                             'Bỏ qua 1 bài viết lỗi dữ liệu. Hãy kiểm tra lại dữ liệu Firestore.',
                             style: AppTextStyles.caption.copyWith(
-                              color: AppColors.warning,
+                              color: Colors.orange.shade700,
                             ),
                           ),
                         );
@@ -931,10 +931,10 @@ class _CommunityViewState extends State<CommunityView> {
     required String label,
   }) {
     return Material(
-      color: AppColors.surface,
+      color: Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10),
-        side: BorderSide(color: AppColors.outline),
+        side: BorderSide(color: Colors.grey.shade300),
       ),
       child: InkWell(
         onTap: onTap,

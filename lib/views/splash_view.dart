@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../main.dart';
@@ -397,7 +396,7 @@ class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
                     ),
                     // Soft inner shadow
                     BoxShadow(
-                      color: AppColors.textPrimary.withAlpha(77),
+                      color: Colors.black.withOpacity(0.3),
                       blurRadius: 20,
                       offset: const Offset(0, 10),
                     ),
@@ -409,7 +408,7 @@ class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
                     children: [
                       // Logo image
                       Container(
-                        color: AppColors.surface,
+                        color: Colors.white,
                         child: Image.asset(
                           'assets/images/logo.png',
                           fit: BoxFit.cover,
@@ -428,7 +427,7 @@ class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
                             child: const Icon(
                               Icons.store_rounded,
                               size: 56,
-                              color: AppColors.surface,
+                              color: Colors.white,
                             ),
                           ),
                         ),
@@ -442,14 +441,14 @@ class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
                               end: Alignment(_shimmer.value, 0.3),
                               colors: [
                                 Colors.transparent,
-                                AppColors.surface.withAlpha(38),
+                                Colors.white.withOpacity(0.15),
                                 Colors.transparent,
                               ],
                               stops: const [0.0, 0.5, 1.0],
                             ).createShader(rect);
                           },
                           blendMode: BlendMode.srcATop,
-                          child: Container(color: AppColors.surface),
+                          child: Container(color: Colors.white),
                         ),
                       ),
                     ],
@@ -470,7 +469,7 @@ class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
         opacity: _titleOpacity,
         child: ShaderMask(
           shaderCallback: (bounds) => const LinearGradient(
-            colors: [AppColors.surface, Color(0xFF90CAF9)],
+            colors: [Colors.white, Color(0xFF90CAF9)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ).createShader(bounds),
@@ -479,7 +478,7 @@ class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
             style: TextStyle(
               fontSize: 32,
               fontWeight: FontWeight.w900,
-              color: AppColors.surface,
+              color: Colors.white,
               letterSpacing: 4,
               height: 1.2,
             ),
@@ -496,15 +495,15 @@ class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.surface.withAlpha(38)),
-          color: AppColors.surface.withOpacity(0.06),
+          border: Border.all(color: Colors.white.withOpacity(0.15)),
+          color: Colors.white.withOpacity(0.06),
         ),
         child: Text(
           "Quản lý cửa hàng chuyên nghiệp",
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w400,
-            color: AppColors.surface.withAlpha(179),
+            color: Colors.white.withOpacity(0.7),
             letterSpacing: 1,
           ),
         ),
@@ -534,7 +533,7 @@ class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
                   _status,
                   key: ValueKey(_status),
                   style: TextStyle(
-                    color: AppColors.surface.withAlpha(128),
+                    color: Colors.white.withOpacity(0.5),
                     fontSize: 14,
                     fontWeight: FontWeight.w400,
                     letterSpacing: 0.3,
@@ -567,7 +566,7 @@ class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
                 height: 8,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: AppColors.surface.withOpacity(opacity),
+                  color: Colors.white.withOpacity(opacity),
                   boxShadow: [
                     BoxShadow(
                       color: const Color(0xFF42A5F5).withOpacity(opacity * 0.5),

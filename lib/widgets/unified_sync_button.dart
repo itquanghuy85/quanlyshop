@@ -85,7 +85,7 @@ class _UnifiedSyncButtonState extends State<UnifiedSyncButton>
         break;
       case SyncStatus.hasPending:
         icon = Icons.cloud_upload;
-        iconColor = AppColors.warning;
+        iconColor = Colors.orange;
         break;
       case SyncStatus.syncing:
         icon = Icons.sync;
@@ -93,11 +93,11 @@ class _UnifiedSyncButtonState extends State<UnifiedSyncButton>
         break;
       case SyncStatus.noNetwork:
         icon = Icons.cloud_off;
-        iconColor = AppColors.textHint;
+        iconColor = Colors.grey;
         break;
       case SyncStatus.error:
         icon = Icons.cloud_off;
-        iconColor = AppColors.error;
+        iconColor = Colors.red;
         break;
     }
 
@@ -123,7 +123,7 @@ class _UnifiedSyncButtonState extends State<UnifiedSyncButton>
             fontWeight: FontWeight.bold,
           ),
         ),
-        backgroundColor: AppColors.error,
+        backgroundColor: Colors.red,
         child: iconWidget,
       );
     }
@@ -224,7 +224,7 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        color: AppColors.surface,
+        color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: DraggableScrollableSheet(
@@ -241,7 +241,7 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.outline,
+                  color: Colors.grey.shade300,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -272,7 +272,7 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
                             'Quản lý dữ liệu Local ↔ Cloud',
                             style: TextStyle(
                               fontSize: AppTextStyles.subtitle1.fontSize,
-                              color: AppColors.textHint,
+                              color: Colors.grey,
                             ),
                           ),
                         ],
@@ -332,14 +332,14 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
                             style: TextStyle(
                               fontSize: AppTextStyles.subtitle1Size,
                               fontWeight: FontWeight.bold,
-                              color: AppColors.textHint,
+                              color: Colors.grey,
                             ),
                           ),
                           const SizedBox(height: 8),
 
                           _buildActionTile(
                             icon: Icons.cloud_download,
-                            iconColor: AppColors.primary,
+                            iconColor: Colors.blue,
                             title: 'Tải từ Cloud',
                             subtitle: 'Download dữ liệu từ đám mây về máy',
                             onTap: _handleDownload,
@@ -347,7 +347,7 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
 
                           _buildActionTile(
                             icon: Icons.cloud_upload,
-                            iconColor: AppColors.success,
+                            iconColor: Colors.green,
                             title: 'Đẩy lên Cloud',
                             subtitle: 'Upload dữ liệu chưa sync lên đám mây',
                             onTap: _handleUpload,
@@ -355,7 +355,7 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
 
                           _buildActionTile(
                             icon: Icons.replay,
-                            iconColor: AppColors.primary,
+                            iconColor: Colors.blue,
                             title: 'Khởi động lại Realtime',
                             subtitle:
                                 'Kết nối lại listener khi không nhận data',
@@ -367,7 +367,7 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
                               !_healthReport!.isFullyHealthy)
                             _buildActionTile(
                               icon: Icons.auto_fix_high,
-                              iconColor: AppColors.error,
+                              iconColor: Colors.red,
                               title: '🔧 SỬA TỰ ĐỘNG',
                               subtitle:
                                   'Tự động sửa ${_healthReport!.totalMismatches} bản ghi chưa khớp',
@@ -382,14 +382,14 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
                             style: TextStyle(
                               fontSize: AppTextStyles.subtitle1Size,
                               fontWeight: FontWeight.bold,
-                              color: AppColors.textHint,
+                              color: Colors.grey,
                             ),
                           ),
                           const SizedBox(height: 8),
 
                           _buildActionTile(
                             icon: Icons.health_and_safety,
-                            iconColor: AppColors.info,
+                            iconColor: Colors.teal,
                             title: 'Kiểm tra chi tiết',
                             subtitle: 'So sánh từng bảng Local vs Cloud',
                             onTap: _handleDetailedCheck,
@@ -419,7 +419,7 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
                               (_syncQueueStats!['failed'] ?? 0) > 0) ...[
                             _buildActionTile(
                               icon: Icons.refresh,
-                              iconColor: AppColors.warning,
+                              iconColor: Colors.orange,
                               title:
                                   'Thử lại ${_syncQueueStats!['failed']} items lỗi',
                               subtitle: 'Reset và sync lại các items bị failed',
@@ -440,21 +440,21 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
 
   Widget _buildHealthStatusCard() {
     final isHealthy = _healthReport?.isFullyHealthy ?? true;
-    final color = isHealthy ? AppColors.success : AppColors.warning;
+    final color = isHealthy ? Colors.green : Colors.orange;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withAlpha(26),
+        color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withAlpha(77)),
+        border: Border.all(color: color.withOpacity(0.3)),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: color.withAlpha(51),
+              color: color.withOpacity(0.2),
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -489,7 +489,7 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
                       '${_healthReport!.totalMismatches} bản ghi chưa khớp',
                       style: TextStyle(
                         fontSize: AppTextStyles.body1.fontSize,
-                        color: AppColors.warning,
+                        color: Colors.orange.shade700,
                       ),
                     ),
                 ] else
@@ -505,7 +505,7 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
                     Icon(
                       _isRealtimeSyncActive ? Icons.wifi : Icons.wifi_off,
                       size: 12,
-                      color: _isRealtimeSyncActive ? AppColors.success : AppColors.error,
+                      color: _isRealtimeSyncActive ? Colors.green : Colors.red,
                     ),
                     const SizedBox(width: 4),
                     Text(
@@ -513,8 +513,8 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
                       style: TextStyle(
                         fontSize: AppTextStyles.body1.fontSize,
                         color: _isRealtimeSyncActive
-                            ? AppColors.success
-                            : AppColors.error,
+                            ? Colors.green
+                            : Colors.red,
                       ),
                     ),
                     if (_syncQueueStats != null &&
@@ -524,7 +524,7 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
                         '| Queue: ${_syncQueueStats!['pending']} pending',
                         style: TextStyle(
                           fontSize: AppTextStyles.body1.fontSize,
-                          color: AppColors.warning,
+                          color: Colors.orange.shade700,
                         ),
                       ),
                     ],
@@ -535,7 +535,7 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
                         ', ${_syncQueueStats!['failed']} failed',
                         style: TextStyle(
                           fontSize: AppTextStyles.body1.fontSize,
-                          color: AppColors.error,
+                          color: Colors.red,
                         ),
                       ),
                     ],
@@ -553,23 +553,23 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.background,
+        color: Colors.grey.shade50,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.outline),
+        border: Border.all(color: Colors.grey.shade200),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Row(
             children: [
-              Icon(Icons.storage, size: 18, color: AppColors.textHint),
+              Icon(Icons.storage, size: 18, color: Colors.grey),
               SizedBox(width: 8),
               Text(
                 'DỮ LIỆU LOCAL',
                 style: TextStyle(
                   fontSize: AppTextStyles.subtitle1Size,
                   fontWeight: FontWeight.bold,
-                  color: AppColors.textHint,
+                  color: Colors.grey,
                 ),
               ),
             ],
@@ -618,23 +618,23 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.outline),
+        border: Border.all(color: Colors.grey.shade300),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Row(
             children: [
-              Icon(Icons.assessment, size: 18, color: AppColors.textPrimary),
+              Icon(Icons.assessment, size: 18, color: Colors.black87),
               SizedBox(width: 8),
               Text(
                 'BÁO CÁO SYNC THEO NGHIỆP VỤ',
                 style: TextStyle(
                   fontSize: AppTextStyles.subtitle1Size,
                   fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+                  color: Colors.black87,
                 ),
               ),
             ],
@@ -702,7 +702,7 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
             'Queue: ${domain.pendingQueue} chờ | ${domain.processingQueue} đang xử lý | ${domain.failedQueue} lỗi',
             style: TextStyle(
               fontSize: AppTextStyles.body1.fontSize,
-              color: AppColors.textPrimary,
+              color: Colors.grey.shade800,
             ),
           ),
           const SizedBox(height: 2),
@@ -710,7 +710,7 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
             'Local chưa sync: ${domain.unsyncedLocal} | Lệch local-cloud: ${domain.mismatchCount} | Tổng local: ${domain.totalLocalRecords}',
             style: TextStyle(
               fontSize: AppTextStyles.body1.fontSize,
-              color: AppColors.textPrimary,
+              color: Colors.grey.shade800,
             ),
           ),
           const SizedBox(height: 2),
@@ -719,8 +719,8 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
             style: TextStyle(
               fontSize: AppTextStyles.body1.fontSize,
               color: domain.recentIssueCount > 0
-                  ? AppColors.warning
-                  : AppColors.textSecondary,
+                  ? Colors.orange.shade800
+                  : Colors.grey.shade700,
             ),
           ),
           const SizedBox(height: 2),
@@ -730,7 +730,7 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
                 : 'Cập nhật cloud gần nhất: chưa có mốc sync',
             style: TextStyle(
               fontSize: AppTextStyles.body1.fontSize,
-              color: AppColors.textSecondary,
+              color: Colors.grey.shade700,
             ),
           ),
           if (domain.lastFailureAt != null)
@@ -738,7 +738,7 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
               'Lần lỗi gần nhất: ${_formatSyncTime(domain.lastFailureAt!)}',
               style: TextStyle(
                 fontSize: AppTextStyles.body1.fontSize,
-                color: AppColors.error,
+                color: Colors.red.shade700,
               ),
             )
           else if (domain.lastSuccessAt != null)
@@ -746,7 +746,7 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
               'Lần thành công gần nhất: ${_formatSyncTime(domain.lastSuccessAt!)}',
               style: TextStyle(
                 fontSize: AppTextStyles.body1.fontSize,
-                color: AppColors.success,
+                color: Colors.green.shade700,
               ),
             ),
           if (domain.hasStuckQueue)
@@ -826,10 +826,10 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
   }
 
   Color _domainStatusColor(DomainSyncReport domain) {
-    if (domain.hasError) return AppColors.error;
+    if (domain.hasError) return Colors.red;
     if (domain.hasStuckQueue) return Colors.deepOrange;
-    if (domain.hasPending) return AppColors.warning;
-    return AppColors.success;
+    if (domain.hasPending) return Colors.orange;
+    return Colors.green;
   }
 
   IconData _domainStatusIcon(DomainSyncReport domain) {
@@ -849,14 +849,14 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.outline),
+        border: Border.all(color: Colors.grey.shade300),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: AppColors.textHint),
+          Icon(icon, size: 14, color: Colors.grey),
           const SizedBox(width: 6),
           Text(
             '$count',
@@ -870,7 +870,7 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
             label,
             style: TextStyle(
               fontSize: AppTextStyles.body1.fontSize,
-              color: AppColors.textHint,
+              color: Colors.grey,
             ),
           ),
         ],
@@ -891,7 +891,7 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: iconColor.withAlpha(26),
+            color: iconColor.withOpacity(0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(icon, color: iconColor, size: 24),
@@ -913,7 +913,7 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
       message:
           'Tải toàn bộ dữ liệu shop từ đám mây về máy này.\n\nDữ liệu local sẽ được cập nhật theo cloud.',
       confirmText: 'TẢI XUỐNG',
-      confirmColor: AppColors.primary,
+      confirmColor: Colors.blue,
     );
 
     if (confirm != true) return;
@@ -929,11 +929,11 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
         Navigator.pop(context);
         NotificationService.showSnackBar(
           '✅ Đã tải xong dữ liệu từ Cloud!',
-          color: AppColors.success,
+          color: Colors.green,
         );
       }
     } catch (e) {
-      NotificationService.showSnackBar('❌ Lỗi: $e', color: AppColors.error);
+      NotificationService.showSnackBar('❌ Lỗi: $e', color: Colors.red);
       setState(() => _isLoading = false);
     }
   }
@@ -944,7 +944,7 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
       message:
           'Upload dữ liệu chưa đồng bộ từ máy này lên đám mây.\n\nDữ liệu trên cloud sẽ KHÔNG bị xóa.',
       confirmText: 'UPLOAD',
-      confirmColor: AppColors.success,
+      confirmColor: Colors.green,
     );
 
     if (confirm != true) return;
@@ -962,11 +962,11 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
         Navigator.pop(context);
         NotificationService.showSnackBar(
           '✅ Đã đồng bộ lên Cloud!',
-          color: AppColors.success,
+          color: Colors.green,
         );
       }
     } catch (e) {
-      NotificationService.showSnackBar('❌ Lỗi: $e', color: AppColors.error);
+      NotificationService.showSnackBar('❌ Lỗi: $e', color: Colors.red);
       setState(() => _isLoading = false);
     }
   }
@@ -981,7 +981,7 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
           '3. Đánh dấu đã đồng bộ\n\n'
           'Quá trình này có thể mất vài phút.',
       confirmText: 'SỬA NGAY',
-      confirmColor: AppColors.error,
+      confirmColor: Colors.red,
     );
 
     if (confirm != true) return;
@@ -1007,17 +1007,17 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
         if (isFixed) {
           NotificationService.showSnackBar(
             '✅ Đã sửa xong! Tải $fixedCount bản ghi mới.',
-            color: AppColors.success,
+            color: Colors.green,
           );
         } else {
           NotificationService.showSnackBar(
             '⚠️ Đã xử lý $fixedCount bản ghi. Còn ${_healthReport?.totalMismatches ?? 0} chưa khớp.',
-            color: AppColors.warning,
+            color: Colors.orange,
           );
         }
       }
     } catch (e) {
-      NotificationService.showSnackBar('❌ Lỗi: $e', color: AppColors.error);
+      NotificationService.showSnackBar('❌ Lỗi: $e', color: Colors.red);
       setState(() => _isLoading = false);
     }
   }
@@ -1028,7 +1028,7 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
       message:
           'Kết nối lại tất cả listeners để nhận dữ liệu mới từ máy khác.\n\nDùng khi:\n• Không nhận được đơn mới từ máy khác\n• Biểu tượng sync vàng không chuyển xanh\n• Sau khi mất mạng',
       confirmText: 'KHỞI ĐỘNG LẠI',
-      confirmColor: AppColors.primary,
+      confirmColor: Colors.blue,
     );
 
     if (confirm != true) return;
@@ -1061,11 +1061,11 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
         final newStatus = SyncService.subscriptionStatus;
         NotificationService.showSnackBar(
           '✅ Đã khởi động lại ${newStatus.length} listeners!',
-          color: AppColors.success,
+          color: Colors.green,
         );
       }
     } catch (e) {
-      NotificationService.showSnackBar('❌ Lỗi: $e', color: AppColors.error);
+      NotificationService.showSnackBar('❌ Lỗi: $e', color: Colors.red);
       setState(() => _isLoading = false);
     }
   }
@@ -1076,7 +1076,7 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
       message:
           'Upload local lên cloud, sau đó download cloud về local.\n\nĐảm bảo dữ liệu 2 bên giống nhau.',
       confirmText: 'ĐỒNG BỘ',
-      confirmColor: AppColors.warning,
+      confirmColor: Colors.orange,
     );
 
     if (confirm != true) return;
@@ -1097,11 +1097,11 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
         Navigator.pop(context);
         NotificationService.showSnackBar(
           '✅ Đồng bộ 2 chiều hoàn tất!',
-          color: AppColors.success,
+          color: Colors.green,
         );
       }
     } catch (e) {
-      NotificationService.showSnackBar('❌ Lỗi: $e', color: AppColors.error);
+      NotificationService.showSnackBar('❌ Lỗi: $e', color: Colors.red);
       setState(() => _isLoading = false);
     }
   }
@@ -1112,7 +1112,7 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
       message:
           'Reset và sync lại tất cả items đã bị đánh dấu failed.\n\nCác items này sẽ được đưa trở lại hàng đợi sync.',
       confirmText: 'THỬ LẠI',
-      confirmColor: AppColors.warning,
+      confirmColor: Colors.orange,
     );
 
     if (confirm != true) return;
@@ -1139,11 +1139,11 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
         setState(() => _isLoading = false);
         NotificationService.showSnackBar(
           '✅ Đã reset và thử sync lại!',
-          color: AppColors.success,
+          color: Colors.green,
         );
       }
     } catch (e) {
-      NotificationService.showSnackBar('❌ Lỗi: $e', color: AppColors.error);
+      NotificationService.showSnackBar('❌ Lỗi: $e', color: Colors.red);
       setState(() => _isLoading = false);
     }
   }
@@ -1154,7 +1154,7 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
       message:
           '⚠️ CẢNH BÁO: Xóa vĩnh viễn tất cả items bị failed.\n\nDữ liệu local KHÔNG bị xóa, chỉ xóa khỏi hàng đợi sync.\n\nDùng khi items không thể sync và bạn muốn làm sạch queue.',
       confirmText: 'XÓA',
-      confirmColor: AppColors.error,
+      confirmColor: Colors.red,
     );
 
     if (confirm != true) return;
@@ -1177,11 +1177,11 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
         setState(() => _isLoading = false);
         NotificationService.showSnackBar(
           '✅ Đã xóa $count items lỗi!',
-          color: AppColors.success,
+          color: Colors.green,
         );
       }
     } catch (e) {
-      NotificationService.showSnackBar('❌ Lỗi: $e', color: AppColors.error);
+      NotificationService.showSnackBar('❌ Lỗi: $e', color: Colors.red);
       setState(() => _isLoading = false);
     }
   }
@@ -1203,7 +1203,7 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
         _showDetailedReportDialog(report);
       }
     } catch (e) {
-      NotificationService.showSnackBar('❌ Lỗi: $e', color: AppColors.error);
+      NotificationService.showSnackBar('❌ Lỗi: $e', color: Colors.red);
       setState(() => _isLoading = false);
     }
   }
@@ -1228,14 +1228,14 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
         report.isHealthy
             ? '✅ Firestore kết nối ổn định'
             : '⚠️ Firestore cần kiểm tra thêm',
-        color: report.isHealthy ? AppColors.success : AppColors.warning,
+        color: report.isHealthy ? Colors.green : Colors.orange,
       );
     } catch (e) {
       if (!mounted) return;
       setState(() => _isLoading = false);
       NotificationService.showSnackBar(
         '❌ Lỗi kiểm tra kết nối: $e',
-        color: AppColors.error,
+        color: Colors.red,
       );
     }
   }
@@ -1243,7 +1243,7 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
   Future<void> _handleDataRecovery() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      NotificationService.showSnackBar('Vui lòng đăng nhập', color: AppColors.error);
+      NotificationService.showSnackBar('Vui lòng đăng nhập', color: Colors.red);
       return;
     }
 
@@ -1261,14 +1261,14 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
         if (orphanData.isEmpty) {
           NotificationService.showSnackBar(
             'Không tìm thấy dữ liệu bị lạc',
-            color: AppColors.primary,
+            color: Colors.blue,
           );
         } else {
           _showOrphanDataDialog(orphanData);
         }
       }
     } catch (e) {
-      NotificationService.showSnackBar('❌ Lỗi: $e', color: AppColors.error);
+      NotificationService.showSnackBar('❌ Lỗi: $e', color: Colors.red);
       setState(() => _isLoading = false);
     }
   }
@@ -1329,14 +1329,14 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
       await _showReportExportDialog(reportPath);
       NotificationService.showSnackBar(
         '✅ Đã tạo báo cáo sync thành công',
-        color: AppColors.success,
+        color: Colors.green,
       );
     } catch (e) {
       if (!mounted) return;
       setState(() => _isLoading = false);
       NotificationService.showSnackBar(
         '❌ Không thể xuất báo cáo sync: $e',
-        color: AppColors.error,
+        color: Colors.red,
       );
     }
   }
@@ -1440,7 +1440,7 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
               reportPath,
               style: TextStyle(
                 fontSize: AppTextStyles.body1.fontSize,
-                color: AppColors.textSecondary,
+                color: Colors.grey.shade700,
               ),
             ),
           ],
@@ -1485,13 +1485,13 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
           children: [
             Icon(
               report.isFullyHealthy ? Icons.check_circle : Icons.warning,
-              color: report.isFullyHealthy ? AppColors.success : AppColors.warning,
+              color: report.isFullyHealthy ? Colors.green : Colors.orange,
             ),
             const SizedBox(width: 8),
             Text(
               report.isFullyHealthy ? 'ĐỒNG BỘ TỐT' : 'CẦN ĐỒNG BỘ',
               style: TextStyle(
-                color: report.isFullyHealthy ? AppColors.success : AppColors.warning,
+                color: report.isFullyHealthy ? Colors.green : Colors.orange,
                 fontSize: AppTextStyles.headline3.fontSize,
               ),
             ),
@@ -1507,7 +1507,7 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
                   'Shop ID: ${report.shopId ?? 'N/A'}',
                   style: TextStyle(
                     fontSize: AppTextStyles.body1.fontSize,
-                    color: AppColors.textHint,
+                    color: Colors.grey,
                   ),
                 ),
                 const Divider(),
@@ -1535,7 +1535,7 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
   }
 
   void _showFirestoreConnectivityDialog(FirestoreConnectivityReport report) {
-    final statusColor = report.isHealthy ? AppColors.success : AppColors.warning;
+    final statusColor = report.isHealthy ? Colors.green : Colors.orange;
 
     showDialog(
       context: context,
@@ -1574,7 +1574,7 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
                     'Độ trễ trung bình: ${report.latencyMs} ms',
                     style: TextStyle(
                       fontSize: AppTextStyles.subtitle1.fontSize,
-                      color: AppColors.textSecondary,
+                      color: Colors.grey.shade700,
                     ),
                   ),
                 const Divider(height: 20),
@@ -1604,7 +1604,7 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
                     style: TextStyle(
                       fontSize: AppTextStyles.subtitle1.fontSize,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.warning,
+                      color: Colors.orange.shade800,
                     ),
                   ),
                   ...report.warnings.map(
@@ -1626,7 +1626,7 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
                     style: TextStyle(
                       fontSize: AppTextStyles.subtitle1.fontSize,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.error,
+                      color: Colors.red.shade700,
                     ),
                   ),
                   ...report.errors.map(
@@ -1680,7 +1680,7 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
   }
 
   Widget _buildConnectivityCheckRow(String title, bool ok) {
-    final color = ok ? AppColors.success : AppColors.error;
+    final color = ok ? Colors.green : Colors.red;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
@@ -1710,7 +1710,7 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
         children: [
           Icon(
             isOk ? Icons.check : Icons.warning,
-            color: isOk ? AppColors.success : AppColors.warning,
+            color: isOk ? Colors.green : Colors.orange,
             size: 16,
           ),
           const SizedBox(width: 8),
@@ -1729,7 +1729,7 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
                   'Local: ${r.localCount} | Cloud: ${r.cloudCount}',
                   style: TextStyle(
                     fontSize: AppTextStyles.body1.fontSize,
-                    color: AppColors.textHint,
+                    color: Colors.grey,
                   ),
                 ),
               ],
@@ -1739,7 +1739,7 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
             '${r.displayPercentage}%',
             style: TextStyle(
               fontWeight: FontWeight.bold,
-              color: isOk ? AppColors.success : AppColors.warning,
+              color: isOk ? Colors.green : Colors.orange,
               fontSize: AppTextStyles.subtitle1.fontSize,
             ),
           ),
@@ -1763,7 +1763,7 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
       builder: (ctx) => AlertDialog(
         title: const Row(
           children: [
-            Icon(Icons.find_in_page, color: AppColors.primary),
+            Icon(Icons.find_in_page, color: Colors.blue),
             SizedBox(width: 8),
             Text('DỮ LIỆU TÌM THẤY'),
           ],
@@ -1823,7 +1823,7 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
             style: ElevatedButton.styleFrom(backgroundColor: confirmColor),
             child: Text(
               confirmText,
-              style: const TextStyle(color: AppColors.surface),
+              style: const TextStyle(color: Colors.white),
             ),
           ),
         ],

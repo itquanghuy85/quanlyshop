@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
 import 'package:intl/intl.dart';
 import '../data/db_helper.dart';
 import '../theme/app_text_styles.dart';
@@ -76,24 +75,24 @@ class _PurchaseOrderListViewState extends State<PurchaseOrderListView> {
 
     switch (status) {
       case 'PENDING':
-        color = AppColors.warning;
+        color = Colors.orange;
         text = 'CHỜ NHẬN';
         break;
       case 'RECEIVED':
-        color = AppColors.success;
+        color = Colors.green;
         text = 'ĐÃ NHẬN';
         break;
       case 'CANCELLED':
-        color = AppColors.error;
+        color = Colors.red;
         text = 'ĐÃ HỦY';
         break;
       default:
-        color = AppColors.textHint;
+        color = Colors.grey;
         text = status;
     }
 
     return Chip(
-      label: Text(text, style: TextStyle(color: AppColors.surface, fontSize: AppTextStyles.subtitle1.fontSize)),
+      label: Text(text, style: TextStyle(color: Colors.white, fontSize: AppTextStyles.subtitle1.fontSize)),
       backgroundColor: color,
       padding: EdgeInsets.zero,
     );
@@ -144,7 +143,7 @@ class _PurchaseOrderListViewState extends State<PurchaseOrderListView> {
               ),
               Text(
                 title,
-                style: TextStyle(fontSize: AppTextStyles.subtitle1.fontSize, color: AppColors.textHint),
+                style: TextStyle(fontSize: AppTextStyles.subtitle1.fontSize, color: Colors.grey),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -174,8 +173,8 @@ class _PurchaseOrderListViewState extends State<PurchaseOrderListView> {
               ),
             ),
           ),
-          backgroundColor: AppColors.surface,
-          foregroundColor: AppColors.textPrimary,
+          backgroundColor: Colors.transparent,
+          foregroundColor: Colors.white,
           elevation: 0,
           title: const Text("ĐƠN NHẬP HÀNG"),
         ),
@@ -183,11 +182,11 @@ class _PurchaseOrderListViewState extends State<PurchaseOrderListView> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.lock, size: 64, color: AppColors.textHint),
+              const Icon(Icons.lock, size: 64, color: Colors.grey),
               const SizedBox(height: 16),
               Text(
                 "Bạn không có quyền xem đơn nhập hàng",
-                style: TextStyle(fontSize: AppTextStyles.headline3.fontSize, color: AppColors.textHint),
+                style: TextStyle(fontSize: AppTextStyles.headline3.fontSize, color: Colors.grey),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -207,8 +206,8 @@ class _PurchaseOrderListViewState extends State<PurchaseOrderListView> {
             ),
           ),
         ),
-        backgroundColor: AppColors.surface,
-        foregroundColor: AppColors.textPrimary,
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
         elevation: 0,
         title: const Text("ĐƠN NHẬP HÀNG"),
         actions: _hasCreatePermission ? [
@@ -217,7 +216,7 @@ class _PurchaseOrderListViewState extends State<PurchaseOrderListView> {
               context,
               MaterialPageRoute(builder: (_) => const CreatePurchaseOrderView())
             ).then((_) => _refresh()),
-            icon: const Icon(Icons.add, color: AppColors.surface),
+            icon: const Icon(Icons.add, color: Colors.white),
             tooltip: "Tạo đơn nhập",
           ),
         ] : null,
@@ -242,11 +241,11 @@ class _PurchaseOrderListViewState extends State<PurchaseOrderListView> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               children: [
-                _buildSummaryCard("Tổng đơn", _orders.length.toString(), AppColors.primary),
+                _buildSummaryCard("Tổng đơn", _orders.length.toString(), Colors.blue),
                 const SizedBox(width: 8),
-                _buildSummaryCard("Chờ nhận", _orders.where((o) => o.status == 'PENDING').length.toString(), AppColors.warning),
+                _buildSummaryCard("Chờ nhận", _orders.where((o) => o.status == 'PENDING').length.toString(), Colors.orange),
                 const SizedBox(width: 8),
-                _buildSummaryCard("Đã nhận", _orders.where((o) => o.status == 'RECEIVED').length.toString(), AppColors.success),
+                _buildSummaryCard("Đã nhận", _orders.where((o) => o.status == 'RECEIVED').length.toString(), Colors.green),
               ],
             ),
           ),
@@ -258,11 +257,11 @@ class _PurchaseOrderListViewState extends State<PurchaseOrderListView> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.inventory_2, size: 64, color: AppColors.divider),
+                      Icon(Icons.inventory_2, size: 64, color: Colors.grey[300]),
                       const SizedBox(height: 16),
                       Text(
                         searchCtrl.text.isEmpty ? "Chưa có đơn nhập hàng nào" : "Không tìm thấy đơn nhập hàng",
-                        style: const TextStyle(color: AppColors.textHint),
+                        style: const TextStyle(color: Colors.grey),
                       ),
                     ],
                   ),

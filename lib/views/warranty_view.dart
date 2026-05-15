@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../data/db_helper.dart';
@@ -169,20 +168,20 @@ class _WarrantyViewState extends State<WarrantyView> {
           style: TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: AppTextStyles.headline3.fontSize,
-            color: AppColors.surface,
+            color: Colors.white,
           ),
         ),
         elevation: 0,
         backgroundColor: Colors.transparent,
-        foregroundColor: AppColors.surface,
+        foregroundColor: Colors.white,
         automaticallyImplyLeading: true,
         actions: [
           IconButton(
             onPressed: _loadAllWarranty,
-            icon: const Icon(Icons.refresh_rounded, color: AppColors.surface),
+            icon: const Icon(Icons.refresh_rounded, color: Colors.white),
           ),
           IconButton(
-            icon: const Icon(Icons.file_download_outlined, color: AppColors.surface),
+            icon: const Icon(Icons.file_download_outlined, color: Colors.white),
             tooltip: 'Xuất Excel bảo hành',
             onPressed: () async {
               final result = await ExportDateFilterDialog.show(context, title: 'Xuất bảo hành');
@@ -220,20 +219,20 @@ class _WarrantyViewState extends State<WarrantyView> {
           Icon(
             Icons.verified_user_outlined,
             size: 100,
-            color: AppColors.primary.withAlpha(51),
+            color: Colors.blue.withAlpha(51),
           ),
           const SizedBox(height: 15),
           Text(
             "KHÔNG CÓ ${_terms.productLabel.toUpperCase()} NÀO TRONG HẠN BẢO HÀNH",
             style: TextStyle(
-              color: AppColors.textSecondary,
+              color: Colors.blueGrey,
               fontWeight: FontWeight.bold,
               fontSize: AppTextStyles.headline5.fontSize,
             ),
           ),
           Text(
             "Mọi đơn hàng đã hết hạn hoặc chưa được giao.",
-            style: TextStyle(color: AppColors.textHint, fontSize: AppTextStyles.body1.fontSize),
+            style: TextStyle(color: Colors.grey, fontSize: AppTextStyles.body1.fontSize),
           ),
         ],
       ),
@@ -253,12 +252,12 @@ class _WarrantyViewState extends State<WarrantyView> {
 
     // Colors based on urgency
     final urgentColor = daysLeft < 10
-        ? AppColors.error
-        : (daysLeft < 30 ? AppColors.warning : AppColors.success);
-    final bgColor = daysLeft < 10 ? AppColors.error : AppColors.surface;
+        ? Colors.red
+        : (daysLeft < 30 ? Colors.orange : Colors.green);
+    final bgColor = daysLeft < 10 ? Colors.red.shade50 : Colors.white;
     final borderColor = daysLeft < 10
-        ? AppColors.error
-        : AppColors.outline;
+        ? Colors.red.shade200
+        : Colors.grey.shade200;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 6),
@@ -302,7 +301,7 @@ class _WarrantyViewState extends State<WarrantyView> {
                     height: 24,
                     margin: const EdgeInsets.only(right: 6),
                     decoration: BoxDecoration(
-                      color: (isSale ? AppColors.error : AppColors.warning).withOpacity(
+                      color: (isSale ? Colors.pink : Colors.orange).withOpacity(
                         0.15,
                       ),
                       borderRadius: BorderRadius.circular(6),
@@ -314,8 +313,8 @@ class _WarrantyViewState extends State<WarrantyView> {
                           fontWeight: FontWeight.bold,
                           fontSize: AppTextStyles.caption.fontSize,
                           color: isSale
-                              ? AppColors.error
-                              : AppColors.warning,
+                              ? Colors.pink.shade700
+                              : Colors.orange.shade700,
                         ),
                       ),
                     ),
@@ -338,13 +337,13 @@ class _WarrantyViewState extends State<WarrantyView> {
                               ),
                               margin: const EdgeInsets.only(right: 4),
                               decoration: BoxDecoration(
-                                color: isSale ? AppColors.error : AppColors.warning,
+                                color: isSale ? Colors.pink : Colors.orange,
                                 borderRadius: BorderRadius.circular(3),
                               ),
                               child: Text(
                                 isSale ? 'BÁN' : 'SỬA',
                                 style: const TextStyle(
-                                  color: AppColors.surface,
+                                  color: Colors.white,
                                   fontSize: AppTextStyles.overlineSize,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -369,7 +368,7 @@ class _WarrantyViewState extends State<WarrantyView> {
                           '${item['customer']} • ${item['imei']}',
                           style: TextStyle(
                             fontSize: AppTextStyles.caption.fontSize,
-                            color: AppColors.textSecondary,
+                            color: Colors.grey.shade600,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -387,10 +386,10 @@ class _WarrantyViewState extends State<WarrantyView> {
                           vertical: 2,
                         ),
                         decoration: BoxDecoration(
-                          color: urgentColor.withAlpha(38),
+                          color: urgentColor.withOpacity(0.15),
                           borderRadius: BorderRadius.circular(4),
                           border: Border.all(
-                            color: urgentColor.withAlpha(77),
+                            color: urgentColor.withOpacity(0.3),
                           ),
                         ),
                         child: Row(
@@ -433,7 +432,7 @@ class _WarrantyViewState extends State<WarrantyView> {
                 children: [
                   Text(
                     DateFormat('dd/MM').format(startDate),
-                    style: TextStyle(fontSize: AppTextStyles.overlineSize, color: AppColors.textHint),
+                    style: TextStyle(fontSize: AppTextStyles.overlineSize, color: Colors.grey.shade500),
                   ),
                   const SizedBox(width: 6),
                   Expanded(
@@ -442,7 +441,7 @@ class _WarrantyViewState extends State<WarrantyView> {
                       child: LinearProgressIndicator(
                         value: progress,
                         minHeight: 4,
-                        backgroundColor: AppColors.outline,
+                        backgroundColor: Colors.grey.shade200,
                         color: urgentColor,
                       ),
                     ),

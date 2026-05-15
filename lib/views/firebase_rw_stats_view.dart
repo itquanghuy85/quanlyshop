@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
 
 import '../services/firebase_rw_stats_service.dart';
 
@@ -72,7 +71,7 @@ class _FirebaseRwStatsViewState extends State<FirebaseRwStatsView> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.error_outline, color: AppColors.error, size: 36),
+              const Icon(Icons.error_outline, color: Colors.red, size: 36),
               const SizedBox(height: 8),
               Text(
                 'Không thể tải thống kê Firebase',
@@ -130,15 +129,15 @@ class _FirebaseRwStatsViewState extends State<FirebaseRwStatsView> {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        color: AppColors.primary,
-        border: Border.all(color: AppColors.primary),
+        color: Colors.blue.shade50,
+        border: Border.all(color: Colors.blue.shade100),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Row(
             children: [
-              Icon(Icons.query_stats, color: AppColors.primary),
+              Icon(Icons.query_stats, color: Colors.blue),
               SizedBox(width: 8),
               Text(
                 'TỔNG QUAN',
@@ -158,37 +157,37 @@ class _FirebaseRwStatsViewState extends State<FirebaseRwStatsView> {
                 icon: Icons.cloud,
                 label: 'Cloud docs',
                 value: _fmt(snapshot.totalCloudDocuments),
-                color: AppColors.primary,
+                color: Colors.indigo,
               ),
               _buildSummaryChip(
                 icon: Icons.remove_red_eye,
                 label: 'Reads 24h',
                 value: _fmt(snapshot.totalReads24h),
-                color: AppColors.info,
+                color: Colors.teal,
               ),
               _buildSummaryChip(
                 icon: Icons.upload,
                 label: 'Writes 24h',
                 value: _fmt(snapshot.totalWriteAttempts24h),
-                color: AppColors.success,
+                color: Colors.green,
               ),
               _buildSummaryChip(
                 icon: Icons.wifi,
                 label: 'Sync collections',
                 value: '${snapshot.activeListeners}/${snapshot.totalListeners}',
-                color: AppColors.repairDelivered,
+                color: Colors.deepPurple,
               ),
               _buildSummaryChip(
                 icon: Icons.schedule,
                 label: 'Queue pending',
                 value: _fmt(snapshot.pendingQueue),
-                color: AppColors.warning,
+                color: Colors.orange,
               ),
               _buildSummaryChip(
                 icon: Icons.error_outline,
                 label: 'Queue failed',
                 value: _fmt(snapshot.failedQueue),
-                color: AppColors.error,
+                color: Colors.red,
               ),
             ],
           ),
@@ -197,7 +196,7 @@ class _FirebaseRwStatsViewState extends State<FirebaseRwStatsView> {
             'Lưu ý: Trạng thái ON bên dưới là trạng thái đồng bộ (polling/listener). Reads 24h là tổng đọc từ cloud trong 24 giờ gần nhất nên có thể tăng theo chu kỳ polling hoặc khi sync khởi động lại.',
             style: TextStyle(
               fontSize: 12,
-              color: AppColors.textSecondary,
+              color: Colors.blueGrey.shade700,
               height: 1.35,
             ),
           ),
@@ -215,9 +214,9 @@ class _FirebaseRwStatsViewState extends State<FirebaseRwStatsView> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withAlpha(51)),
+        border: Border.all(color: color.withOpacity(0.2)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -237,21 +236,21 @@ class _FirebaseRwStatsViewState extends State<FirebaseRwStatsView> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.warning,
+        color: Colors.orange.shade50,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.warning),
+        border: Border.all(color: Colors.orange.shade200),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.warning_amber_rounded, color: AppColors.warning),
+              Icon(Icons.warning_amber_rounded, color: Colors.orange.shade800),
               const SizedBox(width: 6),
               Text(
                 'Cảnh báo',
                 style: TextStyle(
-                  color: AppColors.warning,
+                  color: Colors.orange.shade800,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -301,16 +300,16 @@ class _FirebaseRwStatsViewState extends State<FirebaseRwStatsView> {
                   ),
                   decoration: BoxDecoration(
                     color: stat.listenerActive
-                        ? AppColors.info
-                        : AppColors.outline,
+                        ? Colors.teal.shade50
+                        : Colors.grey.shade200,
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: Text(
                     stat.listenerActive ? 'Polling ON' : 'Sync OFF',
                     style: TextStyle(
                       color: stat.listenerActive
-                          ? AppColors.info
-                          : AppColors.textSecondary,
+                          ? Colors.teal.shade700
+                          : Colors.grey[700],
                       fontWeight: FontWeight.w600,
                       fontSize: 11,
                     ),
@@ -321,7 +320,7 @@ class _FirebaseRwStatsViewState extends State<FirebaseRwStatsView> {
             const SizedBox(height: 3),
             Text(
               stat.collection,
-              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
             ),
             const SizedBox(height: 10),
             Wrap(
@@ -332,32 +331,32 @@ class _FirebaseRwStatsViewState extends State<FirebaseRwStatsView> {
                   'Cloud',
                   cloudUnavailable ? 'N/A' : _fmt(stat.cloudDocumentCount ?? 0),
                   hasCloudError
-                      ? AppColors.error
-                      : (isCloudSkipped ? AppColors.textHint : AppColors.primary),
+                      ? Colors.red
+                      : (isCloudSkipped ? Colors.grey : Colors.indigo),
                 ),
-                _metricTag('Reads 24h', _fmt(stat.reads24h), AppColors.info),
+                _metricTag('Reads 24h', _fmt(stat.reads24h), Colors.teal),
                 _metricTag(
                   'Writes 24h',
                   _fmt(stat.writeAttempts24h),
-                  AppColors.success,
+                  Colors.green,
                 ),
-                _metricTag('Success', _fmt(stat.writeSuccess24h), AppColors.success),
-                _metricTag('Retry', _fmt(stat.writeRetry24h), AppColors.warning),
-                _metricTag('Failed', _fmt(stat.writeFailed24h), AppColors.error),
+                _metricTag('Success', _fmt(stat.writeSuccess24h), Colors.green),
+                _metricTag('Retry', _fmt(stat.writeRetry24h), Colors.orange),
+                _metricTag('Failed', _fmt(stat.writeFailed24h), Colors.red),
               ],
             ),
             if (hasCloudError) ...[
               const SizedBox(height: 8),
               Text(
                 'Lỗi cloud count: ${stat.cloudCountError}',
-                style: TextStyle(color: AppColors.error, fontSize: 12),
+                style: TextStyle(color: Colors.red.shade700, fontSize: 12),
               ),
             ],
             if (isCloudSkipped) ...[
               const SizedBox(height: 8),
               Text(
                 stat.cloudCountError!.replaceFirst('SKIPPED: ', ''),
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                style: TextStyle(color: Colors.grey.shade700, fontSize: 12),
               ),
             ],
           ],
@@ -371,7 +370,7 @@ class _FirebaseRwStatsViewState extends State<FirebaseRwStatsView> {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(14),
-        color: color.withAlpha(20),
+        color: color.withOpacity(0.08),
       ),
       child: Text(
         '$label: $value',

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import '../widgets/responsive_wrapper.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -147,7 +146,7 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
   void _addItem() {
     if (itemNameCtrl.text.isEmpty || itemQuantityCtrl.text.isEmpty ||
         itemCostCtrl.text.isEmpty || itemPriceCtrl.text.isEmpty) {
-      NotificationService.showSnackBar("Vui lòng nhập đầy đủ thông tin ${_terms.productLabel.toLowerCase()}!", color: AppColors.error);
+      NotificationService.showSnackBar("Vui lòng nhập đầy đủ thông tin ${_terms.productLabel.toLowerCase()}!", color: Colors.red);
       return;
     }
 
@@ -189,7 +188,7 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
     
     if (!_formKey.currentState!.validate()) return;
     if (_items.isEmpty) {
-      NotificationService.showSnackBar("Vui lòng thêm ít nhất 1 ${_terms.productLabel.toLowerCase()}!", color: AppColors.error);
+      NotificationService.showSnackBar("Vui lòng thêm ít nhất 1 ${_terms.productLabel.toLowerCase()}!", color: Colors.red);
       return;
     }
 
@@ -306,11 +305,11 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
 
       if (mounted) {
         Navigator.pop(context);
-        NotificationService.showSnackBar("Đã tạo đơn nhập hàng: ${order.orderCode}", color: AppColors.success);
+        NotificationService.showSnackBar("Đã tạo đơn nhập hàng: ${order.orderCode}", color: Colors.green);
       }
     } catch (e) {
       debugPrint("Lỗi tạo đơn nhập: $e");
-      NotificationService.showSnackBar("Lỗi tạo đơn nhập hàng!", color: AppColors.error);
+      NotificationService.showSnackBar("Lỗi tạo đơn nhập hàng!", color: Colors.red);
     } finally {
       setState(() => _isSaving = false);
     }
@@ -422,7 +421,7 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
                 icon: const Icon(Icons.add),
                 label: Text("THÊM ${_terms.productLabel.toUpperCase()}"),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.success,
+                  backgroundColor: Colors.green,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                 ),
               ),
@@ -464,7 +463,7 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
                           ),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.delete, color: AppColors.error),
+                          icon: const Icon(Icons.delete, color: Colors.red),
                           onPressed: () => _removeItem(index),
                         ),
                       ],
@@ -584,9 +583,9 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
             ),
           ),
         ),
-        title: const Text("TẠO ĐƠN NHẬP HÀNG", style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.surface)),
-        backgroundColor: AppColors.surface,
-        foregroundColor: AppColors.textPrimary,
+        title: const Text("TẠO ĐƠN NHẬP HÀNG", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
         elevation: 0,
       ),
       body: ResponsiveCenter(child: Form(
@@ -656,12 +655,12 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
         child: ElevatedButton(
           onPressed: _isSaving ? null : _savePurchaseOrder,
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.warning,
+            backgroundColor: Colors.orange,
             padding: const EdgeInsets.symmetric(vertical: 16),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           ),
           child: _isSaving
-            ? const CircularProgressIndicator(color: AppColors.surface)
+            ? const CircularProgressIndicator(color: Colors.white)
             : Text("LƯU ĐƠN NHẬP", style: TextStyle(fontSize: AppTextStyles.headline3.fontSize, fontWeight: FontWeight.bold)),
         ),
       ),

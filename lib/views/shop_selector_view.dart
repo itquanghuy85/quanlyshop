@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/firestore_write_helper.dart';
@@ -86,7 +85,7 @@ class _ShopSelectorViewState extends State<ShopSelectorView> {
         builder: (ctx, setDialogState) => AlertDialog(
           title: const Row(
             children: [
-              Icon(Icons.lock, color: AppColors.repairDelivered),
+              Icon(Icons.lock, color: Colors.deepPurple),
               SizedBox(width: 8),
               Text('Xác thực Super Admin'),
             ],
@@ -240,7 +239,7 @@ class _ShopSelectorViewState extends State<ShopSelectorView> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Lỗi khi chọn shop: $e'),
-            backgroundColor: AppColors.error,
+            backgroundColor: Colors.red,
           ),
         );
       }
@@ -261,10 +260,10 @@ class _ShopSelectorViewState extends State<ShopSelectorView> {
             ),
           ),
         ),
-        title: const Text('QUẢN LÝ SHOP', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.surface, letterSpacing: 1)),
+        title: const Text('QUẢN LÝ SHOP', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 1)),
         centerTitle: true,
-        backgroundColor: AppColors.surface,
-        foregroundColor: AppColors.textPrimary,
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
         elevation: 0,
         actions: [
           IconButton(
@@ -308,9 +307,9 @@ class _ShopSelectorViewState extends State<ShopSelectorView> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.error_outline, size: 64, color: AppColors.error),
+              Icon(Icons.error_outline, size: 64, color: Colors.red.shade300),
               const SizedBox(height: 16),
-              Text(_error!, textAlign: TextAlign.center, style: TextStyle(color: AppColors.error)),
+              Text(_error!, textAlign: TextAlign.center, style: TextStyle(color: Colors.red.shade700)),
               const SizedBox(height: 16),
               ElevatedButton.icon(onPressed: _loadShops, icon: const Icon(Icons.refresh), label: const Text('Thử lại')),
             ],
@@ -326,11 +325,11 @@ class _ShopSelectorViewState extends State<ShopSelectorView> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.store_outlined, size: 64, color: AppColors.textHint),
+              Icon(Icons.store_outlined, size: 64, color: Colors.grey.shade400),
               const SizedBox(height: 16),
-              Text('Không tìm thấy shop', style: TextStyle(fontSize: 18, color: AppColors.textSecondary)),
+              Text('Không tìm thấy shop', style: TextStyle(fontSize: 18, color: Colors.grey.shade600)),
               const SizedBox(height: 8),
-              Text('Email: ${FirebaseAuth.instance.currentUser?.email ?? "N/A"}', style: TextStyle(fontSize: 13, color: AppColors.textHint)),
+              Text('Email: ${FirebaseAuth.instance.currentUser?.email ?? "N/A"}', style: TextStyle(fontSize: 13, color: Colors.grey.shade400)),
               const SizedBox(height: 16),
               ElevatedButton.icon(onPressed: _loadShops, icon: const Icon(Icons.refresh), label: const Text('Tải lại')),
             ],
@@ -349,15 +348,15 @@ class _ShopSelectorViewState extends State<ShopSelectorView> {
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            gradient: LinearGradient(colors: [AppColors.repairDelivered, AppColors.primary]),
+            gradient: LinearGradient(colors: [Colors.deepPurple.shade50, Colors.blue.shade50]),
           ),
           child: Row(
             children: [
-              Icon(Icons.admin_panel_settings, size: 28, color: AppColors.repairDelivered),
+              Icon(Icons.admin_panel_settings, size: 28, color: Colors.deepPurple.shade700),
               const SizedBox(width: 10),
               Expanded(
                 child: Text('Super Admin · ${_shops.length} shop · $totalUsers user',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.repairDelivered)),
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.deepPurple.shade700)),
               ),
             ],
           ),
@@ -377,7 +376,7 @@ class _ShopSelectorViewState extends State<ShopSelectorView> {
               contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
               filled: true,
-              fillColor: AppColors.surface,
+              fillColor: Colors.white,
             ),
             style: const TextStyle(fontSize: 14),
           ),
@@ -385,7 +384,7 @@ class _ShopSelectorViewState extends State<ShopSelectorView> {
         // Shop list
         Expanded(
           child: filtered.isEmpty
-              ? Center(child: Text('Không tìm thấy shop phù hợp', style: TextStyle(color: AppColors.textHint)))
+              ? Center(child: Text('Không tìm thấy shop phù hợp', style: TextStyle(color: Colors.grey.shade500)))
               : ListView.builder(
                   padding: const EdgeInsets.fromLTRB(12, 6, 12, 80),
                   itemCount: filtered.length,
@@ -420,12 +419,12 @@ class _ShopSelectorViewState extends State<ShopSelectorView> {
 
   Color _businessColor(String? type) {
     switch (type) {
-      case 'electronics': return AppColors.primary;
-      case 'fashion': return AppColors.error;
-      case 'food': return AppColors.warning;
-      case 'pharmacy': return AppColors.success;
-      case 'grocery': return AppColors.info;
-      default: return AppColors.repairDelivered;
+      case 'electronics': return Colors.blue;
+      case 'fashion': return Colors.pink;
+      case 'food': return Colors.orange;
+      case 'pharmacy': return Colors.green;
+      case 'grocery': return Colors.teal;
+      default: return Colors.deepPurple;
     }
   }
 
@@ -472,7 +471,7 @@ class _ShopSelectorViewState extends State<ShopSelectorView> {
                       width: 44,
                       height: 44,
                       decoration: BoxDecoration(
-                        color: bColor.withAlpha(31),
+                        color: bColor.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Icon(_businessIcon(businessType), size: 24, color: bColor),
@@ -489,19 +488,19 @@ class _ShopSelectorViewState extends State<ShopSelectorView> {
                             children: [
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                                decoration: BoxDecoration(color: bColor.withAlpha(26), borderRadius: BorderRadius.circular(4)),
+                                decoration: BoxDecoration(color: bColor.withOpacity(0.1), borderRadius: BorderRadius.circular(4)),
                                 child: Text(_businessLabel(businessType), style: TextStyle(fontSize: 11, color: bColor, fontWeight: FontWeight.w600)),
                               ),
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                                decoration: BoxDecoration(color: AppColors.background, borderRadius: BorderRadius.circular(4)),
-                                child: Text('$userCount NV', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                                decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(4)),
+                                child: Text('$userCount NV', style: TextStyle(fontSize: 11, color: Colors.grey.shade700)),
                               ),
                               if (isDeleted)
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                                  decoration: BoxDecoration(color: AppColors.error, borderRadius: BorderRadius.circular(4)),
-                                  child: Text('Đã xoá', style: TextStyle(fontSize: 11, color: AppColors.error, fontWeight: FontWeight.w600)),
+                                  decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(4)),
+                                  child: Text('Đã xoá', style: TextStyle(fontSize: 11, color: Colors.red.shade700, fontWeight: FontWeight.w600)),
                                 ),
                             ],
                           ),
@@ -511,7 +510,7 @@ class _ShopSelectorViewState extends State<ShopSelectorView> {
                     if (isSelecting)
                       const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2))
                     else
-                      Icon(Icons.chevron_right, size: 22, color: AppColors.textHint),
+                      Icon(Icons.chevron_right, size: 22, color: Colors.grey.shade400),
                   ],
                 ),
                 // Row 2: Details
@@ -540,10 +539,10 @@ class _ShopSelectorViewState extends State<ShopSelectorView> {
       padding: const EdgeInsets.only(bottom: 2),
       child: Row(
         children: [
-          Icon(icon, size: 13, color: AppColors.textHint),
+          Icon(icon, size: 13, color: Colors.grey.shade500),
           const SizedBox(width: 5),
           Flexible(
-            child: Text(text, style: TextStyle(fontSize: 12, color: AppColors.textSecondary), maxLines: 1, overflow: TextOverflow.ellipsis),
+            child: Text(text, style: TextStyle(fontSize: 12, color: Colors.grey.shade600), maxLines: 1, overflow: TextOverflow.ellipsis),
           ),
         ],
       ),

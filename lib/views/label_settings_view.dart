@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
 import '../widgets/responsive_wrapper.dart';
 
 import '../models/label_template_model.dart';
@@ -94,7 +93,7 @@ class _LabelSettingsViewState extends State<LabelSettingsView> with SingleTicker
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('✅ Đã lưu cài đặt tem!'),
-            backgroundColor: AppColors.success,
+            backgroundColor: Colors.green,
           ),
         );
       }
@@ -103,7 +102,7 @@ class _LabelSettingsViewState extends State<LabelSettingsView> with SingleTicker
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('❌ Lỗi: $e'),
-            backgroundColor: AppColors.error,
+            backgroundColor: Colors.red,
           ),
         );
       }
@@ -137,12 +136,12 @@ class _LabelSettingsViewState extends State<LabelSettingsView> with SingleTicker
           : Column(
               children: [
                 Container(
-                  color: AppColors.primary,
+                  color: Colors.blue.shade50,
                   child: TabBar(
                     controller: _tabController,
-                    labelColor: AppColors.primary,
-                    unselectedLabelColor: AppColors.textHint,
-                    indicatorColor: AppColors.primary,
+                    labelColor: Colors.blue,
+                    unselectedLabelColor: Colors.grey,
+                    indicatorColor: Colors.blue,
                     tabs: const [
                       Tab(icon: Icon(Icons.store, size: 18), text: 'Shop'),
                       Tab(icon: Icon(Icons.style, size: 18), text: 'Mẫu Tem'),
@@ -206,9 +205,9 @@ class _LabelSettingsViewState extends State<LabelSettingsView> with SingleTicker
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppColors.warning,
+              color: Colors.orange.shade50,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.warning),
+              border: Border.all(color: Colors.orange.shade200),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -228,7 +227,7 @@ class _LabelSettingsViewState extends State<LabelSettingsView> with SingleTicker
                 Text(
                   'VD: "price + 500000" = Giá bán + 500k\n'
                   'VD: "price * 1.05" = Giá bán + 5%',
-                  style: AppTextStyles.caption.copyWith(color: AppColors.textHint),
+                  style: AppTextStyles.caption.copyWith(color: Colors.grey),
                 ),
               ],
             ),
@@ -239,7 +238,7 @@ class _LabelSettingsViewState extends State<LabelSettingsView> with SingleTicker
           const SizedBox(height: 8),
           Text(
             'Các dòng text này sẽ hiển thị mặc định trên mọi tem (nếu được bật)',
-            style: AppTextStyles.caption.copyWith(color: AppColors.textHint),
+            style: AppTextStyles.caption.copyWith(color: Colors.grey),
           ),
           const SizedBox(height: 12),
           _buildTextField(
@@ -272,13 +271,13 @@ class _LabelSettingsViewState extends State<LabelSettingsView> with SingleTicker
                   ? const SizedBox(
                       width: 20,
                       height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.surface),
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                     )
                   : const Icon(Icons.save),
               label: Text(_isSaving ? 'Đang lưu...' : 'LƯU CÀI ĐẶT'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: AppColors.surface,
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 14),
               ),
             ),
@@ -328,13 +327,13 @@ class _LabelSettingsViewState extends State<LabelSettingsView> with SingleTicker
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
-                      color: AppColors.success,
+                      color: Colors.green.shade100,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
                       'Mặc định',
                       style: AppTextStyles.caption.copyWith(
-                        color: AppColors.success,
+                        color: Colors.green.shade700,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -342,7 +341,7 @@ class _LabelSettingsViewState extends State<LabelSettingsView> with SingleTicker
                 if (template.type == LabelType.custom)
                   IconButton(
                     onPressed: () => _deleteTemplate(template),
-                    icon: const Icon(Icons.delete_outline, color: AppColors.error),
+                    icon: const Icon(Icons.delete_outline, color: Colors.red),
                   ),
               ],
             ),
@@ -356,28 +355,28 @@ class _LabelSettingsViewState extends State<LabelSettingsView> with SingleTicker
   Color _getTemplateColor(LabelType type) {
     switch (type) {
       case LabelType.inventory:
-        return AppColors.primary;
+        return Colors.blue;
       case LabelType.sales:
-        return AppColors.success;
+        return Colors.green;
       case LabelType.promotion:
-        return AppColors.warning;
+        return Colors.orange;
       case LabelType.warranty:
-        return AppColors.primary;
+        return Colors.blue;
       case LabelType.custom:
-        return AppColors.textHint;
+        return Colors.grey;
     }
   }
 
   Widget _sectionTitle(String title, IconData icon) {
     return Row(
       children: [
-        Icon(icon, size: 20, color: AppColors.primary),
+        Icon(icon, size: 20, color: Colors.blue),
         const SizedBox(width: 8),
         Text(
           title,
           style: AppTextStyles.subtitle1.copyWith(
             fontWeight: FontWeight.bold,
-            color: AppColors.primary,
+            color: Colors.blue,
           ),
         ),
       ],
@@ -400,7 +399,7 @@ class _LabelSettingsViewState extends State<LabelSettingsView> with SingleTicker
         prefixIcon: icon != null ? Icon(icon, size: 20) : null,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         filled: true,
-        fillColor: AppColors.background,
+        fillColor: Colors.grey.shade50,
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
       ),
     );
@@ -419,7 +418,7 @@ class _LabelSettingsViewState extends State<LabelSettingsView> with SingleTicker
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('✅ Đã cập nhật mẫu "${updatedTemplate.name}"'),
-                backgroundColor: AppColors.success,
+                backgroundColor: Colors.green,
               ),
             );
           }
@@ -441,7 +440,7 @@ class _LabelSettingsViewState extends State<LabelSettingsView> with SingleTicker
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('XÓA'),
           ),
         ],
@@ -507,7 +506,7 @@ class _EditTemplateDialogState extends State<_EditTemplateDialog> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppColors.primary,
+                color: Colors.blue.shade50,
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
               ),
               child: Row(
@@ -515,7 +514,7 @@ class _EditTemplateDialogState extends State<_EditTemplateDialog> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppColors.primary,
+                      color: Colors.blue.shade100,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(widget.template.type.icon, style: const TextStyle(fontSize: 20)),
@@ -531,7 +530,7 @@ class _EditTemplateDialogState extends State<_EditTemplateDialog> {
                         ),
                         Text(
                           widget.template.type.displayName,
-                          style: AppTextStyles.caption.copyWith(color: AppColors.textHint),
+                          style: AppTextStyles.caption.copyWith(color: Colors.grey),
                         ),
                       ],
                     ),
@@ -570,7 +569,7 @@ class _EditTemplateDialogState extends State<_EditTemplateDialog> {
                         label: Text(size.displayName),
                         selected: _size == size,
                         onSelected: (v) => setState(() => _size = size),
-                        selectedColor: AppColors.primary,
+                        selectedColor: Colors.blue.shade100,
                       )).toList(),
                     ),
                     const SizedBox(height: 16),
@@ -589,7 +588,7 @@ class _EditTemplateDialogState extends State<_EditTemplateDialog> {
                       const SizedBox(height: 8),
                       Text(
                         '💡 VD: "price + 500000" = Giá + 500k | "price * 1.05" = Giá + 5%',
-                        style: AppTextStyles.caption.copyWith(color: AppColors.textHint, fontStyle: FontStyle.italic),
+                        style: AppTextStyles.caption.copyWith(color: Colors.grey, fontStyle: FontStyle.italic),
                       ),
                       const SizedBox(height: 16),
                     ],
@@ -655,7 +654,7 @@ class _EditTemplateDialogState extends State<_EditTemplateDialog> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppColors.background,
+                color: Colors.grey.shade50,
                 borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
               ),
               child: Row(
@@ -672,12 +671,12 @@ class _EditTemplateDialogState extends State<_EditTemplateDialog> {
                     child: ElevatedButton.icon(
                       onPressed: _isSaving ? null : _saveTemplate,
                       icon: _isSaving 
-                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.surface))
+                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                         : const Icon(Icons.save),
                       label: Text(_isSaving ? 'Đang lưu...' : 'LƯU MẪU TEM'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: AppColors.surface,
+                        backgroundColor: Colors.blue,
+                        foregroundColor: Colors.white,
                       ),
                     ),
                   ),
@@ -697,12 +696,12 @@ class _EditTemplateDialogState extends State<_EditTemplateDialog> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
-            color: AppColors.primary,
+            color: Colors.blue.shade50,
             borderRadius: BorderRadius.circular(6),
           ),
           child: Text(
             title,
-            style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.bold, color: AppColors.primary),
+            style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.bold, color: Colors.blue),
           ),
         ),
         const SizedBox(height: 8),
@@ -723,7 +722,7 @@ class _EditTemplateDialogState extends State<_EditTemplateDialog> {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeThumbColor: AppColors.primary,
+            activeThumbColor: Colors.blue,
           ),
         ],
       ),
@@ -733,7 +732,7 @@ class _EditTemplateDialogState extends State<_EditTemplateDialog> {
   Future<void> _saveTemplate() async {
     if (_nameCtrl.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Vui lòng nhập tên mẫu tem'), backgroundColor: AppColors.warning),
+        const SnackBar(content: Text('Vui lòng nhập tên mẫu tem'), backgroundColor: Colors.orange),
       );
       return;
     }

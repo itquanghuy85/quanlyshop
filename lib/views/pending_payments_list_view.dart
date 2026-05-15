@@ -9,7 +9,6 @@
 
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
 import 'package:intl/intl.dart';
 import '../models/payment_intent_model.dart';
 import '../services/payment_intent_service.dart';
@@ -104,7 +103,7 @@ class _PendingPaymentsListViewState extends State<PendingPaymentsListView>
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (_) => const Center(child: CircularProgressIndicator(color: AppColors.surface)),
+      builder: (_) => const Center(child: CircularProgressIndicator(color: Colors.white)),
     );
 
     try {
@@ -121,18 +120,18 @@ class _PendingPaymentsListViewState extends State<PendingPaymentsListView>
       if (result.success) {
         NotificationService.showSnackBar(
           intent.isIncome ? '✅ Thu tiền thành công!' : '✅ Thanh toán thành công!',
-          color: AppColors.success,
+          color: Colors.green,
         );
         _loadData();
       } else {
         NotificationService.showSnackBar(
           '❌ ${result.errorMessage ?? "Có lỗi xảy ra"}',
-          color: AppColors.error,
+          color: Colors.red,
         );
       }
     } catch (e) {
       if (mounted) Navigator.of(context).pop();
-      NotificationService.showSnackBar('❌ Lỗi: $e', color: AppColors.error);
+      NotificationService.showSnackBar('❌ Lỗi: $e', color: Colors.red);
     }
   }
 
@@ -168,7 +167,7 @@ class _PendingPaymentsListViewState extends State<PendingPaymentsListView>
         actions: [
           TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Không')),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () => Navigator.of(ctx).pop(true),
             child: const Text('Hủy thanh toán'),
           ),
@@ -178,7 +177,7 @@ class _PendingPaymentsListViewState extends State<PendingPaymentsListView>
     if (confirm == true) {
       final ok = await PaymentIntentService.cancelIntent(intent.id, reason: 'Hủy thủ công');
       if (ok) {
-        NotificationService.showSnackBar('Đã hủy thanh toán', color: AppColors.warning);
+        NotificationService.showSnackBar('Đã hủy thanh toán', color: Colors.orange);
         _loadData();
       }
     }
@@ -218,13 +217,13 @@ class _PendingPaymentsListViewState extends State<PendingPaymentsListView>
           ),
         ),
       ),
-      backgroundColor: AppColors.surface,
-      foregroundColor: AppColors.textPrimary,
+      backgroundColor: Colors.transparent,
+      foregroundColor: Colors.white,
       elevation: 0,
-      iconTheme: const IconThemeData(color: AppColors.surface),
+      iconTheme: const IconThemeData(color: Colors.white),
       title: const Text(
         'Thanh Toán',
-        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: AppColors.surface),
+        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: Colors.white),
       ),
       actions: [
         IconButton(
@@ -247,8 +246,8 @@ class _PendingPaymentsListViewState extends State<PendingPaymentsListView>
             controller: _tabController,
             indicatorSize: TabBarIndicatorSize.tab,
             indicatorWeight: 2.5,
-            indicatorColor: AppColors.surface,
-            labelColor: AppColors.surface,
+            indicatorColor: Colors.white,
+            labelColor: Colors.white,
             unselectedLabelColor: Colors.white60,
             labelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
             unselectedLabelStyle: const TextStyle(fontSize: 14),
@@ -276,12 +275,12 @@ class _PendingPaymentsListViewState extends State<PendingPaymentsListView>
             Icon(
               isIncome ? Icons.arrow_downward : Icons.arrow_upward,
               size: 48,
-              color: AppColors.outline,
+              color: Colors.grey.shade300,
             ),
             const SizedBox(height: 8),
             Text(
               isIncome ? 'Không có khoản thu chờ xử lý' : 'Không có khoản chi chờ xử lý',
-              style: TextStyle(color: AppColors.textHint, fontSize: 16),
+              style: TextStyle(color: Colors.grey.shade500, fontSize: 16),
             ),
           ],
         ),
@@ -295,20 +294,20 @@ class _PendingPaymentsListViewState extends State<PendingPaymentsListView>
         // ── Compact summary bar ──
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          color: isIncome ? AppColors.success : AppColors.error,
+          color: isIncome ? Colors.green.shade50 : Colors.red.shade50,
           child: Row(
             children: [
               Icon(
                 isIncome ? Icons.arrow_downward : Icons.arrow_upward,
                 size: 16,
-                color: isIncome ? AppColors.success : AppColors.error,
+                color: isIncome ? Colors.green.shade700 : Colors.red.shade700,
               ),
               const SizedBox(width: 6),
               Text(
                 '${items.length} khoản',
                 style: TextStyle(
                   fontSize: 14,
-                  color: isIncome ? AppColors.success : AppColors.error,
+                  color: isIncome ? Colors.green.shade700 : Colors.red.shade700,
                 ),
               ),
               const Spacer(),
@@ -317,7 +316,7 @@ class _PendingPaymentsListViewState extends State<PendingPaymentsListView>
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: isIncome ? AppColors.success : AppColors.error,
+                  color: isIncome ? Colors.green.shade700 : Colors.red.shade700,
                 ),
               ),
             ],
@@ -341,7 +340,7 @@ class _PendingPaymentsListViewState extends State<PendingPaymentsListView>
 
   Widget _buildCompactCard(PaymentIntent intent) {
     final isIncome = intent.isIncome;
-    final color = isIncome ? AppColors.success : AppColors.error;
+    final color = isIncome ? Colors.green : Colors.red;
     final date = DateTime.fromMillisecondsSinceEpoch(intent.createdAt);
     final dateStr = DateFormat('dd/MM HH:mm').format(date);
 
@@ -351,8 +350,8 @@ class _PendingPaymentsListViewState extends State<PendingPaymentsListView>
       background: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
-        color: AppColors.error,
-        child: const Icon(Icons.cancel, color: AppColors.surface),
+        color: Colors.red.shade400,
+        child: const Icon(Icons.cancel, color: Colors.white),
       ),
       confirmDismiss: (_) async {
         await _cancelPayment(intent);
@@ -369,7 +368,7 @@ class _PendingPaymentsListViewState extends State<PendingPaymentsListView>
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: color.withAlpha(26),
+                  color: color.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
@@ -394,12 +393,12 @@ class _PendingPaymentsListViewState extends State<PendingPaymentsListView>
                     Row(
                       children: [
                         if (intent.personName != null) ...[
-                          Icon(Icons.person_outline, size: 12, color: AppColors.textHint),
+                          Icon(Icons.person_outline, size: 12, color: Colors.grey.shade500),
                           const SizedBox(width: 2),
                           Flexible(
                             child: Text(
                               intent.personName!,
-                              style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                              style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -408,7 +407,7 @@ class _PendingPaymentsListViewState extends State<PendingPaymentsListView>
                         ],
                         Text(
                           dateStr,
-                          style: TextStyle(fontSize: 13, color: AppColors.textHint),
+                          style: TextStyle(fontSize: 13, color: Colors.grey.shade400),
                         ),
                       ],
                     ),
@@ -435,7 +434,7 @@ class _PendingPaymentsListViewState extends State<PendingPaymentsListView>
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: color.withAlpha(26),
+                        color: color.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
@@ -463,11 +462,11 @@ class _PendingPaymentsListViewState extends State<PendingPaymentsListView>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.history, size: 48, color: AppColors.outline),
+            Icon(Icons.history, size: 48, color: Colors.grey.shade300),
             const SizedBox(height: 8),
             Text(
               'Chưa có lịch sử thanh toán',
-              style: TextStyle(color: AppColors.textHint, fontSize: 16),
+              style: TextStyle(color: Colors.grey.shade500, fontSize: 16),
             ),
           ],
         ),
@@ -489,8 +488,8 @@ class _PendingPaymentsListViewState extends State<PendingPaymentsListView>
     final isCompleted = intent.status == PaymentIntentStatus.completed;
     final isIncome = intent.isIncome;
     final color = isCompleted
-        ? (isIncome ? AppColors.success : AppColors.primary)
-        : AppColors.textHint;
+        ? (isIncome ? Colors.green : Colors.blue)
+        : Colors.grey;
     final statusIcon = isCompleted ? Icons.check_circle : Icons.cancel;
     final paidAt = intent.paidAt != null
         ? DateFormat('dd/MM HH:mm').format(
@@ -508,7 +507,7 @@ class _PendingPaymentsListViewState extends State<PendingPaymentsListView>
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: color.withAlpha(26),
+              color: color.withOpacity(0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(statusIcon, color: color, size: 20),
@@ -525,7 +524,7 @@ class _PendingPaymentsListViewState extends State<PendingPaymentsListView>
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                     decoration: isCompleted ? null : TextDecoration.lineThrough,
-                    color: isCompleted ? null : AppColors.textHint,
+                    color: isCompleted ? null : Colors.grey,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -537,7 +536,7 @@ class _PendingPaymentsListViewState extends State<PendingPaymentsListView>
                     if (methodText.isNotEmpty) methodText,
                     paidAt,
                   ].join(' · '),
-                  style: TextStyle(fontSize: 12, color: AppColors.textHint),
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -553,7 +552,7 @@ class _PendingPaymentsListViewState extends State<PendingPaymentsListView>
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
-                color: isCompleted ? color : AppColors.textHint,
+                color: isCompleted ? color : Colors.grey,
               ),
             ),
           ),
@@ -579,7 +578,7 @@ class _PendingPaymentsListViewState extends State<PendingPaymentsListView>
       backgroundColor: Colors.transparent,
       builder: (_) => Container(
         decoration: const BoxDecoration(
-          color: AppColors.surface,
+          color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
         ),
         padding: const EdgeInsets.all(20),
@@ -590,7 +589,7 @@ class _PendingPaymentsListViewState extends State<PendingPaymentsListView>
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: AppColors.outline,
+                color: Colors.grey.shade300,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -603,19 +602,19 @@ class _PendingPaymentsListViewState extends State<PendingPaymentsListView>
             // Stats grid
             Row(
               children: [
-                _statChip('Chờ thu', _incomeIntents.length, AppColors.success),
+                _statChip('Chờ thu', _incomeIntents.length, Colors.green),
                 const SizedBox(width: 8),
-                _statChip('Chờ chi', _expenseIntents.length, AppColors.error),
+                _statChip('Chờ chi', _expenseIntents.length, Colors.red),
                 const SizedBox(width: 8),
-                _statChip('Đã xử lý', completedCount, AppColors.primary),
+                _statChip('Đã xử lý', completedCount, Colors.blue),
               ],
             ),
             const SizedBox(height: 12),
             Row(
               children: [
-                _amountChip('Tổng thu', totalIncome, AppColors.success),
+                _amountChip('Tổng thu', totalIncome, Colors.green),
                 const SizedBox(width: 8),
-                _amountChip('Tổng chi', totalExpense, AppColors.error),
+                _amountChip('Tổng chi', totalExpense, Colors.red),
               ],
             ),
             const SizedBox(height: 12),
@@ -623,7 +622,7 @@ class _PendingPaymentsListViewState extends State<PendingPaymentsListView>
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 12),
               decoration: BoxDecoration(
-                color: net >= 0 ? AppColors.success : AppColors.error,
+                color: net >= 0 ? Colors.green.shade50 : Colors.red.shade50,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Column(
@@ -632,7 +631,7 @@ class _PendingPaymentsListViewState extends State<PendingPaymentsListView>
                     'Chênh lệch chờ',
                     style: TextStyle(
                       fontSize: 13,
-                      color: net >= 0 ? AppColors.success : AppColors.error,
+                      color: net >= 0 ? Colors.green.shade700 : Colors.red.shade700,
                     ),
                   ),
                   Text(
@@ -640,7 +639,7 @@ class _PendingPaymentsListViewState extends State<PendingPaymentsListView>
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: net >= 0 ? AppColors.success : AppColors.error,
+                      color: net >= 0 ? Colors.green.shade700 : Colors.red.shade700,
                     ),
                   ),
                 ],
@@ -658,7 +657,7 @@ class _PendingPaymentsListViewState extends State<PendingPaymentsListView>
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
-          color: color.withAlpha(20),
+          color: color.withOpacity(0.08),
           borderRadius: BorderRadius.circular(10),
         ),
         child: Column(
@@ -683,7 +682,7 @@ class _PendingPaymentsListViewState extends State<PendingPaymentsListView>
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
-          color: color.withAlpha(20),
+          color: color.withOpacity(0.08),
           borderRadius: BorderRadius.circular(10),
         ),
         child: Column(
@@ -765,12 +764,12 @@ class _PaymentMethodSheetState extends State<_PaymentMethodSheet> {
   Widget build(BuildContext context) {
     final intent = widget.intent;
     final isIncome = intent.isIncome;
-    final color = isIncome ? AppColors.success : const Color(0xFF0068FF);
+    final color = isIncome ? Colors.green : const Color(0xFF0068FF);
     final fmt = NumberFormat('#,###', 'vi');
 
     return Container(
       decoration: const BoxDecoration(
-        color: AppColors.surface,
+        color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
@@ -782,7 +781,7 @@ class _PaymentMethodSheetState extends State<_PaymentMethodSheet> {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: AppColors.outline,
+              color: Colors.grey.shade300,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -799,7 +798,7 @@ class _PaymentMethodSheetState extends State<_PaymentMethodSheet> {
           const SizedBox(height: 4),
           Text(
             intent.description,
-            style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+            style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
             textAlign: TextAlign.center,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
@@ -831,7 +830,7 @@ class _PaymentMethodSheetState extends State<_PaymentMethodSheet> {
                 style: const TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.bold,
-                  color: AppColors.surface,
+                  color: Colors.white,
                 ),
               ),
             ),
@@ -851,23 +850,23 @@ class _PaymentMethodSheetState extends State<_PaymentMethodSheet> {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            color: isActive ? activeColor.withAlpha(26) : AppColors.background,
+            color: isActive ? activeColor.withOpacity(0.1) : Colors.grey.shade100,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
-              color: isActive ? activeColor : AppColors.outline,
+              color: isActive ? activeColor : Colors.grey.shade200,
               width: isActive ? 2 : 1,
             ),
           ),
           child: Column(
             children: [
-              Icon(icon, color: isActive ? activeColor : AppColors.textHint, size: 24),
+              Icon(icon, color: isActive ? activeColor : Colors.grey, size: 24),
               const SizedBox(height: 4),
               Text(
                 label,
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-                  color: isActive ? activeColor : AppColors.textSecondary,
+                  color: isActive ? activeColor : Colors.grey.shade600,
                 ),
               ),
             ],

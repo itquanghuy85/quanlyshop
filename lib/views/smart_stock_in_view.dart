@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../constants/product_constants.dart';
@@ -129,42 +128,42 @@ class _SmartStockInViewState extends State<SmartStockInView> {
       screenKey: FirstTimeGuideService.keySmartStockIn,
       title: 'Nhập Kho Thông Minh',
       icon: Icons.add_box,
-      color: AppColors.success,
+      color: Colors.green,
       steps: [
         GuideStep(
           title: '📱 Chọn loại sản phẩm',
           description:
               '$category1 (có $serialLabel), $category2 hoặc $category3 - mỗi loại có thông tin khác nhau.',
           icon: Icons.category,
-          iconColor: AppColors.primary,
+          iconColor: Colors.blue,
         ),
         const GuideStep(
           title: '🏢 Tạo nhà cung cấp trước',
           description:
               'Bạn cần tạo NCC trong mục "Quản lý NCC" trước khi nhập kho để theo dõi công nợ.',
           icon: Icons.store,
-          iconColor: AppColors.warning,
+          iconColor: Colors.orange,
         ),
         const GuideStep(
           title: '💾 LƯU TẠM',
           description:
               'Chỉ cần nhập tên sản phẩm, lưu nhanh khi bận rộn. Bổ sung thông tin sau ở "Hàng chờ xác nhận nhập vào kho".',
           icon: Icons.save_outlined,
-          iconColor: AppColors.warning,
+          iconColor: Colors.amber,
         ),
         const GuideStep(
           title: '✅ LƯU VÀO HÀNG CHỜ',
           description:
               'Điền đầy đủ: Tên, Giá vốn, NCC, Phương thức TT. Hàng sẽ vào "Hàng chờ xác nhận nhập vào kho", cần duyệt để vào kho chính.',
           icon: Icons.inventory_2,
-          iconColor: AppColors.success,
+          iconColor: Colors.green,
         ),
         GuideStep(
           title: '📷 Quét mã $serialLabel',
           description:
               'Với ${category1.toLowerCase()}, nhấn icon camera để quét barcode $serialLabel tự động.',
           icon: Icons.qr_code_scanner,
-          iconColor: AppColors.primary,
+          iconColor: Colors.blue,
         ),
       ],
     );
@@ -300,20 +299,20 @@ class _SmartStockInViewState extends State<SmartStockInView> {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [AppColors.primary, AppColors.primary],
+            colors: [Colors.blue.shade50, Colors.indigo.shade50],
           ),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: AppColors.primary),
+          border: Border.all(color: Colors.blue.shade200),
         ),
         child: Row(
           children: [
-            Icon(Icons.flash_on, color: AppColors.primary, size: 20),
+            Icon(Icons.flash_on, color: Colors.blue.shade700, size: 20),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
                 'Chọn mã nhập nhanh để điền tự động',
                 style: TextStyle(
-                  color: AppColors.primary,
+                  color: Colors.blue.shade700,
                   fontWeight: FontWeight.w600,
                   fontSize: 14,
                 ),
@@ -321,7 +320,7 @@ class _SmartStockInViewState extends State<SmartStockInView> {
             ),
             Icon(
               Icons.arrow_forward_ios,
-              color: AppColors.primary,
+              color: Colors.blue.shade400,
               size: 14,
             ),
           ],
@@ -339,7 +338,7 @@ class _SmartStockInViewState extends State<SmartStockInView> {
     if (activeCodes.isEmpty) {
       NotificationService.showSnackBar(
         'Chưa có mã nhập nhanh nào. Hãy tạo mã mới.',
-        color: AppColors.warning,
+        color: Colors.orange,
       );
       final result = await Navigator.push(
         context,
@@ -356,7 +355,7 @@ class _SmartStockInViewState extends State<SmartStockInView> {
       builder: (ctx) => AlertDialog(
         title: Row(
           children: [
-            Icon(Icons.flash_on, color: AppColors.primary),
+            Icon(Icons.flash_on, color: Colors.blue.shade700),
             const SizedBox(width: 8),
             const Text('Chọn mã nhập nhanh'),
           ],
@@ -372,7 +371,7 @@ class _SmartStockInViewState extends State<SmartStockInView> {
               return ListTile(
                 leading: Icon(
                   isPhone ? Icons.phone_android : Icons.category,
-                  color: isPhone ? AppColors.primary : AppColors.success,
+                  color: isPhone ? Colors.blue : Colors.green,
                 ),
                 title: Text(
                   code.name,
@@ -478,7 +477,7 @@ class _SmartStockInViewState extends State<SmartStockInView> {
     });
     NotificationService.showSnackBar(
       '✅ Đã áp dụng: ${code.name}',
-      color: AppColors.success,
+      color: Colors.green,
     );
   }
 
@@ -771,14 +770,14 @@ class _SmartStockInViewState extends State<SmartStockInView> {
     if (_hasIMEIConflict) {
       NotificationService.showSnackBar(
         'Sản phẩm có ${_terms.specialField1Label} chỉ được nhập số lượng = 1',
-        color: AppColors.error,
+        color: Colors.red,
       );
       return;
     }
     if (!_canSaveDraft) {
       NotificationService.showSnackBar(
         'Vui lòng nhập tên sản phẩm',
-        color: AppColors.error,
+        color: Colors.red,
       );
       return;
     }
@@ -812,14 +811,14 @@ class _SmartStockInViewState extends State<SmartStockInView> {
     if (_hasIMEIConflict) {
       NotificationService.showSnackBar(
         'Sản phẩm có ${_terms.specialField1Label} chỉ được nhập số lượng = 1',
-        color: AppColors.error,
+        color: Colors.red,
       );
       return;
     }
     if (!_canConfirmNow) {
       NotificationService.showSnackBar(
         'Vui lòng điền đầy đủ thông tin',
-        color: AppColors.error,
+        color: Colors.red,
       );
       return;
     }
@@ -853,7 +852,7 @@ class _SmartStockInViewState extends State<SmartStockInView> {
         if (widget.editEntry != null) {
           NotificationService.showSnackBar(
             'Đã cập nhật phiếu trong hàng chờ xác nhận.',
-            color: AppColors.success,
+            color: Colors.green,
           );
           Navigator.pop(context, true);
           return;
@@ -876,8 +875,8 @@ class _SmartStockInViewState extends State<SmartStockInView> {
                 icon: const Icon(Icons.pending_actions, size: 18),
                 label: const Text('Mở danh sách chờ'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: AppColors.surface,
+                  backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
                 ),
               ),
             ],
@@ -933,7 +932,7 @@ class _SmartStockInViewState extends State<SmartStockInView> {
           style: TextStyle(
             fontSize: AppTextStyles.headline3.fontSize,
             fontWeight: FontWeight.bold,
-            color: AppColors.surface,
+            color: Colors.white,
           ),
         ),
         flexibleSpace: Container(
@@ -945,8 +944,8 @@ class _SmartStockInViewState extends State<SmartStockInView> {
             ),
           ),
         ),
-        backgroundColor: AppColors.surface,
-        foregroundColor: AppColors.textPrimary,
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
         elevation: 0,
         actions: [
           IconButton(
@@ -1090,10 +1089,10 @@ class _SmartStockInViewState extends State<SmartStockInView> {
       child: Container(
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
-            color: isSelected ? AppColors.primary : AppColors.background,
+            color: isSelected ? Colors.blue.shade100 : Colors.grey.shade100,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: isSelected ? AppColors.primary : AppColors.outline,
+              color: isSelected ? Colors.blue : Colors.grey.shade300,
               width: isSelected ? 2 : 1,
             ),
           ),
@@ -1103,7 +1102,7 @@ class _SmartStockInViewState extends State<SmartStockInView> {
             style: TextStyle(
               fontSize: AppTextStyles.subtitle1.fontSize,
               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              color: isSelected ? AppColors.primary : AppColors.textPrimary,
+              color: isSelected ? Colors.blue.shade700 : Colors.black87,
             ),
           ),
         ),
@@ -1208,7 +1207,7 @@ class _SmartStockInViewState extends State<SmartStockInView> {
                   IconButton(
                     onPressed: () => _scanIMEI(_terms.specialField1Label),
                     icon: const Icon(Icons.qr_code_scanner, size: 20),
-                    color: AppColors.primary,
+                    color: Colors.blue,
                     tooltip: 'Quét ${_terms.specialField1Label}',
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(
@@ -1254,7 +1253,7 @@ class _SmartStockInViewState extends State<SmartStockInView> {
                     onChanged: (v) => setState(() => _selectedBrand = v),
                     style: TextStyle(
                       fontSize: AppTextStyles.subtitle1.fontSize,
-                      color: AppColors.textPrimary,
+                      color: Colors.black87,
                     ),
                   ),
                 ),
@@ -1314,7 +1313,7 @@ class _SmartStockInViewState extends State<SmartStockInView> {
                     onChanged: (v) => setState(() => _selectedCapacity = v),
                     style: TextStyle(
                       fontSize: AppTextStyles.subtitle1.fontSize,
-                      color: AppColors.textPrimary,
+                      color: Colors.black87,
                     ),
                   ),
                 ),
@@ -1349,7 +1348,7 @@ class _SmartStockInViewState extends State<SmartStockInView> {
                     onChanged: (v) => setState(() => _selectedColor = v),
                     style: TextStyle(
                       fontSize: AppTextStyles.subtitle1.fontSize,
-                      color: AppColors.textPrimary,
+                      color: Colors.black87,
                     ),
                   ),
                 ),
@@ -1390,7 +1389,7 @@ class _SmartStockInViewState extends State<SmartStockInView> {
                     onChanged: (v) => setState(() => _selectedCondition = v),
                     style: TextStyle(
                       fontSize: AppTextStyles.subtitle1.fontSize,
-                      color: AppColors.textPrimary,
+                      color: Colors.black87,
                     ),
                   ),
                 ),
@@ -1414,7 +1413,7 @@ class _SmartStockInViewState extends State<SmartStockInView> {
                             vertical: 8,
                           ),
                           filled: _imeiCtrl.text.trim().isNotEmpty,
-                          fillColor: AppColors.outline,
+                          fillColor: Colors.grey.shade200,
                         ),
                         style: TextStyle(
                           fontSize: AppTextStyles.headline5.fontSize,
@@ -1425,7 +1424,7 @@ class _SmartStockInViewState extends State<SmartStockInView> {
                             _quantityCtrl.text = '1';
                             NotificationService.showSnackBar(
                               'Có IMEI → SL phải = 1',
-                              color: AppColors.warning,
+                              color: Colors.orange,
                             );
                           }
                           setState(() {});
@@ -1438,7 +1437,7 @@ class _SmartStockInViewState extends State<SmartStockInView> {
                             '(có IMEI)',
                             style: TextStyle(
                               fontSize: AppTextStyles.overlineSize,
-                              color: AppColors.textHint,
+                              color: Colors.grey,
                             ),
                           ),
                         ),
@@ -1452,14 +1451,14 @@ class _SmartStockInViewState extends State<SmartStockInView> {
                             vertical: 2,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.primary,
+                            color: Colors.blue.shade50,
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: const Text(
                             '📦 Nhập lô',
                             style: TextStyle(
                               fontSize: AppTextStyles.overlineSize,
-                              color: AppColors.primary,
+                              color: Colors.blue,
                             ),
                           ),
                         ),
@@ -1475,16 +1474,16 @@ class _SmartStockInViewState extends State<SmartStockInView> {
                 margin: const EdgeInsets.only(top: 8),
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: AppColors.primary,
+                  color: Colors.blue.shade50,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.primary),
+                  border: Border.all(color: Colors.blue.shade200),
                 ),
                 child: Row(
                   children: [
                     Icon(
                       Icons.info_outline,
                       size: 16,
-                      color: AppColors.primary,
+                      color: Colors.blue.shade700,
                     ),
                     const SizedBox(width: 8),
                     Expanded(
@@ -1492,7 +1491,7 @@ class _SmartStockInViewState extends State<SmartStockInView> {
                         'Nhập ${_quantityCtrl.text} máy → Khi xác nhận sẽ tạo ${_quantityCtrl.text} sản phẩm riêng biệt, mỗi máy có IMEI tạm (cần cập nhật sau)',
                         style: TextStyle(
                           fontSize: AppTextStyles.body1.fontSize,
-                          color: AppColors.primary,
+                          color: Colors.blue.shade700,
                         ),
                       ),
                     ),
@@ -1577,13 +1576,13 @@ class _SmartStockInViewState extends State<SmartStockInView> {
                               ? Icons.roller_skating
                               : Icons.straighten,
                           size: 20,
-                          color: AppColors.repairDelivered,
+                          color: Colors.deepPurple,
                         ),
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 12,
                           vertical: 8,
                         ),
-                        fillColor: AppColors.primary,
+                        fillColor: Colors.blue.shade50,
                         filled: true,
                       ),
                       items: _fashionSizes
@@ -1604,7 +1603,7 @@ class _SmartStockInViewState extends State<SmartStockInView> {
                       onChanged: (v) => setState(() => _selectedSize = v),
                       style: TextStyle(
                         fontSize: AppTextStyles.subtitle1.fontSize,
-                        color: AppColors.textPrimary,
+                        color: Colors.black87,
                       ),
                     ),
                   ),
@@ -1620,13 +1619,13 @@ class _SmartStockInViewState extends State<SmartStockInView> {
                         prefixIcon: const Icon(
                           Icons.palette,
                           size: 20,
-                          color: AppColors.repairDelivered,
+                          color: Colors.deepPurple,
                         ),
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 12,
                           vertical: 8,
                         ),
-                        fillColor: AppColors.primary,
+                        fillColor: Colors.blue.shade50,
                         filled: true,
                       ),
                       items: _colors
@@ -1647,7 +1646,7 @@ class _SmartStockInViewState extends State<SmartStockInView> {
                       onChanged: (v) => setState(() => _selectedColor = v),
                       style: TextStyle(
                         fontSize: AppTextStyles.subtitle1.fontSize,
-                        color: AppColors.textPrimary,
+                        color: Colors.black87,
                       ),
                     ),
                   ),
@@ -1714,7 +1713,7 @@ class _SmartStockInViewState extends State<SmartStockInView> {
                     }),
                     style: TextStyle(
                       fontSize: AppTextStyles.subtitle1.fontSize,
-                      color: AppColors.textPrimary,
+                      color: Colors.black87,
                     ),
                   ),
                 ),
@@ -1765,7 +1764,7 @@ class _SmartStockInViewState extends State<SmartStockInView> {
   Widget _buildAccountingSection() {
     return Card(
       elevation: 1,
-      color: AppColors.warning,
+      color: Colors.orange.shade50,
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
@@ -1776,7 +1775,7 @@ class _SmartStockInViewState extends State<SmartStockInView> {
                 Icon(
                   Icons.account_balance_wallet,
                   size: 18,
-                  color: AppColors.warning,
+                  color: Colors.orange.shade700,
                 ),
                 const SizedBox(width: 8),
                 Text(
@@ -1784,7 +1783,7 @@ class _SmartStockInViewState extends State<SmartStockInView> {
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: AppTextStyles.headline5.fontSize,
-                    color: AppColors.warning,
+                    color: Colors.orange.shade700,
                   ),
                 ),
                 const Spacer(),
@@ -1792,7 +1791,7 @@ class _SmartStockInViewState extends State<SmartStockInView> {
                   '(Để trống nếu chưa biết)',
                   style: TextStyle(
                     fontSize: AppTextStyles.body1.fontSize,
-                    color: AppColors.textSecondary,
+                    color: Colors.grey.shade600,
                   ),
                 ),
               ],
@@ -1878,7 +1877,7 @@ class _SmartStockInViewState extends State<SmartStockInView> {
                     },
                     style: TextStyle(
                       fontSize: AppTextStyles.subtitle1.fontSize,
-                      color: AppColors.textPrimary,
+                      color: Colors.black87,
                     ),
                   ),
                 ),
@@ -1887,7 +1886,7 @@ class _SmartStockInViewState extends State<SmartStockInView> {
                   onPressed: _addNewSupplier,
                   icon: const Icon(
                     Icons.add_circle,
-                    color: AppColors.success,
+                    color: Colors.green,
                     size: 28,
                   ),
                   tooltip: 'Thêm NCC mới',
@@ -1920,7 +1919,7 @@ class _SmartStockInViewState extends State<SmartStockInView> {
                       () => _selectedPaymentMethod = selected ? method : null,
                     );
                   },
-                  selectedColor: AppColors.primary,
+                  selectedColor: Colors.blue.shade100,
                 );
               }).toList(),
             ),
@@ -1937,10 +1936,10 @@ class _SmartStockInViewState extends State<SmartStockInView> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: AppColors.outline,
+            color: Colors.grey.shade300,
             blurRadius: 4,
             offset: const Offset(0, -2),
           ),
@@ -1959,16 +1958,16 @@ class _SmartStockInViewState extends State<SmartStockInView> {
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: AppColors.warning,
+                  color: Colors.orange.shade50,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.warning),
+                  border: Border.all(color: Colors.orange.shade200),
                 ),
                 child: Row(
                   children: [
                     Icon(
                       Icons.info_outline,
                       size: 16,
-                      color: AppColors.warning,
+                      color: Colors.orange.shade700,
                     ),
                     const SizedBox(width: 8),
                     Expanded(
@@ -1976,7 +1975,7 @@ class _SmartStockInViewState extends State<SmartStockInView> {
                         'Thiếu: ${missingInfo.join(", ")}',
                         style: TextStyle(
                           fontSize: AppTextStyles.body1.fontSize,
-                          color: AppColors.warning,
+                          color: Colors.orange.shade700,
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
@@ -1997,11 +1996,11 @@ class _SmartStockInViewState extends State<SmartStockInView> {
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       side: BorderSide(
                         color: _canSaveDraft
-                            ? AppColors.warning
-                            : AppColors.textHint,
+                            ? Colors.amber.shade700
+                            : Colors.grey.shade400,
                       ),
                       foregroundColor: _canSaveDraft
-                          ? AppColors.warning
+                          ? Colors.amber.shade700
                           : null,
                     ),
                   ),
@@ -2020,16 +2019,16 @@ class _SmartStockInViewState extends State<SmartStockInView> {
                             height: 18,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              color: AppColors.surface,
+                              color: Colors.white,
                             ),
                           )
                         : const Icon(Icons.inventory_2, size: 18),
                     label: Text(_isSaving ? 'Đang lưu...' : 'LƯU VÀO HÀNG CHỜ'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _canConfirmNow
-                          ? AppColors.success
-                          : AppColors.textHint,
-                      foregroundColor: AppColors.surface,
+                          ? Colors.green
+                          : Colors.grey.shade400,
+                      foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                   ),
@@ -2085,7 +2084,7 @@ class _SmartStockInViewState extends State<SmartStockInView> {
               if (nameCtrl.text.trim().isEmpty) {
                 NotificationService.showSnackBar(
                   'Nhập tên NCC',
-                  color: AppColors.error,
+                  color: Colors.red,
                 );
                 return;
               }

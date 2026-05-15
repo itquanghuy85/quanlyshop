@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../theme/app_colors.dart';
 
 import '../../../expansion/safe_mode/expansion_feature_flags.dart';
 import '../../../expansion/safe_mode/branch_models.dart';
@@ -92,7 +91,7 @@ class _BranchSwitchViewState extends State<BranchSwitchView> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Đã chuyển sang chi nhánh "${chosen.name}"'),
-          backgroundColor: AppColors.success,
+          backgroundColor: Colors.green,
         ),
       );
       Navigator.pop(context, chosen);
@@ -101,7 +100,7 @@ class _BranchSwitchViewState extends State<BranchSwitchView> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Lỗi: ${e.toString()}'),
-          backgroundColor: AppColors.error,
+          backgroundColor: Colors.red,
         ),
       );
     } finally {
@@ -118,10 +117,10 @@ class _BranchSwitchViewState extends State<BranchSwitchView> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.lock_outline, size: 48, color: AppColors.warning),
+                  Icon(Icons.lock_outline, size: 48, color: Colors.orange),
                   SizedBox(height: 12),
                   Text('Module Multi-Branch chưa được bật.',
-                      style: TextStyle(color: AppColors.textHint)),
+                      style: TextStyle(color: Colors.grey)),
                 ],
               ),
             )
@@ -143,7 +142,7 @@ class _BranchSwitchViewState extends State<BranchSwitchView> {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      color: AppColors.primary,
+      color: Colors.blue.shade50,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -152,7 +151,7 @@ class _BranchSwitchViewState extends State<BranchSwitchView> {
           const SizedBox(height: 4),
           Text(
             'Dữ liệu sẽ được lọc theo chi nhánh bạn chọn.',
-            style: TextStyle(color: AppColors.primary, fontSize: 12),
+            style: TextStyle(color: Colors.blue.shade700, fontSize: 12),
           ),
         ],
       ),
@@ -170,10 +169,10 @@ class _BranchSwitchViewState extends State<BranchSwitchView> {
         return ListTile(
           leading: CircleAvatar(
             backgroundColor:
-                isSelected ? AppColors.primary : AppColors.background,
+                isSelected ? Colors.blue : Colors.grey.shade100,
             child: Icon(
               Icons.business_outlined,
-              color: isSelected ? AppColors.surface : AppColors.textHint,
+              color: isSelected ? Colors.white : Colors.grey.shade400,
               size: 20,
             ),
           ),
@@ -182,23 +181,23 @@ class _BranchSwitchViewState extends State<BranchSwitchView> {
             style: TextStyle(
               fontWeight:
                   isSelected ? FontWeight.bold : FontWeight.normal,
-              color: isSelected ? AppColors.primary : null,
+              color: isSelected ? Colors.blue.shade800 : null,
             ),
           ),
           subtitle: b.address != null && b.address!.isNotEmpty
               ? Text(b.address!,
                   style:
-                      const TextStyle(fontSize: 12, color: AppColors.textHint))
+                      const TextStyle(fontSize: 12, color: Colors.grey))
               : null,
           trailing: Radio<int?>(
             value: b.id,
             groupValue: _selectedId,
             onChanged: (v) => setState(() => _selectedId = v),
-            activeColor: AppColors.primary,
+            activeColor: Colors.blue,
           ),
           onTap: () => setState(() => _selectedId = b.id),
           selected: isSelected,
-          selectedTileColor: AppColors.primary,
+          selectedTileColor: Colors.blue.shade50,
         );
       },
     );
@@ -218,7 +217,7 @@ class _BranchSwitchViewState extends State<BranchSwitchView> {
                     width: 18,
                     height: 18,
                     child: CircularProgressIndicator(
-                        strokeWidth: 2, color: AppColors.surface),
+                        strokeWidth: 2, color: Colors.white),
                   )
                 : const Icon(Icons.check_circle_outline),
             label: const Text('Xác nhận', style: TextStyle(fontSize: 16)),

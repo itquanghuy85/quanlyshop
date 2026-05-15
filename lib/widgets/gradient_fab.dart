@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
 
 /// A beautiful gradient floating action button with press animation effects
 class GradientFab extends StatefulWidget {
@@ -214,13 +213,13 @@ class _GradientFabState extends State<GradientFab>
                 onTapUp: _onTapUp,
                 onTapCancel: _onTapCancel,
                 borderRadius: BorderRadius.circular(28),
-                splashColor: AppColors.surface.withAlpha(77),
-                highlightColor: AppColors.surface.withAlpha(26),
+                splashColor: Colors.white.withOpacity(0.3),
+                highlightColor: Colors.white.withOpacity(0.1),
                 child: Ink(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: isDisabled
-                          ? [AppColors.textHint, AppColors.textHint]
+                          ? [Colors.grey.shade400, Colors.grey.shade500]
                           : widget.gradientColors,
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
@@ -238,7 +237,7 @@ class _GradientFabState extends State<GradientFab>
                         Icon(
                           widget.icon,
                           size: 18,
-                          color: widget.iconColor ?? AppColors.surface,
+                          color: widget.iconColor ?? Colors.white,
                         ),
                         const SizedBox(width: 8),
                         Text(
@@ -246,7 +245,7 @@ class _GradientFabState extends State<GradientFab>
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
-                            color: widget.textColor ?? AppColors.surface,
+                            color: widget.textColor ?? Colors.white,
                             letterSpacing: 0.3,
                           ),
                         ),

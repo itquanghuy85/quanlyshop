@@ -222,7 +222,7 @@ class _StaffListViewState extends State<StaffListView> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AppColors.primaryLight.withAlpha(26),
+                    color: AppColors.primaryLight.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: AppColors.primaryLight),
                   ),
@@ -937,8 +937,8 @@ class _StaffListViewState extends State<StaffListView> {
               ),
             ),
           ),
-          backgroundColor: AppColors.surface,
-          foregroundColor: AppColors.textPrimary,
+          backgroundColor: Colors.transparent,
+          foregroundColor: Colors.white,
           elevation: 0,
           title: const Text("QUẢN LÝ NHÂN VIÊN"),
           automaticallyImplyLeading: true,
@@ -1092,16 +1092,16 @@ class _StaffListViewState extends State<StaffListView> {
                           leading: CircleAvatar(
                             backgroundImage: _safeImageProvider(photoUrl),
                             backgroundColor: role == 'owner'
-                                ? AppColors.primary.withAlpha(26)
+                                ? AppColors.primary.withOpacity(0.1)
                                 : role == 'manager'
-                                ? AppColors.secondary.withAlpha(26)
+                                ? AppColors.secondary.withOpacity(0.1)
                                 : role == 'employee'
-                                ? AppColors.info.withAlpha(26)
+                                ? AppColors.info.withOpacity(0.1)
                                 : role == 'technician'
-                                ? AppColors.success.withAlpha(26)
+                                ? AppColors.success.withOpacity(0.1)
                                 : role == 'admin'
-                                ? AppColors.error.withAlpha(26)
-                                : AppColors.inactive.withAlpha(26),
+                                ? AppColors.error.withOpacity(0.1)
+                                : AppColors.inactive.withOpacity(0.1),
                             child: photoUrl.isEmpty
                                 ? Icon(
                                     role == 'owner'
@@ -1756,7 +1756,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
                 messenger.showSnackBar(
                   const SnackBar(
                     content: Text("Đã cập nhật lịch làm việc"),
-                    backgroundColor: AppColors.success,
+                    backgroundColor: Colors.green,
                   ),
                 );
               },
@@ -1779,8 +1779,8 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
       label: Text(label),
       selected: isSelected,
       onSelected: onChanged,
-      selectedColor: AppColors.primary,
-      checkmarkColor: AppColors.primary,
+      selectedColor: Colors.blue.shade100,
+      checkmarkColor: Colors.blue,
     );
   }
 
@@ -1855,7 +1855,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
     if (!mounted) return;
     await showDialog(
       context: context,
-      barrierColor: AppColors.textPrimary,
+      barrierColor: Colors.black87,
       builder: (ctx) {
         final navigator = Navigator.of(ctx);
 
@@ -1870,11 +1870,11 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
                 imageUrl: avatarPath,
                 fit: BoxFit.contain,
                 placeholder: (context, _) => const Center(
-                  child: CircularProgressIndicator(color: AppColors.surface),
+                  child: CircularProgressIndicator(color: Colors.white),
                 ),
                 errorWidget: (context, _, __) => const Icon(
                   Icons.broken_image,
-                  color: AppColors.surface,
+                  color: Colors.white,
                   size: 48,
                 ),
               ),
@@ -1888,14 +1888,14 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
               builder: (context, snap) {
                 if (snap.connectionState == ConnectionState.waiting) {
                   return const Center(
-                    child: CircularProgressIndicator(color: AppColors.surface),
+                    child: CircularProgressIndicator(color: Colors.white),
                   );
                 }
                 final resolvedUrl = (snap.data ?? '').trim();
                 if (resolvedUrl.isEmpty) {
                   return const Icon(
                     Icons.broken_image,
-                    color: AppColors.surface,
+                    color: Colors.white,
                     size: 48,
                   );
                 }
@@ -1906,11 +1906,11 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
                     imageUrl: resolvedUrl,
                     fit: BoxFit.contain,
                     placeholder: (context, _) => const Center(
-                      child: CircularProgressIndicator(color: AppColors.surface),
+                      child: CircularProgressIndicator(color: Colors.white),
                     ),
                     errorWidget: (context, _, __) => const Icon(
                       Icons.broken_image,
-                      color: AppColors.surface,
+                      color: Colors.white,
                       size: 48,
                     ),
                   ),
@@ -1928,7 +1928,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
             );
           }
 
-          return const Icon(Icons.broken_image, color: AppColors.surface, size: 48);
+          return const Icon(Icons.broken_image, color: Colors.white, size: 48);
         }
 
         return Dialog(
@@ -1938,7 +1938,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
             children: [
               Container(
                 decoration: BoxDecoration(
-                  color: AppColors.textPrimary,
+                  color: Colors.black,
                   borderRadius: BorderRadius.circular(16),
                 ),
                 padding: const EdgeInsets.all(12),
@@ -1949,7 +1949,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
                 right: 4,
                 child: IconButton(
                   onPressed: () => navigator.pop(),
-                  icon: const Icon(Icons.close, color: AppColors.surface),
+                  icon: const Icon(Icons.close, color: Colors.white),
                 ),
               ),
             ],
@@ -2147,7 +2147,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
       messenger.showSnackBar(
         SnackBar(
           content: Text(errorMsg),
-          backgroundColor: AppColors.error,
+          backgroundColor: Colors.red,
           duration: const Duration(seconds: 5),
         ),
       );
@@ -2191,7 +2191,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('XÓA KHỎI SHOP'),
           ),
         ],
@@ -2210,7 +2210,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
       messenger.showSnackBar(
         SnackBar(
           content: Text('Đã xóa ${widget.name} khỏi cửa hàng'),
-          backgroundColor: AppColors.success,
+          backgroundColor: Colors.green,
         ),
       );
       navigator.pop(); // Close bottom sheet
@@ -2218,7 +2218,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
       debugPrint('Error removing user from shop: $e');
       if (!mounted) return;
       messenger.showSnackBar(
-        SnackBar(content: Text('Lỗi: $e'), backgroundColor: AppColors.error),
+        SnackBar(content: Text('Lỗi: $e'), backgroundColor: Colors.red),
       );
     } finally {
       if (mounted) setState(() => _removing = false);
@@ -2258,7 +2258,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
     return Container(
       height: MediaQuery.of(context).size.height * 0.9,
       decoration: const BoxDecoration(
-        color: AppColors.surface,
+        color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
       ),
       child: Column(
@@ -2268,7 +2268,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
             width: 40,
             height: 5,
             decoration: BoxDecoration(
-              color: AppColors.divider,
+              color: Colors.grey[300],
               borderRadius: BorderRadius.circular(10),
             ),
           ),
@@ -2282,9 +2282,9 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
                   child: CircleAvatar(
                     radius: 30,
                     backgroundImage: _safeImageProvider(_photoPath),
-                    backgroundColor: AppColors.primary.withAlpha(25),
+                    backgroundColor: Colors.blue.withAlpha(25),
                     child: (_photoPath == null || _photoPath!.trim().isEmpty)
-                        ? const Icon(Icons.camera_alt, color: AppColors.primary)
+                        ? const Icon(Icons.camera_alt, color: Colors.blue)
                         : null,
                   ),
                 ),
@@ -2304,7 +2304,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
                         widget.email,
                         style: TextStyle(
                           fontSize: AppTextStyles.subtitle1.fontSize,
-                          color: AppColors.textHint,
+                          color: Colors.grey,
                         ),
                       ),
                       if (widget.isSuperAdmin)
@@ -2312,7 +2312,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
                           "UID: ${widget.uid}",
                           style: TextStyle(
                             fontSize: AppTextStyles.body1.fontSize,
-                            color: AppColors.textHint,
+                            color: Colors.grey,
                           ),
                         ),
                     ],
@@ -2327,7 +2327,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
                         )
                       : Icon(
                           _isEditing ? Icons.check_circle : Icons.edit,
-                          color: _isEditing ? AppColors.success : AppColors.primary,
+                          color: _isEditing ? Colors.green : Colors.blue,
                         ),
                   onPressed: _isSavingStaff
                       ? null
@@ -2376,7 +2376,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
                   'Mẹo: Nhân viên bị khóa tab Nhân viên vẫn có thể tự đổi ảnh trong Cài đặt.',
                   style: TextStyle(
                     fontSize: AppTextStyles.body1.fontSize,
-                    color: AppColors.textSecondary,
+                    color: Colors.grey[600],
                   ),
                 ),
               ],
@@ -2398,7 +2398,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
                   Text(
                     'ĐANG LƯU CẬP NHẬT... VUI LÒNG CHỜ',
                     style: TextStyle(
-                      color: AppColors.textSecondary,
+                      color: Colors.blueGrey,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -2474,7 +2474,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
                               _roleLabel(_selectedRole),
                               style: TextStyle(
                                 fontSize: AppTextStyles.headline5.fontSize,
-                                color: AppColors.textSecondary,
+                                color: Colors.blueGrey,
                               ),
                             ),
                         ],
@@ -2488,7 +2488,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
                               "Cửa hàng của nhân viên: ${_staffShopId ?? 'Chưa gán'}",
                               style: TextStyle(
                                 fontSize: AppTextStyles.subtitle1.fontSize,
-                                color: AppColors.textHint,
+                                color: Colors.grey,
                               ),
                             ),
                           ),
@@ -2527,16 +2527,16 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
                           style: TextStyle(
                             fontSize: AppTextStyles.subtitle1.fontSize,
                             fontWeight: FontWeight.bold,
-                            color: AppColors.textSecondary,
+                            color: Colors.blueGrey[700],
                           ),
                         ),
                       ),
                       const SizedBox(height: 6),
                       Container(
                         decoration: BoxDecoration(
-                          color: AppColors.textHint,
+                          color: Colors.grey[50],
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppColors.textHint.withAlpha(51)),
+                          border: Border.all(color: Colors.grey.withAlpha(51)),
                         ),
                         child: Column(
                           children: [
@@ -2548,7 +2548,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
                                   "Tài khoản CHỦ SHOP/QUẢN LÝ luôn được xem đầy đủ mọi nội dung trong hệ thống.",
                                   style: TextStyle(
                                     fontSize: AppTextStyles.body1.fontSize,
-                                    color: AppColors.textHint,
+                                    color: Colors.grey,
                                   ),
                                 ),
                               )
@@ -2560,7 +2560,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
                                   style: TextStyle(
                                     fontSize: AppTextStyles.body1.fontSize,
                                     fontWeight: FontWeight.bold,
-                                    color: AppColors.textSecondary,
+                                    color: Colors.blueGrey,
                                   ),
                                 ),
                               ),
@@ -2575,7 +2575,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
                                   "Xem và tạo đơn bán máy / phụ kiện",
                                   style: TextStyle(
                                     fontSize: AppTextStyles.body1.fontSize,
-                                    color: AppColors.textHint,
+                                    color: Colors.grey,
                                   ),
                                 ),
                                 value: _canViewSales,
@@ -2596,7 +2596,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
                                     "Xem danh sách đơn sửa, tạo đơn mới",
                                     style: TextStyle(
                                       fontSize: AppTextStyles.body1.fontSize,
-                                      color: AppColors.textHint,
+                                      color: Colors.grey,
                                     ),
                                   ),
                                   value: _canViewRepairs,
@@ -2614,7 +2614,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
                                   "Xem hàng tồn kho và phụ kiện",
                                   style: TextStyle(
                                     fontSize: AppTextStyles.body1.fontSize,
-                                    color: AppColors.textHint,
+                                    color: Colors.grey,
                                   ),
                                 ),
                                 value: _canViewInventory,
@@ -2634,7 +2634,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
                                     "Quản lý linh kiện dùng cho sửa chữa",
                                     style: TextStyle(
                                       fontSize: AppTextStyles.body1.fontSize,
-                                      color: AppColors.textHint,
+                                      color: Colors.grey,
                                     ),
                                   ),
                                   value: _canViewParts,
@@ -2652,7 +2652,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
                                   "Xem sổ nhà phân phối, lịch sử nhập hàng",
                                   style: TextStyle(
                                     fontSize: AppTextStyles.body1.fontSize,
-                                    color: AppColors.textHint,
+                                    color: Colors.grey,
                                   ),
                                 ),
                                 value: _canViewSuppliers,
@@ -2670,7 +2670,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
                                   "Xem danh sách khách và lịch sử mua/sửa",
                                   style: TextStyle(
                                     fontSize: AppTextStyles.body1.fontSize,
-                                    color: AppColors.textHint,
+                                    color: Colors.grey,
                                   ),
                                 ),
                                 value: _canViewCustomers,
@@ -2688,7 +2688,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
                                   "Truy cập sổ bảo hành của cửa hàng",
                                   style: TextStyle(
                                     fontSize: AppTextStyles.body1.fontSize,
-                                    color: AppColors.textHint,
+                                    color: Colors.grey,
                                   ),
                                 ),
                                 value: _canViewWarranty,
@@ -2706,7 +2706,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
                                   "Cho phép sử dụng phòng chat trong cửa hàng",
                                   style: TextStyle(
                                     fontSize: AppTextStyles.body1.fontSize,
-                                    color: AppColors.textHint,
+                                    color: Colors.grey,
                                   ),
                                 ),
                                 value: _canViewChat,
@@ -2724,7 +2724,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
                                   "Cho phép chấm công và xem báo cáo chấm công",
                                   style: TextStyle(
                                     fontSize: AppTextStyles.body1.fontSize,
-                                    color: AppColors.textHint,
+                                    color: Colors.grey,
                                   ),
                                 ),
                                 value: _canViewAttendance,
@@ -2742,7 +2742,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
                                   "Kết nối và in hóa đơn qua Bluetooth",
                                   style: TextStyle(
                                     fontSize: AppTextStyles.body1.fontSize,
-                                    color: AppColors.textHint,
+                                    color: Colors.grey,
                                   ),
                                 ),
                                 value: _canViewPrinter,
@@ -2762,7 +2762,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
                                     style: TextStyle(
                                       fontSize: AppTextStyles.body1.fontSize,
                                       fontWeight: FontWeight.bold,
-                                      color: AppColors.textSecondary,
+                                      color: Colors.blueGrey,
                                     ),
                                   ),
                                 ),
@@ -2778,7 +2778,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
                                   "Bao gồm báo cáo lời/lỗ, doanh số bán và sửa",
                                   style: TextStyle(
                                     fontSize: AppTextStyles.body1.fontSize,
-                                    color: AppColors.textHint,
+                                    color: Colors.grey,
                                   ),
                                 ),
                                 value: _canViewRevenue,
@@ -2796,7 +2796,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
                                   "Xem và quản lý các khoản chi ra của cửa hàng",
                                   style: TextStyle(
                                     fontSize: AppTextStyles.body1.fontSize,
-                                    color: AppColors.textHint,
+                                    color: Colors.grey,
                                   ),
                                 ),
                                 value: _canViewExpenses,
@@ -2814,7 +2814,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
                                   "Bao gồm khách nợ shop và shop nợ nhà cung cấp",
                                   style: TextStyle(
                                     fontSize: AppTextStyles.body1.fontSize,
-                                    color: AppColors.textHint,
+                                    color: Colors.grey,
                                   ),
                                 ),
                                 value: _canViewDebts,
@@ -2834,7 +2834,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
                                     style: TextStyle(
                                       fontSize: AppTextStyles.body1.fontSize,
                                       fontWeight: FontWeight.bold,
-                                      color: AppColors.repairDelivered,
+                                      color: Colors.purple,
                                     ),
                                   ),
                                 ),
@@ -2850,7 +2850,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
                                   "Xem danh sách và phân quyền nhân viên",
                                   style: TextStyle(
                                     fontSize: AppTextStyles.body1.fontSize,
-                                    color: AppColors.textHint,
+                                    color: Colors.grey,
                                   ),
                                 ),
                                 value: _canManageStaffPerm,
@@ -2868,7 +2868,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
                                   "Truy cập màn hình cài đặt cửa hàng",
                                   style: TextStyle(
                                     fontSize: AppTextStyles.body1.fontSize,
-                                    color: AppColors.textHint,
+                                    color: Colors.grey,
                                   ),
                                 ),
                                 value: _canViewSettingsPerm,
@@ -2892,7 +2892,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
           TabBar(
             controller: _tabController,
             labelColor: Colors.blueAccent,
-            unselectedLabelColor: AppColors.textHint,
+            unselectedLabelColor: Colors.grey,
             labelStyle: TextStyle(
               fontSize: AppTextStyles.body1.fontSize,
               fontWeight: FontWeight.bold,
@@ -2942,7 +2942,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
         keyboardType: type,
         style: TextStyle(
           fontSize: AppTextStyles.headline4.fontSize,
-          color: AppColors.textPrimary,
+          color: Colors.black,
         ),
         decoration: InputDecoration(
           labelText: label,
@@ -2957,13 +2957,13 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
             borderSide: BorderSide(color: Colors.blueAccent, width: 2),
           ),
           errorBorder: const OutlineInputBorder(
-            borderSide: BorderSide(color: AppColors.error, width: 1),
+            borderSide: BorderSide(color: Colors.red, width: 1),
           ),
           focusedErrorBorder: const OutlineInputBorder(
-            borderSide: BorderSide(color: AppColors.error, width: 2),
+            borderSide: BorderSide(color: Colors.red, width: 2),
           ),
           contentPadding: const EdgeInsets.all(10),
-          fillColor: AppColors.surface,
+          fillColor: Colors.white,
           filled: true,
         ),
       ),
@@ -3022,7 +3022,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
           onPressed: _removing ? null : _removeFromShop,
           icon: Icons.person_remove,
           label: 'Xóa khỏi shop',
-          color: AppColors.error,
+          color: Colors.red,
           loading: _removing,
         ),
     ];
@@ -3089,7 +3089,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
         child: Text(
           "Không có dữ liệu",
           style: TextStyle(
-            color: AppColors.textHint,
+            color: Colors.grey,
             fontSize: AppTextStyles.subtitle1.fontSize,
           ),
         ),
@@ -3146,7 +3146,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
                               '${r.customerName} • ${r.phone}',
                               style: TextStyle(
                                 fontSize: AppTextStyles.body1.fontSize,
-                                color: AppColors.textSecondary,
+                                color: Colors.grey.shade700,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -3169,7 +3169,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
                             child: Text(
                               statusLabel,
                               style: const TextStyle(
-                                color: AppColors.surface,
+                                color: Colors.white,
                                 fontSize: AppTextStyles.overlineSize,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -3180,7 +3180,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
                             dateStr,
                             style: TextStyle(
                               fontSize: AppTextStyles.caption.fontSize,
-                              color: AppColors.textSecondary,
+                              color: Colors.grey.shade600,
                             ),
                           ),
                         ],
@@ -3193,12 +3193,12 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
                     runSpacing: 4,
                     children: [
                       if (r.issue.isNotEmpty)
-                        _infoChip('🛠️ ${r.issue}', AppColors.warning),
+                        _infoChip('🛠️ ${r.issue}', Colors.orange.shade100),
                       if ((r.imei ?? '').trim().isNotEmpty)
-                        _infoChip('🔎 ${r.imei}', AppColors.primary),
+                        _infoChip('🔎 ${r.imei}', Colors.blue.shade100),
                       _infoChip(
                         '💰 ${MoneyUtils.formatVND(r.price)}đ',
-                        AppColors.success,
+                        Colors.green.shade100,
                       ),
                     ],
                   ),
@@ -3217,7 +3217,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
         child: Text(
           "Không có dữ liệu",
           style: TextStyle(
-            color: AppColors.textHint,
+            color: Colors.grey,
             fontSize: AppTextStyles.subtitle1.fontSize,
           ),
         ),
@@ -3240,7 +3240,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
-            side: BorderSide(color: AppColors.success.withAlpha(64)),
+            side: BorderSide(color: Colors.green.withOpacity(0.25)),
           ),
           child: InkWell(
             borderRadius: BorderRadius.circular(12),
@@ -3273,7 +3273,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
                               '${s.customerName} • ${s.phone}',
                               style: TextStyle(
                                 fontSize: AppTextStyles.body1.fontSize,
-                                color: AppColors.textSecondary,
+                                color: Colors.grey.shade700,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -3290,13 +3290,13 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
                               vertical: 3,
                             ),
                             decoration: BoxDecoration(
-                              color: isPaid ? AppColors.success : AppColors.warning,
+                              color: isPaid ? Colors.green : Colors.orange,
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
                               isPaid ? 'ĐÃ THU' : 'CÒN NỢ',
                               style: const TextStyle(
-                                color: AppColors.surface,
+                                color: Colors.white,
                                 fontSize: AppTextStyles.overlineSize,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -3307,7 +3307,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
                             date,
                             style: TextStyle(
                               fontSize: AppTextStyles.caption.fontSize,
-                              color: AppColors.textSecondary,
+                              color: Colors.grey.shade600,
                             ),
                           ),
                         ],
@@ -3321,23 +3321,23 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
                     children: [
                       _saleInfoChip(
                         '💰 ${fmt.format(s.finalPrice)}đ',
-                        AppColors.primary,
+                        Colors.blue.shade100,
                       ),
                       if (s.downPayment > 0)
                         _saleInfoChip(
                           '✅ ${fmt.format(s.downPayment)}đ',
-                          AppColors.success,
+                          Colors.green.shade100,
                         ),
                       if (remain > 0)
                         _saleInfoChip(
                           '⚠️ Nợ ${fmt.format(remain)}đ',
-                          AppColors.error,
+                          Colors.red.shade100,
                         ),
                       _saleInfoChip(
                         '💳 ${s.paymentMethod}',
                         _getPayColor(s.paymentMethod).withAlpha(40),
                       ),
-                      _saleInfoChip('👤 ${s.sellerName}', AppColors.primary),
+                      _saleInfoChip('👤 ${s.sellerName}', Colors.blue.shade100),
                     ],
                   ),
                 ],
@@ -3375,7 +3375,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
       case 4:
         return AppColors.repairDelivered;
       default:
-        return AppColors.textHint;
+        return Colors.grey;
     }
   }
 
@@ -3427,7 +3427,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
         child: Text(
           "Chưa có lịch làm việc\nNhấn nút 'Chỉnh sửa' để thiết lập",
           style: TextStyle(
-            color: AppColors.textHint,
+            color: Colors.grey,
             fontSize: AppTextStyles.subtitle1.fontSize,
           ),
           textAlign: TextAlign.center,
@@ -3467,26 +3467,26 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
               children: [
                 _buildScheduleRow(
                   Icons.access_time,
-                  AppColors.primary,
+                  Colors.blue,
                   "Giờ làm việc: ${_workSchedule!['startTime'] ?? '08:00'} - ${_workSchedule!['endTime'] ?? '17:00'}",
                   bold: true,
                 ),
                 const SizedBox(height: 8),
                 _buildScheduleRow(
                   Icons.free_breakfast,
-                  AppColors.warning,
+                  Colors.orange,
                   "Giờ nghỉ: ${_workSchedule!['breakTime'] ?? 1} giờ",
                 ),
                 const SizedBox(height: 8),
                 _buildScheduleRow(
                   Icons.timer,
-                  AppColors.success,
+                  Colors.green,
                   "OT tối đa: ${_workSchedule!['maxOtHours'] ?? 4} giờ/ngày",
                 ),
                 const SizedBox(height: 8),
                 _buildScheduleRow(
                   Icons.calendar_today,
-                  AppColors.primary,
+                  Colors.blue,
                   "Ngày làm việc: ${_formatWorkDays(_workSchedule!['workDays'])}",
                 ),
               ],

@@ -24,7 +24,7 @@ class NotificationItem extends StatelessWidget {
     return ListTile(
       leading: CircleAvatar(
         backgroundColor: _getTypeColor(type),
-        child: Icon(_getTypeIcon(type), color: AppColors.surface),
+        child: Icon(_getTypeIcon(type), color: Colors.white),
       ),
       title: Text(
         notification['title'] ?? '',
@@ -39,28 +39,28 @@ class NotificationItem extends StatelessWidget {
           if (createdAt != null)
             Text(
               _formatTime(createdAt.toDate()),
-              style: AppTextStyles.caption.copyWith(color: AppColors.onSurface.withAlpha(153)),
+              style: AppTextStyles.caption.copyWith(color: AppColors.onSurface.withOpacity(0.6)),
             ),
         ],
       ),
       trailing: isRead
         ? null
         : IconButton(
-          icon: const Icon(Icons.circle, color: AppColors.primary),
+          icon: const Icon(Icons.circle, color: Colors.blue),
           onPressed: onMarkAsRead,
         ),
       onTap: onTap,
-      tileColor: isRead ? null : AppColors.primary.withAlpha(26),
+      tileColor: isRead ? null : Colors.blue.withOpacity(0.1),
     );
   }
 
   Color _getTypeColor(String type) {
     switch (type) {
-      case 'repair': return AppColors.warning;
-      case 'sale': return AppColors.success;
-      case 'payment': return AppColors.primary;
-      case 'inventory': return AppColors.error;
-      default: return AppColors.textHint;
+      case 'repair': return Colors.orange;
+      case 'sale': return Colors.green;
+      case 'payment': return Colors.blue;
+      case 'inventory': return Colors.red;
+      default: return Colors.grey;
     }
   }
 

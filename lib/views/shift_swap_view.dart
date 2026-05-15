@@ -98,7 +98,7 @@ class _ShiftSwapViewState extends State<ShiftSwapView>
         _loadingRole = false;
         _canReview = false;
       });
-      NotificationService.showSnackBar('Không tải được quyền đổi ca: $e', color: AppColors.error);
+      NotificationService.showSnackBar('Không tải được quyền đổi ca: $e', color: Colors.red);
     }
   }
 
@@ -134,9 +134,9 @@ class _ShiftSwapViewState extends State<ShiftSwapView>
         bottom: TabBar(
           controller: _tabController,
           tabs: tabs,
-          labelColor: AppColors.surface,
+          labelColor: Colors.white,
           unselectedLabelColor: Colors.white70,
-          indicatorColor: AppColors.surface,
+          indicatorColor: Colors.white,
         ),
       ),
       body: ResponsiveCenter(
@@ -205,9 +205,9 @@ class _ShiftSwapViewState extends State<ShiftSwapView>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.swap_horizontal_circle_outlined, size: 72, color: AppColors.outline),
+          Icon(Icons.swap_horizontal_circle_outlined, size: 72, color: Colors.grey.shade300),
           const SizedBox(height: 10),
-          Text(title, style: TextStyle(color: AppColors.textSecondary, fontSize: AppTextStyles.body1Size)),
+          Text(title, style: TextStyle(color: Colors.grey.shade600, fontSize: AppTextStyles.body1Size)),
           const SizedBox(height: 12),
           OutlinedButton.icon(
             onPressed: _showCreateDialog,
@@ -244,7 +244,7 @@ class _ShiftSwapViewState extends State<ShiftSwapView>
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: statusColor.withAlpha(31),
+                    color: statusColor.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: Text(
@@ -266,17 +266,17 @@ class _ShiftSwapViewState extends State<ShiftSwapView>
             const SizedBox(height: 6),
             Text(
               'Tạo lúc: ${_fmtMs(item.createdAt)}',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: AppTextStyles.captionSize),
+              style: TextStyle(color: Colors.grey.shade700, fontSize: AppTextStyles.captionSize),
             ),
             if (item.reviewedAt != null)
               Text(
                 'Xử lý lúc: ${_fmtMs(item.reviewedAt!)}',
-                style: TextStyle(color: AppColors.textSecondary, fontSize: AppTextStyles.captionSize),
+                style: TextStyle(color: Colors.grey.shade700, fontSize: AppTextStyles.captionSize),
               ),
             if ((item.rejectReason ?? '').isNotEmpty)
               Text(
                 'Lý do từ chối: ${item.rejectReason}',
-                style: TextStyle(color: AppColors.error, fontSize: AppTextStyles.captionSize),
+                style: TextStyle(color: Colors.red.shade700, fontSize: AppTextStyles.captionSize),
               ),
             const SizedBox(height: 8),
             Row(
@@ -438,7 +438,7 @@ class _ShiftSwapViewState extends State<ShiftSwapView>
                           if (currentShift == desiredShift) {
                             NotificationService.showSnackBar(
                               'Ca hiện tại và ca muốn đổi không được trùng nhau',
-                              color: AppColors.warning,
+                              color: Colors.orange,
                             );
                             return;
                           }
@@ -457,10 +457,10 @@ class _ShiftSwapViewState extends State<ShiftSwapView>
                             Navigator.pop(ctx);
                             NotificationService.showSnackBar(
                               '✅ Đã gửi yêu cầu đổi ca',
-                              color: AppColors.success,
+                              color: Colors.green,
                             );
                           } catch (e) {
-                            NotificationService.showSnackBar('❌ Không thể gửi yêu cầu: $e', color: AppColors.error);
+                            NotificationService.showSnackBar('❌ Không thể gửi yêu cầu: $e', color: Colors.red);
                           } finally {
                             if (ctx.mounted) {
                               setS(() => submitting = false);
@@ -490,9 +490,9 @@ class _ShiftSwapViewState extends State<ShiftSwapView>
   Future<void> _approve(ShiftSwapRequest item) async {
     try {
       await ShiftSwapService.approveRequest(item);
-      NotificationService.showSnackBar('✅ Đã duyệt yêu cầu đổi ca', color: AppColors.success);
+      NotificationService.showSnackBar('✅ Đã duyệt yêu cầu đổi ca', color: Colors.green);
     } catch (e) {
-      NotificationService.showSnackBar('❌ Duyệt thất bại: $e', color: AppColors.error);
+      NotificationService.showSnackBar('❌ Duyệt thất bại: $e', color: Colors.red);
     }
   }
 
@@ -524,9 +524,9 @@ class _ShiftSwapViewState extends State<ShiftSwapView>
     if (result == null) return;
     try {
       await ShiftSwapService.rejectRequest(item, reason: result);
-      NotificationService.showSnackBar('✅ Đã từ chối yêu cầu đổi ca', color: AppColors.warning);
+      NotificationService.showSnackBar('✅ Đã từ chối yêu cầu đổi ca', color: Colors.orange);
     } catch (e) {
-      NotificationService.showSnackBar('❌ Từ chối thất bại: $e', color: AppColors.error);
+      NotificationService.showSnackBar('❌ Từ chối thất bại: $e', color: Colors.red);
     }
   }
 
@@ -546,22 +546,22 @@ class _ShiftSwapViewState extends State<ShiftSwapView>
 
     try {
       await ShiftSwapService.cancelRequest(item);
-      NotificationService.showSnackBar('✅ Đã huỷ yêu cầu', color: AppColors.success);
+      NotificationService.showSnackBar('✅ Đã huỷ yêu cầu', color: Colors.green);
     } catch (e) {
-      NotificationService.showSnackBar('❌ Không thể huỷ yêu cầu: $e', color: AppColors.error);
+      NotificationService.showSnackBar('❌ Không thể huỷ yêu cầu: $e', color: Colors.red);
     }
   }
 
   Color _statusColor(String status) {
     switch (status) {
       case 'approved':
-        return AppColors.success;
+        return Colors.green;
       case 'rejected':
-        return AppColors.error;
+        return Colors.red;
       case 'cancelled':
-        return AppColors.textHint;
+        return Colors.grey;
       default:
-        return AppColors.warning;
+        return Colors.orange;
     }
   }
 

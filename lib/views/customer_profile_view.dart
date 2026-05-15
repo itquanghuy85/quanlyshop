@@ -3,19 +3,14 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
 import '../core/utils/money_utils.dart';
-import '../data/db_helper.dart';
 import '../models/customer_model.dart';
 import '../services/customer_service.dart';
 import '../services/notification_service.dart';
 import '../services/storage_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
-import '../theme/app_spacing.dart';
-import '../theme/design_tokens.dart';
 import '../widgets/entity_avatar.dart';
 import '../widgets/responsive_wrapper.dart';
-import 'repair_detail_view.dart';
-import 'sale_detail_view.dart';
 
 class CustomerProfileView extends StatefulWidget {
   final Customer customer;
@@ -81,7 +76,7 @@ class _CustomerProfileViewState extends State<CustomerProfileView> {
       if (!mounted) return;
       setState(() => _history = data);
     } catch (e) {
-      NotificationService.showSnackBar('Không tải được lịch sử: $e', color: AppColors.error);
+      NotificationService.showSnackBar('Không tải được lịch sử: $e', color: Colors.red);
     } finally {
       if (mounted) setState(() => _loadingHistory = false);
     }
@@ -101,7 +96,7 @@ class _CustomerProfileViewState extends State<CustomerProfileView> {
     });
     NotificationService.showSnackBar(
       'Đã chọn ảnh khách hàng. Nhấn Lưu để tải lên.',
-      color: AppColors.primary,
+      color: Colors.blue,
     );
   }
 
@@ -110,7 +105,7 @@ class _CustomerProfileViewState extends State<CustomerProfileView> {
     final name = _nameCtrl.text.trim();
     final phone = _phoneCtrl.text.trim();
     if (name.isEmpty || phone.isEmpty) {
-      NotificationService.showSnackBar('Tên và số điện thoại là bắt buộc', color: AppColors.error);
+      NotificationService.showSnackBar('Tên và số điện thoại là bắt buộc', color: Colors.red);
       return;
     }
 
@@ -122,7 +117,7 @@ class _CustomerProfileViewState extends State<CustomerProfileView> {
       if (_pendingAvatarPath != null && _pendingAvatarPath!.trim().isNotEmpty) {
         NotificationService.showSnackBar(
           'Đang tải ảnh khách hàng lên hệ thống...',
-          color: AppColors.primary,
+          color: Colors.blue,
           duration: const Duration(seconds: 6),
         );
         final urls = await StorageService.uploadMultipleImages([
@@ -131,7 +126,7 @@ class _CustomerProfileViewState extends State<CustomerProfileView> {
         if (urls.isEmpty || urls.first.trim().isEmpty) {
           NotificationService.showSnackBar(
             'Tải ảnh khách hàng thất bại, vui lòng thử lại',
-            color: AppColors.error,
+            color: Colors.red,
           );
           return;
         }
@@ -151,15 +146,15 @@ class _CustomerProfileViewState extends State<CustomerProfileView> {
       final ok = await _service.updateCustomer(updated);
       if (!mounted) return;
       if (!ok) {
-        NotificationService.showSnackBar('Lưu khách hàng thất bại', color: AppColors.error);
+        NotificationService.showSnackBar('Lưu khách hàng thất bại', color: Colors.red);
         return;
       }
       _avatarUrl = finalAvatarUrl;
       _pendingAvatarPath = null;
-      NotificationService.showSnackBar('Đã lưu hồ sơ khách hàng', color: AppColors.success);
+      NotificationService.showSnackBar('Đã lưu hồ sơ khách hàng', color: Colors.green);
       Navigator.pop(context, updated);
     } catch (e) {
-      NotificationService.showSnackBar('Lỗi lưu khách hàng: $e', color: AppColors.error);
+      NotificationService.showSnackBar('Lỗi lưu khách hàng: $e', color: Colors.red);
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -175,7 +170,7 @@ class _CustomerProfileViewState extends State<CustomerProfileView> {
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Hủy')),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Xóa', style: TextStyle(color: AppColors.error)),
+            child: const Text('Xóa', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -189,36 +184,13 @@ class _CustomerProfileViewState extends State<CustomerProfileView> {
       final deleted = await _service.deleteCustomer(id);
       if (!mounted) return;
       if (!deleted) {
-        NotificationService.showSnackBar('Xóa khách hàng thất bại', color: AppColors.error);
+        NotificationService.showSnackBar('Xóa khách hàng thất bại', color: Colors.red);
         return;
       }
-      NotificationService.showSnackBar('Đã xóa khách hàng', color: AppColors.success);
+      NotificationService.showSnackBar('Đã xóa khách hàng', color: Colors.green);
       Navigator.pop(context, {'deleted': true});
     } finally {
       if (mounted) setState(() => _saving = false);
-    }
-  }
-
-  Future<void> _openOrder(Map<String, dynamic> h) async {
-    final type = (h['type'] ?? '').toString();
-    final id = (h['id'] as num?)?.toInt();
-    if (id == null) return;
-    if (type == 'sale') {
-      final sale = await DBHelper().getSaleById(id);
-      if (!mounted) return;
-      if (sale == null) {
-        NotificationService.showSnackBar('Không tìm thấy đơn bán', color: AppColors.warning);
-        return;
-      }
-      await Navigator.push(context, MaterialPageRoute(builder: (_) => SaleDetailView(sale: sale)));
-    } else if (type == 'repair') {
-      final repair = await DBHelper().getRepairById(id);
-      if (!mounted) return;
-      if (repair == null) {
-        NotificationService.showSnackBar('Không tìm thấy đơn sửa', color: AppColors.warning);
-        return;
-      }
-      await Navigator.push(context, MaterialPageRoute(builder: (_) => RepairDetailView(repair: repair)));
     }
   }
 
@@ -232,30 +204,38 @@ class _CustomerProfileViewState extends State<CustomerProfileView> {
   Widget build(BuildContext context) {
     final totalSpent = (_history['totalSpent'] as int?) ?? widget.customer.totalSpent;
     final totalRepair = (_history['totalRepairCost'] as int?) ?? widget.customer.totalRepairCost;
+    final avatarProvider = EntityAvatar.imageProviderFromUrl(_avatarUrl);
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Hồ sơ khách hàng'),
-        backgroundColor: AppColors.surface,
-        foregroundColor: AppColors.textPrimary,
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
         flexibleSpace: Container(
           decoration: const BoxDecoration(
-            gradient: AppColors.primaryGradient,
+            gradient: LinearGradient(
+              colors: [Color(0xFF0A56C2), Color(0xFF0E74DB)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
           ),
         ),
       ),
       body: ResponsiveCenter(
         child: ListView(
-          padding: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.only(bottom: 24),
           children: [
-            // ── Header banner ──────────────────────────────────────
             Container(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 14),
               decoration: const BoxDecoration(
-                gradient: AppColors.primaryGradient,
+                gradient: LinearGradient(
+                  colors: [Color(0xFF0E74DB), Color(0xFF5AA6F4)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
               ),
-              child: Row(
+              child: Column(
                 children: [
                   GestureDetector(
                     onTap: () => EntityAvatar.showPreview(
@@ -263,69 +243,81 @@ class _CustomerProfileViewState extends State<CustomerProfileView> {
                       _avatarUrl,
                       _nameCtrl.text.trim(),
                     ),
-                    child: Stack(
-                      children: [
-                        EntityAvatar(
-                          imageUrl: _avatarUrl,
-                          name: _nameCtrl.text.trim().isEmpty ? 'KH' : _nameCtrl.text.trim(),
-                          radius: 28,
-                        ),
-                        Positioned(
-                          bottom: 0,
-                          right: 0,
-                          child: GestureDetector(
-                            onTap: _pickAvatar,
-                            child: Container(
-                              width: 20,
-                              height: 20,
-                              decoration: const BoxDecoration(
-                                color: AppColors.surface,
-                                shape: BoxShape.circle,
+                    child: Container(
+                      height: 190,
+                      width: double.infinity,
+                      clipBehavior: Clip.antiAlias,
+                      decoration: BoxDecoration(
+                        color: Colors.blueGrey.shade200,
+                        borderRadius: BorderRadius.circular(12),
+                        image: avatarProvider != null
+                            ? DecorationImage(
+                                image: avatarProvider,
+                                fit: BoxFit.contain,
+                              )
+                            : null,
+                      ),
+                      child: Stack(
+                        children: [
+                          if (avatarProvider == null)
+                            Center(
+                              child: Text(
+                                'Thêm ảnh khách hàng',
+                                style: AppTextStyles.body1.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
-                              child: const Icon(Icons.camera_alt, size: 12, color: AppColors.primary),
+                            ),
+                          Positioned(
+                            top: 8,
+                            right: 8,
+                            child: Row(
+                              children: [
+                                if (avatarProvider != null)
+                                  IconButton(
+                                    tooltip: 'Xem ảnh lớn',
+                                    onPressed: () => EntityAvatar.showPreview(
+                                      context,
+                                      _avatarUrl,
+                                      _nameCtrl.text,
+                                    ),
+                                    icon: const Icon(Icons.fullscreen, color: Colors.white),
+                                  ),
+                                IconButton(
+                                  tooltip: 'Đổi ảnh',
+                                  onPressed: _pickAvatar,
+                                  icon: const Icon(Icons.camera_alt, color: Colors.white),
+                                ),
+                              ],
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _nameCtrl.text.trim().isEmpty ? 'Khách hàng' : _nameCtrl.text.trim(),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppTextStyles.headline6.copyWith(
-                            color: AppColors.surface,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          _phoneCtrl.text.trim(),
-                          style: AppTextStyles.body2.copyWith(color: Colors.white70),
-                        ),
-                        if (_emailCtrl.text.trim().isNotEmpty)
-                          Text(
-                            _emailCtrl.text.trim(),
-                            style: AppTextStyles.caption.copyWith(color: Colors.white60),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                      ],
+                  const SizedBox(height: 10),
+                  Text(
+                    _nameCtrl.text.trim().isEmpty ? 'Khách hàng' : _nameCtrl.text.trim(),
+                    maxLines: 2,
+                    textAlign: TextAlign.center,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.headline2.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
                     ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    _phoneCtrl.text.trim(),
+                    style: AppTextStyles.subtitle1.copyWith(color: Colors.white70),
                   ),
                 ],
               ),
             ),
-
-            // ── Stat cards ─────────────────────────────────────────
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
             Padding(
-              padding: AppSpacing.phMd,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
               child: Row(
                 children: [
                   Expanded(
@@ -354,22 +346,19 @@ class _CustomerProfileViewState extends State<CustomerProfileView> {
                 ],
               ),
             ),
-
-            // ── Quick actions card ──────────────────────────────────
-            AppSpacing.gapMd,
-            _sectionCard(
-              label: 'TÁC VỤ NHANH',
-              icon: Icons.flash_on_rounded,
-              iconBg: AppColors.iconBgYellow,
-              iconColor: AppColors.warning,
+            const SizedBox(height: 12),
+            Card(
+              margin: const EdgeInsets.symmetric(horizontal: 12),
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(14, 4, 14, 10),
+                padding: const EdgeInsets.all(14),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Text('Tác vụ nhanh', style: AppTextStyles.headline6),
+                    const SizedBox(height: 10),
                     Wrap(
-                      spacing: AppSpacing.sm,
-                      runSpacing: AppSpacing.xs,
+                      spacing: 8,
+                      runSpacing: 8,
                       children: [
                         _actionChip('Tất cả', 'all'),
                         _actionChip('Mua bán', 'sale'),
@@ -383,16 +372,16 @@ class _CustomerProfileViewState extends State<CustomerProfileView> {
                         Expanded(
                           child: OutlinedButton.icon(
                             onPressed: _saving ? null : _save,
-                            icon: const Icon(Icons.save, size: DesignTokens.iconMd),
-                            label: const Text('Lưu'),
+                            icon: const Icon(Icons.save),
+                            label: const Text('Chỉnh sửa và Lưu'),
                           ),
                         ),
-                        AppSpacing.hSm,
+                        const SizedBox(width: 8),
                         Expanded(
                           child: OutlinedButton.icon(
                             onPressed: _saving ? null : _deleteCustomer,
-                            icon: const Icon(Icons.delete_outline, size: DesignTokens.iconMd, color: AppColors.error),
-                            label: const Text('Xóa', style: TextStyle(color: AppColors.error)),
+                            icon: const Icon(Icons.delete_outline, color: Colors.red),
+                            label: const Text('Xóa', style: TextStyle(color: Colors.red)),
                           ),
                         ),
                       ],
@@ -401,42 +390,40 @@ class _CustomerProfileViewState extends State<CustomerProfileView> {
                 ),
               ),
             ),
-
-            // ── Customer info card ──────────────────────────────────
-            AppSpacing.gapMd,
-            _sectionCard(
-              label: 'THÔNG TIN KHÁCH HÀNG',
-              icon: Icons.person_outline_rounded,
-              iconBg: AppColors.iconBgBlue,
-              iconColor: AppColors.primary,
+            const SizedBox(height: 12),
+            Card(
+              margin: const EdgeInsets.symmetric(horizontal: 12),
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(14, 4, 14, 12),
+                padding: const EdgeInsets.all(14),
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Text('Thông tin khách hàng', style: AppTextStyles.headline6),
+                    const SizedBox(height: 10),
                     TextField(
                       controller: _nameCtrl,
                       decoration: const InputDecoration(labelText: 'Họ và tên', prefixIcon: Icon(Icons.person)),
                       onChanged: (_) => setState(() {}),
                     ),
-                    AppSpacing.gapSm,
+                    const SizedBox(height: 10),
                     TextField(
                       controller: _phoneCtrl,
                       keyboardType: TextInputType.phone,
                       decoration: const InputDecoration(labelText: 'Số điện thoại', prefixIcon: Icon(Icons.phone)),
                     ),
-                    AppSpacing.gapSm,
+                    const SizedBox(height: 10),
                     TextField(
                       controller: _emailCtrl,
                       keyboardType: TextInputType.emailAddress,
                       decoration: const InputDecoration(labelText: 'Email', prefixIcon: Icon(Icons.email)),
                     ),
-                    AppSpacing.gapSm,
+                    const SizedBox(height: 10),
                     TextField(
                       controller: _addressCtrl,
                       maxLines: 2,
                       decoration: const InputDecoration(labelText: 'Địa chỉ', prefixIcon: Icon(Icons.location_on)),
                     ),
-                    AppSpacing.gapSm,
+                    const SizedBox(height: 10),
                     TextField(
                       controller: _notesCtrl,
                       maxLines: 3,
@@ -446,162 +433,69 @@ class _CustomerProfileViewState extends State<CustomerProfileView> {
                 ),
               ),
             ),
-
-            // ── Transaction history card ────────────────────────────
-            AppSpacing.gapMd,
-            _sectionCard(
-              label: 'LỊCH SỬ GIAO DỊCH',
-              icon: Icons.history_rounded,
-              iconBg: AppColors.iconBgGreen,
-              iconColor: AppColors.success,
-              trailing: _loadingHistory
-                  ? const SizedBox(
-                      width: DesignTokens.iconSm,
-                      height: DesignTokens.iconSm,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : null,
-              child: _filteredHistory.isEmpty
-                  ? Padding(
-                      padding: const EdgeInsets.fromLTRB(14, 4, 14, 12),
-                      child: Text('Chưa có lịch sử phù hợp', style: AppTextStyles.caption),
-                    )
-                  : Column(
+            const SizedBox(height: 12),
+            Card(
+              margin: const EdgeInsets.symmetric(horizontal: 12),
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
                       children: [
-                        ..._filteredHistory.take(20).map((h) {
-                          final dateMs = (h['date'] as int?) ?? 0;
-                          final amount = (h['amount'] as int?) ?? 0;
-                          final dateText = dateMs > 0
-                              ? DateFormat('dd/MM/yyyy HH:mm').format(DateTime.fromMillisecondsSinceEpoch(dateMs))
-                              : '--';
-                          final type = (h['type'] ?? '').toString();
-                          final description = (h['description'] ?? '').toString();
-                          final label = type == 'sale'
-                              ? 'Mua bán'
-                              : (type == 'repair' ? 'Sửa chữa' : 'Thanh toán');
-                          final canTap = type == 'sale' || type == 'repair';
-                          final iconBg = type == 'sale'
-                              ? AppColors.iconBgGreen
-                              : (type == 'repair' ? AppColors.iconBgOrange : AppColors.iconBgBlue);
-                          final iconColor = type == 'sale'
-                              ? AppColors.success
-                              : (type == 'repair' ? AppColors.warning : AppColors.info);
-                          return Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              InkWell(
-                                onTap: canTap ? () => _openOrder(h) : null,
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                                  child: Row(
-                                    children: [
-                                      Container(
-                                        width: DesignTokens.iconContainer,
-                                        height: DesignTokens.iconContainer,
-                                        decoration: BoxDecoration(
-                                          color: iconBg,
-                                          borderRadius: BorderRadius.circular(DesignTokens.radiusSm),
-                                        ),
-                                        child: Icon(
-                                          type == 'sale'
-                                              ? Icons.shopping_bag
-                                              : (type == 'repair' ? Icons.build : Icons.payments_outlined),
-                                          size: DesignTokens.iconMd,
-                                          color: iconColor,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 10),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(label, style: AppTextStyles.body2.copyWith(fontWeight: FontWeight.w600)),
-                                            if (description.isNotEmpty)
-                                              Text(description, style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary), maxLines: 1, overflow: TextOverflow.ellipsis),
-                                            Text(dateText, style: AppTextStyles.caption.copyWith(color: AppColors.textHint)),
-                                          ],
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        MoneyUtils.formatCompact(amount),
-                                        style: AppTextStyles.body2.copyWith(
-                                          fontWeight: FontWeight.bold,
-                                          color: AppColors.primary,
-                                          fontSize: 14,
-                                        ),
-                                      ),
-                                      if (canTap) ...[
-                                        const SizedBox(width: 4),
-                                        const Icon(Icons.chevron_right, size: DesignTokens.iconSm, color: AppColors.textHint),
-                                      ],
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              const Divider(height: 1, color: AppColors.divider),
-                            ],
-                          );
-                        }),
+                        Text('Lịch sử giao dịch', style: AppTextStyles.headline6),
+                        const Spacer(),
+                        if (_loadingHistory)
+                          const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
                       ],
                     ),
+                    const SizedBox(height: 8),
+                    if (_filteredHistory.isEmpty)
+                      Text('Chưa có lịch sử phù hợp', style: AppTextStyles.caption)
+                    else
+                      ..._filteredHistory.take(20).map((h) {
+                        final dateMs = (h['date'] as int?) ?? 0;
+                        final amount = (h['amount'] as int?) ?? 0;
+                        final dateText = dateMs > 0
+                            ? DateFormat('dd/MM/yyyy HH:mm').format(DateTime.fromMillisecondsSinceEpoch(dateMs))
+                            : '--';
+                        final type = (h['type'] ?? '').toString();
+                        final label = type == 'sale'
+                            ? 'Mua bán'
+                            : (type == 'repair' ? 'Sửa chữa' : 'Thanh toán');
+                        return ListTile(
+                          dense: true,
+                          contentPadding: EdgeInsets.zero,
+                          leading: CircleAvatar(
+                            radius: 14,
+                            backgroundColor: type == 'sale'
+                                ? Colors.green.shade100
+                                : (type == 'repair' ? Colors.orange.shade100 : Colors.blue.shade100),
+                            child: Icon(
+                              type == 'sale'
+                                  ? Icons.shopping_bag
+                                  : (type == 'repair' ? Icons.build : Icons.payments_outlined),
+                              size: 14,
+                              color: type == 'sale'
+                                  ? Colors.green.shade700
+                                  : (type == 'repair' ? Colors.orange.shade700 : Colors.blue.shade700),
+                            ),
+                          ),
+                          title: Text('$label • ${MoneyUtils.formatCompact(amount)}', style: AppTextStyles.body1),
+                          subtitle: Text('${h['description'] ?? ''}\n$dateText', style: AppTextStyles.caption),
+                          isThreeLine: true,
+                        );
+                      }),
+                  ],
+                ),
+              ),
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _sectionCard({
-    required String label,
-    required IconData icon,
-    required Color iconBg,
-    required Color iconColor,
-    required Widget child,
-    Widget? trailing,
-  }) {
-    return Container(
-      margin: AppSpacing.phMd,
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(DesignTokens.radiusMd),
-        border: Border.all(color: AppColors.outline, width: 1),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 10, 14, 8),
-            child: Row(
-              children: [
-                Container(
-                  width: DesignTokens.iconContainer,
-                  height: DesignTokens.iconContainer,
-                  decoration: BoxDecoration(
-                    color: iconBg,
-                    borderRadius: BorderRadius.circular(DesignTokens.radiusSm),
-                  ),
-                  child: Icon(icon, size: DesignTokens.iconMd, color: iconColor),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    label,
-                    style: AppTextStyles.caption.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textSecondary,
-                      letterSpacing: 0.5,
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
-                if (trailing != null) trailing,
-              ],
-            ),
-          ),
-          const Divider(height: 1, color: AppColors.divider),
-          child,
-        ],
       ),
     );
   }
@@ -621,31 +515,17 @@ class _CustomerProfileViewState extends State<CustomerProfileView> {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(DesignTokens.radiusMd),
-        border: Border.all(color: AppColors.outline, width: 1),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
       ),
       child: Column(
         children: [
-          Icon(icon, color: AppColors.primary, size: DesignTokens.iconMd),
+          Icon(icon, color: const Color(0xFF0B66D1), size: 18),
           const SizedBox(height: 4),
-          Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: AppTextStyles.body1.copyWith(
-              fontWeight: FontWeight.bold,
-              fontSize: 14,
-              color: AppColors.primary,
-            ),
-          ),
+          Text(value, maxLines: 1, overflow: TextOverflow.ellipsis, style: AppTextStyles.body1.copyWith(fontWeight: FontWeight.bold)),
           const SizedBox(height: 2),
-          Text(
-            title,
-            style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
+          Text(title, style: AppTextStyles.caption, maxLines: 1, overflow: TextOverflow.ellipsis),
         ],
       ),
     );

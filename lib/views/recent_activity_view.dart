@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
 import 'package:intl/intl.dart';
 
 import '../core/utils/money_utils.dart';
@@ -111,7 +110,7 @@ class _RecentActivityViewState extends State<RecentActivityView> {
   Widget _buildFilters() {
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
-      color: AppColors.background,
+      color: Colors.grey.shade50,
       child: Column(
         children: [
           Row(
@@ -188,7 +187,7 @@ class _RecentActivityViewState extends State<RecentActivityView> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.error_outline, size: 42, color: AppColors.error),
+              const Icon(Icons.error_outline, size: 42, color: Colors.red),
               const SizedBox(height: 8),
               Text(
                 'Không tải được hoạt động gần đây\n$_error',
@@ -234,20 +233,20 @@ class _RecentActivityViewState extends State<RecentActivityView> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.primary,
+        color: Colors.blue.shade50,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.primary),
+        border: Border.all(color: Colors.blue.shade100),
       ),
       child: Wrap(
         spacing: 10,
         runSpacing: 6,
         children: [
-          _summaryTag('Tổng', snapshot.totalCount, AppColors.primary),
-          _summaryTag('Tài chính', snapshot.financialCount, AppColors.success),
-          _summaryTag('Hệ thống', snapshot.auditCount, AppColors.primary),
+          _summaryTag('Tổng', snapshot.totalCount, Colors.blue),
+          _summaryTag('Tài chính', snapshot.financialCount, Colors.green),
+          _summaryTag('Hệ thống', snapshot.auditCount, Colors.indigo),
           Text(
             'Cập nhật: $generatedAt',
-            style: TextStyle(color: AppColors.textSecondary),
+            style: TextStyle(color: Colors.grey.shade700),
           ),
         ],
       ),
@@ -258,7 +257,7 @@ class _RecentActivityViewState extends State<RecentActivityView> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
       decoration: BoxDecoration(
-        color: color.withAlpha(26),
+        color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Text(
@@ -276,7 +275,7 @@ class _RecentActivityViewState extends State<RecentActivityView> {
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: color.withAlpha(31),
+          backgroundColor: color.withOpacity(0.12),
           child: Icon(icon, color: color, size: 20),
         ),
         title: Text(
@@ -294,7 +293,7 @@ class _RecentActivityViewState extends State<RecentActivityView> {
               DateFormat(
                 'dd/MM HH:mm',
               ).format(DateTime.fromMillisecondsSinceEpoch(item.timestamp)),
-              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
             ),
           ],
         ),
@@ -329,13 +328,13 @@ class _RecentActivityViewState extends State<RecentActivityView> {
 
   Color _colorFor(RecentActivityItem item) {
     if (item.source == RecentActivitySource.sync) {
-      if (item.status == 'failed') return AppColors.error;
-      if (item.status == 'retry') return AppColors.warning;
-      return AppColors.success;
+      if (item.status == 'failed') return Colors.red;
+      if (item.status == 'retry') return Colors.orange;
+      return Colors.green;
     }
-    if (item.source == RecentActivitySource.audit) return AppColors.primary;
-    if ((item.direction ?? '').toUpperCase() == 'IN') return AppColors.success;
-    return AppColors.error;
+    if (item.source == RecentActivitySource.audit) return Colors.indigo;
+    if ((item.direction ?? '').toUpperCase() == 'IN') return Colors.green;
+    return Colors.red;
   }
 
   String _amountLabel(RecentActivityItem item) {
@@ -347,6 +346,6 @@ class _RecentActivityViewState extends State<RecentActivityView> {
 
   Color _amountColor(RecentActivityItem item) {
     final direction = (item.direction ?? '').toUpperCase();
-    return direction == 'IN' ? AppColors.success : AppColors.error;
+    return direction == 'IN' ? Colors.green : Colors.red;
   }
 }

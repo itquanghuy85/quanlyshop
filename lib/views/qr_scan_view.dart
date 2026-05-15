@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../utils/qr_router.dart';
@@ -60,9 +59,9 @@ class _QrScanViewState extends State<QrScanView> {
             ),
           ),
         ),
-        title: const Text('Quét QR Code', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.surface)),
-        backgroundColor: AppColors.surface,
-        foregroundColor: AppColors.textPrimary,
+        title: const Text('Quét QR Code', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
         elevation: 0,
         automaticallyImplyLeading: true,
         actions: [

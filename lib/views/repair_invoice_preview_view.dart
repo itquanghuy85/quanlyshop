@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -147,7 +146,7 @@ class _RepairInvoicePreviewViewState extends State<RepairInvoicePreviewView> {
                   if (!_useTemplate)
                     const Text(
                       'Mẫu đang tắt, bản xem trước dùng template mặc định.',
-                      style: TextStyle(color: AppColors.warning),
+                      style: TextStyle(color: Colors.orange),
                     ),
                   const SizedBox(height: 8),
                   Expanded(
@@ -156,7 +155,7 @@ class _RepairInvoicePreviewViewState extends State<RepairInvoicePreviewView> {
                         width: double.infinity,
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          border: Border.all(color: AppColors.textHint),
+                          border: Border.all(color: Colors.grey),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(

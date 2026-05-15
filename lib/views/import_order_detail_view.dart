@@ -63,8 +63,8 @@ class _ImportOrderDetailViewState extends State<ImportOrderDetailView> {
           order.orderCode,
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
         ),
-        backgroundColor: AppColors.surface,
-        foregroundColor: AppColors.textPrimary,
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
         elevation: 0,
       ),
       body: _isLoading
@@ -142,11 +142,11 @@ class _ImportOrderDetailViewState extends State<ImportOrderDetailView> {
   Widget _buildInfoCard(ImportOrder order, DateTime? date, bool isDebt) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: AppColors.textPrimary.withAlpha(10),
+            color: Colors.black.withAlpha(10),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -210,7 +210,7 @@ class _ImportOrderDetailViewState extends State<ImportOrderDetailView> {
                           DateFormat('HH:mm - dd/MM/yyyy').format(date),
                           style: TextStyle(
                             fontSize: 12,
-                            color: AppColors.textSecondary,
+                            color: Colors.grey.shade600,
                           ),
                         ),
                     ],
@@ -257,11 +257,11 @@ class _ImportOrderDetailViewState extends State<ImportOrderDetailView> {
   Widget _infoRow(IconData icon, String label, String value) {
     return Row(
       children: [
-        Icon(icon, size: 16, color: AppColors.textHint),
+        Icon(icon, size: 16, color: Colors.grey.shade500),
         const SizedBox(width: 8),
         Text(
           '$label: ',
-          style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+          style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
         ),
         Flexible(
           child: Text(
@@ -279,7 +279,7 @@ class _ImportOrderDetailViewState extends State<ImportOrderDetailView> {
       alignment: Alignment.center,
       child: Text(
         'Không có dữ liệu chi tiết',
-        style: TextStyle(color: AppColors.textHint),
+        style: TextStyle(color: Colors.grey.shade400),
       ),
     );
   }
@@ -290,9 +290,9 @@ class _ImportOrderDetailViewState extends State<ImportOrderDetailView> {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.outline),
+        border: Border.all(color: Colors.grey.shade200),
       ),
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -378,7 +378,7 @@ class _ImportOrderDetailViewState extends State<ImportOrderDetailView> {
                         'SL: ${item.quantity}',
                         style: TextStyle(
                           fontSize: 12,
-                          color: AppColors.textSecondary,
+                          color: Colors.grey.shade600,
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -386,7 +386,7 @@ class _ImportOrderDetailViewState extends State<ImportOrderDetailView> {
                         '×',
                         style: TextStyle(
                           fontSize: 12,
-                          color: AppColors.textHint,
+                          color: Colors.grey.shade400,
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -394,7 +394,7 @@ class _ImportOrderDetailViewState extends State<ImportOrderDetailView> {
                         MoneyUtils.formatCurrency(item.costPrice),
                         style: TextStyle(
                           fontSize: 12,
-                          color: AppColors.textSecondary,
+                          color: Colors.grey.shade600,
                         ),
                       ),
                       const Spacer(),
@@ -422,12 +422,12 @@ class _ImportOrderDetailViewState extends State<ImportOrderDetailView> {
       margin: const EdgeInsets.only(right: 4),
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
       decoration: BoxDecoration(
-        color: AppColors.background,
+        color: Colors.grey.shade100,
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
         text,
-        style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+        style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
       ),
     );
   }
@@ -435,17 +435,17 @@ class _ImportOrderDetailViewState extends State<ImportOrderDetailView> {
   Color _typeColor(String type) {
     switch (type) {
       case 'DIEN_THOAI':
-        return AppColors.primary;
+        return Colors.blue;
       case 'PHU_KIEN':
-        return AppColors.info;
+        return Colors.teal;
       case 'LINH_KIEN':
-        return AppColors.warning;
+        return Colors.orange;
       case 'QUAN_AO':
-        return AppColors.repairDelivered;
+        return Colors.purple;
       case 'GIAY_DEP':
-        return AppColors.textSecondary;
+        return Colors.brown;
       default:
-        return AppColors.textHint;
+        return Colors.grey;
     }
   }
 

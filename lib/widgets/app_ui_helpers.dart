@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../theme/app_colors.dart';
-import '../theme/app_spacing.dart';
-import '../theme/app_text_styles.dart';
 
 /// Helper class chứa các widgets UI dùng chung cho toàn app
 /// Áp dụng style thống nhất như Settings View
@@ -50,26 +47,28 @@ class AppUIHelpers {
         decoration: BoxDecoration(gradient: gradient ?? primaryGradient),
       ),
       backgroundColor: Colors.transparent,
-      foregroundColor: AppColors.surface,
+      foregroundColor: Colors.white,
       elevation: 0,
       automaticallyImplyLeading: showBackButton,
-      iconTheme: const IconThemeData(color: AppColors.surface),
+      iconTheme: const IconThemeData(color: Colors.white),
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
             title,
-            style: AppTextStyles.headline3.copyWith(
+            style: const TextStyle(
               fontWeight: FontWeight.bold,
-              color: AppColors.surface,
+              fontSize: 17,
+              color: Colors.white,
             ),
           ),
           if (subtitle != null)
             Text(
               subtitle,
-              style: AppTextStyles.body2.copyWith(
-                color: AppColors.surface.withOpacity(0.8),
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.white.withOpacity(0.8),
               ),
             ),
         ],
@@ -92,32 +91,34 @@ class AppUIHelpers {
       flexibleSpace: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [color, color.withAlpha(179)],
+            colors: [color, color.withOpacity(0.7)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
         ),
       ),
       backgroundColor: Colors.transparent,
-      foregroundColor: AppColors.surface,
+      foregroundColor: Colors.white,
       elevation: 0,
       automaticallyImplyLeading: showBackButton,
-      iconTheme: const IconThemeData(color: AppColors.surface),
+      iconTheme: const IconThemeData(color: Colors.white),
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
-            style: AppTextStyles.headline2.copyWith(
+            style: const TextStyle(
               fontWeight: FontWeight.bold,
-              color: AppColors.surface,
+              fontSize: 18,
+              color: Colors.white,
             ),
           ),
           if (subtitle != null)
             Text(
               subtitle,
-              style: AppTextStyles.body2.copyWith(
-                color: AppColors.surface.withOpacity(0.8),
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.white.withOpacity(0.8),
               ),
             ),
         ],
@@ -136,18 +137,18 @@ class AppUIHelpers {
     Widget? trailing,
   }) {
     return Container(
-      margin: const EdgeInsets.all(AppSpacing.lg),
-      padding: const EdgeInsets.all(AppSpacing.xl),
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [color, color.withAlpha(179)],
+          colors: [color, color.withOpacity(0.7)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(AppSpacing.xxl),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: color.withAlpha(77),
+            color: color.withOpacity(0.3),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -156,31 +157,33 @@ class AppUIHelpers {
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(AppSpacing.md),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppColors.surface.withAlpha(51),
-              borderRadius: BorderRadius.circular(AppSpacing.lg),
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(15),
             ),
-            child: Icon(icon, color: AppColors.surface, size: 32),
+            child: Icon(icon, color: Colors.white, size: 32),
           ),
-          const SizedBox(width: AppSpacing.lg),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   title,
-                  style: AppTextStyles.headline1.copyWith(
-                    color: AppColors.surface,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 if (subtitle != null) ...[
-                  const SizedBox(height: AppSpacing.xs),
+                  const SizedBox(height: 4),
                   Text(
                     subtitle,
-                    style: AppTextStyles.body2.copyWith(
-                      color: AppColors.surface.withOpacity(0.8),
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.8),
+                      fontSize: 14,
                     ),
                   ),
                 ],
@@ -196,11 +199,12 @@ class AppUIHelpers {
   /// Section header giống Settings View
   static Widget sectionHeader(String title) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm, horizontal: AppSpacing.xs),
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 5),
       child: Text(
         title,
-        style: AppTextStyles.headline4.copyWith(
+        style: const TextStyle(
           fontWeight: FontWeight.bold,
+          fontSize: 14,
           color: Colors.blueGrey,
           letterSpacing: 0.5,
         ),
@@ -218,40 +222,41 @@ class AppUIHelpers {
     Widget? trailing,
   }) {
     return Card(
-      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-      color: color.withAlpha(13),
+      margin: const EdgeInsets.only(bottom: 10),
+      color: color.withOpacity(0.05),
       elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppSpacing.lg),
-        side: BorderSide(color: color.withAlpha(51)),
+        borderRadius: BorderRadius.circular(15),
+        side: BorderSide(color: color.withOpacity(0.2)),
       ),
       child: ListTile(
         leading: Container(
-          padding: const EdgeInsets.all(AppSpacing.sm),
+          padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: color.withAlpha(26),
-            borderRadius: BorderRadius.circular(AppSpacing.md),
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(10),
           ),
           child: Icon(icon, color: color, size: 22),
         ),
         title: Text(
           title,
-          style: AppTextStyles.headline4.copyWith(
+          style: TextStyle(
             color: color,
             fontWeight: FontWeight.bold,
+            fontSize: 16,
           ),
         ),
         subtitle: subtitle != null
             ? Text(
                 subtitle,
-                style: AppTextStyles.body2.copyWith(color: AppColors.textHint),
+                style: const TextStyle(fontSize: 13, color: Colors.grey),
               )
             : null,
         trailing:
             trailing ??
             Icon(
               Icons.arrow_forward_ios,
-              color: color.withAlpha(128),
+              color: color.withOpacity(0.5),
               size: 16,
             ),
         onTap: onTap,
@@ -269,25 +274,25 @@ class AppUIHelpers {
     int? badgeCount,
   }) {
     return Card(
-      color: color.withAlpha(13),
+      color: color.withOpacity(0.05),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppSpacing.lg),
-        side: BorderSide(color: color.withAlpha(51)),
+        borderRadius: BorderRadius.circular(15),
+        side: BorderSide(color: color.withOpacity(0.2)),
       ),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(AppSpacing.lg),
+        borderRadius: BorderRadius.circular(15),
         child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.lg),
+          padding: const EdgeInsets.all(16),
           child: Column(
             children: [
               Stack(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(AppSpacing.md),
+                    padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: color.withAlpha(26),
-                      borderRadius: BorderRadius.circular(AppSpacing.md),
+                      color: color.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(icon, color: color, size: 28),
                   ),
@@ -296,15 +301,16 @@ class AppUIHelpers {
                       right: 0,
                       top: 0,
                       child: Container(
-                        padding: const EdgeInsets.all(AppSpacing.xs),
+                        padding: const EdgeInsets.all(4),
                         decoration: const BoxDecoration(
-                          color: AppColors.error,
+                          color: Colors.red,
                           shape: BoxShape.circle,
                         ),
                         child: Text(
                           badgeCount > 9 ? '9+' : badgeCount.toString(),
-                          style: AppTextStyles.caption.copyWith(
-                            color: AppColors.surface,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -312,17 +318,18 @@ class AppUIHelpers {
                     ),
                 ],
               ),
-              const SizedBox(height: AppSpacing.sm),
+              const SizedBox(height: 10),
               Text(
                 title,
-                style: AppTextStyles.headline4.copyWith(
+                style: TextStyle(
                   color: color,
                   fontWeight: FontWeight.bold,
+                  fontSize: 14,
                 ),
               ),
               Text(
                 subtitle,
-                style: AppTextStyles.caption.copyWith(color: AppColors.textHint),
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
               ),
             ],
           ),
@@ -342,13 +349,13 @@ class AppUIHelpers {
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(AppSpacing.lg),
+      borderRadius: BorderRadius.circular(14),
       child: Container(
-        padding: const EdgeInsets.all(AppSpacing.lg),
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: color.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(AppSpacing.lg),
-          border: Border.all(color: color.withAlpha(51)),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: color.withOpacity(0.2)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -356,10 +363,10 @@ class AppUIHelpers {
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(AppSpacing.xs),
+                  padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
                     color: color.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(AppSpacing.sm),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(icon, color: color, size: 16),
                 ),
@@ -367,9 +374,10 @@ class AppUIHelpers {
                 Expanded(
                   child: Text(
                     label,
-                    style: AppTextStyles.caption.copyWith(
+                    style: TextStyle(
                       color: color.withOpacity(0.8),
                       fontWeight: FontWeight.w600,
+                      fontSize: 12,
                     ),
                   ),
                 ),
@@ -381,19 +389,20 @@ class AppUIHelpers {
                   ),
               ],
             ),
-            const SizedBox(height: AppSpacing.sm),
+            const SizedBox(height: 10),
             Text(
               value,
-              style: AppTextStyles.headline2.copyWith(
+              style: TextStyle(
                 color: color,
                 fontWeight: FontWeight.bold,
+                fontSize: 17,
               ),
             ),
             if (subtitle != null) ...[
-              const SizedBox(height: AppSpacing.xs),
+              const SizedBox(height: 4),
               Text(
                 subtitle,
-                style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 11),
               ),
             ],
           ],
@@ -411,29 +420,30 @@ class AppUIHelpers {
   }) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xxl),
+        padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 64, color: AppColors.outline),
-            const SizedBox(height: AppSpacing.lg),
+            Icon(icon, size: 64, color: Colors.grey.shade300),
+            const SizedBox(height: 16),
             Text(
               title,
-              style: AppTextStyles.headline3.copyWith(
+              style: const TextStyle(
+                fontSize: 17,
                 fontWeight: FontWeight.bold,
-                color: AppColors.textHint,
+                color: Colors.grey,
               ),
               textAlign: TextAlign.center,
             ),
             if (subtitle != null) ...[
-              const SizedBox(height: AppSpacing.sm),
+              const SizedBox(height: 8),
               Text(
                 subtitle,
-                style: AppTextStyles.body2.copyWith(color: AppColors.textHint),
+                style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
                 textAlign: TextAlign.center,
               ),
             ],
-            if (action != null) ...[const SizedBox(height: AppSpacing.xl), action],
+            if (action != null) ...[const SizedBox(height: 24), action],
           ],
         ),
       ),
@@ -443,23 +453,23 @@ class AppUIHelpers {
   /// Loading overlay
   static Widget loadingOverlay({String? message}) {
     return Container(
-      color: AppColors.textPrimary.withAlpha(77),
+      color: Colors.black.withOpacity(0.3),
       child: Center(
         child: Card(
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppSpacing.lg),
+            borderRadius: BorderRadius.circular(15),
           ),
           child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.xl),
+            padding: const EdgeInsets.all(24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 const CircularProgressIndicator(),
                 if (message != null) ...[
-                  const SizedBox(height: AppSpacing.lg),
+                  const SizedBox(height: 16),
                   Text(
                     message,
-                    style: AppTextStyles.body1.copyWith(fontWeight: FontWeight.w500),
+                    style: const TextStyle(fontWeight: FontWeight.w500),
                   ),
                 ],
               ],
@@ -477,23 +487,23 @@ class AppUIHelpers {
     required String message,
     String confirmText = 'XÁC NHẬN',
     String cancelText = 'HỦY',
-    Color confirmColor = AppColors.error,
+    Color confirmColor = Colors.red,
     IconData? icon,
   }) {
     return showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.xxl)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
             if (icon != null) ...[
               Icon(icon, color: confirmColor),
-              const SizedBox(width: AppSpacing.sm),
+              const SizedBox(width: 10),
             ],
             Expanded(
               child: Text(
                 title,
-                style: AppTextStyles.headline3.copyWith(
+                style: TextStyle(
                   fontWeight: FontWeight.bold,
                   color: confirmColor,
                 ),
@@ -501,7 +511,7 @@ class AppUIHelpers {
             ),
           ],
         ),
-        content: Text(message, style: AppTextStyles.body1),
+        content: Text(message),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -512,12 +522,12 @@ class AppUIHelpers {
             style: ElevatedButton.styleFrom(
               backgroundColor: confirmColor,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppSpacing.md),
+                borderRadius: BorderRadius.circular(10),
               ),
             ),
             child: Text(
               confirmText,
-              style: AppTextStyles.button.copyWith(color: AppColors.surface),
+              style: const TextStyle(color: Colors.white),
             ),
           ),
         ],

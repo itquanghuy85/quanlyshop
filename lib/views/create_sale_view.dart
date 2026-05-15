@@ -163,42 +163,42 @@ class _CreateSaleViewState extends State<CreateSaleView> {
       context: context,
       screenKey: FirstTimeGuideService.keySalesView,
       title: 'Tạo Đơn Bán Hàng',
-      color: AppColors.success,
+      color: Colors.green,
       steps: [
         const GuideStep(
           title: '👤 Thông tin khách hàng',
           description:
               'Nhập SĐT để tự động điền tên khách cũ. Hoặc chọn từ danh bạ khách hàng.',
           icon: Icons.person,
-          iconColor: AppColors.primary,
+          iconColor: Colors.blue,
         ),
         GuideStep(
           title: '📦 Chọn ${_terms.productLabel.toLowerCase()}',
           description:
               'Tìm kiếm và chọn ${_terms.productLabel.toLowerCase()} trong kho. Có thể bán nhiều ${_terms.productLabel.toLowerCase()} trong 1 đơn.',
           icon: Icons.inventory_2,
-          iconColor: AppColors.warning,
+          iconColor: Colors.orange,
         ),
         const GuideStep(
           title: '💰 Giá bán & Giảm giá',
           description:
               'Hệ thống tự tính tổng. Có thể nhập giảm giá trực tiếp hoặc điều chỉnh giá.',
           icon: Icons.attach_money,
-          iconColor: AppColors.success,
+          iconColor: Colors.green,
         ),
         const GuideStep(
           title: '🏦 Thanh toán trả góp',
           description:
               'Bật trả góp để nhập tiền đặt cọc, số tiền vay và ngân hàng hỗ trợ.',
           icon: Icons.credit_card,
-          iconColor: AppColors.primary,
+          iconColor: Colors.blue,
         ),
         const GuideStep(
           title: '📝 Công nợ khách hàng',
           description:
               'Chọn "CÔNG NỢ" nếu khách chưa thanh toán đủ. Theo dõi trong mục Tài chính.',
           icon: Icons.account_balance_wallet,
-          iconColor: AppColors.error,
+          iconColor: Colors.red,
         ),
       ],
     );
@@ -302,7 +302,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
     if (_isWalkIn) {
       NotificationService.showSnackBar(
         "Khách vãng lai không lưu danh bạ",
-        color: AppColors.primary,
+        color: Colors.blue,
       );
       return;
     }
@@ -313,7 +313,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
     if (name.isEmpty || phone.isEmpty) {
       NotificationService.showSnackBar(
         "Vui lòng nhập đủ tên và số điện thoại",
-        color: AppColors.warning,
+        color: Colors.orange,
       );
       return;
     }
@@ -324,7 +324,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
       AppLocalizations.of(context)!,
     );
     if (phoneError != null) {
-      NotificationService.showSnackBar(phoneError, color: AppColors.error);
+      NotificationService.showSnackBar(phoneError, color: Colors.red);
       return;
     }
 
@@ -339,7 +339,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
       if (existing.isNotEmpty) {
         NotificationService.showSnackBar(
           "Khách hàng với SĐT này đã tồn tại: ${existing.first.name}",
-          color: AppColors.warning,
+          color: Colors.orange,
         );
         return;
       }
@@ -354,12 +354,12 @@ class _CreateSaleViewState extends State<CreateSaleView> {
 
       NotificationService.showSnackBar(
         "Đã thêm khách hàng: $name",
-        color: AppColors.success,
+        color: Colors.green,
       );
     } catch (e) {
       NotificationService.showSnackBar(
         "Lỗi thêm khách hàng: $e",
-        color: AppColors.error,
+        color: Colors.red,
       );
     }
   }
@@ -647,7 +647,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
       if (alreadyInCart) {
         NotificationService.showSnackBar(
           'Biến thể này đã có trong giỏ hàng!',
-          color: AppColors.warning,
+          color: Colors.orange,
         );
         return;
       }
@@ -863,7 +863,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
     if (!canEdit && mounted) {
       NotificationService.showSnackBar(
         '❌ Ngày hôm nay đã chốt quỹ! Không thể tạo đơn bán mới.',
-        color: AppColors.error,
+        color: Colors.red,
       );
       return;
     }
@@ -872,7 +872,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
       debugPrint('🛒 _processSale: No items selected');
       NotificationService.showSnackBar(
         "VUI LÒNG CHỌN ${_terms.productLabel.toUpperCase()}",
-        color: AppColors.error,
+        color: Colors.red,
       );
       return;
     }
@@ -882,7 +882,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
       debugPrint('🛒 _processSale: Name or phone empty (non walk-in)');
       NotificationService.showSnackBar(
         "NHẬP ĐỦ THÔNG TIN KHÁCH",
-        color: AppColors.error,
+        color: Colors.red,
       );
       return;
     }
@@ -890,7 +890,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
       debugPrint('🛒 _processSale: Walk-in missing both name and phone');
       NotificationService.showSnackBar(
         "Nhập tên hoặc SĐT cho khách vãng lai",
-        color: AppColors.error,
+        color: Colors.red,
       );
       return;
     }
@@ -903,7 +903,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
       );
       if (phoneError != null) {
         debugPrint('🛒 _processSale: Phone validation failed: $phoneError');
-        NotificationService.showSnackBar(phoneError, color: AppColors.error);
+        NotificationService.showSnackBar(phoneError, color: Colors.red);
         return;
       }
     }
@@ -966,7 +966,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
       if (totalPrice <= 0) {
         NotificationService.showSnackBar(
           "TỔNG TIỀN PHẢI LỚN HƠN 0",
-          color: AppColors.error,
+          color: Colors.red,
         );
         setState(() => _isSaving = false);
         return;
@@ -974,7 +974,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
       if (totalCost < 0) {
         NotificationService.showSnackBar(
           "TỔNG GIÁ VỐN KHÔNG ĐƯỢC ÂM",
-          color: AppColors.error,
+          color: Colors.red,
         );
         setState(() => _isSaving = false);
         return;
@@ -1070,7 +1070,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
             (p.imei == null || p.imei!.isEmpty)) {
           NotificationService.showSnackBar(
             "Không thể bán ${_terms.productLabel.toLowerCase()} chưa có ${_terms.specialField1Label}: ${p.name}",
-            color: AppColors.error,
+            color: Colors.red,
           );
           setState(() => _isSaving = false);
           return;
@@ -1158,7 +1158,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                 ElevatedButton(
                   onPressed: () => Navigator.pop(ctx, true),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.warning,
+                    backgroundColor: Colors.orange,
                   ),
                   child: const Text('Bán offline'),
                 ),
@@ -1207,7 +1207,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                   ElevatedButton(
                     onPressed: () => Navigator.pop(ctx, true),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.warning,
+                      backgroundColor: Colors.orange,
                     ),
                     child: const Text('Tiếp tục bán'),
                   ),
@@ -1226,7 +1226,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
         } else if (outOfStockItems != null && outOfStockItems.isNotEmpty) {
           NotificationService.showSnackBar(
             "⚠️ Hàng đã được bán bởi nhân viên khác!\n${outOfStockItems.join('\n')}",
-            color: AppColors.error,
+            color: Colors.red,
           );
           await _loadData();
           setState(() => _isSaving = false);
@@ -1234,7 +1234,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
         } else {
           NotificationService.showSnackBar(
             "❌ Lỗi: ${transactionResult['error']}",
-            color: AppColors.error,
+            color: Colors.red,
           );
           await _loadData();
           setState(() => _isSaving = false);
@@ -1615,14 +1615,14 @@ class _CreateSaleViewState extends State<CreateSaleView> {
         isLocalOnly
             ? "ĐÃ LƯU BÁN OFFLINE - CHƯA ĐỒNG BỘ CLOUD"
             : "ĐÃ BÁN HÀNG THÀNH CÔNG!",
-        color: isLocalOnly ? AppColors.warning : AppColors.success,
+        color: isLocalOnly ? Colors.orange : Colors.green,
       );
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       setState(() => _isSaving = false);
       NotificationService.showSnackBar(
         "LỖI KHI LƯU ĐƠN BÁN: ${e.toString()}",
-        color: AppColors.error,
+        color: Colors.red,
       );
       debugPrint("Sale save error: $e");
     }
@@ -1687,8 +1687,8 @@ class _CreateSaleViewState extends State<CreateSaleView> {
               ),
             ),
           ),
-          backgroundColor: AppColors.surface,
-          foregroundColor: AppColors.textPrimary,
+          backgroundColor: Colors.transparent,
+          foregroundColor: Colors.white,
           elevation: 0,
           title: const Text("TẠO ĐƠN BÁN HÀNG"),
         ),
@@ -1697,7 +1697,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
             "Bạn không có quyền truy cập tính năng này",
             style: TextStyle(
               fontSize: AppTextStyles.headline3.fontSize,
-              color: AppColors.textHint,
+              color: Colors.grey,
             ),
           ),
         ),
@@ -1716,8 +1716,8 @@ class _CreateSaleViewState extends State<CreateSaleView> {
             ),
           ),
         ),
-        backgroundColor: AppColors.surface,
-        foregroundColor: AppColors.textPrimary,
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
         elevation: 0,
         title: Tooltip(
           message: widget.editSale != null
@@ -1785,21 +1785,21 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                                 Icon(
                                   Icons.inventory_2,
                                   size: 18,
-                                  color: AppColors.primary,
+                                  color: Colors.blue.shade700,
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
                                   _terms.productLabel.toUpperCase(),
                                   style: AppTextStyles.caption.copyWith(
                                     fontWeight: FontWeight.bold,
-                                    color: AppColors.primary,
+                                    color: Colors.blue.shade700,
                                   ),
                                 ),
                                 const Spacer(),
                                 Text(
                                   "${_selectedItems.length} đã chọn",
                                   style: AppTextStyles.caption.copyWith(
-                                    color: AppColors.primary,
+                                    color: Colors.blue,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
@@ -1839,14 +1839,14 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                                 Icon(
                                   Icons.person,
                                   size: 18,
-                                  color: AppColors.primary,
+                                  color: Colors.blue.shade700,
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
                                   "KHÁCH HÀNG",
                                   style: AppTextStyles.caption.copyWith(
                                     fontWeight: FontWeight.bold,
-                                    color: AppColors.primary,
+                                    color: Colors.blue.shade700,
                                   ),
                                 ),
                                 const Spacer(),
@@ -1998,7 +1998,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                                 width: 20,
                                 height: 20,
                                 child: CircularProgressIndicator(
-                                  color: AppColors.surface,
+                                  color: Colors.white,
                                   strokeWidth: 2,
                                 ),
                               )
@@ -2048,13 +2048,13 @@ class _CreateSaleViewState extends State<CreateSaleView> {
         // Header
         Row(
           children: [
-            Icon(Icons.payment, size: 18, color: AppColors.success),
+            Icon(Icons.payment, size: 18, color: Colors.green.shade700),
             const SizedBox(width: 8),
             Text(
               "THANH TOÁN",
               style: AppTextStyles.caption.copyWith(
                 fontWeight: FontWeight.bold,
-                color: AppColors.success,
+                color: Colors.green.shade700,
               ),
             ),
           ],
@@ -2089,13 +2089,13 @@ class _CreateSaleViewState extends State<CreateSaleView> {
         // Giảm giá (1 dòng riêng)
         Row(
           children: [
-            const Icon(Icons.discount, size: 16, color: AppColors.warning),
+            const Icon(Icons.discount, size: 16, color: Colors.orange),
             const SizedBox(width: 4),
             Text(
               "Giảm:",
               style: AppTextStyles.caption.copyWith(
                 fontWeight: FontWeight.bold,
-                color: AppColors.warning,
+                color: Colors.orange,
               ),
             ),
             const SizedBox(width: 4),
@@ -2118,9 +2118,9 @@ class _CreateSaleViewState extends State<CreateSaleView> {
           margin: const EdgeInsets.symmetric(vertical: 6),
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
-            color: AppColors.success,
+            color: Colors.green.shade50,
             borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: AppColors.success),
+            border: Border.all(color: Colors.green.shade200),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -2129,14 +2129,14 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                 "THÀNH TIỀN:",
                 style: AppTextStyles.caption.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: AppColors.success,
+                  color: Colors.green.shade700,
                 ),
               ),
               Text(
                 MoneyUtils.formatCompactCurrency(_finalPrice),
                 style: AppTextStyles.body1.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: AppColors.success,
+                  color: Colors.green.shade700,
                 ),
               ),
             ],
@@ -2187,21 +2187,21 @@ class _CreateSaleViewState extends State<CreateSaleView> {
         if (_isCombined)
           Card(
             margin: const EdgeInsets.only(top: 6),
-            color: AppColors.info,
+            color: Colors.teal.shade50,
             child: ExpansionTile(
               tilePadding: const EdgeInsets.symmetric(horizontal: 8),
               dense: true,
               initiallyExpanded: true,
               leading: Icon(
                 Icons.swap_horiz,
-                color: AppColors.info,
+                color: Colors.teal.shade700,
                 size: 18,
               ),
               title: Text(
                 "TIỀN MẶT + CHUYỂN KHOẢN",
                 style: AppTextStyles.caption.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: AppColors.info,
+                  color: Colors.teal.shade700,
                   fontSize: 14,
                 ),
               ),
@@ -2213,14 +2213,14 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                       _moneyInput(
                         cashAmountCtrl,
                         "💵 TIỀN MẶT",
-                        AppColors.success,
+                        Colors.green,
                         onChanged: (_) => _onCombinedAmountChanged(),
                       ),
                       const SizedBox(height: 6),
                       _moneyInput(
                         transferAmountCtrl,
                         "🏦 CHUYỂN KHOẢN",
-                        AppColors.primary,
+                        Colors.blue,
                         onChanged: (_) => _onCombinedAmountChanged(),
                       ),
                       const SizedBox(height: 8),
@@ -2240,13 +2240,13 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
                               color: diff == 0
-                                  ? AppColors.success
-                                  : AppColors.error,
+                                  ? Colors.green.shade50
+                                  : Colors.red.shade50,
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(
                                 color: diff == 0
-                                    ? AppColors.success
-                                    : AppColors.error,
+                                    ? Colors.green.shade300
+                                    : Colors.red.shade300,
                               ),
                             ),
                             child: Row(
@@ -2257,8 +2257,8 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                                   style: AppTextStyles.caption.copyWith(
                                     fontWeight: FontWeight.bold,
                                     color: diff == 0
-                                        ? AppColors.success
-                                        : AppColors.error,
+                                        ? Colors.green.shade700
+                                        : Colors.red.shade700,
                                     fontSize: 14,
                                   ),
                                 ),
@@ -2268,14 +2268,14 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                                         ? '(Dư ${MoneyUtils.formatCompactCurrency(diff)})'
                                         : '(Thiếu ${MoneyUtils.formatCompactCurrency(-diff)})',
                                     style: AppTextStyles.caption.copyWith(
-                                      color: AppColors.error,
+                                      color: Colors.red.shade700,
                                       fontSize: 13,
                                     ),
                                   ),
                                 if (diff == 0)
                                   Icon(
                                     Icons.check_circle,
-                                    color: AppColors.success,
+                                    color: Colors.green.shade700,
                                     size: 16,
                                   ),
                               ],
@@ -2294,21 +2294,21 @@ class _CreateSaleViewState extends State<CreateSaleView> {
         if (_isInstallment)
           Card(
             margin: const EdgeInsets.only(top: 6),
-            color: AppColors.primary,
+            color: Colors.blue.shade50,
             child: ExpansionTile(
               tilePadding: const EdgeInsets.symmetric(horizontal: 8),
               dense: true,
               initiallyExpanded: true,
               leading: Icon(
                 Icons.account_balance,
-                color: AppColors.primary,
+                color: Colors.blue.shade700,
                 size: 18,
               ),
               title: Text(
                 "CHI TIẾT TRẢ GÓP",
                 style: AppTextStyles.caption.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: AppColors.primary,
+                  color: Colors.blue.shade700,
                   fontSize: 14,
                 ),
               ),
@@ -2602,13 +2602,13 @@ class _CreateSaleViewState extends State<CreateSaleView> {
           children: [
             Row(
               children: [
-                const Icon(Icons.discount, size: 18, color: AppColors.warning),
+                const Icon(Icons.discount, size: 18, color: Colors.orange),
                 const SizedBox(width: 6),
                 Text(
                   "GIẢM GIÁ:",
                   style: AppTextStyles.body2.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: AppColors.warning,
+                    color: Colors.orange,
                   ),
                 ),
               ],
@@ -2633,9 +2633,9 @@ class _CreateSaleViewState extends State<CreateSaleView> {
         Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: AppColors.success,
+            color: Colors.green.shade50,
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: AppColors.success),
+            border: Border.all(color: Colors.green.shade200),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -2644,14 +2644,14 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                 "THÀNH TIỀN:",
                 style: AppTextStyles.body1.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: AppColors.success,
+                  color: Colors.green.shade700,
                 ),
               ),
               Text(
                 MoneyUtils.formatCompactCurrency(_finalPrice),
                 style: AppTextStyles.headline6.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: AppColors.success,
+                  color: Colors.green.shade700,
                 ),
               ),
             ],
@@ -2948,14 +2948,14 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                 Icon(
                   Icons.history,
                   size: 16,
-                  color: AppColors.primary,
+                  color: Colors.blue.shade700,
                 ),
                 const SizedBox(width: 6),
                 Text(
                   'Sản phẩm gần đây',
                   style: AppTextStyles.caption.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: AppColors.primary,
+                    color: Colors.blue.shade700,
                   ),
                 ),
               ],
@@ -3069,8 +3069,8 @@ class _CreateSaleViewState extends State<CreateSaleView> {
         return Card(
           margin: const EdgeInsets.symmetric(vertical: 4),
           color: isGift
-              ? AppColors.success
-              : (isDiscounted ? AppColors.warning : null),
+              ? Colors.green.shade50
+              : (isDiscounted ? Colors.orange.shade50 : null),
           child: Padding(
             padding: const EdgeInsets.all(8.0),
             child: Column(
@@ -3100,13 +3100,13 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                                     vertical: 2,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: AppColors.success,
+                                    color: Colors.green,
                                     borderRadius: BorderRadius.circular(4),
                                   ),
                                   child: const Text(
                                     'TẶNG',
                                     style: TextStyle(
-                                      color: AppColors.surface,
+                                      color: Colors.white,
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold,
                                     ),
@@ -3120,13 +3120,13 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                                     vertical: 2,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: AppColors.warning,
+                                    color: Colors.orange,
                                     borderRadius: BorderRadius.circular(4),
                                   ),
                                   child: Text(
                                     '-${MoneyUtils.formatCurrency(originalPrice - sellPrice)}',
                                     style: const TextStyle(
-                                      color: AppColors.surface,
+                                      color: Colors.white,
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold,
                                     ),
@@ -3144,15 +3144,15 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                                 vertical: 2,
                               ),
                               decoration: BoxDecoration(
-                                color: AppColors.primary,
+                                color: Colors.blue.shade50,
                                 borderRadius: BorderRadius.circular(4),
-                                border: Border.all(color: AppColors.primary),
+                                border: Border.all(color: Colors.blue.shade200),
                               ),
                               child: Text(
                                 variantName!,
                                 style: TextStyle(
                                   fontSize: 14,
-                                  color: AppColors.primary,
+                                  color: Colors.blue.shade700,
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
@@ -3164,7 +3164,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                     if (const ExpansionFeatureFlags.safeDefaults().enablePricing)
                       IconButton(
                         icon: const Icon(Icons.price_change_outlined,
-                            color: AppColors.textSecondary),
+                            color: Colors.blueGrey),
                         tooltip: 'Chọn giá linh hoạt',
                         onPressed: () async {
                           final rawOriginalPrice =
@@ -3204,8 +3204,8 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                       icon: Icon(
                         Icons.card_giftcard,
                         color: isGift
-                            ? AppColors.success
-                            : (isDiscounted ? AppColors.warning : AppColors.textHint),
+                            ? Colors.green
+                            : (isDiscounted ? Colors.orange : Colors.grey),
                       ),
                       tooltip: 'Tặng / Giảm giá',
                       onPressed: () => _showGiftDiscountSheet(item),
@@ -3234,7 +3234,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                     "Tồn kho: ${variant.quantity}",
                     style: TextStyle(
                       fontSize: 14,
-                      color: variant.quantity > 0 ? AppColors.success : AppColors.error,
+                      color: variant.quantity > 0 ? Colors.green : Colors.red,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -3243,9 +3243,9 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                   Text(
                     'Giá gốc: ${MoneyUtils.formatCurrency(originalPrice)} → MIỄN PHÍ',
                     style: TextStyle(
-                      color: AppColors.success,
+                      color: Colors.green.shade700,
                       decoration: TextDecoration.lineThrough,
-                      decorationColor: AppColors.success,
+                      decorationColor: Colors.green.shade700,
                     ),
                   )
                 else if (isDiscounted)
@@ -3254,7 +3254,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                       Text(
                         '${MoneyUtils.formatCurrency(originalPrice)}',
                         style: TextStyle(
-                          color: AppColors.textHint,
+                          color: Colors.grey,
                           decoration: TextDecoration.lineThrough,
                           fontSize: 14,
                         ),
@@ -3263,7 +3263,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                       Text(
                         'Giá bán: ${MoneyUtils.formatCurrency(sellPrice)}',
                         style: TextStyle(
-                          color: AppColors.warning,
+                          color: Colors.orange.shade700,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -3392,9 +3392,9 @@ class _CreateSaleViewState extends State<CreateSaleView> {
       padding: const EdgeInsets.all(12),
       margin: const EdgeInsets.symmetric(vertical: 16),
       decoration: BoxDecoration(
-        color: AppColors.warning.withAlpha(26),
+        color: AppColors.warning.withOpacity(0.1),
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: AppColors.warning.withAlpha(77)),
+        border: Border.all(color: AppColors.warning.withOpacity(0.3)),
       ),
       child: Column(
         children: [
@@ -3536,14 +3536,14 @@ class _CustomerSelectionDialogState extends State<CustomerSelectionDialog> {
                           Icon(
                             Icons.people_outline,
                             size: 48,
-                            color: AppColors.textHint,
+                            color: Colors.grey.shade400,
                           ),
                           const SizedBox(height: 16),
                           Text(
                             _searchQuery.isEmpty
                                 ? 'Chưa có khách hàng nào'
                                 : 'Không tìm thấy khách hàng',
-                            style: TextStyle(color: AppColors.textSecondary),
+                            style: TextStyle(color: Colors.grey.shade600),
                           ),
                         ],
                       ),
@@ -3567,7 +3567,7 @@ class _CustomerSelectionDialogState extends State<CustomerSelectionDialog> {
                                 Text(
                                   'Địa chỉ: ${customer.address!}',
                                   style: TextStyle(
-                                    color: AppColors.textSecondary,
+                                    color: Colors.grey.shade600,
                                     fontSize: AppTextStyles.subtitle1.fontSize,
                                   ),
                                   maxLines: 1,
@@ -3577,7 +3577,7 @@ class _CustomerSelectionDialogState extends State<CustomerSelectionDialog> {
                                 Text(
                                   'Ghi chú: ${customer.notes!}',
                                   style: TextStyle(
-                                    color: AppColors.primary,
+                                    color: Colors.blue,
                                     fontSize: AppTextStyles.subtitle1.fontSize,
                                     fontStyle: FontStyle.italic,
                                   ),
@@ -3673,14 +3673,14 @@ class _GiftDiscountSheetContentState extends State<_GiftDiscountSheetContent> {
             if (!_showDiscountInput) ...[
               // --- Menu options ---
               ListTile(
-                leading: const Icon(Icons.card_giftcard, color: AppColors.success),
+                leading: const Icon(Icons.card_giftcard, color: Colors.green),
                 title: const Text('Tặng miễn phí (0đ)'),
                 subtitle: const Text('Không tính tiền sản phẩm này'),
                 selected: widget.isGift,
                 onTap: () => Navigator.pop(context, {'action': 'gift'}),
               ),
               ListTile(
-                leading: const Icon(Icons.discount, color: AppColors.warning),
+                leading: const Icon(Icons.discount, color: Colors.orange),
                 title: const Text('Giảm giá sản phẩm'),
                 subtitle: Text(
                   'Giá gốc: ${MoneyUtils.formatCurrency(widget.originalPrice)}',
@@ -3693,7 +3693,7 @@ class _GiftDiscountSheetContentState extends State<_GiftDiscountSheetContent> {
               ),
               if (widget.hasPromotion)
                 ListTile(
-                  leading: const Icon(Icons.undo, color: AppColors.textHint),
+                  leading: const Icon(Icons.undo, color: Colors.grey),
                   title: const Text('Bỏ ưu đãi'),
                   subtitle: Text(
                     'Khôi phục giá ${MoneyUtils.formatCurrency(widget.originalPrice)}',
@@ -3710,7 +3710,7 @@ class _GiftDiscountSheetContentState extends State<_GiftDiscountSheetContent> {
                   children: [
                     Text(
                       'Giá gốc: ${MoneyUtils.formatCurrency(widget.originalPrice)}',
-                      style: TextStyle(color: AppColors.textSecondary),
+                      style: TextStyle(color: Colors.grey.shade600),
                     ),
                     const SizedBox(height: 12),
                     TextField(
@@ -3764,13 +3764,13 @@ class _GiftDiscountSheetContentState extends State<_GiftDiscountSheetContent> {
   void _onConfirmDiscount() {
     final price = widget.parseCurrency(_priceController.text);
     if (price < 0) {
-      NotificationService.showSnackBar('Giá không hợp lệ', color: AppColors.error);
+      NotificationService.showSnackBar('Giá không hợp lệ', color: Colors.red);
       return;
     }
     if (price >= widget.originalPrice) {
       NotificationService.showSnackBar(
         'Giá ưu đãi phải thấp hơn giá gốc (${MoneyUtils.formatCurrency(widget.originalPrice)})',
-        color: AppColors.warning,
+        color: Colors.orange,
       );
       return;
     }

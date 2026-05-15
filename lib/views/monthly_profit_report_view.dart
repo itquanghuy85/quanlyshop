@@ -251,7 +251,7 @@ class _MonthlyProfitReportViewState extends State<MonthlyProfitReportView> {
         body: const Center(
           child: Text(
             'Bạn không có quyền truy cập tính năng này',
-            style: TextStyle(color: AppColors.textHint),
+            style: TextStyle(color: Colors.grey),
           ),
         ),
       );
@@ -366,7 +366,7 @@ class _MonthlyProfitReportViewState extends State<MonthlyProfitReportView> {
           Row(
             children: [
               Expanded(
-                child: _summaryItem('Doanh thu', _yearRevenue, AppColors.surface),
+                child: _summaryItem('Doanh thu', _yearRevenue, Colors.white),
               ),
               Expanded(
                 child: _summaryItem(
@@ -440,11 +440,11 @@ class _MonthlyProfitReportViewState extends State<MonthlyProfitReportView> {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: AppColors.textPrimary.withAlpha(13),
+            color: Colors.black.withOpacity(0.05),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -455,13 +455,13 @@ class _MonthlyProfitReportViewState extends State<MonthlyProfitReportView> {
         children: [
           Row(
             children: [
-              Icon(Icons.bar_chart, color: AppColors.primary, size: 18),
+              Icon(Icons.bar_chart, color: Colors.indigo.shade400, size: 18),
               const SizedBox(width: 6),
               Text(
                 'BIẾN ĐỘNG THEO THÁNG',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: AppColors.primary,
+                  color: Colors.indigo.shade600,
                   fontSize: 14,
                   letterSpacing: 0.5,
                 ),
@@ -472,9 +472,9 @@ class _MonthlyProfitReportViewState extends State<MonthlyProfitReportView> {
           // Legend
           Row(
             children: [
-              _legendDot(AppColors.primary, 'Doanh thu'),
+              _legendDot(Colors.blue, 'Doanh thu'),
               const SizedBox(width: 12),
-              _legendDot(AppColors.success, 'Lợi nhuận'),
+              _legendDot(Colors.green, 'Lợi nhuận'),
             ],
           ),
           const SizedBox(height: 12),
@@ -507,7 +507,7 @@ class _MonthlyProfitReportViewState extends State<MonthlyProfitReportView> {
                                 width: 8,
                                 height: revenueH.clamp(0, 120),
                                 decoration: BoxDecoration(
-                                  color: AppColors.primary,
+                                  color: Colors.blue.shade400,
                                   borderRadius: const BorderRadius.vertical(
                                     top: Radius.circular(2),
                                   ),
@@ -519,8 +519,8 @@ class _MonthlyProfitReportViewState extends State<MonthlyProfitReportView> {
                                 height: profitH.clamp(0, 120),
                                 decoration: BoxDecoration(
                                   color: m.netProfit >= 0
-                                      ? AppColors.success
-                                      : AppColors.error,
+                                      ? Colors.green.shade400
+                                      : Colors.red.shade400,
                                   borderRadius: const BorderRadius.vertical(
                                     top: Radius.circular(2),
                                   ),
@@ -542,7 +542,7 @@ class _MonthlyProfitReportViewState extends State<MonthlyProfitReportView> {
               return Expanded(
                 child: Text(
                   monthNames[m.month - 1],
-                  style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
                   textAlign: TextAlign.center,
                 ),
               );
@@ -565,7 +565,7 @@ class _MonthlyProfitReportViewState extends State<MonthlyProfitReportView> {
         const SizedBox(width: 4),
         Text(
           label,
-          style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+          style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
         ),
       ],
     );
@@ -589,11 +589,11 @@ class _MonthlyProfitReportViewState extends State<MonthlyProfitReportView> {
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: AppColors.textPrimary.withAlpha(13),
+            color: Colors.black.withOpacity(0.05),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -605,7 +605,7 @@ class _MonthlyProfitReportViewState extends State<MonthlyProfitReportView> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
-              color: AppColors.background,
+              color: Colors.grey.shade100,
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(14),
               ),
@@ -655,7 +655,7 @@ class _MonthlyProfitReportViewState extends State<MonthlyProfitReportView> {
                 ),
                 decoration: BoxDecoration(
                   border: Border(
-                    bottom: BorderSide(color: AppColors.outline),
+                    bottom: BorderSide(color: Colors.grey.shade200),
                   ),
                 ),
                 child: Row(
@@ -675,7 +675,7 @@ class _MonthlyProfitReportViewState extends State<MonthlyProfitReportView> {
                         MoneyUtils.formatCompact(m.revenue),
                         style: TextStyle(
                           fontSize: 13,
-                          color: AppColors.primary,
+                          color: Colors.blue.shade700,
                         ),
                         textAlign: TextAlign.right,
                       ),
@@ -689,7 +689,7 @@ class _MonthlyProfitReportViewState extends State<MonthlyProfitReportView> {
                         ),
                         style: TextStyle(
                           fontSize: 13,
-                          color: AppColors.error,
+                          color: Colors.red.shade600,
                         ),
                         textAlign: TextAlign.right,
                       ),
@@ -701,8 +701,8 @@ class _MonthlyProfitReportViewState extends State<MonthlyProfitReportView> {
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
                           color: isProfit
-                              ? AppColors.success
-                              : AppColors.error,
+                              ? Colors.green.shade700
+                              : Colors.red.shade700,
                         ),
                         textAlign: TextAlign.right,
                       ),
@@ -716,7 +716,7 @@ class _MonthlyProfitReportViewState extends State<MonthlyProfitReportView> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
-              color: AppColors.background,
+              color: Colors.grey.shade50,
               borderRadius: const BorderRadius.vertical(
                 bottom: Radius.circular(14),
               ),
@@ -736,7 +736,7 @@ class _MonthlyProfitReportViewState extends State<MonthlyProfitReportView> {
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
+                      color: Colors.blue.shade700,
                     ),
                     textAlign: TextAlign.right,
                   ),
@@ -752,7 +752,7 @@ class _MonthlyProfitReportViewState extends State<MonthlyProfitReportView> {
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.error,
+                      color: Colors.red.shade600,
                     ),
                     textAlign: TextAlign.right,
                   ),
@@ -764,8 +764,8 @@ class _MonthlyProfitReportViewState extends State<MonthlyProfitReportView> {
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
                       color: _yearProfit >= 0
-                          ? AppColors.success
-                          : AppColors.error,
+                          ? Colors.green.shade700
+                          : Colors.red.shade700,
                     ),
                     textAlign: TextAlign.right,
                   ),
@@ -816,7 +816,7 @@ class _MonthlyProfitReportViewState extends State<MonthlyProfitReportView> {
                       width: 40,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: AppColors.outline,
+                        color: Colors.grey.shade300,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -832,7 +832,7 @@ class _MonthlyProfitReportViewState extends State<MonthlyProfitReportView> {
                   ),
                   const SizedBox(height: 16),
                   // THU section
-                  _detailSection('📥 THU', AppColors.success, [
+                  _detailSection('📥 THU', Colors.green, [
                     _detailRow('Bán hàng', m.saleIncome),
                     _detailRow('Tất toán NH', m.settlementIncome),
                     _detailRow('Sửa chữa', m.repairIncome),
@@ -840,7 +840,7 @@ class _MonthlyProfitReportViewState extends State<MonthlyProfitReportView> {
                   ]),
                   const SizedBox(height: 12),
                   // CHI section
-                  _detailSection('📤 CHI', AppColors.error, [
+                  _detailSection('📤 CHI', Colors.red, [
                     _detailRow('Chi phí', m.expenseOut),
                     _detailRow('Nhập hàng', m.importOut),
                     _detailRow('Trả nợ NCC', m.supplierPaid),
@@ -848,7 +848,7 @@ class _MonthlyProfitReportViewState extends State<MonthlyProfitReportView> {
                   const SizedBox(height: 12),
                   // GIÁ VỐN section
                   if (_canViewCostPrice)
-                    _detailSection('📦 GIÁ VỐN', AppColors.warning, [
+                    _detailSection('📦 GIÁ VỐN', Colors.orange, [
                       _detailRow('Giá vốn bán', m.saleCost),
                       _detailRow('Giá vốn SC', m.repairCost),
                     ]),
@@ -858,13 +858,13 @@ class _MonthlyProfitReportViewState extends State<MonthlyProfitReportView> {
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: m.netProfit >= 0
-                          ? AppColors.success
-                          : AppColors.error,
+                          ? Colors.green.shade50
+                          : Colors.red.shade50,
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
                         color: m.netProfit >= 0
-                            ? AppColors.success
-                            : AppColors.error,
+                            ? Colors.green.shade200
+                            : Colors.red.shade200,
                       ),
                     ),
                     child: Row(
@@ -883,8 +883,8 @@ class _MonthlyProfitReportViewState extends State<MonthlyProfitReportView> {
                             fontWeight: FontWeight.bold,
                             fontSize: 17,
                             color: m.netProfit >= 0
-                                ? AppColors.success
-                                : AppColors.error,
+                                ? Colors.green.shade700
+                                : Colors.red.shade700,
                           ),
                         ),
                       ],
@@ -894,7 +894,7 @@ class _MonthlyProfitReportViewState extends State<MonthlyProfitReportView> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: AppColors.primary,
+                      color: Colors.blue.shade50,
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Row(
@@ -906,7 +906,7 @@ class _MonthlyProfitReportViewState extends State<MonthlyProfitReportView> {
                                 'Tổng thu',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: AppColors.textSecondary,
+                                  color: Colors.grey.shade600,
                                 ),
                               ),
                               Text(
@@ -914,7 +914,7 @@ class _MonthlyProfitReportViewState extends State<MonthlyProfitReportView> {
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,
-                                  color: AppColors.success,
+                                  color: Colors.green.shade700,
                                 ),
                               ),
                             ],
@@ -927,7 +927,7 @@ class _MonthlyProfitReportViewState extends State<MonthlyProfitReportView> {
                                 'Tổng chi',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: AppColors.textSecondary,
+                                  color: Colors.grey.shade600,
                                 ),
                               ),
                               Text(
@@ -935,7 +935,7 @@ class _MonthlyProfitReportViewState extends State<MonthlyProfitReportView> {
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,
-                                  color: AppColors.error,
+                                  color: Colors.red.shade700,
                                 ),
                               ),
                             ],
@@ -948,7 +948,7 @@ class _MonthlyProfitReportViewState extends State<MonthlyProfitReportView> {
                                 'Quỹ ròng',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: AppColors.textSecondary,
+                                  color: Colors.grey.shade600,
                                 ),
                               ),
                               Text(
@@ -958,7 +958,7 @@ class _MonthlyProfitReportViewState extends State<MonthlyProfitReportView> {
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,
-                                  color: AppColors.primary,
+                                  color: Colors.indigo,
                                 ),
                               ),
                             ],
@@ -1003,7 +1003,7 @@ class _MonthlyProfitReportViewState extends State<MonthlyProfitReportView> {
           Expanded(
             child: Text(
               label,
-              style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+              style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
             ),
           ),
           Text(

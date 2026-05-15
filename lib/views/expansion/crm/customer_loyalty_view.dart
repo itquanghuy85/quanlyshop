@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../theme/app_colors.dart';
 
 import '../../../expansion/safe_mode/expansion_feature_flags.dart';
 import '../../../expansion/safe_mode/crm_loyalty_models.dart';
@@ -220,7 +219,7 @@ class _CustomerLoyaltyViewState extends State<CustomerLoyaltyView> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.lock_outline, size: 48, color: AppColors.warning),
+            Icon(Icons.lock_outline, size: 48, color: Colors.orange),
             SizedBox(height: 12),
             Text(
               'Module CRM chưa được kích hoạt\n(enableCRM = false)',
@@ -302,7 +301,7 @@ class _CustomerLoyaltyViewState extends State<CustomerLoyaltyView> {
               const SizedBox(height: 8),
               Text(
                 'Có thể đổi: ${_formatMoney(preview)}',
-                style: const TextStyle(color: AppColors.success, fontWeight: FontWeight.w500),
+                style: const TextStyle(color: Colors.green, fontWeight: FontWeight.w500),
               ),
             ],
           ],
@@ -389,7 +388,7 @@ class _CustomerLoyaltyViewState extends State<CustomerLoyaltyView> {
           const SizedBox(height: 8),
           Text(
             'Cần tối thiểu 500 điểm để đổi (hiện có $_currentPoints điểm)',
-            style: const TextStyle(color: AppColors.textHint, fontSize: 12),
+            style: const TextStyle(color: Colors.grey, fontSize: 12),
             textAlign: TextAlign.center,
           ),
         ],

@@ -214,12 +214,12 @@ class _CurrencyTextFieldState extends State<CurrencyTextField> {
             ),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             filled: true,
-            fillColor: widget.enabled ? AppColors.surface : AppColors.background,
+            fillColor: widget.enabled ? Colors.white : Colors.grey.shade100,
           ),
           style: AppTextStyles.body1.copyWith(
             color: widget.enabled
                 ? AppColors.onSurface
-                : AppColors.onSurface.withAlpha(128),
+                : AppColors.onSurface.withOpacity(0.5),
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -366,7 +366,7 @@ class _EnhancedCurrencyInputState extends State<EnhancedCurrencyInput> {
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             errorText: _errorText,
             filled: true,
-            fillColor: widget.enabled ? AppColors.surface : AppColors.background,
+            fillColor: widget.enabled ? Colors.white : Colors.grey.shade100,
           ),
           style: AppTextStyles.body1.copyWith(fontWeight: FontWeight.w500),
         ),

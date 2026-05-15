@@ -8,7 +8,6 @@ import '../models/employee_salary_model.dart';
 import '../services/firestore_service.dart';
 import '../services/user_service.dart';
 import '../theme/app_colors.dart';
-import '../theme/design_tokens.dart';
 import '../widgets/custom_app_bar.dart';
 import '../l10n/app_localizations.dart';
 import '../services/event_bus.dart';
@@ -49,11 +48,11 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
     'salaryType': 'monthly',
     'saleCommType': 'percent',
     'saleCommValue': 1.0,
-    'saleCommTier1Max': 10000000.0, // Dưới 10 triệu
-    'saleCommTier1Value': 20000.0, // 20k
-    'saleCommTier2Max': 50000000.0, // 10-50 triệu
-    'saleCommTier2Value': 50000.0, // 50k
-    'saleCommTier3Value': 100000.0, // Trên 50 triệu -> 100k
+    'saleCommTier1Max': 10000000.0,   // Dưới 10 triệu
+    'saleCommTier1Value': 20000.0,    // 20k
+    'saleCommTier2Max': 50000000.0,   // 10-50 triệu
+    'saleCommTier2Value': 50000.0,    // 50k
+    'saleCommTier3Value': 100000.0,   // Trên 50 triệu -> 100k
     'repairCommType': 'percent',
     'repairCommValue': 10.0,
     'transportAllowance': 0.0,
@@ -108,10 +107,7 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
     final role = await UserService.getUserRole(uid);
     if (mounted) {
       // Cho phép admin, owner (chủ shop) hoặc manager có quyền cài đặt lương
-      setState(
-        () =>
-            _isAdmin = role == 'admin' || role == 'owner' || role == 'manager',
-      );
+      setState(() => _isAdmin = role == 'admin' || role == 'owner' || role == 'manager');
     }
   }
 
@@ -156,7 +152,7 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(loc?.switchedToShop('$shopName') ?? 'Đã chuyển shop'),
-        backgroundColor: AppColors.success,
+        backgroundColor: Colors.green,
       ),
     );
   }
@@ -264,16 +260,11 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
         'baseSalary': (_shopDefaults['baseSalary'] ?? 0).toInt(),
         'saleCommPercent': _shopDefaults['saleCommValue'] ?? 1.0,
         'saleCommType': _shopDefaults['saleCommType'] ?? 'percent',
-        'saleCommTier1Max': (_shopDefaults['saleCommTier1Max'] ?? 10000000)
-            .toInt(),
-        'saleCommTier1Value': (_shopDefaults['saleCommTier1Value'] ?? 20000)
-            .toInt(),
-        'saleCommTier2Max': (_shopDefaults['saleCommTier2Max'] ?? 50000000)
-            .toInt(),
-        'saleCommTier2Value': (_shopDefaults['saleCommTier2Value'] ?? 50000)
-            .toInt(),
-        'saleCommTier3Value': (_shopDefaults['saleCommTier3Value'] ?? 100000)
-            .toInt(),
+        'saleCommTier1Max': (_shopDefaults['saleCommTier1Max'] ?? 10000000).toInt(),
+        'saleCommTier1Value': (_shopDefaults['saleCommTier1Value'] ?? 20000).toInt(),
+        'saleCommTier2Max': (_shopDefaults['saleCommTier2Max'] ?? 50000000).toInt(),
+        'saleCommTier2Value': (_shopDefaults['saleCommTier2Value'] ?? 50000).toInt(),
+        'saleCommTier3Value': (_shopDefaults['saleCommTier3Value'] ?? 100000).toInt(),
         'repairProfitPercent': _shopDefaults['repairCommValue'] ?? 10.0,
         'repairCommType': _shopDefaults['repairCommType'] ?? 'percent',
         'transportAllowance': (_shopDefaults['transportAllowance'] ?? 0)
@@ -289,7 +280,7 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('✅ Đã lưu cài đặt mặc định'),
-            backgroundColor: AppColors.success,
+            backgroundColor: Colors.green,
           ),
         );
       }
@@ -297,7 +288,7 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
       debugPrint('❌ Error saving shop defaults: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('❌ Lỗi: $e'), backgroundColor: AppColors.error),
+          SnackBar(content: Text('❌ Lỗi: $e'), backgroundColor: Colors.red),
         );
       }
     }
@@ -325,7 +316,7 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('✅ Đã lưu cài đặt cho ${settings.staffName}'),
-            backgroundColor: AppColors.success,
+            backgroundColor: Colors.green,
           ),
         );
       }
@@ -333,7 +324,7 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
       debugPrint('❌ Error saving employee settings: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('❌ Lỗi: $e'), backgroundColor: AppColors.error),
+          SnackBar(content: Text('❌ Lỗi: $e'), backgroundColor: Colors.red),
         );
       }
     }
@@ -344,15 +335,14 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
     return Scaffold(
       backgroundColor: FinanceV2Theme.pageBg,
       appBar: CustomAppBar.build(
-        title:
-            AppLocalizations.of(context)?.salarySettings ?? 'SALARY SETTINGS',
+        title: AppLocalizations.of(context)?.salarySettings ?? 'SALARY SETTINGS',
         accentColor: AppBarAccents.staff,
         elevation: 0,
         bottom: TabBar(
           controller: _tabController,
-          indicatorColor: AppColors.surface,
-          labelColor: AppColors.surface,
-          unselectedLabelColor: AppColors.surface.withAlpha(179),
+          indicatorColor: Colors.white,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
           tabs: [
             Tab(
               icon: const Icon(Icons.tune, size: 18),
@@ -372,25 +362,23 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
           ),
         ],
       ),
-      body: ResponsiveCenter(
-        child: _loading
-            ? const Center(child: CircularProgressIndicator())
-            : Column(
-                children: [
-                  if (UserService.isCurrentUserSuperAdmin())
-                    _buildAdminShopSelectorCard(),
-                  Expanded(
-                    child: TabBarView(
-                      controller: _tabController,
-                      children: [
-                        _buildShopDefaultsTab(),
-                        _buildEmployeeSettingsTab(),
-                      ],
-                    ),
+      body: ResponsiveCenter(child: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
+              children: [
+                if (UserService.isCurrentUserSuperAdmin())
+                  _buildAdminShopSelectorCard(),
+                Expanded(
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _buildShopDefaultsTab(),
+                      _buildEmployeeSettingsTab(),
+                    ],
                   ),
-                ],
-              ),
-      ),
+                ),
+              ],
+            )),
     );
   }
 
@@ -401,16 +389,16 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
       margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.primarySurface,
-        borderRadius: DesignTokens.brMd,
-        border: Border.all(color: AppColors.primary.withAlpha(51)),
+        color: Colors.blue.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.blue.shade200),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.store, color: AppColors.primary),
+              Icon(Icons.store, color: Colors.blue.shade700),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -440,7 +428,7 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
           else if (_allShops.isEmpty)
             Text(
               loc?.noShops ?? 'Không có shop nào',
-              style: const TextStyle(color: AppColors.textSecondary),
+              style: const TextStyle(color: Colors.grey),
             )
           else
             DropdownButtonFormField<String>(
@@ -448,10 +436,10 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
               decoration: InputDecoration(
                 labelText: loc?.selectShopLabel ?? 'Chọn shop',
                 border: OutlineInputBorder(
-                  borderRadius: DesignTokens.brSm,
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 filled: true,
-                fillColor: AppColors.surface,
+                fillColor: Colors.white,
               ),
               hint: Text(loc?.selectShopPlaceholder ?? '-- Chọn shop --'),
               items: _allShops.map((shop) {
@@ -470,9 +458,7 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
                       if (ownerEmail.toString().isNotEmpty)
                         Text(
                           ownerEmail,
-                          style: FinanceV2Theme.micro.copyWith(
-                            color: FinanceV2Theme.subInk,
-                          ),
+                          style: FinanceV2Theme.micro.copyWith(color: FinanceV2Theme.subInk),
                         ),
                     ],
                   ),
@@ -495,7 +481,7 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
         children: [
           _buildInfoCard(
             'Default settings apply to new staff or those without custom config. / Cài đặt mặc định áp dụng cho nhân viên mới hoặc chưa được cấu hình riêng.',
-            AppColors.primary,
+            Colors.blue,
             Icons.info_outline,
           ),
           const SizedBox(height: 16),
@@ -503,7 +489,7 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
           // LƯƠNG CƠ BẢN
           _buildSectionCard(
             title: '💰 BASE SALARY / LƯƠNG CƠ BẢN',
-            color: AppColors.success,
+            color: Colors.green,
             children: [
               _buildDropdownField(
                 label: 'Loại lương',
@@ -534,7 +520,7 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
           // HOA HỒNG BÁN HÀNG
           _buildSectionCard(
             title: '🛒 SALES COMMISSION / HOA HỒNG BÁN HÀNG',
-            color: AppColors.warning,
+            color: Colors.orange,
             children: [
               _buildDropdownField(
                 label: 'Loại tính',
@@ -577,7 +563,7 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
           // HOA HỒNG SỬA CHỮA
           _buildSectionCard(
             title: '🔧 HOA HỒNG SỬA CHỮA',
-            color: AppColors.info,
+            color: Colors.blue,
             children: [
               _buildDropdownField(
                 label: 'Loại tính',
@@ -617,7 +603,7 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
           // PHỤ CẤP
           _buildSectionCard(
             title: '🎁 PHỤ CẤP',
-            color: AppColors.success,
+            color: Colors.teal,
             children: [
               _buildCurrencyField(
                 label: 'Phụ cấp xăng xe/tháng (đ)',
@@ -646,7 +632,7 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
           // GIỜ LÀM & OT
           _buildSectionCard(
             title: '⏰ GIỜ LÀM & OT',
-            color: AppColors.primary,
+            color: Colors.indigo,
             children: [
               _buildNumberField(
                 label: 'Giờ chuẩn/ngày',
@@ -677,7 +663,7 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
               label: const Text('LƯU CÀI ĐẶT MẶC ĐỊNH'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
-                foregroundColor: AppColors.surface,
+                foregroundColor: Colors.white,
               ),
             ),
           ),
@@ -686,9 +672,7 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
               padding: const EdgeInsets.only(top: 8),
               child: Text(
                 '⚠️ Chỉ chủ shop hoặc admin mới có thể thay đổi',
-                style: FinanceV2Theme.caption.copyWith(
-                  color: FinanceV2Theme.warn,
-                ),
+                style: FinanceV2Theme.caption.copyWith(color: FinanceV2Theme.warn),
               ),
             ),
         ],
@@ -703,13 +687,11 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.people_outline, size: 64, color: AppColors.grey300),
+            Icon(Icons.people_outline, size: 64, color: Colors.grey.shade400),
             const SizedBox(height: 16),
             Text(
               'Chưa có nhân viên nào',
-              style: FinanceV2Theme.bodyMd.copyWith(
-                color: FinanceV2Theme.subInk,
-              ),
+              style: FinanceV2Theme.bodyMd.copyWith(color: FinanceV2Theme.subInk),
             ),
             const SizedBox(height: 8),
             TextButton.icon(
@@ -737,50 +719,44 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
             staff['name'] ?? staff['displayName'] ?? 'Chưa có tên';
         final hasSettings = _employeeSettings.containsKey(staffId);
 
-        return Container(
+        return Card(
           margin: const EdgeInsets.only(bottom: 8),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: DesignTokens.brMd,
-            border: Border.all(color: AppColors.outline),
-          ),
           child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             leading: CircleAvatar(
               backgroundColor: hasSettings
-                  ? AppColors.success.withAlpha(26)
-                  : AppColors.grey200,
+                  ? Colors.green
+                  : Colors.grey.shade300,
               child: Text(
                 staffName.isNotEmpty ? staffName[0].toUpperCase() : '?',
                 style: TextStyle(
-                  color: hasSettings ? AppColors.success : AppColors.textSecondary,
+                  color: hasSettings ? Colors.white : Colors.black54,
                   fontWeight: FontWeight.bold,
                 ),
               ),
             ),
             title: Text(
               staffName,
-              style: const TextStyle(fontWeight: FontWeight.w500, color: AppColors.textPrimary),
+              style: const TextStyle(fontWeight: FontWeight.w500),
               overflow: TextOverflow.ellipsis,
             ),
             subtitle: Text(
               staff['email'] ?? staffId,
-              style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+              style: FinanceV2Theme.caption.copyWith(color: FinanceV2Theme.subInk),
               overflow: TextOverflow.ellipsis,
             ),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 if (hasSettings)
-                  const Icon(Icons.check_circle, color: AppColors.success, size: 20)
+                  const Icon(Icons.check_circle, color: Colors.green, size: 20)
                 else
                   const Icon(
                     Icons.settings_outlined,
-                    color: AppColors.grey400,
+                    color: Colors.grey,
                     size: 20,
                   ),
                 const SizedBox(width: 4),
-                const Icon(Icons.chevron_right, color: AppColors.grey400),
+                const Icon(Icons.chevron_right, color: Colors.grey),
               ],
             ),
             onTap: () => _showEmployeeSettingsDialog(staff),
@@ -830,7 +806,7 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
         maxChildSize: 0.95,
         builder: (context, scrollController) => Container(
           decoration: const BoxDecoration(
-            color: AppColors.surface,
+            color: Colors.white,
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
           child: StatefulBuilder(
@@ -842,7 +818,7 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: AppColors.grey300,
+                    color: Colors.grey.shade300,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -858,7 +834,7 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
                               ? staffName[0].toUpperCase()
                               : '?',
                           style: const TextStyle(
-                            color: AppColors.surface,
+                            color: Colors.white,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -937,7 +913,7 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
                       // LƯƠNG CƠ BẢN
                       _buildSectionCard(
                         title: '💰 LƯƠNG CƠ BẢN',
-                        color: AppColors.success,
+                        color: Colors.green,
                         children: [
                           _buildDropdownField(
                             label: 'Loại lương',
@@ -979,7 +955,7 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
                       // HOA HỒNG BÁN HÀNG
                       _buildSectionCard(
                         title: '🛒 HOA HỒNG BÁN HÀNG',
-                        color: AppColors.warning,
+                        color: Colors.orange,
                         children: [
                           _buildDropdownField(
                             label: 'Loại tính',
@@ -1012,11 +988,7 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
                               }),
                             )
                           else if (settings.saleCommType == 'tiered')
-                            ..._buildEmployeeTieredFields(
-                              settings,
-                              setDialogState,
-                              (s) => settings = s,
-                            )
+                            ..._buildEmployeeTieredFields(settings, setDialogState, (s) => settings = s)
                           else
                             _buildCurrencyField(
                               label: 'Tiền/đơn bán (đ)',
@@ -1032,7 +1004,7 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
                       // HOA HỒNG SỬA CHỮA
                       _buildSectionCard(
                         title: '🔧 HOA HỒNG SỬA CHỮA',
-                        color: AppColors.info,
+                        color: Colors.blue,
                         children: [
                           _buildDropdownField(
                             label: 'Loại tính',
@@ -1079,7 +1051,7 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
                       // PHỤ CẤP
                       _buildSectionCard(
                         title: '🎁 PHỤ CẤP',
-                        color: AppColors.success,
+                        color: Colors.teal,
                         children: [
                           _buildCurrencyField(
                             label: 'Phụ cấp xăng xe/tháng (đ)',
@@ -1121,7 +1093,7 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
                       // THƯỞNG DOANH SỐ
                       _buildSectionCard(
                         title: '🎯 THƯỞNG DOANH SỐ',
-                        color: AppColors.warning,
+                        color: Colors.amber.shade700,
                         children: [
                           _buildCurrencyField(
                             label: 'Mục tiêu doanh số/tháng (đ)',
@@ -1147,7 +1119,7 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
                       // GIỜ LÀM & OT
                       _buildSectionCard(
                         title: '⏰ GIỜ LÀM & OT',
-                        color: AppColors.primary,
+                        color: Colors.indigo,
                         children: [
                           _buildNumberField(
                             label: 'Giờ chuẩn/ngày',
@@ -1182,8 +1154,15 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    border: Border(top: BorderSide(color: AppColors.outline)),
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.2),
+                        spreadRadius: 1,
+                        blurRadius: 4,
+                        offset: const Offset(0, -2),
+                      ),
+                    ],
                   ),
                   child: SafeArea(
                     child: Row(
@@ -1211,7 +1190,7 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
                             label: const Text('LƯU'),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.primary,
-                              foregroundColor: AppColors.surface,
+                              foregroundColor: Colors.white,
                             ),
                           ),
                         ),
@@ -1255,22 +1234,22 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.primarySurface,
-        borderRadius: DesignTokens.brMd,
-        border: Border.all(color: AppColors.primary.withAlpha(51)),
+        color: Colors.blue.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.blue.shade200),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.calculate, color: AppColors.primary),
+              Icon(Icons.calculate, color: Colors.blue.shade700),
               const SizedBox(width: 8),
-              const Text(
+              Text(
                 'DỰ TÍNH LƯƠNG (ví dụ)',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: AppColors.primary,
+                  color: Colors.blue.shade700,
                 ),
               ),
             ],
@@ -1280,9 +1259,7 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
             'Giả định: DS ${_currencyFormat.format(exampleSaleRevenue)}đ, '
             'LN sửa ${_currencyFormat.format(exampleRepairProfit)}đ, '
             '$exampleSaleOrders đơn bán, $exampleRepairOrders đơn sửa',
-            style: FinanceV2Theme.caption.copyWith(
-              color: FinanceV2Theme.subInk,
-            ),
+            style: FinanceV2Theme.caption.copyWith(color: FinanceV2Theme.subInk),
             overflow: TextOverflow.ellipsis,
             maxLines: 2,
           ),
@@ -1309,7 +1286,7 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
                 child: Text(
                   '${_currencyFormat.format(total)}đ',
                   style: TextStyle(
-                    fontSize: FinanceV2Theme.amountLg.fontSize,
+                  fontSize: FinanceV2Theme.amountLg.fontSize,
                     fontWeight: FontWeight.w700,
                     color: FinanceV2Theme.positive,
                   ),
@@ -1356,9 +1333,9 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.withAlpha(26),
-        borderRadius: DesignTokens.brSm,
-        border: Border.all(color: color.withAlpha(77)),
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.3)),
       ),
       child: Row(
         children: [
@@ -1367,9 +1344,7 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
           Expanded(
             child: Text(
               text,
-              style: FinanceV2Theme.bodyMd.copyWith(
-                color: color.withAlpha(217),
-              ),
+              style: FinanceV2Theme.bodyMd.copyWith(color: color.withValues(alpha: 0.85)),
             ),
           ),
         ],
@@ -1395,19 +1370,14 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
                 height: 20,
                 decoration: BoxDecoration(
                   color: color,
-                  borderRadius: DesignTokens.brXs,
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   title,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textSecondary,
-                    letterSpacing: 0.5,
-                  ),
+                  style: FinanceV2Theme.titleMd.copyWith(color: color),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -1488,23 +1458,23 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
       Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: AppColors.warningLight,
-          borderRadius: DesignTokens.brSm,
-          border: Border.all(color: AppColors.warning.withAlpha(51)),
+          color: Colors.orange.shade50,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.orange.shade200),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
               '📊 Hoa hồng theo bậc giá trị đơn hàng:',
-              style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+              style: TextStyle(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               '• Bậc 1: Đơn dưới mức 1 → Hoa hồng 1\n'
               '• Bậc 2: Đơn từ mức 1 đến mức 2 → Hoa hồng 2\n'
               '• Bậc 3: Đơn trên mức 2 → Hoa hồng 3',
-              style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+              style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
             ),
           ],
         ),
@@ -1517,8 +1487,7 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
             child: _buildCurrencyField(
               label: 'Mức 1: Đơn dưới (đ)',
               value: (_shopDefaults['saleCommTier1Max'] ?? 10000000).toDouble(),
-              onChanged: (v) =>
-                  setState(() => _shopDefaults['saleCommTier1Max'] = v),
+              onChanged: (v) => setState(() => _shopDefaults['saleCommTier1Max'] = v),
             ),
           ),
           const SizedBox(width: 8),
@@ -1526,8 +1495,7 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
             child: _buildCurrencyField(
               label: 'Hoa hồng 1 (đ)',
               value: (_shopDefaults['saleCommTier1Value'] ?? 20000).toDouble(),
-              onChanged: (v) =>
-                  setState(() => _shopDefaults['saleCommTier1Value'] = v),
+              onChanged: (v) => setState(() => _shopDefaults['saleCommTier1Value'] = v),
             ),
           ),
         ],
@@ -1540,8 +1508,7 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
             child: _buildCurrencyField(
               label: 'Mức 2: Đơn đến (đ)',
               value: (_shopDefaults['saleCommTier2Max'] ?? 50000000).toDouble(),
-              onChanged: (v) =>
-                  setState(() => _shopDefaults['saleCommTier2Max'] = v),
+              onChanged: (v) => setState(() => _shopDefaults['saleCommTier2Max'] = v),
             ),
           ),
           const SizedBox(width: 8),
@@ -1549,8 +1516,7 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
             child: _buildCurrencyField(
               label: 'Hoa hồng 2 (đ)',
               value: (_shopDefaults['saleCommTier2Value'] ?? 50000).toDouble(),
-              onChanged: (v) =>
-                  setState(() => _shopDefaults['saleCommTier2Value'] = v),
+              onChanged: (v) => setState(() => _shopDefaults['saleCommTier2Value'] = v),
             ),
           ),
         ],
@@ -1573,8 +1539,7 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
             child: _buildCurrencyField(
               label: 'Hoa hồng 3 (đ)',
               value: (_shopDefaults['saleCommTier3Value'] ?? 100000).toDouble(),
-              onChanged: (v) =>
-                  setState(() => _shopDefaults['saleCommTier3Value'] = v),
+              onChanged: (v) => setState(() => _shopDefaults['saleCommTier3Value'] = v),
             ),
           ),
         ],
@@ -1592,23 +1557,23 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
       Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: AppColors.warningLight,
-          borderRadius: DesignTokens.brSm,
-          border: Border.all(color: AppColors.warning.withAlpha(51)),
+          color: Colors.orange.shade50,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.orange.shade200),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
               '📊 Hoa hồng theo bậc giá trị đơn hàng:',
-              style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+              style: TextStyle(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               '• Bậc 1: Đơn dưới mức 1 → Hoa hồng 1\n'
               '• Bậc 2: Đơn từ mức 1 đến mức 2 → Hoa hồng 2\n'
               '• Bậc 3: Đơn trên mức 2 → Hoa hồng 3',
-              style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+              style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
             ),
           ],
         ),
@@ -1752,7 +1717,7 @@ class _CurrencyFieldWidgetState extends State<_CurrencyFieldWidget> {
   void _formatLive(String value) {
     final clean = value.replaceAll(RegExp(r'[^0-9]'), '');
     _currentValue = double.tryParse(clean) ?? 0;
-
+    
     if (clean.isEmpty) {
       _controller.value = const TextEditingValue(
         text: '',
@@ -1760,14 +1725,14 @@ class _CurrencyFieldWidgetState extends State<_CurrencyFieldWidget> {
       );
       return;
     }
-
+    
     final formatted = widget.currencyFormat.format(_currentValue);
     // Preserve cursor position
     final oldLength = _controller.text.length;
     final oldCursor = _controller.selection.baseOffset;
     final newLength = formatted.length;
     final newCursor = (oldCursor + (newLength - oldLength)).clamp(0, newLength);
-
+    
     _controller.value = TextEditingValue(
       text: formatted,
       selection: TextSelection.collapsed(offset: newCursor),

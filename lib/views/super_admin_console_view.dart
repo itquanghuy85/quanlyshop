@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
 
 import '../services/claims_service.dart';
 import '../services/firestore_service.dart';
@@ -99,7 +98,7 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
         builder: (ctx, setDialogState) => AlertDialog(
           title: Row(
             children: [
-              const Icon(Icons.lock, color: AppColors.repairDelivered),
+              const Icon(Icons.lock, color: Colors.deepPurple),
               const SizedBox(width: 8),
               Text(title),
             ],
@@ -159,7 +158,7 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Đã chọn shop $shopName để xem dữ liệu.'),
-        backgroundColor: AppColors.success,
+        backgroundColor: Colors.green,
       ),
     );
   }
@@ -194,7 +193,7 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(newValue ? 'Đã khóa $label' : 'Đã mở khóa $label'),
-        backgroundColor: newValue ? AppColors.warning : AppColors.success,
+        backgroundColor: newValue ? Colors.orange : Colors.green,
       ),
     );
   }
@@ -232,7 +231,7 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('Tiếp tục'),
           ),
         ],
@@ -245,7 +244,7 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Tên shop xác nhận không khớp.'),
-          backgroundColor: AppColors.error,
+          backgroundColor: Colors.red,
         ),
       );
       return;
@@ -271,7 +270,7 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
         content: Text(error == null
             ? 'Đã reset dữ liệu shop $shopName'
             : 'Reset thất bại: $error'),
-        backgroundColor: error == null ? AppColors.success : AppColors.error,
+        backgroundColor: error == null ? Colors.green : Colors.red,
       ),
     );
   }
@@ -301,7 +300,7 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Đã soft-delete shop $shopName'),
-        backgroundColor: AppColors.warning,
+        backgroundColor: Colors.orange,
       ),
     );
   }
@@ -544,7 +543,7 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.warning_amber_rounded, color: AppColors.error),
+              leading: const Icon(Icons.warning_amber_rounded, color: Colors.red),
               title: const Text('Danger Zone'),
               onTap: () {
                 Navigator.pop(ctx);
@@ -578,12 +577,12 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
   Widget _navItem(IconData icon, String label, _AdminSection value, {bool danger = false}) {
     final selected = _section == value;
     return ListTile(
-      leading: Icon(icon, color: danger ? AppColors.error : null),
+      leading: Icon(icon, color: danger ? Colors.red : null),
       title: Text(
         label,
         style: TextStyle(
           fontWeight: selected ? FontWeight.bold : FontWeight.w500,
-          color: danger ? AppColors.error : null,
+          color: danger ? Colors.red : null,
         ),
       ),
       selected: selected,
@@ -658,16 +657,16 @@ class _DashboardSection extends StatelessWidget {
               spacing: 12,
               runSpacing: 12,
               children: [
-                _statCard('Tổng shop', '${stats['shops']}', Icons.store, AppColors.primary),
-                _statCard('Shop active', '${stats['active']}', Icons.check_circle, AppColors.success),
-                _statCard('Tổng user', '${stats['users']}', Icons.people, AppColors.primary),
-                _statCard('Shop bị khóa', '${stats['locked']}', Icons.lock, AppColors.warning),
+                _statCard('Tổng shop', '${stats['shops']}', Icons.store, Colors.blue),
+                _statCard('Shop active', '${stats['active']}', Icons.check_circle, Colors.green),
+                _statCard('Tổng user', '${stats['users']}', Icons.people, Colors.indigo),
+                _statCard('Shop bị khóa', '${stats['locked']}', Icons.lock, Colors.orange),
               ],
             ),
             const SizedBox(height: 16),
             Card(
               child: ListTile(
-                leading: const Icon(Icons.warning_amber_rounded, color: AppColors.warning),
+                leading: const Icon(Icons.warning_amber_rounded, color: Colors.orange),
                 title: const Text('Cảnh báo hệ thống'),
                 subtitle: Text(stats['locked'] == 0
                     ? 'Không có shop đang khóa toàn bộ app.'
@@ -692,7 +691,7 @@ class _DashboardSection extends StatelessWidget {
               Icon(icon, color: color),
               const SizedBox(height: 8),
               Text(value, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-              Text(title, style: const TextStyle(color: AppColors.textHint)),
+              Text(title, style: const TextStyle(color: Colors.grey)),
             ],
           ),
         ),
@@ -758,7 +757,7 @@ class _ShopsSection extends StatelessWidget {
                           const Chip(label: Text('DELETED')),
                         const SizedBox(width: 6),
                         Chip(
-                          backgroundColor: appLocked ? AppColors.error : AppColors.success,
+                          backgroundColor: appLocked ? Colors.red.shade50 : Colors.green.shade50,
                           label: Text(appLocked ? 'LOCKED' : 'ACTIVE'),
                         ),
                       ],
@@ -792,7 +791,7 @@ class _ShopsSection extends StatelessWidget {
                         ),
                         OutlinedButton.icon(
                           onPressed: () => onResetShop(s),
-                          style: OutlinedButton.styleFrom(foregroundColor: AppColors.error),
+                          style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
                           icon: const Icon(Icons.restart_alt),
                           label: const Text('Reset'),
                         ),
@@ -967,15 +966,15 @@ class _UsersSection extends StatelessWidget {
                   children: [
                     IconButton(
                       onPressed: () => onEdit(context, uid, u),
-                      icon: const Icon(Icons.edit, color: AppColors.warning),
+                      icon: const Icon(Icons.edit, color: Colors.orange),
                     ),
                     IconButton(
                       onPressed: () => onDelete(uid, email, withData: false),
-                      icon: const Icon(Icons.delete_outline, color: AppColors.error),
+                      icon: const Icon(Icons.delete_outline, color: Colors.red),
                     ),
                     IconButton(
                       onPressed: () => onDelete(uid, email, withData: true),
-                      icon: const Icon(Icons.delete_forever, color: AppColors.error),
+                      icon: const Icon(Icons.delete_forever, color: Colors.red),
                     ),
                   ],
                 ),
@@ -1232,7 +1231,7 @@ class _DangerSection extends StatelessWidget {
             const Card(
               color: Color(0xFFFFF3F3),
               child: ListTile(
-                leading: Icon(Icons.warning_amber_rounded, color: AppColors.error),
+                leading: Icon(Icons.warning_amber_rounded, color: Colors.red),
                 title: Text('Danger Zone'),
                 subtitle: Text('Mọi thao tác tại đây đều yêu cầu xác thực PIN và được ghi audit log.'),
               ),
@@ -1251,7 +1250,7 @@ class _DangerSection extends StatelessWidget {
                           label: const Text('Reset'),
                         ),
                         FilledButton.icon(
-                          style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+                          style: FilledButton.styleFrom(backgroundColor: Colors.red),
                           onPressed: () => onDeleteShop(s),
                           icon: const Icon(Icons.delete_forever),
                           label: const Text('Delete Shop'),

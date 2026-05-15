@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 /// Reusable cached network image widget.
@@ -39,14 +38,14 @@ class AppCachedImage extends StatelessWidget {
       placeholder: (_, __) => Container(
         width: width,
         height: height,
-        color: AppColors.outline,
+        color: Colors.grey.shade200,
         child: Center(
           child: SizedBox(
             width: 20,
             height: 20,
             child: CircularProgressIndicator(
               strokeWidth: 2,
-              color: AppColors.textHint,
+              color: Colors.grey.shade400,
             ),
           ),
         ),
@@ -54,8 +53,8 @@ class AppCachedImage extends StatelessWidget {
       errorWidget: (_, __, ___) => Container(
         width: width,
         height: height,
-        color: AppColors.outline,
-        child: Icon(Icons.broken_image, color: AppColors.textHint, size: 24),
+        color: Colors.grey.shade200,
+        child: Icon(Icons.broken_image, color: Colors.grey.shade400, size: 24),
       ),
     );
 

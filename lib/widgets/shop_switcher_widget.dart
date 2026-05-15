@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/current_shop_service.dart';
@@ -100,8 +99,8 @@ class _ShopSwitcherWidgetState extends State<ShopSwitcherWidget> {
       final currentShopId = await _shopService.getActiveShopId();
 
       // Validate currentShopId exists in shops list to prevent DropdownButton assertion
-      final validShopId =
-          currentShopId != null && shops.any((s) => s['id'] == currentShopId)
+      final validShopId = currentShopId != null &&
+              shops.any((s) => s['id'] == currentShopId)
           ? currentShopId
           : (shops.isNotEmpty ? shops.first['id'] as String? : null);
 
@@ -153,7 +152,7 @@ class _ShopSwitcherWidgetState extends State<ShopSwitcherWidget> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Đã chuyển sang: $shopName'),
-            backgroundColor: AppColors.success,
+            backgroundColor: Colors.green,
             duration: const Duration(seconds: 2),
           ),
         );
@@ -165,7 +164,7 @@ class _ShopSwitcherWidgetState extends State<ShopSwitcherWidget> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Không thể chuyển shop'),
-            backgroundColor: AppColors.error,
+            backgroundColor: Colors.red,
           ),
         );
       }
@@ -265,13 +264,13 @@ class _ShopSwitcherWidgetState extends State<ShopSwitcherWidget> {
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Row(
                   children: [
-                    const Icon(Icons.store, size: 18, color: AppColors.textHint),
+                    const Icon(Icons.store, size: 18, color: Colors.grey),
                     const SizedBox(width: 8),
                     Text(
                       loc?.switchShop ?? 'Chọn cửa hàng',
                       style: const TextStyle(
                         fontSize: 14,
-                        color: AppColors.textHint,
+                        color: Colors.grey,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -284,8 +283,7 @@ class _ShopSwitcherWidgetState extends State<ShopSwitcherWidget> {
                 isExpanded: true,
                 menuMaxHeight: 320,
                 // Safety: ensure value exists in items to prevent assertion error
-                value:
-                    _currentShopId != null &&
+                value: _currentShopId != null &&
                         _shops.any((s) => s['id'] == _currentShopId)
                     ? _currentShopId
                     : null,
@@ -329,15 +327,15 @@ class _ShopSwitcherWidgetState extends State<ShopSwitcherWidget> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.warning,
+                  color: Colors.orange.shade50,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.warning),
+                  border: Border.all(color: Colors.orange.shade200),
                 ),
                 child: Row(
                   children: [
                     Icon(
                       Icons.info_outline,
-                      color: AppColors.warning,
+                      color: Colors.orange.shade700,
                       size: 20,
                     ),
                     const SizedBox(width: 8),
@@ -345,7 +343,7 @@ class _ShopSwitcherWidgetState extends State<ShopSwitcherWidget> {
                       child: Text(
                         'Bạn chưa có cửa hàng nào. Tạo chi nhánh đầu tiên!',
                         style: TextStyle(
-                          color: AppColors.warning,
+                          color: Colors.orange.shade800,
                           fontSize: 14,
                         ),
                       ),
@@ -361,8 +359,8 @@ class _ShopSwitcherWidgetState extends State<ShopSwitcherWidget> {
               icon: const Icon(Icons.add_business, size: 18),
               label: Text(loc?.createNewBranch ?? 'Tạo chi nhánh mới'),
               style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.primary,
-                side: const BorderSide(color: AppColors.primary),
+                foregroundColor: Colors.blue,
+                side: const BorderSide(color: Colors.blue),
                 minimumSize: const Size(double.infinity, 40),
               ),
             ),
@@ -374,8 +372,8 @@ class _ShopSwitcherWidgetState extends State<ShopSwitcherWidget> {
                 icon: const Icon(Icons.delete_outline, size: 18),
                 label: const Text('Xóa chi nhánh'),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.error,
-                  side: const BorderSide(color: AppColors.error),
+                  foregroundColor: Colors.red,
+                  side: const BorderSide(color: Colors.red),
                   minimumSize: const Size(double.infinity, 40),
                 ),
               ),
@@ -390,78 +388,84 @@ class _ShopSwitcherWidgetState extends State<ShopSwitcherWidget> {
     final nameController = TextEditingController();
     final addressController = TextEditingController();
     final loc = AppLocalizations.of(context);
+    String selectedBusinessType = 'electronics';
 
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Row(
-          children: [
-            const Icon(Icons.add_business, color: AppColors.primary),
-            const SizedBox(width: 8),
-            Expanded(child: Text(loc?.createNewBranch ?? 'Create New Branch')),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameController,
-              decoration: InputDecoration(
-                labelText: loc?.branchName ?? 'Branch Name',
-                hintText: 'Chi nhánh 2',
-                prefixIcon: const Icon(Icons.store),
-                border: const OutlineInputBorder(),
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Row(
+            children: [
+              const Icon(Icons.add_business, color: Colors.blue),
+              const SizedBox(width: 8),
+              Expanded(child: Text(loc?.createNewBranch ?? 'Create New Branch')),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: InputDecoration(
+                  labelText: loc?.branchName ?? 'Branch Name',
+                  hintText: 'Chi nhánh 2',
+                  prefixIcon: const Icon(Icons.store),
+                  border: const OutlineInputBorder(),
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: addressController,
-              decoration: InputDecoration(
-                labelText: loc?.address ?? 'Address',
-                hintText: '123 Đường ABC',
-                prefixIcon: const Icon(Icons.location_on),
-                border: const OutlineInputBorder(),
+              const SizedBox(height: 12),
+              TextField(
+                controller: addressController,
+                decoration: InputDecoration(
+                  labelText: loc?.address ?? 'Address',
+                  hintText: '123 Đường ABC',
+                  prefixIcon: const Icon(Icons.location_on),
+                  border: const OutlineInputBorder(),
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-            // Info: luôn là cửa hàng điện thoại
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withAlpha(26),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.primary, width: 1),
-              ),
-              child: const Row(
-                children: [
-                  Icon(Icons.info, color: AppColors.primary),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Cửa hàng điện thoại & điện tử',
-                      style: TextStyle(color: AppColors.primary),
-                    ),
+              const SizedBox(height: 12),
+              // Business type dropdown
+              DropdownButtonFormField<String>(
+                value: selectedBusinessType,
+                decoration: InputDecoration(
+                  labelText: 'Ngành kinh doanh',
+                  prefixIcon: const Icon(Icons.business_center),
+                  border: const OutlineInputBorder(),
+                ),
+                items: const [
+                  DropdownMenuItem(
+                    value: 'electronics',
+                    child: Text('📱 Điện thoại & Điện tử'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'fashion',
+                    child: Text('👗 Thời trang & May mặc'),
                   ),
                 ],
+                onChanged: (value) {
+                  if (value != null) {
+                    setDialogState(() => selectedBusinessType = value);
+                  }
+                },
               ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, null),
+              child: Text(loc?.cancel ?? 'Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, {
+                'name': nameController.text.trim(),
+                'address': addressController.text.trim(),
+                'businessType': selectedBusinessType,
+              }),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+              child: Text(loc?.create ?? 'Create'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, null),
-            child: Text(loc?.cancel ?? 'Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, {
-              'name': nameController.text.trim(),
-              'address': addressController.text.trim(),
-              'businessType': 'electronics', // Luôn là electronics
-            }),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
-            child: Text(loc?.create ?? 'Create'),
-          ),
-        ],
       ),
     );
 
@@ -474,11 +478,7 @@ class _ShopSwitcherWidgetState extends State<ShopSwitcherWidget> {
     }
   }
 
-  Future<void> _createNewShop(
-    String name,
-    String address,
-    String businessType,
-  ) async {
+  Future<void> _createNewShop(String name, String address, String businessType) async {
     setState(() => _loading = true);
 
     try {
@@ -488,7 +488,7 @@ class _ShopSwitcherWidgetState extends State<ShopSwitcherWidget> {
       // Step 1: Create shop document first (must exist before settings)
       final newShopRef = FirebaseFirestore.instance.collection('shops').doc();
       final shopId = newShopRef.id;
-
+      
       await newShopRef.set({
         'name': name,
         'address': address,
@@ -524,7 +524,7 @@ class _ShopSwitcherWidgetState extends State<ShopSwitcherWidget> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('✅ Đã tạo chi nhánh: $name'),
-            backgroundColor: AppColors.success,
+            backgroundColor: Colors.green,
           ),
         );
       }
@@ -534,7 +534,7 @@ class _ShopSwitcherWidgetState extends State<ShopSwitcherWidget> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('❌ Lỗi tạo chi nhánh: $e'),
-            backgroundColor: AppColors.error,
+            backgroundColor: Colors.red,
           ),
         );
       }
@@ -555,7 +555,7 @@ class _ShopSwitcherWidgetState extends State<ShopSwitcherWidget> {
           content: Text(
             'Không thể xóa shop đang hoạt động. Chuyển sang shop khác trước!',
           ),
-          backgroundColor: AppColors.warning,
+          backgroundColor: Colors.orange,
         ),
       );
       return;
@@ -569,7 +569,7 @@ class _ShopSwitcherWidgetState extends State<ShopSwitcherWidget> {
         builder: (context, setDialogState) => AlertDialog(
           title: const Row(
             children: [
-              Icon(Icons.delete_forever, color: AppColors.error),
+              Icon(Icons.delete_forever, color: Colors.red),
               SizedBox(width: 8),
               Text('Xóa chi nhánh'),
             ],
@@ -580,7 +580,7 @@ class _ShopSwitcherWidgetState extends State<ShopSwitcherWidget> {
             children: [
               const Text(
                 '⚠️ Cảnh báo: Xóa chi nhánh sẽ xóa TẤT CẢ dữ liệu liên quan (đơn sửa chữa, sản phẩm, công nợ...). Hành động này KHÔNG THỂ hoàn tác!',
-                style: TextStyle(color: AppColors.error, fontSize: 14),
+                style: TextStyle(color: Colors.red, fontSize: 14),
               ),
               const SizedBox(height: 16),
               const Text('Chọn chi nhánh cần xóa:'),
@@ -612,8 +612,8 @@ class _ShopSwitcherWidgetState extends State<ShopSwitcherWidget> {
                   ? null
                   : () => Navigator.pop(ctx, true),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.error,
-                foregroundColor: AppColors.surface,
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
               ),
               child: const Text('Xóa vĩnh viễn'),
             ),
@@ -666,13 +666,13 @@ class _ShopSwitcherWidgetState extends State<ShopSwitcherWidget> {
                 ScaffoldMessenger.of(ctx).showSnackBar(
                   const SnackBar(
                     content: Text('Tên không khớp!'),
-                    backgroundColor: AppColors.warning,
+                    backgroundColor: Colors.orange,
                   ),
                 );
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-            child: const Text('XÓA', style: TextStyle(color: AppColors.surface)),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('XÓA', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -694,7 +694,7 @@ class _ShopSwitcherWidgetState extends State<ShopSwitcherWidget> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('❌ Bạn không có quyền xóa chi nhánh này'),
-              backgroundColor: AppColors.error,
+              backgroundColor: Colors.red,
             ),
           );
         }
@@ -736,7 +736,7 @@ class _ShopSwitcherWidgetState extends State<ShopSwitcherWidget> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('✅ Đã xóa chi nhánh: $shopName'),
-              backgroundColor: AppColors.success,
+              backgroundColor: Colors.green,
             ),
           );
         }
@@ -745,7 +745,7 @@ class _ShopSwitcherWidgetState extends State<ShopSwitcherWidget> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('❌ Lỗi xóa chi nhánh: ${result.errorMessage}'),
-              backgroundColor: AppColors.error,
+              backgroundColor: Colors.red,
             ),
           );
         }
@@ -755,7 +755,7 @@ class _ShopSwitcherWidgetState extends State<ShopSwitcherWidget> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('❌ Lỗi xóa chi nhánh: $e'),
-            backgroundColor: AppColors.error,
+            backgroundColor: Colors.red,
           ),
         );
       }
@@ -798,7 +798,7 @@ class _CurrentShopIndicatorState extends State<CurrentShopIndicator> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: AppColors.surface.withValues(alpha: 0.2),
+        color: Colors.white.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -810,7 +810,7 @@ class _CurrentShopIndicatorState extends State<CurrentShopIndicator> {
             _shopName!,
             style: const TextStyle(
               fontSize: 14,
-              color: AppColors.surface,
+              color: Colors.white,
               fontWeight: FontWeight.w500,
             ),
           ),

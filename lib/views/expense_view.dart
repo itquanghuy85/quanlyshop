@@ -23,7 +23,6 @@ import '../services/financial_activity_service.dart';
 import '../services/audit_service.dart';
 import '../constants/financial_constants.dart';
 import '../theme/app_colors.dart';
-import '../theme/design_tokens.dart';
 import '../theme/app_text_styles.dart';
 import '../theme/app_button_styles.dart';
 import '../widgets/gradient_fab.dart';
@@ -311,9 +310,9 @@ class _ExpenseViewState extends State<ExpenseView> {
       required bool isPersonal,
     }) {
       final boxColor = isPersonal
-          ? AppColors.iconBgOrange
-          : accentColor.withAlpha(20);
-      final textColor = isPersonal ? AppColors.warning : accentColor;
+          ? Colors.orange.shade50
+          : accentColor.withOpacity(0.08);
+      final textColor = isPersonal ? Colors.orange.shade700 : accentColor;
       return Expanded(
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -322,8 +321,8 @@ class _ExpenseViewState extends State<ExpenseView> {
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
               color: isPersonal
-                  ? AppColors.warning.withAlpha(51)
-                  : accentColor.withAlpha(41),
+                  ? Colors.orange.withOpacity(0.2)
+                  : accentColor.withOpacity(0.16),
             ),
           ),
           child: Column(
@@ -384,7 +383,7 @@ class _ExpenseViewState extends State<ExpenseView> {
       final expenseDate = DateTime.fromMillisecondsSinceEpoch(expenseTimestamp);
       NotificationService.showSnackBar(
         '❌ Ngày ${DateFormat('dd/MM/yyyy').format(expenseDate)} đã chốt quỹ! Không thể xóa $label.',
-        color: AppColors.error,
+        color: Colors.red,
       );
       return;
     }
@@ -521,7 +520,7 @@ class _ExpenseViewState extends State<ExpenseView> {
     if (!canEdit && mounted) {
       NotificationService.showSnackBar(
         '❌ Ngày hôm nay đã chốt quỹ! Không thể thêm chi phí mới.',
-        color: AppColors.error,
+        color: Colors.red,
       );
       return;
     }
@@ -562,7 +561,7 @@ class _ExpenseViewState extends State<ExpenseView> {
                     Text(
                       "PHÂN LOẠI",
                       style: AppTextStyles.overline.copyWith(
-                        color: AppColors.onSurface.withAlpha(153),
+                        color: AppColors.onSurface.withOpacity(0.6),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -627,7 +626,7 @@ class _ExpenseViewState extends State<ExpenseView> {
                     Text(
                       "THANH TOÁN BẰNG",
                       style: AppTextStyles.overline.copyWith(
-                        color: AppColors.onSurface.withAlpha(153),
+                        color: AppColors.onSurface.withOpacity(0.6),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -651,7 +650,7 @@ class _ExpenseViewState extends State<ExpenseView> {
                     Text(
                       "PHẠM VI CHI",
                       style: AppTextStyles.overline.copyWith(
-                        color: AppColors.onSurface.withAlpha(153),
+                        color: AppColors.onSurface.withOpacity(0.6),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -774,25 +773,32 @@ class _ExpenseViewState extends State<ExpenseView> {
           child: Text(
             "Bạn không có quyền truy cập tính năng này",
             style: AppTextStyles.body1.copyWith(
-              color: AppColors.onSurface.withAlpha(153),
+              color: AppColors.onSurface.withOpacity(0.6),
             ),
           ),
         );
       }
       return Scaffold(
         appBar: AppBar(
-          backgroundColor: AppColors.surface,
-          foregroundColor: AppColors.textPrimary,
+          flexibleSpace: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF0068FF), Color(0xFF0084FF)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+          ),
+          backgroundColor: Colors.transparent,
+          foregroundColor: Colors.white,
           elevation: 0,
-          scrolledUnderElevation: 0.5,
-          surfaceTintColor: Colors.transparent,
           title: const Text("QUẢN LÝ CHI PHÍ"),
         ),
         body: Center(
           child: Text(
             "Bạn không có quyền truy cập tính năng này",
             style: AppTextStyles.body1.copyWith(
-              color: AppColors.onSurface.withAlpha(153),
+              color: AppColors.onSurface.withOpacity(0.6),
             ),
           ),
         ),
@@ -857,7 +863,7 @@ class _ExpenseViewState extends State<ExpenseView> {
     }
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: const Color(0xFFF8FAFF),
       appBar: CustomAppBar.build(
         title: _viewMode == 'CHI' ? 'QUẢN LÝ CHI PHÍ' : 'THU PHÁT SINH',
         subtitle: _viewMode == 'CHI'
@@ -885,8 +891,8 @@ class _ExpenseViewState extends State<ExpenseView> {
                 _syncStatus,
                 style: AppTextStyles.caption.copyWith(
                   color: _syncStatus == 'Lỗi đồng bộ'
-                      ? AppColors.warning
-                      : AppBarAccents.staff.withAlpha(179),
+                      ? Colors.orange
+                      : AppBarAccents.staff.withOpacity(0.7),
                   fontWeight: _isSyncing ? FontWeight.bold : FontWeight.normal,
                 ),
               ),
@@ -895,7 +901,7 @@ class _ExpenseViewState extends State<ExpenseView> {
                 onPressed: _isSyncing ? null : _syncWithFirebase,
                 icon: Icon(
                   _isSyncing ? Icons.sync : Icons.sync_outlined,
-                  color: _isSyncing ? AppColors.warning : AppBarAccents.staff,
+                  color: _isSyncing ? Colors.orange : AppBarAccents.staff,
                 ),
                 tooltip: 'Đồng bộ với Firebase',
               ),
@@ -933,7 +939,7 @@ class _ExpenseViewState extends State<ExpenseView> {
       margin: const EdgeInsets.fromLTRB(12, 4, 12, 0),
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
-        color: AppColors.background,
+        color: Colors.grey.shade100,
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
@@ -969,7 +975,7 @@ class _ExpenseViewState extends State<ExpenseView> {
               Icon(
                 icon,
                 size: 14,
-                color: active ? AppColors.surface : AppColors.textSecondary,
+                color: active ? Colors.white : Colors.grey.shade500,
               ),
               const SizedBox(width: 4),
               Text(
@@ -977,7 +983,7 @@ class _ExpenseViewState extends State<ExpenseView> {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
-                  color: active ? AppColors.surface : AppColors.textSecondary,
+                  color: active ? Colors.white : Colors.grey.shade500,
                 ),
               ),
             ],
@@ -1017,9 +1023,9 @@ class _ExpenseViewState extends State<ExpenseView> {
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: DesignTokens.brMd,
-        border: Border.all(color: AppColors.outline),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFF2E7D32).withOpacity(0.12)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1029,7 +1035,7 @@ class _ExpenseViewState extends State<ExpenseView> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppColors.success.withAlpha(20),
+                  color: const Color(0xFF2E7D32).withOpacity(0.08),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
@@ -1041,7 +1047,7 @@ class _ExpenseViewState extends State<ExpenseView> {
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.success,
+                    color: Color(0xFF2E7D32),
                     letterSpacing: 0.3,
                   ),
                 ),
@@ -1050,16 +1056,16 @@ class _ExpenseViewState extends State<ExpenseView> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  const Text(
+                  Text(
                     'Tổng thu phát sinh',
-                    style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
                   ),
                   Text(
                     MoneyUtils.formatCompactCurrency(total),
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.success,
+                      color: Color(0xFF2E7D32),
                     ),
                   ),
                 ],
@@ -1091,7 +1097,7 @@ class _ExpenseViewState extends State<ExpenseView> {
                           titleStyle: const TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
-                            color: AppColors.surface,
+                            color: Colors.white,
                           ),
                           titlePositionPercentageOffset: 0.6,
                         );
@@ -1120,9 +1126,9 @@ class _ExpenseViewState extends State<ExpenseView> {
                               const SizedBox(width: 4),
                               Text(
                                 c.label,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
-                                  color: AppColors.textSecondary,
+                                  color: Colors.grey.shade700,
                                 ),
                               ),
                               const SizedBox(width: 3),
@@ -1159,7 +1165,7 @@ class _ExpenseViewState extends State<ExpenseView> {
     if (!canEdit && mounted) {
       NotificationService.showSnackBar(
         '❌ Ngày hôm nay đã chốt quỹ! Không thể thêm thu phát sinh mới.',
-        color: AppColors.error,
+        color: Colors.red,
       );
       return;
     }
@@ -1200,7 +1206,7 @@ class _ExpenseViewState extends State<ExpenseView> {
                     Text(
                       "PHÂN LOẠI",
                       style: AppTextStyles.overline.copyWith(
-                        color: AppColors.onSurface.withAlpha(153),
+                        color: AppColors.onSurface.withOpacity(0.6),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -1265,7 +1271,7 @@ class _ExpenseViewState extends State<ExpenseView> {
                     Text(
                       "THANH TOÁN BẰNG",
                       style: AppTextStyles.overline.copyWith(
-                        color: AppColors.onSurface.withAlpha(153),
+                        color: AppColors.onSurface.withOpacity(0.6),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -1289,7 +1295,7 @@ class _ExpenseViewState extends State<ExpenseView> {
                     Text(
                       "PHẠM VI",
                       style: AppTextStyles.overline.copyWith(
-                        color: AppColors.onSurface.withAlpha(153),
+                        color: AppColors.onSurface.withOpacity(0.6),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -1384,7 +1390,7 @@ class _ExpenseViewState extends State<ExpenseView> {
                 child: Text(
                   "LƯU KHOẢN THU",
                   style: AppTextStyles.button.copyWith(
-                    color: AppColors.surface,
+                    color: Colors.white,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -1401,9 +1407,9 @@ class _ExpenseViewState extends State<ExpenseView> {
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.divider),
+        border: Border.all(color: Colors.grey.shade100),
       ),
       child: Column(
         children: [
@@ -1423,9 +1429,9 @@ class _ExpenseViewState extends State<ExpenseView> {
                       decoration: BoxDecoration(
                         color: active
                             ? (_viewMode == 'CHI'
-                                  ? AppColors.error
-                                  : AppColors.success)
-                            : AppColors.background,
+                                  ? const Color(0xFFE53935)
+                                  : const Color(0xFF2E7D32))
+                            : Colors.grey.shade50,
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
@@ -1433,7 +1439,7 @@ class _ExpenseViewState extends State<ExpenseView> {
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
-                          color: active ? AppColors.surface : AppColors.textSecondary,
+                          color: active ? Colors.white : Colors.grey.shade600,
                         ),
                       ),
                     ),
@@ -1462,7 +1468,7 @@ class _ExpenseViewState extends State<ExpenseView> {
                     vertical: 5,
                   ),
                   decoration: BoxDecoration(
-                    border: Border.all(color: AppColors.outline),
+                    border: Border.all(color: Colors.grey.shade200),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Row(
@@ -1471,15 +1477,15 @@ class _ExpenseViewState extends State<ExpenseView> {
                       Icon(
                         Icons.calendar_today,
                         size: 12,
-                        color: AppColors.textSecondary,
+                        color: Colors.grey.shade500,
                       ),
                       const SizedBox(width: 4),
                       Text(
                         _getDateDisplayText(),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
-                          color: AppColors.textSecondary,
+                          color: Colors.grey.shade700,
                         ),
                       ),
                     ],
@@ -1505,16 +1511,16 @@ class _ExpenseViewState extends State<ExpenseView> {
                     label: Text(label),
                     selected: active,
                     selectedColor: _viewMode == 'CHI'
-                        ? AppColors.errorLight
-                        : AppColors.successLight,
+                        ? const Color(0xFFFFEBEE)
+                        : const Color(0xFFE8F5E9),
                     labelStyle: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                       color: active
                           ? (_viewMode == 'CHI'
-                                ? AppColors.error
-                                : AppColors.success)
-                          : AppColors.textSecondary,
+                                ? const Color(0xFFE53935)
+                                : const Color(0xFF2E7D32))
+                          : Colors.grey.shade700,
                     ),
                     onSelected: (_) => _changeScopeFilter(value),
                     visualDensity: VisualDensity.compact,
@@ -1595,9 +1601,9 @@ class _ExpenseViewState extends State<ExpenseView> {
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: DesignTokens.brMd,
-        border: Border.all(color: AppColors.outline),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE53935).withOpacity(0.12)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1608,7 +1614,7 @@ class _ExpenseViewState extends State<ExpenseView> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppColors.error.withAlpha(20),
+                  color: const Color(0xFFE53935).withOpacity(0.08),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
@@ -1620,7 +1626,7 @@ class _ExpenseViewState extends State<ExpenseView> {
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.error,
+                    color: Color(0xFFE53935),
                     letterSpacing: 0.3,
                   ),
                 ),
@@ -1629,16 +1635,16 @@ class _ExpenseViewState extends State<ExpenseView> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  const Text(
+                  Text(
                     'Tổng chi',
-                    style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
                   ),
                   Text(
                     MoneyUtils.formatCompactCurrency(total),
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.error,
+                      color: Color(0xFFE53935),
                     ),
                   ),
                 ],
@@ -1671,7 +1677,7 @@ class _ExpenseViewState extends State<ExpenseView> {
                           titleStyle: const TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
-                            color: AppColors.surface,
+                            color: Colors.white,
                           ),
                           titlePositionPercentageOffset: 0.6,
                         );
@@ -1700,9 +1706,9 @@ class _ExpenseViewState extends State<ExpenseView> {
                               const SizedBox(width: 4),
                               Text(
                                 c.label,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
-                                  color: AppColors.textSecondary,
+                                  color: Colors.grey.shade700,
                                 ),
                               ),
                               const SizedBox(width: 3),
@@ -1739,61 +1745,64 @@ class _ExpenseViewState extends State<ExpenseView> {
 
     if (isIncome) {
       if (cat == 'PHÁT SINH') {
-        color = AppColors.success;
+        color = const Color(0xFF43A047);
         icon = Icons.trending_up;
       } else if (cat == 'DỊCH VỤ') {
-        color = AppColors.info;
+        color = Colors.teal;
         icon = Icons.miscellaneous_services;
       } else if (cat == 'HOÀN TIỀN') {
-        color = AppColors.info;
+        color = const Color(0xFF00ACC1);
         icon = Icons.replay;
       } else if (cat == 'BÁN TÀI SẢN') {
-        color = AppColors.warning;
+        color = Colors.amber.shade700;
         icon = Icons.sell;
       } else {
-        color = AppColors.success;
+        color = const Color(0xFF2E7D32);
         icon = Icons.attach_money;
       }
     } else if (cat == 'CỐ ĐỊNH' ||
         cat == 'LƯƠNG' ||
         cat == 'MẶT BẰNG' ||
         cat == 'ĐIỆN NƯỚC') {
-      color = AppColors.primary;
+      color = const Color(0xFF1E88E5);
       icon = Icons.home_work;
     } else if (cat == 'PHÁT SINH' || cat == 'REPAIR_PARTS') {
-      color = AppColors.warning;
+      color = const Color(0xFFFB8C00);
       icon = Icons.build;
     } else if (cat == 'NHẬP HÀNG' ||
         cat == 'PURCHASE' ||
         cat == 'ĐƠN NHẬP HÀNG') {
-      color = AppColors.success;
+      color = const Color(0xFF43A047);
       icon = Icons.inventory_2;
     } else if (cat == 'Phí NH') {
-      color = AppColors.primary;
+      color = const Color(0xFF1E88E5);
       icon = Icons.account_balance;
     } else {
-      color = AppColors.textSecondary;
+      color = Colors.grey;
       icon = Icons.shopping_cart;
     }
 
+    final cardBg = index.isEven
+        ? Color.alphaBlend(color.withOpacity(0.035), Colors.white)
+        : Colors.white;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: DesignTokens.brMd,
-        border: Border.all(color: AppColors.outline),
+        color: cardBg,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withOpacity(0.1)),
       ),
       child: Row(
         children: [
           Container(
-            width: 30,
-            height: 30,
+            padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: color.withAlpha(26),
+              color: color.withOpacity(0.08),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(icon, color: color, size: 18),
+            child: Icon(icon, color: color, size: 16),
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -1811,7 +1820,7 @@ class _ExpenseViewState extends State<ExpenseView> {
                 ),
                 Text(
                   "$scopeLabel • $cat • ${DateFormat('HH:mm dd/MM').format(DateTime.fromMillisecondsSinceEpoch(e['date']))}",
-                  style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -1821,7 +1830,9 @@ class _ExpenseViewState extends State<ExpenseView> {
           Text(
             "${isIncome ? '+' : '-'}${MoneyUtils.formatCompactCurrency(e['amount'] as int)}",
             style: TextStyle(
-              color: isIncome ? AppColors.success : AppColors.error,
+              color: isIncome
+                  ? const Color(0xFF2E7D32)
+                  : const Color(0xFFE53935),
               fontWeight: FontWeight.w700,
               fontSize: 14,
             ),
@@ -1832,9 +1843,9 @@ class _ExpenseViewState extends State<ExpenseView> {
               height: 24,
               child: IconButton(
                 padding: EdgeInsets.zero,
-                icon: const Icon(
+                icon: Icon(
                   Icons.delete_outline,
-                  color: AppColors.textDisabled,
+                  color: Colors.grey.shade400,
                   size: 14,
                 ),
                 onPressed: () => _handleDeleteExpense(e),
@@ -1854,7 +1865,7 @@ class _ExpenseViewState extends State<ExpenseView> {
               ? Icons.account_balance_wallet_outlined
               : Icons.money_off_rounded,
           size: 80,
-          color: AppColors.divider,
+          color: Colors.grey[200],
         ),
         const SizedBox(height: 16),
         Text(
@@ -1863,7 +1874,7 @@ class _ExpenseViewState extends State<ExpenseView> {
               : _viewMode == 'THU'
               ? "Không có khoản thu phát sinh nào trong ${_filterType.toLowerCase()} này"
               : "Không có chi phí nào trong ${_filterType.toLowerCase()} này",
-          style: const TextStyle(color: AppColors.textHint),
+          style: const TextStyle(color: Colors.grey),
           textAlign: TextAlign.center,
         ),
       ],

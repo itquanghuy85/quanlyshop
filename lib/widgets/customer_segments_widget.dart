@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
 import '../services/customer_segment_service.dart';
 
 /// Widget hiển thị Customer Segments — phân khúc khách hàng
@@ -132,18 +131,18 @@ class _CustomerSegmentsWidgetState extends State<CustomerSegmentsWidget> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.primary,
-                border: Border.all(color: AppColors.primary!),
+                color: Colors.blue[50],
+                border: Border.all(color: Colors.blue[200]!),
                 borderRadius: BorderRadius.circular(6),
               ),
               child: const Row(
                 children: [
-                  Icon(Icons.info_outline, color: AppColors.primary, size: 20),
+                  Icon(Icons.info_outline, color: Colors.blue, size: 20),
                   SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'VIP: ≥10M + 5 giao dịch | Thường xuyên: 3+ giao dịch/tháng | Churn: >60 ngày',
-                      style: TextStyle(fontSize: 11, color: AppColors.primary),
+                      style: TextStyle(fontSize: 11, color: Colors.blue),
                     ),
                   ),
                 ],
@@ -158,17 +157,17 @@ class _CustomerSegmentsWidgetState extends State<CustomerSegmentsWidget> {
   (Color color, IconData icon, String label) _getSegmentStyle(String segment) {
     switch (segment) {
       case 'VIP':
-        return (AppColors.warning, Icons.diamond, 'VIP');
+        return (Colors.orange, Icons.diamond, 'VIP');
       case 'FREQUENT':
-        return (AppColors.success, Icons.trending_up, 'Thường xuyên');
+        return (Colors.green, Icons.trending_up, 'Thường xuyên');
       case 'REGULAR':
-        return (AppColors.primary, Icons.person, 'Thường');
+        return (Colors.blue, Icons.person, 'Thường');
       case 'NEW':
         return (Colors.cyan, Icons.new_releases, 'Mới');
       case 'CHURN':
-        return (AppColors.error, Icons.warning, 'Mất tích');
+        return (Colors.red, Icons.warning, 'Mất tích');
       default:
-        return (AppColors.textHint, Icons.help, segment);
+        return (Colors.grey, Icons.help, segment);
     }
   }
 }

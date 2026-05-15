@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
 import '../models/product_model.dart';
 import '../services/expiry_alert_service.dart';
 
@@ -76,42 +75,42 @@ class ExpiryBadge extends StatelessWidget {
       case ExpiryStatus.expired:
         return _BadgeConfig(
           icon: Icons.error,
-          iconColor: AppColors.error,
-          textColor: AppColors.error,
-          backgroundColor: AppColors.error,
-          borderColor: AppColors.error,
+          iconColor: Colors.red.shade700,
+          textColor: Colors.red.shade700,
+          backgroundColor: Colors.red.shade50,
+          borderColor: Colors.red.shade200,
         );
       case ExpiryStatus.expiringToday:
         return _BadgeConfig(
           icon: Icons.warning,
-          iconColor: AppColors.warning,
-          textColor: AppColors.warning,
-          backgroundColor: AppColors.warning,
-          borderColor: AppColors.warning,
+          iconColor: Colors.orange.shade700,
+          textColor: Colors.orange.shade700,
+          backgroundColor: Colors.orange.shade50,
+          borderColor: Colors.orange.shade200,
         );
       case ExpiryStatus.nearExpiry:
         return _BadgeConfig(
           icon: Icons.schedule,
-          iconColor: AppColors.warning,
-          textColor: AppColors.warning,
-          backgroundColor: AppColors.warning,
-          borderColor: AppColors.warning,
+          iconColor: Colors.amber.shade700,
+          textColor: Colors.amber.shade800,
+          backgroundColor: Colors.amber.shade50,
+          borderColor: Colors.amber.shade200,
         );
       case ExpiryStatus.good:
         return _BadgeConfig(
           icon: Icons.check_circle,
-          iconColor: AppColors.success,
-          textColor: AppColors.success,
-          backgroundColor: AppColors.success,
-          borderColor: AppColors.success,
+          iconColor: Colors.green.shade600,
+          textColor: Colors.green.shade700,
+          backgroundColor: Colors.green.shade50,
+          borderColor: Colors.green.shade200,
         );
       case ExpiryStatus.noExpiry:
         return _BadgeConfig(
           icon: Icons.remove_circle,
-          iconColor: AppColors.textHint,
-          textColor: AppColors.textSecondary,
-          backgroundColor: AppColors.background,
-          borderColor: AppColors.outline,
+          iconColor: Colors.grey.shade500,
+          textColor: Colors.grey.shade600,
+          backgroundColor: Colors.grey.shade50,
+          borderColor: Colors.grey.shade200,
         );
     }
   }
@@ -200,7 +199,7 @@ class ExpiryInfoCard extends StatelessWidget {
                       'HSD: ${_formatDate(expiryDate)}',
                       style: TextStyle(
                         fontSize: 14,
-                        color: AppColors.textSecondary,
+                        color: Colors.grey.shade700,
                       ),
                     ),
                     if (product.batchNumber != null &&
@@ -210,7 +209,7 @@ class ExpiryInfoCard extends StatelessWidget {
                         'Lô: ${product.batchNumber}',
                         style: TextStyle(
                           fontSize: 14,
-                          color: AppColors.textSecondary,
+                          color: Colors.grey.shade600,
                         ),
                       ),
                     ],
@@ -234,7 +233,7 @@ class ExpiryInfoCard extends StatelessWidget {
                     status == ExpiryStatus.expired ? 'ngày trước' : 'ngày',
                     style: TextStyle(
                       fontSize: 13,
-                      color: AppColors.textSecondary,
+                      color: Colors.grey.shade600,
                     ),
                   ),
                 ],
@@ -285,75 +284,75 @@ class ExpiryInfoCard extends StatelessWidget {
   Color _getCardColor(ExpiryStatus status) {
     switch (status) {
       case ExpiryStatus.expired:
-        return AppColors.error;
+        return Colors.red.shade50;
       case ExpiryStatus.expiringToday:
-        return AppColors.warning;
+        return Colors.orange.shade50;
       case ExpiryStatus.nearExpiry:
-        return AppColors.warning;
+        return Colors.amber.shade50;
       case ExpiryStatus.good:
-        return AppColors.success;
+        return Colors.green.shade50;
       case ExpiryStatus.noExpiry:
-        return AppColors.background;
+        return Colors.grey.shade50;
     }
   }
 
   Color _getBorderColor(ExpiryStatus status) {
     switch (status) {
       case ExpiryStatus.expired:
-        return AppColors.error;
+        return Colors.red.shade200;
       case ExpiryStatus.expiringToday:
-        return AppColors.warning;
+        return Colors.orange.shade200;
       case ExpiryStatus.nearExpiry:
-        return AppColors.warning;
+        return Colors.amber.shade200;
       case ExpiryStatus.good:
-        return AppColors.success;
+        return Colors.green.shade200;
       case ExpiryStatus.noExpiry:
-        return AppColors.outline;
+        return Colors.grey.shade200;
     }
   }
 
   Color _getIconBgColor(ExpiryStatus status) {
     switch (status) {
       case ExpiryStatus.expired:
-        return AppColors.error;
+        return Colors.red.shade100;
       case ExpiryStatus.expiringToday:
-        return AppColors.warning;
+        return Colors.orange.shade100;
       case ExpiryStatus.nearExpiry:
-        return AppColors.warning;
+        return Colors.amber.shade100;
       case ExpiryStatus.good:
-        return AppColors.success;
+        return Colors.green.shade100;
       case ExpiryStatus.noExpiry:
-        return AppColors.background;
+        return Colors.grey.shade100;
     }
   }
 
   Color _getIconColor(ExpiryStatus status) {
     switch (status) {
       case ExpiryStatus.expired:
-        return AppColors.error;
+        return Colors.red.shade700;
       case ExpiryStatus.expiringToday:
-        return AppColors.warning;
+        return Colors.orange.shade700;
       case ExpiryStatus.nearExpiry:
-        return AppColors.warning;
+        return Colors.amber.shade700;
       case ExpiryStatus.good:
-        return AppColors.success;
+        return Colors.green.shade700;
       case ExpiryStatus.noExpiry:
-        return AppColors.textHint;
+        return Colors.grey.shade500;
     }
   }
 
   Color _getTextColor(ExpiryStatus status) {
     switch (status) {
       case ExpiryStatus.expired:
-        return AppColors.error;
+        return Colors.red.shade700;
       case ExpiryStatus.expiringToday:
-        return AppColors.warning;
+        return Colors.orange.shade700;
       case ExpiryStatus.nearExpiry:
-        return AppColors.warning;
+        return Colors.amber.shade800;
       case ExpiryStatus.good:
-        return AppColors.success;
+        return Colors.green.shade700;
       case ExpiryStatus.noExpiry:
-        return AppColors.textSecondary;
+        return Colors.grey.shade600;
     }
   }
 }
@@ -390,12 +389,12 @@ class ExpiryStatsWidget extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppColors.warning,
+                      color: Colors.orange.shade100,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
                       Icons.timer,
-                      color: AppColors.warning,
+                      color: Colors.orange.shade700,
                       size: 20,
                     ),
                   ),
@@ -412,7 +411,7 @@ class ExpiryStatsWidget extends StatelessWidget {
                     Icon(
                       Icons.arrow_forward_ios,
                       size: 14,
-                      color: AppColors.textHint,
+                      color: Colors.grey.shade400,
                     ),
                 ],
               ),
@@ -423,21 +422,21 @@ class ExpiryStatsWidget extends StatelessWidget {
                     child: _buildStatItem(
                       '⛔ Hết hạn',
                       stats.expiredCount,
-                      AppColors.error,
+                      Colors.red,
                     ),
                   ),
                   Expanded(
                     child: _buildStatItem(
                       '⚠️ Sắp hết',
                       stats.nearExpiryCount,
-                      AppColors.warning,
+                      Colors.orange,
                     ),
                   ),
                   Expanded(
                     child: _buildStatItem(
                       '✅ Còn hạn',
                       stats.goodCount,
-                      AppColors.success,
+                      Colors.green,
                     ),
                   ),
                 ],
@@ -449,7 +448,7 @@ class ExpiryStatsWidget extends StatelessWidget {
                     Icon(
                       Icons.warning_amber,
                       size: 16,
-                      color: AppColors.warning,
+                      color: Colors.orange.shade700,
                     ),
                     const SizedBox(width: 8),
                     Expanded(
@@ -457,7 +456,7 @@ class ExpiryStatsWidget extends StatelessWidget {
                         'Giá trị gặp rủi ro: ${_formatCurrency(stats.valueAtRisk)}',
                         style: TextStyle(
                           fontSize: 14,
-                          color: AppColors.warning,
+                          color: Colors.orange.shade700,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -472,7 +471,7 @@ class ExpiryStatsWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildStatItem(String label, int count, Color color) {
+  Widget _buildStatItem(String label, int count, MaterialColor color) {
     return Column(
       children: [
         Text(
@@ -480,7 +479,7 @@ class ExpiryStatsWidget extends StatelessWidget {
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
-            color: count > 0 ? color : AppColors.textHint,
+            color: count > 0 ? color.shade700 : Colors.grey.shade400,
           ),
         ),
         const SizedBox(height: 4),
@@ -488,7 +487,7 @@ class ExpiryStatsWidget extends StatelessWidget {
           label,
           style: TextStyle(
             fontSize: 13,
-            color: AppColors.textSecondary,
+            color: Colors.grey.shade600,
           ),
           textAlign: TextAlign.center,
         ),

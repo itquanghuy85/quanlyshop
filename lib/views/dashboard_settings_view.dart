@@ -73,7 +73,7 @@ class _DashboardSettingsViewState extends State<DashboardSettingsView>
     if (mounted) {
       NotificationService.showSnackBar(
         '✅ Đã lưu bố cục Dashboard!',
-        color: AppColors.success,
+        color: Colors.green,
       );
       // Return configs directly so caller can apply instantly without re-reading
       Navigator.pop(context, {
@@ -90,7 +90,7 @@ class _DashboardSettingsViewState extends State<DashboardSettingsView>
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         title: const Row(
           children: [
-            Icon(Icons.restore, color: AppColors.warning),
+            Icon(Icons.restore, color: Colors.orange),
             SizedBox(width: 8),
             Text('Khôi phục mặc định?'),
           ],
@@ -103,7 +103,7 @@ class _DashboardSettingsViewState extends State<DashboardSettingsView>
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(backgroundColor: AppColors.warning),
+            style: FilledButton.styleFrom(backgroundColor: Colors.orange),
             child: const Text('KHÔI PHỤC'),
           ),
         ],
@@ -144,14 +144,14 @@ class _DashboardSettingsViewState extends State<DashboardSettingsView>
             icon: const Icon(Icons.save, size: 18),
             label: const Text('LƯU'),
             style: TextButton.styleFrom(
-              foregroundColor: _hasChanges ? AppColors.surface : Colors.white54,
+              foregroundColor: _hasChanges ? Colors.white : Colors.white54,
             ),
           ),
         ],
         bottom: TabBar(
           controller: _tabController,
-          indicatorColor: AppColors.surface,
-          labelColor: AppColors.surface,
+          indicatorColor: Colors.white,
+          labelColor: Colors.white,
           unselectedLabelColor: Colors.white60,
           tabs: [
             Tab(
@@ -171,17 +171,17 @@ class _DashboardSettingsViewState extends State<DashboardSettingsView>
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(14),
-            color: AppColors.primary,
+            color: Colors.blue.shade50,
             child: Row(
               children: [
-                Icon(Icons.info_outline, color: AppColors.primary, size: 18),
+                Icon(Icons.info_outline, color: Colors.blue.shade600, size: 18),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     'Kéo thả để sắp xếp • Bật/tắt để ẩn hiện',
                     style: TextStyle(
                       fontSize: 14,
-                      color: AppColors.primary,
+                      color: Colors.blue.shade700,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -230,7 +230,7 @@ class _DashboardSettingsViewState extends State<DashboardSettingsView>
           builder: (ctx, c) => Material(
             elevation: 6,
             borderRadius: BorderRadius.circular(14),
-            shadowColor: AppColors.textHint,
+            shadowColor: Colors.black38,
             child: c,
           ),
           child: child,
@@ -263,7 +263,7 @@ class _DashboardSettingsViewState extends State<DashboardSettingsView>
           builder: (ctx, c) => Material(
             elevation: 6,
             borderRadius: BorderRadius.circular(14),
-            shadowColor: AppColors.textHint,
+            shadowColor: Colors.black38,
             child: c,
           ),
           child: child,
@@ -287,10 +287,10 @@ class _DashboardSettingsViewState extends State<DashboardSettingsView>
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: AppColors.textPrimary.withAlpha(13),
+            color: Colors.black.withOpacity(0.05),
             blurRadius: 8,
             offset: const Offset(0, -2),
           ),
@@ -302,16 +302,16 @@ class _DashboardSettingsViewState extends State<DashboardSettingsView>
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: AppColors.success,
+                color: Colors.green.shade50,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppColors.success),
+                border: Border.all(color: Colors.green.shade200),
               ),
               child: Text(
                 '$visibleCards thẻ · $visibleShortcuts lối tắt',
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
-                  color: AppColors.success,
+                  color: Colors.green.shade700,
                 ),
               ),
             ),
@@ -319,16 +319,16 @@ class _DashboardSettingsViewState extends State<DashboardSettingsView>
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: AppColors.background,
+                color: Colors.grey.shade100,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppColors.outline),
+                border: Border.all(color: Colors.grey.shade300),
               ),
               child: Text(
                 '$hiddenCards · $hiddenShortcuts ẩn',
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
-                  color: AppColors.textSecondary,
+                  color: Colors.grey.shade600,
                 ),
               ),
             ),
@@ -361,8 +361,8 @@ class _DashboardSettingsViewState extends State<DashboardSettingsView>
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
           color: config.visible
-              ? config.color.withAlpha(77)
-              : AppColors.outline,
+              ? config.color.withOpacity(0.3)
+              : Colors.grey.shade200,
         ),
       ),
       child: AnimatedOpacity(
@@ -374,20 +374,20 @@ class _DashboardSettingsViewState extends State<DashboardSettingsView>
             mainAxisSize: MainAxisSize.min,
             children: [
               // Drag handle
-              Icon(Icons.drag_handle, color: AppColors.textHint, size: 20),
+              Icon(Icons.drag_handle, color: Colors.grey.shade400, size: 20),
               const SizedBox(width: 8),
               // Card icon
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: config.visible
-                      ? config.color.withAlpha(31)
-                      : AppColors.background,
+                      ? config.color.withOpacity(0.12)
+                      : Colors.grey.shade100,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
                   config.icon,
-                  color: config.visible ? config.color : AppColors.textHint,
+                  color: config.visible ? config.color : Colors.grey,
                   size: 20,
                 ),
               ),
@@ -398,7 +398,7 @@ class _DashboardSettingsViewState extends State<DashboardSettingsView>
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 16,
-              color: config.visible ? AppColors.textPrimary : AppColors.textHint,
+              color: config.visible ? Colors.black87 : Colors.grey,
             ),
           ),
           subtitle: Row(
@@ -408,7 +408,7 @@ class _DashboardSettingsViewState extends State<DashboardSettingsView>
                   config.description,
                   style: TextStyle(
                     fontSize: 13,
-                    color: AppColors.textHint,
+                    color: Colors.grey.shade500,
                   ),
                 ),
               ),
@@ -416,14 +416,14 @@ class _DashboardSettingsViewState extends State<DashboardSettingsView>
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
-                    color: AppColors.warning,
+                    color: Colors.orange.shade50,
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
                     'Chủ shop',
                     style: TextStyle(
                       fontSize: 11,
-                      color: AppColors.warning,
+                      color: Colors.orange.shade700,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -457,8 +457,8 @@ class _DashboardSettingsViewState extends State<DashboardSettingsView>
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
           color: sc.visible
-              ? sc.color.withAlpha(77)
-              : AppColors.outline,
+              ? sc.color.withOpacity(0.3)
+              : Colors.grey.shade200,
         ),
       ),
       child: AnimatedOpacity(
@@ -469,19 +469,19 @@ class _DashboardSettingsViewState extends State<DashboardSettingsView>
           leading: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.drag_handle, color: AppColors.textHint, size: 20),
+              Icon(Icons.drag_handle, color: Colors.grey.shade400, size: 20),
               const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.all(7),
                 decoration: BoxDecoration(
                   color: sc.visible
-                      ? sc.color.withAlpha(31)
-                      : AppColors.background,
+                      ? sc.color.withOpacity(0.12)
+                      : Colors.grey.shade100,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
                   sc.icon,
-                  color: sc.visible ? sc.color : AppColors.textHint,
+                  color: sc.visible ? sc.color : Colors.grey,
                   size: 20,
                 ),
               ),
@@ -492,15 +492,15 @@ class _DashboardSettingsViewState extends State<DashboardSettingsView>
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 16,
-              color: sc.visible ? AppColors.textPrimary : AppColors.textHint,
+              color: sc.visible ? Colors.black87 : Colors.grey,
             ),
           ),
           subtitle: sc.requiresRepair
               ? Text('Yêu cầu module sửa chữa',
-                  style: TextStyle(fontSize: 12, color: AppColors.textHint))
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500))
               : sc.requiresWarranty
                   ? Text('Yêu cầu module bảo hành',
-                      style: TextStyle(fontSize: 12, color: AppColors.textHint))
+                      style: TextStyle(fontSize: 12, color: Colors.grey.shade500))
                   : null,
           trailing: Switch.adaptive(
             value: sc.visible,

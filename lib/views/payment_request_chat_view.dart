@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
@@ -207,10 +206,10 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
       backgroundColor: const Color(0xFFECE5DD), // WhatsApp-like bg
       appBar: _isSearching
           ? AppBar(
-              backgroundColor: AppColors.surface,
+              backgroundColor: Colors.white,
               elevation: 1,
               leading: IconButton(
-                icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+                icon: const Icon(Icons.arrow_back, color: Colors.black87),
                 onPressed: () {
                   setState(() {
                     _isSearching = false;
@@ -222,11 +221,11 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
               title: TextField(
                 controller: _searchCtrl,
                 autofocus: true,
-                style: const TextStyle(color: AppColors.textPrimary, fontSize: 16),
+                style: const TextStyle(color: Colors.black87, fontSize: 16),
                 cursorColor: const Color(0xFF075E54),
                 decoration: InputDecoration(
                   hintText: 'Tìm tên, SĐT, NH, số tiền...',
-                  hintStyle: TextStyle(color: AppColors.textHint),
+                  hintStyle: TextStyle(color: Colors.grey.shade500),
                   border: InputBorder.none,
                 ),
                 onChanged: (v) => setState(() => _searchQuery = v.trim()),
@@ -234,7 +233,7 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
               actions: [
                 if (_searchCtrl.text.isNotEmpty)
                   IconButton(
-                    icon: const Icon(Icons.clear, color: AppColors.textSecondary),
+                    icon: const Icon(Icons.clear, color: Colors.black54),
                     onPressed: () {
                       _searchCtrl.clear();
                       setState(() => _searchQuery = '');
@@ -261,7 +260,7 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
                 PopupMenuButton<PaymentRequestStatus?>(
                   icon: Badge(
                     isLabelVisible: _statusFilter != null,
-                    backgroundColor: AppColors.warning,
+                    backgroundColor: Colors.orange,
                     child: const Icon(Icons.filter_list),
                   ),
                   onSelected: (val) {
@@ -300,10 +299,10 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-              color: AppColors.primary,
+              color: Colors.blue.shade50,
               child: Text(
                 'Tìm thấy ${displayed.length} kết quả cho "$_searchQuery"',
-                style: TextStyle(fontSize: 12, color: AppColors.primary),
+                style: TextStyle(fontSize: 12, color: Colors.blue.shade700),
               ),
             ),
           // Chat-like list
@@ -320,7 +319,7 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
                               ? Icons.search_off
                               : Icons.payment,
                           size: 64,
-                          color: AppColors.outline,
+                          color: Colors.grey.shade300,
                         ),
                         const SizedBox(height: 12),
                         Text(
@@ -331,7 +330,7 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
                               : 'Chưa có yêu cầu đóng tiền',
                           style: TextStyle(
                             fontSize: 15,
-                            color: AppColors.textHint,
+                            color: Colors.grey.shade500,
                           ),
                         ),
                         if (_searchQuery.isEmpty) ...[
@@ -340,7 +339,7 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
                             'Nhấn ⊕ trên thanh tiêu đề để tạo mới',
                             style: TextStyle(
                               fontSize: 13,
-                              color: AppColors.textHint,
+                              color: Colors.grey.shade400,
                             ),
                           ),
                         ],
@@ -385,12 +384,12 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      color: AppColors.surface,
+      color: Colors.white,
       child: Row(
         children: [
-          _statChip('⏳', '$pending', AppColors.warning),
+          _statChip('⏳', '$pending', Colors.orange),
           const SizedBox(width: 8),
-          _statChip('✅', '$completed', AppColors.success),
+          _statChip('✅', '$completed', Colors.green),
           const Spacer(),
           if (totalAmount > 0)
             Flexible(
@@ -399,7 +398,7 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
                 style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
-                  color: AppColors.error,
+                  color: Colors.red,
                 ),
                 overflow: TextOverflow.ellipsis,
               ),
@@ -413,7 +412,7 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withAlpha(26),
+        color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
@@ -447,7 +446,7 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
         .length;
 
     return Container(
-      color: AppColors.surface,
+      color: Colors.white,
       padding: const EdgeInsets.only(left: 10, right: 10, bottom: 4),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
@@ -468,7 +467,7 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
                     decoration: BoxDecoration(
                       color: isSelected
                           ? const Color(0xFF075E54)
-                          : AppColors.background,
+                          : Colors.grey.shade100,
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: Text(
@@ -478,7 +477,7 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
                         fontWeight: isSelected
                             ? FontWeight.w600
                             : FontWeight.normal,
-                        color: isSelected ? AppColors.surface : AppColors.textSecondary,
+                        color: isSelected ? Colors.white : Colors.grey.shade700,
                       ),
                     ),
                   ),
@@ -490,7 +489,7 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                 decoration: BoxDecoration(
-                  color: AppColors.error,
+                  color: Colors.red.shade50,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
@@ -498,7 +497,7 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.error,
+                    color: Colors.red.shade700,
                   ),
                 ),
               ),
@@ -516,7 +515,7 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
     final align = isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start;
     final color = isMe
         ? const Color(0xFFDCF8C6)
-        : AppColors.surface; // WhatsApp bubble colors
+        : Colors.white; // WhatsApp bubble colors
     final now = DateTime.now();
     final todayStart = DateTime(now.year, now.month, now.day);
     final isOverdue =
@@ -547,14 +546,14 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
                     ),
                     margin: const EdgeInsets.only(right: 4),
                     decoration: BoxDecoration(
-                      color: AppColors.error,
+                      color: Colors.red.shade600,
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: const Text(
                       'QUÁ HẠN',
                       style: TextStyle(
                         fontSize: 9,
-                        color: AppColors.surface,
+                        color: Colors.white,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -566,8 +565,8 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
                     style: TextStyle(
                       fontSize: 11,
                       color: isOverdue
-                          ? AppColors.error
-                          : AppColors.textSecondary,
+                          ? Colors.red.shade600
+                          : Colors.grey.shade600,
                     ),
                   ),
                 ),
@@ -597,7 +596,7 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.textPrimary.withOpacity(0.06),
+                      color: Colors.black.withOpacity(0.06),
                       blurRadius: 3,
                       offset: const Offset(0, 1),
                     ),
@@ -636,7 +635,7 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
                                 style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,
-                                  color: AppColors.error,
+                                  color: Colors.red,
                                 ),
                               ),
                             ],
@@ -673,15 +672,15 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
                                   color:
                                       req.customerPaymentMethod ==
                                           'CHUYỂN KHOẢN'
-                                      ? AppColors.primary
-                                      : AppColors.success,
+                                      ? Colors.blue.shade50
+                                      : Colors.green.shade50,
                                   borderRadius: BorderRadius.circular(8),
                                   border: Border.all(
                                     color:
                                         req.customerPaymentMethod ==
                                             'CHUYỂN KHOẢN'
-                                        ? AppColors.primary
-                                        : AppColors.success,
+                                        ? Colors.blue.shade200
+                                        : Colors.green.shade200,
                                   ),
                                 ),
                                 child: Row(
@@ -696,8 +695,8 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
                                       color:
                                           req.customerPaymentMethod ==
                                               'CHUYỂN KHOẢN'
-                                          ? AppColors.primary
-                                          : AppColors.success,
+                                          ? Colors.blue.shade700
+                                          : Colors.green.shade700,
                                     ),
                                     const SizedBox(width: 4),
                                     Text(
@@ -711,8 +710,8 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
                                         color:
                                             req.customerPaymentMethod ==
                                                 'CHUYỂN KHOẢN'
-                                            ? AppColors.primary
-                                            : AppColors.success,
+                                            ? Colors.blue.shade700
+                                            : Colors.green.shade700,
                                       ),
                                     ),
                                   ],
@@ -729,10 +728,10 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
                                   vertical: 4,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: AppColors.info,
+                                  color: Colors.teal.shade50,
                                   borderRadius: BorderRadius.circular(8),
                                   border: Border.all(
-                                    color: AppColors.info,
+                                    color: Colors.teal.shade200,
                                   ),
                                 ),
                                 child: Row(
@@ -741,7 +740,7 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
                                     Icon(
                                       Icons.check_circle,
                                       size: 14,
-                                      color: AppColors.info,
+                                      color: Colors.teal.shade700,
                                     ),
                                     const SizedBox(width: 4),
                                     Text(
@@ -749,7 +748,7 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
                                       style: TextStyle(
                                         fontSize: 11,
                                         fontWeight: FontWeight.bold,
-                                        color: AppColors.info,
+                                        color: Colors.teal.shade700,
                                       ),
                                     ),
                                   ],
@@ -770,14 +769,14 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
                         padding: const EdgeInsets.all(8),
                         margin: const EdgeInsets.fromLTRB(8, 0, 8, 8),
                         decoration: BoxDecoration(
-                          color: AppColors.error,
+                          color: Colors.red.shade50,
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
                           '❌ ${req.rejectReason}',
                           style: TextStyle(
                             fontSize: 12,
-                            color: AppColors.error,
+                            color: Colors.red.shade700,
                           ),
                         ),
                       ),
@@ -789,7 +788,7 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
                           '${req.statusDisplay} bởi ${req.processedByName} · ${DateFormat('dd/MM HH:mm').format(req.processedAt!)}',
                           style: TextStyle(
                             fontSize: 10,
-                            color: AppColors.textHint,
+                            color: Colors.grey.shade500,
                             fontStyle: FontStyle.italic,
                           ),
                         ),
@@ -814,20 +813,20 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
     Color textColor;
     switch (req.status) {
       case PaymentRequestStatus.pending:
-        bgColor = AppColors.warning;
-        textColor = AppColors.warning;
+        bgColor = Colors.orange.shade100;
+        textColor = Colors.orange.shade800;
         break;
       case PaymentRequestStatus.processing:
-        bgColor = AppColors.primary;
-        textColor = AppColors.primary;
+        bgColor = Colors.blue.shade100;
+        textColor = Colors.blue.shade800;
         break;
       case PaymentRequestStatus.completed:
-        bgColor = AppColors.success;
-        textColor = AppColors.success;
+        bgColor = Colors.green.shade100;
+        textColor = Colors.green.shade800;
         break;
       case PaymentRequestStatus.rejected:
-        bgColor = AppColors.error;
-        textColor = AppColors.error;
+        bgColor = Colors.red.shade100;
+        textColor = Colors.red.shade800;
         break;
     }
 
@@ -857,7 +856,7 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
       padding: const EdgeInsets.only(bottom: 2),
       child: Row(
         children: [
-          Icon(icon, size: 13, color: AppColors.textSecondary),
+          Icon(icon, size: 13, color: Colors.grey.shade600),
           const SizedBox(width: 6),
           Flexible(
             child: Text(
@@ -921,8 +920,8 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
     return Container(
       width: width,
       height: height,
-      color: AppColors.outline,
-      child: Icon(Icons.broken_image, color: AppColors.textHint),
+      color: Colors.grey.shade200,
+      child: Icon(Icons.broken_image, color: Colors.grey.shade400),
     );
   }
 
@@ -996,7 +995,7 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
           _actionBtn(
             icon: Icons.check_circle,
             label: 'Thanh toán',
-            color: AppColors.success,
+            color: Colors.green,
             onTap: () => _confirmStatus(req, PaymentRequestStatus.completed),
           ),
           const SizedBox(width: 6),
@@ -1004,7 +1003,7 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
           _actionBtn(
             icon: Icons.cancel,
             label: 'Từ chối',
-            color: AppColors.error,
+            color: Colors.red,
             onTap: () => _showRejectDialog(req),
           ),
         ],
@@ -1024,9 +1023,9 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
-          color: color.withAlpha(26),
+          color: color.withOpacity(0.1),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withAlpha(77)),
+          border: Border.all(color: color.withOpacity(0.3)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -1083,16 +1082,16 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: AppColors.primary,
+                color: Colors.blue.shade50,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.primary),
+                border: Border.all(color: Colors.blue.shade200),
               ),
               child: Row(
                 children: [
                   Icon(
                     Icons.account_balance,
                     size: 16,
-                    color: AppColors.primary,
+                    color: Colors.blue.shade700,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
@@ -1101,7 +1100,7 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
                       'Sau khi xác nhận, hãy gửi ảnh chụp màn hình CK để lưu bằng chứng.',
                       style: TextStyle(
                         fontSize: 12,
-                        color: AppColors.primary,
+                        color: Colors.blue.shade800,
                       ),
                     ),
                   ),
@@ -1117,10 +1116,10 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.success),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
             child: const Text(
               'Đã CK cho NH ✓',
-              style: TextStyle(color: AppColors.surface),
+              style: TextStyle(color: Colors.white),
             ),
           ),
         ],
@@ -1143,7 +1142,7 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('💡 Chọn ảnh CK ngân hàng để gửi bằng chứng'),
-            backgroundColor: AppColors.primary,
+            backgroundColor: Colors.blue,
             duration: Duration(seconds: 3),
           ),
         );
@@ -1181,8 +1180,8 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-            child: const Text('Từ chối', style: TextStyle(color: AppColors.surface)),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Từ chối', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -1220,7 +1219,7 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
                 (req.status == PaymentRequestStatus.pending ||
                     req.status == PaymentRequestStatus.processing))
               ListTile(
-                leading: const Icon(Icons.check_circle, color: AppColors.success),
+                leading: const Icon(Icons.check_circle, color: Colors.green),
                 title: const Text('Thanh toán (CK cho NH)'),
                 onTap: () {
                   Navigator.pop(ctx);
@@ -1230,7 +1229,7 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
             if (req.senderId == _currentUid &&
                 req.status == PaymentRequestStatus.pending)
               ListTile(
-                leading: const Icon(Icons.delete, color: AppColors.error),
+                leading: const Icon(Icons.delete, color: Colors.red),
                 title: const Text('Xóa yêu cầu'),
                 onTap: () async {
                   Navigator.pop(ctx);
@@ -1255,7 +1254,7 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
         expand: false,
         builder: (_, scrollCtrl) => Container(
           decoration: const BoxDecoration(
-            color: AppColors.surface,
+            color: Colors.white,
             borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
           ),
           child: ListView(
@@ -1268,7 +1267,7 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
                   height: 4,
                   margin: const EdgeInsets.only(bottom: 16),
                   decoration: BoxDecoration(
-                    color: AppColors.outline,
+                    color: Colors.grey.shade300,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -1286,7 +1285,7 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
                 style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: AppColors.error,
+                  color: Colors.red,
                 ),
               ),
               const Divider(height: 24),
@@ -1373,7 +1372,7 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
             width: 120,
             child: Text(
               label,
-              style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+              style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
             ),
           ),
           Expanded(
@@ -1392,10 +1391,10 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
       context,
       MaterialPageRoute(
         builder: (_) => Scaffold(
-          backgroundColor: AppColors.textPrimary,
+          backgroundColor: Colors.black,
           appBar: AppBar(
-            backgroundColor: AppColors.textPrimary,
-            iconTheme: const IconThemeData(color: AppColors.surface),
+            backgroundColor: Colors.black,
+            iconTheme: const IconThemeData(color: Colors.white),
           ),
           body: Center(
             child: InteractiveViewer(
@@ -1425,10 +1424,10 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
     return Container(
       padding: const EdgeInsets.fromLTRB(8, 4, 8, 4),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: AppColors.textPrimary.withAlpha(20),
+            color: Colors.black.withOpacity(0.08),
             blurRadius: 4,
             offset: const Offset(0, -1),
           ),
@@ -1448,7 +1447,7 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
                     vertical: 8,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.background,
+                    color: Colors.grey.shade100,
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Row(
@@ -1456,7 +1455,7 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
                       Icon(
                         Icons.attach_file,
                         size: 18,
-                        color: AppColors.textSecondary,
+                        color: Colors.grey.shade600,
                       ),
                       const SizedBox(width: 8),
                       Expanded(
@@ -1467,8 +1466,8 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
                           style: TextStyle(
                             fontSize: 13,
                             color: _selectedReqForImage != null
-                                ? AppColors.textPrimary
-                                : AppColors.textHint,
+                                ? Colors.black87
+                                : Colors.grey.shade500,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -1484,7 +1483,7 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
             Material(
               color: _selectedReqForImage != null
                   ? const Color(0xFF075E54)
-                  : AppColors.outline,
+                  : Colors.grey.shade300,
               borderRadius: BorderRadius.circular(24),
               child: InkWell(
                 onTap: _selectedReqForImage != null && !_isSendingImage
@@ -1499,15 +1498,15 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
                           height: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            color: AppColors.surface,
+                            color: Colors.white,
                           ),
                         )
                       : Icon(
                           Icons.camera_alt,
                           size: 20,
                           color: _selectedReqForImage != null
-                              ? AppColors.surface
-                              : AppColors.textHint,
+                              ? Colors.white
+                              : Colors.grey.shade500,
                         ),
                 ),
               ),
@@ -1516,8 +1515,8 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
             // Gallery button
             Material(
               color: _selectedReqForImage != null
-                  ? AppColors.primary
-                  : AppColors.outline,
+                  ? Colors.blue
+                  : Colors.grey.shade300,
               borderRadius: BorderRadius.circular(24),
               child: InkWell(
                 onTap: _selectedReqForImage != null && !_isSendingImage
@@ -1530,8 +1529,8 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
                     Icons.photo_library,
                     size: 20,
                     color: _selectedReqForImage != null
-                        ? AppColors.surface
-                        : AppColors.textHint,
+                        ? Colors.white
+                        : Colors.grey.shade500,
                   ),
                 ),
               ),
@@ -1576,17 +1575,17 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
                       '${r.paymentTypeDisplay} \u00b7 ${r.statusDisplay}',
                       style: TextStyle(
                         fontSize: 12,
-                        color: AppColors.textSecondary,
+                        color: Colors.grey.shade600,
                       ),
                     ),
                     trailing: r.imageUrls.isNotEmpty
                         ? Badge(
                             label: Text('${r.imageUrls.length}'),
-                            child: const Icon(Icons.photo, color: AppColors.primary),
+                            child: const Icon(Icons.photo, color: Colors.blue),
                           )
                         : null,
                     selected: _selectedReqForImage?.id == r.id,
-                    selectedTileColor: AppColors.success,
+                    selectedTileColor: Colors.green.shade50,
                     onTap: () {
                       setState(() => _selectedReqForImage = r);
                       Navigator.pop(ctx);
@@ -1626,7 +1625,7 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
         const SnackBar(
           duration: Duration(seconds: 7),
           content: Text('Đang tải ảnh minh chứng lên hệ thống, vui lòng không thoát ứng dụng.'),
-          backgroundColor: AppColors.primary,
+          backgroundColor: Colors.blue,
         ),
       );
       final urls = await PaymentRequestService.uploadImages(
@@ -1639,21 +1638,21 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('✅ Đã gửi ${urls.length} ảnh CK ngân hàng'),
-            backgroundColor: AppColors.success,
+            backgroundColor: Colors.green,
           ),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('\u274c L\u1ed7i g\u1eedi \u1ea3nh'),
-            backgroundColor: AppColors.error,
+            backgroundColor: Colors.red,
           ),
         );
       }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('L\u1ed7i: $e'), backgroundColor: AppColors.error),
+        SnackBar(content: Text('L\u1ed7i: $e'), backgroundColor: Colors.red),
       );
     } finally {
       if (mounted) setState(() => _isSendingImage = false);
@@ -1792,7 +1791,7 @@ class _CreatePaymentRequestSheetState
       ),
       padding: EdgeInsets.only(bottom: bottomInset),
       decoration: const BoxDecoration(
-        color: AppColors.surface,
+        color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       child: Column(
@@ -1805,7 +1804,7 @@ class _CreatePaymentRequestSheetState
               height: 4,
               margin: const EdgeInsets.symmetric(vertical: 12),
               decoration: BoxDecoration(
-                color: AppColors.outline,
+                color: Colors.grey.shade300,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -1858,7 +1857,7 @@ class _CreatePaymentRequestSheetState
                           selected: isSelected,
                           selectedColor: const Color(
                             0xFF075E54,
-                          ).withAlpha(38),
+                          ).withOpacity(0.15),
                           onSelected: (_) =>
                               setState(() => _selectedType = type),
                           avatar: Text(
@@ -1955,7 +1954,7 @@ class _CreatePaymentRequestSheetState
                             label: const Text('Tiền mặt'),
                             avatar: const Icon(Icons.payments, size: 18),
                             selected: _customerPaymentMethod == 'TIỀN MẶT',
-                            selectedColor: AppColors.success,
+                            selectedColor: Colors.green.shade100,
                             onSelected: (_) => setState(
                               () => _customerPaymentMethod = 'TIỀN MẶT',
                             ),
@@ -1967,7 +1966,7 @@ class _CreatePaymentRequestSheetState
                             label: const Text('Chuyển khoản'),
                             avatar: const Icon(Icons.account_balance, size: 18),
                             selected: _customerPaymentMethod == 'CHUYỂN KHOẢN',
-                            selectedColor: AppColors.primary,
+                            selectedColor: Colors.blue.shade100,
                             onSelected: (_) => setState(
                               () => _customerPaymentMethod = 'CHUYỂN KHOẢN',
                             ),
@@ -2090,14 +2089,14 @@ class _CreatePaymentRequestSheetState
                                   ),
                                   child: Container(
                                     decoration: const BoxDecoration(
-                                      color: AppColors.error,
+                                      color: Colors.red,
                                       shape: BoxShape.circle,
                                     ),
                                     padding: const EdgeInsets.all(2),
                                     child: const Icon(
                                       Icons.close,
                                       size: 14,
-                                      color: AppColors.surface,
+                                      color: Colors.white,
                                     ),
                                   ),
                                 ),
@@ -2112,7 +2111,7 @@ class _CreatePaymentRequestSheetState
                             width: 80,
                             height: 80,
                             decoration: BoxDecoration(
-                              border: Border.all(color: AppColors.outline),
+                              border: Border.all(color: Colors.grey.shade300),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Column(
@@ -2120,13 +2119,13 @@ class _CreatePaymentRequestSheetState
                               children: [
                                 Icon(
                                   Icons.camera_alt,
-                                  color: AppColors.textHint,
+                                  color: Colors.grey.shade500,
                                 ),
                                 Text(
                                   'Thêm ảnh',
                                   style: TextStyle(
                                     fontSize: 10,
-                                    color: AppColors.textHint,
+                                    color: Colors.grey.shade500,
                                   ),
                                 ),
                               ],
@@ -2146,10 +2145,10 @@ class _CreatePaymentRequestSheetState
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: Colors.white,
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.textPrimary.withAlpha(13),
+                  color: Colors.black.withOpacity(0.05),
                   blurRadius: 4,
                   offset: const Offset(0, -2),
                 ),
@@ -2163,14 +2162,14 @@ class _CreatePaymentRequestSheetState
                       height: 18,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: AppColors.surface,
+                        color: Colors.white,
                       ),
                     )
-                  : const Icon(Icons.send, color: AppColors.surface),
+                  : const Icon(Icons.send, color: Colors.white),
               label: Text(
                 _isSending ? 'Đang gửi...' : 'GỬI YÊU CẦU',
                 style: const TextStyle(
-                  color: AppColors.surface,
+                  color: Colors.white,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -2278,14 +2277,14 @@ class _CreatePaymentRequestSheetState
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('✅ Đã gửi yêu cầu đóng tiền'),
-          backgroundColor: AppColors.success,
+          backgroundColor: Colors.green,
         ),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('❌ Lỗi gửi yêu cầu'),
-          backgroundColor: AppColors.error,
+          backgroundColor: Colors.red,
         ),
       );
     }
@@ -2430,7 +2429,7 @@ class _CustomerSearchDialogState extends State<_CustomerSearchDialog> {
                   ? Center(
                       child: Text(
                         'Không tìm thấy khách hàng',
-                        style: TextStyle(color: AppColors.textSecondary),
+                        style: TextStyle(color: Colors.grey.shade600),
                       ),
                     )
                   : ListView.separated(
@@ -2444,7 +2443,7 @@ class _CustomerSearchDialogState extends State<_CustomerSearchDialog> {
                             radius: 18,
                             backgroundColor: const Color(
                               0xFF075E54,
-                            ).withAlpha(26),
+                            ).withOpacity(0.1),
                             child: Text(
                               c.name.isNotEmpty ? c.name[0].toUpperCase() : '?',
                               style: const TextStyle(

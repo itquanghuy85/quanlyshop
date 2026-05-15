@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
 import 'package:intl/intl.dart';
 import '../models/sale_order_model.dart';
 import '../models/sales_return_model.dart';
@@ -148,7 +147,7 @@ class _CreateSalesReturnViewState extends State<CreateSalesReturnView> {
       return;
     }
     if (!_hasSelection) {
-      NotificationService.showSnackBar('Vui lòng chọn sản phẩm cần trả', color: AppColors.error);
+      NotificationService.showSnackBar('Vui lòng chọn sản phẩm cần trả', color: Colors.red);
       return;
     }
 
@@ -172,7 +171,7 @@ class _CreateSalesReturnViewState extends State<CreateSalesReturnView> {
             const Divider(),
             Text(
               'Hoàn lại: ${MoneyUtils.formatCurrency(_totalRefund)}đ',
-              style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.error),
+              style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
             ),
             Text('Phương thức: $_refundMethod'),
           ],
@@ -181,7 +180,7 @@ class _CreateSalesReturnViewState extends State<CreateSalesReturnView> {
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Hủy')),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('Xác nhận trả hàng'),
           ),
         ],
@@ -225,13 +224,13 @@ class _CreateSalesReturnViewState extends State<CreateSalesReturnView> {
     if (result['success'] == true) {
       NotificationService.showSnackBar(
         'Trả hàng thành công! Hoàn ${MoneyUtils.formatCurrency(_totalRefund)}đ',
-        color: AppColors.success,
+        color: Colors.green,
       );
       Navigator.pop(context, true);
     } else {
       NotificationService.showSnackBar(
         'Lỗi: ${result['error']}',
-        color: AppColors.error,
+        color: Colors.red,
       );
     }
   }
@@ -241,8 +240,8 @@ class _CreateSalesReturnViewState extends State<CreateSalesReturnView> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Trả hàng'),
-        backgroundColor: AppColors.error,
-        foregroundColor: AppColors.surface,
+        backgroundColor: Colors.red.shade700,
+        foregroundColor: Colors.white,
       ),
       body: ResponsiveCenter(
         child: _isLoading || _loadingItems
@@ -257,7 +256,7 @@ class _CreateSalesReturnViewState extends State<CreateSalesReturnView> {
                           Icon(
                             _loadError == null ? Icons.check_circle : Icons.error_outline,
                             size: 64,
-                            color: _loadError == null ? AppColors.success : AppColors.error,
+                            color: _loadError == null ? Colors.green.shade400 : Colors.red.shade400,
                           ),
                           const SizedBox(height: 16),
                           Text(
@@ -268,7 +267,7 @@ class _CreateSalesReturnViewState extends State<CreateSalesReturnView> {
                           const SizedBox(height: 8),
                           Text(
                             _loadError ?? 'Đơn hàng này không còn mặt hàng nào để trả.',
-                            style: TextStyle(color: AppColors.textSecondary),
+                            style: TextStyle(color: Colors.grey.shade600),
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 24),
@@ -310,7 +309,7 @@ class _CreateSalesReturnViewState extends State<CreateSalesReturnView> {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: AppColors.outline),
+        side: BorderSide(color: Colors.grey.shade300),
       ),
       child: Padding(
         padding: const EdgeInsets.all(14),
@@ -319,7 +318,7 @@ class _CreateSalesReturnViewState extends State<CreateSalesReturnView> {
           children: [
             Row(
               children: [
-                Icon(Icons.receipt_long, size: 18, color: AppColors.textSecondary),
+                Icon(Icons.receipt_long, size: 18, color: Colors.grey.shade600),
                 const SizedBox(width: 8),
                 const Text('Thông tin đơn gốc', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
               ],
@@ -341,7 +340,7 @@ class _CreateSalesReturnViewState extends State<CreateSalesReturnView> {
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
         children: [
-          SizedBox(width: 100, child: Text(label, style: TextStyle(color: AppColors.textSecondary, fontSize: 14))),
+          SizedBox(width: 100, child: Text(label, style: TextStyle(color: Colors.grey.shade600, fontSize: 14))),
           Expanded(child: Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500))),
         ],
       ),
@@ -353,7 +352,7 @@ class _CreateSalesReturnViewState extends State<CreateSalesReturnView> {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: AppColors.warning),
+        side: BorderSide(color: Colors.orange.shade200),
       ),
       child: Padding(
         padding: const EdgeInsets.all(14),
@@ -362,7 +361,7 @@ class _CreateSalesReturnViewState extends State<CreateSalesReturnView> {
           children: [
             Row(
               children: [
-                Icon(Icons.assignment_return, size: 18, color: AppColors.warning),
+                Icon(Icons.assignment_return, size: 18, color: Colors.orange.shade700),
                 const SizedBox(width: 8),
                 const Text('Chọn sản phẩm trả', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
               ],
@@ -390,10 +389,10 @@ class _CreateSalesReturnViewState extends State<CreateSalesReturnView> {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: item.isSelected ? AppColors.error : AppColors.background,
+        color: item.isSelected ? Colors.red.shade50 : Colors.grey.shade50,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: item.isSelected ? AppColors.error : AppColors.outline,
+          color: item.isSelected ? Colors.red.shade200 : Colors.grey.shade200,
         ),
       ),
       child: Column(
@@ -402,7 +401,7 @@ class _CreateSalesReturnViewState extends State<CreateSalesReturnView> {
             children: [
               Checkbox(
                 value: item.isSelected,
-                activeColor: AppColors.error,
+                activeColor: Colors.red,
                 onChanged: (val) {
                   setState(() {
                     item.isSelected = val ?? false;
@@ -425,10 +424,10 @@ class _CreateSalesReturnViewState extends State<CreateSalesReturnView> {
                       ),
                     ),
                     if (isPhone)
-                      Text('IMEI: ${item.imei}', style: TextStyle(fontSize: 14, color: AppColors.textSecondary)),
+                      Text('IMEI: ${item.imei}', style: TextStyle(fontSize: 14, color: Colors.grey.shade600)),
                     Text(
                       '${MoneyUtils.formatCurrency(item.pricePerUnit)}đ/cái • Tối đa: ${item.maxQuantity}',
-                      style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+                      style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
                     ),
                   ],
                 ),
@@ -465,7 +464,7 @@ class _CreateSalesReturnViewState extends State<CreateSalesReturnView> {
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                   ),
-                  Text('/ ${item.maxQuantity}', style: TextStyle(fontSize: 14, color: AppColors.textHint)),
+                  Text('/ ${item.maxQuantity}', style: TextStyle(fontSize: 14, color: Colors.grey.shade500)),
                 ],
               ),
             ),
@@ -478,7 +477,7 @@ class _CreateSalesReturnViewState extends State<CreateSalesReturnView> {
                   'Hoàn: ${MoneyUtils.formatCurrency(item.pricePerUnit * item.returnQuantity)}đ',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: AppColors.error,
+                    color: Colors.red.shade700,
                     fontSize: 14,
                   ),
                 ),
@@ -494,7 +493,7 @@ class _CreateSalesReturnViewState extends State<CreateSalesReturnView> {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: AppColors.primary),
+        side: BorderSide(color: Colors.blue.shade200),
       ),
       child: Padding(
         padding: const EdgeInsets.all(14),
@@ -503,7 +502,7 @@ class _CreateSalesReturnViewState extends State<CreateSalesReturnView> {
           children: [
             Row(
               children: [
-                Icon(Icons.payment, size: 18, color: AppColors.primary),
+                Icon(Icons.payment, size: 18, color: Colors.blue.shade700),
                 const SizedBox(width: 8),
                 const Text('Phương thức hoàn tiền', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
               ],
@@ -514,9 +513,9 @@ class _CreateSalesReturnViewState extends State<CreateSalesReturnView> {
               children: ['TIỀN MẶT', 'CHUYỂN KHOẢN', 'CÔNG NỢ'].map((method) {
                 final isActive = _refundMethod == method;
                 return ChoiceChip(
-                  label: Text(method, style: TextStyle(fontSize: 14, color: isActive ? AppColors.surface : null)),
+                  label: Text(method, style: TextStyle(fontSize: 14, color: isActive ? Colors.white : null)),
                   selected: isActive,
-                  selectedColor: AppColors.primary,
+                  selectedColor: Colors.blue.shade700,
                   onSelected: (val) => setState(() => _refundMethod = method),
                 );
               }).toList(),
@@ -526,7 +525,7 @@ class _CreateSalesReturnViewState extends State<CreateSalesReturnView> {
                 padding: const EdgeInsets.only(top: 8),
                 child: Text(
                   '⚠️ Giảm trực tiếp số nợ khách hàng, không chi tiền mặt',
-                  style: TextStyle(fontSize: 14, color: AppColors.warning),
+                  style: TextStyle(fontSize: 14, color: Colors.orange.shade700),
                 ),
               ),
           ],
@@ -551,11 +550,11 @@ class _CreateSalesReturnViewState extends State<CreateSalesReturnView> {
   Widget _buildSummary() {
     return Card(
       elevation: 0,
-      color: _hasSelection ? AppColors.error : AppColors.background,
+      color: _hasSelection ? Colors.red.shade50 : Colors.grey.shade50,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-          color: _hasSelection ? AppColors.error : AppColors.outline,
+          color: _hasSelection ? Colors.red.shade300 : Colors.grey.shade300,
           width: _hasSelection ? 2 : 1,
         ),
       ),
@@ -583,7 +582,7 @@ class _CreateSalesReturnViewState extends State<CreateSalesReturnView> {
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: _hasSelection ? AppColors.error : AppColors.textHint,
+                    color: _hasSelection ? Colors.red.shade700 : Colors.grey,
                   ),
                 ),
               ],
@@ -607,7 +606,7 @@ class _CreateSalesReturnViewState extends State<CreateSalesReturnView> {
             ? 'Xác nhận trả hàng — ${MoneyUtils.formatCurrency(_totalRefund)}đ'
             : 'Chọn sản phẩm để trả'),
         style: FilledButton.styleFrom(
-          backgroundColor: AppColors.error,
+          backgroundColor: Colors.red.shade700,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           textStyle: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
         ),

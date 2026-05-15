@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
 import '../services/sync_orchestrator.dart';
 
 /// Widget hiển thị trạng thái sync và số lượng pending
@@ -94,12 +93,12 @@ class _PendingSyncIndicatorState extends State<PendingSyncIndicator>
     switch (_status) {
       case SyncStatus.synced:
         icon = Icons.cloud_done;
-        iconColor = AppColors.success;
+        iconColor = Colors.green;
         tooltip = 'Đã đồng bộ';
         break;
       case SyncStatus.hasPending:
         icon = Icons.cloud_upload;
-        iconColor = AppColors.warning;
+        iconColor = Colors.orange;
         tooltip = '$_pendingCount thay đổi chưa đồng bộ';
         break;
       case SyncStatus.syncing:
@@ -109,12 +108,12 @@ class _PendingSyncIndicatorState extends State<PendingSyncIndicator>
         break;
       case SyncStatus.noNetwork:
         icon = Icons.cloud_off;
-        iconColor = AppColors.textHint;
+        iconColor = Colors.grey;
         tooltip = 'Không có mạng';
         break;
       case SyncStatus.error:
         icon = Icons.cloud_off;
-        iconColor = AppColors.error;
+        iconColor = Colors.red;
         tooltip = 'Lỗi đồng bộ';
         break;
     }
@@ -301,7 +300,7 @@ class _SyncStatusDialogState extends State<SyncStatusDialog> {
                       'Đang chờ',
                       _stats['pending'] ?? 0,
                       Icons.hourglass_empty,
-                      AppColors.warning,
+                      Colors.orange,
                     ),
                     const SizedBox(height: 8),
                     _buildStatCard(
@@ -315,7 +314,7 @@ class _SyncStatusDialogState extends State<SyncStatusDialog> {
                       'Lỗi',
                       _stats['failed'] ?? 0,
                       Icons.error_outline,
-                      AppColors.error,
+                      Colors.red,
                     ),
                     
                     // Failed items list
@@ -329,7 +328,7 @@ class _SyncStatusDialogState extends State<SyncStatusDialog> {
                       ...(_failedItems.take(5).map((item) => Card(
                         child: ListTile(
                           dense: true,
-                          leading: const Icon(Icons.error, color: AppColors.error, size: 20),
+                          leading: const Icon(Icons.error, color: Colors.red, size: 20),
                           title: Text(
                             '${item.entityType.name} #${item.entityId}',
                             style: const TextStyle(fontSize: 14),

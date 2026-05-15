@@ -100,19 +100,15 @@ class _SupplierListViewState extends State<SupplierListView>
     _load();
     _loadPartners();
     _eventBusSub = EventBus().stream
-        .where(
-          (e) =>
-              e == 'suppliers_changed' ||
-              e == 'debts_changed' ||
-              e == 'repair_partners_changed' ||
-              e == EventBus.dataRefresh ||
-              e == EventBus.shopChanged,
-        )
+        .where((e) =>
+            e == 'suppliers_changed' ||
+            e == 'debts_changed' ||
+            e == 'repair_partners_changed' ||
+            e == EventBus.dataRefresh ||
+            e == EventBus.shopChanged)
         .listen((event) {
           if (!mounted) return;
-          debugPrint(
-            '🏢 [SupplierListView] Nhận event "$event" → debounce reload',
-          );
+          debugPrint('🏢 [SupplierListView] Nhận event "$event" → debounce reload');
           _debouncedReload();
         });
     // Hiển thị hướng dẫn cho người dùng mới
@@ -139,35 +135,35 @@ class _SupplierListViewState extends State<SupplierListView>
       screenKey: FirstTimeGuideService.keySupplierList,
       title: 'Quản Lý Đối Tác',
       icon: Icons.store,
-      color: AppColors.info,
+      color: Colors.teal,
       steps: const [
         GuideStep(
           title: '🏢 Nhà cung cấp (NCC)',
           description:
               'Quản lý NCC hàng hóa. PHẢI tạo NCC trước khi nhập kho để theo dõi công nợ chính xác.',
           icon: Icons.local_shipping,
-          iconColor: AppColors.primary,
+          iconColor: Colors.blue,
         ),
         GuideStep(
           title: '🔧 Đối tác sửa chữa',
           description:
               'Quản lý thợ/tiệm ngoài gửi sửa. Theo dõi đơn gửi đi và công nợ phải trả.',
           icon: Icons.build,
-          iconColor: AppColors.warning,
+          iconColor: Colors.orange,
         ),
         GuideStep(
           title: '💰 Công nợ NCC',
           description:
               'Khi nhập kho chọn "CÔNG NỢ", hệ thống tự tạo nợ. Thanh toán dần trong chi tiết NCC.',
           icon: Icons.account_balance_wallet,
-          iconColor: AppColors.error,
+          iconColor: Colors.red,
         ),
         GuideStep(
           title: '➕ Thêm mới',
           description:
               'Nhấn nút + góc phải để thêm NCC hoặc Đối tác mới. Điền đầy đủ thông tin liên hệ.',
           icon: Icons.add_circle,
-          iconColor: AppColors.success,
+          iconColor: Colors.green,
         ),
       ],
     );
@@ -302,7 +298,7 @@ class _SupplierListViewState extends State<SupplierListView>
       if (!mounted) return;
       NotificationService.showSnackBar(
         'Lỗi tải danh sách NCC: $e',
-        color: AppColors.error,
+        color: Colors.red,
       );
       setState(() => _loading = false);
     }
@@ -357,7 +353,7 @@ class _SupplierListViewState extends State<SupplierListView>
       if (!mounted) return;
       NotificationService.showSnackBar(
         'Lỗi tải danh sách đối tác: $e',
-        color: AppColors.error,
+        color: Colors.red,
       );
       setState(() => _partnerLoading = false);
     }
@@ -443,8 +439,8 @@ class _SupplierListViewState extends State<SupplierListView>
             ),
           ),
         ),
-        backgroundColor: AppColors.surface,
-        foregroundColor: AppColors.textPrimary,
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
         elevation: 0,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -497,8 +493,8 @@ class _SupplierListViewState extends State<SupplierListView>
         bottom: _isElectronics
             ? TabBar(
                 controller: _tabController,
-                indicatorColor: AppColors.surface,
-                labelColor: AppColors.surface,
+                indicatorColor: Colors.white,
+                labelColor: Colors.white,
                 unselectedLabelColor: Colors.white70,
                 tabs: const [
                   Tab(text: 'NHÀ CUNG CẤP'),
@@ -565,7 +561,7 @@ class _SupplierListViewState extends State<SupplierListView>
                       child: Text(
                         'Không tìm thấy NCC phù hợp',
                         style: AppTextStyles.body1.copyWith(
-                          color: AppColors.onSurface.withAlpha(153),
+                          color: AppColors.onSurface.withOpacity(0.6),
                         ),
                       ),
                     ),
@@ -596,7 +592,7 @@ class _SupplierListViewState extends State<SupplierListView>
                       child: Text(
                         'Không tìm thấy đối tác phù hợp',
                         style: AppTextStyles.body1.copyWith(
-                          color: AppColors.onSurface.withAlpha(153),
+                          color: AppColors.onSurface.withOpacity(0.6),
                         ),
                       ),
                     ),
@@ -660,9 +656,9 @@ class _SupplierListViewState extends State<SupplierListView>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: color.withAlpha(20),
+        color: color.withOpacity(0.08),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withAlpha(77)),
+        border: Border.all(color: color.withOpacity(0.3)),
       ),
       child: Row(
         children: [
@@ -684,7 +680,7 @@ class _SupplierListViewState extends State<SupplierListView>
                 Text(
                   label,
                   style: AppTextStyles.caption.copyWith(
-                    color: AppColors.onSurface.withAlpha(179),
+                    color: AppColors.onSurface.withOpacity(0.7),
                   ),
                   overflow: TextOverflow.ellipsis,
                   maxLines: 1,
@@ -777,12 +773,12 @@ class _SupplierListViewState extends State<SupplierListView>
       child: Row(
         children: [
           // Thông tin NCC
-          EntityAvatar(
-            imageUrl: d.supplier.avatarUrl,
-            name: d.supplier.name,
-            radius: 22,
-          ),
-          const SizedBox(width: 10),
+            EntityAvatar(
+              imageUrl: d.supplier.avatarUrl,
+              name: d.supplier.name,
+              radius: 22,
+            ),
+            const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -804,7 +800,7 @@ class _SupplierListViewState extends State<SupplierListView>
                         vertical: 3,
                       ),
                       decoration: BoxDecoration(
-                        color: color.withAlpha(26),
+                        color: color.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
@@ -835,7 +831,7 @@ class _SupplierListViewState extends State<SupplierListView>
                     Text(
                       'GD: $date',
                       style: AppTextStyles.caption.copyWith(
-                        color: AppColors.onSurface.withAlpha(153),
+                        color: AppColors.onSurface.withOpacity(0.6),
                       ),
                     ),
                   ],
@@ -908,7 +904,7 @@ class _SupplierListViewState extends State<SupplierListView>
                       value: 'pay',
                       child: Row(
                         children: [
-                          Icon(Icons.payments, size: 18, color: AppColors.success),
+                          Icon(Icons.payments, size: 18, color: Colors.green),
                           SizedBox(width: 8),
                           Text('Thanh toán'),
                         ],
@@ -928,9 +924,9 @@ class _SupplierListViewState extends State<SupplierListView>
                     value: 'delete',
                     child: Row(
                       children: [
-                        Icon(Icons.delete, size: 18, color: AppColors.error),
+                        Icon(Icons.delete, size: 18, color: Colors.red),
                         SizedBox(width: 8),
-                        Text('Xóa', style: TextStyle(color: AppColors.error)),
+                        Text('Xóa', style: TextStyle(color: Colors.red)),
                       ],
                     ),
                   ),
@@ -947,7 +943,7 @@ class _SupplierListViewState extends State<SupplierListView>
     if (d.remain <= 0) {
       NotificationService.showSnackBar(
         'NCC này đã tất toán.',
-        color: AppColors.success,
+        color: Colors.green,
       );
       return;
     }
@@ -1043,26 +1039,26 @@ class _SupplierListViewState extends State<SupplierListView>
       // Tìm khoản nợ NCC còn dư — bao gồm mọi loại nợ nhà cung cấp
       final debts = await _db.getAllDebts();
       final supplierDebtTypes = {'SHOP_OWES', 'OTHER_SHOP_OWES', 'OWED'};
-      final target = debts.firstWhere((e) {
-        final type = (e['type'] ?? e['debtType'] ?? '')
-            .toString()
-            .toUpperCase();
-        return supplierDebtTypes.contains(type) &&
-            (e['personName'] ?? '').toString().toUpperCase() ==
-                d.supplier.name.toUpperCase() &&
-            (e['totalAmount'] as int? ?? 0) > (e['paidAmount'] as int? ?? 0);
-      }, orElse: () => {});
+      final target = debts.firstWhere(
+        (e) {
+          final type = (e['type'] ?? e['debtType'] ?? '').toString().toUpperCase();
+          return supplierDebtTypes.contains(type) &&
+              (e['personName'] ?? '').toString().toUpperCase() ==
+                  d.supplier.name.toUpperCase() &&
+              (e['totalAmount'] as int? ?? 0) > (e['paidAmount'] as int? ?? 0);
+        },
+        orElse: () => {},
+      );
 
       if (target.isEmpty) {
         NotificationService.showSnackBar(
           'Không tìm thấy khoản nợ phù hợp cho ${d.supplier.name}',
-          color: AppColors.warning,
+          color: Colors.orange,
         );
         return;
       }
 
-      final debtFId =
-          target['firestoreId'] as String? ?? 'debt_supplier_${d.supplier.id}';
+      final debtFId = target['firestoreId'] as String? ?? 'debt_supplier_${d.supplier.id}';
 
       // Convert payment method string to enum
       final method = methodStr == 'CHUYỂN KHOẢN'
@@ -1088,8 +1084,7 @@ class _SupplierListViewState extends State<SupplierListView>
           'supplierName': d.supplier.name,
           'debtId': target['id'],
           'debtFirestoreId': debtFId,
-          'debtType': (target['type'] ?? target['debtType'] ?? 'SHOP_OWES')
-              .toString(),
+          'debtType': (target['type'] ?? target['debtType'] ?? 'SHOP_OWES').toString(),
           'suggestedMethod': methodStr,
         },
       );
@@ -1098,7 +1093,7 @@ class _SupplierListViewState extends State<SupplierListView>
         if (mounted) {
           NotificationService.showSnackBar(
             'Đã thanh toán ${MoneyUtils.formatCompactCurrency(amount)}!',
-            color: AppColors.success,
+            color: Colors.green,
           );
           await _load();
         }
@@ -1106,12 +1101,12 @@ class _SupplierListViewState extends State<SupplierListView>
         if (mounted) {
           NotificationService.showSnackBar(
             result.errorMessage ?? 'Có lỗi xảy ra',
-            color: AppColors.error,
+            color: Colors.red,
           );
         }
       }
     } catch (e) {
-      NotificationService.showSnackBar('Lỗi: $e', color: AppColors.error);
+      NotificationService.showSnackBar('Lỗi: $e', color: Colors.red);
     }
   }
 
@@ -1227,7 +1222,7 @@ class _SupplierListViewState extends State<SupplierListView>
     final status = d.remain > 0 ? 'Còn nợ' : 'Tất toán';
     final activeColor = d.partner.active
         ? AppColors.success
-        : AppColors.onSurface.withAlpha(128);
+        : AppColors.onSurface.withOpacity(0.5);
 
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4),
@@ -1281,7 +1276,7 @@ class _SupplierListViewState extends State<SupplierListView>
                         vertical: 3,
                       ),
                       decoration: BoxDecoration(
-                        color: color.withAlpha(26),
+                        color: color.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
@@ -1312,7 +1307,7 @@ class _SupplierListViewState extends State<SupplierListView>
                     Text(
                       'Đơn: ${d.totalOrders}',
                       style: AppTextStyles.caption.copyWith(
-                        color: AppColors.onSurface.withAlpha(153),
+                        color: AppColors.onSurface.withOpacity(0.6),
                       ),
                     ),
                   ],
@@ -1382,7 +1377,7 @@ class _SupplierListViewState extends State<SupplierListView>
                       value: 'pay',
                       child: Row(
                         children: [
-                          Icon(Icons.payments, size: 18, color: AppColors.success),
+                          Icon(Icons.payments, size: 18, color: Colors.green),
                           SizedBox(width: 8),
                           Text('Thanh toán'),
                         ],
@@ -1411,7 +1406,7 @@ class _SupplierListViewState extends State<SupplierListView>
     if (d.remain <= 0) {
       NotificationService.showSnackBar(
         'Đối tác này đã tất toán.',
-        color: AppColors.success,
+        color: Colors.green,
       );
       return;
     }
@@ -1515,7 +1510,7 @@ class _SupplierListViewState extends State<SupplierListView>
                 if (mounted) Navigator.pop(ctx);
                 NotificationService.showSnackBar(
                   'Đã ghi nhận thanh toán',
-                  color: AppColors.success,
+                  color: Colors.green,
                 );
                 await _loadPartners();
               },
@@ -1551,7 +1546,7 @@ class _SupplierListViewState extends State<SupplierListView>
             Text(
               'Chỉ chủ shop/quản lý được phép xóa nhà cung cấp.\nNhập mật khẩu tài khoản để xác nhận:',
               style: AppTextStyles.body2.copyWith(
-                color: AppColors.onSurface.withAlpha(179),
+                color: AppColors.onSurface.withOpacity(0.7),
               ),
             ),
             const SizedBox(height: 16),
@@ -1562,7 +1557,7 @@ class _SupplierListViewState extends State<SupplierListView>
               decoration: InputDecoration(
                 hintText: 'Mật khẩu',
                 hintStyle: AppTextStyles.body2.copyWith(
-                  color: AppColors.onSurface.withAlpha(128),
+                  color: AppColors.onSurface.withOpacity(0.5),
                 ),
                 prefixIcon: const Icon(
                   Icons.password,
@@ -1598,7 +1593,7 @@ class _SupplierListViewState extends State<SupplierListView>
           TextButton(
             onPressed: () => Navigator.pop(ctx),
             style: TextButton.styleFrom(
-              foregroundColor: AppColors.onSurface.withAlpha(179),
+              foregroundColor: AppColors.onSurface.withOpacity(0.7),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             ),
             child: Text('HỦY', style: AppTextStyles.button),
@@ -1692,7 +1687,7 @@ class _SupplierListViewState extends State<SupplierListView>
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
             style: TextButton.styleFrom(
-              foregroundColor: AppColors.onSurface.withAlpha(179),
+              foregroundColor: AppColors.onSurface.withOpacity(0.7),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             ),
             child: Text("HỦY", style: AppTextStyles.button),

@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
 
 class DebouncedSearchField extends StatefulWidget {
   final TextEditingController controller;
@@ -45,10 +44,10 @@ class _DebouncedSearchFieldState extends State<DebouncedSearchField> {
       onChanged: _onSearchChanged,
       decoration: InputDecoration(
         hintText: widget.hint,
-        prefixIcon: widget.icon != null ? Icon(widget.icon, color: AppColors.textHint) : null,
+        prefixIcon: widget.icon != null ? Icon(widget.icon, color: Colors.grey) : null,
         suffixIcon: widget.controller.text.isNotEmpty
             ? IconButton(
-                icon: const Icon(Icons.clear, color: AppColors.textHint),
+                icon: const Icon(Icons.clear, color: Colors.grey),
                 onPressed: () {
                   widget.controller.clear();
                   widget.onSearch('');
@@ -57,18 +56,18 @@ class _DebouncedSearchFieldState extends State<DebouncedSearchField> {
             : null,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.outline),
+          borderSide: BorderSide(color: Colors.grey.shade300),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.outline),
+          borderSide: BorderSide(color: Colors.grey.shade300),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Theme.of(context).primaryColor),
         ),
         filled: true,
-        fillColor: AppColors.surface,
+        fillColor: Colors.white,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
       style: const TextStyle(fontSize: 16),

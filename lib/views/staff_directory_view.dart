@@ -132,7 +132,7 @@ class _StaffDirectoryViewState extends State<StaffDirectoryView> {
         accentColor: AppBarAccents.staff,
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh, color: AppColors.surface),
+            icon: const Icon(Icons.refresh, color: Colors.white),
             tooltip: 'Làm mới',
             onPressed: _loadStaff,
           ),
@@ -187,7 +187,7 @@ class _StaffDirectoryViewState extends State<StaffDirectoryView> {
                             final phone = (s['phone'] ?? '').toString();
                             final isMe = (s['uid'] ?? '') == _myUid;
                             return Material(
-                              color: AppColors.surface,
+                              color: Colors.white,
                               borderRadius: BorderRadius.circular(12),
                               child: ListTile(
                                 onTap: () => _openProfile(s),

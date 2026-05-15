@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
 import 'package:intl/intl.dart';
 import '../widgets/responsive_wrapper.dart';
 
@@ -87,7 +86,7 @@ class _InventoryCheckHistoryViewState extends State<InventoryCheckHistoryView> {
             ),
           ),
         ),
-        foregroundColor: AppColors.surface,
+        foregroundColor: Colors.white,
         actions: [
           // Export all to Excel
           IconButton(
@@ -174,20 +173,20 @@ class _InventoryCheckHistoryViewState extends State<InventoryCheckHistoryView> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.inventory_2_outlined, size: 80, color: AppColors.textHint),
+          Icon(Icons.inventory_2_outlined, size: 80, color: Colors.grey[400]),
           const SizedBox(height: 16),
           Text(
             'Chưa có lịch sử kiểm kho',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w500,
-              color: AppColors.textSecondary,
+              color: Colors.grey[600],
             ),
           ),
           const SizedBox(height: 8),
           Text(
             'Lưu kết quả kiểm kho để xem tại đây',
-            style: TextStyle(color: AppColors.textHint),
+            style: TextStyle(color: Colors.grey[500]),
           ),
         ],
       ),
@@ -227,8 +226,8 @@ class _InventoryCheckHistoryViewState extends State<InventoryCheckHistoryView> {
                     ),
                     decoration: BoxDecoration(
                       color: check.checkType == 'DIEN_THOAI'
-                          ? AppColors.primary
-                          : AppColors.warning,
+                          ? Colors.blue.shade50
+                          : Colors.orange.shade50,
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Row(
@@ -240,8 +239,8 @@ class _InventoryCheckHistoryViewState extends State<InventoryCheckHistoryView> {
                               : Icons.cable,
                           size: 16,
                           color: check.checkType == 'DIEN_THOAI'
-                              ? AppColors.primary
-                              : AppColors.warning,
+                              ? Colors.blue
+                              : Colors.orange,
                         ),
                         const SizedBox(width: 4),
                         Text(
@@ -250,8 +249,8 @@ class _InventoryCheckHistoryViewState extends State<InventoryCheckHistoryView> {
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                             color: check.checkType == 'DIEN_THOAI'
-                                ? AppColors.primary
-                                : AppColors.warning,
+                                ? Colors.blue
+                                : Colors.orange,
                           ),
                         ),
                       ],
@@ -263,18 +262,18 @@ class _InventoryCheckHistoryViewState extends State<InventoryCheckHistoryView> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                        color: AppColors.success,
+                        color: Colors.green.shade50,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.check_circle, size: 14, color: AppColors.success),
+                          Icon(Icons.check_circle, size: 14, color: Colors.green),
                           SizedBox(width: 4),
                           Text(
                             'Hoàn thành',
                             style: TextStyle(
-                                color: AppColors.success,
+                                color: Colors.green,
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600),
                           ),
@@ -286,18 +285,18 @@ class _InventoryCheckHistoryViewState extends State<InventoryCheckHistoryView> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                        color: AppColors.warning,
+                        color: Colors.amber.shade50,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.pending, size: 14, color: AppColors.warning),
+                          Icon(Icons.pending, size: 14, color: Colors.amber),
                           SizedBox(width: 4),
                           Text(
                             'Chưa xong',
                             style: TextStyle(
-                                color: AppColors.warning,
+                                color: Colors.amber,
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600),
                           ),
@@ -318,16 +317,16 @@ class _InventoryCheckHistoryViewState extends State<InventoryCheckHistoryView> {
               // Date and person
               Row(
                 children: [
-                  const Icon(Icons.access_time, size: 16, color: AppColors.textHint),
+                  const Icon(Icons.access_time, size: 16, color: Colors.grey),
                   const SizedBox(width: 4),
-                  Text(dateStr, style: const TextStyle(color: AppColors.textHint)),
+                  Text(dateStr, style: const TextStyle(color: Colors.grey)),
                   const SizedBox(width: 16),
-                  const Icon(Icons.person_outline, size: 16, color: AppColors.textHint),
+                  const Icon(Icons.person_outline, size: 16, color: Colors.grey),
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
                       check.checkedBy,
-                      style: const TextStyle(color: AppColors.textHint),
+                      style: const TextStyle(color: Colors.grey),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
@@ -341,9 +340,9 @@ class _InventoryCheckHistoryViewState extends State<InventoryCheckHistoryView> {
                 child: LinearProgressIndicator(
                   value: progress,
                   minHeight: 8,
-                  backgroundColor: AppColors.outline,
+                  backgroundColor: Colors.grey.shade200,
                   valueColor: AlwaysStoppedAnimation(
-                    progress >= 1.0 ? AppColors.success : AppColors.primary,
+                    progress >= 1.0 ? Colors.green : Colors.blue,
                   ),
                 ),
               ),
@@ -353,14 +352,14 @@ class _InventoryCheckHistoryViewState extends State<InventoryCheckHistoryView> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _buildStat('Tổng', total, AppColors.textPrimary),
-                  _buildStat('Đã kiểm', checked, AppColors.success),
-                  _buildStat('Thiếu', missing, AppColors.error),
+                  _buildStat('Tổng', total, Colors.black87),
+                  _buildStat('Đã kiểm', checked, Colors.green),
+                  _buildStat('Thiếu', missing, Colors.red),
                   Text(
                     '${(progress * 100).toStringAsFixed(0)}%',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: progress >= 1.0 ? AppColors.success : AppColors.primary,
+                      color: progress >= 1.0 ? Colors.green : Colors.blue,
                     ),
                   ),
                 ],
@@ -383,7 +382,7 @@ class _InventoryCheckHistoryViewState extends State<InventoryCheckHistoryView> {
             color: color,
           ),
         ),
-        Text(label, style: TextStyle(fontSize: 14, color: AppColors.textSecondary)),
+        Text(label, style: TextStyle(fontSize: 14, color: Colors.grey[600])),
       ],
     );
   }
@@ -452,7 +451,7 @@ class _InventoryCheckDetailSheetState
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: AppColors.divider,
+              color: Colors.grey[300],
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -483,18 +482,18 @@ class _InventoryCheckDetailSheetState
                 const SizedBox(height: 4),
                 Text(
                   '$dateStr • ${check.checkedBy}',
-                  style: TextStyle(color: AppColors.textSecondary),
+                  style: TextStyle(color: Colors.grey[600]),
                 ),
                 const SizedBox(height: 12),
 
                 // Summary chips
                 Row(
                   children: [
-                    _buildChip('Tổng: $total', AppColors.textSecondary),
+                    _buildChip('Tổng: $total', Colors.blueGrey),
                     const SizedBox(width: 8),
-                    _buildChip('Đã kiểm: $checked', AppColors.success),
+                    _buildChip('Đã kiểm: $checked', Colors.green),
                     const SizedBox(width: 8),
-                    _buildChip('Thiếu: $missing', AppColors.error),
+                    _buildChip('Thiếu: $missing', Colors.red),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -520,7 +519,7 @@ class _InventoryCheckDetailSheetState
                 ? Center(
                     child: Text(
                       'Không có mục nào',
-                      style: TextStyle(color: AppColors.textHint),
+                      style: TextStyle(color: Colors.grey[500]),
                     ),
                   )
                 : ListView.builder(
@@ -541,9 +540,9 @@ class _InventoryCheckDetailSheetState
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withAlpha(26),
+        color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withAlpha(77)),
+        border: Border.all(color: color.withOpacity(0.3)),
       ),
       child: Text(
         label,
@@ -567,8 +566,8 @@ class _InventoryCheckDetailSheetState
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
           color: isActive
-              ? theme.colorScheme.primary.withAlpha(31)
-              : AppColors.background,
+              ? theme.colorScheme.primary.withOpacity(0.12)
+              : Colors.grey.shade100,
           borderRadius: BorderRadius.circular(20),
           border: isActive
               ? Border.all(color: theme.colorScheme.primary)
@@ -579,7 +578,7 @@ class _InventoryCheckDetailSheetState
           style: TextStyle(
             fontSize: 14,
             fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
-            color: isActive ? theme.colorScheme.primary : AppColors.textSecondary,
+            color: isActive ? theme.colorScheme.primary : Colors.grey[700],
           ),
         ),
       ),
@@ -597,24 +596,24 @@ class _InventoryCheckDetailSheetState
       margin: const EdgeInsets.only(bottom: 6),
       decoration: BoxDecoration(
         color: item.isChecked
-            ? AppColors.success
-            : AppColors.error,
+            ? Colors.green.shade50
+            : Colors.red.shade50,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
           color: item.isChecked
-              ? AppColors.success
-              : AppColors.error,
+              ? Colors.green.shade200
+              : Colors.red.shade200,
         ),
       ),
       child: ListTile(
         dense: true,
         leading: CircleAvatar(
           radius: 16,
-          backgroundColor: item.isChecked ? AppColors.success : AppColors.error,
+          backgroundColor: item.isChecked ? Colors.green : Colors.red,
           child: Icon(
             item.isChecked ? Icons.check : Icons.close,
             size: 16,
-            color: AppColors.surface,
+            color: Colors.white,
           ),
         ),
         title: Text(
@@ -626,20 +625,20 @@ class _InventoryCheckDetailSheetState
             if (item.imei != null && item.imei!.isNotEmpty) ...[
               Text(
                 'IMEI: ${item.imei}',
-                style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                style: TextStyle(fontSize: 13, color: Colors.grey[600]),
               ),
               const SizedBox(width: 8),
             ],
             if (item.color != null && item.color!.isNotEmpty)
               Text(
                 item.color!,
-                style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                style: TextStyle(fontSize: 13, color: Colors.grey[600]),
               ),
             if (item.quantity > 1) ...[
               const SizedBox(width: 8),
               Text(
                 'SL: ${item.quantity}',
-                style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                style: TextStyle(fontSize: 13, color: Colors.grey[600]),
               ),
             ],
           ],
@@ -647,12 +646,12 @@ class _InventoryCheckDetailSheetState
         trailing: item.isChecked
             ? Text(
                 checkedTime,
-                style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                style: TextStyle(fontSize: 13, color: Colors.grey[600]),
               )
             : const Text(
                 'Thiếu',
                 style: TextStyle(
-                    color: AppColors.error,
+                    color: Colors.red,
                     fontWeight: FontWeight.w600,
                     fontSize: 14),
               ),

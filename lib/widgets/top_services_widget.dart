@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
 import '../services/top_services_report_service.dart';
 import '../utils/money_utils.dart';
 
@@ -83,7 +82,7 @@ class _TopServicesWidgetState extends State<TopServicesWidget> {
           children: [
             Row(
               children: [
-                const Icon(Icons.trending_up, color: AppColors.success, size: 24),
+                const Icon(Icons.trending_up, color: Colors.green, size: 24),
                 const SizedBox(width: 12),
                 const Expanded(
                   child: Text(
@@ -197,9 +196,9 @@ class _TopServicesWidgetState extends State<TopServicesWidget> {
   }
 
   Color _getColorByRank(int index) {
-    if (index == 0) return AppColors.warning;
-    if (index == 1) return AppColors.textHint;
-    if (index == 2) return AppColors.warning;
-    return AppColors.primary;
+    if (index == 0) return Colors.amber;
+    if (index == 1) return Colors.grey;
+    if (index == 2) return Colors.orange;
+    return Colors.blue;
   }
 }
