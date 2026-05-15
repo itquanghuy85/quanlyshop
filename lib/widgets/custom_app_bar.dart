@@ -20,8 +20,8 @@ class CustomAppBar {
   static const Color kPrimaryDark = Color(0xFF1565C0);
 
   // ========== GRADIENT COLORS ==========
-  static const Color kGradientStart = Color(0xFF0068FF); // Zalo Blue
-  static const Color kGradientEnd = Color(0xFF0084FF); // Zalo Blue Light
+  static const Color kGradientStart = Color(0xFF007AFF); // iOS System Blue
+  static const Color kGradientEnd = Color(0xFF0056D6); // iOS System Blue Dark
 
   /// Default gradient for AppBar
   static const LinearGradient kDefaultGradient = LinearGradient(
@@ -572,7 +572,7 @@ class CustomTabBar {
       child: TabBar(
         controller: controller,
         isScrollable: isScrollable,
-        labelColor: const Color(0xFF143E82),
+        labelColor: const Color(0xFF0056D6),
         unselectedLabelColor: AppColors.surface.withValues(alpha: 0.82),
         labelStyle: TextStyle(
           fontWeight: FontWeight.w600,

@@ -45,6 +45,13 @@
 - Một số module chuyên biệt (`finance_v2`) còn token riêng, chưa hợp nhất hoàn toàn
 - Cần quét toàn bộ view để loại bỏ triệt để hard-code còn sót
 
+## Cập nhật iOS Premium Palette (2026-05-15)
+- Primary đổi sang iOS System Blue `#007AFF`
+- Grey scale chuyển Tailwind Slate → Tailwind Gray (ấm hơn)
+- `finance_v2_theme.dart` đồng bộ với AppColors mới
+- AppBar gradient: `#007AFF` → `#0056D6`
+- Tất cả màn hình kế thừa tự động qua shared tokens — không cần chỉnh từng view
+
 ## Kết luận audit
 - Đã có Design System trung tâm và áp dụng thực tế lên các luồng màn hình trọng điểm.
 - Đã giảm đáng kể style hard-code ở vùng truy cập cao.

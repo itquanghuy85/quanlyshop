@@ -2,16 +2,16 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 
 class FinanceV2Theme {
-  static const Color pageBg = Color(0xFFF3F7FC);
-  static const Color panelBg = Color(0xFFFFFFFF);
-  static const Color ink = Color(0xFF0F1F3D);
-  static const Color subInk = Color(0xFF5D6E8D);
-  static const Color positive = Color(0xFF0F8A5F);
-  static const Color negative = Color(0xFFC0392B);
-  static const Color warn = Color(0xFFB9770E);
-  static const Color accent = Color(0xFF164A9E);
+  static const Color pageBg   = Color(0xFFF5F7FB);
+  static const Color panelBg  = Color(0xFFFFFFFF);
+  static const Color ink      = Color(0xFF1F2937);
+  static const Color subInk   = Color(0xFF6B7280);
+  static const Color positive = Color(0xFF34A853);
+  static const Color negative = Color(0xFFEF4444);
+  static const Color warn     = Color(0xFFE6A700);
+  static const Color accent   = Color(0xFF007AFF);
 
-  static const double radiusPanel = 16;
+  static const double radiusPanel   = 16;
   static const double radiusControl = 12;
 
   static const TextStyle titleLg = TextStyle(
@@ -111,7 +111,7 @@ class FinanceV2Theme {
   }
 
   static const LinearGradient heroGradient = LinearGradient(
-    colors: [Color(0xFF163E84), Color(0xFF1A6BC2)],
+    colors: [Color(0xFF007AFF), Color(0xFF0056D6)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
@@ -122,7 +122,7 @@ class FinanceV2Theme {
       borderRadius: BorderRadius.circular(radiusPanel),
       boxShadow: [
         BoxShadow(
-          color: const Color(0xFF0F1F3D).withValues(alpha: 0.08),
+          color: const Color(0xFF1F2937).withValues(alpha: 0.08),
           blurRadius: 14,
           offset: const Offset(0, 6),
         ),

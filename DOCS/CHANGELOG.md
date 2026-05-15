@@ -4,6 +4,38 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-05-15] - iOS Premium Color Palette + Finance V1 Removal
+
+### Summary
+Nâng cấp toàn bộ bảng màu ứng dụng sang iOS Premium Palette (Apple/Stripe/Notion style) và loại bỏ hoàn toàn Finance V1.
+
+### Color Palette Changes
+- Primary: `#2563EB` → `#007AFF` (iOS System Blue)
+- Background: `#F7F8FA` → `#F5F7FB`
+- Grey scale: Tailwind Slate → Tailwind Gray (ấm hơn)
+- Success: `#16A34A` → `#34A853` (Google Green)
+- Warning: `#F59E0B` → `#E6A700`
+- AppBar gradient: `#0068FF/#0084FF` → `#007AFF/#0056D6`
+- Text Primary: `#0F172A` → `#1F2937`
+- Text Secondary: `#64748B` → `#6B7280`
+
+### Files Modified
+- `lib/theme/app_colors.dart` — toàn bộ palette iOS premium
+- `lib/theme/app_theme.dart` — AppBar backgroundColor → #007AFF
+- `lib/widgets/custom_app_bar.dart` — gradient → #007AFF/#0056D6
+- `lib/finance_v2/finance_v2_theme.dart` — hardcoded tokens → iOS palette
+- `lib/views/financial_report_view.dart` — DELETED (Finance V1)
+- `lib/views/daily_activity_report_view.dart` — DELETED (Finance V1)
+- `lib/services/daily_activity_report_service.dart` — DELETED (Finance V1)
+- `lib/finance_v2/finance_v2_feature_flag.dart` — DELETED (unused)
+
+### Validation Results
+- ✓ flutter analyze: 0 errors (infos/warnings only, pre-existing)
+- ✓ flutter build apk --debug: Success
+- ✓ Install on OPPO CPH1989 (Android 11): Success
+
+---
+
 ## [2026-05-15] - Documentation Process Setup
 
 ### Summary

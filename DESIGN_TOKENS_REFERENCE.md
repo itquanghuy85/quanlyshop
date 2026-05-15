@@ -31,16 +31,26 @@ Helper:
 - Gaps: `gapXs`, `gapSm`, `gapMd`, `gapLg`, `gapXl`, `gapXxl`
 
 ## Colors (`lib/theme/app_colors.dart`)
-- Primary: `AppColors.primary`
-- Secondary: `AppColors.secondary`
-- Surface: `AppColors.surface`
-- Background: `AppColors.background`
-- Error: `AppColors.error`
-- Success: `AppColors.success`
-- Warning: `AppColors.warning`
-- Info: `AppColors.info`
-- Text Primary: `AppColors.textPrimary`
-- Text Secondary: `AppColors.textSecondary`
+**iOS Premium Palette** (updated 2026-05-15)
+
+| Token | Value | Usage |
+|---|---|---|
+| `AppColors.primary` | `#007AFF` | iOS System Blue |
+| `AppColors.primaryDark` | `#0056D6` | Gradient end, selected state |
+| `AppColors.background` | `#F5F7FB` | App background |
+| `AppColors.surface` | `#FFFFFF` | Cards, sheets |
+| `AppColors.textPrimary` | `#1F2937` | Headings, body text |
+| `AppColors.textSecondary` | `#6B7280` | Labels, captions |
+| `AppColors.success` | `#34A853` | Positive, completed |
+| `AppColors.warning` | `#E6A700` | Caution, pending |
+| `AppColors.error` | `#EF4444` | Errors, cancelled |
+| `AppColors.info` | `#3B82F6` | Informational, links |
+| `AppColors.divider` | `#EEF2F7` | Separators |
+| `AppColors.outline` | `#E5EAF2` | Card borders |
+| `AppColors.grey400` | `#9CA3AF` | Icons, placeholders |
+| `AppColors.grey800` | `#1F2937` | Dark text |
+
+Grey scale: Tailwind Gray (warmer than previous Tailwind Slate)
 
 ## Core Tokens (`lib/theme/design_tokens.dart`)
 - Minimum touch target: 44
