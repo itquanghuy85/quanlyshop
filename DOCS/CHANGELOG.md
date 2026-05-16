@@ -4,6 +4,55 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-05-16] - Financial Reconciliation Audit — 4 Bugs Fixed
+
+### Summary
+Audit toàn diện 6 file Excel xuất ngày 16/05/2026. Xác định và sửa 4 lỗi gây chênh lệch số liệu giữa các báo cáo.
+
+### Sửa Lỗi
+
+#### BUG 1 — KẾT HỢP Revenue Gap (+5M thiếu)
+- **Files:** `lib/finance_v2/finance_v2_data_service.dart`, `lib/services/daily_financial_analysis_service.dart`
+- **Root cause:** Đơn KẾT HỢP dùng `finalPrice` thay vì `cashAmount + transferAmount` → mất phần tiền mặt
+- **Fix:** Thêm nhánh `isKetHop && (cashAmount + transferAmount) > 0 → actualPaid = cashAmount + transferAmount`
+- **Áp dụng:** Cả current period lẫn previousSales loop; cả data service lẫn daily analysis service
+- **recognizedCost:** Đổi denominator = `actualPaid` cho KẾT HỢP (ratio = 1, ghi nhận 100% vốn)
+
+#### BUG 2 — bao_cao_ngay "CHI — Nhập hàng" luôn 0
+- **File:** `lib/finance_v2/finance_v2_view.dart` (section 2 Cơ cấu thu chi)
+- **Root cause:** Filter `type='IMPORT'` nhưng data service không bao giờ tạo txn type IMPORT (dùng EXPENSE)
+- **Fix:** Derive từ snapshot: `importOut = totalOut - debtRepayOut - operatingExpenseOut`
+
+#### BUG 3 — Giá hiển thị KẾT HỢP trong danh sách đơn bán
+- **File:** `lib/finance_v2/finance_v2_view.dart` (section 3 Danh sách đơn bán)
+- **Root cause:** Hiển thị `finalPrice` thay vì số tiền thực thu (`cashAmount + transferAmount`)
+- **Fix:** Dùng `cashAmount + transferAmount` khi `> 0` và `paymentMethod == 'KẾT HỢP'`
+
+#### BUG 4 — so_quy duplicate partner payment entries
+- **File:** `lib/views/cash_closing_view.dart`
+- **Root cause:** Cùng một khoản trả đối tác xuất hiện 2 lần: từ `_expenses` ('ĐỐI TÁC SỬA CHỮA') và `_repairPartnerPayments` ('Trả đối tác SC')
+- **Fix:** Track `partnerExpenseAmounts` trong loop expenses; skip `_repairPartnerPayments` nếu đã có entry trùng amount
+- **Bonus:** Sửa KẾT HỢP amount trong `_getIncomeTransactions` sổ quỹ (tương tự BUG 1)
+
+### Reconciliation Results (16/05/2026)
+| Metric | Trước (gap) | Sau fix |
+|--------|-------------|---------|
+| TOTAL_IN | -5,000,000 | ✓ Match |
+| CHI — Nhập hàng | Luôn 0 | ✓ Hiển thị đúng |
+| so_quy duplicate | ~1.4M × 2 | ✓ Deduplicated |
+| sec3 KẾT HỢP display | finalPrice sai | ✓ cashAmount + transferAmount |
+
+### Files Modified
+- `lib/finance_v2/finance_v2_data_service.dart`
+- `lib/finance_v2/finance_v2_view.dart`
+- `lib/services/daily_financial_analysis_service.dart`
+- `lib/views/cash_closing_view.dart`
+
+### Git Commit
+`2b2f3966`
+
+---
+
 ## [2026-05-16] - Fix Finance Tab Crash + Audit Financial Display
 
 ### Summary
