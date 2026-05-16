@@ -3669,6 +3669,17 @@ class _FinanceV2ViewState extends State<FinanceV2View>
       });
     }
 
+    // Build tracked-payment map for Category B synthetic DEBT_PAY logic below.
+    final trackedByDebtId = <int, int>{};
+    for (final payment in debtPayments) {
+      final lid = (payment['linkedDebtId'] as num?)?.toInt();
+      if (lid != null) {
+        trackedByDebtId[lid] =
+            (trackedByDebtId[lid] ?? 0) +
+            ((payment['amount'] as num?)?.toInt() ?? 0);
+      }
+    }
+
     for (final payment in debtPayments) {
       final amount = (payment['amount'] as num?)?.toInt() ?? 0;
       final method = _auditPaymentMethod(
@@ -3794,6 +3805,51 @@ class _FinanceV2ViewState extends State<FinanceV2View>
       });
     }
 
+    // Category B: in-period supplier debts whose paidAmount was updated directly
+    // (no debt_payments record). Emit a synthetic DEBT_PAY for the untracked amount
+    // so the activity log stays balanced with snap.payableTotal.
+    for (final debt in debts) {
+      final createdAt = (debt['createdAt'] as num?)?.toInt() ?? 0;
+      if (createdAt < startMs) continue;
+      final debtType =
+          (debt['type'] ?? debt['debtType'] ?? '').toString().toUpperCase();
+      if (!_isSupplierDebtType(debtType)) continue;
+      final paid = (debt['paidAmount'] as num?)?.toInt() ?? 0;
+      if (paid <= 0) continue;
+      final debtId = (debt['id'] as num?)?.toInt();
+      final tracked = debtId != null ? (trackedByDebtId[debtId] ?? 0) : 0;
+      final untracked = (paid - tracked).clamp(0, paid);
+      if (untracked <= 0) continue;
+      final ts =
+          (debt['updatedAt'] as num?)?.toInt() ??
+          (debt['createdAt'] as num?)?.toInt() ??
+          0;
+      final personName =
+          (debt['personName'] ?? debt['partnerName'] ?? '').toString();
+      entries.add({
+        'ts': ts,
+        'actionType': 'DEBT_PAY',
+        'referenceId': 'untracked_pay_${debt['id']}',
+        'cashIn': 0,
+        'cashOut': 0,
+        'transferIn': 0,
+        'transferOut': 0,
+        'debtCustomerChange': 0,
+        'debtSupplierChange': -untracked,
+        'inventoryChange': 0,
+        'lineAmount': 0,
+        'lineCostTotal': 0,
+        'row': _auditRow(
+          timestamp: ts,
+          actionType: 'DEBT_PAY',
+          referenceId: 'untracked_pay_${debt['id']}',
+          debtSupplierChange: -untracked,
+          description:
+              'Trả nợ ${personName.isNotEmpty ? personName : ''} (không có phiếu)',
+        ),
+      });
+    }
+
     entries.sort((a, b) => (b['ts'] as int).compareTo(a['ts'] as int));
     return entries;
   }
@@ -3843,10 +3899,20 @@ class _FinanceV2ViewState extends State<FinanceV2View>
         continue;
       }
       final storedPaid = (debt['paidAmount'] as num?)?.toInt() ?? 0;
-      final debtKey = (debt['firestoreId'] ?? debt['id'] ?? '').toString();
+      // Look up by both firestoreId and numeric id: some payments are stored with
+      // only debtId (numeric) and empty debtFirestoreId, causing firestoreId-only
+      // lookup to return 0 → paidBeforeStart wrong → openingRemaining wrong.
+      final debtFsKey = (debt['firestoreId'] ?? '').toString().trim();
+      final debtLocalKey = (debt['id'] ?? '').toString().trim();
+      final byFsKey = debtFsKey.isNotEmpty ? (inPeriodByKey[debtFsKey] ?? 0) : 0;
+      final byLocalKey = (debtLocalKey.isNotEmpty && debtLocalKey != '0')
+          ? (inPeriodByKey[debtLocalKey] ?? 0)
+          : 0;
+      // Use max (not sum) to avoid double-counting when the same payment is
+      // indexed under both keys.
       // paidBeforeStart = storedPaid - inPeriodPaid
       // → algebraically consistent với snap.payableTotal (đều dùng stored paidAmount làm gốc)
-      final inPeriodPaid = inPeriodByKey[debtKey] ?? 0;
+      final inPeriodPaid = byFsKey > byLocalKey ? byFsKey : byLocalKey;
       final paidBeforeStart = (storedPaid - inPeriodPaid).clamp(0, totalAmount);
       final openingRemaining = (totalAmount - paidBeforeStart).clamp(
         0,
