@@ -4386,13 +4386,26 @@ return db;
 
   /// Get sales within a date range (by soldAt), for financial report optimization
   Future<List<SaleOrder>> getSalesByDateRange(int startMs, int endMs) async {
+    final shopId = UserService.getShopIdSync();
     final db = await database;
-    final maps = await db.query(
-      'sales',
-      where: 'soldAt >= ? AND soldAt <= ?',
-      whereArgs: [startMs, endMs],
-      orderBy: 'soldAt DESC',
-    );
+    final List<Map<String, dynamic>> maps;
+    if (shopId != null && shopId.isNotEmpty) {
+      maps = await db.query(
+        'sales',
+        where:
+            '(shopId = ? OR shopId IS NULL) AND soldAt >= ? AND soldAt <= ? AND (deleted = 0 OR deleted IS NULL)',
+        whereArgs: [shopId, startMs, endMs],
+        orderBy: 'soldAt DESC',
+      );
+    } else {
+      maps = await db.query(
+        'sales',
+        where:
+            'soldAt >= ? AND soldAt <= ? AND (deleted = 0 OR deleted IS NULL)',
+        whereArgs: [startMs, endMs],
+        orderBy: 'soldAt DESC',
+      );
+    }
     return List.generate(maps.length, (i) => SaleOrder.fromMap(maps[i]));
   }
 

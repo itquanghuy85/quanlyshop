@@ -2708,6 +2708,7 @@ class _HomeViewState extends State<HomeView>
       _loadReminderCount();
     } catch (e) {
       debugPrint('HomeView._loadStats error: $e');
+      // Keep previous values on error — do not reset to 0
     } finally {
       _isLoadingStats = false;
     }
