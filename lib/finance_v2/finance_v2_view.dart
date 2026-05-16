@@ -2257,25 +2257,23 @@ class _FinanceV2ViewState extends State<FinanceV2View>
 
   Future<(int customerOpening, int supplierOpening)> _loadOpeningDebtBalances() async {
     final startMs = _start.millisecondsSinceEpoch;
+    final endMs = DateTime(_end.year, _end.month, _end.day, 23, 59, 59).millisecondsSinceEpoch;
     final debts = await _db.getDebtsForFinanceSnapshot();
 
-    // Lấy tất cả thanh toán TRƯỚC kỳ để tính số dư đầu kỳ chính xác.
-    // Dùng pre-period payments thay vì paidAmount - paidInPeriod để tránh lỗi
-    // khi payment key không khớp với debt key (làm underestimate opening balance).
-    final prePeriodPayments = await _db.getDebtPaymentsForCashFlowByDateRange(
-      1, // paidAt > 0 để bỏ qua record rác
-      startMs, // exclusive upper bound (paidAt < startMs)
-    );
-    final prePeriodByKey = <String, int>{};
-    for (final payment in prePeriodPayments) {
+    // Lấy thanh toán TRONG KỲ để tính paidBeforeStart = paidAmount - inPeriodPaid.
+    // Cách này đảm bảo opening nhất quán với snap.payableTotal (cùng dùng stored paidAmount),
+    // tránh lệch khi paidAmount chưa sync đầy đủ vào bảng debt_payments.
+    final inPeriodPayments = await _db.getDebtPaymentsForCashFlowByDateRange(startMs, endMs);
+    final inPeriodByKey = <String, int>{};
+    for (final payment in inPeriodPayments) {
       final debtIdStr = (payment['debtId'] ?? '').toString().trim();
       final keys = <String>{
         (payment['debtFirestoreId'] ?? '').toString().trim(),
-        if (debtIdStr != '0') debtIdStr,
+        if (debtIdStr != '0' && debtIdStr.isNotEmpty) debtIdStr,
       }..removeWhere((value) => value.isEmpty);
       final amount = (payment['amount'] as num?)?.toInt() ?? 0;
       for (final key in keys) {
-        prePeriodByKey[key] = (prePeriodByKey[key] ?? 0) + amount;
+        inPeriodByKey[key] = (inPeriodByKey[key] ?? 0) + amount;
       }
     }
 
@@ -2284,13 +2282,15 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     for (final debt in debts) {
       final createdAt = (debt['createdAt'] as num?)?.toInt() ?? 0;
       if (createdAt >= startMs) {
-        continue;
+        continue; // Nợ tạo trong kỳ → không tính vào đầu kỳ (nằm trong DEBT_CREATE flow)
       }
       final totalAmount = (debt['totalAmount'] as num?)?.toInt() ?? 0;
+      final storedPaid = (debt['paidAmount'] as num?)?.toInt() ?? 0;
       final debtKey = (debt['firestoreId'] ?? debt['id'] ?? '').toString();
-      // Tính paidBeforeStart trực tiếp từ lịch sử thanh toán trước kỳ,
-      // tránh sai số khi dùng paidAmount - paidInPeriod (key mismatch).
-      final paidBeforeStart = (prePeriodByKey[debtKey] ?? 0).clamp(0, totalAmount);
+      // paidBeforeStart = storedPaid - inPeriodPaid
+      // → algebraically consistent với snap.payableTotal (đều dùng stored paidAmount làm gốc)
+      final inPeriodPaid = inPeriodByKey[debtKey] ?? 0;
+      final paidBeforeStart = (storedPaid - inPeriodPaid).clamp(0, totalAmount);
       final openingRemaining = (totalAmount - paidBeforeStart).clamp(0, totalAmount);
       final debtType = (debt['type'] ?? debt['debtType'] ?? '').toString().toUpperCase();
       final isPayable = debtType == 'SHOP_OWES' || debtType == 'OTHER_SHOP_OWES' || debtType == 'OWED';

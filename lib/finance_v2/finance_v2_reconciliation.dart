@@ -122,7 +122,12 @@ class FinanceV2ReconciliationEngine {
       totalIn += cashIn + transferIn;
       totalOut += cashOut + transferOut;
       debtCustomerFlow += debtCustomerChange;
-      debtSupplierFlow += debtSupplierChange;
+      // IMPORT entries track CÔNG NỢ imports via supplier_import_history, not debts table.
+      // Including their debtSupplierChange would double-count vs DEBT_CREATE entries
+      // and diverge from snap.payableTotal (which only sums debts-table records).
+      if (action != 'IMPORT') {
+        debtSupplierFlow += debtSupplierChange;
+      }
 
       if (action == 'SALE' || action == 'REPAIR') {
         revenue += lineAmount;

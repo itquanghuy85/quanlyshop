@@ -261,6 +261,7 @@ class FinanceV2DataService {
     );
     final debtPayments = await _db.getDebtPaymentsForCashFlowByDateRange(startMs, endMs);
     final salesReturns = await _db.getSalesReturnsByDateRange(startMs, endMs);
+    final importHistory = await _db.getAllImportHistoryByDateRange(startMs, endMs);
     final debts = await _db.getDebtsForFinanceSnapshot();
     final activities = await _db.getFinancialActivities(
       startDate: startMs,
@@ -494,6 +495,39 @@ class FinanceV2DataService {
           referenceId: (e['firestoreId'] ?? e['id'] ?? '').toString(),
         ),
       );
+    }
+
+    // Bổ sung thanh toán nhập hàng từ supplier_import_history mà chưa có expense record
+    // tương ứng → đảm bảo snap.totalOut nhất quán với activity_log IMPORT entries.
+    final importExpenseAmountsSeen = <int>{};
+    for (final e in expenses) {
+      if (_isImportExpense(e)) {
+        final amount = _toInt(e['amount']);
+        if (amount > 0) importExpenseAmountsSeen.add(amount);
+      }
+    }
+    final importAggTotals = <String, int>{};
+    final importAggMethods = <String, String>{};
+    for (final item in importHistory) {
+      final rawRef = (item['referenceId'] ?? item['firestoreId'] ?? item['id'] ?? '').toString().trim();
+      final key = rawRef.isNotEmpty
+          ? rawRef
+          : '${(item['supplierName'] ?? '').toString()}|${(item['importDate'] ?? item['createdAt'] ?? 0)}';
+      final qty = (item['quantity'] as num?)?.toInt() ?? 0;
+      final costPrice = _toInt(item['costPrice']);
+      final totalAmt = _toInt(item['totalAmount']) > 0 ? _toInt(item['totalAmount']) : costPrice * (qty > 0 ? qty : 1);
+      importAggTotals[key] = (importAggTotals[key] ?? 0) + totalAmt;
+      importAggMethods.putIfAbsent(key, () => (item['paymentMethod'] ?? '').toString().toUpperCase());
+    }
+    for (final entry in importAggTotals.entries) {
+      final method = importAggMethods[entry.key] ?? '';
+      if (method == 'CÔNG NỢ') continue; // Debt-based import: no cash outflow
+      final amount = entry.value;
+      if (amount <= 0) continue;
+      // Skip if a matching import expense already captured this payment
+      if (importExpenseAmountsSeen.any((seen) => (seen - amount).abs() < 1000)) continue;
+      expenseOut += amount;
+      importExpenseOut += amount;
     }
 
     final expenseFirestoreIds = <String>{
