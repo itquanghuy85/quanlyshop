@@ -266,48 +266,49 @@ class DBHelper {
   }
 
   // 🔥 FIX: tách riêng function này
-Future<void> _forceFixMissingColumns(Database db) async {
-  await _ensureColumnExists(
-    executor: db,
-    table: 'repairs',
-    column: 'requestedDeliveryPrice',
-    definition: 'INTEGER',
-    logScope: 'FORCE FIX',
-  );
-
-  await _ensureColumnExists(
-    executor: db,
-    table: 'repairs',
-    column: 'pendingDeliveryApproval',
-    definition: 'INTEGER DEFAULT 0',
-    logScope: 'FORCE FIX',
-  );
-
-  await _ensureColumnExists(
-    executor: db,
-    table: 'repairs',
-    column: 'costRecordedAmount',
-    definition: 'INTEGER DEFAULT 0',
-    logScope: 'FORCE FIX',
-  );
-}
-
-// 🔥 FIX: function này phải riêng, không lồng
-Future<void> _ensureUniqueIndexExists({
-  required DatabaseExecutor executor,
-  required String indexName,
-  required String table,
-  required String column,
-  required String logScope,
-}) async {
-  try {
-    await executor.execute(
-      'CREATE UNIQUE INDEX IF NOT EXISTS $indexName ON $table($column)',
+  Future<void> _forceFixMissingColumns(Database db) async {
+    await _ensureColumnExists(
+      executor: db,
+      table: 'repairs',
+      column: 'requestedDeliveryPrice',
+      definition: 'INTEGER',
+      logScope: 'FORCE FIX',
     );
-  } catch (e) {
-    debugPrint('$logScope error ($indexName): $e');
+
+    await _ensureColumnExists(
+      executor: db,
+      table: 'repairs',
+      column: 'pendingDeliveryApproval',
+      definition: 'INTEGER DEFAULT 0',
+      logScope: 'FORCE FIX',
+    );
+
+    await _ensureColumnExists(
+      executor: db,
+      table: 'repairs',
+      column: 'costRecordedAmount',
+      definition: 'INTEGER DEFAULT 0',
+      logScope: 'FORCE FIX',
+    );
   }
-}
+
+  // 🔥 FIX: function này phải riêng, không lồng
+  Future<void> _ensureUniqueIndexExists({
+    required DatabaseExecutor executor,
+    required String indexName,
+    required String table,
+    required String column,
+    required String logScope,
+  }) async {
+    try {
+      await executor.execute(
+        'CREATE UNIQUE INDEX IF NOT EXISTS $indexName ON $table($column)',
+      );
+    } catch (e) {
+      debugPrint('$logScope error ($indexName): $e');
+    }
+  }
+
   Future<void> _ensurePaymentIntentsSchema([DatabaseExecutor? executor]) async {
     final dbExecutor = executor ?? await database;
 
@@ -476,38 +477,38 @@ Future<void> _ensureUniqueIndexExists({
   }
 
   Future<Database> _initDB() async {
-  _ensureDatabaseFactoryInitialized();
-  String path = join(await getDatabasesPath(), 'repair_shop_v22.db');
+    _ensureDatabaseFactoryInitialized();
+    String path = join(await getDatabasesPath(), 'repair_shop_v22.db');
 
-  final db = await openDatabase(
-    path,
-    version: 97,
-    onConfigure: (db) async {
-      try {
-        await db.rawQuery('PRAGMA foreign_keys = ON');
-      } catch (e) {
-        debugPrint('DB onConfigure foreign_keys error: $e');
-      }
-
-      if (!kIsWeb) {
+    final db = await openDatabase(
+      path,
+      version: 97,
+      onConfigure: (db) async {
         try {
-          await db.rawQuery('PRAGMA journal_mode = WAL');
+          await db.rawQuery('PRAGMA foreign_keys = ON');
         } catch (e) {
-          debugPrint('DB onConfigure journal_mode error: $e');
+          debugPrint('DB onConfigure foreign_keys error: $e');
         }
-        try {
-          await db.rawQuery('PRAGMA synchronous = NORMAL');
-        } catch (e) {
-          debugPrint('DB onConfigure synchronous error: $e');
-        }
-      }
 
-      try {
-        await db.rawQuery('PRAGMA busy_timeout = 5000');
-      } catch (e) {
-        debugPrint('DB onConfigure busy_timeout error: $e');
-      }
-    },
+        if (!kIsWeb) {
+          try {
+            await db.rawQuery('PRAGMA journal_mode = WAL');
+          } catch (e) {
+            debugPrint('DB onConfigure journal_mode error: $e');
+          }
+          try {
+            await db.rawQuery('PRAGMA synchronous = NORMAL');
+          } catch (e) {
+            debugPrint('DB onConfigure synchronous error: $e');
+          }
+        }
+
+        try {
+          await db.rawQuery('PRAGMA busy_timeout = 5000');
+        } catch (e) {
+          debugPrint('DB onConfigure busy_timeout error: $e');
+        }
+      },
 
       onCreate: (db, version) async {
         await db.execute(
@@ -3436,17 +3437,27 @@ Future<void> _ensureUniqueIndexExists({
             debugPrint('DB onOpen: added sellerUid to sales');
           }
           if (!colNames.contains('itemSnapshotsJson')) {
-            await db.execute('ALTER TABLE sales ADD COLUMN itemSnapshotsJson TEXT');
-            debugPrint('DB onOpen: added itemSnapshotsJson to sales (CRITICAL: required for snapshot safety)');
+            await db.execute(
+              'ALTER TABLE sales ADD COLUMN itemSnapshotsJson TEXT',
+            );
+            debugPrint(
+              'DB onOpen: added itemSnapshotsJson to sales (CRITICAL: required for snapshot safety)',
+            );
           }
         } catch (e) {
           debugPrint('DB onOpen check error (sales columns): $e');
           // Try to add itemSnapshotsJson as failsafe even if PRAGMA failed
           try {
-            await db.execute('ALTER TABLE sales ADD COLUMN itemSnapshotsJson TEXT');
-            debugPrint('DB onOpen: FAILSAFE - added itemSnapshotsJson to sales after error');
+            await db.execute(
+              'ALTER TABLE sales ADD COLUMN itemSnapshotsJson TEXT',
+            );
+            debugPrint(
+              'DB onOpen: FAILSAFE - added itemSnapshotsJson to sales after error',
+            );
           } catch (e2) {
-            debugPrint('DB onOpen: CRITICAL ERROR - Could not add itemSnapshotsJson: $e2');
+            debugPrint(
+              'DB onOpen: CRITICAL ERROR - Could not add itemSnapshotsJson: $e2',
+            );
           }
         }
 
@@ -3949,7 +3960,7 @@ Future<void> _ensureUniqueIndexExists({
       },
     );
     await _forceFixMissingColumns(db);
-return db;
+    return db;
   }
 
   // --- HÀM HỖ TRỢ CHUNG ---
@@ -4825,7 +4836,8 @@ return db;
             }
             final currentQty = rows.first['quantity'] as int? ?? 0;
             if (currentQty < qty) {
-              failMessage = 'Không đủ số lượng: $partName (cần $qty, còn $currentQty)';
+              failMessage =
+                  'Không đủ số lượng: $partName (cần $qty, còn $currentQty)';
               throw Exception(failMessage);
             }
             final newQty = currentQty - qty;
@@ -4854,7 +4866,8 @@ return db;
             }
             final currentQty = rows.first['quantity'] as int? ?? 0;
             if (currentQty < qty) {
-              failMessage = 'Không đủ số lượng: $partName (cần $qty, còn $currentQty)';
+              failMessage =
+                  'Không đủ số lượng: $partName (cần $qty, còn $currentQty)';
               throw Exception(failMessage);
             }
             final newQty = currentQty - qty;
@@ -4966,7 +4979,9 @@ return db;
           [productId, shopId],
         );
       } catch (e) {
-        debugPrint('⚠️ Failed to sync restored product quantity immediately: $e');
+        debugPrint(
+          '⚠️ Failed to sync restored product quantity immediately: $e',
+        );
       }
     }
     debugPrint('✅ Restored product quantity: $partName, +$quantity');
@@ -5157,7 +5172,16 @@ return db;
         createdAt DESC
       LIMIT 1
       ''',
-      [shopId, cleaned, compact.toUpperCase(), like, cleaned.toUpperCase(), cleaned, compact.toUpperCase(), like],
+      [
+        shopId,
+        cleaned,
+        compact.toUpperCase(),
+        like,
+        cleaned.toUpperCase(),
+        cleaned,
+        compact.toUpperCase(),
+        like,
+      ],
     );
 
     return res.isNotEmpty ? Product.fromMap(res.first) : null;
@@ -5589,7 +5613,8 @@ return db;
     if (shopId != null && shopId.isNotEmpty) {
       return db.query(
         'debts',
-        where: '(shopId = ? OR shopId IS NULL) AND (deleted = 0 OR deleted IS NULL)',
+        where:
+            '(shopId = ? OR shopId IS NULL) AND (deleted = 0 OR deleted IS NULL)',
         whereArgs: [shopId],
         orderBy: 'createdAt DESC',
       );
@@ -7320,6 +7345,9 @@ return db;
         p.debtId,
         p.debtFirestoreId,
         p.debtType,
+        d.id as linkedDebtId,
+        d.type as linkedDebtType,
+        COALESCE(d.deleted, 0) as linkedDebtDeleted,
         COALESCE(NULLIF(p.debtType, ''), d.type, '') as resolvedDebtType,
         COALESCE(d.personName, '') as debtPersonName
       FROM debt_payments p

@@ -42,9 +42,18 @@ class _TLEntry {
   final String? actorName;
   final String? paymentMethod;
   final String? referenceId;
-  const _TLEntry({required this.ts, required this.type, required this.title,
-    required this.subtitle, required this.amount, required this.isIncome,
-    this.avatarUrl, this.actorName, this.paymentMethod, this.referenceId});
+  const _TLEntry({
+    required this.ts,
+    required this.type,
+    required this.title,
+    required this.subtitle,
+    required this.amount,
+    required this.isIncome,
+    this.avatarUrl,
+    this.actorName,
+    this.paymentMethod,
+    this.referenceId,
+  });
 }
 
 enum _TimeFilter { today, sevenDays, thirtyDays, custom }
@@ -79,7 +88,11 @@ class _FinanceV2ViewState extends State<FinanceV2View>
   final _tlCtrl = TextEditingController();
   bool _loading = true;
   FinanceV2Snapshot? _snap;
-  DateTime _start = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+  DateTime _start = DateTime(
+    DateTime.now().year,
+    DateTime.now().month,
+    DateTime.now().day,
+  );
   DateTime _end = DateTime.now();
   _TimeFilter _timeFilter = _TimeFilter.today;
   String _txFilter = 'ALL';
@@ -117,14 +130,17 @@ class _FinanceV2ViewState extends State<FinanceV2View>
         _timelinePage = 1;
       });
     });
-    _eventSub = EventBus().stream.where((event) =>
-      event == EventBus.shopChanged ||
-      event == EventBus.financialChanged ||
-      event == EventBus.syncComplete
-    ).listen((_) {
-      if (!mounted) return;
-      _load();
-    });
+    _eventSub = EventBus().stream
+        .where(
+          (event) =>
+              event == EventBus.shopChanged ||
+              event == EventBus.financialChanged ||
+              event == EventBus.syncComplete,
+        )
+        .listen((_) {
+          if (!mounted) return;
+          _load();
+        });
     _load();
   }
 
@@ -140,12 +156,17 @@ class _FinanceV2ViewState extends State<FinanceV2View>
   String? _loadError;
 
   Future<void> _load() async {
-    setState(() { _loading = true; _loadError = null; });
+    setState(() {
+      _loading = true;
+      _loadError = null;
+    });
     try {
       final prev = _previousPeriod();
       final d = await _service.loadSnapshot(
-        start: _start, end: _end,
-        previousStart: prev.$1, previousEnd: prev.$2,
+        start: _start,
+        end: _end,
+        previousStart: prev.$1,
+        previousEnd: prev.$2,
       );
       if (!mounted) return;
       final timelineResult = await _buildTimelineCache(d);
@@ -161,7 +182,10 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     } catch (e, st) {
       debugPrint('FinanceV2 _load error: $e\n$st');
       if (!mounted) return;
-      setState(() { _loading = false; _loadError = e.toString(); });
+      setState(() {
+        _loading = false;
+        _loadError = e.toString();
+      });
     }
   }
 
@@ -169,7 +193,10 @@ class _FinanceV2ViewState extends State<FinanceV2View>
   (DateTime?, DateTime?) _previousPeriod() {
     if (_timeFilter == _TimeFilter.today) {
       final y = _start.subtract(const Duration(days: 1));
-      return (DateTime(y.year, y.month, y.day), DateTime(y.year, y.month, y.day));
+      return (
+        DateTime(y.year, y.month, y.day),
+        DateTime(y.year, y.month, y.day),
+      );
     }
     final periodDays = _end.difference(_start).inDays + 1;
     final prevEnd = _start.subtract(const Duration(days: 1));
@@ -189,8 +216,11 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     return 'kỳ trước';
   }
 
-  bool get _isSingle => _timeFilter == _TimeFilter.custom &&
-      _start.year == _end.year && _start.month == _end.month && _start.day == _end.day;
+  bool get _isSingle =>
+      _timeFilter == _TimeFilter.custom &&
+      _start.year == _end.year &&
+      _start.month == _end.month &&
+      _start.day == _end.day;
 
   String get _sub {
     switch (_timeFilter) {
@@ -220,7 +250,11 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     final n = DateTime.now();
     setState(() {
       _timeFilter = _TimeFilter.sevenDays;
-      _start = DateTime(n.year, n.month, n.day).subtract(const Duration(days: 6));
+      _start = DateTime(
+        n.year,
+        n.month,
+        n.day,
+      ).subtract(const Duration(days: 6));
       _end = n;
     });
     _load();
@@ -230,7 +264,11 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     final n = DateTime.now();
     setState(() {
       _timeFilter = _TimeFilter.thirtyDays;
-      _start = DateTime(n.year, n.month, n.day).subtract(const Duration(days: 29));
+      _start = DateTime(
+        n.year,
+        n.month,
+        n.day,
+      ).subtract(const Duration(days: 29));
       _end = n;
     });
     _load();
@@ -238,11 +276,17 @@ class _FinanceV2ViewState extends State<FinanceV2View>
 
   Future<void> _pick() async {
     final p = await showDateRangePicker(
-      context: context, firstDate: DateTime(2020), lastDate: DateTime.now(),
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
       initialDateRange: DateTimeRange(start: _start, end: _end),
       locale: const Locale('vi'),
-      builder: (c, ch) => Theme(data: Theme.of(c).copyWith(
-        colorScheme: const ColorScheme.light(primary: FinanceV2Theme.accent)), child: ch!),
+      builder: (c, ch) => Theme(
+        data: Theme.of(c).copyWith(
+          colorScheme: const ColorScheme.light(primary: FinanceV2Theme.accent),
+        ),
+        child: ch!,
+      ),
     );
     if (p != null && mounted) {
       setState(() {
@@ -254,24 +298,56 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     }
   }
 
-  void _goTx(String f) { setState(()=>_txFilter=f); _tabController.animateTo(1); }
-  void _goDebt(bool r) { setState(()=>_showRec=r); _tabController.animateTo(2); }
+  void _goTx(String f) {
+    setState(() => _txFilter = f);
+    _tabController.animateTo(1);
+  }
+
+  void _goDebt(bool r) {
+    setState(() => _showRec = r);
+    _tabController.animateTo(2);
+  }
 
   Future<void> _openTL(_TLEntry e) async {
-    if (e.type=='REPAIR') {
-      final ref=e.referenceId??'';
+    if (e.type == 'REPAIR') {
+      final ref = e.referenceId ?? '';
       Repair? r;
-      if(ref.isNotEmpty) { r=await _db.getRepairByFirestoreId(ref); r??=int.tryParse(ref)!=null?await _db.getRepairById(int.parse(ref)):null; }
-      if(r!=null&&mounted) Navigator.push(context, MaterialPageRoute(builder:(_)=>RepairDetailView(repair:r!)));
-    } else if (e.type=='SALE') {
-      final ref=e.referenceId??'';
-      if(ref.isNotEmpty) { final s=await _db.getSaleByFirestoreId(ref); if(s!=null&&mounted) Navigator.push(context, MaterialPageRoute(builder:(_)=>SaleDetailView(sale:s))); }
-    } else if (e.type=='EXPENSE'||e.type=='INCOME') {
-      if(!mounted) return;
-      Navigator.push(context, MaterialPageRoute(builder:(_)=>ExpenseView(initialMode:e.type=='INCOME'?'THU':'CHI')));
-    } else if (e.type=='DEBT_COLLECT'||e.type=='DEBT_PAY') {
-      if(!mounted) return;
-      Navigator.push(context, MaterialPageRoute(builder:(_)=>const DebtView()));
+      if (ref.isNotEmpty) {
+        r = await _db.getRepairByFirestoreId(ref);
+        r ??= int.tryParse(ref) != null
+            ? await _db.getRepairById(int.parse(ref))
+            : null;
+      }
+      if (r != null && mounted)
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => RepairDetailView(repair: r!)),
+        );
+    } else if (e.type == 'SALE') {
+      final ref = e.referenceId ?? '';
+      if (ref.isNotEmpty) {
+        final s = await _db.getSaleByFirestoreId(ref);
+        if (s != null && mounted)
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => SaleDetailView(sale: s)),
+          );
+      }
+    } else if (e.type == 'EXPENSE' || e.type == 'INCOME') {
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) =>
+              ExpenseView(initialMode: e.type == 'INCOME' ? 'THU' : 'CHI'),
+        ),
+      );
+    } else if (e.type == 'DEBT_COLLECT' || e.type == 'DEBT_PAY') {
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const DebtView()),
+      );
     }
   }
 
@@ -292,8 +368,16 @@ class _FinanceV2ViewState extends State<FinanceV2View>
             runSpacing: 6,
             children: [
               _modeChip('Hôm nay', _timeFilter == _TimeFilter.today, _setToday),
-              _modeChip('7 ngày', _timeFilter == _TimeFilter.sevenDays, _setSevenDays),
-              _modeChip('30 ngày', _timeFilter == _TimeFilter.thirtyDays, _setThirtyDays),
+              _modeChip(
+                '7 ngày',
+                _timeFilter == _TimeFilter.sevenDays,
+                _setSevenDays,
+              ),
+              _modeChip(
+                '30 ngày',
+                _timeFilter == _TimeFilter.thirtyDays,
+                _setThirtyDays,
+              ),
               _modeChip('Tùy chọn', _timeFilter == _TimeFilter.custom, _pick),
             ],
           ),
@@ -308,11 +392,23 @@ class _FinanceV2ViewState extends State<FinanceV2View>
                   color: FinanceV2Theme.accent.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  const Icon(Icons.calendar_today_rounded, size: 12, color: FinanceV2Theme.accent),
-                  const SizedBox(width: 4),
-                  Text(_sub, style: FinanceV2Theme.micro.copyWith(color: FinanceV2Theme.accent)),
-                ]),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.calendar_today_rounded,
+                      size: 12,
+                      color: FinanceV2Theme.accent,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      _sub,
+                      style: FinanceV2Theme.micro.copyWith(
+                        color: FinanceV2Theme.accent,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
@@ -362,7 +458,8 @@ class _FinanceV2ViewState extends State<FinanceV2View>
         } else if (_txFilter != 'ALL') {
           tx = tx.where((t) => t.type == _txFilter).toList();
         }
-        if (_txPm.isNotEmpty) tx = tx.where((t) => (t.paymentMethod ?? '') == _txPm).toList();
+        if (_txPm.isNotEmpty)
+          tx = tx.where((t) => (t.paymentMethod ?? '') == _txPm).toList();
         _exTx(tx);
         break;
       case 2:
@@ -379,39 +476,141 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     }
   }
 
-  Widget _sf(TextEditingController ctrl,String hint,String q,VoidCallback clr) {
-    return TextField(controller:ctrl,decoration:InputDecoration(
-      hintText:hint,hintStyle:FinanceV2Theme.bodyMd.copyWith(color:FinanceV2Theme.subInk),
-      prefixIcon:const Icon(Icons.search_rounded,size:18,color:FinanceV2Theme.subInk),
-      suffixIcon:q.isNotEmpty?IconButton(icon:const Icon(Icons.clear_rounded,size:18),onPressed:clr):null,
-      isDense:true,contentPadding:const EdgeInsets.symmetric(vertical:8),
-      border:OutlineInputBorder(borderRadius:BorderRadius.circular(10),borderSide:const BorderSide(color:Color(0xFFDDE3EF))),
-      enabledBorder:OutlineInputBorder(borderRadius:BorderRadius.circular(10),borderSide:const BorderSide(color:Color(0xFFDDE3EF))),
-      focusedBorder:OutlineInputBorder(borderRadius:BorderRadius.circular(10),borderSide:const BorderSide(color:FinanceV2Theme.accent))));
+  Widget _sf(
+    TextEditingController ctrl,
+    String hint,
+    String q,
+    VoidCallback clr,
+  ) {
+    return TextField(
+      controller: ctrl,
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: FinanceV2Theme.bodyMd.copyWith(color: FinanceV2Theme.subInk),
+        prefixIcon: const Icon(
+          Icons.search_rounded,
+          size: 18,
+          color: FinanceV2Theme.subInk,
+        ),
+        suffixIcon: q.isNotEmpty
+            ? IconButton(
+                icon: const Icon(Icons.clear_rounded, size: 18),
+                onPressed: clr,
+              )
+            : null,
+        isDense: true,
+        contentPadding: const EdgeInsets.symmetric(vertical: 8),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: Color(0xFFDDE3EF)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: Color(0xFFDDE3EF)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: FinanceV2Theme.accent),
+        ),
+      ),
+    );
   }
 
-  Widget _empty(String msg) => Center(child:Column(mainAxisSize:MainAxisSize.min,children:[
-    const Icon(Icons.inbox_rounded,size:48,color:Color(0xFFCDD5E0)),
-    const SizedBox(height:12),
-    Text(msg,style:FinanceV2Theme.titleMd.copyWith(color:FinanceV2Theme.subInk))]));
+  Widget _empty(String msg) => Center(
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(Icons.inbox_rounded, size: 48, color: Color(0xFFCDD5E0)),
+        const SizedBox(height: 12),
+        Text(
+          msg,
+          style: FinanceV2Theme.titleMd.copyWith(color: FinanceV2Theme.subInk),
+        ),
+      ],
+    ),
+  );
 
   Widget _tag(String type) {
-    const m=<String,(String,Color)>{'SALE':('BH',Color(0xFF1565C0)),'REPAIR':('SC',Color(0xFF2E7D32)),'EXPENSE':('Chi',FinanceV2Theme.negative),'INCOME':('Thu',FinanceV2Theme.positive),'DEBT_COLLECT':('TN',FinanceV2Theme.warn),'DEBT_PAY':('TrN',FinanceV2Theme.negative),'REFUND':('TH',Color(0xFFE65100))};
-    final e=m[type]; if(e==null) return const SizedBox.shrink();
-    return Container(margin:const EdgeInsets.only(left:4),padding:const EdgeInsets.symmetric(horizontal:5,vertical:1),
-      decoration:BoxDecoration(color:e.$2.withValues(alpha:0.1),borderRadius:BorderRadius.circular(4),border:Border.all(color:e.$2.withValues(alpha:0.4))),
-      child:Text(e.$1,style:FinanceV2Theme.caption.copyWith(fontWeight:FontWeight.w700,color:e.$2)));
+    const m = <String, (String, Color)>{
+      'SALE': ('BH', Color(0xFF1565C0)),
+      'REPAIR': ('SC', Color(0xFF2E7D32)),
+      'EXPENSE': ('Chi', FinanceV2Theme.negative),
+      'INCOME': ('Thu', FinanceV2Theme.positive),
+      'DEBT_COLLECT': ('TN', FinanceV2Theme.warn),
+      'DEBT_PAY': ('TrN', FinanceV2Theme.negative),
+      'REFUND': ('TH', Color(0xFFE65100)),
+    };
+    final e = m[type];
+    if (e == null) return const SizedBox.shrink();
+    return Container(
+      margin: const EdgeInsets.only(left: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+      decoration: BoxDecoration(
+        color: e.$2.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: e.$2.withValues(alpha: 0.4)),
+      ),
+      child: Text(
+        e.$1,
+        style: FinanceV2Theme.caption.copyWith(
+          fontWeight: FontWeight.w700,
+          color: e.$2,
+        ),
+      ),
+    );
   }
 
-  Widget _dot(Color c) => Container(width:8,height:8,decoration:BoxDecoration(color:c,shape:BoxShape.circle));
+  Widget _dot(Color c) => Container(
+    width: 8,
+    height: 8,
+    decoration: BoxDecoration(color: c, shape: BoxShape.circle),
+  );
 
   String _cmp(int v) => MoneyUtils.formatCompactCurrency(v.abs());
-  String _signedCmp(int v) => v < 0 ? '-${MoneyUtils.formatCompactCurrency(v.abs())}' : MoneyUtils.formatCompactCurrency(v.abs());
+  String _signedCmp(int v) => v < 0
+      ? '-${MoneyUtils.formatCompactCurrency(v.abs())}'
+      : MoneyUtils.formatCompactCurrency(v.abs());
   String _full(int v) => MoneyUtils.formatCurrency(v.abs());
-  int _ti(dynamic v){ if(v is int) return v; if(v is num) return v.toInt(); if(v is String) return int.tryParse(v)??0; return 0; }
-  String _ft(String t) => const<String,String>{'SALE':'Bán hàng','REPAIR':'Sửa chữa','EXPENSE':'Chi phí','INCOME':'Thu phát sinh','DEBT_COLLECT':'Thu nợ','DEBT_PAY':'Trả nợ','CUSTOMER_OWES':'Phải thu','SHOP_OWES':'Phải trả','AUDIT':'Nhật ký','REFUND':'Trả hàng'}[t]??t;
+  int _ti(dynamic v) {
+    if (v is int) return v;
+    if (v is num) return v.toInt();
+    if (v is String) return int.tryParse(v) ?? 0;
+    return 0;
+  }
+
+  String _ft(String t) =>
+      const <String, String>{
+        'SALE': 'Bán hàng',
+        'REPAIR': 'Sửa chữa',
+        'EXPENSE': 'Chi phí',
+        'INCOME': 'Thu phát sinh',
+        'DEBT_COLLECT': 'Thu nợ',
+        'DEBT_PAY': 'Trả nợ',
+        'CUSTOMER_OWES': 'Phải thu',
+        'SHOP_OWES': 'Phải trả',
+        'AUDIT': 'Nhật ký',
+        'REFUND': 'Trả hàng',
+      }[t] ??
+      t;
   // ignore: unused_element
-  String _fa(String a) => const<String,String>{'create_repair':'Tạo đơn sửa chữa','update_repair':'Cập nhật đơn sửa','delete_repair':'Xóa đơn sửa chữa','create_sale':'Tạo đơn bán hàng','update_sale':'Cập nhật đơn bán hàng','delete_sale':'Xóa đơn bán hàng','add_expense':'Thêm chi phí','update_expense':'Cập nhật chi phí','delete_expense':'Xóa chi phí','add_debt':'Thêm công nợ','update_debt':'Cập nhật công nợ','delete_debt':'Xóa công nợ','add_debt_payment':'Thanh toán nợ','cash_closing':'Chốt ca'}[a]??a;
+  String _fa(String a) =>
+      const <String, String>{
+        'create_repair': 'Tạo đơn sửa chữa',
+        'update_repair': 'Cập nhật đơn sửa',
+        'delete_repair': 'Xóa đơn sửa chữa',
+        'create_sale': 'Tạo đơn bán hàng',
+        'update_sale': 'Cập nhật đơn bán hàng',
+        'delete_sale': 'Xóa đơn bán hàng',
+        'add_expense': 'Thêm chi phí',
+        'update_expense': 'Cập nhật chi phí',
+        'delete_expense': 'Xóa chi phí',
+        'add_debt': 'Thêm công nợ',
+        'update_debt': 'Cập nhật công nợ',
+        'delete_debt': 'Xóa công nợ',
+        'add_debt_payment': 'Thanh toán nợ',
+        'cash_closing': 'Chốt ca',
+      }[a] ??
+      a;
 
   int _maxPage(int total, int pageSize) {
     if (total <= 0) return 1;
@@ -479,8 +678,8 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     final wifiIp = printerConfig['wifiIp'] as String?;
 
     final lines = _tabController.index == 4
-      ? await _buildDetailedDailyPrintLines(s)
-      : await _buildPrintLinesForTab(s, _tabController.index);
+        ? await _buildDetailedDailyPrintLines(s)
+        : await _buildPrintLinesForTab(s, _tabController.index);
     final ok = await UnifiedPrinterService.printTextReceipt(
       lines,
       paper: PaperSize.mm58,
@@ -492,7 +691,9 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(ok ? 'Đã gửi lệnh in' : 'Không thể in, vui lòng kiểm tra máy in'),
+        content: Text(
+          ok ? 'Đã gửi lệnh in' : 'Không thể in, vui lòng kiểm tra máy in',
+        ),
         backgroundColor: ok ? AppColors.success : AppColors.error,
       ),
     );
@@ -543,7 +744,9 @@ class _FinanceV2ViewState extends State<FinanceV2View>
       }
       for (final t in tx.take(25)) {
         final sign = t.isIncome ? '+' : '-';
-        b.writeln('${DateFormat('dd/MM HH:mm').format(DateTime.fromMillisecondsSinceEpoch(t.createdAt))} ${_ft(t.type)}');
+        b.writeln(
+          '${DateFormat('dd/MM HH:mm').format(DateTime.fromMillisecondsSinceEpoch(t.createdAt))} ${_ft(t.type)}',
+        );
         b.writeln('  $sign${_cmp(t.amount)} | ${t.title}');
       }
       if (tx.length > 25) {
@@ -568,9 +771,13 @@ class _FinanceV2ViewState extends State<FinanceV2View>
       b.writeln('[L][B]NHAT KY');
       final ents = _timelineCache;
       for (final e in ents.take(25)) {
-        b.writeln('${DateFormat('dd/MM HH:mm').format(DateTime.fromMillisecondsSinceEpoch(e.ts))} ${_ft(e.type)}');
+        b.writeln(
+          '${DateFormat('dd/MM HH:mm').format(DateTime.fromMillisecondsSinceEpoch(e.ts))} ${_ft(e.type)}',
+        );
         if (e.amount > 0) {
-          b.writeln('  ${e.isIncome ? '+' : '-'}${_cmp(e.amount)} | ${e.title}');
+          b.writeln(
+            '  ${e.isIncome ? '+' : '-'}${_cmp(e.amount)} | ${e.title}',
+          );
         } else {
           b.writeln('  ${e.title}');
         }
@@ -600,54 +807,90 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     final lines = StringBuffer();
     String fmt(int v) => MoneyUtils.formatCompactCurrency(v);
 
-    final debtCollectTxs = s.transactions.where((t) => t.type.toUpperCase() == 'DEBT_COLLECT').toList();
-    final debtPayTxs = s.transactions.where((t) => t.type.toUpperCase() == 'DEBT_PAY').toList();
-    final saleTxs = s.transactions.where((t) => t.type.toUpperCase() == 'SALE').toList();
-    final repairTxs = s.transactions.where((t) => t.type.toUpperCase() == 'REPAIR').toList();
-    final importTxs = s.transactions.where((t) => t.type.toUpperCase() == 'IMPORT').toList();
+    final debtCollectTxs = s.transactions
+        .where((t) => t.type.toUpperCase() == 'DEBT_COLLECT')
+        .toList();
+    final debtPayTxs = s.transactions
+        .where((t) => t.type.toUpperCase() == 'DEBT_PAY')
+        .toList();
+    final saleTxs = s.transactions
+        .where((t) => t.type.toUpperCase() == 'SALE')
+        .toList();
+    final repairTxs = s.transactions
+        .where((t) => t.type.toUpperCase() == 'REPAIR')
+        .toList();
+    final importTxs = s.transactions
+        .where((t) => t.type.toUpperCase() == 'IMPORT')
+        .toList();
     final debtCollected = debtCollectTxs.fold<int>(0, (a, e) => a + e.amount);
     final debtPaid = debtPayTxs.fold<int>(0, (a, e) => a + e.amount);
-    final importOut = importTxs.where((t) => !t.isIncome).fold<int>(0, (a, e) => a + e.amount);
+    final importOut = importTxs
+        .where((t) => !t.isIncome)
+        .fold<int>(0, (a, e) => a + e.amount);
 
     if (shopInfo.shopName.isNotEmpty) {
       lines.writeln('[C][B]${shopInfo.shopName}');
     }
-    lines.writeln('[C][B]BAO CAO NGAY ${DateFormat('dd/MM/yyyy').format(_start)}');
+    lines.writeln(
+      '[C][B]BAO CAO NGAY ${DateFormat('dd/MM/yyyy').format(_start)}',
+    );
     lines.writeln('[C]In luc ${DateFormat('HH:mm').format(DateTime.now())}');
     lines.writeln('[C]================================');
     lines.writeln('THU VAO:     ${fmt(s.totalIn)}');
     lines.writeln('CHI RA:      ${fmt(s.totalOut)}');
-    lines.writeln('RONG:        ${s.netCashflow >= 0 ? '+' : '-'}${fmt(s.netCashflow.abs())}');
+    lines.writeln(
+      'RONG:        ${s.netCashflow >= 0 ? '+' : '-'}${fmt(s.netCashflow.abs())}',
+    );
     lines.writeln('[C]================================');
 
     final totalIn = s.totalIn > 0 ? s.totalIn : 1;
     final totalOut = s.totalOut > 0 ? s.totalOut : 1;
     lines.writeln('[C][B]CO CAU THU');
-    lines.writeln('Ban hang:    ${fmt(s.incomeFromSales)}  (${((s.incomeFromSales / totalIn) * 100).round()}%)');
-    lines.writeln('Sua chua:    ${fmt(s.incomeFromRepairs)}  (${((s.incomeFromRepairs / totalIn) * 100).round()}%)');
-    lines.writeln('Thu no KH:   ${fmt(debtCollected)}  (${((debtCollected / totalIn) * 100).round()}%)');
-    lines.writeln('Thu khac:    ${fmt(s.incomeOther)}  (${((s.incomeOther / totalIn) * 100).round()}%)');
+    lines.writeln(
+      'Ban hang:    ${fmt(s.incomeFromSales)}  (${((s.incomeFromSales / totalIn) * 100).round()}%)',
+    );
+    lines.writeln(
+      'Sua chua:    ${fmt(s.incomeFromRepairs)}  (${((s.incomeFromRepairs / totalIn) * 100).round()}%)',
+    );
+    lines.writeln(
+      'Thu no KH:   ${fmt(debtCollected)}  (${((debtCollected / totalIn) * 100).round()}%)',
+    );
+    lines.writeln(
+      'Thu khac:    ${fmt(s.incomeOther)}  (${((s.incomeOther / totalIn) * 100).round()}%)',
+    );
     lines.writeln('[C]--------------------------------');
     lines.writeln('[C][B]CO CAU CHI');
-    lines.writeln('Nhap hang:   ${fmt(importOut)}  (${((importOut / totalOut) * 100).round()}%)');
-    lines.writeln('Tra no NCC:  ${fmt(debtPaid)}  (${((debtPaid / totalOut) * 100).round()}%)');
-    lines.writeln('Chi phi:     ${fmt(s.operatingExpenseOut)}  (${((s.operatingExpenseOut / totalOut) * 100).round()}%)');
+    lines.writeln(
+      'Nhap hang:   ${fmt(importOut)}  (${((importOut / totalOut) * 100).round()}%)',
+    );
+    lines.writeln(
+      'Tra no NCC:  ${fmt(debtPaid)}  (${((debtPaid / totalOut) * 100).round()}%)',
+    );
+    lines.writeln(
+      'Chi phi:     ${fmt(s.operatingExpenseOut)}  (${((s.operatingExpenseOut / totalOut) * 100).round()}%)',
+    );
     lines.writeln('[C]================================');
 
     lines.writeln('[C][B]DON BAN HANG (${saleTxs.length} don)');
     for (final t in saleTxs.take(30)) {
-      final tm = DateFormat('HH:mm').format(DateTime.fromMillisecondsSinceEpoch(t.createdAt));
+      final tm = DateFormat(
+        'HH:mm',
+      ).format(DateTime.fromMillisecondsSinceEpoch(t.createdAt));
       lines.writeln('$tm ${t.title}');
       if (t.subtitle.isNotEmpty) lines.writeln('  ${t.subtitle}');
       lines.writeln('  Ban: ${fmt(t.amount)} | Von: ${fmt(t.costAmount ?? 0)}');
-      lines.writeln('  Lai: ${fmt(t.grossProfit ?? 0)} | ${t.paymentMethod ?? ''}');
+      lines.writeln(
+        '  Lai: ${fmt(t.grossProfit ?? 0)} | ${t.paymentMethod ?? ''}',
+      );
       lines.writeln('[C]--------------------------------');
     }
     lines.writeln('[C]================================');
 
     lines.writeln('[C][B]DON SUA CHUA (${repairTxs.length} don)');
     for (final t in repairTxs.take(30)) {
-      final tm = DateFormat('HH:mm').format(DateTime.fromMillisecondsSinceEpoch(t.createdAt));
+      final tm = DateFormat(
+        'HH:mm',
+      ).format(DateTime.fromMillisecondsSinceEpoch(t.createdAt));
       lines.writeln('$tm ${t.title}');
       if (t.subtitle.isNotEmpty) lines.writeln('  Loi: ${t.subtitle}');
       lines.writeln('  Gia: ${fmt(t.amount)} | CP: ${fmt(t.costAmount ?? 0)}');
@@ -659,7 +902,9 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     if (importTxs.isNotEmpty) {
       lines.writeln('[C][B]NHAP KHO');
       for (final t in importTxs.take(30)) {
-        final tm = DateFormat('HH:mm').format(DateTime.fromMillisecondsSinceEpoch(t.createdAt));
+        final tm = DateFormat(
+          'HH:mm',
+        ).format(DateTime.fromMillisecondsSinceEpoch(t.createdAt));
         lines.writeln('$tm ${t.title}');
         lines.writeln('  NCC: ${t.subtitle} | ${fmt(t.amount)}');
       }
@@ -754,9 +999,7 @@ class _FinanceV2ViewState extends State<FinanceV2View>
             ),
             child: Row(
               children: [
-                Expanded(
-                  child: _buildAdaptiveTabStrip(),
-                ),
+                Expanded(child: _buildAdaptiveTabStrip()),
                 _buildToolbarMenu(),
                 const SizedBox(width: 4),
               ],
@@ -777,14 +1020,18 @@ class _FinanceV2ViewState extends State<FinanceV2View>
           labelColor: const Color(0xFF0D47A1),
           unselectedLabelColor: const Color(0xFF5F6B7A),
           labelStyle: FinanceV2Theme.meta.copyWith(fontWeight: FontWeight.w700),
-          unselectedLabelStyle: FinanceV2Theme.meta.copyWith(fontWeight: FontWeight.w600),
+          unselectedLabelStyle: FinanceV2Theme.meta.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
           indicatorSize: TabBarIndicatorSize.label,
           indicatorWeight: 2,
           indicatorColor: const Color(0xFF0D47A1),
           dividerColor: Colors.transparent,
           padding: EdgeInsets.zero,
           labelPadding: const EdgeInsets.symmetric(horizontal: 16),
-          tabs: _financeTabs.map((label) => Tab(text: label)).toList(growable: false),
+          tabs: _financeTabs
+              .map((label) => Tab(text: label))
+              .toList(growable: false),
         ),
       );
     }
@@ -794,7 +1041,10 @@ class _FinanceV2ViewState extends State<FinanceV2View>
       child: AnimatedBuilder(
         animation: _tabController,
         builder: (_, __) {
-          final current = _tabController.index.clamp(0, _financeTabs.length - 1);
+          final current = _tabController.index.clamp(
+            0,
+            _financeTabs.length - 1,
+          );
           return SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
@@ -851,20 +1101,48 @@ class _FinanceV2ViewState extends State<FinanceV2View>
       backgroundColor: FinanceV2Theme.pageBg,
       appBar: _buildFinanceHeader(),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: FinanceV2Theme.accent))
+          ? const Center(
+              child: CircularProgressIndicator(color: FinanceV2Theme.accent),
+            )
           : _loadError != null
-              ? Center(child: Padding(padding: const EdgeInsets.all(24), child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  const Icon(Icons.error_outline_rounded, size: 48, color: FinanceV2Theme.negative),
-                  const SizedBox(height: 12),
-                  Text('Lỗi tải dữ liệu tài chính', style: FinanceV2Theme.titleMd.copyWith(fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 8),
-                  Text(_loadError!, style: FinanceV2Theme.meta, textAlign: TextAlign.center),
-                  const SizedBox(height: 16),
-                  ElevatedButton.icon(onPressed: _load, icon: const Icon(Icons.refresh_rounded), label: const Text('Thử lại'),
-                    style: ElevatedButton.styleFrom(minimumSize: const Size(120, 44)),
-                  ),
-                ])))
-              : Column(
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.error_outline_rounded,
+                      size: 48,
+                      color: FinanceV2Theme.negative,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Lỗi tải dữ liệu tài chính',
+                      style: FinanceV2Theme.titleMd.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _loadError!,
+                      style: FinanceV2Theme.meta,
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      onPressed: _load,
+                      icon: const Icon(Icons.refresh_rounded),
+                      label: const Text('Thử lại'),
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: const Size(120, 44),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          : Column(
               children: [
                 AnimatedBuilder(
                   animation: _tabController,
@@ -873,31 +1151,57 @@ class _FinanceV2ViewState extends State<FinanceV2View>
                       : _sharedBar(),
                 ),
                 Expanded(
-                  child: TabBarView(controller: _tabController, children: [
-                    _t0(), _t1(), _t2(), _t4(), _t5(),
-                  ]),
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: [_t0(), _t1(), _t2(), _t4(), _t5()],
+                  ),
                 ),
               ],
             ),
     );
   }
+
   // TAB 0
   Widget _t0() {
-    final s=_snap; if(s==null) return _empty('Không có dữ liệu');
-    return ResponsiveCenter(child:RefreshIndicator(onRefresh:_load,color:FinanceV2Theme.accent,
-      child:ListView(padding:EdgeInsets.zero,children:[
-        _hero(s),const SizedBox(height:8),
-        _alerts(s),
-        Padding(padding:EdgeInsets.symmetric(horizontal:_hPad),child:Column(children:[
-          _cashQuickSection(s),
-          const SizedBox(height:8),
-          _debtQuickSection(s),
-        ])),
-        const SizedBox(height:12),_compSection(s),const SizedBox(height:12),_profitSection(s),const SizedBox(height:12),_incomeSection(s),
-        const SizedBox(height:12),_cfSection(s),
-        const SizedBox(height:12),_expCatSection(s),const SizedBox(height:12),_snapCard(s),
-        const SizedBox(height:24),
-      ])));
+    final s = _snap;
+    if (s == null) return _empty('Không có dữ liệu');
+    return ResponsiveCenter(
+      child: RefreshIndicator(
+        onRefresh: _load,
+        color: FinanceV2Theme.accent,
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            _hero(s),
+            const SizedBox(height: 8),
+            _alerts(s),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: _hPad),
+              child: Column(
+                children: [
+                  _cashQuickSection(s),
+                  const SizedBox(height: 8),
+                  _debtQuickSection(s),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            _compSection(s),
+            const SizedBox(height: 12),
+            _profitSection(s),
+            const SizedBox(height: 12),
+            _incomeSection(s),
+            const SizedBox(height: 12),
+            _cfSection(s),
+            const SizedBox(height: 12),
+            _expCatSection(s),
+            const SizedBox(height: 12),
+            _snapCard(s),
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _cashQuickSection(FinanceV2Snapshot s) {
@@ -907,13 +1211,36 @@ class _FinanceV2ViewState extends State<FinanceV2View>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _sectionTitle('1) Tiền (cash)', 'Tiền = tiền đã thu/chi thực tế trong kỳ, bao gồm tiền mặt và chuyển khoản.'),
-          const SizedBox(height:8),
-          Row(children:[
-            Expanded(child:_kpi('Tiền thu vào',s.totalIn,s.previousTotalIn,FinanceV2Theme.positive,Icons.arrow_downward_rounded,()=>_goTx('IN'))),
-            const SizedBox(width:8),
-            Expanded(child:_kpi('Tiền chi ra',s.totalOut,s.previousTotalOut,FinanceV2Theme.negative,Icons.arrow_upward_rounded,()=>_goTx('OUT'))),
-          ]),
+          _sectionTitle(
+            '1) Tiền (cash)',
+            'Tiền = tiền đã thu/chi thực tế trong kỳ, bao gồm tiền mặt và chuyển khoản.',
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: _kpi(
+                  'Tiền thu vào',
+                  s.totalIn,
+                  s.previousTotalIn,
+                  FinanceV2Theme.positive,
+                  Icons.arrow_downward_rounded,
+                  () => _goTx('IN'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _kpi(
+                  'Tiền chi ra',
+                  s.totalOut,
+                  s.previousTotalOut,
+                  FinanceV2Theme.negative,
+                  Icons.arrow_upward_rounded,
+                  () => _goTx('OUT'),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -926,13 +1253,36 @@ class _FinanceV2ViewState extends State<FinanceV2View>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _sectionTitle('3) Công nợ', 'Công nợ = khoản chưa thu từ khách hoặc chưa trả cho nhà cung cấp.'),
-          const SizedBox(height:8),
-          Row(children:[
-            Expanded(child:_kpi('Nợ phải thu',s.receivableTotal,null,FinanceV2Theme.warn,Icons.people_alt_rounded,()=>_goDebt(true))),
-            const SizedBox(width:8),
-            Expanded(child:_kpi('Nợ phải trả',s.payableTotal,null,FinanceV2Theme.negative,Icons.store_mall_directory_rounded,()=>_goDebt(false))),
-          ]),
+          _sectionTitle(
+            '3) Công nợ',
+            'Công nợ = khoản chưa thu từ khách hoặc chưa trả cho nhà cung cấp.',
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: _kpi(
+                  'Nợ phải thu',
+                  s.receivableTotal,
+                  null,
+                  FinanceV2Theme.warn,
+                  Icons.people_alt_rounded,
+                  () => _goDebt(true),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _kpi(
+                  'Nợ phải trả',
+                  s.payableTotal,
+                  null,
+                  FinanceV2Theme.negative,
+                  Icons.store_mall_directory_rounded,
+                  () => _goDebt(false),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -942,7 +1292,7 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     return Row(
       children: [
         Text(title, style: FinanceV2Theme.titleMd),
-        const SizedBox(width:6),
+        const SizedBox(width: 6),
         Tooltip(
           message: hint,
           child: InkWell(
@@ -950,7 +1300,11 @@ class _FinanceV2ViewState extends State<FinanceV2View>
             onTap: () => _showSectionHint(title, hint),
             child: const Padding(
               padding: EdgeInsets.all(2),
-              child: Icon(Icons.info_outline_rounded, size: 16, color: FinanceV2Theme.subInk),
+              child: Icon(
+                Icons.info_outline_rounded,
+                size: 16,
+                color: FinanceV2Theme.subInk,
+              ),
             ),
           ),
         ),
@@ -976,238 +1330,886 @@ class _FinanceV2ViewState extends State<FinanceV2View>
 
   Widget _hero(FinanceV2Snapshot s) {
     return Container(
-      decoration: const BoxDecoration(gradient:FinanceV2Theme.heroGradient),
-      padding: const EdgeInsets.fromLTRB(20,20,20,24),
-      child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-        Text('Dòng tiền ròng',style:FinanceV2Theme.bodyMd.copyWith(color:AppColors.surface.withValues(alpha:0.8))),
-        const SizedBox(height:4),
-        Text(_signedCmp(s.netCashflow),style:FinanceV2Theme.amountHero.copyWith(color:s.netCashflow>=0?AppColors.surface:const Color(0xFFFFB3B0))),
-        const SizedBox(height:12),
-        SingleChildScrollView(scrollDirection:Axis.horizontal,child:Row(children:[
-          _qc(Icons.remove_circle_outline_rounded,'Ghi chi',()=>_goExp('CHI')),const SizedBox(width:8),
-          _qc(Icons.add_circle_outline_rounded,'Ghi thu',()=>_goExp('THU')),const SizedBox(width:8),
-          _qc(Icons.handshake_outlined,'Công nợ',()=>Navigator.push(context,MaterialPageRoute(builder:(_)=>const DebtView())).then((_)=>_load())),const SizedBox(width:8),
-          _qc(Icons.lock_clock_rounded,'Chốt ca',()=>Navigator.push(context,MaterialPageRoute(builder:(_)=>const CashClosingView()))),
-        ])),
-      ]));
+      decoration: const BoxDecoration(gradient: FinanceV2Theme.heroGradient),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Dòng tiền ròng',
+            style: FinanceV2Theme.bodyMd.copyWith(
+              color: AppColors.surface.withValues(alpha: 0.8),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            _signedCmp(s.netCashflow),
+            style: FinanceV2Theme.amountHero.copyWith(
+              color: s.netCashflow >= 0
+                  ? AppColors.surface
+                  : const Color(0xFFFFB3B0),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _qc(
+                  Icons.remove_circle_outline_rounded,
+                  'Ghi chi',
+                  () => _goExp('CHI'),
+                ),
+                const SizedBox(width: 8),
+                _qc(
+                  Icons.add_circle_outline_rounded,
+                  'Ghi thu',
+                  () => _goExp('THU'),
+                ),
+                const SizedBox(width: 8),
+                _qc(
+                  Icons.handshake_outlined,
+                  'Công nợ',
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const DebtView()),
+                  ).then((_) => _load()),
+                ),
+                const SizedBox(width: 8),
+                _qc(
+                  Icons.lock_clock_rounded,
+                  'Chốt ca',
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const CashClosingView()),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
-  void _goExp(String m) => Navigator.push(context,MaterialPageRoute(builder:(_)=>ExpenseView(initialMode:m,openCreateDialogOnStart:true))).then((_)=>_load());
+  void _goExp(String m) => Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) =>
+          ExpenseView(initialMode: m, openCreateDialogOnStart: true),
+    ),
+  ).then((_) => _load());
 
-  Widget _qc(IconData icon,String lbl,VoidCallback onTap) => GestureDetector(onTap:onTap,child:Container(
-    padding:const EdgeInsets.symmetric(horizontal:10,vertical:6),
-    decoration:BoxDecoration(color:AppColors.surface.withValues(alpha:0.2),borderRadius:BorderRadius.circular(20),border:Border.all(color:AppColors.surface.withValues(alpha:0.4))),
-    child:Row(mainAxisSize:MainAxisSize.min,children:[Icon(icon,size:14,color:AppColors.surface),const SizedBox(width:4),Text(lbl,style:FinanceV2Theme.bodySm.copyWith(color:AppColors.surface))])));
+  Widget _qc(IconData icon, String lbl, VoidCallback onTap) => GestureDetector(
+    onTap: onTap,
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppColors.surface.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.surface.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: AppColors.surface),
+          const SizedBox(width: 4),
+          Text(
+            lbl,
+            style: FinanceV2Theme.bodySm.copyWith(color: AppColors.surface),
+          ),
+        ],
+      ),
+    ),
+  );
 
   Widget _alerts(FinanceV2Snapshot s) {
-    final list=<Map<String,dynamic>>[];
-    final o60=s.debtAging['>60']??0;
-    if(o60>3000000) list.add({'i':Icons.warning_amber_rounded,'c':FinanceV2Theme.negative,'t':'Có công nợ quá hạn trên 60 ngày. Cần xử lý ngay!'});
-    if(s.netCashflow<0&&s.totalOut>0) list.add({'i':Icons.trending_down_rounded,'c':FinanceV2Theme.warn,'t':'Dòng tiền ròng âm. Chi vượt thu.'});
-    if(s.transactionCount==0) list.add({'i':Icons.info_outline_rounded,'c':FinanceV2Theme.subInk,'t':'Chưa có giao dịch trong khoảng thời gian này.'});
-    if(list.isEmpty) return const SizedBox.shrink();
-    return Padding(padding:const EdgeInsets.fromLTRB(12,0,12,12),child:Column(children:list.map((a){
-      final c=a['c'] as Color;
-      return Container(margin:const EdgeInsets.only(bottom:6),padding:const EdgeInsets.all(10),
-        decoration:BoxDecoration(color:c.withValues(alpha:0.08),borderRadius:BorderRadius.circular(10),border:Border.all(color:c.withValues(alpha:0.3))),
-        child:Row(children:[Icon(a['i'] as IconData,color:c,size:18),const SizedBox(width:8),Expanded(child:Text(a['t'] as String,style:FinanceV2Theme.bodySm.copyWith(color:c)))]));
-    }).toList()));
+    final list = <Map<String, dynamic>>[];
+    final o60 = s.debtAging['>60'] ?? 0;
+    if (o60 > 3000000)
+      list.add({
+        'i': Icons.warning_amber_rounded,
+        'c': FinanceV2Theme.negative,
+        't': 'Có công nợ quá hạn trên 60 ngày. Cần xử lý ngay!',
+      });
+    if (s.netCashflow < 0 && s.totalOut > 0)
+      list.add({
+        'i': Icons.trending_down_rounded,
+        'c': FinanceV2Theme.warn,
+        't': 'Dòng tiền ròng âm. Chi vượt thu.',
+      });
+    if (s.transactionCount == 0)
+      list.add({
+        'i': Icons.info_outline_rounded,
+        'c': FinanceV2Theme.subInk,
+        't': 'Chưa có giao dịch trong khoảng thời gian này.',
+      });
+    if (list.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+      child: Column(
+        children: list.map((a) {
+          final c = a['c'] as Color;
+          return Container(
+            margin: const EdgeInsets.only(bottom: 6),
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: c.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: c.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              children: [
+                Icon(a['i'] as IconData, color: c, size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    a['t'] as String,
+                    style: FinanceV2Theme.bodySm.copyWith(color: c),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }).toList(),
+      ),
+    );
   }
 
-  Widget _kpi(String lbl,int amt,int? prev,Color c,IconData icon,VoidCallback? tap,{bool signedValue=false}) {
-    final chg=prev!=null&&prev>0?((amt-prev)/prev)*100.0:null;
-    return GestureDetector(onTap:tap,child:Container(
-      decoration:FinanceV2Theme.elevatedPanel(),padding:EdgeInsets.all(_cardPad),
-      child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-        Row(children:[Icon(icon,size:16,color:c),const SizedBox(width:4),Expanded(child:Text(lbl,style:FinanceV2Theme.micro)),if(tap!=null) const Icon(Icons.chevron_right_rounded,size:14,color:FinanceV2Theme.subInk)]),
-        const SizedBox(height:4),Text(signedValue?_signedCmp(amt):_cmp(amt),style:FinanceV2Theme.amountLg.copyWith(color:c)),
-        if(chg!=null)...[const SizedBox(height:2),Row(children:[Icon(chg>=0?Icons.arrow_drop_up_rounded:Icons.arrow_drop_down_rounded,size:14,color:chg>=0?FinanceV2Theme.positive:FinanceV2Theme.negative),Text('${chg.abs().toStringAsFixed(0)}%',style:FinanceV2Theme.caption.copyWith(color:chg>=0?FinanceV2Theme.positive:FinanceV2Theme.negative))])],
-      ])));
+  Widget _kpi(
+    String lbl,
+    int amt,
+    int? prev,
+    Color c,
+    IconData icon,
+    VoidCallback? tap, {
+    bool signedValue = false,
+  }) {
+    final chg = prev != null && prev > 0 ? ((amt - prev) / prev) * 100.0 : null;
+    return GestureDetector(
+      onTap: tap,
+      child: Container(
+        decoration: FinanceV2Theme.elevatedPanel(),
+        padding: EdgeInsets.all(_cardPad),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, size: 16, color: c),
+                const SizedBox(width: 4),
+                Expanded(child: Text(lbl, style: FinanceV2Theme.micro)),
+                if (tap != null)
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    size: 14,
+                    color: FinanceV2Theme.subInk,
+                  ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              signedValue ? _signedCmp(amt) : _cmp(amt),
+              style: FinanceV2Theme.amountLg.copyWith(color: c),
+            ),
+            if (chg != null) ...[
+              const SizedBox(height: 2),
+              Row(
+                children: [
+                  Icon(
+                    chg >= 0
+                        ? Icons.arrow_drop_up_rounded
+                        : Icons.arrow_drop_down_rounded,
+                    size: 14,
+                    color: chg >= 0
+                        ? FinanceV2Theme.positive
+                        : FinanceV2Theme.negative,
+                  ),
+                  Text(
+                    '${chg.abs().toStringAsFixed(0)}%',
+                    style: FinanceV2Theme.caption.copyWith(
+                      color: chg >= 0
+                          ? FinanceV2Theme.positive
+                          : FinanceV2Theme.negative,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _compSection(FinanceV2Snapshot s) {
-    final chg=s.previousNetCashflow==0?null:((s.netCashflow-s.previousNetCashflow)/s.previousNetCashflow)*100.0;
-    return Padding(padding:EdgeInsets.symmetric(horizontal:_hPad),child:Container(
-      decoration:FinanceV2Theme.elevatedPanel(),padding:const EdgeInsets.all(14),
-      child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-        Text('So sánh theo nhóm • $_compLabel',style:FinanceV2Theme.titleMd),
-        const SizedBox(height:6),
-        Text('Tiền và lợi nhuận được tách riêng để tránh hiểu nhầm.',style:FinanceV2Theme.micro),
-        const SizedBox(height:10),
-        _sectionTitle('Tiền (cash)','So sánh số tiền thực thu/thực chi so với kỳ trước.'),
-        const SizedBox(height:8),
-        Row(children:[Expanded(child:_cs('Thu tiền',s.totalIn,s.previousTotalIn)),Expanded(child:_cs('Chi tiền',s.totalOut,s.previousTotalOut)),Expanded(child:_cs('Ròng',s.netCashflow,s.previousNetCashflow,net:true))]),
-        if(chg!=null)...[const SizedBox(height:8),Row(children:[Icon(chg>=0?Icons.trending_up_rounded:Icons.trending_down_rounded,size:14,color:chg>=0?FinanceV2Theme.positive:FinanceV2Theme.negative),const SizedBox(width:4),Text('${chg>=0?"+":""}${chg.toStringAsFixed(1)}% so với $_compLabel',style:FinanceV2Theme.micro.copyWith(color:chg>=0?FinanceV2Theme.positive:FinanceV2Theme.negative))])],
-        const Divider(height:20,thickness:0.5),
-        _sectionTitle('Lợi nhuận (profit)','So sánh vốn và lãi theo giao dịch (accrual), có thể khác dòng tiền.'),
-        const SizedBox(height:8),
-        Row(children:[
-          Expanded(child:_cs('Vốn BH',s.cogsFromSales,s.previousCogsFromSales)),
-          Expanded(child:_cs('Vốn SC',s.cogsFromRepairs,s.previousCogsFromRepairs)),
-          Expanded(child:_cs('Vốn tổng',s.cogsFromSales+s.cogsFromRepairs,s.previousCogsFromSales+s.previousCogsFromRepairs)),
-        ]),
-        const SizedBox(height:8),
-        Row(children:[
-          Expanded(child:_cs('Lãi BH',s.grossProfitFromSales,s.previousGrossProfitFromSales,net:true)),
-          Expanded(child:_cs('Lãi SC',s.grossProfitFromRepairs,s.previousGrossProfitFromRepairs,net:true)),
-          Expanded(child:_cs('Lãi tổng',s.grossProfitTotal,s.previousGrossProfitFromSales+s.previousGrossProfitFromRepairs,net:true)),
-        ]),
-      ])));
+    final chg = s.previousNetCashflow == 0
+        ? null
+        : ((s.netCashflow - s.previousNetCashflow) / s.previousNetCashflow) *
+              100.0;
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: _hPad),
+      child: Container(
+        decoration: FinanceV2Theme.elevatedPanel(),
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'So sánh theo nhóm • $_compLabel',
+              style: FinanceV2Theme.titleMd,
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Tiền và lợi nhuận được tách riêng để tránh hiểu nhầm.',
+              style: FinanceV2Theme.micro,
+            ),
+            const SizedBox(height: 10),
+            _sectionTitle(
+              'Tiền (cash)',
+              'So sánh số tiền thực thu/thực chi so với kỳ trước.',
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(child: _cs('Thu tiền', s.totalIn, s.previousTotalIn)),
+                Expanded(
+                  child: _cs('Chi tiền', s.totalOut, s.previousTotalOut),
+                ),
+                Expanded(
+                  child: _cs(
+                    'Ròng',
+                    s.netCashflow,
+                    s.previousNetCashflow,
+                    net: true,
+                  ),
+                ),
+              ],
+            ),
+            if (chg != null) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Icon(
+                    chg >= 0
+                        ? Icons.trending_up_rounded
+                        : Icons.trending_down_rounded,
+                    size: 14,
+                    color: chg >= 0
+                        ? FinanceV2Theme.positive
+                        : FinanceV2Theme.negative,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${chg >= 0 ? "+" : ""}${chg.toStringAsFixed(1)}% so với $_compLabel',
+                    style: FinanceV2Theme.micro.copyWith(
+                      color: chg >= 0
+                          ? FinanceV2Theme.positive
+                          : FinanceV2Theme.negative,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+            const Divider(height: 20, thickness: 0.5),
+            _sectionTitle(
+              'Lợi nhuận (profit)',
+              'So sánh vốn và lãi theo giao dịch (accrual), có thể khác dòng tiền.',
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: _cs(
+                    'Vốn BH',
+                    s.cogsFromSales,
+                    s.previousCogsFromSales,
+                  ),
+                ),
+                Expanded(
+                  child: _cs(
+                    'Vốn SC',
+                    s.cogsFromRepairs,
+                    s.previousCogsFromRepairs,
+                  ),
+                ),
+                Expanded(
+                  child: _cs(
+                    'Vốn tổng',
+                    s.cogsFromSales + s.cogsFromRepairs,
+                    s.previousCogsFromSales + s.previousCogsFromRepairs,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: _cs(
+                    'Lãi BH',
+                    s.grossProfitFromSales,
+                    s.previousGrossProfitFromSales,
+                    net: true,
+                  ),
+                ),
+                Expanded(
+                  child: _cs(
+                    'Lãi SC',
+                    s.grossProfitFromRepairs,
+                    s.previousGrossProfitFromRepairs,
+                    net: true,
+                  ),
+                ),
+                Expanded(
+                  child: _cs(
+                    'Lãi tổng',
+                    s.grossProfitTotal,
+                    s.previousGrossProfitFromSales +
+                        s.previousGrossProfitFromRepairs,
+                    net: true,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
-  Widget _cs(String lbl,int cur,int prev,{bool net=false}) {
-    final chg=prev>0?((cur-prev)/prev*100.0):null;
-    final tc=net?(cur>=0?FinanceV2Theme.positive:FinanceV2Theme.negative):FinanceV2Theme.ink;
-    return Column(children:[
-      Text(lbl,style:FinanceV2Theme.caption),
-      const SizedBox(height:2),
-      FittedBox(
-        fit: BoxFit.scaleDown,
-        child: Text(net?_signedCmp(cur):_cmp(cur),style:FinanceV2Theme.amountMd.copyWith(color:tc)),
-      ),
-      if(chg!=null)
-        Text('${chg>=0?"+":""}${chg.toStringAsFixed(0)}%',style:FinanceV2Theme.caption.copyWith(color:chg>=0?FinanceV2Theme.positive:FinanceV2Theme.negative))
-      else
-        Text('-',style:FinanceV2Theme.caption)
-    ]);
+  Widget _cs(String lbl, int cur, int prev, {bool net = false}) {
+    final chg = prev > 0 ? ((cur - prev) / prev * 100.0) : null;
+    final tc = net
+        ? (cur >= 0 ? FinanceV2Theme.positive : FinanceV2Theme.negative)
+        : FinanceV2Theme.ink;
+    return Column(
+      children: [
+        Text(lbl, style: FinanceV2Theme.caption),
+        const SizedBox(height: 2),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            net ? _signedCmp(cur) : _cmp(cur),
+            style: FinanceV2Theme.amountMd.copyWith(color: tc),
+          ),
+        ),
+        if (chg != null)
+          Text(
+            '${chg >= 0 ? "+" : ""}${chg.toStringAsFixed(0)}%',
+            style: FinanceV2Theme.caption.copyWith(
+              color: chg >= 0
+                  ? FinanceV2Theme.positive
+                  : FinanceV2Theme.negative,
+            ),
+          )
+        else
+          Text('-', style: FinanceV2Theme.caption),
+      ],
+    );
   }
 
   Widget _profitSection(FinanceV2Snapshot s) {
-    return Padding(padding:EdgeInsets.symmetric(horizontal:_hPad),child:Container(
-      decoration:FinanceV2Theme.elevatedPanel(),padding:const EdgeInsets.all(14),
-      child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-        _sectionTitle('2) Lợi nhuận (profit)','Lợi nhuận = lời từ giao dịch, có thể chưa thu tiền ngay nếu là đơn công nợ.'),
-        const SizedBox(height:4),
-        Text('Lợi nhuận theo giao dịch (accrual), không đồng nghĩa với tiền đang có trong quỹ.',style:FinanceV2Theme.micro),
-        const SizedBox(height:10),
-        Row(children:[
-          Expanded(child:_kpi('Vốn BH',s.cogsFromSales,s.previousCogsFromSales>0?s.previousCogsFromSales:null,const Color(0xFF1565C0),Icons.shopping_bag_outlined,null)),
-          const SizedBox(width:8),
-          Expanded(child:_kpi('Vốn SC',s.cogsFromRepairs,s.previousCogsFromRepairs>0?s.previousCogsFromRepairs:null,const Color(0xFF2E7D32),Icons.build_outlined,null)),
-        ]),
-        const SizedBox(height:8),
-        Row(children:[
-          Expanded(child:_kpi('Lãi BH',s.grossProfitFromSales,s.previousGrossProfitFromSales!=0?s.previousGrossProfitFromSales:null,s.grossProfitFromSales>=0?FinanceV2Theme.positive:FinanceV2Theme.negative,Icons.trending_up_rounded,null,signedValue:true)),
-          const SizedBox(width:8),
-          Expanded(child:_kpi('Lãi SC',s.grossProfitFromRepairs,s.previousGrossProfitFromRepairs!=0?s.previousGrossProfitFromRepairs:null,s.grossProfitFromRepairs>=0?FinanceV2Theme.positive:FinanceV2Theme.negative,Icons.trending_up_rounded,null,signedValue:true)),
-        ]),
-      ])));
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: _hPad),
+      child: Container(
+        decoration: FinanceV2Theme.elevatedPanel(),
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _sectionTitle(
+              '2) Lợi nhuận (profit)',
+              'Lợi nhuận = lời từ giao dịch, có thể chưa thu tiền ngay nếu là đơn công nợ.',
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Lợi nhuận theo giao dịch (accrual), không đồng nghĩa với tiền đang có trong quỹ.',
+              style: FinanceV2Theme.micro,
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: _kpi(
+                    'Vốn BH',
+                    s.cogsFromSales,
+                    s.previousCogsFromSales > 0
+                        ? s.previousCogsFromSales
+                        : null,
+                    const Color(0xFF1565C0),
+                    Icons.shopping_bag_outlined,
+                    null,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _kpi(
+                    'Vốn SC',
+                    s.cogsFromRepairs,
+                    s.previousCogsFromRepairs > 0
+                        ? s.previousCogsFromRepairs
+                        : null,
+                    const Color(0xFF2E7D32),
+                    Icons.build_outlined,
+                    null,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: _kpi(
+                    'Lãi BH',
+                    s.grossProfitFromSales,
+                    s.previousGrossProfitFromSales != 0
+                        ? s.previousGrossProfitFromSales
+                        : null,
+                    s.grossProfitFromSales >= 0
+                        ? FinanceV2Theme.positive
+                        : FinanceV2Theme.negative,
+                    Icons.trending_up_rounded,
+                    null,
+                    signedValue: true,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _kpi(
+                    'Lãi SC',
+                    s.grossProfitFromRepairs,
+                    s.previousGrossProfitFromRepairs != 0
+                        ? s.previousGrossProfitFromRepairs
+                        : null,
+                    s.grossProfitFromRepairs >= 0
+                        ? FinanceV2Theme.positive
+                        : FinanceV2Theme.negative,
+                    Icons.trending_up_rounded,
+                    null,
+                    signedValue: true,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _incomeSection(FinanceV2Snapshot s) {
-    if(s.totalIn==0) return const SizedBox.shrink();
-    return Padding(padding:EdgeInsets.symmetric(horizontal:_hPad),child:Container(
-      decoration:FinanceV2Theme.elevatedPanel(),padding:const EdgeInsets.all(14),
-      child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-        Text('Cơ cấu tiền thu vào',style:FinanceV2Theme.titleMd),const SizedBox(height:4),
-        Text('Phân bổ theo nguồn tiền đã thu thực tế trong kỳ.',style:FinanceV2Theme.micro),
-        const SizedBox(height:10),
-        if(s.incomeFromSales>0) _ir('Thu từ bán hàng',s.incomeFromSales,s.totalIn,const Color(0xFF1565C0),()=>_goTx('SALE')),
-        if(s.incomeFromRepairs>0) _ir('Thu từ sửa chữa',s.incomeFromRepairs,s.totalIn,const Color(0xFF2E7D32),()=>_goTx('REPAIR')),
-        if(s.incomeOther>0) _ir('Thu khác',s.incomeOther,s.totalIn,const Color(0xFF6A1B9A),()=>_goTx('IN')),
-      ])));
+    if (s.totalIn == 0) return const SizedBox.shrink();
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: _hPad),
+      child: Container(
+        decoration: FinanceV2Theme.elevatedPanel(),
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Cơ cấu tiền thu vào', style: FinanceV2Theme.titleMd),
+            const SizedBox(height: 4),
+            Text(
+              'Phân bổ theo nguồn tiền đã thu thực tế trong kỳ.',
+              style: FinanceV2Theme.micro,
+            ),
+            const SizedBox(height: 10),
+            if (s.incomeFromSales > 0)
+              _ir(
+                'Thu từ bán hàng',
+                s.incomeFromSales,
+                s.totalIn,
+                const Color(0xFF1565C0),
+                () => _goTx('SALE'),
+              ),
+            if (s.incomeFromRepairs > 0)
+              _ir(
+                'Thu từ sửa chữa',
+                s.incomeFromRepairs,
+                s.totalIn,
+                const Color(0xFF2E7D32),
+                () => _goTx('REPAIR'),
+              ),
+            if (s.incomeOther > 0)
+              _ir(
+                'Thu khác',
+                s.incomeOther,
+                s.totalIn,
+                const Color(0xFF6A1B9A),
+                () => _goTx('IN'),
+              ),
+          ],
+        ),
+      ),
+    );
   }
 
-  Widget _ir(String lbl,int amt,int tot,Color c,VoidCallback tap) {
-    final r=tot>0?amt/tot:0.0;
-    return GestureDetector(onTap:tap,child:Padding(padding:const EdgeInsets.only(bottom:8),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-      Row(children:[Container(width:8,height:8,decoration:BoxDecoration(color:c,shape:BoxShape.circle)),const SizedBox(width:6),Expanded(child:Text(lbl,style:FinanceV2Theme.bodySm)),Text(_cmp(amt),style:FinanceV2Theme.bodySm.copyWith(fontWeight:FontWeight.w600,color:c)),const SizedBox(width:4),Text('${(r*100).toStringAsFixed(0)}%',style:FinanceV2Theme.caption),const SizedBox(width:4),const Icon(Icons.chevron_right_rounded,size:14,color:FinanceV2Theme.subInk)]),
-      const SizedBox(height:4),ClipRRect(borderRadius:BorderRadius.circular(4),child:LinearProgressIndicator(value:r.clamp(0.0,1.0),minHeight:4,backgroundColor:c.withValues(alpha:0.1),valueColor:AlwaysStoppedAnimation(c))),
-    ])));
+  Widget _ir(String lbl, int amt, int tot, Color c, VoidCallback tap) {
+    final r = tot > 0 ? amt / tot : 0.0;
+    return GestureDetector(
+      onTap: tap,
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(color: c, shape: BoxShape.circle),
+                ),
+                const SizedBox(width: 6),
+                Expanded(child: Text(lbl, style: FinanceV2Theme.bodySm)),
+                Text(
+                  _cmp(amt),
+                  style: FinanceV2Theme.bodySm.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: c,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  '${(r * 100).toStringAsFixed(0)}%',
+                  style: FinanceV2Theme.caption,
+                ),
+                const SizedBox(width: 4),
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  size: 14,
+                  color: FinanceV2Theme.subInk,
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: r.clamp(0.0, 1.0),
+                minHeight: 4,
+                backgroundColor: c.withValues(alpha: 0.1),
+                valueColor: AlwaysStoppedAnimation(c),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _cfSection(FinanceV2Snapshot s) {
-    final tot=s.totalIn+s.totalOut;
-    return Padding(padding:EdgeInsets.symmetric(horizontal:_hPad),child:Container(
-      decoration:FinanceV2Theme.elevatedPanel(),padding:const EdgeInsets.all(14),
-      child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-        _sectionTitle('Dòng tiền (cashflow)','Tiền vào/ra là dòng tiền thực, không phải lợi nhuận kế toán.'),const SizedBox(height:10),
-        if(tot==0) Text('Chưa có giao dịch trong kỳ',style:FinanceV2Theme.bodySm.copyWith(color:FinanceV2Theme.subInk)) else _cfBar(s),
-      ])));
+    final tot = s.totalIn + s.totalOut;
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: _hPad),
+      child: Container(
+        decoration: FinanceV2Theme.elevatedPanel(),
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _sectionTitle(
+              'Dòng tiền (cashflow)',
+              'Tiền vào/ra là dòng tiền thực, không phải lợi nhuận kế toán.',
+            ),
+            const SizedBox(height: 10),
+            if (tot == 0)
+              Text(
+                'Chưa có giao dịch trong kỳ',
+                style: FinanceV2Theme.bodySm.copyWith(
+                  color: FinanceV2Theme.subInk,
+                ),
+              )
+            else
+              _cfBar(s),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _cfBar(FinanceV2Snapshot s) {
-    final tot=s.totalIn+s.totalOut; final inR=tot>0?s.totalIn/tot:0.5;
-    final inF=(inR*100).round().clamp(1,99); final outF=(100-inF).clamp(1,99);
-    return Column(children:[
-      ClipRRect(borderRadius:BorderRadius.circular(8),child:Row(children:[
-        Expanded(flex:inF,child:GestureDetector(onTap:()=>_goTx('IN'),child:Container(height:32,color:FinanceV2Theme.positive,alignment:Alignment.center,child:inF>15?Text(_cmp(s.totalIn),style:FinanceV2Theme.caption.copyWith(color:AppColors.surface,fontWeight:FontWeight.w600)):null))),
-        Expanded(flex:outF,child:GestureDetector(onTap:()=>_goTx('OUT'),child:Container(height:32,color:FinanceV2Theme.negative,alignment:Alignment.center,child:outF>15?Text(_cmp(s.totalOut),style:FinanceV2Theme.caption.copyWith(color:AppColors.surface,fontWeight:FontWeight.w600)):null))),
-      ])),
-      const SizedBox(height:6),
-      Row(children:[_dot(FinanceV2Theme.positive),const SizedBox(width:4),Text('Tiền vào',style:FinanceV2Theme.caption),const SizedBox(width:12),_dot(FinanceV2Theme.negative),const SizedBox(width:4),Text('Tiền ra',style:FinanceV2Theme.caption)]),
-    ]);
+    final tot = s.totalIn + s.totalOut;
+    final inR = tot > 0 ? s.totalIn / tot : 0.5;
+    final inF = (inR * 100).round().clamp(1, 99);
+    final outF = (100 - inF).clamp(1, 99);
+    return Column(
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: Row(
+            children: [
+              Expanded(
+                flex: inF,
+                child: GestureDetector(
+                  onTap: () => _goTx('IN'),
+                  child: Container(
+                    height: 32,
+                    color: FinanceV2Theme.positive,
+                    alignment: Alignment.center,
+                    child: inF > 15
+                        ? Text(
+                            _cmp(s.totalIn),
+                            style: FinanceV2Theme.caption.copyWith(
+                              color: AppColors.surface,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          )
+                        : null,
+                  ),
+                ),
+              ),
+              Expanded(
+                flex: outF,
+                child: GestureDetector(
+                  onTap: () => _goTx('OUT'),
+                  child: Container(
+                    height: 32,
+                    color: FinanceV2Theme.negative,
+                    alignment: Alignment.center,
+                    child: outF > 15
+                        ? Text(
+                            _cmp(s.totalOut),
+                            style: FinanceV2Theme.caption.copyWith(
+                              color: AppColors.surface,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          )
+                        : null,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 6),
+        Row(
+          children: [
+            _dot(FinanceV2Theme.positive),
+            const SizedBox(width: 4),
+            Text('Tiền vào', style: FinanceV2Theme.caption),
+            const SizedBox(width: 12),
+            _dot(FinanceV2Theme.negative),
+            const SizedBox(width: 4),
+            Text('Tiền ra', style: FinanceV2Theme.caption),
+          ],
+        ),
+      ],
+    );
   }
 
   Widget _expCatSection(FinanceV2Snapshot s) {
-    if(s.topExpenseCategories.isEmpty) return const SizedBox.shrink();
-    return Padding(padding:EdgeInsets.symmetric(horizontal:_hPad),child:Container(
-      decoration:FinanceV2Theme.elevatedPanel(),padding:const EdgeInsets.all(14),
-      child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-        Text('Chi tiêu theo danh mục',style:FinanceV2Theme.titleMd),const SizedBox(height:10),
-        ...s.topExpenseCategories.map((cat){
-          final r=s.totalOut>0?cat.amount/s.totalOut:0.0;
-          return Padding(padding:const EdgeInsets.only(bottom:8),child:Column(children:[
-            Row(children:[Expanded(child:Text(cat.label,style:FinanceV2Theme.bodySm,maxLines:1,overflow:TextOverflow.ellipsis)),Text(_cmp(cat.amount),style:FinanceV2Theme.bodySm.copyWith(fontWeight:FontWeight.w600,color:FinanceV2Theme.negative)),const SizedBox(width:4),Text('${(r*100).toStringAsFixed(0)}%',style:FinanceV2Theme.caption)]),
-            const SizedBox(height:4),ClipRRect(borderRadius:BorderRadius.circular(4),child:LinearProgressIndicator(value:r.clamp(0.0,1.0),minHeight:4,backgroundColor:FinanceV2Theme.negative.withValues(alpha:0.1),valueColor:const AlwaysStoppedAnimation(FinanceV2Theme.negative))),
-          ]));
-        }),
-      ])));
+    if (s.topExpenseCategories.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: _hPad),
+      child: Container(
+        decoration: FinanceV2Theme.elevatedPanel(),
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Chi tiêu theo danh mục', style: FinanceV2Theme.titleMd),
+            const SizedBox(height: 10),
+            ...s.topExpenseCategories.map((cat) {
+              final r = s.totalOut > 0 ? cat.amount / s.totalOut : 0.0;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            cat.label,
+                            style: FinanceV2Theme.bodySm,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        Text(
+                          _cmp(cat.amount),
+                          style: FinanceV2Theme.bodySm.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: FinanceV2Theme.negative,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${(r * 100).toStringAsFixed(0)}%',
+                          style: FinanceV2Theme.caption,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: r.clamp(0.0, 1.0),
+                        minHeight: 4,
+                        backgroundColor: FinanceV2Theme.negative.withValues(
+                          alpha: 0.1,
+                        ),
+                        valueColor: const AlwaysStoppedAnimation(
+                          FinanceV2Theme.negative,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _snapCard(FinanceV2Snapshot s) {
-    final txt='Kỳ: $_sub';
-    return Padding(padding:EdgeInsets.symmetric(horizontal:_hPad),child:Container(
-      decoration:FinanceV2Theme.elevatedPanel(color:const Color(0xFFF8F9FA)),padding:const EdgeInsets.all(14),
-      child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-        Row(children:[const Icon(Icons.summarize_rounded,size:16,color:FinanceV2Theme.accent),const SizedBox(width:6),Text('Tóm tắt kỳ',style:FinanceV2Theme.titleMd),const Spacer(),IconButton(icon:const Icon(Icons.copy_rounded,size:18,color:FinanceV2Theme.accent),tooltip:'Sao chép',onPressed:(){Clipboard.setData(ClipboardData(text:txt));ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Đã sao chép tóm tắt'),duration:Duration(seconds:2)));})]),
-        const SizedBox(height:6),Text(txt,style:FinanceV2Theme.mono),
-      ])));
+    final txt = 'Kỳ: $_sub';
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: _hPad),
+      child: Container(
+        decoration: FinanceV2Theme.elevatedPanel(
+          color: const Color(0xFFF8F9FA),
+        ),
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(
+                  Icons.summarize_rounded,
+                  size: 16,
+                  color: FinanceV2Theme.accent,
+                ),
+                const SizedBox(width: 6),
+                Text('Tóm tắt kỳ', style: FinanceV2Theme.titleMd),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(
+                    Icons.copy_rounded,
+                    size: 18,
+                    color: FinanceV2Theme.accent,
+                  ),
+                  tooltip: 'Sao chép',
+                  onPressed: () {
+                    Clipboard.setData(ClipboardData(text: txt));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Đã sao chép tóm tắt'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(txt, style: FinanceV2Theme.mono),
+          ],
+        ),
+      ),
+    );
   }
+
   // TAB 1
   Widget _t1() {
-    final s=_snap; if(s==null) return _empty('Không có dữ liệu');
-    var tx=s.transactions.toList();
-    if(_txFilter=='IN') {
-      tx=tx.where((t)=>t.isIncome).toList();
+    final s = _snap;
+    if (s == null) return _empty('Không có dữ liệu');
+    var tx = s.transactions.toList();
+    if (_txFilter == 'IN') {
+      tx = tx.where((t) => t.isIncome).toList();
+    } else if (_txFilter == 'OUT') {
+      tx = tx.where((t) => !t.isIncome).toList();
+    } else if (_txFilter != 'ALL') {
+      tx = tx.where((t) => t.type == _txFilter).toList();
     }
-    else if(_txFilter=='OUT') {
-      tx=tx.where((t)=>!t.isIncome).toList();
+    if (_txPm.isNotEmpty)
+      tx = tx.where((t) => (t.paymentMethod ?? '') == _txPm).toList();
+    if (_txQuery.isNotEmpty) {
+      final q = _txQuery.toLowerCase();
+      tx = tx
+          .where(
+            (t) =>
+                t.title.toLowerCase().contains(q) ||
+                t.subtitle.toLowerCase().contains(q) ||
+                (t.actorName ?? '').toLowerCase().contains(q),
+          )
+          .toList();
     }
-    else if(_txFilter!='ALL') {
-      tx=tx.where((t)=>t.type==_txFilter).toList();
-    }
-    if(_txPm.isNotEmpty) tx=tx.where((t)=>(t.paymentMethod??'')==_txPm).toList();
-    if(_txQuery.isNotEmpty){final q=_txQuery.toLowerCase();tx=tx.where((t)=>t.title.toLowerCase().contains(q)||t.subtitle.toLowerCase().contains(q)||(t.actorName??'').toLowerCase().contains(q)).toList();}
     final txPageMax = _maxPage(tx.length, _txPageSize);
     final txPageNow = _txPage.clamp(1, txPageMax);
     final txView = _slicePage(tx, txPageNow, _txPageSize);
-    return ResponsiveCenter(child:Column(children:[
-      Container(color:AppColors.surface,padding:EdgeInsets.fromLTRB(_hPad,6,_hPad,0),child:_sf(_txCtrl,'Tìm giao dịch...',_txQuery,(){_txCtrl.clear();setState(()=>_txQuery='');})),
-      Container(
-        color: const Color(0xFFF8F9FA),
-        padding: EdgeInsets.fromLTRB(_hPad, 6, _hPad, 6),
-        child: Row(children:[
-          Expanded(
-            child: Text(
-              '${tx.length} giao dịch • Trang $txPageNow/$txPageMax • Loại: ${_txFilter == 'ALL' ? 'Tất cả' : _ft(_txFilter)}${_txPm.isNotEmpty ? ' • TT: $_txPm' : ''}',
-              style: FinanceV2Theme.meta,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
+    return ResponsiveCenter(
+      child: Column(
+        children: [
+          Container(
+            color: AppColors.surface,
+            padding: EdgeInsets.fromLTRB(_hPad, 6, _hPad, 0),
+            child: _sf(_txCtrl, 'Tìm giao dịch...', _txQuery, () {
+              _txCtrl.clear();
+              setState(() => _txQuery = '');
+            }),
+          ),
+          Container(
+            color: const Color(0xFFF8F9FA),
+            padding: EdgeInsets.fromLTRB(_hPad, 6, _hPad, 6),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '${tx.length} giao dịch • Trang $txPageNow/$txPageMax • Loại: ${_txFilter == 'ALL' ? 'Tất cả' : _ft(_txFilter)}${_txPm.isNotEmpty ? ' • TT: $_txPm' : ''}',
+                    style: FinanceV2Theme.meta,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(
+                    Icons.download_rounded,
+                    color: FinanceV2Theme.accent,
+                    size: 20,
+                  ),
+                  tooltip: 'Xuất Excel',
+                  onPressed: () => _exTx(tx),
+                ),
+              ],
             ),
           ),
-          IconButton(icon:const Icon(Icons.download_rounded,color:FinanceV2Theme.accent,size:20),tooltip:'Xuất Excel',onPressed:()=>_exTx(tx)),
-        ]),
+          Container(height: 1, color: const Color(0xFFEEF1F7)),
+          Expanded(
+            child: tx.isEmpty
+                ? _empty('Không có giao dịch phù hợp')
+                : ListView.separated(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    itemCount: txView.length,
+                    separatorBuilder: (_, __) =>
+                        const Divider(height: 1, indent: 60),
+                    itemBuilder: (_, i) => _txRow(txView[i]),
+                  ),
+          ),
+          _pager(
+            total: tx.length,
+            page: txPageNow,
+            pageSize: _txPageSize,
+            unit: 'giao dịch',
+            onChanged: (p) {
+              setState(() => _txPage = p);
+            },
+          ),
+        ],
       ),
-      Container(height:1,color:const Color(0xFFEEF1F7)),
-      Expanded(child:tx.isEmpty?_empty('Không có giao dịch phù hợp'):ListView.separated(padding:const EdgeInsets.symmetric(vertical:4),itemCount:txView.length,separatorBuilder:(_,__)=>const Divider(height:1,indent:60),itemBuilder:(_,i)=>_txRow(txView[i]))),
-      _pager(total: tx.length, page: txPageNow, pageSize: _txPageSize, unit: 'giao dịch', onChanged: (p){setState(()=>_txPage=p);}),
-    ]));
+    );
   }
 
   Widget _txRow(FinanceV2Txn t) {
-    final dt=DateFormat('dd/MM HH:mm').format(DateTime.fromMillisecondsSinceEpoch(t.createdAt));
-    final c=t.isIncome?FinanceV2Theme.positive:FinanceV2Theme.negative;
+    final dt = DateFormat(
+      'dd/MM HH:mm',
+    ).format(DateTime.fromMillisecondsSinceEpoch(t.createdAt));
+    final c = t.isIncome ? FinanceV2Theme.positive : FinanceV2Theme.negative;
     final detailParts = <String>[];
     final methodRaw = (t.paymentMethod ?? '').trim();
     if ((t.actorName ?? '').isNotEmpty) {
@@ -1215,17 +2217,34 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     }
     if ((t.referenceId ?? '').isNotEmpty) {
       final ref = t.referenceId!.trim();
-      detailParts.add(ref.length > 10 ? 'Mã: ${ref.substring(0, 10)}' : 'Mã: $ref');
+      detailParts.add(
+        ref.length > 10 ? 'Mã: ${ref.substring(0, 10)}' : 'Mã: $ref',
+      );
     }
     final bankHint = _extractInstallmentBank(t.subtitle);
     return ListTile(
-      leading:EntityAvatar(imageUrl:t.avatarUrl,name:t.title,radius:20,tappableToView:false),
-      title:Text(t.title,style:FinanceV2Theme.bodyMd,maxLines:1,overflow:TextOverflow.ellipsis),
-      subtitle:Column(
-        crossAxisAlignment:CrossAxisAlignment.start,
-        children:[
-          Text(t.subtitle,style:FinanceV2Theme.micro,maxLines:1,overflow:TextOverflow.ellipsis),
-          if(methodRaw.isNotEmpty)
+      leading: EntityAvatar(
+        imageUrl: t.avatarUrl,
+        name: t.title,
+        radius: 20,
+        tappableToView: false,
+      ),
+      title: Text(
+        t.title,
+        style: FinanceV2Theme.bodyMd,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            t.subtitle,
+            style: FinanceV2Theme.micro,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          if (methodRaw.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 4),
               child: Wrap(
@@ -1238,17 +2257,43 @@ class _FinanceV2ViewState extends State<FinanceV2View>
                 ],
               ),
             ),
-          if(detailParts.isNotEmpty)
+          if (detailParts.isNotEmpty)
             Text(
               detailParts.join(' • '),
-              style:FinanceV2Theme.caption,
-              maxLines:1,
-              overflow:TextOverflow.ellipsis,
+              style: FinanceV2Theme.caption,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
         ],
       ),
-      trailing:Column(crossAxisAlignment:CrossAxisAlignment.end,mainAxisAlignment:MainAxisAlignment.center,children:[Text('${t.isIncome?"+":"-"}${_cmp(t.amount)}',style:FinanceV2Theme.bodyMd.copyWith(fontWeight:FontWeight.w600,color:c)),Text(dt,style:FinanceV2Theme.caption)]),
-      onTap:()=>_openTL(_TLEntry(ts:t.createdAt,type:t.type,title:t.title,subtitle:t.subtitle,amount:t.amount,isIncome:t.isIncome,avatarUrl:t.avatarUrl,actorName:t.actorName,paymentMethod:t.paymentMethod,referenceId:t.referenceId)),
+      trailing: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            '${t.isIncome ? "+" : "-"}${_cmp(t.amount)}',
+            style: FinanceV2Theme.bodyMd.copyWith(
+              fontWeight: FontWeight.w600,
+              color: c,
+            ),
+          ),
+          Text(dt, style: FinanceV2Theme.caption),
+        ],
+      ),
+      onTap: () => _openTL(
+        _TLEntry(
+          ts: t.createdAt,
+          type: t.type,
+          title: t.title,
+          subtitle: t.subtitle,
+          amount: t.amount,
+          isIncome: t.isIncome,
+          avatarUrl: t.avatarUrl,
+          actorName: t.actorName,
+          paymentMethod: t.paymentMethod,
+          referenceId: t.referenceId,
+        ),
+      ),
     );
   }
 
@@ -1283,7 +2328,10 @@ class _FinanceV2ViewState extends State<FinanceV2View>
       ),
       child: Text(
         label,
-        style: FinanceV2Theme.caption.copyWith(color: color, fontWeight: FontWeight.w700),
+        style: FinanceV2Theme.caption.copyWith(
+          color: color,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }
@@ -1294,7 +2342,9 @@ class _FinanceV2ViewState extends State<FinanceV2View>
       decoration: BoxDecoration(
         color: const Color(0xFF4E342E).withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: const Color(0xFF4E342E).withValues(alpha: 0.30)),
+        border: Border.all(
+          color: const Color(0xFF4E342E).withValues(alpha: 0.30),
+        ),
       ),
       child: Text(
         'NH: $bankName',
@@ -1317,118 +2367,421 @@ class _FinanceV2ViewState extends State<FinanceV2View>
 
   // TAB 2
   Widget _t2() {
-    final s=_snap; if(s==null) return _empty('Không có dữ liệu');
-    final items=_showRec?s.receivables:s.payables;
+    final s = _snap;
+    if (s == null) return _empty('Không có dữ liệu');
+    final items = _showRec ? s.receivables : s.payables;
     final debtPageMax = _maxPage(items.length, _debtPageSize);
     final debtPageNow = _debtPage.clamp(1, debtPageMax);
     final debtView = _slicePage(items, debtPageNow, _debtPageSize);
-    final total=_showRec?s.receivableTotal:s.payableTotal;
-    return ResponsiveCenter(child:Column(children:[
-      Container(color:AppColors.surface,padding:EdgeInsets.fromLTRB(_hPad,8,_hPad,8),child:Row(children:[
-        Expanded(child:GestureDetector(onTap:()=>setState((){_showRec=true;_debtPage=1;}),child:AnimatedContainer(duration:const Duration(milliseconds:200),padding:const EdgeInsets.symmetric(vertical:9,horizontal:8),decoration:BoxDecoration(color:_showRec?FinanceV2Theme.warn:const Color(0xFFF0F3F9),borderRadius:BorderRadius.circular(10)),alignment:Alignment.center,child:Text('Phải thu  ${_cmp(s.receivableTotal)}',maxLines:1,overflow:TextOverflow.ellipsis,textAlign:TextAlign.center,style:FinanceV2Theme.bodyMd.copyWith(fontWeight:FontWeight.w600,color:_showRec?AppColors.surface:FinanceV2Theme.subInk))))),
-        const SizedBox(width:8),
-        Expanded(child:GestureDetector(onTap:()=>setState((){_showRec=false;_debtPage=1;}),child:AnimatedContainer(duration:const Duration(milliseconds:200),padding:const EdgeInsets.symmetric(vertical:9,horizontal:8),decoration:BoxDecoration(color:!_showRec?FinanceV2Theme.negative:const Color(0xFFF0F3F9),borderRadius:BorderRadius.circular(10)),alignment:Alignment.center,child:Text('Phải trả  ${_cmp(s.payableTotal)}',maxLines:1,overflow:TextOverflow.ellipsis,textAlign:TextAlign.center,style:FinanceV2Theme.bodyMd.copyWith(fontWeight:FontWeight.w600,color:!_showRec?AppColors.surface:FinanceV2Theme.subInk))))),
-      ])),
-      if(_showRec&&s.totalDebtAging>0) Container(color:AppColors.surface,padding:const EdgeInsets.fromLTRB(12,0,12,10),child:Row(children:[
-        Expanded(child:_aging('0-30 ngày',s.debtAging['0-30']??0,FinanceV2Theme.positive)),const SizedBox(width:6),
-        Expanded(child:_aging('31-60 ngày',s.debtAging['30-60']??0,FinanceV2Theme.warn)),const SizedBox(width:6),
-        Expanded(child:_aging('>60 ngày',s.debtAging['>60']??0,FinanceV2Theme.negative)),
-      ])),
-      Container(color:const Color(0xFFF8F9FA),padding:EdgeInsets.fromLTRB(_hPad,6,_hPad,6),child:Row(children:[Expanded(child:Text('${items.length} khoản • Trang $debtPageNow/$debtPageMax · Tổng: ${_full(total)}',style:FinanceV2Theme.meta,maxLines:2,overflow:TextOverflow.ellipsis)),IconButton(icon:const Icon(Icons.download_rounded,color:FinanceV2Theme.accent,size:20),tooltip:'Xuất Excel',onPressed:()=>_exDebt(items))])),
-      Container(height:1,color:const Color(0xFFEEF1F7)),
-      Expanded(child:items.isEmpty?_empty(_showRec?'Không có khoản phải thu':'Không có khoản phải trả'):ListView.separated(padding:const EdgeInsets.symmetric(vertical:4),itemCount:debtView.length,separatorBuilder:(_,__)=>const Divider(height:1,indent:60),itemBuilder:(_,i)=>_debtRow(debtView[i]))),
-      _pager(total: items.length, page: debtPageNow, pageSize: _debtPageSize, unit: 'khoản', onChanged: (p){setState(()=>_debtPage=p);}),
-    ]));
-  }
-
-  Widget _debtRow(FinanceV2DebtItem d) {
-    final pct=d.total>0?d.paid/d.total:0.0;
-    final age=DateTime.now().difference(DateTime.fromMillisecondsSinceEpoch(d.createdAt)).inDays;
-    return ListTile(
-      leading:EntityAvatar(imageUrl:d.avatarUrl,name:d.name,radius:20,tappableToView:false),
-      title:Text(d.name,style:FinanceV2Theme.bodyMd,maxLines:1,overflow:TextOverflow.ellipsis),
-      subtitle:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('Còn lại: ${_cmp(d.remaining)} . $age ngày',style:FinanceV2Theme.micro),const SizedBox(height:3),ClipRRect(borderRadius:BorderRadius.circular(4),child:LinearProgressIndicator(value:pct.clamp(0.0,1.0),minHeight:4,backgroundColor:const Color(0xFFEEF1F7),valueColor:AlwaysStoppedAnimation(_showRec?FinanceV2Theme.warn:FinanceV2Theme.negative)))]),
-      trailing:Text(_cmp(d.remaining),style:FinanceV2Theme.bodyMd.copyWith(fontWeight:FontWeight.w700,color:_showRec?FinanceV2Theme.warn:FinanceV2Theme.negative)),
-      onTap:()=>Navigator.push(context,MaterialPageRoute(builder:(_)=>const DebtView())),
+    final total = _showRec ? s.receivableTotal : s.payableTotal;
+    return ResponsiveCenter(
+      child: Column(
+        children: [
+          Container(
+            color: AppColors.surface,
+            padding: EdgeInsets.fromLTRB(_hPad, 8, _hPad, 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => setState(() {
+                      _showRec = true;
+                      _debtPage = 1;
+                    }),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 9,
+                        horizontal: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _showRec
+                            ? FinanceV2Theme.warn
+                            : const Color(0xFFF0F3F9),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        'Phải thu  ${_cmp(s.receivableTotal)}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: FinanceV2Theme.bodyMd.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: _showRec
+                              ? AppColors.surface
+                              : FinanceV2Theme.subInk,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => setState(() {
+                      _showRec = false;
+                      _debtPage = 1;
+                    }),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 9,
+                        horizontal: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: !_showRec
+                            ? FinanceV2Theme.negative
+                            : const Color(0xFFF0F3F9),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        'Phải trả  ${_cmp(s.payableTotal)}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: FinanceV2Theme.bodyMd.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: !_showRec
+                              ? AppColors.surface
+                              : FinanceV2Theme.subInk,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (_showRec && s.totalDebtAging > 0)
+            Container(
+              color: AppColors.surface,
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _aging(
+                      '0-30 ngày',
+                      s.debtAging['0-30'] ?? 0,
+                      FinanceV2Theme.positive,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: _aging(
+                      '31-60 ngày',
+                      s.debtAging['30-60'] ?? 0,
+                      FinanceV2Theme.warn,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: _aging(
+                      '>60 ngày',
+                      s.debtAging['>60'] ?? 0,
+                      FinanceV2Theme.negative,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          Container(
+            color: const Color(0xFFF8F9FA),
+            padding: EdgeInsets.fromLTRB(_hPad, 6, _hPad, 6),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '${items.length} khoản • Trang $debtPageNow/$debtPageMax · Tổng: ${_full(total)}',
+                    style: FinanceV2Theme.meta,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(
+                    Icons.download_rounded,
+                    color: FinanceV2Theme.accent,
+                    size: 20,
+                  ),
+                  tooltip: 'Xuất Excel',
+                  onPressed: () => _exDebt(items),
+                ),
+              ],
+            ),
+          ),
+          Container(height: 1, color: const Color(0xFFEEF1F7)),
+          Expanded(
+            child: items.isEmpty
+                ? _empty(
+                    _showRec
+                        ? 'Không có khoản phải thu'
+                        : 'Không có khoản phải trả',
+                  )
+                : ListView.separated(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    itemCount: debtView.length,
+                    separatorBuilder: (_, __) =>
+                        const Divider(height: 1, indent: 60),
+                    itemBuilder: (_, i) => _debtRow(debtView[i]),
+                  ),
+          ),
+          _pager(
+            total: items.length,
+            page: debtPageNow,
+            pageSize: _debtPageSize,
+            unit: 'khoản',
+            onChanged: (p) {
+              setState(() => _debtPage = p);
+            },
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _aging(String lbl,int amt,Color c) => Container(
-    padding:const EdgeInsets.symmetric(vertical:8,horizontal:6),
-    decoration:BoxDecoration(color:c.withValues(alpha:0.07),borderRadius:BorderRadius.circular(8),border:Border.all(color:c.withValues(alpha:0.3))),
-    child:Column(children:[Text(lbl,style:FinanceV2Theme.micro.copyWith(color:c),textAlign:TextAlign.center),const SizedBox(height:2),Text(_cmp(amt),style:FinanceV2Theme.bodySm.copyWith(fontWeight:FontWeight.w700,color:c))]));
+  Widget _debtRow(FinanceV2DebtItem d) {
+    final pct = d.total > 0 ? d.paid / d.total : 0.0;
+    final age = DateTime.now()
+        .difference(DateTime.fromMillisecondsSinceEpoch(d.createdAt))
+        .inDays;
+    return ListTile(
+      leading: EntityAvatar(
+        imageUrl: d.avatarUrl,
+        name: d.name,
+        radius: 20,
+        tappableToView: false,
+      ),
+      title: Text(
+        d.name,
+        style: FinanceV2Theme.bodyMd,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Còn lại: ${_cmp(d.remaining)} . $age ngày',
+            style: FinanceV2Theme.micro,
+          ),
+          const SizedBox(height: 3),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: pct.clamp(0.0, 1.0),
+              minHeight: 4,
+              backgroundColor: const Color(0xFFEEF1F7),
+              valueColor: AlwaysStoppedAnimation(
+                _showRec ? FinanceV2Theme.warn : FinanceV2Theme.negative,
+              ),
+            ),
+          ),
+        ],
+      ),
+      trailing: Text(
+        _cmp(d.remaining),
+        style: FinanceV2Theme.bodyMd.copyWith(
+          fontWeight: FontWeight.w700,
+          color: _showRec ? FinanceV2Theme.warn : FinanceV2Theme.negative,
+        ),
+      ),
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const DebtView()),
+      ),
+    );
+  }
+
+  Widget _aging(String lbl, int amt, Color c) => Container(
+    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
+    decoration: BoxDecoration(
+      color: c.withValues(alpha: 0.07),
+      borderRadius: BorderRadius.circular(8),
+      border: Border.all(color: c.withValues(alpha: 0.3)),
+    ),
+    child: Column(
+      children: [
+        Text(
+          lbl,
+          style: FinanceV2Theme.micro.copyWith(color: c),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 2),
+        Text(
+          _cmp(amt),
+          style: FinanceV2Theme.bodySm.copyWith(
+            fontWeight: FontWeight.w700,
+            color: c,
+          ),
+        ),
+      ],
+    ),
+  );
 
   // TAB 4
   Widget _t4() {
-    final s=_snap; if(s==null) return _empty('Không có dữ liệu');
-    final all=_timelineCache;
-    var ents=all;
-    if(_tlSrc!='ALL'){ents=ents.where((e){if(_tlSrc=='TRANSACTION') return ['SALE','REPAIR','EXPENSE','INCOME','DEBT_COLLECT','DEBT_PAY'].contains(e.type);if(_tlSrc=='DEBT') return e.type=='DEBT_COLLECT'||e.type=='DEBT_PAY';if(_tlSrc=='AUDIT') return e.type=='AUDIT';return true;}).toList();}
-    if(_tlDir=='IN') {
-      ents=ents.where((e)=>e.isIncome).toList();
+    final s = _snap;
+    if (s == null) return _empty('Không có dữ liệu');
+    final all = _timelineCache;
+    var ents = all;
+    if (_tlSrc != 'ALL') {
+      ents = ents.where((e) {
+        if (_tlSrc == 'TRANSACTION')
+          return [
+            'SALE',
+            'REPAIR',
+            'EXPENSE',
+            'INCOME',
+            'DEBT_COLLECT',
+            'DEBT_PAY',
+          ].contains(e.type);
+        if (_tlSrc == 'DEBT')
+          return e.type == 'DEBT_COLLECT' || e.type == 'DEBT_PAY';
+        if (_tlSrc == 'AUDIT') return e.type == 'AUDIT';
+        return true;
+      }).toList();
     }
-    else if(_tlDir=='OUT') {
-      ents=ents.where((e)=>!e.isIncome).toList();
+    if (_tlDir == 'IN') {
+      ents = ents.where((e) => e.isIncome).toList();
+    } else if (_tlDir == 'OUT') {
+      ents = ents.where((e) => !e.isIncome).toList();
     }
-    if(_tlHigh) ents=ents.where((e)=>e.amount>=1000000).toList();
-    if(_tlActor.isNotEmpty) ents=ents.where((e)=>e.actorName==_tlActor).toList();
-    if(_tlPm.isNotEmpty) ents=ents.where((e)=>e.paymentMethod==_tlPm).toList();
-    if(_tlQ.isNotEmpty){final q=_tlQ.toLowerCase();ents=ents.where((e)=>e.title.toLowerCase().contains(q)||e.subtitle.toLowerCase().contains(q)||(e.actorName??'').toLowerCase().contains(q)).toList();}
+    if (_tlHigh) ents = ents.where((e) => e.amount >= 1000000).toList();
+    if (_tlActor.isNotEmpty)
+      ents = ents.where((e) => e.actorName == _tlActor).toList();
+    if (_tlPm.isNotEmpty)
+      ents = ents.where((e) => e.paymentMethod == _tlPm).toList();
+    if (_tlQ.isNotEmpty) {
+      final q = _tlQ.toLowerCase();
+      ents = ents
+          .where(
+            (e) =>
+                e.title.toLowerCase().contains(q) ||
+                e.subtitle.toLowerCase().contains(q) ||
+                (e.actorName ?? '').toLowerCase().contains(q),
+          )
+          .toList();
+    }
     final timelinePageMax = _maxPage(ents.length, _timelinePageSize);
     final timelinePageNow = _timelinePage.clamp(1, timelinePageMax);
     final timelineView = _slicePage(ents, timelinePageNow, _timelinePageSize);
-    return ResponsiveCenter(child:Column(children:[
-      if (_timelineUsingAuditFallback)
-        Container(
-          width: double.infinity,
-          color: const Color(0xFFFFF8E1),
-          padding: EdgeInsets.fromLTRB(_hPad, 8, _hPad, 8),
-          child: Text(
-            'Nhật ký đang hiển thị từ log hệ thống do chưa có bản ghi nhật ký tài chính trong kỳ lọc.',
-            style: FinanceV2Theme.caption.copyWith(color: const Color(0xFF8D6E63)),
-          ),
-        ),
-      Container(
-        color: AppColors.surface,
-        padding: EdgeInsets.fromLTRB(_hPad, 6, _hPad, 0),
-        child: _sf(_tlCtrl,'Tìm trong nhật ký...',_tlQ,(){_tlCtrl.clear();setState(()=>_tlQ='');}),
-      ),
-      Container(
-        color: const Color(0xFFF8F9FA),
-        padding: EdgeInsets.fromLTRB(_hPad, 6, _hPad, 6),
-        child: Row(
-          children: [
-            Expanded(
+    return ResponsiveCenter(
+      child: Column(
+        children: [
+          if (_timelineUsingAuditFallback)
+            Container(
+              width: double.infinity,
+              color: const Color(0xFFFFF8E1),
+              padding: EdgeInsets.fromLTRB(_hPad, 8, _hPad, 8),
               child: Text(
-                '${ents.length} mục • Trang $timelinePageNow/$timelinePageMax • Nguồn: ${_tlSrc == 'ALL' ? 'Tất cả' : _ft(_tlSrc)} • Hướng: ${_tlDir == 'ALL' ? 'Tất cả' : (_tlDir == 'IN' ? 'Thu vào' : 'Chi ra')}',
-                style: FinanceV2Theme.meta,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+                'Nhật ký đang hiển thị từ log hệ thống do chưa có bản ghi nhật ký tài chính trong kỳ lọc.',
+                style: FinanceV2Theme.caption.copyWith(
+                  color: const Color(0xFF8D6E63),
+                ),
               ),
             ),
-            IconButton(icon:const Icon(Icons.download_rounded,color:FinanceV2Theme.accent,size:20),tooltip:'Xuất Excel',onPressed:()=>_exTL(ents)),
-          ],
-        ),
+          Container(
+            color: AppColors.surface,
+            padding: EdgeInsets.fromLTRB(_hPad, 6, _hPad, 0),
+            child: _sf(_tlCtrl, 'Tìm trong nhật ký...', _tlQ, () {
+              _tlCtrl.clear();
+              setState(() => _tlQ = '');
+            }),
+          ),
+          Container(
+            color: const Color(0xFFF8F9FA),
+            padding: EdgeInsets.fromLTRB(_hPad, 6, _hPad, 6),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '${ents.length} mục • Trang $timelinePageNow/$timelinePageMax • Nguồn: ${_tlSrc == 'ALL' ? 'Tất cả' : _ft(_tlSrc)} • Hướng: ${_tlDir == 'ALL' ? 'Tất cả' : (_tlDir == 'IN' ? 'Thu vào' : 'Chi ra')}',
+                    style: FinanceV2Theme.meta,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(
+                    Icons.download_rounded,
+                    color: FinanceV2Theme.accent,
+                    size: 20,
+                  ),
+                  tooltip: 'Xuất Excel',
+                  onPressed: () => _exTL(ents),
+                ),
+              ],
+            ),
+          ),
+          Container(height: 1, color: const Color(0xFFEEF1F7)),
+          Expanded(
+            child: ents.isEmpty
+                ? _empty('Không có nhật ký phù hợp')
+                : ListView.separated(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    itemCount: timelineView.length,
+                    separatorBuilder: (_, __) =>
+                        const Divider(height: 1, indent: 60),
+                    itemBuilder: (_, i) => _tlRow(timelineView[i]),
+                  ),
+          ),
+          _pager(
+            total: ents.length,
+            page: timelinePageNow,
+            pageSize: _timelinePageSize,
+            unit: 'mục',
+            onChanged: (p) {
+              setState(() => _timelinePage = p);
+            },
+          ),
+        ],
       ),
-      Container(height:1,color:const Color(0xFFEEF1F7)),
-      Expanded(child:ents.isEmpty?_empty('Không có nhật ký phù hợp'):ListView.separated(padding:const EdgeInsets.symmetric(vertical:4),itemCount:timelineView.length,separatorBuilder:(_,__)=>const Divider(height:1,indent:60),itemBuilder:(_,i)=>_tlRow(timelineView[i]))),
-      _pager(total: ents.length, page: timelinePageNow, pageSize: _timelinePageSize, unit: 'mục', onChanged: (p){setState(()=>_timelinePage=p);}),
-    ]));
+    );
   }
 
   List<_TLEntry> _timeline(FinanceV2Snapshot s) {
-    final ents=<_TLEntry>[];
-    for(final t in s.transactions) {
-      ents.add(_TLEntry(ts:t.createdAt,type:t.type,title:t.title,subtitle:t.subtitle,amount:t.amount,isIncome:t.isIncome,avatarUrl:t.avatarUrl,actorName:t.actorName,paymentMethod:t.paymentMethod,referenceId:t.referenceId));
+    final ents = <_TLEntry>[];
+    for (final t in s.transactions) {
+      ents.add(
+        _TLEntry(
+          ts: t.createdAt,
+          type: t.type,
+          title: t.title,
+          subtitle: t.subtitle,
+          amount: t.amount,
+          isIncome: t.isIncome,
+          avatarUrl: t.avatarUrl,
+          actorName: t.actorName,
+          paymentMethod: t.paymentMethod,
+          referenceId: t.referenceId,
+        ),
+      );
     }
-    for(final log in s.auditLogs){
-      final ts=_ti(log['createdAt']);final actor=(log['createdBy']??log['actorName']??'').toString();final ref=(log['referenceId']??log['firestoreId']??'').toString();
+    for (final log in s.auditLogs) {
+      final ts = _ti(log['createdAt']);
+      final actor = (log['createdBy'] ?? log['actorName'] ?? '').toString();
+      final ref = (log['referenceId'] ?? log['firestoreId'] ?? '').toString();
       // Dùng 'title' (text có sẵn) hoặc fallback về 'activityType' — field 'action' không tồn tại trong financial_activity_log
-      final title=((log['title']??log['activityType']??'').toString()).trim();
+      final title = ((log['title'] ?? log['activityType'] ?? '').toString())
+          .trim();
       if (title.isEmpty) continue;
-      ents.add(_TLEntry(ts:ts,type:'AUDIT',title:title,subtitle:(log['description']??'').toString(),amount:_ti(log['amount']),isIncome:(log['direction']??'').toString()=='IN',actorName:actor.isNotEmpty?actor:null,referenceId:ref.isNotEmpty?ref:null));
+      ents.add(
+        _TLEntry(
+          ts: ts,
+          type: 'AUDIT',
+          title: title,
+          subtitle: (log['description'] ?? '').toString(),
+          amount: _ti(log['amount']),
+          isIncome: (log['direction'] ?? '').toString() == 'IN',
+          actorName: actor.isNotEmpty ? actor : null,
+          referenceId: ref.isNotEmpty ? ref : null,
+        ),
+      );
     }
-    ents.sort((a,b)=>b.ts.compareTo(a.ts)); return ents;
+    ents.sort((a, b) => b.ts.compareTo(a.ts));
+    return ents;
   }
 
   bool _isFinanceRelatedAuditAction(String action) {
@@ -1464,18 +2817,27 @@ class _FinanceV2ViewState extends State<FinanceV2View>
       'update_purchase': 'Cập nhật nhập hàng',
     };
     final normalized = action.trim().toLowerCase();
-    return labels[normalized] ?? (normalized.isEmpty ? 'Hoạt động tài chính' : normalized);
+    return labels[normalized] ??
+        (normalized.isEmpty ? 'Hoạt động tài chính' : normalized);
   }
 
-  Future<(List<_TLEntry>, bool)> _buildTimelineCache(FinanceV2Snapshot snapshot) async {
+  Future<(List<_TLEntry>, bool)> _buildTimelineCache(
+    FinanceV2Snapshot snapshot,
+  ) async {
     final primary = _timeline(snapshot);
     if (primary.isNotEmpty) {
       return (primary, false);
     }
 
     final startMs = _start.millisecondsSinceEpoch;
-    final endMs = DateTime(_end.year, _end.month, _end.day, 23, 59, 59)
-        .millisecondsSinceEpoch;
+    final endMs = DateTime(
+      _end.year,
+      _end.month,
+      _end.day,
+      23,
+      59,
+      59,
+    ).millisecondsSinceEpoch;
     final auditLogs = await _db.getAuditLogs(limit: 500);
     final fallback = <_TLEntry>[];
 
@@ -1487,7 +2849,9 @@ class _FinanceV2ViewState extends State<FinanceV2View>
 
       final description = (row['description'] ?? '').toString().trim();
       final actor = (row['userName'] ?? '').toString().trim();
-      final ref = (row['targetId'] ?? row['firestoreId'] ?? '').toString().trim();
+      final ref = (row['targetId'] ?? row['firestoreId'] ?? '')
+          .toString()
+          .trim();
 
       fallback.add(
         _TLEntry(
@@ -1508,24 +2872,74 @@ class _FinanceV2ViewState extends State<FinanceV2View>
   }
 
   Widget _tlRow(_TLEntry e) {
-    final dt=DateFormat('dd/MM HH:mm').format(DateTime.fromMillisecondsSinceEpoch(e.ts));
-    final isA=e.type=='AUDIT';
+    final dt = DateFormat(
+      'dd/MM HH:mm',
+    ).format(DateTime.fromMillisecondsSinceEpoch(e.ts));
+    final isA = e.type == 'AUDIT';
     return ListTile(
-      leading:isA?CircleAvatar(radius:20,backgroundColor:FinanceV2Theme.accent.withValues(alpha:0.1),child:const Icon(Icons.history_rounded,size:18,color:FinanceV2Theme.accent)):EntityAvatar(imageUrl:e.avatarUrl,name:e.title,radius:20,tappableToView:false),
-      title:Row(children:[Expanded(child:Text(e.title,style:FinanceV2Theme.bodyMd,maxLines:1,overflow:TextOverflow.ellipsis)),if(!isA) _tag(e.type)]),
-      subtitle:(e.subtitle.trim().isEmpty && (isA || e.actorName==null))
+      leading: isA
+          ? CircleAvatar(
+              radius: 20,
+              backgroundColor: FinanceV2Theme.accent.withValues(alpha: 0.1),
+              child: const Icon(
+                Icons.history_rounded,
+                size: 18,
+                color: FinanceV2Theme.accent,
+              ),
+            )
+          : EntityAvatar(
+              imageUrl: e.avatarUrl,
+              name: e.title,
+              radius: 20,
+              tappableToView: false,
+            ),
+      title: Row(
+        children: [
+          Expanded(
+            child: Text(
+              e.title,
+              style: FinanceV2Theme.bodyMd,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          if (!isA) _tag(e.type),
+        ],
+      ),
+      subtitle: (e.subtitle.trim().isEmpty && (isA || e.actorName == null))
           ? null
           : Column(
-              crossAxisAlignment:CrossAxisAlignment.start,
-              children:[
-                if(e.subtitle.trim().isNotEmpty)
-                  Text(e.subtitle,style:FinanceV2Theme.micro,maxLines:1,overflow:TextOverflow.ellipsis),
-                if(e.actorName!=null&&!isA)
-                  Text(e.actorName!,style:FinanceV2Theme.caption),
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (e.subtitle.trim().isNotEmpty)
+                  Text(
+                    e.subtitle,
+                    style: FinanceV2Theme.micro,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                if (e.actorName != null && !isA)
+                  Text(e.actorName!, style: FinanceV2Theme.caption),
               ],
             ),
-      trailing:Column(crossAxisAlignment:CrossAxisAlignment.end,mainAxisAlignment:MainAxisAlignment.center,children:[if(!isA&&e.amount>0)Text('${e.isIncome?"+":"-"}${_cmp(e.amount)}',style:FinanceV2Theme.bodyMd.copyWith(fontWeight:FontWeight.w600,color:e.isIncome?FinanceV2Theme.positive:FinanceV2Theme.negative)),Text(dt,style:FinanceV2Theme.caption)]),
-      onTap:isA?null:()=>_openTL(e),
+      trailing: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          if (!isA && e.amount > 0)
+            Text(
+              '${e.isIncome ? "+" : "-"}${_cmp(e.amount)}',
+              style: FinanceV2Theme.bodyMd.copyWith(
+                fontWeight: FontWeight.w600,
+                color: e.isIncome
+                    ? FinanceV2Theme.positive
+                    : FinanceV2Theme.negative,
+              ),
+            ),
+          Text(dt, style: FinanceV2Theme.caption),
+        ],
+      ),
+      onTap: isA ? null : () => _openTL(e),
     );
   }
 
@@ -1616,11 +3030,17 @@ class _FinanceV2ViewState extends State<FinanceV2View>
       (expense['note'] ?? '').toString(),
       (expense['title'] ?? '').toString(),
     ].join(' | ');
-    final slMatch = RegExp(r'SL\s*[:=]?\s*(\d+)', caseSensitive: false).firstMatch(source);
+    final slMatch = RegExp(
+      r'SL\s*[:=]?\s*(\d+)',
+      caseSensitive: false,
+    ).firstMatch(source);
     if (slMatch != null) {
       return int.tryParse(slMatch.group(1)!) ?? 1;
     }
-    final qtyMatch = RegExp(r'X\s*(\d+)', caseSensitive: false).firstMatch(source);
+    final qtyMatch = RegExp(
+      r'X\s*(\d+)',
+      caseSensitive: false,
+    ).firstMatch(source);
     if (qtyMatch != null) {
       return int.tryParse(qtyMatch.group(1)!) ?? 1;
     }
@@ -1628,7 +3048,10 @@ class _FinanceV2ViewState extends State<FinanceV2View>
   }
 
   bool _shouldSkipDebtCreationLog(Map<String, dynamic> debt) {
-    final linkedType = (debt['linkedType'] ?? '').toString().trim().toLowerCase();
+    final linkedType = (debt['linkedType'] ?? '')
+        .toString()
+        .trim()
+        .toLowerCase();
     final linkedId = (debt['linkedId'] ?? '').toString().trim().toLowerCase();
     final relatedPartId = (debt['relatedPartId'] ?? '').toString().trim();
 
@@ -1648,8 +3071,14 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     if (qtyMatch != null) {
       value = qtyMatch.group(1)!.trim();
     }
-    value = value.replaceAll(RegExp(r'\s*\(TẶNG\)\s*$', caseSensitive: false), '');
-    value = value.replaceAll(RegExp(r'\s*\(GIẢM\s+[\d,.]+\)\s*$', caseSensitive: false), '');
+    value = value.replaceAll(
+      RegExp(r'\s*\(TẶNG\)\s*$', caseSensitive: false),
+      '',
+    );
+    value = value.replaceAll(
+      RegExp(r'\s*\(GIẢM\s+[\d,.]+\)\s*$', caseSensitive: false),
+      '',
+    );
     return value.trim();
   }
 
@@ -1688,7 +3117,7 @@ class _FinanceV2ViewState extends State<FinanceV2View>
         'quantity': totalQty,
         'price': sale.finalPrice,
         'cost': sale.totalCost,
-      }
+      },
     ];
   }
 
@@ -1743,14 +3172,27 @@ class _FinanceV2ViewState extends State<FinanceV2View>
 
   Future<List<Map<String, dynamic>>> _buildDetailedAuditLogEntries() async {
     final startMs = _start.millisecondsSinceEpoch;
-    final endMs = DateTime(_end.year, _end.month, _end.day, 23, 59, 59).millisecondsSinceEpoch;
+    final endMs = DateTime(
+      _end.year,
+      _end.month,
+      _end.day,
+      23,
+      59,
+      59,
+    ).millisecondsSinceEpoch;
     final sales = await _db.getSalesByDateRange(startMs, endMs);
     final repairs = await _db.getDeliveredRepairsByDateRange(startMs, endMs);
     final expenses = await _db.getExpensesByDateRange(startMs, endMs);
     final debts = await _db.getDebtsByDateRange(startMs, endMs);
-    final debtPayments = await _db.getDebtPaymentsForCashFlowByDateRange(startMs, endMs);
+    final debtPayments = await _db.getDebtPaymentsForCashFlowByDateRange(
+      startMs,
+      endMs,
+    );
     final salesReturns = await _db.getSalesReturnsByDateRange(startMs, endMs);
-    final importHistory = await _db.getAllImportHistoryByDateRange(startMs, endMs);
+    final importHistory = await _db.getAllImportHistoryByDateRange(
+      startMs,
+      endMs,
+    );
 
     final entries = <Map<String, dynamic>>[];
 
@@ -1777,9 +3219,13 @@ class _FinanceV2ViewState extends State<FinanceV2View>
         saleTransferIn = sale.transferAmount;
       } else if (method == 'INSTALLMENT') {
         final downPaid = sale.downPayment > 0 ? sale.downPayment : 0;
-        final settlement = sale.settlementAmount > 0 ? sale.settlementAmount : 0;
+        final settlement = sale.settlementAmount > 0
+            ? sale.settlementAmount
+            : 0;
         recognizedAmount = (downPaid + settlement).clamp(0, sale.finalPrice);
-        final downMethod = _auditPaymentMethod(sale.downPaymentMethod ?? sale.paymentMethod);
+        final downMethod = _auditPaymentMethod(
+          sale.downPaymentMethod ?? sale.paymentMethod,
+        );
         if (downMethod == 'CASH') {
           saleCashIn = downPaid;
           saleTransferIn = settlement; // NH thanh toán qua chuyển khoản
@@ -1788,7 +3234,8 @@ class _FinanceV2ViewState extends State<FinanceV2View>
         }
         final loan1 = sale.loanAmount;
         final loan2 = sale.loanAmount2;
-        debtCustomerChangeForSale = (sale.finalPrice - downPaid - loan1 - loan2).clamp(0, sale.finalPrice);
+        debtCustomerChangeForSale = (sale.finalPrice - downPaid - loan1 - loan2)
+            .clamp(0, sale.finalPrice);
       } else {
         // Bán công nợ: không vào quỹ ngay, ghi tăng phải thu khách
         recognizedAmount = 0;
@@ -1798,7 +3245,8 @@ class _FinanceV2ViewState extends State<FinanceV2View>
       // REVENUE COST: Tỉ lệ theo recognizedAmount/finalPrice (khớp với recognizedCost của data service)
       int revenueCost = 0;
       if (recognizedAmount > 0 && sale.totalCost > 0 && sale.finalPrice > 0) {
-        revenueCost = ((sale.totalCost * recognizedAmount) / sale.finalPrice).round();
+        revenueCost = ((sale.totalCost * recognizedAmount) / sale.finalPrice)
+            .round();
         revenueCost = revenueCost.clamp(0, sale.totalCost);
         revenueCost = revenueCost.clamp(0, recognizedAmount);
       }
@@ -1823,28 +3271,48 @@ class _FinanceV2ViewState extends State<FinanceV2View>
           lineCostTotal += (revenueCost - distributedCost);
         }
         final lineUnitPrice = qty > 0 ? (lineAmount / qty).round() : lineAmount;
-        final lineUnitCost = qty > 0 ? (lineCostTotal / qty).round() : lineCostTotal;
+        final lineUnitCost = qty > 0
+            ? (lineCostTotal / qty).round()
+            : lineCostTotal;
         int cashIn = saleCashIn;
         int transferIn = saleTransferIn;
         int debtCustomerChange = debtCustomerChangeForSale;
         if (lines.length > 1) {
-          final ratio = sale.finalPrice > 0 ? (baseAmount / sale.finalPrice) : 0;
+          final ratio = sale.finalPrice > 0
+              ? (baseAmount / sale.finalPrice)
+              : 0;
           cashIn = (saleCashIn * ratio).round();
           transferIn = (saleTransferIn * ratio).round();
           debtCustomerChange = (debtCustomerChangeForSale * ratio).round();
           if (line == lines.last) {
             final allocatedCash = entries
-                .where((e) => e['referenceId'] == saleRef && e['actionType'] == 'SALE')
+                .where(
+                  (e) =>
+                      e['referenceId'] == saleRef && e['actionType'] == 'SALE',
+                )
                 .fold<int>(0, (sum, e) => sum + ((e['cashIn'] as int?) ?? 0));
             final allocatedTransfer = entries
-                .where((e) => e['referenceId'] == saleRef && e['actionType'] == 'SALE')
-                .fold<int>(0, (sum, e) => sum + ((e['transferIn'] as int?) ?? 0));
+                .where(
+                  (e) =>
+                      e['referenceId'] == saleRef && e['actionType'] == 'SALE',
+                )
+                .fold<int>(
+                  0,
+                  (sum, e) => sum + ((e['transferIn'] as int?) ?? 0),
+                );
             final allocatedDebt = entries
-                .where((e) => e['referenceId'] == saleRef && e['actionType'] == 'SALE')
-                .fold<int>(0, (sum, e) => sum + ((e['debtCustomerChange'] as int?) ?? 0));
+                .where(
+                  (e) =>
+                      e['referenceId'] == saleRef && e['actionType'] == 'SALE',
+                )
+                .fold<int>(
+                  0,
+                  (sum, e) => sum + ((e['debtCustomerChange'] as int?) ?? 0),
+                );
             cashIn += saleCashIn - allocatedCash - cashIn;
             transferIn += saleTransferIn - allocatedTransfer - transferIn;
-            debtCustomerChange += debtCustomerChangeForSale - allocatedDebt - debtCustomerChange;
+            debtCustomerChange +=
+                debtCustomerChangeForSale - allocatedDebt - debtCustomerChange;
           }
         }
         entries.add({
@@ -1887,8 +3355,13 @@ class _FinanceV2ViewState extends State<FinanceV2View>
       final salesReturnId = (ret['id'] as num?)?.toInt();
       if (salesReturnId == null) continue;
       final items = await _db.getSalesReturnItems(salesReturnId);
-      final method = _auditPaymentMethod((ret['refundMethod'] ?? '').toString());
-      final ts = (ret['returnDate'] as num?)?.toInt() ?? (ret['createdAt'] as num?)?.toInt() ?? 0;
+      final method = _auditPaymentMethod(
+        (ret['refundMethod'] ?? '').toString(),
+      );
+      final ts =
+          (ret['returnDate'] as num?)?.toInt() ??
+          (ret['createdAt'] as num?)?.toInt() ??
+          0;
       final ref = (ret['firestoreId'] ?? ret['id'] ?? '').toString();
       final customer = (ret['customerName'] ?? '').toString();
       final note = (ret['note'] ?? '').toString();
@@ -1940,7 +3413,8 @@ class _FinanceV2ViewState extends State<FinanceV2View>
             debtCustomerChange: debtCustomerChange,
             inventoryChange: qty,
             actorName: (ret['createdBy'] ?? '').toString(),
-            description: 'Trả hàng ${note.isNotEmpty ? '- $note' : ''} | KH: $customer',
+            description:
+                'Trả hàng ${note.isNotEmpty ? '- $note' : ''} | KH: $customer',
           ),
         });
       }
@@ -1995,14 +3469,19 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     final importAggregates = <String, Map<String, dynamic>>{};
 
     for (final item in importHistory) {
-      final rawRef = (item['referenceId'] ?? item['firestoreId'] ?? item['id'] ?? '').toString();
-      final canonicalRef = _canonicalImportReference(rawRef.isNotEmpty ? rawRef : (item['firestoreId'] ?? '').toString());
+      final rawRef =
+          (item['referenceId'] ?? item['firestoreId'] ?? item['id'] ?? '')
+              .toString();
+      final canonicalRef = _canonicalImportReference(
+        rawRef.isNotEmpty ? rawRef : (item['firestoreId'] ?? '').toString(),
+      );
       final aggregateKey = canonicalRef.isNotEmpty
           ? canonicalRef
           : '${(item['supplierName'] ?? '').toString()}|${(item['importDate'] ?? item['createdAt'] ?? 0).toString()}';
       final qty = (item['quantity'] as num?)?.toInt() ?? 0;
       final costPrice = (item['costPrice'] as num?)?.toInt() ?? 0;
-      final totalAmount = (item['totalAmount'] as num?)?.toInt() ?? costPrice * qty;
+      final totalAmount =
+          (item['totalAmount'] as num?)?.toInt() ?? costPrice * qty;
       final existing = importAggregates.putIfAbsent(
         aggregateKey,
         () => <String, dynamic>{
@@ -2014,15 +3493,21 @@ class _FinanceV2ViewState extends State<FinanceV2View>
           'paymentMethod': (item['paymentMethod'] ?? '').toString(),
           'supplierName': (item['supplierName'] ?? 'NCC').toString(),
           'importedBy': (item['importedBy'] ?? '').toString(),
-          'ts': (item['importDate'] as num?)?.toInt() ?? (item['createdAt'] as num?)?.toInt() ?? 0,
+          'ts':
+              (item['importDate'] as num?)?.toInt() ??
+              (item['createdAt'] as num?)?.toInt() ??
+              0,
         },
       );
-      (existing['productNames'] as List<String>).add((item['productName'] ?? '').toString());
+      (existing['productNames'] as List<String>).add(
+        (item['productName'] ?? '').toString(),
+      );
       final imei = (item['imei'] ?? '').toString();
       if (imei.isNotEmpty) {
         (existing['imeis'] as List<String>).add(imei);
       }
-      existing['quantity'] = (existing['quantity'] as int) + (qty > 0 ? qty : 1);
+      existing['quantity'] =
+          (existing['quantity'] as int) + (qty > 0 ? qty : 1);
       existing['totalAmount'] = (existing['totalAmount'] as int) + totalAmount;
       if (((existing['paymentMethod'] ?? '').toString()).isEmpty) {
         existing['paymentMethod'] = (item['paymentMethod'] ?? '').toString();
@@ -2034,7 +3519,9 @@ class _FinanceV2ViewState extends State<FinanceV2View>
       final qty = (aggregate['quantity'] as int?) ?? 0;
       final totalAmount = (aggregate['totalAmount'] as int?) ?? 0;
       final unitCost = qty > 0 ? (totalAmount / qty).round() : totalAmount;
-      final method = _auditPaymentMethod((aggregate['paymentMethod'] ?? '').toString());
+      final method = _auditPaymentMethod(
+        (aggregate['paymentMethod'] ?? '').toString(),
+      );
       int cashOut = 0;
       int transferOut = 0;
       int debtSupplierChange = 0;
@@ -2065,7 +3552,10 @@ class _FinanceV2ViewState extends State<FinanceV2View>
           timestamp: ts,
           actionType: 'IMPORT',
           referenceId: ref,
-          productName: ((aggregate['productNames'] as List<String>)..removeWhere((e) => e.trim().isEmpty)).join(', '),
+          productName:
+              ((aggregate['productNames'] as List<String>)
+                    ..removeWhere((e) => e.trim().isEmpty))
+                  .join(', '),
           imei: (aggregate['imeis'] as List<String>).join(', '),
           quantity: qty,
           price: 0,
@@ -2078,14 +3568,17 @@ class _FinanceV2ViewState extends State<FinanceV2View>
           debtSupplierChange: debtSupplierChange,
           inventoryChange: qty,
           actorName: (aggregate['importedBy'] ?? '').toString(),
-          description: 'Nhập kho từ ${(aggregate['supplierName'] ?? 'NCC').toString()}',
+          description:
+              'Nhập kho từ ${(aggregate['supplierName'] ?? 'NCC').toString()}',
         ),
       });
     }
 
     for (final expense in expenses) {
       final type = (expense['type'] ?? 'CHI').toString().toUpperCase();
-      final method = _auditPaymentMethod((expense['paymentMethod'] ?? '').toString());
+      final method = _auditPaymentMethod(
+        (expense['paymentMethod'] ?? '').toString(),
+      );
       final amount = (expense['amount'] as num?)?.toInt() ?? 0;
       int cashIn = 0;
       int cashOut = 0;
@@ -2108,16 +3601,28 @@ class _FinanceV2ViewState extends State<FinanceV2View>
       final actionType = type == 'THU'
           ? 'OTHER_INCOME'
           : (isImport ? 'IMPORT' : 'OTHER_EXPENSE');
-      final ts = (expense['date'] as num?)?.toInt() ?? (expense['createdAt'] as num?)?.toInt() ?? 0;
+      final ts =
+          (expense['date'] as num?)?.toInt() ??
+          (expense['createdAt'] as num?)?.toInt() ??
+          0;
       final ref = (expense['firestoreId'] ?? expense['id'] ?? '').toString();
       final canonicalImportRef = _canonicalImportReference(ref);
-      if (isImport && canonicalImportRef.isNotEmpty && representedImportKeys.contains(canonicalImportRef)) {
+      if (isImport &&
+          canonicalImportRef.isNotEmpty &&
+          representedImportKeys.contains(canonicalImportRef)) {
         continue;
       }
-      final importQty = isImport ? _parseImportExpenseQuantity(expense) : (_isSalvageExpense(expense) ? 1 : 0);
-      final importUnitCost = isImport && importQty > 0 ? (amount / importQty).round() : amount;
+      final importQty = isImport
+          ? _parseImportExpenseQuantity(expense)
+          : (_isSalvageExpense(expense) ? 1 : 0);
+      final importUnitCost = isImport && importQty > 0
+          ? (amount / importQty).round()
+          : amount;
       entries.add({
-        'ts': (expense['date'] as num?)?.toInt() ?? (expense['createdAt'] as num?)?.toInt() ?? 0,
+        'ts':
+            (expense['date'] as num?)?.toInt() ??
+            (expense['createdAt'] as num?)?.toInt() ??
+            0,
         'actionType': actionType,
         'referenceId': ref,
         'cashIn': cashIn,
@@ -2126,35 +3631,64 @@ class _FinanceV2ViewState extends State<FinanceV2View>
         'transferOut': transferOut,
         'debtCustomerChange': 0,
         'debtSupplierChange': 0,
-        'inventoryChange': isImport ? importQty : (_isSalvageExpense(expense) ? 1 : 0),
+        'inventoryChange': isImport
+            ? importQty
+            : (_isSalvageExpense(expense) ? 1 : 0),
         'lineAmount': actionType == 'OTHER_INCOME' ? amount : 0,
-        'lineCostTotal': actionType == 'OTHER_EXPENSE' || actionType == 'IMPORT' ? amount : 0,
+        'lineCostTotal': actionType == 'OTHER_EXPENSE' || actionType == 'IMPORT'
+            ? amount
+            : 0,
         'row': _auditRow(
           timestamp: ts,
           actionType: actionType,
           referenceId: ref,
-          productName: isImport ? (expense['title'] ?? expense['category'] ?? '').toString() : '',
+          productName: isImport
+              ? (expense['title'] ?? expense['category'] ?? '').toString()
+              : '',
           quantity: isImport ? importQty : (_isSalvageExpense(expense) ? 1 : 0),
           cost: isImport ? importUnitCost : 0,
           lineAmount: actionType == 'OTHER_INCOME' ? amount : 0,
-          lineCostTotal: actionType == 'OTHER_EXPENSE' || actionType == 'IMPORT' ? amount : 0,
+          lineCostTotal: actionType == 'OTHER_EXPENSE' || actionType == 'IMPORT'
+              ? amount
+              : 0,
           cashIn: cashIn,
           cashOut: cashOut,
           transferIn: transferIn,
           transferOut: transferOut,
           paymentMethod: method,
-          inventoryChange: isImport ? importQty : (_isSalvageExpense(expense) ? 1 : 0),
+          inventoryChange: isImport
+              ? importQty
+              : (_isSalvageExpense(expense) ? 1 : 0),
           actorName: (expense['createdBy'] ?? '').toString(),
-          description: ((expense['title'] ?? '').toString().isNotEmpty ? expense['title'] : expense['category']).toString(),
+          description:
+              ((expense['title'] ?? '').toString().isNotEmpty
+                      ? expense['title']
+                      : expense['category'])
+                  .toString(),
         ),
       });
     }
 
     for (final payment in debtPayments) {
       final amount = (payment['amount'] as num?)?.toInt() ?? 0;
-      final method = _auditPaymentMethod((payment['paymentMethod'] ?? '').toString());
-      final debtType = (payment['resolvedDebtType'] ?? payment['debtType'] ?? '').toString().toUpperCase();
-      final isSupplier = debtType == 'SHOP_OWES' || debtType == 'OTHER_SHOP_OWES' || debtType == 'OWED';
+      final method = _auditPaymentMethod(
+        (payment['paymentMethod'] ?? '').toString(),
+      );
+      final hasLinkedDebtRecord = (payment['linkedDebtId'] as num?)?.toInt() != null;
+      final linkedDebtDeleted = (payment['linkedDebtDeleted'] as num?)?.toInt() ?? 0;
+      final linkedDebtIsActive = hasLinkedDebtRecord && linkedDebtDeleted == 0;
+      final linkedDebtType = (payment['linkedDebtType'] ?? '')
+          .toString()
+          .toUpperCase();
+      final linkedToSupplierDebt = _isSupplierDebtType(linkedDebtType);
+      final debtType =
+          (payment['resolvedDebtType'] ?? payment['debtType'] ?? '')
+              .toString()
+              .toUpperCase();
+      final isSupplier =
+          debtType == 'SHOP_OWES' ||
+          debtType == 'OTHER_SHOP_OWES' ||
+          debtType == 'OWED';
       int cashIn = 0;
       int cashOut = 0;
       int transferIn = 0;
@@ -2184,7 +3718,10 @@ class _FinanceV2ViewState extends State<FinanceV2View>
         'transferIn': transferIn,
         'transferOut': transferOut,
         'debtCustomerChange': isSupplier ? 0 : -amount,
-        'debtSupplierChange': isSupplier ? -amount : 0,
+        'debtSupplierChange':
+          (isSupplier && linkedDebtIsActive && linkedToSupplierDebt)
+            ? -amount
+            : 0,
         'inventoryChange': 0,
         'lineAmount': 0,
         'lineCostTotal': 0,
@@ -2198,7 +3735,10 @@ class _FinanceV2ViewState extends State<FinanceV2View>
           transferOut: transferOut,
           paymentMethod: method,
           debtCustomerChange: isSupplier ? 0 : -amount,
-          debtSupplierChange: isSupplier ? -amount : 0,
+            debtSupplierChange:
+              (isSupplier && linkedDebtIsActive && linkedToSupplierDebt)
+              ? -amount
+              : 0,
           description: isSupplier
               ? 'Trả nợ ${payment['debtPersonName'] ?? ''}'
               : 'Thu nợ ${payment['debtPersonName'] ?? ''}',
@@ -2207,7 +3747,9 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     }
 
     for (final debt in debts) {
-      final debtType = (debt['type'] ?? debt['debtType'] ?? '').toString().toUpperCase();
+      final debtType = (debt['type'] ?? debt['debtType'] ?? '')
+          .toString()
+          .toUpperCase();
       final isSupplier = _isSupplierDebtType(debtType);
 
       // Supplier debts must always be reflected in DEBT_CREATE to keep
@@ -2221,7 +3763,8 @@ class _FinanceV2ViewState extends State<FinanceV2View>
 
       final ts = (debt['createdAt'] as num?)?.toInt() ?? 0;
       final ref = (debt['firestoreId'] ?? debt['id'] ?? '').toString();
-      final personName = (debt['personName'] ?? debt['partnerName'] ?? '').toString();
+      final personName = (debt['personName'] ?? debt['partnerName'] ?? '')
+          .toString();
       final note = (debt['note'] ?? '').toString();
 
       entries.add({
@@ -2255,15 +3798,26 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     return entries;
   }
 
-  Future<(int customerOpening, int supplierOpening)> _loadOpeningDebtBalances() async {
+  Future<(int customerOpening, int supplierOpening)>
+  _loadOpeningDebtBalances() async {
     final startMs = _start.millisecondsSinceEpoch;
-    final endMs = DateTime(_end.year, _end.month, _end.day, 23, 59, 59).millisecondsSinceEpoch;
+    final endMs = DateTime(
+      _end.year,
+      _end.month,
+      _end.day,
+      23,
+      59,
+      59,
+    ).millisecondsSinceEpoch;
     final debts = await _db.getDebtsForFinanceSnapshot();
 
     // Lấy thanh toán TRONG KỲ để tính paidBeforeStart = paidAmount - inPeriodPaid.
     // Cách này đảm bảo opening nhất quán với snap.payableTotal (cùng dùng stored paidAmount),
     // tránh lệch khi paidAmount chưa sync đầy đủ vào bảng debt_payments.
-    final inPeriodPayments = await _db.getDebtPaymentsForCashFlowByDateRange(startMs, endMs);
+    final inPeriodPayments = await _db.getDebtPaymentsForCashFlowByDateRange(
+      startMs,
+      endMs,
+    );
     final inPeriodByKey = <String, int>{};
     for (final payment in inPeriodPayments) {
       final debtIdStr = (payment['debtId'] ?? '').toString().trim();
@@ -2285,15 +3839,29 @@ class _FinanceV2ViewState extends State<FinanceV2View>
         continue; // Nợ tạo trong kỳ → không tính vào đầu kỳ (nằm trong DEBT_CREATE flow)
       }
       final totalAmount = (debt['totalAmount'] as num?)?.toInt() ?? 0;
+      if (totalAmount <= 0) {
+        continue;
+      }
       final storedPaid = (debt['paidAmount'] as num?)?.toInt() ?? 0;
       final debtKey = (debt['firestoreId'] ?? debt['id'] ?? '').toString();
       // paidBeforeStart = storedPaid - inPeriodPaid
       // → algebraically consistent với snap.payableTotal (đều dùng stored paidAmount làm gốc)
       final inPeriodPaid = inPeriodByKey[debtKey] ?? 0;
       final paidBeforeStart = (storedPaid - inPeriodPaid).clamp(0, totalAmount);
-      final openingRemaining = (totalAmount - paidBeforeStart).clamp(0, totalAmount);
-      final debtType = (debt['type'] ?? debt['debtType'] ?? '').toString().toUpperCase();
-      final isPayable = debtType == 'SHOP_OWES' || debtType == 'OTHER_SHOP_OWES' || debtType == 'OWED';
+      final openingRemaining = (totalAmount - paidBeforeStart).clamp(
+        0,
+        totalAmount,
+      );
+      if (openingRemaining <= 0) {
+        continue;
+      }
+      final debtType = (debt['type'] ?? debt['debtType'] ?? '')
+          .toString()
+          .toUpperCase();
+      final isPayable =
+          debtType == 'SHOP_OWES' ||
+          debtType == 'OTHER_SHOP_OWES' ||
+          debtType == 'OWED';
       if (isPayable) {
         supplierOpening += openingRemaining;
       } else {
@@ -2304,14 +3872,17 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     return (customerOpening, supplierOpening);
   }
 
-  Future<FinanceV2ReconciliationReportInput> _reportInputFromSnapshot(FinanceV2Snapshot snap) async {
+  Future<FinanceV2ReconciliationReportInput> _reportInputFromSnapshot(
+    FinanceV2Snapshot snap,
+  ) async {
     final openingDebt = await _loadOpeningDebtBalances();
     return FinanceV2ReconciliationReportInput(
       totalIn: snap.totalIn,
       totalOut: snap.totalOut,
       net: snap.netCashflow,
       totalRevenue: snap.incomeFromSales + snap.incomeFromRepairs,
-      totalCost: snap.cogsFromSales + snap.cogsFromRepairs + snap.operatingExpenseOut,
+      totalCost:
+          snap.cogsFromSales + snap.cogsFromRepairs + snap.operatingExpenseOut,
       totalProfit: snap.grossProfitTotal - snap.operatingExpenseOut,
       openingDebtCustomer: openingDebt.$1,
       openingDebtSupplier: openingDebt.$2,
@@ -2320,14 +3891,20 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     );
   }
 
-  Future<void> _showReconciliationFailDialog(FinanceV2ReconciliationResult result) async {
+  Future<void> _showReconciliationFailDialog(
+    FinanceV2ReconciliationResult result,
+  ) async {
     if (!mounted || result.passed) return;
     final failures = result.failures;
     await showDialog<void>(
       context: context,
       builder: (ctx) {
         return AlertDialog(
-          icon: const Icon(Icons.error_outline, color: AppColors.error, size: 42),
+          icon: const Icon(
+            Icons.error_outline,
+            color: AppColors.error,
+            size: 42,
+          ),
           title: const Text('RECONCILIATION FAIL'),
           content: SizedBox(
             width: 520,
@@ -2393,16 +3970,81 @@ class _FinanceV2ViewState extends State<FinanceV2View>
   }
 
   Future<void> _exTx(List<FinanceV2Txn> tx) async {
-    if(!mounted) return;
-    await FinanceV2ExcelExport.exportTable(context,sheetName:'Giao dịch',filePrefix:'giao_dich',headers:['Thời gian','Loại','Tiêu đề','Mô tả','NV','TT','Tiền vào','Tiền ra'],rows:tx.map((t)=>[FinanceV2ExcelExport.fmtDateTime(t.createdAt),_ft(t.type),t.title,t.subtitle,t.actorName??'',t.paymentMethod??'',t.isIncome?t.amount:0,t.isIncome?0:t.amount]).toList(),start:_start,end:_end);
+    if (!mounted) return;
+    await FinanceV2ExcelExport.exportTable(
+      context,
+      sheetName: 'Giao dịch',
+      filePrefix: 'giao_dich',
+      headers: [
+        'Thời gian',
+        'Loại',
+        'Tiêu đề',
+        'Mô tả',
+        'NV',
+        'TT',
+        'Tiền vào',
+        'Tiền ra',
+      ],
+      rows: tx
+          .map(
+            (t) => [
+              FinanceV2ExcelExport.fmtDateTime(t.createdAt),
+              _ft(t.type),
+              t.title,
+              t.subtitle,
+              t.actorName ?? '',
+              t.paymentMethod ?? '',
+              t.isIncome ? t.amount : 0,
+              t.isIncome ? 0 : t.amount,
+            ],
+          )
+          .toList(),
+      start: _start,
+      end: _end,
+    );
   }
+
   Future<void> _exDebt(List<FinanceV2DebtItem> items) async {
-    if(!mounted) return;
-    final hasPayable = items.any((d) => d.type == 'SHOP_OWES' || d.type == 'OTHER_SHOP_OWES' || d.type == 'OWED');
-    await FinanceV2ExcelExport.exportTable(context,sheetName:hasPayable?'Phải trả':'Phải thu',filePrefix:hasPayable?'phai_tra':'phai_thu',headers:['Tên','Điện thoại','Loại','Tổng nợ','Đã trả','Còn lại','Ngày tạo'],rows:items.map((d)=>[d.name,d.phone??'',_ft(d.type),d.total,d.paid,d.remaining,FinanceV2ExcelExport.fmtDate(d.createdAt)]).toList(),start:_start,end:_end);
+    if (!mounted) return;
+    final hasPayable = items.any(
+      (d) =>
+          d.type == 'SHOP_OWES' ||
+          d.type == 'OTHER_SHOP_OWES' ||
+          d.type == 'OWED',
+    );
+    await FinanceV2ExcelExport.exportTable(
+      context,
+      sheetName: hasPayable ? 'Phải trả' : 'Phải thu',
+      filePrefix: hasPayable ? 'phai_tra' : 'phai_thu',
+      headers: [
+        'Tên',
+        'Điện thoại',
+        'Loại',
+        'Tổng nợ',
+        'Đã trả',
+        'Còn lại',
+        'Ngày tạo',
+      ],
+      rows: items
+          .map(
+            (d) => [
+              d.name,
+              d.phone ?? '',
+              _ft(d.type),
+              d.total,
+              d.paid,
+              d.remaining,
+              FinanceV2ExcelExport.fmtDate(d.createdAt),
+            ],
+          )
+          .toList(),
+      start: _start,
+      end: _end,
+    );
   }
+
   Future<void> _exTL(List<_TLEntry> ents) async {
-    if(!mounted) return;
+    if (!mounted) return;
     final entries = await _buildDetailedAuditLogEntries();
     final rows = entries.map((e) => e['row'] as List<dynamic>).toList();
     // Luôn reload snapshot mới tại thời điểm export để đảm bảo khớp với LOG (tránh snapshot cũ)
@@ -2414,21 +4056,28 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     );
     await FinanceV2ExcelExport.exportWorkbook(
       context,
-      filePrefix:'nhat_ky_chi_tiet',
+      filePrefix: 'nhat_ky_chi_tiet',
       sheets: <FinanceV2ExcelSheet>[
         FinanceV2ExcelSheet(
-          sheetName:'activity_log',
-          headers:_auditLogHeaders,
-          rows:rows,
+          sheetName: 'activity_log',
+          headers: _auditLogHeaders,
+          rows: rows,
         ),
         FinanceV2ExcelSheet(
-          sheetName:'RECONCILIATION',
-          headers: const ['key', 'value_1', 'value_2', 'value_3', 'status', 'detail'],
+          sheetName: 'RECONCILIATION',
+          headers: const [
+            'key',
+            'value_1',
+            'value_2',
+            'value_3',
+            'status',
+            'detail',
+          ],
           rows: reconciliation.toSheetRows(),
         ),
       ],
-      start:_start,
-      end:_end,
+      start: _start,
+      end: _end,
     );
     await _showReconciliationFailDialog(reconciliation);
   }
@@ -2438,8 +4087,19 @@ class _FinanceV2ViewState extends State<FinanceV2View>
 
     final start = _start;
     final end = _end;
-    final startMs = DateTime(start.year, start.month, start.day).millisecondsSinceEpoch;
-    final endMs = DateTime(end.year, end.month, end.day, 23, 59, 59).millisecondsSinceEpoch;
+    final startMs = DateTime(
+      start.year,
+      start.month,
+      start.day,
+    ).millisecondsSinceEpoch;
+    final endMs = DateTime(
+      end.year,
+      end.month,
+      end.day,
+      23,
+      59,
+      59,
+    ).millisecondsSinceEpoch;
 
     // ── Sheet 1: Báo cáo tổng quan ───────────────────────────────────
     final debtCollectedSnap = s.transactions
@@ -2451,7 +4111,10 @@ class _FinanceV2ViewState extends State<FinanceV2View>
       ['Thu vào', MoneyUtils.formatVND(s.totalIn)],
       ['Chi ra', MoneyUtils.formatVND(s.totalOut)],
       ['Ròng sổ quỹ', MoneyUtils.formatVND(s.netCashflow)],
-      ['Lợi nhuận thực', MoneyUtils.formatVND(s.grossProfitTotal - s.operatingExpenseOut)],
+      [
+        'Lợi nhuận thực',
+        MoneyUtils.formatVND(s.grossProfitTotal - s.operatingExpenseOut),
+      ],
       ['Số giao dịch', s.transactionCount.toString()],
       [''],
       ['CƠ CẤU DOANH THU', ''],
@@ -2466,7 +4129,10 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     ];
 
     if (s.topExpenseCategories.isNotEmpty) {
-      rows.addAll([[''], ['TOP CHI PHÍ', '']]);
+      rows.addAll([
+        [''],
+        ['TOP CHI PHÍ', ''],
+      ]);
       for (final c in s.topExpenseCategories.take(10)) {
         rows.add([c.label, MoneyUtils.formatVND(c.amount)]);
       }
@@ -2498,7 +4164,8 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     // ── Section 2: Cơ cấu thu chi ────────────────────────────────────
     final totalIn = s.totalIn > 0 ? s.totalIn : 1;
     final totalOut = s.totalOut > 0 ? s.totalOut : 1;
-    String pct(int v, int total) => '${((v / total) * 100).toStringAsFixed(1)}%';
+    String pct(int v, int total) =>
+        '${((v / total) * 100).toStringAsFixed(1)}%';
 
     final debtCollected = s.transactions
         .where((t) => t.type.toUpperCase() == 'DEBT_COLLECT')
@@ -2513,13 +4180,29 @@ class _FinanceV2ViewState extends State<FinanceV2View>
       title: '2. Cơ cấu thu chi',
       colHeaders: const ['Loại', 'Số tiền', '% tổng'],
       rows: [
-        ['THU — Bán hàng', fmtN(s.incomeFromSales), pct(s.incomeFromSales, totalIn)],
-        ['THU — Sửa chữa', fmtN(s.incomeFromRepairs), pct(s.incomeFromRepairs, totalIn)],
+        [
+          'THU — Bán hàng',
+          fmtN(s.incomeFromSales),
+          pct(s.incomeFromSales, totalIn),
+        ],
+        [
+          'THU — Sửa chữa',
+          fmtN(s.incomeFromRepairs),
+          pct(s.incomeFromRepairs, totalIn),
+        ],
         ['THU — Thu nợ KH', fmtN(debtCollected), pct(debtCollected, totalIn)],
-        ['THU — Thu khác', fmtN(s.incomeOther - debtCollected), pct(s.incomeOther - debtCollected, totalIn)],
+        [
+          'THU — Thu khác',
+          fmtN(s.incomeOther - debtCollected),
+          pct(s.incomeOther - debtCollected, totalIn),
+        ],
         ['CHI — Nhập hàng', fmtN(importOut), pct(importOut, totalOut)],
         ['CHI — Trả nợ NCC', fmtN(debtPaid), pct(debtPaid, totalOut)],
-        ['CHI — Chi phí', fmtN(s.operatingExpenseOut), pct(s.operatingExpenseOut, totalOut)],
+        [
+          'CHI — Chi phí',
+          fmtN(s.operatingExpenseOut),
+          pct(s.operatingExpenseOut, totalOut),
+        ],
       ],
     );
 
@@ -2528,7 +4211,8 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     for (int i = 0; i < sales.length; i++) {
       final sale = sales[i];
       final bool saleIsKetHop = sale.paymentMethod.toUpperCase() == 'KẾT HỢP';
-      final int displayPrice = (saleIsKetHop && (sale.cashAmount + sale.transferAmount) > 0)
+      final int displayPrice =
+          (saleIsKetHop && (sale.cashAmount + sale.transferAmount) > 0)
           ? sale.cashAmount + sale.transferAmount
           : sale.finalPrice;
       final profit = displayPrice - sale.totalCost;
@@ -2545,7 +4229,16 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     }
     final sec3 = FinanceV2DetailedDailySection(
       title: '3. Danh sách đơn bán hàng (${sales.length})',
-      colHeaders: const ['STT', 'Giờ', 'Khách hàng', 'Sản phẩm', 'Giá bán', 'Giá vốn', 'Lãi', 'Hình thức TT'],
+      colHeaders: const [
+        'STT',
+        'Giờ',
+        'Khách hàng',
+        'Sản phẩm',
+        'Giá bán',
+        'Giá vốn',
+        'Lãi',
+        'Hình thức TT',
+      ],
       rows: sec3Rows,
     );
 
@@ -2570,7 +4263,18 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     }
     final sec4 = FinanceV2DetailedDailySection(
       title: '4. Danh sách đơn sửa chữa (${repairs.length})',
-      colHeaders: const ['STT', 'Giờ', 'Khách hàng', 'Model', 'Lỗi', 'Giá sửa', 'CP LK', 'Lãi', 'Hình thức TT', 'KTV'],
+      colHeaders: const [
+        'STT',
+        'Giờ',
+        'Khách hàng',
+        'Model',
+        'Lỗi',
+        'Giá sửa',
+        'CP LK',
+        'Lãi',
+        'Hình thức TT',
+        'KTV',
+      ],
       rows: sec4Rows,
     );
 
@@ -2590,7 +4294,15 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     }
     final sec5 = FinanceV2DetailedDailySection(
       title: '5. Danh sách nhập kho (${imports.length})',
-      colHeaders: const ['STT', 'Giờ', 'Sản phẩm', 'NCC', 'Số lượng', 'Giá nhập', 'Hình thức TT'],
+      colHeaders: const [
+        'STT',
+        'Giờ',
+        'Sản phẩm',
+        'NCC',
+        'Số lượng',
+        'Giá nhập',
+        'Hình thức TT',
+      ],
       rows: sec5Rows,
     );
 
@@ -2598,8 +4310,12 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     final sec6Rows = <List<dynamic>>[];
     int idx6 = 0;
     for (final exp in expenses) {
-      final isIncome = (exp['type']?.toString().toUpperCase() ?? 'CHI') == 'THU';
-      final ts = (exp['date'] as num?)?.toInt() ?? (exp['createdAt'] as num?)?.toInt() ?? 0;
+      final isIncome =
+          (exp['type']?.toString().toUpperCase() ?? 'CHI') == 'THU';
+      final ts =
+          (exp['date'] as num?)?.toInt() ??
+          (exp['createdAt'] as num?)?.toInt() ??
+          0;
       sec6Rows.add([
         ++idx6,
         hm(ts),
@@ -2611,43 +4327,72 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     }
     final sec6 = FinanceV2DetailedDailySection(
       title: '6. Thu chi khác (${sec6Rows.length})',
-      colHeaders: const ['STT', 'Giờ', 'Loại', 'Diễn giải', 'Số tiền', 'Hình thức TT'],
+      colHeaders: const [
+        'STT',
+        'Giờ',
+        'Loại',
+        'Diễn giải',
+        'Số tiền',
+        'Hình thức TT',
+      ],
       rows: sec6Rows,
     );
 
     // ── Section 7: Công nợ khách hàng ────────────────────────────────
-    final customerDebts = debtsInRange
-        .where((d) {
-          final dt = (d['debtType']?.toString().toUpperCase() ?? '');
-          return dt != 'SHOP_OWES' && dt != 'OTHER_SHOP_OWES' && dt != 'OWED' && dt.isNotEmpty;
-        })
-        .toList();
+    final customerDebts = debtsInRange.where((d) {
+      final dt = (d['debtType']?.toString().toUpperCase() ?? '');
+      return dt != 'SHOP_OWES' &&
+          dt != 'OTHER_SHOP_OWES' &&
+          dt != 'OWED' &&
+          dt.isNotEmpty;
+    }).toList();
     final sec7Rows = <List<dynamic>>[];
     int idx7 = 0;
     for (final d in customerDebts) {
       final total = (d['totalAmount'] as num?)?.toInt() ?? 0;
       final paid = (d['paidAmount'] as num?)?.toInt() ?? 0;
       final name = d['personName'] ?? d['customerName'] ?? d['name'] ?? '';
-      sec7Rows.add([++idx7, name, d['phone'] ?? '', fmtN(total), fmtN(paid), fmtN(total - paid)]);
+      sec7Rows.add([
+        ++idx7,
+        name,
+        d['phone'] ?? '',
+        fmtN(total),
+        fmtN(paid),
+        fmtN(total - paid),
+      ]);
     }
     for (final r in s.receivables) {
-      if (!customerDebts.any((d) => (d['firestoreId'] ?? d['referenceId'] ?? '') == r.id)) {
-        sec7Rows.add([++idx7, r.name, r.phone ?? '', fmtN(r.total), fmtN(r.paid), fmtN(r.remaining)]);
+      if (!customerDebts.any(
+        (d) => (d['firestoreId'] ?? d['referenceId'] ?? '') == r.id,
+      )) {
+        sec7Rows.add([
+          ++idx7,
+          r.name,
+          r.phone ?? '',
+          fmtN(r.total),
+          fmtN(r.paid),
+          fmtN(r.remaining),
+        ]);
       }
     }
     final sec7 = FinanceV2DetailedDailySection(
       title: '7. Công nợ khách hàng',
-      colHeaders: const ['STT', 'Khách hàng', 'SĐT', 'Phát sinh', 'Đã thu', 'Còn lại'],
+      colHeaders: const [
+        'STT',
+        'Khách hàng',
+        'SĐT',
+        'Phát sinh',
+        'Đã thu',
+        'Còn lại',
+      ],
       rows: sec7Rows,
     );
 
     // ── Section 8: Công nợ nhà cung cấp ──────────────────────────────
-    final supplierDebts = debtsInRange
-        .where((d) {
-          final dt = (d['debtType']?.toString().toUpperCase() ?? '');
-          return dt == 'SHOP_OWES' || dt == 'OTHER_SHOP_OWES' || dt == 'OWED';
-        })
-        .toList();
+    final supplierDebts = debtsInRange.where((d) {
+      final dt = (d['debtType']?.toString().toUpperCase() ?? '');
+      return dt == 'SHOP_OWES' || dt == 'OTHER_SHOP_OWES' || dt == 'OWED';
+    }).toList();
     final sec8Rows = <List<dynamic>>[];
     int idx8 = 0;
     for (final d in supplierDebts) {
@@ -2657,8 +4402,16 @@ class _FinanceV2ViewState extends State<FinanceV2View>
       sec8Rows.add([++idx8, name, fmtN(total), fmtN(paid), fmtN(total - paid)]);
     }
     for (final p in s.payables) {
-      if (!supplierDebts.any((d) => (d['firestoreId'] ?? d['referenceId'] ?? '') == p.id)) {
-        sec8Rows.add([++idx8, p.name, fmtN(p.total), fmtN(p.paid), fmtN(p.remaining)]);
+      if (!supplierDebts.any(
+        (d) => (d['firestoreId'] ?? d['referenceId'] ?? '') == p.id,
+      )) {
+        sec8Rows.add([
+          ++idx8,
+          p.name,
+          fmtN(p.total),
+          fmtN(p.paid),
+          fmtN(p.remaining),
+        ]);
       }
     }
     final sec8 = FinanceV2DetailedDailySection(
@@ -2687,7 +4440,15 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     }
     final sec9 = FinanceV2DetailedDailySection(
       title: '9. Vốn & lãi từng đơn bán (${sales.length})',
-      colHeaders: const ['STT', 'Sản phẩm', 'Giá vốn', 'Giá bán', 'Lãi', '% lãi', 'Hình thức TT'],
+      colHeaders: const [
+        'STT',
+        'Sản phẩm',
+        'Giá vốn',
+        'Giá bán',
+        'Lãi',
+        '% lãi',
+        'Hình thức TT',
+      ],
       rows: sec9Rows,
     );
 
@@ -2704,7 +4465,10 @@ class _FinanceV2ViewState extends State<FinanceV2View>
         ['Lãi gộp bán hàng', fmtN(s.grossProfitFromSales)],
         ['Lãi gộp sửa chữa', fmtN(s.grossProfitFromRepairs)],
         ['Lãi tổng', fmtN(s.grossProfitTotal)],
-        ['Lãi thực (sau chi phí)', fmtN(s.grossProfitTotal - s.operatingExpenseOut)],
+        [
+          'Lãi thực (sau chi phí)',
+          fmtN(s.grossProfitTotal - s.operatingExpenseOut),
+        ],
         ['Nợ phải thu cuối kỳ', fmtN(s.receivableTotal)],
         ['Nợ phải trả cuối kỳ', fmtN(s.payableTotal)],
       ],

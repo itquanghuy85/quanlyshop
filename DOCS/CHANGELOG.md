@@ -4,6 +4,113 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-05-16] - Reconciliation Patch v5 (TOTAL_DEBT_SUPPLIER — deleted debt root cause)
+
+### Root Cause (dứt điểm)
+Payments trong `debt_payments` có thể link tới debt đã bị **soft-delete** (`deleted=1`) trong bảng `debts`. Các deleted debt này không xuất hiện trong `getDebtsByDateRange` (filter `deleted=0`) nên **không có trong DEBT_CREATE flow**, nhưng LEFT JOIN trong `getDebtPaymentsForCashFlowByDateRange` vẫn tìm thấy chúng, khiến `debtSupplierChange` bị trừ âm sai cho những payment này (NCC 2 60M, DT 2 7M → tổng lệch 66,800,000).
+
+### Fix
+- **`lib/data/db_helper.dart`** — `getDebtPaymentsForCashFlowByDateRange`: thêm cột `COALESCE(d.deleted, 0) as linkedDebtDeleted` vào SELECT.
+- **`lib/finance_v2/finance_v2_view.dart`** — build DEBT_PAY entries: thêm biến `linkedDebtIsActive = hasLinkedDebtRecord && linkedDebtDeleted == 0`; chỉ set `debtSupplierChange = -amount` khi `linkedDebtIsActive` (debt tồn tại VÀ chưa bị xóa).
+
+### Expected Result
+- `DEBT_PAY` dsc = −2,400,000 (chỉ active KHO TỔNG 600K + 100K + DT2 100K + huy 1.6M)
+- flow = DEBT_CREATE(23,570,000) + DEBT_PAY(−2,400,000) = 21,170,000
+- closing = 12,020,500 + 21,170,000 = **33,190,500 = snap.payableTotal ✓**
+- Tất cả chỉ số khác (TOTAL_OUT, TOTAL_IN, NET, ...) không thay đổi vì cash direction vẫn dùng `resolvedDebtType` từ JOIN đầy đủ.
+
+### Files Modified
+- `lib/data/db_helper.dart`
+- `lib/finance_v2/finance_v2_view.dart`
+
+---
+
+## [2026-05-16] - Reconciliation Patch v2 (TOTAL_OUT + TOTAL_DEBT_SUPPLIER)
+
+### Summary
+Tiếp tục debug theo bộ Excel mới ngày 16/05/2026 và xử lý dứt điểm 3 chỉ số còn FAIL: `TOTAL_OUT`, `NET`, `TOTAL_DEBT_SUPPLIER`.
+
+### Root Cause
+- **TOTAL_OUT lệch 200,000**
+	- `finance_v2_data_service.dart` dedup nhập hàng phụ thuộc so sánh số tiền (`amount`) nên có thể loại nhầm khoản nhập khác reference nhưng trùng số tiền.
+- **TOTAL_DEBT_SUPPLIER lệch dấu và lệch lớn**
+	- `DEBT_PAY` trong `activity_log` đang trừ `debtSupplierChange` cả với payment không join được vào bảng `debts` (ví dụ khoản trả không thuộc debt record hiện hữu), làm flow công nợ NCC bị âm giả.
+
+### Fix Implemented
+- **`lib/finance_v2/finance_v2_data_service.dart`**
+	- Thêm `_canonicalImportReference()`.
+	- Đổi dedup bổ sung import từ `supplier_import_history` sang theo **canonical reference key** thay vì so theo amount.
+- **`lib/data/db_helper.dart`**
+	- Trong `getDebtPaymentsForCashFlowByDateRange()`, bổ sung cột `linkedDebtId` từ join `debts`.
+- **`lib/finance_v2/finance_v2_view.dart`**
+	- Khi build `DEBT_PAY` entries cho audit log: chỉ ghi `debtSupplierChange = -amount` nếu payment **có linked debt record** (`linkedDebtId != null`).
+	- Payment không link debt vẫn là tiền ra (`cashOut/transferOut`) nhưng không tác động flow công nợ NCC.
+
+### Validation
+- ⚠ `flutter analyze lib/finance_v2/finance_v2_data_service.dart lib/finance_v2/finance_v2_view.dart lib/data/db_helper.dart`
+	- Không có error mới; còn các info style pre-existing.
+- ✓ `flutter build apk --debug` thành công.
+
+### Files Modified
+- `lib/finance_v2/finance_v2_data_service.dart`
+- `lib/finance_v2/finance_v2_view.dart`
+- `lib/data/db_helper.dart`
+
+---
+
+## [2026-05-16] - Reconciliation Patch v3 (TOTAL_DEBT_SUPPLIER opening fix)
+
+### Summary
+Kiểm tra bộ Excel tải lại cho thấy `TOTAL_OUT` và `NET` đã PASS, còn duy nhất `TOTAL_DEBT_SUPPLIER` lệch do số dư đầu kỳ công nợ NCC bị âm giả.
+
+### Root Cause
+- Trong `_loadOpeningDebtBalances()` vẫn có thể cộng vào opening các debt record không hợp lệ (`totalAmount <= 0`) hoặc opening còn lại không dương, làm `openingDebtSupplier` sai dấu.
+
+### Fix Implemented
+- **File:** `lib/finance_v2/finance_v2_view.dart`
+	- Bỏ qua debt có `totalAmount <= 0` khi tính opening.
+	- Bỏ qua debt có `openingRemaining <= 0` sau khi trừ phần đã trả trước kỳ.
+
+### Validation
+- ⚠ `flutter analyze lib/finance_v2/finance_v2_view.dart`: không có error mới, chỉ còn info style pre-existing.
+
+### Files Modified
+- `lib/finance_v2/finance_v2_view.dart`
+
+---
+
+## [2026-05-16] - Reconciliation Patch v4 + Export Success Dialog UI Fix
+
+### Summary
+Theo bộ file mới người dùng gửi, `TOTAL_OUT` và `NET` đã PASS nhưng `TOTAL_DEBT_SUPPLIER` vẫn FAIL. Đồng thời popup “Xuất file thành công” bị hiển thị khối nền xanh đặc (chữ/icon chìm).
+
+### Fix Implemented
+- **Audit/Reconciliation**
+	- `lib/data/db_helper.dart`
+		- Bổ sung `linkedDebtType` trong query `getDebtPaymentsForCashFlowByDateRange()`.
+	- `lib/finance_v2/finance_v2_view.dart`
+		- Khi tạo entry `DEBT_PAY`, chỉ ghi `debtSupplierChange = -amount` nếu payment:
+			- có `linkedDebtId`, và
+			- `linkedDebtType` thực sự là nợ NCC (`SHOP_OWES`/`OTHER_SHOP_OWES`/`OWED`).
+		- Mục đích: loại các payment mapping sai loại nợ khỏi flow công nợ NCC.
+
+- **UI Popup Export**
+	- `lib/finance_v2/finance_v2_excel_export.dart`
+		- Đổi thẻ thông tin file đã lưu từ nền xanh đậm sang nền xanh nhạt (`alpha 0.08`).
+		- Giữ viền xanh nhẹ và đổi màu chữ sang xanh đậm tương phản (`#1B5E20`).
+		- Kết quả: không còn khối xanh đặc như ảnh người dùng khoanh.
+
+### Validation
+- ⚠ `flutter analyze lib/finance_v2/finance_v2_excel_export.dart lib/finance_v2/finance_v2_view.dart lib/data/db_helper.dart`
+	- Không có error mới; còn info style pre-existing.
+
+### Files Modified
+- `lib/data/db_helper.dart`
+- `lib/finance_v2/finance_v2_view.dart`
+- `lib/finance_v2/finance_v2_excel_export.dart`
+
+---
+
 ## [2026-05-16] - Reconciliation Fix TOTAL_OUT + TOTAL_DEBT_SUPPLIER
 
 ### Summary

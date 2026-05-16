@@ -22,6 +22,44 @@ Dự án HULUCA Shop Manager là ứng dụng Flutter quản lý cửa hàng s�
 
 ## Completed Tasks (Recent)
 
+- [x] **Reconciliation Patch v5 — TOTAL_DEBT_SUPPLIER dứt điểm** (2026-05-16)
+  - Root cause: payments link tới deleted debts (`deleted=1`) vẫn bị tính vào `debtSupplierChange` do LEFT JOIN không phân biệt deleted.
+  - Fix: thêm `linkedDebtDeleted` column; chỉ set `debtSupplierChange` khi `linkedDebtIsActive` (debt còn tồn tại và không bị xóa).
+  - Expected: TOTAL_DEBT_SUPPLIER PASS — closing = 12,020,500 + 21,170,000 = 33,190,500 ✓
+
+- [x] **Reconciliation Patch v4 + sửa nền popup xuất file** (2026-05-16)
+  - Audit 2 file mới người dùng gửi xác nhận:
+    - `TOTAL_OUT` PASS
+    - `NET` PASS
+    - còn `TOTAL_DEBT_SUPPLIER` FAIL
+  - Sửa reconciliation:
+    - `db_helper.dart`: query debt payments trả thêm `linkedDebtType`
+    - `finance_v2_view.dart`: `DEBT_PAY` chỉ trừ `debtSupplierChange` khi linked debt là loại NCC thật sự
+  - Sửa UI popup xuất file thành công:
+    - `finance_v2_excel_export.dart`: đổi block thông tin file từ nền xanh đậm sang nền xanh nhạt, tăng tương phản chữ/icon để không còn mảng xanh đặc.
+
+- [x] **Reconciliation Patch v2 theo bộ Excel 16/05/2026** (2026-05-16)
+  - Tái hiện chính xác FAIL từ file `nhat_ky_chi_tiet_16052026_16052026.xlsx`:
+    - `TOTAL_OUT` lệch +200,000
+    - `NET` lệch -200,000
+    - `TOTAL_DEBT_SUPPLIER` lệch -66,800,000
+  - Root cause 1: dedup import theo amount trong `finance_v2_data_service.dart` gây skip nhầm khoản nhập trùng số tiền.
+  - Root cause 2: `DEBT_PAY` không linked vào bảng `debts` vẫn trừ `debtSupplierChange`, làm flow công nợ NCC âm giả.
+  - Đã sửa:
+    - dedup import theo canonical reference key.
+    - SQL debt payments trả thêm `linkedDebtId`.
+    - audit log chỉ ghi `debtSupplierChange` cho `DEBT_PAY` khi có `linkedDebtId`.
+  - Validation: `flutter build apk --debug` thành công; analyze không có error mới.
+
+- [x] **Reconciliation Patch v3: opening debt supplier âm giả** (2026-05-16)
+  - Audit bộ Excel tải lại xác nhận:
+    - `TOTAL_OUT` đã PASS
+    - `NET` đã PASS
+    - còn duy nhất `TOTAL_DEBT_SUPPLIER` FAIL
+  - Sửa `_loadOpeningDebtBalances()` trong `finance_v2_view.dart`:
+    - skip debt `totalAmount <= 0`
+    - skip debt `openingRemaining <= 0`
+  - Mục tiêu: loại ảnh hưởng các debt record âm/không hợp lệ khỏi opening balance công nợ NCC.
 - [x] **Reconciliation Fix TOTAL_OUT + TOTAL_DEBT_SUPPLIER** (2026-05-16)
   - Audit tiếp theo sau 4 bug fixes trước: phát hiện 2 lỗi còn lại trong RECONCILIATION sheet
   - LỖI 1: TOTAL_OUT lệch 200K (log > report) — data service thiếu query `supplier_import_history`
