@@ -22,6 +22,51 @@ Dự án HULUCA Shop Manager là ứng dụng Flutter quản lý cửa hàng s�
 
 ## Completed Tasks (Recent)
 
+- [x] **Fix Finance Tab Crash + Audit Financial Display** (2026-05-16)
+   - Sửa `getSalesByDateRange()` crash `no such column: createdAt` — xóa `COALESCE(soldAt, createdAt)` dùng `soldAt` trực tiếp
+   - Sửa Home `_loadStats` catch block không reset về 0 khi lỗi — giữ số liệu cũ
+   - Audit xác nhận: Home và Finance tab dùng cùng `FinanceV2DataService.loadSnapshot()` → nhất quán
+   - Công thức tài chính đúng: cash-basis, CÔNG NỢ = 0, trả góp chỉ tính phần đã thu, trả hàng trừ net
+
+- [x] **Fix lỗi tab Nhật ký tài chính bị trống theo ảnh người dùng** (2026-05-16)
+   - Triển khai fallback timeline trong `finance_v2_view.dart`: nếu `transactions + financial_activity_log` rỗng theo kỳ lọc thì lấy dữ liệu từ `audit_logs` liên quan tài chính.
+   - Áp dụng lọc action tài chính: sale/repair/expense/debt/payment/purchase/import/cash_closing.
+   - Mapping action kỹ thuật sang nhãn tiếng Việt để dễ đọc trên UI Nhật ký.
+   - Thêm banner thông báo nguồn dữ liệu fallback để người dùng biết trạng thái hiển thị.
+   - Validation: `flutter analyze` không có lỗi mới trong file sửa; `flutter build apk --debug` thành công.
+
+- [x] **Financial Audit Home vs Finance + Consistency Fix** (2026-05-16)
+   - Audit theo phản hồi xuất Excel rỗng ở tab Giao dịch/Công nợ/Nhật ký
+   - Xác định và sửa lỗi query `getSalesByDateRange()` chưa lọc shopId (nguy cơ kéo số liệu chéo shop)
+   - Bổ sung filter dữ liệu sales theo `shopId` + `deleted` + `COALESCE(soldAt, createdAt)`
+   - Sửa Home không giữ số tài chính cũ khi `_loadStats` lỗi (reset về 0 trong catch)
+   - Build/debug thành công sau khi vá
+
+- [x] **Fix hiển thị mục 2 trên OPPO (NCC/Đối tác topbar)** (2026-05-16)
+   - Xác định root cause: luồng OPPO đang dùng `supplier_list_view.dart`, không phải `partner_management_view.dart`
+   - Chuyển tìm kiếm và bộ lọc lên AppBar cho cả 2 tab trong `supplier_list_view.dart`
+   - Đồng bộ menu lọc theo tab:
+      - NCC: Còn nợ, Đã tất toán, Quá hạn, Giao dịch gần đây
+      - Đối tác: Hoạt động, Ngừng HĐ, Còn nợ, Theo tên
+   - Loại bỏ cụm search/filter trong body để tránh trùng thao tác
+   - Validation: `flutter build apk --debug` thành công
+
+- [x] **Topbar Actions for Customer, Partner/NCC, and Inventory** (2026-05-16)
+   - customer_profile_view: đưa Lưu/Xóa lên AppBar, đổi bộ lọc lịch sử sang dropdown topbar
+   - customer_profile_view: xóa ô Email, thu gọn Địa chỉ/Ghi chú 1 dòng, giảm 1/2 chiều cao khung ảnh đại diện
+   - partner_management_view: thêm tìm kiếm (icon kính lúp) và dropdown lọc trên topbar cho cả 2 tab NCC/đối tác
+   - partner_management_view: thêm các chế độ lọc theo tab (còn nợ/tất toán/quá hạn/giao dịch gần đây và hoạt động/ngừng HĐ/theo tên)
+   - inventory_view: chuyển tìm kiếm + toggle hiển thị hàng hết lên topbar, ẩn block “Tải cuộn 20 mục/lần”
+   - Validation: build debug thành công; analyze còn warnings/info pre-existing ở inventory/partner
+
+- [x] **Partner Navigation + Font Sync + Parts Financial Fix** (2026-05-16)
+  - partner_management_view: onTap NCC/đối tác → RepairPartnerDetailView / SupplierDetailView
+  - sale_detail_view: sửa lỗi PKX/NO_IMEI truyền sai vào IMEI lookup → "không tìm thấy sản phẩm"
+  - deep_link_navigator: fallback strip quantity suffix (x2) khi tìm sản phẩm theo tên
+  - Font size đồng bộ: parts_inventory_view, partner_management_view, create_repair_order_view dùng AppTextStyles
+  - parts_inventory_view: gradient nhất quán [1A237E → 2962FF] với 2 tab còn lại
+  - repair_detail_view: fix 2 bug tài chính — parts cash dùng sai PaymentIntentType + _showCostFundRecordingPopup thiếu FinancialActivity log
+
 - [x] **Compact Listview + KiotViet Credentials UI + Clickable Navigation** (2026-05-16)
   - Khôi phục giao diện về `3185ff9f` sau khi revert broken color commit
   - Tái tích hợp: clickable customer header (phiếu sửa/đơn bán), clickable product (đơn bán), order navigation (hồ sơ KH)
