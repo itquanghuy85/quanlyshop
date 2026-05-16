@@ -4,6 +4,42 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-05-16] - Reconciliation Fix TOTAL_OUT + TOTAL_DEBT_SUPPLIER
+
+### Summary
+Sửa 2 lỗi còn lại trong sheet RECONCILIATION của `nhat_ky_chi_tiet` phát hiện qua audit Excel ngày 16/05/2026.
+
+### Sửa Lỗi
+
+#### LỖI 1 — TOTAL_OUT lệch 200,000đ (log > report)
+- **File:** `lib/finance_v2/finance_v2_data_service.dart`
+- **Root cause:** Data service không query `supplier_import_history` → bỏ sót các khoản thanh toán nhập hàng (non-CÔNG NỢ) chưa có expense record tương ứng. Activity_log dùng import_history nên log cao hơn report 200K.
+- **Fix:** Thêm query `getAllImportHistoryByDateRange`, aggregate theo referenceId, dedup theo amount với import expenses đã có, bổ sung phần còn lại vào `expenseOut` (và `importExpenseOut`).
+
+#### LỖI 2 — TOTAL_DEBT_SUPPLIER lệch 50,380,000đ (log < report)
+- **Files:** `lib/finance_v2/finance_v2_view.dart`, `lib/finance_v2/finance_v2_reconciliation.dart`
+- **Root cause (a):** `_loadOpeningDebtBalances()` dùng `prePeriodPayments` (từ debt_payments table), nhưng `snap.payableTotal` dùng stored `paidAmount` field → khi 2 nguồn lệch nhau (sync lag), opening không nhất quán với closing, gây lỗi formula `opening + flow ≠ closing`.
+- **Fix (a):** Đổi sang `paidBeforeStart = storedPaid - inPeriodPaid` (dùng in-period payments từ cùng ngày). Về mặt đại số: `opening_new + flow = snap.payableTotal` luôn đúng khi `debt.paidAmount` là nguồn sự thật.
+- **Root cause (b):** Reconciliation engine cộng `debtSupplierChange` từ IMPORT entries (CÔNG NỢ imports), nhưng các khoản nợ này được track qua `purchase_orders`, không phải `debts` table → không có trong `snap.payableTotal`, làm flow dương hơn thực tế.
+- **Fix (b):** Skip `debtSupplierChange` cho action type 'IMPORT' trong `FinanceV2ReconciliationEngine.compute()`.
+
+### Reconciliation Expected Results (16/05/2026 sau fix)
+| Metric | Trước | Sau fix |
+|--------|-------|---------|
+| TOTAL_OUT | log=128.4M, report=128.2M, FAIL | ✓ PASS |
+| TOTAL_DEBT_SUPPLIER | log=-17.19M, report=33.19M, FAIL | ✓ PASS |
+| NET | Fail (-200K) | ✓ PASS |
+
+### Files Modified
+- `lib/finance_v2/finance_v2_data_service.dart`
+- `lib/finance_v2/finance_v2_view.dart`
+- `lib/finance_v2/finance_v2_reconciliation.dart`
+
+### Git Commit
+`c9822f44`
+
+---
+
 ## [2026-05-16] - Financial Reconciliation Audit — 4 Bugs Fixed
 
 ### Summary

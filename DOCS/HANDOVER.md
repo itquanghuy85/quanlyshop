@@ -22,6 +22,17 @@ Dự án HULUCA Shop Manager là ứng dụng Flutter quản lý cửa hàng s�
 
 ## Completed Tasks (Recent)
 
+- [x] **Reconciliation Fix TOTAL_OUT + TOTAL_DEBT_SUPPLIER** (2026-05-16)
+  - Audit tiếp theo sau 4 bug fixes trước: phát hiện 2 lỗi còn lại trong RECONCILIATION sheet
+  - LỖI 1: TOTAL_OUT lệch 200K (log > report) — data service thiếu query `supplier_import_history`
+    - Sửa `finance_v2_data_service.dart`: thêm import_history processing với dedup theo amount
+  - LỖI 2: TOTAL_DEBT_SUPPLIER lệch 50.38M (log < report) — 2 nguyên nhân:
+    - (a) `_loadOpeningDebtBalances()` dùng pre-period payments (debt_payments table) → lệch với snap.payableTotal (dùng stored paidAmount) khi có sync lag
+      - Sửa `finance_v2_view.dart`: đổi sang `paidBeforeStart = storedPaid - inPeriodPaid` — algebraically nhất quán với snap.payableTotal
+    - (b) Reconciliation engine cộng IMPORT debtSupplierChange (CÔNG NỢ imports qua purchase_orders) vào flow → không có trong snap.payableTotal (chỉ track debts table)
+      - Sửa `finance_v2_reconciliation.dart`: skip debtSupplierChange cho IMPORT action
+  - Git commit `c9822f44` — build debug thành công
+
 - [x] **Financial Reconciliation Audit — 4 Bugs Fixed** (2026-05-16)
   - Audit 6 file Excel ngày 16/05/2026, xác định 4 nguyên nhân chênh lệch số liệu
   - BUG 1: KẾT HỢP sales dùng `finalPrice` thay vì `cashAmount + transferAmount` → thiếu 5M TOTAL_IN
