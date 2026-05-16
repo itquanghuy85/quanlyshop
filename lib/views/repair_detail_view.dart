@@ -2416,14 +2416,30 @@ class _RepairDetailViewState extends State<RepairDetailView> {
           debugPrint('❌ Error creating parts debt: $e');
         }
       } else {
-        // TIỀN MẶT hoặc CHUYỂN KHOẢN - ghi nhận thanh toán trực tiếp
+        // TIỀN MẶT hoặc CHUYỂN KHOẢN - ghi nhận vào tài chính và chi phí
         try {
+          // Log to financial_activities table (for financial log view)
+          await FinancialActivityService.logCustomActivity(
+            activityType: 'PARTS_COST',
+            amount: totalCost,
+            direction: 'OUT',
+            paymentMethod: paymentMethod,
+            title: 'Chi phí linh kiện: ${usedParts.join(', ')}',
+            description:
+                'Đơn #${r.firestoreId ?? r.id} — ${r.model} — KH: ${r.customerName}',
+            customerName: r.customerName,
+            phone: r.phone,
+            productInfo: r.model,
+            referenceType: 'REPAIR',
+            referenceId: r.firestoreId ?? r.id?.toString() ?? '',
+          );
+          // Also record as expense (for cash fund / expense reports)
           final payResult = await PaymentIntentService.executePaymentDirect(
-            type: PaymentIntentType.repairPartnerDebt,
+            type: PaymentIntentType.otherExpense,
             amount: totalCost,
             paymentMethod: PaymentMethod.fromCode(paymentMethod),
             description:
-                'Thanh toán phụ tùng: $supplierName - ${usedParts.join(', ')}',
+                'Chi phí linh kiện: $supplierName - ${usedParts.join(', ')}',
             executedBy: FirebaseAuth.instance.currentUser?.uid ?? 'unknown',
             referenceId: r.firestoreId,
             referenceType: 'parts_payment',
@@ -2435,13 +2451,15 @@ class _RepairDetailViewState extends State<RepairDetailView> {
               'repairFirestoreId': r.firestoreId,
               'parts': usedParts.join(', '),
               'paymentMethod': paymentMethod,
+              'category': 'LINH KIỆN SỬA CHỮA',
+              'scope': 'SHOP',
             },
           );
           debugPrint(
-            '💳 Parts payment ${payResult.success ? "OK" : "FAILED"}: ${totalCost}đ',
+            '💳 Parts cost logged: ${totalCost}đ — expense ${payResult.success ? "OK" : "FAILED"}',
           );
         } catch (e) {
-          debugPrint('❌ Error creating parts payment intent: $e');
+          debugPrint('❌ Error recording parts cost: $e');
         }
       }
 
@@ -3033,6 +3051,21 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         r.costRecordedAt = DateTime.now().millisecondsSinceEpoch;
         r.costRecordedAmount = costAmount;
       });
+      // Log the cost outflow to financial activities with the chosen payment method
+      await FinancialActivityService.logCustomActivity(
+        activityType: 'PARTS_COST',
+        amount: costAmount,
+        direction: 'OUT',
+        paymentMethod: fundResult,
+        title: 'Giá vốn linh kiện: ${r.customerName} (${r.model})',
+        description:
+            'Đơn #${r.firestoreId ?? r.id} — Linh kiện: ${r.partsUsed}',
+        customerName: r.customerName,
+        phone: r.phone,
+        productInfo: r.model,
+        referenceType: 'REPAIR',
+        referenceId: r.firestoreId ?? r.id?.toString() ?? '',
+      );
       NotificationService.showSnackBar(
         'Đã ghi ${MoneyUtils.formatVND(costAmount)} vào sổ quỹ ($fundResult)',
         color: Colors.green,

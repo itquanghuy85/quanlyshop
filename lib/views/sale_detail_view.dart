@@ -75,7 +75,7 @@ class _SaleDetailViewState extends State<SaleDetailView> {
   // Theme colors cho màn hình chi tiết đơn bán hàng
   final Color _primaryColor = const Color(0xFF2E7D32); // Xanh lá - đồng bộ bán hàng
   final Color _accentColor = const Color(0xFF388E3C);
-  final Color _backgroundColor = const Color(0xFFF8FAFF);
+  final Color _backgroundColor = const Color(0xFFF4F6FA);
 
   // Return info
   SalesReturn? _returnInfo;
@@ -292,10 +292,11 @@ class _SaleDetailViewState extends State<SaleDetailView> {
         .toList();
     for (var i = 0; i < names.length; i++) {
       final imei = i < imeis.length ? imeis[i] : '';
+      final isInventoryMarker = imei.toUpperCase().startsWith('PKX') || imei.toUpperCase() == 'NO_IMEI';
       items.add(ProductLinkRef(
         displayName: names[i],
-        imei: imei.isEmpty ? null : imei,
-        serial: imei.isEmpty ? null : imei,
+        imei: (imei.isEmpty || isInventoryMarker) ? null : imei,
+        serial: (imei.isEmpty || isInventoryMarker) ? null : imei,
         sourceEvent: 'product_detail_opened_from_sale',
       ));
     }

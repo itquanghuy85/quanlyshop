@@ -74,9 +74,9 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
   ];
 
   // Theme colors - đồng bộ với InventoryView
-  static const Color _primaryColor = Color(0xFF0068FF); // Zalo Blue
-  static const Color _gradientStart = Color(0xFF0068FF);
-  static const Color _gradientEnd = Color(0xFF0084FF);
+  static const Color _primaryColor = Color(0xFF2962FF);
+  static const Color _gradientStart = Color(0xFF1A237E);
+  static const Color _gradientEnd = Color(0xFF2962FF);
   final Color _backgroundColor = const Color(0xFFF5F5F5);
 
   @override
@@ -454,8 +454,7 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
             child: FilterChip(
               label: Text(
                 'Tất cả',
-                style: TextStyle(
-                  fontSize: 14,
+                style: AppTextStyles.body1.copyWith(
                   fontWeight: _selectedModelCategory == null
                       ? FontWeight.bold
                       : FontWeight.normal,
@@ -508,8 +507,7 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
               child: FilterChip(
                 label: Text(
                   '$category ($count)',
-                  style: TextStyle(
-                    fontSize: 14,
+                  style: AppTextStyles.body1.copyWith(
                     fontWeight: isSelected
                         ? FontWeight.bold
                         : FontWeight.normal,
@@ -885,8 +883,7 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                   children: [
                     Text(
                       '$index',
-                      style: TextStyle(
-                        fontSize: 10,
+                      style: AppTextStyles.caption.copyWith(
                         color: Colors.grey.shade400,
                       ),
                     ),
@@ -904,8 +901,7 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                       child: Center(
                         child: Text(
                           'x$qty',
-                          style: TextStyle(
-                            fontSize: 13,
+                          style: AppTextStyles.body2.copyWith(
                             fontWeight: FontWeight.bold,
                             color: isOut
                                 ? Colors.grey
@@ -927,14 +923,13 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                     // Row 1: Name + status badge
                     Row(
                       children: [
-                        const Text('🔧 ', style: TextStyle(fontSize: 13)),
+                        const Text('🔧 ', style: TextStyle(fontSize: 15)),
                         Expanded(
                           child: Text(
                             p['partName'] ?? 'N/A',
-                            style: TextStyle(
+                            style: AppTextStyles.body2.copyWith(
                               fontWeight: FontWeight.bold,
-                              fontSize: 13,
-                              color: isOut ? Colors.grey : Colors.black87,
+                              color: isOut ? Colors.grey : const Color(0xFF0D1B2A),
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -985,8 +980,7 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                     if ((p['compatibleModels'] ?? '').toString().isNotEmpty)
                       Text(
                         'Dùng cho: ${p['compatibleModels']}',
-                        style: TextStyle(
-                          fontSize: 10,
+                        style: AppTextStyles.caption.copyWith(
                           color: Colors.grey.shade600,
                         ),
                         maxLines: 1,
@@ -1024,8 +1018,7 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                       const SizedBox(height: 2),
                       Text(
                         dateText,
-                        style: TextStyle(
-                          fontSize: 10,
+                        style: AppTextStyles.caption.copyWith(
                           color: Colors.grey.shade400,
                         ),
                       ),
@@ -1159,7 +1152,7 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                 Expanded(
                   child: Text(
                     'NHẬP THÊM',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: AppTextStyles.headline2.copyWith(fontWeight: FontWeight.bold),
                   ),
                 ),
               ],
@@ -1185,23 +1178,20 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                             children: [
                               Text(
                                 partName,
-                                style: const TextStyle(
+                                style: AppTextStyles.body1.copyWith(
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 14,
                                 ),
                               ),
                               Text(
                                 'Tồn kho hiện tại: $currentQty',
-                                style: TextStyle(
+                                style: AppTextStyles.headline6.copyWith(
                                   color: Colors.grey[600],
-                                  fontSize: 12,
                                 ),
                               ),
                               Text(
                                 'Giá vốn hiện tại: ${MoneyUtils.formatVND(currentCost)}',
-                                style: TextStyle(
+                                style: AppTextStyles.headline6.copyWith(
                                   color: Colors.grey[700],
-                                  fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -1252,9 +1242,8 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                         padding: const EdgeInsets.only(top: 8),
                         child: Text(
                           'Giá vốn sau nhập: ${MoneyUtils.formatVND(weightedCost)}',
-                          style: TextStyle(
+                          style: AppTextStyles.headline6.copyWith(
                             color: Colors.blue.shade700,
-                            fontSize: 12,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -1850,18 +1839,17 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: Colors.blue.withOpacity(0.3)),
                   ),
-                  child: const Row(
+                  child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.info_outline, color: Colors.blue, size: 18),
-                      SizedBox(width: 8),
+                      const Icon(Icons.info_outline, color: Colors.blue, size: 18),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           'Chỉ sửa thông tin & giá bán. Muốn nhập thêm số lượng → dùng nút NHẬP THÊM.',
-                          style: TextStyle(
+                          style: AppTextStyles.body2.copyWith(
                             color: Colors.blue,
                             height: 1.3,
-                            fontSize: 13,
                           ),
                         ),
                       ),
@@ -2134,9 +2122,9 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                                 Icons.add_circle_outline,
                                 size: 16,
                               ),
-                              label: const Text(
+                              label: Text(
                                 'Thêm NCC mới',
-                                style: TextStyle(fontSize: 14),
+                                style: AppTextStyles.body1,
                               ),
                               style: TextButton.styleFrom(
                                 foregroundColor: Colors.teal,
@@ -2834,22 +2822,21 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                             color: Colors.blue.withOpacity(0.3),
                           ),
                         ),
-                        child: const Row(
+                        child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Icon(
+                            const Icon(
                               Icons.info_outline,
                               color: Colors.blue,
                               size: 18,
                             ),
-                            SizedBox(width: 8),
+                            const SizedBox(width: 8),
                             Expanded(
                               child: Text(
                                 'Chỉ sửa thông tin & giá bán. Muốn nhập thêm số lượng → dùng nút NHẬP THÊM ở danh sách.',
-                                style: TextStyle(
+                                style: AppTextStyles.body1.copyWith(
                                   color: Colors.blue,
                                   height: 1.3,
-                                  fontSize: 14,
                                 ),
                               ),
                             ),
@@ -2938,9 +2925,9 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                                 Icons.add_circle_outline,
                                 size: 16,
                               ),
-                              label: const Text(
+                              label: Text(
                                 'Thêm NCC mới',
-                                style: TextStyle(fontSize: 14),
+                                style: AppTextStyles.body1,
                               ),
                               style: TextButton.styleFrom(
                                 foregroundColor: Colors.teal,
@@ -3448,9 +3435,8 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                                 ),
                                 Text(
                                   'Giá vốn hiện tại: ${MoneyUtils.formatVND(currentCost)}',
-                                  style: TextStyle(
+                                  style: AppTextStyles.headline6.copyWith(
                                     color: Colors.teal.shade700,
-                                    fontSize: 12,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
@@ -3503,9 +3489,8 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                           padding: const EdgeInsets.only(top: 2, bottom: 8),
                           child: Text(
                             'Giá vốn sau nhập: ${MoneyUtils.formatVND(weightedCost)}',
-                            style: TextStyle(
+                            style: AppTextStyles.headline6.copyWith(
                               color: Colors.blue.shade700,
-                              fontSize: 12,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
@@ -4120,8 +4105,7 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                                   const SizedBox(height: 16),
                                   Text(
                                     'Chưa có ${_terms.category3} nào',
-                                    style: TextStyle(
-                                      fontSize: 17,
+                                    style: AppTextStyles.headline1.copyWith(
                                       fontWeight: FontWeight.bold,
                                       color: Colors.grey.shade500,
                                     ),
@@ -4132,8 +4116,7 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                                         ? 'Không tìm thấy kết quả cho "$_searchQuery"'
                                         : 'Nhấn nút Nhập LK để thêm ${_terms.category3} mới\nhoặc đợi dữ liệu đồng bộ từ Firestore',
                                     textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontSize: 14,
+                                    style: AppTextStyles.body1.copyWith(
                                       color: Colors.grey.shade400,
                                       height: 1.4,
                                     ),
@@ -4423,8 +4406,7 @@ class _SupplierPickerSheetState extends State<_SupplierPickerSheet> {
                   const SizedBox(width: 8),
                   Text(
                     'Chọn nhà cung cấp (${widget.suppliers.length})',
-                    style: const TextStyle(
-                      fontSize: 17,
+                    style: AppTextStyles.headline2.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -4507,10 +4489,7 @@ class _SupplierPickerSheetState extends State<_SupplierPickerSheet> {
                             ),
                           ),
                           subtitle: phone.isNotEmpty
-                              ? Text(
-                                  phone,
-                                  style: const TextStyle(fontSize: 14),
-                                )
+                              ? Text(phone, style: AppTextStyles.body1)
                               : null,
                           onTap: () => widget.onSelected(id),
                         );

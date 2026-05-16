@@ -204,6 +204,14 @@ class DeepLinkNavigator {
         found = await db.getProductByNameFlexible(rawName);
       }
 
+      // Final fallback: strip quantity suffix (e.g. "ỐP LƯNG X2" → "ỐP LƯNG")
+      if (found == null && rawName.isNotEmpty) {
+        final nameWithoutQty = rawName.replaceAll(RegExp(r'\s+[xX]\d+\b'), '').trim();
+        if (nameWithoutQty != rawName && nameWithoutQty.isNotEmpty) {
+          found = await db.getProductByNameFlexible(nameWithoutQty);
+        }
+      }
+
       if (!context.mounted) return;
       if (found == null) {
         NotificationService.showSnackBar(
