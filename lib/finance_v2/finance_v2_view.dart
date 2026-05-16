@@ -93,6 +93,7 @@ class _FinanceV2ViewState extends State<FinanceV2View>
   final String _tlActor = '';
   final String _tlPm = '';
   List<_TLEntry> _timelineCache = const [];
+  bool _timelineUsingAuditFallback = false;
   int _txPage = 1;
   int _debtPage = 1;
   int _timelinePage = 1;
@@ -147,10 +148,11 @@ class _FinanceV2ViewState extends State<FinanceV2View>
         previousStart: prev.$1, previousEnd: prev.$2,
       );
       if (!mounted) return;
-      final cachedTimeline = _timeline(d);
+      final timelineResult = await _buildTimelineCache(d);
       setState(() {
         _snap = d;
-        _timelineCache = cachedTimeline;
+        _timelineCache = timelineResult.$1;
+        _timelineUsingAuditFallback = timelineResult.$2;
         _loading = false;
         _txPage = 1;
         _debtPage = 1;
@@ -1376,6 +1378,16 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     final timelinePageNow = _timelinePage.clamp(1, timelinePageMax);
     final timelineView = _slicePage(ents, timelinePageNow, _timelinePageSize);
     return ResponsiveCenter(child:Column(children:[
+      if (_timelineUsingAuditFallback)
+        Container(
+          width: double.infinity,
+          color: const Color(0xFFFFF8E1),
+          padding: EdgeInsets.fromLTRB(_hPad, 8, _hPad, 8),
+          child: Text(
+            'Nhật ký đang hiển thị từ log hệ thống do chưa có bản ghi nhật ký tài chính trong kỳ lọc.',
+            style: FinanceV2Theme.caption.copyWith(color: const Color(0xFF8D6E63)),
+          ),
+        ),
       Container(
         color: AppColors.surface,
         padding: EdgeInsets.fromLTRB(_hPad, 6, _hPad, 0),
@@ -1417,6 +1429,82 @@ class _FinanceV2ViewState extends State<FinanceV2View>
       ents.add(_TLEntry(ts:ts,type:'AUDIT',title:title,subtitle:(log['description']??'').toString(),amount:_ti(log['amount']),isIncome:(log['direction']??'').toString()=='IN',actorName:actor.isNotEmpty?actor:null,referenceId:ref.isNotEmpty?ref:null));
     }
     ents.sort((a,b)=>b.ts.compareTo(a.ts)); return ents;
+  }
+
+  bool _isFinanceRelatedAuditAction(String action) {
+    final a = action.trim().toLowerCase();
+    if (a.isEmpty) return false;
+    return a.contains('sale') ||
+        a.contains('repair') ||
+        a.contains('expense') ||
+        a.contains('debt') ||
+        a.contains('payment') ||
+        a.contains('purchase') ||
+        a.contains('import') ||
+        a.contains('cash_closing');
+  }
+
+  String _auditActionLabel(String action) {
+    const labels = <String, String>{
+      'create_sale': 'Tạo đơn bán hàng',
+      'update_sale': 'Cập nhật đơn bán',
+      'delete_sale': 'Xóa đơn bán',
+      'create_repair': 'Tạo đơn sửa chữa',
+      'update_repair': 'Cập nhật đơn sửa',
+      'delete_repair': 'Xóa đơn sửa',
+      'add_expense': 'Thêm chi phí',
+      'update_expense': 'Cập nhật chi phí',
+      'delete_expense': 'Xóa chi phí',
+      'add_debt': 'Thêm công nợ',
+      'update_debt': 'Cập nhật công nợ',
+      'delete_debt': 'Xóa công nợ',
+      'add_debt_payment': 'Thanh toán công nợ',
+      'cash_closing': 'Chốt quỹ',
+      'create_purchase': 'Tạo nhập hàng',
+      'update_purchase': 'Cập nhật nhập hàng',
+    };
+    final normalized = action.trim().toLowerCase();
+    return labels[normalized] ?? (normalized.isEmpty ? 'Hoạt động tài chính' : normalized);
+  }
+
+  Future<(List<_TLEntry>, bool)> _buildTimelineCache(FinanceV2Snapshot snapshot) async {
+    final primary = _timeline(snapshot);
+    if (primary.isNotEmpty) {
+      return (primary, false);
+    }
+
+    final startMs = _start.millisecondsSinceEpoch;
+    final endMs = DateTime(_end.year, _end.month, _end.day, 23, 59, 59)
+        .millisecondsSinceEpoch;
+    final auditLogs = await _db.getAuditLogs(limit: 500);
+    final fallback = <_TLEntry>[];
+
+    for (final row in auditLogs) {
+      final ts = _ti(row['createdAt']);
+      if (ts < startMs || ts > endMs) continue;
+      final action = (row['action'] ?? '').toString();
+      if (!_isFinanceRelatedAuditAction(action)) continue;
+
+      final description = (row['description'] ?? '').toString().trim();
+      final actor = (row['userName'] ?? '').toString().trim();
+      final ref = (row['targetId'] ?? row['firestoreId'] ?? '').toString().trim();
+
+      fallback.add(
+        _TLEntry(
+          ts: ts,
+          type: 'AUDIT',
+          title: _auditActionLabel(action),
+          subtitle: description,
+          amount: 0,
+          isIncome: false,
+          actorName: actor.isEmpty ? null : actor,
+          referenceId: ref.isEmpty ? null : ref,
+        ),
+      );
+    }
+
+    fallback.sort((a, b) => b.ts.compareTo(a.ts));
+    return (fallback, fallback.isNotEmpty);
   }
 
   Widget _tlRow(_TLEntry e) {
@@ -2418,9 +2506,8 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     final debtPaid = s.transactions
         .where((t) => t.type.toUpperCase() == 'DEBT_PAY')
         .fold<int>(0, (a, e) => a + e.amount);
-    final importOut = s.transactions
-        .where((t) => t.type.toUpperCase() == 'IMPORT' && !t.isIncome)
-        .fold<int>(0, (a, e) => a + e.amount);
+    // IMPORT type is never created by data service — derive from snapshot totals instead.
+    final importOut = s.totalOut - s.debtRepayOut - s.operatingExpenseOut;
 
     final sec2 = FinanceV2DetailedDailySection(
       title: '2. Cơ cấu thu chi',
@@ -2440,13 +2527,17 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     final sec3Rows = <List<dynamic>>[];
     for (int i = 0; i < sales.length; i++) {
       final sale = sales[i];
-      final profit = sale.finalPrice - sale.totalCost;
+      final bool saleIsKetHop = sale.paymentMethod.toUpperCase() == 'KẾT HỢP';
+      final int displayPrice = (saleIsKetHop && (sale.cashAmount + sale.transferAmount) > 0)
+          ? sale.cashAmount + sale.transferAmount
+          : sale.finalPrice;
+      final profit = displayPrice - sale.totalCost;
       sec3Rows.add([
         i + 1,
         hm(sale.soldAt),
         sale.isWalkIn ? (sale.walkInName ?? 'Khách lẻ') : sale.customerName,
         sale.productNamesDisplay,
-        fmtN(sale.finalPrice),
+        fmtN(displayPrice),
         fmtN(sale.totalCost),
         fmtN(profit),
         sale.paymentMethod,

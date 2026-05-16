@@ -339,22 +339,28 @@ class FinanceV2DataService {
       final paymentSummary = sale.isInstallment
           ? 'TRẢ GÓP${installmentBanks.isNotEmpty ? ' · NH: ${installmentBanks.join(', ')}' : ''}'
           : sale.paymentMethod;
+      final bool isKetHop = sale.paymentMethod.toUpperCase() == 'KẾT HỢP';
       final int actualPaid;
       if (sale.isInstallment) {
         actualPaid = sale.downPayment + sale.settlementAmount;
       } else if (isCongNo) {
         actualPaid = 0;
+      } else if (isKetHop && (sale.cashAmount + sale.transferAmount) > 0) {
+        actualPaid = sale.cashAmount + sale.transferAmount;
       } else {
         actualPaid = sale.finalPrice;
       }
 
       if (actualPaid > 0) {
-        // Vốn bán hàng theo cash basis: tỉ lệ actualPaid/finalPrice nhất quán với cột Vốn từng dòng giao dịch.
-        // Đơn trả góp chỉ ghi vốn theo phần đã thu, không ghi toàn bộ totalCost.
+        // Vốn bán hàng theo cash basis: tỉ lệ actualPaid/costDenominator.
+        // KẾT HỢP dùng actualPaid làm mẫu số → ratio=1 → ghi nhận 100% vốn.
         int recognizedCost = 0;
         if (sale.totalCost > 0) {
-          if (sale.finalPrice > 0) {
-            recognizedCost = ((sale.totalCost * actualPaid) / sale.finalPrice).round();
+          final costDenominator = (isKetHop && (sale.cashAmount + sale.transferAmount) > 0)
+              ? actualPaid
+              : sale.finalPrice;
+          if (costDenominator > 0) {
+            recognizedCost = ((sale.totalCost * actualPaid) / costDenominator).round();
           } else {
             recognizedCost = sale.totalCost;
           }
@@ -575,21 +581,27 @@ class FinanceV2DataService {
 
     for (final SaleOrder sale in previousSales) {
       final bool isCongNo = sale.paymentMethod.toUpperCase() == 'CÔNG NỢ';
+      final bool prevIsKetHop = sale.paymentMethod.toUpperCase() == 'KẾT HỢP';
       final int actualPaid;
       if (sale.isInstallment) {
         actualPaid = sale.downPayment + sale.settlementAmount;
       } else if (isCongNo) {
         actualPaid = 0;
+      } else if (prevIsKetHop && (sale.cashAmount + sale.transferAmount) > 0) {
+        actualPaid = sale.cashAmount + sale.transferAmount;
       } else {
         actualPaid = sale.finalPrice;
       }
 
       if (actualPaid > 0) {
-        // Vốn bán hàng kỳ trước theo cash basis tỉ lệ — nhất quán với current period.
+        // Vốn bán hàng kỳ trước theo cash basis — nhất quán với current period.
         int prevRecognizedCost = 0;
         if (sale.totalCost > 0) {
-          if (sale.finalPrice > 0) {
-            prevRecognizedCost = ((sale.totalCost * actualPaid) / sale.finalPrice).round();
+          final prevCostDenominator = (prevIsKetHop && (sale.cashAmount + sale.transferAmount) > 0)
+              ? actualPaid
+              : sale.finalPrice;
+          if (prevCostDenominator > 0) {
+            prevRecognizedCost = ((sale.totalCost * actualPaid) / prevCostDenominator).round();
           } else {
             prevRecognizedCost = sale.totalCost;
           }

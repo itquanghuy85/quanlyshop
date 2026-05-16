@@ -100,6 +100,9 @@ class DailyFinancialAnalysisService {
       final finalPrice = totalPrice - discount > 0 ? totalPrice - discount : 0;
       final totalCost = _asInt(sale['totalCost']);
       final isInstallment = _asBool(sale['isInstallment']);
+      final isKetHop = paymentMethod.toUpperCase() == 'KẾT HỢP';
+      final cashAmount = _asInt(sale['cashAmount']);
+      final transferAmount = _asInt(sale['transferAmount']);
 
       if (paymentMethod == 'CÔNG NỢ') {
         saleIncome += finalPrice;
@@ -123,6 +126,12 @@ class DailyFinancialAnalysisService {
         } else {
           bankIn += downPaid;
         }
+      } else if (isKetHop && (cashAmount + transferAmount) > 0) {
+        final actualPaid = cashAmount + transferAmount;
+        saleIncome += actualPaid;
+        saleCost += totalCost;
+        cashIn += cashAmount;
+        bankIn += transferAmount;
       } else {
         saleIncome += finalPrice;
         saleCost += totalCost;

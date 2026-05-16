@@ -3626,7 +3626,12 @@ class _CashClosingViewState extends State<CashClosingView>
     for (var s in _sales.where(
       (s) => _isSameDay(s.soldAt, date) && s.paymentMethod != 'CÔNG NỢ',
     )) {
-      final saleAmount = s.isInstallment ? s.downPayment : s.finalPrice;
+      final bool soQuyIsKetHop = s.paymentMethod.toUpperCase() == 'KẾT HỢP';
+      final saleAmount = s.isInstallment
+          ? s.downPayment
+          : (soQuyIsKetHop && (s.cashAmount + s.transferAmount) > 0)
+              ? s.cashAmount + s.transferAmount
+              : s.finalPrice;
       // Skip installment entries with 0 down payment (no actual cash received)
       if (s.isInstallment && saleAmount <= 0) continue;
       final customerDisplay = s.customerName.isNotEmpty
@@ -3763,8 +3768,9 @@ class _CashClosingViewState extends State<CashClosingView>
   List<Map<String, dynamic>> _getExpenseTransactions(DateTime date) {
     final list = <Map<String, dynamic>>[];
 
-    // Lưu danh sách expense NHẬP HÀNG để tránh double-count với supplier_imports
+    // Track amounts to avoid double-counting with other sources
     final importExpenseAmounts = <int>{};
+    final partnerExpenseAmounts = <int>{};
 
     // Chi phí thường (bỏ qua type=THU vì đó là thu phát sinh)
     for (var e in _expenses) {
@@ -3781,6 +3787,9 @@ class _CashClosingViewState extends State<CashClosingView>
           category.contains('LINH KIỆN') ||
           category.contains('PURCHASE')) {
         importExpenseAmounts.add(amount);
+      }
+      if (category.contains('ĐỐI TÁC') || category.contains('PARTNER')) {
+        partnerExpenseAmounts.add(amount);
       }
 
       String icon = '💸';
@@ -3854,11 +3863,13 @@ class _CashClosingViewState extends State<CashClosingView>
       });
     }
 
-    // Thanh toán đối tác sửa chữa
+    // Thanh toán đối tác sửa chữa — skip nếu đã ghi vào expenses (tránh double-count)
     if (_enableRepair) {
       for (var pay in _repairPartnerPayments.where(
         (p) => _isSameDay((p['paidAt'] ?? 0) as int, date),
       )) {
+        final payAmount = (pay['amount'] ?? 0) as int;
+        if (partnerExpenseAmounts.any((e) => (e - payAmount).abs() < 1000)) continue;
         list.add({
           'type': 'partner_pay',
           'icon': '🔧',
