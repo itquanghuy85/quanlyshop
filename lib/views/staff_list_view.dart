@@ -413,118 +413,264 @@ class _StaffListViewState extends State<StaffListView> {
 
         return StatefulBuilder(
           builder: (ctx, setState) {
-            return AlertDialog(
-              title: const Text('TẠO TÀI KHOẢN NHÂN VIÊN'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: emailC,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: const InputDecoration(
-                        labelText: 'Email đăng nhập',
+            // Hàm build field chung với icon và outlined border
+            Widget buildField(
+              TextEditingController ctrl, {
+              required String label,
+              required IconData icon,
+              TextInputType keyboard = TextInputType.text,
+              bool obscure = false,
+            }) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: TextField(
+                  controller: ctrl,
+                  keyboardType: keyboard,
+                  obscureText: obscure,
+                  decoration: InputDecoration(
+                    labelText: label,
+                    prefixIcon: Icon(icon, size: 20, color: const Color(0xFF1565C0)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                    isDense: true,
+                  ),
+                ),
+              );
+            }
+
+            return Dialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              clipBehavior: Clip.hardEdge,
+              insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Header gradient
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Color(0xFF1565C0), Color(0xFF2962FF)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
                     ),
-                    // Auto-generate password option
-                    CheckboxListTile(
-                      title: const Text('Tự động tạo mật khẩu mạnh'),
-                      subtitle: const Text('Bỏ chọn để tự nhập mật khẩu'),
-                      value: autoGeneratePassword,
-                      onChanged: (value) =>
-                          setState(() => autoGeneratePassword = value ?? false),
-                    ),
-                    if (!autoGeneratePassword)
-                      TextField(
-                        controller: passC,
-                        obscureText: true,
-                        decoration: const InputDecoration(
-                          labelText: 'Mật khẩu (>=6 ký tự)',
-                        ),
-                      ),
-                    TextField(
-                      controller: nameC,
-                      decoration: const InputDecoration(
-                        labelText: 'Họ tên nhân viên',
-                      ),
-                    ),
-                    TextField(
-                      controller: phoneC,
-                      keyboardType: TextInputType.phone,
-                      decoration: const InputDecoration(
-                        labelText: 'Số điện thoại',
-                      ),
-                    ),
-                    TextField(
-                      controller: addressC,
-                      decoration: const InputDecoration(labelText: 'Địa chỉ'),
-                    ),
-                    const SizedBox(height: 10),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    child: Row(
                       children: [
-                        const Text('Quyền'),
-                        DropdownButton<String>(
-                          value: role,
-                          items: const [
-                            DropdownMenuItem(
-                              value: 'employee',
-                              child: Text('Nhân viên'),
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.person_add_rounded, color: Colors.white, size: 22),
+                        ),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Text(
+                            'TẠO TÀI KHOẢN NHÂN VIÊN',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.3,
                             ),
-                            DropdownMenuItem(
-                              value: 'technician',
-                              child: Text('Kỹ thuật'),
-                            ),
-                            DropdownMenuItem(
-                              value: 'manager',
-                              child: Text('Quản lý'),
-                            ),
-                            DropdownMenuItem(
-                              value: 'owner',
-                              child: Text('Chủ shop'),
-                            ),
-                          ],
-                          onChanged: (v) =>
-                              setState(() => role = v ?? 'employee'),
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: submitting ? null : () => Navigator.of(ctx).pop(),
+                          icon: const Icon(Icons.close_rounded, color: Colors.white70, size: 20),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
                         ),
                       ],
                     ),
-                    if (_isSuperAdmin)
-                      TextField(
-                        controller: shopC,
-                        decoration: const InputDecoration(
-                          labelText: 'Shop ID (nhập khi tạo từ super admin)',
-                        ),
+                  ),
+                  // Form
+                  Flexible(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Section: Đăng nhập
+                          Text(
+                            'THÔNG TIN ĐĂNG NHẬP',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey[600],
+                              letterSpacing: 0.8,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          buildField(emailC, label: 'Email đăng nhập', icon: Icons.email_outlined, keyboard: TextInputType.emailAddress),
+                          // Auto-generate password toggle
+                          Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: autoGeneratePassword ? const Color(0xFFE3F2FD) : Colors.grey.shade50,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: autoGeneratePassword ? const Color(0xFF1565C0).withOpacity(0.3) : Colors.grey.shade300,
+                              ),
+                            ),
+                            child: CheckboxListTile(
+                              contentPadding: EdgeInsets.zero,
+                              dense: true,
+                              title: Text(
+                                'Tự động tạo mật khẩu mạnh',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: autoGeneratePassword ? const Color(0xFF1565C0) : Colors.grey[800],
+                                  fontWeight: autoGeneratePassword ? FontWeight.w600 : FontWeight.normal,
+                                ),
+                              ),
+                              subtitle: Text(
+                                'Bỏ chọn để tự nhập mật khẩu',
+                                style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                              ),
+                              value: autoGeneratePassword,
+                              activeColor: const Color(0xFF1565C0),
+                              onChanged: (value) => setState(() => autoGeneratePassword = value ?? false),
+                            ),
+                          ),
+                          if (!autoGeneratePassword)
+                            buildField(passC, label: 'Mật khẩu (≥6 ký tự)', icon: Icons.lock_outline_rounded, obscure: true),
+                          // Section: Thông tin cá nhân
+                          Text(
+                            'THÔNG TIN CÁ NHÂN',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey[600],
+                              letterSpacing: 0.8,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          buildField(nameC, label: 'Họ tên nhân viên', icon: Icons.badge_outlined),
+                          buildField(phoneC, label: 'Số điện thoại', icon: Icons.phone_outlined, keyboard: TextInputType.phone),
+                          buildField(addressC, label: 'Địa chỉ', icon: Icons.home_outlined),
+                          // Section: Phân quyền
+                          Text(
+                            'PHÂN QUYỀN',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey[600],
+                              letterSpacing: 0.8,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey.shade300),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.admin_panel_settings_outlined, size: 20, color: Color(0xFF1565C0)),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: DropdownButtonHideUnderline(
+                                    child: DropdownButton<String>(
+                                      value: role,
+                                      isExpanded: true,
+                                      items: const [
+                                        DropdownMenuItem(value: 'employee', child: Text('Nhân viên')),
+                                        DropdownMenuItem(value: 'technician', child: Text('Kỹ thuật')),
+                                        DropdownMenuItem(value: 'manager', child: Text('Quản lý')),
+                                        DropdownMenuItem(value: 'owner', child: Text('Chủ shop')),
+                                      ],
+                                      onChanged: (v) => setState(() => role = v ?? 'employee'),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (_isSuperAdmin) ...[
+                            const SizedBox(height: 12),
+                            buildField(shopC, label: 'Shop ID (super admin)', icon: Icons.store_outlined),
+                          ],
+                          if (errorText != null)
+                            Container(
+                              margin: const EdgeInsets.only(top: 8),
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Colors.red.shade50,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.red.shade200),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.error_outline, size: 16, color: Colors.red.shade700),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      errorText!,
+                                      style: TextStyle(color: Colors.red.shade700, fontSize: 13),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          const SizedBox(height: 8),
+                        ],
                       ),
-                    if (errorText != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8.0),
-                        child: Text(
-                          errorText!,
-                          style: AppTextStyles.caption.copyWith(
-                            color: AppColors.error,
+                    ),
+                  ),
+                  // Footer buttons
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      border: Border(top: BorderSide(color: Colors.grey.shade200)),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: submitting ? null : () => Navigator.of(ctx).pop(),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                            child: const Text('HỦY'),
                           ),
                         ),
-                      ),
-                  ],
-                ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 2,
+                          child: ElevatedButton(
+                            onPressed: submitting ? null : submit,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF1565C0),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              elevation: 2,
+                            ),
+                            child: submitting
+                                ? const SizedBox(
+                                    height: 18,
+                                    width: 18,
+                                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                  )
+                                : const Text('TẠO TÀI KHOẢN', style: TextStyle(fontWeight: FontWeight.bold)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              actions: [
-                TextButton(
-                  onPressed: submitting ? null : () => Navigator.of(ctx).pop(),
-                  child: const Text('HỦY'),
-                ),
-                ElevatedButton(
-                  onPressed: submitting ? null : submit,
-                  child: submitting
-                      ? const SizedBox(
-                          height: 18,
-                          width: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('TẠO TÀI KHOẢN'),
-                ),
-              ],
             );
           },
         );

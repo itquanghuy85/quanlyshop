@@ -595,27 +595,34 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, color: iconColor ?? Colors.white70, size: 14),
-              const SizedBox(width: 4),
-              Text(
-                value,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: AppTextStyles.headline3.fontSize,
-                  fontWeight: FontWeight.bold,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.center,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, color: iconColor ?? Colors.white70, size: 14),
+                const SizedBox(width: 4),
+                Text(
+                  value,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: AppTextStyles.headline3.fontSize,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           const SizedBox(height: 2),
-          Text(
-            label,
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: AppTextStyles.caption.fontSize,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              label,
+              style: TextStyle(
+                color: Colors.white70,
+                fontSize: AppTextStyles.caption.fontSize,
+              ),
             ),
           ),
         ],

@@ -1540,23 +1540,48 @@ class _SaleDetailViewState extends State<SaleDetailView> {
 
   Widget _card(String t, List<Widget> c) => Container(
     width: double.infinity,
-    padding: const EdgeInsets.all(16),
+    margin: const EdgeInsets.only(bottom: 12),
     decoration: BoxDecoration(
       color: Colors.white,
       borderRadius: BorderRadius.circular(15),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.05),
+          blurRadius: 6,
+          offset: const Offset(0, 2),
+        ),
+      ],
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          t,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.pink,
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            color: _accentColor.withOpacity(0.07),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
+            border: Border(
+              left: BorderSide(color: _accentColor, width: 4),
+            ),
+          ),
+          child: Text(
+            t,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+              color: _accentColor,
+              letterSpacing: 0.5,
+            ),
           ),
         ),
-        const Divider(),
-        ...c,
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: c,
+          ),
+        ),
       ],
     ),
   );

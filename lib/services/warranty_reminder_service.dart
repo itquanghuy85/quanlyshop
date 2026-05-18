@@ -12,6 +12,10 @@ class WarrantyReminderService {
   static final DBHelper _localDb = DBHelper();
   static bool _isRunning = false;
 
+  /// Tắt push notification bảo hành (nhiều thiết bị hết hạn gây phiền).
+  /// Dữ liệu vẫn được load cho dashboard widget, chỉ không gửi thông báo.
+  static const bool _enableWarrantyPushNotifications = false;
+
   /// Khởi động auto-reminder cho bảo hành
   /// Chạy mỗi ngày lúc 8h sáng + khi user mở app
   static Future<void> startWarrantyReminders() async {
@@ -82,6 +86,8 @@ class WarrantyReminderService {
     Map<String, dynamic> repair,
     int daysLeft,
   ) async {
+    // Thông báo bảo hành bị tắt (nhiều thiết bị hết bảo hành gây phiền)
+    if (!_enableWarrantyPushNotifications) return;
     try {
       final model = (repair['model'] as String?) ?? 'N/A';
       final customerName = (repair['customerName'] as String?) ?? 'Khách hàng';
