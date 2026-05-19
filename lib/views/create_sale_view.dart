@@ -1278,8 +1278,11 @@ class _CreateSaleViewState extends State<CreateSaleView> {
           final newQty = (p.quantity - quantity).clamp(0, p.quantity);
           final newStatus = (p.type == 'DIEN_THOAI' || newQty <= 0) ? 0 : 1;
           try {
+            final sql = newStatus == 0
+                ? 'UPDATE products SET quantity = ?, status = ?, updatedAt = ?, isSynced = 1, locationId = NULL, locationCode = NULL, locationName = NULL WHERE id = ?'
+                : 'UPDATE products SET quantity = ?, status = ?, updatedAt = ?, isSynced = 1 WHERE id = ?';
             await (await db.database).rawUpdate(
-              'UPDATE products SET quantity = ?, status = ?, updatedAt = ?, isSynced = 1 WHERE id = ?',
+              sql,
               [newQty, newStatus, DateTime.now().millisecondsSinceEpoch, p.id],
             );
             debugPrint(

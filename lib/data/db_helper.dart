@@ -5135,11 +5135,19 @@ class DBHelper {
     return res.isNotEmpty ? Product.fromMap(res.first) : null;
   }
 
-  Future<int> updateProductStatus(int id, int status) async =>
-      await (await database).rawUpdate(
-        'UPDATE products SET status = ? WHERE id = ?',
+  Future<int> updateProductStatus(int id, int status) async {
+    final db = await database;
+    if (status == 0) {
+      return await db.rawUpdate(
+        'UPDATE products SET status = ?, locationId = NULL, locationCode = NULL, locationName = NULL WHERE id = ?',
         [status, id],
       );
+    }
+    return await db.rawUpdate(
+      'UPDATE products SET status = ? WHERE id = ?',
+      [status, id],
+    );
+  }
 
   /// Trừ số lượng sản phẩm trong kho và sync ngay lập tức
   Future<void> deductProductQuantity(int id, int amount) async {

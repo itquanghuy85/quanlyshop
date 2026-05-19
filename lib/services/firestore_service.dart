@@ -1735,10 +1735,16 @@ class FirestoreService {
           final requestedQty = item['quantity'] as int;
           final newQty = currentQty - requestedQty;
           final isPhone = (data['type'] ?? 'DIEN_THOAI') == 'DIEN_THOAI';
+          final willBeSold = isPhone || newQty <= 0;
 
           transaction.update(docRef, {
             'quantity': newQty,
-            'status': (isPhone || newQty <= 0) ? 0 : data['status'],
+            'status': willBeSold ? 0 : data['status'],
+            if (willBeSold) ...{
+              'locationId': null,
+              'locationCode': null,
+              'locationName': null,
+            },
             'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
           });
         }

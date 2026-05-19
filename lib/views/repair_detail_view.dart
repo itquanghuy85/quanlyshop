@@ -1800,6 +1800,9 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     setState(() {
       r.status = 4; // Đã giao
       r.pendingDeliveryApproval = false; // Reset pending flag
+      r.storageLocationId = null;   // Xóa vị trí khi giao máy về cho KH
+      r.storageLocationCode = null;
+      r.storageLocationName = null;
       _isUpdating = true;
     });
 
