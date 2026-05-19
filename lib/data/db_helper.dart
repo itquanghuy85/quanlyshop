@@ -10608,24 +10608,63 @@ class DBHelper {
   }
 
   /// Returns stats for ALL locations in one query (code → stats map).
+  /// Includes both inventory products AND active repair orders at each location.
   Future<Map<String, Map<String, dynamic>>> getAllLocationStats(
       String shopId) async {
     final db = await database;
     final rows = await db.rawQuery(
       '''SELECT locationCode,
-                COUNT(*) AS cnt,
-                COALESCE(SUM(quantity), 0) AS totalQty,
-                COALESCE(SUM(cost * quantity), 0) AS totalCost,
-                COALESCE(SUM(price * quantity), 0) AS totalValue
-         FROM products
-         WHERE shopId = ? AND locationCode IS NOT NULL AND locationCode != ''
-           AND (deleted = 0 OR deleted IS NULL) AND status != 0
+                SUM(cnt) AS cnt,
+                SUM(totalQty) AS totalQty,
+                SUM(totalCost) AS totalCost,
+                SUM(totalValue) AS totalValue
+         FROM (
+           SELECT locationCode,
+                  COUNT(*) AS cnt,
+                  COALESCE(SUM(quantity), 0) AS totalQty,
+                  COALESCE(SUM(cost * quantity), 0) AS totalCost,
+                  COALESCE(SUM(price * quantity), 0) AS totalValue
+           FROM products
+           WHERE shopId = ? AND locationCode IS NOT NULL AND locationCode != ''
+             AND (deleted = 0 OR deleted IS NULL) AND status != 0
+           GROUP BY locationCode
+           UNION ALL
+           SELECT storageLocationCode AS locationCode,
+                  COUNT(*) AS cnt,
+                  0 AS totalQty,
+                  0 AS totalCost,
+                  0 AS totalValue
+           FROM repairs
+           WHERE shopId = ? AND storageLocationCode IS NOT NULL AND storageLocationCode != ''
+             AND (deleted = 0 OR deleted IS NULL) AND status != 4
+           GROUP BY storageLocationCode
+         ) t
          GROUP BY locationCode''',
-      [shopId],
+      [shopId, shopId],
     );
     return {
       for (final r in rows)
         r['locationCode'] as String: Map<String, dynamic>.from(r),
     };
+  }
+
+  /// Returns active repair orders stored at a given location code.
+  Future<List<Map<String, dynamic>>> getRepairsByLocation(
+    String shopId, {
+    required String locationCode,
+  }) async {
+    final db = await database;
+    final rows = await db.rawQuery(
+      '''SELECT id, firestoreId, customerName, model, phone, status,
+                storageLocationCode, storageLocationId, storageLocationName,
+                createdAt, price
+         FROM repairs
+         WHERE shopId = ? AND UPPER(TRIM(storageLocationCode)) = ?
+           AND (deleted = 0 OR deleted IS NULL) AND status != 4
+         ORDER BY createdAt DESC
+         LIMIT 100''',
+      [shopId, locationCode.trim().toUpperCase()],
+    );
+    return rows.map((r) => Map<String, dynamic>.from(r)).toList();
   }
 }

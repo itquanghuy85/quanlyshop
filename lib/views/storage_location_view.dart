@@ -3,12 +3,14 @@ import 'package:intl/intl.dart';
 
 import '../data/db_helper.dart';
 import '../models/product_model.dart';
+import '../models/repair_model.dart';
 import '../models/storage_location_model.dart';
 import '../services/user_service.dart';
 import '../theme/popup_theme.dart';
 import '../utils/money_utils.dart';
 import '../widgets/app_cached_image.dart';
 import 'inventory_detail_view.dart';
+import 'repair_detail_view.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 
@@ -724,6 +726,7 @@ class _LocationProductsSheet extends StatefulWidget {
 class _LocationProductsSheetState extends State<_LocationProductsSheet> {
   static const int _pageSize = 20;
   final List<Product> _products = [];
+  List<Map<String, dynamic>> _repairs = [];
   bool _loading = false;
   bool _hasMore = true;
   int _page = 0;
@@ -755,21 +758,34 @@ class _LocationProductsSheetState extends State<_LocationProductsSheet> {
     if (reset) {
       setState(() {
         _products.clear();
+        _repairs.clear();
         _page = 0;
         _hasMore = true;
       });
     }
     setState(() => _loading = true);
-    final rows = await widget.db.getProductsByLocation(
-      widget.shopId,
-      locationCode: widget.location.code,
-      page: _page,
-      pageSize: _pageSize,
-      search: _search,
-    );
+    final results = await Future.wait([
+      widget.db.getProductsByLocation(
+        widget.shopId,
+        locationCode: widget.location.code,
+        page: _page,
+        pageSize: _pageSize,
+        search: _search,
+      ),
+      if (_page == 0)
+        widget.db.getRepairsByLocation(
+          widget.shopId,
+          locationCode: widget.location.code,
+        )
+      else
+        Future.value(<Map<String, dynamic>>[]),
+    ]);
     if (mounted) {
+      final rows = results[0] as List<Product>;
+      final repairRows = results[1] as List<Map<String, dynamic>>;
       setState(() {
         _products.addAll(rows);
+        if (_page == 0) _repairs = repairRows;
         _page++;
         _hasMore = rows.length == _pageSize;
         _loading = false;
@@ -930,7 +946,7 @@ class _LocationProductsSheetState extends State<_LocationProductsSheet> {
             const SizedBox(height: 8),
             // Product list
             Expanded(
-              child: _products.isEmpty && !_loading
+              child: _products.isEmpty && _repairs.isEmpty && !_loading
                   ? Center(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
@@ -953,12 +969,18 @@ class _LocationProductsSheetState extends State<_LocationProductsSheet> {
                   : ListView.separated(
                       controller: _scrollCtrl,
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                      itemCount:
-                          _products.length + (_loading ? 1 : 0),
+                      itemCount: _repairs.length +
+                          _products.length +
+                          (_loading ? 1 : 0),
                       separatorBuilder: (_, __) =>
                           const SizedBox(height: 6),
                       itemBuilder: (_, i) {
-                        if (i >= _products.length) {
+                        // Repairs first
+                        if (i < _repairs.length) {
+                          return _repairTile(_repairs[i]);
+                        }
+                        final pi = i - _repairs.length;
+                        if (pi >= _products.length) {
                           return const Padding(
                             padding: EdgeInsets.all(16),
                             child: Center(
@@ -966,7 +988,7 @@ class _LocationProductsSheetState extends State<_LocationProductsSheet> {
                                     strokeWidth: 2)),
                           );
                         }
-                        return _productTile(_products[i]);
+                        return _productTile(_products[pi]);
                       },
                     ),
             ),
@@ -1000,6 +1022,70 @@ class _LocationProductsSheetState extends State<_LocationProductsSheet> {
                     fontSize: 9, color: PopupTheme.textSecondary)),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _repairTile(Map<String, dynamic> r) {
+    final status = (r['status'] as int?) ?? 0;
+    final statusLabels = {0: 'Chờ sửa', 1: 'Đang sửa', 2: 'Đang sửa', 3: 'Xong - chờ giao'};
+    final statusColors = {0: Colors.orange, 1: Colors.blue, 2: Colors.blue, 3: Colors.green};
+    final label = statusLabels[status] ?? 'Đang xử lý';
+    final color = statusColors[status] ?? Colors.grey;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFE0E7FF)),
+        boxShadow: PopupTheme.shadowCard,
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        leading: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: const Color(0xFFEFF6FF),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Icon(Icons.build_rounded, size: 22, color: Color(0xFF3B82F6)),
+        ),
+        title: Text(
+          r['model'] ?? 'Máy sửa',
+          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: PopupTheme.textPrimary),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        subtitle: Text(
+          r['customerName'] ?? '',
+          style: const TextStyle(fontSize: 11, color: PopupTheme.textSecondary),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(label, style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w600)),
+            ),
+            const SizedBox(width: 4),
+            const Icon(Icons.chevron_right, size: 16, color: PopupTheme.textMuted),
+          ],
+        ),
+        onTap: () {
+          final repair = Repair.fromMap(Map<String, dynamic>.from(r));
+          final navigator = Navigator.of(context);
+          navigator.pop();
+          navigator.push(MaterialPageRoute(
+            builder: (_) => RepairDetailView(repair: repair),
+          ));
+        },
       ),
     );
   }
@@ -1093,118 +1179,6 @@ class _LocationProductsSheetState extends State<_LocationProductsSheet> {
             builder: (_) => InventoryDetailView(product: p),
           ));
         },
-      ),
-    );
-  }
-
-  void _showProductQuickDetail(Product p) {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (_) {
-        final imagePath = (p.images ?? '')
-            .split(',')
-            .map((e) => e.trim())
-            .firstWhere((e) => e.isNotEmpty, orElse: () => '');
-        return Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  _thumb(imagePath),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(p.name,
-                            style: const TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold,
-                                color: PopupTheme.textPrimary)),
-                        if ((p.imei ?? '').isNotEmpty)
-                          Text(p.imei!,
-                              style: const TextStyle(
-                                  fontSize: 12,
-                                  color: PopupTheme.textSecondary)),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  _quickStat('Tồn kho', 'x${p.quantity}', PopupTheme.blue),
-                  const SizedBox(width: 8),
-                  _quickStat('Giá bán',
-                      '${MoneyUtils.formatCurrency(p.price)}đ',
-                      PopupTheme.green),
-                  const SizedBox(width: 8),
-                  _quickStat('Vị trí',
-                      p.locationCode ?? widget.location.code,
-                      PopupTheme.teal),
-                ],
-              ),
-              const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => InventoryDetailView(product: p),
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.open_in_new_rounded, size: 16),
-                  label: const Text('Xem chi tiết sản phẩm',
-                      style: TextStyle(fontSize: 13)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1E40AF),
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _quickStat(String label, String value, Color color) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: color.withValues(alpha: 0.25)),
-        ),
-        child: Column(
-          children: [
-            Text(value,
-                style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    color: color)),
-            Text(label,
-                style: const TextStyle(
-                    fontSize: 11, color: PopupTheme.textSecondary)),
-          ],
-        ),
       ),
     );
   }
