@@ -724,7 +724,7 @@ class _LocationProductsSheet extends StatefulWidget {
 class _LocationProductsSheetState extends State<_LocationProductsSheet> {
   static const int _pageSize = 20;
   final List<Product> _products = [];
-  bool _loading = true;
+  bool _loading = false;
   bool _hasMore = true;
   int _page = 0;
   String _search = '';
@@ -1086,7 +1086,13 @@ class _LocationProductsSheetState extends State<_LocationProductsSheet> {
                 size: 16, color: PopupTheme.textMuted),
           ],
         ),
-        onTap: () => _showProductQuickDetail(p),
+        onTap: () {
+          final navigator = Navigator.of(context);
+          navigator.pop();
+          navigator.push(MaterialPageRoute(
+            builder: (_) => InventoryDetailView(product: p),
+          ));
+        },
       ),
     );
   }
