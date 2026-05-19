@@ -10576,35 +10576,25 @@ class DBHelper {
     return rows.isNotEmpty ? rows.first : {};
   }
 
-  /// Returns all in-stock products linked to a supplier (by supplierId or name).
+  /// Returns all in-stock products linked to a supplier (matched by supplier name).
   Future<List<Product>> getProductsBySupplier(
     String shopId, {
     required String supplierName,
-    String? supplierId,
+    String? supplierId, // kept for API compat, unused (no supplierId column)
     int page = 0,
     int pageSize = 30,
   }) async {
     final db = await database;
     final offset = page * pageSize;
     final nameUpper = supplierName.toUpperCase();
-    final rows = await db.rawQuery(
-      '''SELECT * FROM products
-         WHERE shopId = ?
-           AND (deleted = 0 OR deleted IS NULL)
-           AND status != 0
-           AND (
-             UPPER(supplier) = ?
-             ${supplierId != null ? "OR supplierId = ?" : ""}
-           )
-         ORDER BY createdAt DESC
-         LIMIT ? OFFSET ?''',
-      [
-        shopId,
-        nameUpper,
-        if (supplierId != null) supplierId,
-        pageSize,
-        offset,
-      ],
+    final rows = await db.query(
+      'products',
+      where:
+          'shopId = ? AND (deleted = 0 OR deleted IS NULL) AND status != 0 AND UPPER(supplier) = ?',
+      whereArgs: [shopId, nameUpper],
+      orderBy: 'createdAt DESC',
+      limit: pageSize,
+      offset: offset,
     );
     return rows.map((r) => Product.fromMap(Map<String, dynamic>.from(r))).toList();
   }

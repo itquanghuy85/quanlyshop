@@ -72,7 +72,6 @@ class _SupplierDetailViewState extends State<SupplierDetailView> with TickerProv
           _db.getProductsBySupplier(
             _shopId!,
             supplierName: widget.supplier.name,
-            supplierId: widget.supplier.firestoreId,
           )
         else
           Future.value(<Product>[]),
@@ -400,9 +399,9 @@ class _SupplierDetailViewState extends State<SupplierDetailView> with TickerProv
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.08),
+          color: color.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withOpacity(0.3)),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
