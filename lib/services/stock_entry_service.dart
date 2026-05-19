@@ -132,7 +132,24 @@ class StockEntryService {
   /// Hủy phiếu (chỉ cho DRAFT)
   Future<bool> cancelEntry(String entryId) async {
     try {
-      final doc = await _firestore.collection(_collection).doc(entryId).get();
+      DocumentSnapshot<Map<String, dynamic>> doc;
+      try {
+        doc = await _firestore
+            .collection(_collection)
+            .doc(entryId)
+            .get()
+            .timeout(const Duration(seconds: 8));
+      } on TimeoutException {
+        try {
+          doc = await _firestore
+              .collection(_collection)
+              .doc(entryId)
+              .get(const GetOptions(source: Source.cache));
+        } catch (_) {
+          _showError('Không có mạng. Vui lòng thử lại khi có kết nối.');
+          return false;
+        }
+      }
       if (!doc.exists) {
         _showError('Không tìm thấy phiếu');
         return false;
@@ -270,10 +287,25 @@ class StockEntryService {
     debugPrint('🔄 confirmEntry: START entryId=$entryId');
     try {
       // === PRE-READ: Lấy entry + query existing products/parts TRƯỚC transaction ===
-      final entryDoc = await _firestore
-          .collection(_collection)
-          .doc(entryId)
-          .get();
+      DocumentSnapshot<Map<String, dynamic>> entryDoc;
+      try {
+        entryDoc = await _firestore
+            .collection(_collection)
+            .doc(entryId)
+            .get()
+            .timeout(const Duration(seconds: 8));
+      } on TimeoutException {
+        debugPrint('⚠️ confirmEntry: Server timeout, trying cache...');
+        try {
+          entryDoc = await _firestore
+              .collection(_collection)
+              .doc(entryId)
+              .get(const GetOptions(source: Source.cache));
+        } catch (_) {
+          _showError('Không có mạng. Vui lòng thử lại khi có kết nối.');
+          return false;
+        }
+      }
       if (!entryDoc.exists) {
         _showError('Không tìm thấy phiếu');
         return false;
@@ -301,7 +333,8 @@ class StockEntryService {
                 .where('partName', isEqualTo: partNameUpper)
                 .where('deleted', isEqualTo: false)
                 .limit(5)
-                .get();
+                .get()
+                .timeout(const Duration(seconds: 5));
             for (final doc in snap.docs) {
               final data = doc.data();
               final existModel = (data['compatibleModels'] ?? '')
@@ -332,7 +365,8 @@ class StockEntryService {
                 .where('deleted', isEqualTo: false)
                 .where('status', isEqualTo: 1)
                 .limit(10)
-                .get();
+                .get()
+                .timeout(const Duration(seconds: 5));
             for (final doc in snap.docs) {
               final data = doc.data();
               final exColor = (data['color'] ?? '')
@@ -718,7 +752,7 @@ class StockEntryService {
           'userId': userId,
           'partFirestoreIds': partFirestoreIds, // Map item.name -> firestoreId
         };
-      });
+      }).timeout(const Duration(seconds: 20));
 
       // === TẠO PAYMENTINTENT VÀ DEBT CHO LOCAL DB ===
       // Đây là bước quan trọng để hiển thị trên trang "Thanh toán" và tài chính
@@ -987,6 +1021,9 @@ class StockEntryService {
         force: true,
       );
       return result['success'] == true;
+    } on TimeoutException {
+      _showError('Không có mạng. Vui lòng kết nối internet để xác nhận nhập kho.');
+      return false;
     } catch (e) {
       debugPrint('❌ confirmEntry ERROR: $e');
       _showError('Lỗi xác nhận: $e');
