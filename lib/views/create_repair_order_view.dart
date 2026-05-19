@@ -37,6 +37,8 @@ import '../widgets/custom_app_bar.dart';
 import '../widgets/entity_avatar.dart';
 import '../widgets/responsive_wrapper.dart';
 import '../l10n/app_localizations.dart';
+import '../models/storage_location_model.dart';
+import '../widgets/storage_location_selector.dart';
 import 'order_list_view.dart';
 
 class CreateRepairOrderView extends StatefulWidget {
@@ -87,6 +89,8 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
   // Shop settings for dynamic terminology
   ShopSettings? _shopSettings;
   BusinessTerminology get _terms => BusinessTypeHelper.instance.getTerminology(_shopSettings);
+
+  StorageLocation? _selectedLocation;
 
   final List<String> brands = ["IPHONE ", "SAMSUNG ", "OPPO ", "REDMI ", "VIVO "];
   List<String> get commonIssues => [
@@ -427,6 +431,9 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
             "NV",
         services: _services,
         notes: notesCtrl.text.trim().isNotEmpty ? notesCtrl.text.trim() : null,
+        storageLocationId: _selectedLocation?.firestoreId,
+        storageLocationCode: _selectedLocation?.code,
+        storageLocationName: _selectedLocation?.name,
       );
 
       // Lưu local trước
@@ -1190,6 +1197,14 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
             const SizedBox(height: 8),
             // Địa chỉ khách hàng
             _compactInput(addressCtrl, 'Địa chỉ KH (tùy chọn)', Icons.location_on, caps: true),
+            const SizedBox(height: 8),
+            // Vị trí cất máy (tùy chọn)
+            StorageLocationSelector(
+              selectedLocationId: _selectedLocation?.firestoreId,
+              selectedLocationCode: _selectedLocation?.code,
+              selectedLocationName: _selectedLocation?.name,
+              onSelected: (loc) => setState(() => _selectedLocation = loc),
+            ),
             const SizedBox(height: 8),
             // Row 2: Quick brands + Model
             _quick(brands, modelCtrl, modelF),

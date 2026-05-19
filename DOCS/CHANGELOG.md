@@ -4,6 +4,38 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-05-19] - Ảnh Sản Phẩm & Vị Trí Kho Trong Nhập Hàng; Location Repair; Badge Lỗi Nhỏ Hơn
+
+### Thay đổi
+
+**Task 1 — Ảnh sản phẩm trong nhập kho (SmartStockIn, FastStockIn)**
+- **`smart_stock_in_view.dart`**: Thêm `ImagePickerWidget` bên dưới `StorageLocationSelector` — cho phép chụp/chọn ảnh ngay lúc nhập từng sản phẩm
+- **`fast_stock_in_view.dart`**: Tương tự — thêm `ImagePickerWidget` bên dưới selector vị trí kho
+- **`stock_entry_service.dart`**: Thêm `imagesToUpload` list trước `runTransaction`. Bên trong loop tạo product, thu thập `{firestoreId, localPath, shopId}` nếu `item.localImagePath != null`. Sau khi transaction thành công, gọi `ProductImageService.uploadProductImage()` background cho từng ảnh
+- **`stock_entry_model.dart`**: `StockEntryItem` đã có trường `localImagePath` (thêm từ phiên trước)
+
+**Task 2 — Vị trí lưu kho trong đơn sửa**
+- **`create_repair_order_view.dart`**: Thêm `StorageLocationSelector` sau trường địa chỉ — lưu `storageLocationId/Code/Name` vào `Repair` object khi tạo đơn
+- **`repair_detail_view.dart`**: Thay thẻ location tĩnh bằng card luôn hiển thị + editable — khi thay đổi: cập nhật SQLite, ghi audit log với before/after code
+
+**Task 3 — Vị trí kho linh kiện có ghi log**
+- **`parts_inventory_view.dart`**: Cập nhật `PART_INFO_UPDATE` audit log để bao gồm `oldLocationCode` và `newLocationCode` trong payload
+
+**Task 4 — Thu nhỏ badge lỗi thiết bị trong list đơn sửa**
+- **`order_list_view.dart`**: Font badge lỗi từ 14 bold → 11 w600, thêm `maxLines: 1, overflow: ellipsis`, padding nhỏ hơn
+
+### Files thay đổi
+- `lib/views/smart_stock_in_view.dart`
+- `lib/views/fast_stock_in_view.dart`
+- `lib/services/stock_entry_service.dart`
+- `lib/models/stock_entry_model.dart`
+- `lib/views/create_repair_order_view.dart`
+- `lib/views/repair_detail_view.dart`
+- `lib/views/parts_inventory_view.dart`
+- `lib/views/order_list_view.dart`
+
+---
+
 ## [2026-05-19] - UI Fixes: Lỗi Thiết Bị, Vị Trí Lưu Kho, AppBar Inventory
 
 ### Vấn đề & sửa

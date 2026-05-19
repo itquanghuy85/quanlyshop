@@ -3431,6 +3431,8 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                           'partName': partName,
                           'price': price,
                           'oldPrice': part['price'],
+                          'oldLocationCode': part['locationCode'] ?? '',
+                          'newLocationCode': capLoc?.code ?? '',
                         },
                       );
                     }

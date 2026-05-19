@@ -28,6 +28,7 @@ import '../widgets/currency_text_field.dart';
 import '../widgets/imei_scan_result_dialog.dart';
 import '../models/storage_location_model.dart';
 import '../widgets/storage_location_selector.dart';
+import '../widgets/image_picker_widget.dart';
 import 'quick_input_codes_view.dart';
 import 'pending_stock_list_view.dart';
 
@@ -91,6 +92,7 @@ class _FastStockInViewState extends State<FastStockInView> {
   String? selectedSupplier;
   String? selectedPaymentMethod;
   StorageLocation? selectedLocation;
+  String? localImagePath;
 
   final TextEditingController modelCtrl = TextEditingController();
   final TextEditingController imeiCtrl = TextEditingController();
@@ -1087,6 +1089,7 @@ class _FastStockInViewState extends State<FastStockInView> {
         locationId: selectedLocation?.firestoreId,
         locationCode: selectedLocation?.code,
         locationName: selectedLocation?.name,
+        localImagePath: localImagePath,
       );
 
       // Tạo StockEntry (DRAFT)
@@ -1868,6 +1871,17 @@ class _FastStockInViewState extends State<FastStockInView> {
                     selectedLocationName: selectedLocation?.name,
                     onSelected: (loc) =>
                         setState(() => selectedLocation = loc),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Ảnh sản phẩm
+                  ImagePickerWidget(
+                    localPath: localImagePath,
+                    onImagePicked: (p) =>
+                        setState(() => localImagePath = p),
+                    onImageDeleted: () =>
+                        setState(() => localImagePath = null),
                   ),
 
                   const SizedBox(height: 24),

@@ -3530,42 +3530,61 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                   ),
                 ),
 
-              // === Storage location badge ===
-              if ((r.storageLocationCode ?? '').isNotEmpty)
-                Card(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.location_on_rounded,
-                            size: 18, color: Color(0xFF1E40AF)),
-                        const SizedBox(width: 8),
-                        Text('Vị trí cất máy:',
-                            style: AppTextStyles.caption.copyWith(
-                                color: Colors.grey.shade600)),
-                        const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFEFF6FF),
-                            border: Border.all(color: const Color(0xFF93C5FD)),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            '${r.storageLocationCode}${(r.storageLocationName ?? '').isNotEmpty ? ' · ${r.storageLocationName}' : ''}',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF1E40AF),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+              // === Storage location (editable) ===
+              Card(
+                margin: const EdgeInsets.only(bottom: 8),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.location_on_rounded,
+                              size: 16, color: Color(0xFF1E40AF)),
+                          const SizedBox(width: 6),
+                          Text('Vị trí cất máy',
+                              style: AppTextStyles.caption.copyWith(
+                                  color: Colors.grey.shade600,
+                                  fontWeight: FontWeight.w600)),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      StorageLocationSelector(
+                        selectedLocationId: r.storageLocationId,
+                        selectedLocationCode: r.storageLocationCode,
+                        selectedLocationName: r.storageLocationName,
+                        onSelected: (loc) async {
+                          final oldCode = r.storageLocationCode ?? '';
+                          final newCode = loc?.code ?? '';
+                          final updated = r.copyWith(
+                            storageLocationId: loc?.firestoreId,
+                            storageLocationCode: newCode.isEmpty ? null : newCode,
+                            storageLocationName: loc?.name,
+                          );
+                          await db.updateRepair(updated);
+                          final user = FirebaseAuth.instance.currentUser;
+                          final userName = user?.email?.split('@').first.toUpperCase() ?? 'NV';
+                          await AuditService.logAction(
+                            action: 'CẬP NHẬT VỊ TRÍ',
+                            entityType: 'REPAIR',
+                            entityId: r.firestoreId ?? r.id.toString(),
+                            summary: 'Đổi vị trí: "${oldCode.isEmpty ? 'Trống' : oldCode}" → "${newCode.isEmpty ? 'Trống' : newCode}"',
+                            payload: {'oldCode': oldCode, 'newCode': newCode, 'by': userName},
+                          );
+                          if (mounted) {
+                            setState(() => r = updated);
+                            NotificationService.showSnackBar(
+                              newCode.isEmpty ? 'Đã xóa vị trí lưu kho' : 'Đã cập nhật vị trí: $newCode',
+                              color: newCode.isEmpty ? Colors.orange : Colors.green,
+                            );
+                          }
+                        },
+                      ),
+                    ],
                   ),
                 ),
+              ),
 
               // === COMPACT: Tài chính + Dịch vụ gộp ===
               Card(

@@ -19,6 +19,7 @@ import '../widgets/responsive_wrapper.dart';
 import '../data/db_helper.dart';
 import '../models/storage_location_model.dart';
 import '../widgets/storage_location_selector.dart';
+import '../widgets/image_picker_widget.dart';
 import 'quick_input_codes_view.dart';
 import 'pending_stock_list_view.dart';
 
@@ -91,6 +92,7 @@ class _SmartStockInViewState extends State<SmartStockInView> {
   int? _selectedSupplierLocalId; // SQLite local ID
   String? _selectedPaymentMethod;
   StorageLocation? _selectedLocation;
+  String? _localImagePath;
 
   // Data
   List<Map<String, dynamic>> _suppliers = [];
@@ -753,6 +755,7 @@ class _SmartStockInViewState extends State<SmartStockInView> {
       locationId: _selectedLocation?.firestoreId,
       locationCode: _selectedLocation?.code,
       locationName: _selectedLocation?.name,
+      localImagePath: _localImagePath,
     );
   }
 
@@ -1011,6 +1014,17 @@ class _SmartStockInViewState extends State<SmartStockInView> {
                               selectedLocationName: _selectedLocation?.name,
                               onSelected: (loc) =>
                                   setState(() => _selectedLocation = loc),
+                            ),
+
+                            const SizedBox(height: 12),
+
+                            // Ảnh sản phẩm
+                            ImagePickerWidget(
+                              localPath: _localImagePath,
+                              onImagePicked: (p) =>
+                                  setState(() => _localImagePath = p),
+                              onImageDeleted: () =>
+                                  setState(() => _localImagePath = null),
                             ),
 
                             const SizedBox(height: 16),

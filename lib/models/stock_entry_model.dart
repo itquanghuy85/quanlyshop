@@ -47,6 +47,9 @@ class StockEntryItem {
   final String? locationCode;
   final String? locationName;
 
+  // Ảnh sản phẩm (local path, không lưu Firestore)
+  final String? localImagePath;
+
   StockEntryItem({
     this.id,
     required this.name,
@@ -68,6 +71,7 @@ class StockEntryItem {
     this.locationId,
     this.locationCode,
     this.locationName,
+    this.localImagePath,
   });
   
   Map<String, dynamic> toMap() {
@@ -92,6 +96,7 @@ class StockEntryItem {
       if (locationId != null && locationId!.isNotEmpty) 'locationId': locationId,
       if (locationCode != null && locationCode!.isNotEmpty) 'locationCode': locationCode,
       if (locationName != null && locationName!.isNotEmpty) 'locationName': locationName,
+      if (localImagePath != null && localImagePath!.isNotEmpty) 'localImagePath': localImagePath,
     };
   }
   
@@ -117,6 +122,7 @@ class StockEntryItem {
       locationId: map['locationId'],
       locationCode: map['locationCode'],
       locationName: map['locationName'],
+      localImagePath: map['localImagePath'],
     );
   }
   
@@ -141,6 +147,7 @@ class StockEntryItem {
     String? locationId,
     String? locationCode,
     String? locationName,
+    String? localImagePath,
   }) {
     return StockEntryItem(
       id: id ?? this.id,
@@ -163,6 +170,7 @@ class StockEntryItem {
       locationId: locationId ?? this.locationId,
       locationCode: locationCode ?? this.locationCode,
       locationName: locationName ?? this.locationName,
+      localImagePath: localImagePath ?? this.localImagePath,
     );
   }
   

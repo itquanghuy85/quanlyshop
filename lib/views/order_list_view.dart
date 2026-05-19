@@ -1752,38 +1752,37 @@ class OrderListViewState extends State<OrderListView> {
                               if (r.issue.isNotEmpty)
                                 Container(
                                   padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 4,
+                                    horizontal: 7,
+                                    vertical: 2,
                                   ),
                                   decoration: BoxDecoration(
                                     color: const Color(0xFFFDECEC),
                                     border: Border.all(
                                       color: const Color(0xFFFFCDD2),
                                     ),
-                                    borderRadius: BorderRadius.circular(12),
+                                    borderRadius: BorderRadius.circular(10),
                                   ),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                        CrossAxisAlignment.center,
                                     children: [
-                                      const Padding(
-                                        padding: EdgeInsets.only(top: 2),
-                                        child: Icon(
-                                          Icons.build_rounded,
-                                          size: 13,
-                                          color: Color(0xFFD32F2F),
-                                        ),
+                                      const Icon(
+                                        Icons.build_rounded,
+                                        size: 10,
+                                        color: Color(0xFFD32F2F),
                                       ),
-                                      const SizedBox(width: 4),
+                                      const SizedBox(width: 3),
                                       Flexible(
                                         child: Text(
                                           r.issue.split('|').first,
                                           style: const TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.bold,
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
                                             color: Color(0xFFD32F2F),
                                           ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                         ),
                                       ),
                                     ],

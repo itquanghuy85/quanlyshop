@@ -12,6 +12,7 @@ import '../services/sync_orchestrator.dart';
 import '../services/financial_activity_service.dart';
 import '../services/import_order_service.dart';
 import '../services/sync_service.dart';
+import '../services/product_image_service.dart';
 import '../data/db_helper.dart';
 import '../utils/money_utils.dart';
 
@@ -400,6 +401,8 @@ class StockEntryService {
         '📦 confirmEntry: Pre-query found ${existingPartDocIds.length} matching parts, ${existingProductDocIds.length} matching products',
       );
 
+      final imagesToUpload = <Map<String, String>>[];
+
       final result = await _firestore.runTransaction((transaction) async {
         debugPrint('🔄 confirmEntry: Inside transaction');
 
@@ -531,6 +534,14 @@ class StockEntryService {
 
           for (int i = 0; i < productsToCreate; i++) {
             final productRef = _firestore.collection('products').doc();
+
+            if (item.localImagePath != null && item.localImagePath!.isNotEmpty) {
+              imagesToUpload.add({
+                'firestoreId': productRef.id,
+                'localPath': item.localImagePath!,
+                'shopId': entry.shopId,
+              });
+            }
 
             // Tạo tên sản phẩm đầy đủ
             String productName = item.name;
@@ -757,6 +768,14 @@ class StockEntryService {
       // === TẠO PAYMENTINTENT VÀ DEBT CHO LOCAL DB ===
       // Đây là bước quan trọng để hiển thị trên trang "Thanh toán" và tài chính
       if (result['success'] == true) {
+        // Background image uploads for items that had local images
+        for (final job in imagesToUpload) {
+          unawaited(ProductImageService.uploadProductImage(
+            localPath: job['localPath']!,
+            shopId: job['shopId']!,
+            productFirestoreId: job['firestoreId']!,
+          ));
+        }
         final entry = result['entry'] as StockEntry;
         final totalCost = (result['totalCost'] as double).round();
         // direction used for debugging
