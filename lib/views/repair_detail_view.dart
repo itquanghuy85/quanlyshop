@@ -3563,6 +3563,16 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                             storageLocationName: loc?.name,
                           );
                           await db.updateRepair(updated);
+                          if (updated.id != null) {
+                            await SyncOrchestrator().enqueue(
+                              entityType: SyncEntityType.repair,
+                              entityId: updated.id!,
+                              firestoreId: updated.firestoreId,
+                              operation: SyncOperation.update,
+                              data: updated.toMap(),
+                            );
+                            unawaited(SyncOrchestrator().syncAll());
+                          }
                           final user = FirebaseAuth.instance.currentUser;
                           final userName = user?.email?.split('@').first.toUpperCase() ?? 'NV';
                           await AuditService.logAction(

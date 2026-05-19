@@ -3396,6 +3396,15 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                         'price': price,
                         'updatedAt': now,
                         'isSynced': 0,
+                        if (capLoc != null) ...{
+                          'locationId': capLoc.firestoreId ?? '',
+                          'locationCode': capLoc.code,
+                          'locationName': capLoc.name,
+                        } else ...{
+                          'locationId': '',
+                          'locationCode': '',
+                          'locationName': '',
+                        },
                       };
                       await (await db.database).update(
                         'repair_parts',

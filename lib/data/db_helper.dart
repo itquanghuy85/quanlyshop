@@ -10540,9 +10540,9 @@ class DBHelper {
     String search = '',
   }) async {
     final db = await database;
-    final args = <dynamic>[shopId, locationCode];
+    final args = <dynamic>[shopId, locationCode.trim().toUpperCase()];
     var where =
-        'shopId = ? AND locationCode = ? AND (deleted = 0 OR deleted IS NULL) AND status != 0';
+        'shopId = ? AND UPPER(TRIM(locationCode)) = ? AND (deleted = 0 OR deleted IS NULL) AND status != 0';
     if (search.isNotEmpty) {
       where += ' AND (name LIKE ? OR imei LIKE ? OR sku LIKE ?)';
       final q = '%$search%';
