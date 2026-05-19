@@ -486,6 +486,8 @@ class _StaffSelfProfileViewState extends State<StaffSelfProfileView> {
     double lastAspect = localAspect;
     double localZoom = 1.0;
 
+    // ignore: prefer_final_locals
+    bool applying = false;
     final result = await showDialog<_CoverCropResult>(
       context: context,
       builder: (dialogContext) {
@@ -654,34 +656,50 @@ class _StaffSelfProfileViewState extends State<StaffSelfProfileView> {
                           SizedBox(
                             width: double.infinity,
                             child: FilledButton(
-                              onPressed: () async {
+                              onPressed: applying ? null : () async {
                                 final cropRect = localCropRect;
                                 if (cropRect == null) return;
-                                final croppedFile = await _cropCoverFile(
-                                  sourceFile: sourceFile,
-                                  sourceBytes: sourceBytes,
-                                  imageRect: localImageRect,
-                                  cropRect: cropRect,
-                                  transform: controller.value,
-                                  viewportSize: localViewportSize,
-                                );
-                                if (croppedFile == null) {
-                                  NotificationService.showSnackBar(
-                                    'Không thể crop ảnh bìa.',
-                                    color: Colors.red,
+                                setDialogState(() => applying = true);
+                                try {
+                                  final croppedFile = await _cropCoverFile(
+                                    sourceFile: sourceFile,
+                                    sourceBytes: sourceBytes,
+                                    imageRect: localImageRect,
+                                    cropRect: cropRect,
+                                    transform: controller.value,
+                                    viewportSize: localViewportSize,
                                   );
-                                  return;
+                                  if (croppedFile == null) {
+                                    NotificationService.showSnackBar(
+                                      'Không thể crop ảnh bìa.',
+                                      color: Colors.red,
+                                    );
+                                    return;
+                                  }
+                                  if (!dialogContext.mounted) return;
+                                  Navigator.pop(
+                                    dialogContext,
+                                    _CoverCropResult(
+                                      croppedFile: croppedFile,
+                                      aspectRatio: localAspect,
+                                    ),
+                                  );
+                                } finally {
+                                  if (dialogContext.mounted) {
+                                    setDialogState(() => applying = false);
+                                  }
                                 }
-                                if (!dialogContext.mounted) return;
-                                Navigator.pop(
-                                  dialogContext,
-                                  _CoverCropResult(
-                                    croppedFile: croppedFile,
-                                    aspectRatio: localAspect,
-                                  ),
-                                );
                               },
-                              child: const Text('Áp dụng vùng ảnh bìa'),
+                              child: applying
+                                  ? const SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : const Text('Áp dụng vùng ảnh bìa'),
                             ),
                           ),
                         ],

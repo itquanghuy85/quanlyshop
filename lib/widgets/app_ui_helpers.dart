@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'app_popup.dart';
+import '../theme/popup_theme.dart';
 
 /// Helper class chứa các widgets UI dùng chung cho toàn app
 /// Áp dụng style thống nhất như Settings View
@@ -68,7 +70,7 @@ class AppUIHelpers {
               subtitle,
               style: TextStyle(
                 fontSize: 13,
-                color: Colors.white.withOpacity(0.8),
+                color: Colors.white.withValues(alpha: 0.8),
               ),
             ),
         ],
@@ -91,7 +93,7 @@ class AppUIHelpers {
       flexibleSpace: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [color, color.withOpacity(0.7)],
+            colors: [color, color.withValues(alpha: 0.7)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -118,7 +120,7 @@ class AppUIHelpers {
               subtitle,
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.white.withOpacity(0.8),
+                color: Colors.white.withValues(alpha: 0.8),
               ),
             ),
         ],
@@ -141,14 +143,14 @@ class AppUIHelpers {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [color, color.withOpacity(0.7)],
+          colors: [color, color.withValues(alpha: 0.7)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.3),
+            color: color.withValues(alpha: 0.3),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -159,7 +161,7 @@ class AppUIHelpers {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(15),
             ),
             child: Icon(icon, color: Colors.white, size: 32),
@@ -182,7 +184,7 @@ class AppUIHelpers {
                   Text(
                     subtitle,
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.8),
+                      color: Colors.white.withValues(alpha: 0.8),
                       fontSize: 14,
                     ),
                   ),
@@ -223,17 +225,17 @@ class AppUIHelpers {
   }) {
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
-      color: color.withOpacity(0.05),
+      color: color.withValues(alpha: 0.05),
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(15),
-        side: BorderSide(color: color.withOpacity(0.2)),
+        side: BorderSide(color: color.withValues(alpha: 0.2)),
       ),
       child: ListTile(
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
+            color: color.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Icon(icon, color: color, size: 22),
@@ -256,7 +258,7 @@ class AppUIHelpers {
             trailing ??
             Icon(
               Icons.arrow_forward_ios,
-              color: color.withOpacity(0.5),
+              color: color.withValues(alpha: 0.5),
               size: 16,
             ),
         onTap: onTap,
@@ -274,10 +276,10 @@ class AppUIHelpers {
     int? badgeCount,
   }) {
     return Card(
-      color: color.withOpacity(0.05),
+      color: color.withValues(alpha: 0.05),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(15),
-        side: BorderSide(color: color.withOpacity(0.2)),
+        side: BorderSide(color: color.withValues(alpha: 0.2)),
       ),
       child: InkWell(
         onTap: onTap,
@@ -291,7 +293,7 @@ class AppUIHelpers {
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: color.withOpacity(0.1),
+                      color: color.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(icon, color: color, size: 28),
@@ -353,9 +355,9 @@ class AppUIHelpers {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.08),
+          color: color.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: color.withOpacity(0.2)),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -365,7 +367,7 @@ class AppUIHelpers {
                 Container(
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.15),
+                    color: color.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(icon, color: color, size: 16),
@@ -375,7 +377,7 @@ class AppUIHelpers {
                   child: Text(
                     label,
                     style: TextStyle(
-                      color: color.withOpacity(0.8),
+                      color: color.withValues(alpha: 0.8),
                       fontWeight: FontWeight.w600,
                       fontSize: 12,
                     ),
@@ -384,7 +386,7 @@ class AppUIHelpers {
                 if (onTap != null)
                   Icon(
                     Icons.arrow_forward_ios,
-                    color: color.withOpacity(0.4),
+                    color: color.withValues(alpha: 0.4),
                     size: 10,
                   ),
               ],
@@ -453,7 +455,7 @@ class AppUIHelpers {
   /// Loading overlay
   static Widget loadingOverlay({String? message}) {
     return Container(
-      color: Colors.black.withOpacity(0.3),
+      color: Colors.black.withValues(alpha: 0.3),
       child: Center(
         child: Card(
           shape: RoundedRectangleBorder(
@@ -480,58 +482,27 @@ class AppUIHelpers {
     );
   }
 
-  /// Confirmation dialog với style mới
+  /// Confirmation dialog với premium dark style
   static Future<bool?> showConfirmDialog({
     required BuildContext context,
     required String title,
     required String message,
     String confirmText = 'XÁC NHẬN',
     String cancelText = 'HỦY',
-    Color confirmColor = Colors.red,
+    Color confirmColor = PopupTheme.red,
     IconData? icon,
   }) {
-    return showDialog<bool>(
+    return showPremiumConfirm(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: [
-            if (icon != null) ...[
-              Icon(icon, color: confirmColor),
-              const SizedBox(width: 10),
-            ],
-            Expanded(
-              child: Text(
-                title,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: confirmColor,
-                ),
-              ),
-            ),
-          ],
-        ),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(cancelText),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: confirmColor,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            child: Text(
-              confirmText,
-              style: const TextStyle(color: Colors.white),
-            ),
-          ),
-        ],
-      ),
+      title: title,
+      message: message,
+      confirmLabel: confirmText,
+      cancelLabel: cancelText,
+      confirmColor: confirmColor,
+      headerGradient: confirmColor == PopupTheme.red
+          ? PopupTheme.headerRed
+          : PopupTheme.headerEdit,
+      icon: icon ?? Icons.help_outline_rounded,
     );
   }
 

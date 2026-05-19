@@ -164,8 +164,19 @@ class _RepairPartnerFormViewState extends State<RepairPartnerFormView> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // Avatar đối tác
-            Center(
+            // Avatar đối tác — banner header style
+            Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(bottom: 8),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF11998e), Color(0xFF38ef7d)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 24),
               child: Column(
                 children: [
                   EntityAvatar(
@@ -176,14 +187,31 @@ class _RepairPartnerFormViewState extends State<RepairPartnerFormView> {
                     onEditTap: _pickAvatar,
                     tappableToView: _pendingAvatar != null || (_avatarUrl?.isNotEmpty == true),
                   ),
-                  const SizedBox(height: 6),
-                  TextButton.icon(
-                    onPressed: _pickAvatar,
-                    icon: const Icon(Icons.camera_alt, size: 16),
-                    label: const Text('Chọn ảnh đại diện'),
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  const SizedBox(height: 10),
+                  GestureDetector(
+                    onTap: _pickAvatar,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.5)),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.camera_alt, size: 14, color: Colors.white),
+                          SizedBox(width: 6),
+                          Text(
+                            'Chọn ảnh đại diện',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.white,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -241,7 +269,7 @@ class _RepairPartnerFormViewState extends State<RepairPartnerFormView> {
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
-                side: BorderSide(color: AppColors.outline.withOpacity(0.5)),
+                side: BorderSide(color: AppColors.outline.withValues(alpha: 0.5)),
               ),
               tileColor: AppColors.surface,
             ),

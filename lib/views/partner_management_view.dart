@@ -51,11 +51,18 @@ class _PartnerManagementViewState extends State<PartnerManagementView>
 
   bool _loading = true;
   bool _canViewCostPrice = false;
+  String _partnerSearchQuery = '';
+  String _supplierSearchQuery = '';
+  String _partnerFilter = 'all';
+  String _supplierFilter = 'all';
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() {
+      if (mounted) setState(() {});
+    });
     _loadData();
   }
 
@@ -69,6 +76,240 @@ class _PartnerManagementViewState extends State<PartnerManagementView>
     final value = (raw ?? '').trim().toUpperCase();
     if (PartnerConstants.paymentMethods.contains(value)) return value;
     return value.isEmpty ? 'KHÁC' : value;
+  }
+
+  bool get _isSupplierTopTab => _tabController.index == 1;
+
+  String _normalizeKey(String input) => input.trim().toUpperCase();
+
+  bool _containsText(String source, String query) {
+    final normalizedQuery = query.trim().toLowerCase();
+    if (normalizedQuery.isEmpty) return true;
+    return source.toLowerCase().contains(normalizedQuery);
+  }
+
+  int _remainingDebtByName(String personName) {
+    final key = _normalizeKey(personName);
+    int totalRemaining = 0;
+    for (final debt in _supplierDebts) {
+      final debtName = _normalizeKey((debt['personName'] ?? '').toString());
+      if (debtName != key) continue;
+      final total = (debt['totalAmount'] as num?)?.toInt() ?? 0;
+      final paid = (debt['paidAmount'] as num?)?.toInt() ?? 0;
+      totalRemaining += (total - paid);
+    }
+    return totalRemaining;
+  }
+
+  bool _hasDebtHistory(String personName) {
+    final key = _normalizeKey(personName);
+    return _supplierDebts.any(
+      (debt) => _normalizeKey((debt['personName'] ?? '').toString()) == key,
+    );
+  }
+
+  int _extractDueDateMs(Map<String, dynamic> debt) {
+    const candidates = [
+      'dueDate',
+      'dueAt',
+      'deadlineAt',
+      'deadline',
+      'paymentDueAt',
+    ];
+    for (final key in candidates) {
+      final raw = debt[key];
+      if (raw is num) return raw.toInt();
+      if (raw is String) {
+        final parsed = int.tryParse(raw.trim());
+        if (parsed != null) return parsed;
+      }
+    }
+    return 0;
+  }
+
+  bool _isSupplierOverdue(String supplierName) {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final key = _normalizeKey(supplierName);
+    for (final debt in _supplierDebts) {
+      final debtName = _normalizeKey((debt['personName'] ?? '').toString());
+      if (debtName != key) continue;
+      final total = (debt['totalAmount'] as num?)?.toInt() ?? 0;
+      final paid = (debt['paidAmount'] as num?)?.toInt() ?? 0;
+      final dueAt = _extractDueDateMs(debt);
+      if ((total - paid) > 0 && dueAt > 0 && dueAt < now) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  int _latestSupplierTransactionMs(Supplier supplier) {
+    final supplierId = supplier.id;
+    int latestPaidAt = 0;
+    int latestImportAt = 0;
+
+    if (supplierId != null) {
+      for (final payment in _supplierPayments) {
+        if (payment.supplierId == supplierId && payment.paidAt > latestPaidAt) {
+          latestPaidAt = payment.paidAt;
+        }
+      }
+      for (final history in _supplierImportHistory) {
+        if (history.supplierId == supplierId.toString() &&
+            history.importDate > latestImportAt) {
+          latestImportAt = history.importDate;
+        }
+      }
+    }
+
+    return latestPaidAt > latestImportAt ? latestPaidAt : latestImportAt;
+  }
+
+  List<RepairPartner> get _filteredRepairPartners {
+    var data = _repairPartners.where((partner) {
+      final q = _partnerSearchQuery;
+      if (q.isEmpty) return true;
+      return _containsText(partner.name, q) ||
+          _containsText(partner.phone ?? '', q) ||
+          _containsText(partner.note ?? '', q);
+    }).toList();
+
+    switch (_partnerFilter) {
+      case 'active':
+        data = data.where((p) => p.active).toList();
+        break;
+      case 'inactive':
+        data = data.where((p) => !p.active).toList();
+        break;
+      case 'hasDebt':
+        data = data.where((p) => _remainingDebtByName(p.name) > 0).toList();
+        break;
+      case 'byName':
+        data.sort(
+          (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+        );
+        break;
+      default:
+        break;
+    }
+
+    return data;
+  }
+
+  List<Supplier> get _filteredSuppliers {
+    var data = _suppliers.where((supplier) {
+      final q = _supplierSearchQuery;
+      if (q.isEmpty) return true;
+      return _containsText(supplier.name, q) ||
+          _containsText(supplier.phone ?? '', q) ||
+          _containsText(supplier.email ?? '', q);
+    }).toList();
+
+    switch (_supplierFilter) {
+      case 'hasDebt':
+        data = data.where((s) => _remainingDebtByName(s.name) > 0).toList();
+        break;
+      case 'settled':
+        data = data
+            .where(
+              (s) =>
+                  _hasDebtHistory(s.name) && _remainingDebtByName(s.name) <= 0,
+            )
+            .toList();
+        break;
+      case 'overdue':
+        data = data.where((s) => _isSupplierOverdue(s.name)).toList();
+        break;
+      case 'recent':
+        data.sort(
+          (a, b) => _latestSupplierTransactionMs(
+            b,
+          ).compareTo(_latestSupplierTransactionMs(a)),
+        );
+        break;
+      default:
+        break;
+    }
+
+    return data;
+  }
+
+  String get _activeFilterLabel {
+    if (_isSupplierTopTab) {
+      switch (_supplierFilter) {
+        case 'hasDebt':
+          return 'Còn nợ';
+        case 'settled':
+          return 'Đã tất toán';
+        case 'overdue':
+          return 'Quá hạn';
+        case 'recent':
+          return 'Giao dịch gần đây';
+        default:
+          return 'Tất cả';
+      }
+    }
+
+    switch (_partnerFilter) {
+      case 'active':
+        return 'Hoạt động';
+      case 'inactive':
+        return 'Ngừng HĐ';
+      case 'hasDebt':
+        return 'Còn nợ';
+      case 'byName':
+        return 'Theo tên';
+      default:
+        return 'Tất cả';
+    }
+  }
+
+  Future<void> _openTopBarSearchDialog() async {
+    final isSupplier = _isSupplierTopTab;
+    final controller = TextEditingController(
+      text: isSupplier ? _supplierSearchQuery : _partnerSearchQuery,
+    );
+
+    final keyword = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(
+          isSupplier ? 'Tìm kiếm nhà cung cấp' : 'Tìm kiếm đối tác sửa chữa',
+        ),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(
+            hintText: 'Nhập tên, SĐT hoặc từ khóa...',
+            prefixIcon: Icon(Icons.search),
+          ),
+          onSubmitted: (value) => Navigator.pop(ctx, value),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, ''),
+            child: const Text('Xóa'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Hủy'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+            child: const Text('Áp dụng'),
+          ),
+        ],
+      ),
+    );
+
+    if (keyword == null || !mounted) return;
+    setState(() {
+      if (isSupplier) {
+        _supplierSearchQuery = keyword.trim();
+      } else {
+        _partnerSearchQuery = keyword.trim();
+      }
+    });
   }
 
   Future<void> _loadData() async {
@@ -237,6 +478,50 @@ class _PartnerManagementViewState extends State<PartnerManagementView>
             Tab(text: 'NHÀ CUNG CẤP'),
           ],
         ),
+        actions: [
+          IconButton(
+            tooltip: _isSupplierTopTab
+                ? 'Tìm kiếm nhà cung cấp'
+                : 'Tìm kiếm đối tác sửa chữa',
+            onPressed: _openTopBarSearchDialog,
+            icon: const Icon(Icons.search),
+          ),
+          PopupMenuButton<String>(
+            tooltip: 'Lọc: $_activeFilterLabel',
+            onSelected: (value) {
+              setState(() {
+                if (_isSupplierTopTab) {
+                  _supplierFilter = value;
+                } else {
+                  _partnerFilter = value;
+                }
+              });
+            },
+            itemBuilder: (_) {
+              if (_isSupplierTopTab) {
+                return const [
+                  PopupMenuItem(value: 'all', child: Text('Tất cả')),
+                  PopupMenuItem(value: 'hasDebt', child: Text('Còn nợ')),
+                  PopupMenuItem(value: 'settled', child: Text('Đã tất toán')),
+                  PopupMenuItem(value: 'overdue', child: Text('Quá hạn')),
+                  PopupMenuItem(
+                    value: 'recent',
+                    child: Text('Giao dịch gần đây'),
+                  ),
+                ];
+              }
+
+              return const [
+                PopupMenuItem(value: 'all', child: Text('Tất cả')),
+                PopupMenuItem(value: 'active', child: Text('Hoạt động')),
+                PopupMenuItem(value: 'inactive', child: Text('Ngừng HĐ')),
+                PopupMenuItem(value: 'hasDebt', child: Text('Còn nợ')),
+                PopupMenuItem(value: 'byName', child: Text('Theo tên')),
+              ];
+            },
+            icon: const Icon(Icons.filter_alt_outlined),
+          ),
+        ],
       ),
       body: ResponsiveCenter(
         child: _loading
@@ -317,10 +602,20 @@ class _PartnerManagementViewState extends State<PartnerManagementView>
   }
 
   Widget _buildPartnersList() {
+    final filteredPartners = _filteredRepairPartners;
+    if (filteredPartners.isEmpty) {
+      return Center(
+        child: Text(
+          'Không có đối tác phù hợp bộ lọc',
+          style: AppTextStyles.body1.copyWith(color: Colors.grey),
+        ),
+      );
+    }
+
     return ListView.builder(
-      itemCount: _repairPartners.length,
+      itemCount: filteredPartners.length,
       itemBuilder: (ctx, i) {
-        final partner = _repairPartners[i];
+        final partner = filteredPartners[i];
         return Card(
           child: ListTile(
             onTap: () => Navigator.push(
@@ -354,10 +649,20 @@ class _PartnerManagementViewState extends State<PartnerManagementView>
   }
 
   Widget _buildSuppliersList() {
+    final filteredSuppliers = _filteredSuppliers;
+    if (filteredSuppliers.isEmpty) {
+      return Center(
+        child: Text(
+          'Không có nhà cung cấp phù hợp bộ lọc',
+          style: AppTextStyles.body1.copyWith(color: Colors.grey),
+        ),
+      );
+    }
+
     return ListView.builder(
-      itemCount: _suppliers.length,
+      itemCount: filteredSuppliers.length,
       itemBuilder: (ctx, i) {
-        final supplier = _suppliers[i];
+        final supplier = filteredSuppliers[i];
         return Card(
           child: ListTile(
             onTap: () => Navigator.push(
@@ -421,7 +726,10 @@ class _PartnerManagementViewState extends State<PartnerManagementView>
         final history = _partnerImportHistory[i];
         return Card(
           child: ListTile(
-            title: Text('Lô ${history.batchId}', style: AppTextStyles.headline2),
+            title: Text(
+              'Lô ${history.batchId}',
+              style: AppTextStyles.headline2,
+            ),
             subtitle: _canViewCostPrice
                 ? Text(
                     'Tổng: ${MoneyUtils.formatVND(history.totalCost.toInt())}₫ - ${DateFormat('dd/MM/yyyy').format(DateTime.fromMillisecondsSinceEpoch(history.createdAt))}',
@@ -446,7 +754,10 @@ class _PartnerManagementViewState extends State<PartnerManagementView>
         final history = _supplierImportHistory[i];
         return Card(
           child: ListTile(
-            title: Text('Lô ${history.batchId}', style: AppTextStyles.headline2),
+            title: Text(
+              'Lô ${history.batchId}',
+              style: AppTextStyles.headline2,
+            ),
             subtitle: _canViewCostPrice
                 ? Text(
                     'Tổng: ${MoneyUtils.formatVND(history.totalCost.toInt())}₫ - ${DateFormat('dd/MM/yyyy').format(DateTime.fromMillisecondsSinceEpoch(history.createdAt))}',
@@ -543,7 +854,9 @@ class _PartnerManagementViewState extends State<PartnerManagementView>
         children: [
           Text(
             'Tổng thanh toán: ${MoneyUtils.formatVND(totalPaid)}₫',
-            style: AppTextStyles.headline1.copyWith(fontWeight: FontWeight.bold),
+            style: AppTextStyles.headline1.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 20),
           SizedBox(
@@ -641,7 +954,9 @@ class _PartnerManagementViewState extends State<PartnerManagementView>
           if (supplierDebtStats.isNotEmpty) ...[
             Text(
               '📋 CHI TIẾT CÔNG NỢ THEO NCC:',
-              style: AppTextStyles.headline1.copyWith(fontWeight: FontWeight.bold),
+              style: AppTextStyles.headline1.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 12),
             ...supplierDebtStats.entries.map(
@@ -679,7 +994,9 @@ class _PartnerManagementViewState extends State<PartnerManagementView>
           // Biểu đồ thanh toán
           Text(
             '📊 THỐNG KÊ THANH TOÁN:',
-            style: AppTextStyles.headline1.copyWith(fontWeight: FontWeight.bold),
+            style: AppTextStyles.headline1.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 12),
           SizedBox(

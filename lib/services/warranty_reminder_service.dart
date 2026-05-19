@@ -24,10 +24,10 @@ class WarrantyReminderService {
 
     try {
       debugPrint('🛡️ Warranty reminder service started');
-      
+
       // Chạy ngay khi mở app
       await checkAndNotifyExpiredWarranties();
-      
+
       // Lên lịch chạy lại mỗi 24h
       Future.delayed(const Duration(hours: 24), startWarrantyReminders);
     } catch (e) {
@@ -67,7 +67,9 @@ class WarrantyReminderService {
         }
       }
 
-      debugPrint('✅ Checked ${repairs.length} repairs for warranty expiry, notified $notified');
+      debugPrint(
+        '✅ Checked ${repairs.length} repairs for warranty expiry, notified $notified',
+      );
     } catch (e) {
       debugPrint('❌ Error checking warranties: $e');
     }
@@ -132,11 +134,20 @@ class WarrantyReminderService {
   /// Parse chuỗi bảo hành sang số ngày ("3 tháng" → 90, "1 năm" → 365, ...)
   static int _parseWarrantyDays(String warranty) {
     final lower = warranty.toLowerCase().trim();
-    final monthMatch = RegExp(r'(\d+)\s*(th|tháng)', caseSensitive: false).firstMatch(lower);
+    final monthMatch = RegExp(
+      r'(\d+)\s*(th|tháng)',
+      caseSensitive: false,
+    ).firstMatch(lower);
     if (monthMatch != null) return int.parse(monthMatch.group(1)!) * 30;
-    final yearMatch = RegExp(r'(\d+)\s*(n|năm)', caseSensitive: false).firstMatch(lower);
+    final yearMatch = RegExp(
+      r'(\d+)\s*(n|năm)',
+      caseSensitive: false,
+    ).firstMatch(lower);
     if (yearMatch != null) return int.parse(yearMatch.group(1)!) * 365;
-    final dayMatch = RegExp(r'(\d+)\s*(ng|ngày)', caseSensitive: false).firstMatch(lower);
+    final dayMatch = RegExp(
+      r'(\d+)\s*(ng|ngày)',
+      caseSensitive: false,
+    ).firstMatch(lower);
     if (dayMatch != null) return int.parse(dayMatch.group(1)!);
     return 0;
   }
@@ -170,17 +181,25 @@ class WarrantyReminderService {
         final warrantyDays = _parseWarrantyDays(warranty);
         if (warrantyDays <= 0) continue;
         final expiryMs = deliveredAt + (warrantyDays * 86400000);
-        final daysLeft = DateTime.fromMillisecondsSinceEpoch(expiryMs).difference(now).inDays;
+        final daysLeft = DateTime.fromMillisecondsSinceEpoch(
+          expiryMs,
+        ).difference(now).inDays;
         if (daysLeft >= 0 && daysLeft <= daysAhead) {
           results.add({
             ...r,
             'warranty_expiry': expiryMs,
             'daysLeft': daysLeft,
-            'status': daysLeft <= 1 ? 'expired' : daysLeft <= 7 ? 'urgent' : 'soon',
+            'status': daysLeft <= 1
+                ? 'expired'
+                : daysLeft <= 7
+                ? 'urgent'
+                : 'soon',
           });
         }
       }
-      results.sort((a, b) => (a['daysLeft'] as int).compareTo(b['daysLeft'] as int));
+      results.sort(
+        (a, b) => (a['daysLeft'] as int).compareTo(b['daysLeft'] as int),
+      );
       return results.take(10).toList();
     } catch (e) {
       debugPrint('❌ Error fetching expiring warranties: $e');

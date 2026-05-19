@@ -429,11 +429,18 @@ class _StaffListViewState extends State<StaffListView> {
                   obscureText: obscure,
                   decoration: InputDecoration(
                     labelText: label,
-                    prefixIcon: Icon(icon, size: 20, color: const Color(0xFF1565C0)),
+                    prefixIcon: Icon(
+                      icon,
+                      size: 20,
+                      color: const Color(0xFF1565C0),
+                    ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                    contentPadding: const EdgeInsets.symmetric(
+                      vertical: 12,
+                      horizontal: 12,
+                    ),
                     isDense: true,
                   ),
                 ),
@@ -441,16 +448,24 @@ class _StaffListViewState extends State<StaffListView> {
             }
 
             return Dialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
               clipBehavior: Clip.hardEdge,
-              insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+              insetPadding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 24,
+              ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   // Header gradient
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 16,
+                    ),
                     decoration: const BoxDecoration(
                       gradient: LinearGradient(
                         colors: [Color(0xFF1565C0), Color(0xFF2962FF)],
@@ -466,7 +481,11 @@ class _StaffListViewState extends State<StaffListView> {
                             color: Colors.white.withOpacity(0.2),
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: const Icon(Icons.person_add_rounded, color: Colors.white, size: 22),
+                          child: const Icon(
+                            Icons.person_add_rounded,
+                            color: Colors.white,
+                            size: 22,
+                          ),
                         ),
                         const SizedBox(width: 12),
                         const Expanded(
@@ -481,8 +500,14 @@ class _StaffListViewState extends State<StaffListView> {
                           ),
                         ),
                         IconButton(
-                          onPressed: submitting ? null : () => Navigator.of(ctx).pop(),
-                          icon: const Icon(Icons.close_rounded, color: Colors.white70, size: 20),
+                          onPressed: submitting
+                              ? null
+                              : () => Navigator.of(ctx).pop(),
+                          icon: const Icon(
+                            Icons.close_rounded,
+                            color: Colors.white70,
+                            size: 20,
+                          ),
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
                         ),
@@ -508,16 +533,28 @@ class _StaffListViewState extends State<StaffListView> {
                             ),
                           ),
                           const SizedBox(height: 8),
-                          buildField(emailC, label: 'Email đăng nhập', icon: Icons.email_outlined, keyboard: TextInputType.emailAddress),
+                          buildField(
+                            emailC,
+                            label: 'Email đăng nhập',
+                            icon: Icons.email_outlined,
+                            keyboard: TextInputType.emailAddress,
+                          ),
                           // Auto-generate password toggle
                           Container(
                             margin: const EdgeInsets.only(bottom: 12),
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
-                              color: autoGeneratePassword ? const Color(0xFFE3F2FD) : Colors.grey.shade50,
+                              color: autoGeneratePassword
+                                  ? const Color(0xFFE3F2FD)
+                                  : Colors.grey.shade50,
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(
-                                color: autoGeneratePassword ? const Color(0xFF1565C0).withOpacity(0.3) : Colors.grey.shade300,
+                                color: autoGeneratePassword
+                                    ? const Color(0xFF1565C0).withOpacity(0.3)
+                                    : Colors.grey.shade300,
                               ),
                             ),
                             child: CheckboxListTile(
@@ -527,21 +564,35 @@ class _StaffListViewState extends State<StaffListView> {
                                 'Tự động tạo mật khẩu mạnh',
                                 style: TextStyle(
                                   fontSize: 14,
-                                  color: autoGeneratePassword ? const Color(0xFF1565C0) : Colors.grey[800],
-                                  fontWeight: autoGeneratePassword ? FontWeight.w600 : FontWeight.normal,
+                                  color: autoGeneratePassword
+                                      ? const Color(0xFF1565C0)
+                                      : Colors.grey[800],
+                                  fontWeight: autoGeneratePassword
+                                      ? FontWeight.w600
+                                      : FontWeight.normal,
                                 ),
                               ),
                               subtitle: Text(
                                 'Bỏ chọn để tự nhập mật khẩu',
-                                style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[500],
+                                ),
                               ),
                               value: autoGeneratePassword,
                               activeColor: const Color(0xFF1565C0),
-                              onChanged: (value) => setState(() => autoGeneratePassword = value ?? false),
+                              onChanged: (value) => setState(
+                                () => autoGeneratePassword = value ?? false,
+                              ),
                             ),
                           ),
                           if (!autoGeneratePassword)
-                            buildField(passC, label: 'Mật khẩu (≥6 ký tự)', icon: Icons.lock_outline_rounded, obscure: true),
+                            buildField(
+                              passC,
+                              label: 'Mật khẩu (≥6 ký tự)',
+                              icon: Icons.lock_outline_rounded,
+                              obscure: true,
+                            ),
                           // Section: Thông tin cá nhân
                           Text(
                             'THÔNG TIN CÁ NHÂN',
@@ -553,9 +604,22 @@ class _StaffListViewState extends State<StaffListView> {
                             ),
                           ),
                           const SizedBox(height: 8),
-                          buildField(nameC, label: 'Họ tên nhân viên', icon: Icons.badge_outlined),
-                          buildField(phoneC, label: 'Số điện thoại', icon: Icons.phone_outlined, keyboard: TextInputType.phone),
-                          buildField(addressC, label: 'Địa chỉ', icon: Icons.home_outlined),
+                          buildField(
+                            nameC,
+                            label: 'Họ tên nhân viên',
+                            icon: Icons.badge_outlined,
+                          ),
+                          buildField(
+                            phoneC,
+                            label: 'Số điện thoại',
+                            icon: Icons.phone_outlined,
+                            keyboard: TextInputType.phone,
+                          ),
+                          buildField(
+                            addressC,
+                            label: 'Địa chỉ',
+                            icon: Icons.home_outlined,
+                          ),
                           // Section: Phân quyền
                           Text(
                             'PHÂN QUYỀN',
@@ -568,14 +632,21 @@ class _StaffListViewState extends State<StaffListView> {
                           ),
                           const SizedBox(height: 8),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
                               border: Border.all(color: Colors.grey.shade300),
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Row(
                               children: [
-                                const Icon(Icons.admin_panel_settings_outlined, size: 20, color: Color(0xFF1565C0)),
+                                const Icon(
+                                  Icons.admin_panel_settings_outlined,
+                                  size: 20,
+                                  color: Color(0xFF1565C0),
+                                ),
                                 const SizedBox(width: 10),
                                 Expanded(
                                   child: DropdownButtonHideUnderline(
@@ -583,12 +654,26 @@ class _StaffListViewState extends State<StaffListView> {
                                       value: role,
                                       isExpanded: true,
                                       items: const [
-                                        DropdownMenuItem(value: 'employee', child: Text('Nhân viên')),
-                                        DropdownMenuItem(value: 'technician', child: Text('Kỹ thuật')),
-                                        DropdownMenuItem(value: 'manager', child: Text('Quản lý')),
-                                        DropdownMenuItem(value: 'owner', child: Text('Chủ shop')),
+                                        DropdownMenuItem(
+                                          value: 'employee',
+                                          child: Text('Nhân viên'),
+                                        ),
+                                        DropdownMenuItem(
+                                          value: 'technician',
+                                          child: Text('Kỹ thuật'),
+                                        ),
+                                        DropdownMenuItem(
+                                          value: 'manager',
+                                          child: Text('Quản lý'),
+                                        ),
+                                        DropdownMenuItem(
+                                          value: 'owner',
+                                          child: Text('Chủ shop'),
+                                        ),
                                       ],
-                                      onChanged: (v) => setState(() => role = v ?? 'employee'),
+                                      onChanged: (v) => setState(
+                                        () => role = v ?? 'employee',
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -597,7 +682,11 @@ class _StaffListViewState extends State<StaffListView> {
                           ),
                           if (_isSuperAdmin) ...[
                             const SizedBox(height: 12),
-                            buildField(shopC, label: 'Shop ID (super admin)', icon: Icons.store_outlined),
+                            buildField(
+                              shopC,
+                              label: 'Shop ID (super admin)',
+                              icon: Icons.store_outlined,
+                            ),
                           ],
                           if (errorText != null)
                             Container(
@@ -610,12 +699,19 @@ class _StaffListViewState extends State<StaffListView> {
                               ),
                               child: Row(
                                 children: [
-                                  Icon(Icons.error_outline, size: 16, color: Colors.red.shade700),
+                                  Icon(
+                                    Icons.error_outline,
+                                    size: 16,
+                                    color: Colors.red.shade700,
+                                  ),
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
                                       errorText!,
-                                      style: TextStyle(color: Colors.red.shade700, fontSize: 13),
+                                      style: TextStyle(
+                                        color: Colors.red.shade700,
+                                        fontSize: 13,
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -630,17 +726,26 @@ class _StaffListViewState extends State<StaffListView> {
                   Container(
                     decoration: BoxDecoration(
                       color: Colors.grey.shade50,
-                      border: Border(top: BorderSide(color: Colors.grey.shade200)),
+                      border: Border(
+                        top: BorderSide(color: Colors.grey.shade200),
+                      ),
                     ),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
                     child: Row(
                       children: [
                         Expanded(
                           child: OutlinedButton(
-                            onPressed: submitting ? null : () => Navigator.of(ctx).pop(),
+                            onPressed: submitting
+                                ? null
+                                : () => Navigator.of(ctx).pop(),
                             style: OutlinedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
                             ),
                             child: const Text('HỦY'),
                           ),
@@ -654,16 +759,26 @@ class _StaffListViewState extends State<StaffListView> {
                               backgroundColor: const Color(0xFF1565C0),
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
                               elevation: 2,
                             ),
                             child: submitting
                                 ? const SizedBox(
                                     height: 18,
                                     width: 18,
-                                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
                                   )
-                                : const Text('TẠO TÀI KHOẢN', style: TextStyle(fontWeight: FontWeight.bold)),
+                                : const Text(
+                                    'TẠO TÀI KHOẢN',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                           ),
                         ),
                       ],
@@ -1219,7 +1334,7 @@ class _StaffListViewState extends State<StaffListView> {
                           userData['displayName'] ??
                           email.split('@').first.toUpperCase();
                       final phone = userData['phone'] ?? "Chưa có SĐT";
-                        final photoUrl = (userData['photoUrl'] ?? '')
+                      final photoUrl = (userData['photoUrl'] ?? '')
                           .toString()
                           .trim();
                       final shopId = userData['shopId'];
@@ -1282,14 +1397,8 @@ class _StaffListViewState extends State<StaffListView> {
                           subtitle: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                email,
-                                style: FinanceV2Theme.bodyMd,
-                              ),
-                              Text(
-                                "SĐT: $phone",
-                                style: FinanceV2Theme.bodyMd,
-                              ),
+                              Text(email, style: FinanceV2Theme.bodyMd),
+                              Text("SĐT: $phone", style: FinanceV2Theme.bodyMd),
                               role == 'admin'
                                   ? Container(
                                       padding: const EdgeInsets.symmetric(
@@ -2079,7 +2188,10 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
 
         return Dialog(
           backgroundColor: Colors.transparent,
-          insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 24,
+          ),
           child: Stack(
             children: [
               Container(
@@ -2134,7 +2246,8 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
         );
         if (photoUrl == null) {
           final uploadError = StorageService.lastUploadErrorMessage ?? '';
-          final denied = StorageService.lastUploadPermissionDenied ||
+          final denied =
+              StorageService.lastUploadPermissionDenied ||
               uploadError.toLowerCase().contains('permission denied') ||
               uploadError.toLowerCase().contains('unauthorized');
           messenger.showSnackBar(
@@ -2478,12 +2591,12 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
                   onPressed: _isSavingStaff
                       ? null
                       : () {
-                    if (_isEditing) {
-                      _saveStaffInfo();
-                    } else {
-                      setState(() => _isEditing = true);
-                    }
-                  },
+                          if (_isEditing) {
+                            _saveStaffInfo();
+                          } else {
+                            setState(() => _isEditing = true);
+                          }
+                        },
                 ),
               ],
             ),

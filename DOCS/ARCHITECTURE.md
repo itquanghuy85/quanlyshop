@@ -461,5 +461,76 @@ User App (APK/PlayStore) → Firebase Production
 
 ---
 
-**Last Updated:** 2026-05-15  
+## Product Image & Storage Location System (v98)
+
+### Overview
+Hệ thống quản lý ảnh sản phẩm và vị trí lưu kho được thêm vào phiên bản DB schema v98.
+
+### Data Model
+
+#### StorageLocation (`lib/models/storage_location_model.dart`)
+```
+Fields: id, firestoreId, shopId, code, name, warehouse, floor, shelf, bin, note, isActive, createdAt, updatedAt
+Table:  storage_locations (SQLite v98)
+Index:  idx_storage_locations_shopId
+```
+
+#### Product additions
+```
+New fields: locationId, locationCode, locationName (TEXT)
+            localImagePath (TEXT), imageUpdatedAt (INTEGER)
+Table: products (ALTER TABLE via onOpen + v98 migration)
+```
+
+#### Repair additions
+```
+New fields: storageLocationId, storageLocationCode, storageLocationName (TEXT)
+Table: repairs (ALTER TABLE via onOpen + v98 migration)
+DB safety: Added to onOpen() defensive migration — guaranteed to exist on all installs
+```
+
+### Components
+
+| Component | Path | Role |
+|-----------|------|------|
+| `ImagePickerWidget` | `lib/widgets/image_picker_widget.dart` | Camera/gallery pick, auto-compress (<300KB), full-screen view |
+| `_FullScreenImageViewer` | Inside image_picker_widget.dart | Full-screen zoom viewer (PhotoView) |
+| `StorageLocationSelector` | `lib/widgets/storage_location_selector.dart` | Bottom sheet picker for location |
+| `StorageLocationView` | `lib/views/storage_location_view.dart` | CRUD management screen |
+| `ProductImageService` | `lib/services/product_image_service.dart` | Background upload to Firebase Storage |
+| `AppCachedImage` | `lib/widgets/app_cached_image.dart` | Cached network image with placeholder |
+
+### Image Storage Path
+```
+Firebase Storage: uploads/products/{shopId}/{productId}/main.jpg
+                  uploads/products/{shopId}/{productId}/{timestamp}.jpg (multiple)
+```
+
+### Background Upload Pattern
+```
+1. User picks image → compressed local file saved immediately
+2. DB record saved with localImagePath (not imageUrl yet)
+3. Background: ProductImageService.uploadAndSaveToProduct() runs
+4. On success: product.images = downloadUrl, localImagePath cleared
+5. On network error: upload retried on next app session
+```
+
+### Location Filter in Inventory
+```
+Filter chip "Vị trí" in _buildCategoryChips():
+- Taps → _showLocationFilterSheet() → loads locations from SQLite → user picks
+- Active: chip shows code + X button → tap X to clear
+- Filter logic: products.where(p.locationCode == _filterLocationCode)
+- Requires _needsFullData = true → loads all products (disables pagination)
+```
+
+### Integration Points
+- **Inventory**: thumbnail in product cards + image+location in add/edit dialogs + location filter chip
+- **Sales picker**: 40×40 thumbnail leading in product ListTile
+- **Repair detail**: optional location picker dialog when marking XONG (status=3)
+- **Order list**: location chip badge on repair cards
+
+---
+
+**Last Updated:** 2026-05-19  
 **Version:** 1.0

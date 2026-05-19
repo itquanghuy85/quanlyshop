@@ -2944,27 +2944,27 @@ class _FinanceV2ViewState extends State<FinanceV2View>
   }
 
   static const List<String> _auditLogHeaders = <String>[
-    'timestamp',
-    'action_type',
-    'module',
-    'reference_id',
-    'product_name',
-    'imei',
-    'quantity',
-    'price',
-    'cost',
-    'line_amount',
-    'line_cost_total',
-    'cash_in',
-    'cash_out',
-    'transfer_in',
-    'transfer_out',
-    'payment_method',
-    'debt_customer_change',
-    'debt_supplier_change',
-    'inventory_change',
-    'actor_name',
-    'description',
+    'Thời gian',
+    'Loại giao dịch',
+    'Phân hệ',
+    'Nguồn phát sinh',
+    'Sản phẩm',
+    'Số IMEI / Serial',
+    'Số lượng',
+    'Đơn giá bán',
+    'Đơn giá vốn',
+    'Thành tiền',
+    'Tổng vốn hàng',
+    'Tiền mặt vào',
+    'Tiền mặt ra',
+    'Chuyển khoản vào',
+    'Chuyển khoản ra',
+    'Phương thức thanh toán',
+    'Biến động CN khách hàng',
+    'Biến động CN nhà cung cấp',
+    'Biến động tồn kho',
+    'Người thực hiện',
+    'Diễn giải',
   ];
 
   String _auditPaymentMethod(String? method) {
@@ -2981,15 +2981,103 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     switch (actionType) {
       case 'IMPORT':
       case 'ADJUST':
-        return 'kho';
+        return 'Kho';
       case 'SALE':
       case 'RETURN':
-        return 'bán hàng';
+        return 'Bán hàng';
       case 'REPAIR':
-        return 'sửa chữa';
+        return 'Sửa chữa';
       default:
-        return 'tài chính';
+        return 'Tài chính';
     }
+  }
+
+  /// Human-readable label for action types (for Excel display).
+  String _actionTypeLabel(String actionType) {
+    switch (actionType.toUpperCase()) {
+      case 'SALE':
+        return 'Bán hàng';
+      case 'RETURN':
+        return 'Hoàn trả';
+      case 'REPAIR':
+        return 'Sửa chữa';
+      case 'IMPORT':
+        return 'Nhập kho';
+      case 'OTHER_EXPENSE':
+      case 'EXPENSE':
+        return 'Chi phí';
+      case 'OTHER_INCOME':
+      case 'INCOME':
+        return 'Thu khác';
+      case 'DEBT_CREATE':
+        return 'Tạo công nợ';
+      case 'DEBT_PAY':
+        return 'Thanh toán công nợ';
+      case 'DEBT_COLLECT':
+        return 'Thu nợ khách hàng';
+      case 'TRANSFER':
+        return 'Chuyển khoản';
+      case 'ADJUSTMENT':
+      case 'ADJUST':
+        return 'Điều chỉnh';
+      case 'OPENING_BALANCE':
+        return 'Số dư đầu kỳ';
+      case 'CLOSING_BALANCE':
+        return 'Số dư cuối kỳ';
+      default:
+        return actionType;
+    }
+  }
+
+  /// Convert internal payment method code (CAPS) to Vietnamese label.
+  String _paymentMethodLabel(String method) {
+    switch (method.toUpperCase()) {
+      case 'CASH':
+        return 'Tiền mặt';
+      case 'TRANSFER':
+        return 'Chuyển khoản';
+      case 'DEBT':
+        return 'Công nợ';
+      case 'MIXED':
+        return 'Kết hợp';
+      case 'CARD':
+        return 'Thẻ';
+      case 'INSTALLMENT':
+        return 'Trả góp';
+      default:
+        return method;
+    }
+  }
+
+  /// Convert raw reference_id to a readable source label.
+  String _referenceSourceLabel(String referenceId, String actionType) {
+    if (referenceId.startsWith('exp_')) return 'Chi phí vận hành';
+    if (referenceId.startsWith('debt_stock_')) return 'Công nợ nhập hàng';
+    if (referenceId.startsWith('debt_direct_')) return 'Công nợ trực tiếp';
+    if (referenceId.startsWith('debt_part_')) return 'Công nợ linh kiện';
+    if (referenceId.startsWith('debt_other_')) return 'Công nợ khác';
+    if (referenceId.startsWith('sale_')) return 'Đơn bán hàng';
+    if (referenceId.startsWith('repair_')) return 'Đơn sửa chữa';
+    if (referenceId.startsWith('prod_')) return 'Sản phẩm nhập kho';
+    if (referenceId.startsWith('catb_pay_'))
+      return 'Thanh toán công nợ (đối soát)';
+    return _actionTypeLabel(actionType);
+  }
+
+  /// Format integer as money string with thousands separator, e.g. 1,234,567.
+  String _fmtMoney(int v) {
+    if (v == 0) return '0';
+    final sign = v < 0 ? '-' : '';
+    final abs = v.abs();
+    final s = abs.toString();
+    final buf = StringBuffer();
+    int count = 0;
+    for (int i = s.length - 1; i >= 0; i--) {
+      if (count > 0 && count % 3 == 0) buf.write(',');
+      buf.write(s[i]);
+      count++;
+    }
+    return '$sign${buf.toString().split('').reversed.join()}';
   }
 
   bool _isImportExpense(Map<String, dynamic> expense) {
@@ -3147,24 +3235,24 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     final resolvedLineCostTotal = lineCostTotal ?? (cost * quantity);
     return <dynamic>[
       FinanceV2ExcelExport.fmtDateTime(timestamp),
-      actionType,
+      _actionTypeLabel(actionType),
       _auditModule(actionType),
-      referenceId,
+      _referenceSourceLabel(referenceId, actionType),
       productName,
       imei,
-      quantity,
-      price,
-      cost,
-      resolvedLineAmount,
-      resolvedLineCostTotal,
-      cashIn,
-      cashOut,
-      transferIn,
-      transferOut,
-      paymentMethod,
-      debtCustomerChange,
-      debtSupplierChange,
-      inventoryChange,
+      quantity > 0 ? quantity : '',
+      price > 0 ? _fmtMoney(price) : '',
+      cost > 0 ? _fmtMoney(cost) : '',
+      resolvedLineAmount > 0 ? _fmtMoney(resolvedLineAmount) : '',
+      resolvedLineCostTotal > 0 ? _fmtMoney(resolvedLineCostTotal) : '',
+      cashIn > 0 ? _fmtMoney(cashIn) : '',
+      cashOut > 0 ? _fmtMoney(cashOut) : '',
+      transferIn > 0 ? _fmtMoney(transferIn) : '',
+      transferOut > 0 ? _fmtMoney(transferOut) : '',
+      _paymentMethodLabel(paymentMethod),
+      debtCustomerChange != 0 ? _fmtMoney(debtCustomerChange) : '',
+      debtSupplierChange != 0 ? _fmtMoney(debtSupplierChange) : '',
+      inventoryChange != 0 ? inventoryChange : '',
       actorName,
       description,
     ];
@@ -3669,14 +3757,20 @@ class _FinanceV2ViewState extends State<FinanceV2View>
       });
     }
 
-    // Build tracked-payment map for Category B synthetic DEBT_PAY logic below.
+    // Build tracked-payment maps for Category B synthetic DEBT_PAY logic below.
+    // trackedByDebtId: numeric linkedDebtId; trackedByDebtFsId: debtFirestoreId.
+    // Both are needed: some payments have wrong numeric debtId but correct firestoreId.
     final trackedByDebtId = <int, int>{};
+    final trackedByDebtFsId = <String, int>{};
     for (final payment in debtPayments) {
+      final amount = (payment['amount'] as num?)?.toInt() ?? 0;
       final lid = (payment['linkedDebtId'] as num?)?.toInt();
       if (lid != null) {
-        trackedByDebtId[lid] =
-            (trackedByDebtId[lid] ?? 0) +
-            ((payment['amount'] as num?)?.toInt() ?? 0);
+        trackedByDebtId[lid] = (trackedByDebtId[lid] ?? 0) + amount;
+      }
+      final pFsId = (payment['debtFirestoreId'] ?? '').toString().trim();
+      if (pFsId.isNotEmpty) {
+        trackedByDebtFsId[pFsId] = (trackedByDebtFsId[pFsId] ?? 0) + amount;
       }
     }
 
@@ -3685,13 +3779,6 @@ class _FinanceV2ViewState extends State<FinanceV2View>
       final method = _auditPaymentMethod(
         (payment['paymentMethod'] ?? '').toString(),
       );
-      final hasLinkedDebtRecord = (payment['linkedDebtId'] as num?)?.toInt() != null;
-      final linkedDebtDeleted = (payment['linkedDebtDeleted'] as num?)?.toInt() ?? 0;
-      final linkedDebtIsActive = hasLinkedDebtRecord && linkedDebtDeleted == 0;
-      final linkedDebtType = (payment['linkedDebtType'] ?? '')
-          .toString()
-          .toUpperCase();
-      final linkedToSupplierDebt = _isSupplierDebtType(linkedDebtType);
       final debtType =
           (payment['resolvedDebtType'] ?? payment['debtType'] ?? '')
               .toString()
@@ -3729,10 +3816,9 @@ class _FinanceV2ViewState extends State<FinanceV2View>
         'transferIn': transferIn,
         'transferOut': transferOut,
         'debtCustomerChange': isSupplier ? 0 : -amount,
-        'debtSupplierChange':
-          (isSupplier && linkedDebtIsActive && linkedToSupplierDebt)
-            ? -amount
-            : 0,
+        // debtSupplierChange = 0: cash-flow and debt-balance are tracked separately.
+        // Actual debt balance changes are emitted by Category B using debts.paidAmount.
+        'debtSupplierChange': 0,
         'inventoryChange': 0,
         'lineAmount': 0,
         'lineCostTotal': 0,
@@ -3746,10 +3832,7 @@ class _FinanceV2ViewState extends State<FinanceV2View>
           transferOut: transferOut,
           paymentMethod: method,
           debtCustomerChange: isSupplier ? 0 : -amount,
-            debtSupplierChange:
-              (isSupplier && linkedDebtIsActive && linkedToSupplierDebt)
-              ? -amount
-              : 0,
+          debtSupplierChange: 0,
           description: isSupplier
               ? 'Trả nợ ${payment['debtPersonName'] ?? ''}'
               : 'Thu nợ ${payment['debtPersonName'] ?? ''}',
@@ -3805,50 +3888,86 @@ class _FinanceV2ViewState extends State<FinanceV2View>
       });
     }
 
-    // Category B: in-period supplier debts whose paidAmount was updated directly
-    // (no debt_payments record). Emit a synthetic DEBT_PAY for the untracked amount
-    // so the activity log stays balanced with snap.payableTotal.
+    // Category B: emit one DEBT_PAY per in-period supplier debt using debts.paidAmount
+    // as the authoritative source. This keeps debtSupplierFlow balanced with
+    // snap.payableTotal regardless of what debt_payments records contain.
+    debugPrint('DBG_CATB_TRACKED: $trackedByDebtId');
     for (final debt in debts) {
       final createdAt = (debt['createdAt'] as num?)?.toInt() ?? 0;
       if (createdAt < startMs) continue;
-      final debtType =
-          (debt['type'] ?? debt['debtType'] ?? '').toString().toUpperCase();
+      final debtType = (debt['type'] ?? debt['debtType'] ?? '')
+          .toString()
+          .toUpperCase();
       if (!_isSupplierDebtType(debtType)) continue;
       final paid = (debt['paidAmount'] as num?)?.toInt() ?? 0;
-      if (paid <= 0) continue;
       final debtId = (debt['id'] as num?)?.toInt();
-      final tracked = debtId != null ? (trackedByDebtId[debtId] ?? 0) : 0;
-      final untracked = (paid - tracked).clamp(0, paid);
-      if (untracked <= 0) continue;
+      final debtFsId = (debt['firestoreId'] ?? '').toString().trim();
+      // Category B: use full paidAmount from debts table as the authoritative
+      // debt-balance change. Payment records (debt_payments.amount) may be
+      // mislinked or corrupt, so we rely on debts.paidAmount exclusively for
+      // debtSupplierChange. The trackedBy maps are retained for debug visibility.
+      final trackedById = debtId != null ? (trackedByDebtId[debtId] ?? 0) : 0;
+      final trackedByFs = debtFsId.isNotEmpty
+          ? (trackedByDebtFsId[debtFsId] ?? 0)
+          : 0;
+      final tracked = trackedById > trackedByFs ? trackedById : trackedByFs;
+      debugPrint(
+        'DBG_CATB_DEBT: id=$debtId fsId=$debtFsId type=$debtType paid=$paid tracked=$tracked person=${debt['personName'] ?? debt['partnerName']}',
+      );
+      if (paid <= 0) continue;
       final ts =
           (debt['updatedAt'] as num?)?.toInt() ??
           (debt['createdAt'] as num?)?.toInt() ??
           0;
-      final personName =
-          (debt['personName'] ?? debt['partnerName'] ?? '').toString();
+      final personName = (debt['personName'] ?? debt['partnerName'] ?? '')
+          .toString();
       entries.add({
         'ts': ts,
         'actionType': 'DEBT_PAY',
-        'referenceId': 'untracked_pay_${debt['id']}',
+        'referenceId': 'catb_pay_${debt['id']}',
         'cashIn': 0,
         'cashOut': 0,
         'transferIn': 0,
         'transferOut': 0,
         'debtCustomerChange': 0,
-        'debtSupplierChange': -untracked,
+        'debtSupplierChange': -paid,
         'inventoryChange': 0,
         'lineAmount': 0,
         'lineCostTotal': 0,
         'row': _auditRow(
           timestamp: ts,
           actionType: 'DEBT_PAY',
-          referenceId: 'untracked_pay_${debt['id']}',
-          debtSupplierChange: -untracked,
+          referenceId: 'catb_pay_${debt['id']}',
+          debtSupplierChange: -paid,
           description:
-              'Trả nợ ${personName.isNotEmpty ? personName : ''} (không có phiếu)',
+              'Trả nợ ${personName.isNotEmpty ? personName : ''} (đã trả)',
         ),
       });
     }
+
+    // Debug: summarize debtSupplierChange by actionType
+    int dbgCreateSupplier = 0,
+        dbgPaySupplier = 0,
+        dbgImportSupplier = 0,
+        dbgOther = 0;
+    for (final e in entries) {
+      final at = (e['actionType'] ?? '').toString();
+      final dsc = (e['debtSupplierChange'] as num?)?.toInt() ?? 0;
+      if (at == 'DEBT_CREATE')
+        dbgCreateSupplier += dsc;
+      else if (at == 'DEBT_PAY')
+        dbgPaySupplier += dsc;
+      else if (at == 'IMPORT')
+        dbgImportSupplier += dsc;
+      else
+        dbgOther += dsc;
+    }
+    debugPrint(
+      'DBG_FLOW_SUMMARY: debtsCount=${debts.length} debtPaymentsCount=${debtPayments.length} DEBT_CREATE=$dbgCreateSupplier DEBT_PAY=$dbgPaySupplier IMPORT=$dbgImportSupplier OTHER=$dbgOther total=${dbgCreateSupplier + dbgPaySupplier + dbgImportSupplier + dbgOther}',
+    );
+    debugPrint(
+      'DBG_DEBTS_IDS: ${debts.map((d) => '${d['id']}(${d['type'] ?? d['debtType'] ?? '?'},${d['totalAmount']},ca=${d['createdAt']})').join(', ')}',
+    );
 
     entries.sort((a, b) => (b['ts'] as int).compareTo(a['ts'] as int));
     return entries;
@@ -3857,35 +3976,15 @@ class _FinanceV2ViewState extends State<FinanceV2View>
   Future<(int customerOpening, int supplierOpening)>
   _loadOpeningDebtBalances() async {
     final startMs = _start.millisecondsSinceEpoch;
-    final endMs = DateTime(
-      _end.year,
-      _end.month,
-      _end.day,
-      23,
-      59,
-      59,
-    ).millisecondsSinceEpoch;
     final debts = await _db.getDebtsForFinanceSnapshot();
-
-    // Lấy thanh toán TRONG KỲ để tính paidBeforeStart = paidAmount - inPeriodPaid.
-    // Cách này đảm bảo opening nhất quán với snap.payableTotal (cùng dùng stored paidAmount),
-    // tránh lệch khi paidAmount chưa sync đầy đủ vào bảng debt_payments.
-    final inPeriodPayments = await _db.getDebtPaymentsForCashFlowByDateRange(
-      startMs,
-      endMs,
+    debugPrint(
+      'DBG_SNAPSHOT_DEBTS: count=${debts.length} startMs=$startMs ids=${debts.map((d) => '${d['id']}(ca=${d['createdAt']},type=${d['type'] ?? d['debtType'] ?? '?'})').join(', ')}',
     );
-    final inPeriodByKey = <String, int>{};
-    for (final payment in inPeriodPayments) {
-      final debtIdStr = (payment['debtId'] ?? '').toString().trim();
-      final keys = <String>{
-        (payment['debtFirestoreId'] ?? '').toString().trim(),
-        if (debtIdStr != '0' && debtIdStr.isNotEmpty) debtIdStr,
-      }..removeWhere((value) => value.isEmpty);
-      final amount = (payment['amount'] as num?)?.toInt() ?? 0;
-      for (final key in keys) {
-        inPeriodByKey[key] = (inPeriodByKey[key] ?? 0) + amount;
-      }
-    }
+
+    // Opening balance uses debts.paidAmount directly (same source as payableTotal).
+    // In-period payments for pre-period debts are NOT deducted from opening;
+    // they are absent from the flow (main loop debtSupplierChange=0, Category B
+    // only covers in-period debts), so opening = current remaining of pre-period debts.
 
     int customerOpening = 0;
     int supplierOpening = 0;
@@ -3899,28 +3998,8 @@ class _FinanceV2ViewState extends State<FinanceV2View>
         continue;
       }
       final storedPaid = (debt['paidAmount'] as num?)?.toInt() ?? 0;
-      // Look up by both firestoreId and numeric id: some payments are stored with
-      // only debtId (numeric) and empty debtFirestoreId, causing firestoreId-only
-      // lookup to return 0 → paidBeforeStart wrong → openingRemaining wrong.
-      final debtFsKey = (debt['firestoreId'] ?? '').toString().trim();
       final debtLocalKey = (debt['id'] ?? '').toString().trim();
-      final byFsKey = debtFsKey.isNotEmpty ? (inPeriodByKey[debtFsKey] ?? 0) : 0;
-      final byLocalKey = (debtLocalKey.isNotEmpty && debtLocalKey != '0')
-          ? (inPeriodByKey[debtLocalKey] ?? 0)
-          : 0;
-      // Use max (not sum) to avoid double-counting when the same payment is
-      // indexed under both keys.
-      // paidBeforeStart = storedPaid - inPeriodPaid
-      // → algebraically consistent với snap.payableTotal (đều dùng stored paidAmount làm gốc)
-      final inPeriodPaid = byFsKey > byLocalKey ? byFsKey : byLocalKey;
-      final paidBeforeStart = (storedPaid - inPeriodPaid).clamp(0, totalAmount);
-      final openingRemaining = (totalAmount - paidBeforeStart).clamp(
-        0,
-        totalAmount,
-      );
-      if (openingRemaining <= 0) {
-        continue;
-      }
+      final openingRemaining = (totalAmount - storedPaid).clamp(0, totalAmount);
       final debtType = (debt['type'] ?? debt['debtType'] ?? '')
           .toString()
           .toUpperCase();
@@ -3928,12 +4007,21 @@ class _FinanceV2ViewState extends State<FinanceV2View>
           debtType == 'SHOP_OWES' ||
           debtType == 'OTHER_SHOP_OWES' ||
           debtType == 'OWED';
+      debugPrint(
+        'DBG_OPENING_DEBT: id=$debtLocalKey type=$debtType total=$totalAmount storedPaid=$storedPaid opening=$openingRemaining isPayable=$isPayable person=${debt['personName'] ?? debt['partnerName']}',
+      );
+      if (openingRemaining <= 0) {
+        continue;
+      }
       if (isPayable) {
         supplierOpening += openingRemaining;
       } else {
         customerOpening += openingRemaining;
       }
     }
+    debugPrint(
+      'DBG_OPENING_TOTAL: customerOpening=$customerOpening supplierOpening=$supplierOpening',
+    );
 
     return (customerOpening, supplierOpening);
   }
@@ -3971,19 +4059,22 @@ class _FinanceV2ViewState extends State<FinanceV2View>
             color: AppColors.error,
             size: 42,
           ),
-          title: const Text('RECONCILIATION FAIL'),
+          title: const Text('Phát hiện sai lệch đối soát'),
           content: SizedBox(
             width: 520,
             child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Phát hiện lệch giữa activity_log và report:'),
+                  const Text('Nhật ký giao dịch và báo cáo có chênh lệch:'),
                   const SizedBox(height: 10),
                   ...failures.map(
                     (f) => Padding(
                       padding: const EdgeInsets.only(bottom: 8),
-                      child: Text('- ${f.key}: lệch ${f.diff} (${f.detail})'),
+                      child: Text(
+                        '- ${FinanceV2ReconciliationResult.metricLabel(f.key)}: '
+                        'lệch ${f.diff.abs().toString()} đ',
+                      ),
                     ),
                   ),
                 ],
@@ -4125,19 +4216,19 @@ class _FinanceV2ViewState extends State<FinanceV2View>
       filePrefix: 'nhat_ky_chi_tiet',
       sheets: <FinanceV2ExcelSheet>[
         FinanceV2ExcelSheet(
-          sheetName: 'activity_log',
+          sheetName: 'Nhật ký giao dịch',
           headers: _auditLogHeaders,
           rows: rows,
         ),
         FinanceV2ExcelSheet(
-          sheetName: 'RECONCILIATION',
+          sheetName: 'Đối soát',
           headers: const [
-            'key',
-            'value_1',
-            'value_2',
-            'value_3',
-            'status',
-            'detail',
+            'Chỉ số',
+            'Giá trị từ nhật ký',
+            'Giá trị báo cáo',
+            'Chênh lệch',
+            'Kết quả',
+            'Ghi chú',
           ],
           rows: reconciliation.toSheetRows(),
         ),

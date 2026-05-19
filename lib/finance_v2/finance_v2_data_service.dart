@@ -111,8 +111,10 @@ class FinanceV2CategoryStat {
 class FinanceV2Snapshot {
   final int totalIn;
   final int totalOut;
+
   /// Tiền ra thuần (không tính trả nợ NCC/đối tác)
   final int operatingExpenseOut;
+
   /// Tiền trả nợ nhà cung cấp / đối tác (SHOP_OWES)
   final int debtRepayOut;
   final int receivableTotal;
@@ -144,7 +146,8 @@ class FinanceV2Snapshot {
   final List<FinanceV2PeriodBucket> byMonth;
   final List<FinanceV2PeriodBucket> byYear;
   final List<Map<String, dynamic>> auditLogs;
-  final Map<String, int> debtAging; // {'0-30': 1000000, '30-60': 500000, '>60': 2000000}
+  final Map<String, int>
+  debtAging; // {'0-30': 1000000, '30-60': 500000, '>60': 2000000}
 
   const FinanceV2Snapshot({
     required this.totalIn,
@@ -207,6 +210,16 @@ class FinanceV2DataService {
 
   FinanceV2DataService({DBHelper? dbHelper}) : _db = dbHelper ?? DBHelper();
 
+  String _canonicalImportReference(String? rawReference) {
+    var value = (rawReference ?? '').trim();
+    if (value.isEmpty) return value;
+    value = value.replaceFirst(RegExp(r'^exp_stock_'), '');
+    value = value.replaceFirst(RegExp(r'^exp_quick_part_'), '');
+    value = value.replaceFirst(RegExp(r'^stock_'), '');
+    value = value.replaceFirst(RegExp(r'_\d{10,}$'), '');
+    return value;
+  }
+
   bool _isImportExpense(Map<String, dynamic> expense) {
     final title = (expense['title'] ?? '').toString().toUpperCase();
     final category = (expense['category'] ?? '').toString().toUpperCase();
@@ -245,8 +258,19 @@ class FinanceV2DataService {
     final int previousStartMs;
     final int previousEndMs;
     if (previousStart != null && previousEnd != null) {
-      previousStartMs = DateTime(previousStart.year, previousStart.month, previousStart.day).millisecondsSinceEpoch;
-      previousEndMs = DateTime(previousEnd.year, previousEnd.month, previousEnd.day, 23, 59, 59).millisecondsSinceEpoch;
+      previousStartMs = DateTime(
+        previousStart.year,
+        previousStart.month,
+        previousStart.day,
+      ).millisecondsSinceEpoch;
+      previousEndMs = DateTime(
+        previousEnd.year,
+        previousEnd.month,
+        previousEnd.day,
+        23,
+        59,
+        59,
+      ).millisecondsSinceEpoch;
     } else {
       previousEndMs = startMs - 1;
       previousStartMs = previousEndMs - periodMs + 1;
@@ -259,9 +283,15 @@ class FinanceV2DataService {
       startMs,
       endMs,
     );
-    final debtPayments = await _db.getDebtPaymentsForCashFlowByDateRange(startMs, endMs);
+    final debtPayments = await _db.getDebtPaymentsForCashFlowByDateRange(
+      startMs,
+      endMs,
+    );
     final salesReturns = await _db.getSalesReturnsByDateRange(startMs, endMs);
-    final importHistory = await _db.getAllImportHistoryByDateRange(startMs, endMs);
+    final importHistory = await _db.getAllImportHistoryByDateRange(
+      startMs,
+      endMs,
+    );
     final debts = await _db.getDebtsForFinanceSnapshot();
     final activities = await _db.getFinancialActivities(
       startDate: startMs,
@@ -269,17 +299,22 @@ class FinanceV2DataService {
       limit: 500,
     );
 
-    final previousSales = await _db.getSalesByDateRange(previousStartMs, previousEndMs);
-    final previousRepairs = await _db.getDeliveredRepairsByDateRange(previousStartMs, previousEndMs);
-    final previousExpenses = await _db.getExpensesByDateRange(previousStartMs, previousEndMs);
-    final previousRepairPartnerPayments = await _db.getRepairPartnerPaymentsByDateRange(
+    final previousSales = await _db.getSalesByDateRange(
       previousStartMs,
       previousEndMs,
     );
-    final previousDebtPayments = await _db.getDebtPaymentsForCashFlowByDateRange(
+    final previousRepairs = await _db.getDeliveredRepairsByDateRange(
       previousStartMs,
       previousEndMs,
     );
+    final previousExpenses = await _db.getExpensesByDateRange(
+      previousStartMs,
+      previousEndMs,
+    );
+    final previousRepairPartnerPayments = await _db
+        .getRepairPartnerPaymentsByDateRange(previousStartMs, previousEndMs);
+    final previousDebtPayments = await _db
+        .getDebtPaymentsForCashFlowByDateRange(previousStartMs, previousEndMs);
     final suppliers = await _db.getSuppliers();
     final partners = await _db.getRepairPartners();
     final customers = await _db.getCustomers();
@@ -321,7 +356,8 @@ class FinanceV2DataService {
     int repairIn = 0;
     int expenseOut = 0;
     int importExpenseOut = 0;
-    int debtRepayOut = 0; // Trả nợ NCC/đối tác (SHOP_OWES) — tách riêng để hiển thị
+    int debtRepayOut =
+        0; // Trả nợ NCC/đối tác (SHOP_OWES) — tách riêng để hiển thị
     int extraIn = 0;
     int saleCogs = 0;
     int repairCogs = 0;
@@ -357,11 +393,13 @@ class FinanceV2DataService {
         // KẾT HỢP dùng actualPaid làm mẫu số → ratio=1 → ghi nhận 100% vốn.
         int recognizedCost = 0;
         if (sale.totalCost > 0) {
-          final costDenominator = (isKetHop && (sale.cashAmount + sale.transferAmount) > 0)
+          final costDenominator =
+              (isKetHop && (sale.cashAmount + sale.transferAmount) > 0)
               ? actualPaid
               : sale.finalPrice;
           if (costDenominator > 0) {
-            recognizedCost = ((sale.totalCost * actualPaid) / costDenominator).round();
+            recognizedCost = ((sale.totalCost * actualPaid) / costDenominator)
+                .round();
           } else {
             recognizedCost = sale.totalCost;
           }
@@ -380,7 +418,7 @@ class FinanceV2DataService {
                 : 'Sản phẩm bán lẻ',
             subtitle:
                 'Khách: ${sale.customerName.isNotEmpty ? sale.customerName : 'Khách lẻ'}'
-              '${paymentSummary.isNotEmpty ? ' · $paymentSummary' : ''}',
+                '${paymentSummary.isNotEmpty ? ' · $paymentSummary' : ''}',
             amount: actualPaid,
             isIncome: true,
             avatarUrl: customerAvatarByName[_normalizeName(sale.customerName)],
@@ -408,30 +446,32 @@ class FinanceV2DataService {
         }
 
         if (!isCongNo) {
-        transactions.add(
-          FinanceV2Txn(
-            id: 'repair_${repair.id ?? repair.firestoreId ?? repair.createdAt}',
-            createdAt: repair.deliveredAt ?? repair.createdAt,
-            type: 'REPAIR',
-            title: repair.customerName,
-            subtitle:
-                'Sửa ${repair.model.isNotEmpty ? repair.model : 'thiết bị'}'
-                '${repair.issue.isNotEmpty ? ' · ${repair.issue}' : ''}'
-                '${repair.paymentMethod.isNotEmpty ? ' · ${repair.paymentMethod}' : ''}',
-            amount: amount,
-            isIncome: true,
-            avatarUrl: customerAvatarByName[_normalizeName(repair.customerName)],
-            actorName: (repair.repairedBy ?? repair.createdBy ?? '').trim().isEmpty
-                ? null
-                : (repair.repairedBy ?? repair.createdBy ?? '').trim(),
-            paymentMethod: repair.paymentMethod,
-            referenceId: repair.firestoreId ?? repair.id?.toString(),
-            customerName: repair.customerName,
-            itemName: repair.model,
-            costAmount: repairCost,
-            grossProfit: amount - repairCost,
-          ),
-        );
+          transactions.add(
+            FinanceV2Txn(
+              id: 'repair_${repair.id ?? repair.firestoreId ?? repair.createdAt}',
+              createdAt: repair.deliveredAt ?? repair.createdAt,
+              type: 'REPAIR',
+              title: repair.customerName,
+              subtitle:
+                  'Sửa ${repair.model.isNotEmpty ? repair.model : 'thiết bị'}'
+                  '${repair.issue.isNotEmpty ? ' · ${repair.issue}' : ''}'
+                  '${repair.paymentMethod.isNotEmpty ? ' · ${repair.paymentMethod}' : ''}',
+              amount: amount,
+              isIncome: true,
+              avatarUrl:
+                  customerAvatarByName[_normalizeName(repair.customerName)],
+              actorName:
+                  (repair.repairedBy ?? repair.createdBy ?? '').trim().isEmpty
+                  ? null
+                  : (repair.repairedBy ?? repair.createdBy ?? '').trim(),
+              paymentMethod: repair.paymentMethod,
+              referenceId: repair.firestoreId ?? repair.id?.toString(),
+              customerName: repair.customerName,
+              itemName: repair.model,
+              costAmount: repairCost,
+              grossProfit: amount - repairCost,
+            ),
+          );
         }
       }
       // Chi phí linh kiện/dịch vụ nội bộ (service không qua đối tác, partnerId == null)
@@ -452,8 +492,10 @@ class FinanceV2DataService {
                 '${repair.issue.isNotEmpty ? " · ${repair.issue}" : ""}',
             amount: nonPartnerCost,
             isIncome: false,
-            avatarUrl: customerAvatarByName[_normalizeName(repair.customerName)],
-            actorName: (repair.repairedBy ?? repair.createdBy ?? '').trim().isEmpty
+            avatarUrl:
+                customerAvatarByName[_normalizeName(repair.customerName)],
+            actorName:
+                (repair.repairedBy ?? repair.createdBy ?? '').trim().isEmpty
                 ? null
                 : (repair.repairedBy ?? repair.createdBy ?? '').trim(),
             referenceId: repair.firestoreId ?? repair.id?.toString(),
@@ -465,7 +507,9 @@ class FinanceV2DataService {
     for (final e in expenses) {
       final amount = _toInt(e['amount']);
       final type = (e['type'] ?? 'CHI').toString().toUpperCase();
-      final ts = _toInt(e['date']) > 0 ? _toInt(e['date']) : _toInt(e['createdAt']);
+      final ts = _toInt(e['date']) > 0
+          ? _toInt(e['date'])
+          : _toInt(e['createdAt']);
       final title = (e['title'] ?? e['category'] ?? 'Giao dịch').toString();
       final isIncome = type == 'THU';
       if (isIncome) {
@@ -499,41 +543,52 @@ class FinanceV2DataService {
 
     // Bổ sung thanh toán nhập hàng từ supplier_import_history mà chưa có expense record
     // tương ứng → đảm bảo snap.totalOut nhất quán với activity_log IMPORT entries.
-    final importExpenseAmountsSeen = <int>{};
+    final representedImportKeys = <String>{};
     for (final e in expenses) {
-      if (_isImportExpense(e)) {
-        final amount = _toInt(e['amount']);
-        if (amount > 0) importExpenseAmountsSeen.add(amount);
+      if (!_isImportExpense(e)) continue;
+      final ref = _canonicalImportReference(
+        (e['firestoreId'] ?? e['id'] ?? '').toString(),
+      );
+      if (ref.isNotEmpty) {
+        representedImportKeys.add(ref);
       }
     }
     final importAggTotals = <String, int>{};
     final importAggMethods = <String, String>{};
     for (final item in importHistory) {
-      final rawRef = (item['referenceId'] ?? item['firestoreId'] ?? item['id'] ?? '').toString().trim();
+      final rawRef =
+          (item['referenceId'] ?? item['firestoreId'] ?? item['id'] ?? '')
+              .toString()
+              .trim();
       final key = rawRef.isNotEmpty
-          ? rawRef
+          ? _canonicalImportReference(rawRef)
           : '${(item['supplierName'] ?? '').toString()}|${(item['importDate'] ?? item['createdAt'] ?? 0)}';
       final qty = (item['quantity'] as num?)?.toInt() ?? 0;
       final costPrice = _toInt(item['costPrice']);
-      final totalAmt = _toInt(item['totalAmount']) > 0 ? _toInt(item['totalAmount']) : costPrice * (qty > 0 ? qty : 1);
+      final totalAmt = _toInt(item['totalAmount']) > 0
+          ? _toInt(item['totalAmount'])
+          : costPrice * (qty > 0 ? qty : 1);
       importAggTotals[key] = (importAggTotals[key] ?? 0) + totalAmt;
-      importAggMethods.putIfAbsent(key, () => (item['paymentMethod'] ?? '').toString().toUpperCase());
+      importAggMethods.putIfAbsent(
+        key,
+        () => (item['paymentMethod'] ?? '').toString().toUpperCase(),
+      );
     }
     for (final entry in importAggTotals.entries) {
       final method = importAggMethods[entry.key] ?? '';
       if (method == 'CÔNG NỢ') continue; // Debt-based import: no cash outflow
       final amount = entry.value;
       if (amount <= 0) continue;
-      // Skip if a matching import expense already captured this payment
-      if (importExpenseAmountsSeen.any((seen) => (seen - amount).abs() < 1000)) continue;
+      // Skip when already represented by an import expense with same canonical reference.
+      if (representedImportKeys.contains(entry.key)) continue;
       expenseOut += amount;
       importExpenseOut += amount;
     }
 
     final expenseFirestoreIds = <String>{
-      ...expenses.map(
-        (e) => (e['firestoreId'] ?? '').toString().trim(),
-      ).where((id) => id.isNotEmpty),
+      ...expenses
+          .map((e) => (e['firestoreId'] ?? '').toString().trim())
+          .where((id) => id.isNotEmpty),
     };
     for (final p in repairPartnerPayments) {
       final paymentFid = (p['firestoreId'] ?? '').toString().trim();
@@ -558,7 +613,9 @@ class FinanceV2DataService {
           id: 'partner_payment_${p['id'] ?? paymentFid}',
           createdAt: ts,
           type: 'EXPENSE',
-          title: partnerName.isEmpty ? 'Thanh toán đối tác sửa chữa' : partnerName,
+          title: partnerName.isEmpty
+              ? 'Thanh toán đối tác sửa chữa'
+              : partnerName,
           subtitle:
               'Chi đối tác sửa chữa${method.isNotEmpty ? ' · $method' : ''}',
           amount: amount,
@@ -572,9 +629,12 @@ class FinanceV2DataService {
     for (final p in debtPayments) {
       final amount = _toInt(p['amount']);
       if (amount <= 0) continue;
-      final resolvedType = (p['resolvedDebtType'] ?? p['debtType'] ?? 'CUSTOMER_OWES').toString();
+      final resolvedType =
+          (p['resolvedDebtType'] ?? p['debtType'] ?? 'CUSTOMER_OWES')
+              .toString();
       // SHOP_OWES / OTHER_SHOP_OWES / OWED = cửa hàng nợ → trả nợ = tiền ra
-      final isShopOwes = resolvedType == 'SHOP_OWES' ||
+      final isShopOwes =
+          resolvedType == 'SHOP_OWES' ||
           resolvedType == 'OTHER_SHOP_OWES' ||
           resolvedType == 'OWED';
       final isIncome = !isShopOwes; // Thu nợ từ khách = tiền vào
@@ -601,7 +661,8 @@ class FinanceV2DataService {
           amount: amount,
           isIncome: isIncome,
           paymentMethod: method,
-          referenceId: (p['debtFirestoreId'] ?? p['firestoreId'] ?? '').toString(),
+          referenceId: (p['debtFirestoreId'] ?? p['firestoreId'] ?? '')
+              .toString(),
         ),
       );
     }
@@ -631,11 +692,13 @@ class FinanceV2DataService {
         // Vốn bán hàng kỳ trước theo cash basis — nhất quán với current period.
         int prevRecognizedCost = 0;
         if (sale.totalCost > 0) {
-          final prevCostDenominator = (prevIsKetHop && (sale.cashAmount + sale.transferAmount) > 0)
+          final prevCostDenominator =
+              (prevIsKetHop && (sale.cashAmount + sale.transferAmount) > 0)
               ? actualPaid
               : sale.finalPrice;
           if (prevCostDenominator > 0) {
-            prevRecognizedCost = ((sale.totalCost * actualPaid) / prevCostDenominator).round();
+            prevRecognizedCost =
+                ((sale.totalCost * actualPaid) / prevCostDenominator).round();
           } else {
             prevRecognizedCost = sale.totalCost;
           }
@@ -666,8 +729,11 @@ class FinanceV2DataService {
     for (final p in previousDebtPayments) {
       final amount = _toInt(p['amount']);
       if (amount <= 0) continue;
-      final resolvedType = (p['resolvedDebtType'] ?? p['debtType'] ?? 'CUSTOMER_OWES').toString();
-      final isShopOwes = resolvedType == 'SHOP_OWES' ||
+      final resolvedType =
+          (p['resolvedDebtType'] ?? p['debtType'] ?? 'CUSTOMER_OWES')
+              .toString();
+      final isShopOwes =
+          resolvedType == 'SHOP_OWES' ||
           resolvedType == 'OTHER_SHOP_OWES' ||
           resolvedType == 'OWED';
       if (isShopOwes) {
@@ -688,9 +754,9 @@ class FinanceV2DataService {
     }
 
     final previousExpenseFirestoreIds = <String>{
-      ...previousExpenses.map(
-        (e) => (e['firestoreId'] ?? '').toString().trim(),
-      ).where((id) => id.isNotEmpty),
+      ...previousExpenses
+          .map((e) => (e['firestoreId'] ?? '').toString().trim())
+          .where((id) => id.isNotEmpty),
     };
     for (final p in previousRepairPartnerPayments) {
       final paymentFid = (p['firestoreId'] ?? '').toString().trim();
@@ -719,7 +785,8 @@ class FinanceV2DataService {
       if (remaining <= 0) continue;
 
       final debtType = (d['type'] ?? 'CUSTOMER_OWES').toString();
-      final isPayable = debtType == 'SHOP_OWES' ||
+      final isPayable =
+          debtType == 'SHOP_OWES' ||
           debtType == 'OTHER_SHOP_OWES' ||
           debtType == 'OWED';
 
@@ -731,14 +798,26 @@ class FinanceV2DataService {
         paid: paid,
         remaining: remaining,
         avatarUrl: isPayable
-          ? (supplierAvatarByName[_normalizeName((d['personName'] ?? d['partnerName']).toString())] ??
-            partnerAvatarByName[_normalizeName((d['personName'] ?? d['partnerName']).toString())])
-          : customerAvatarByName[_normalizeName((d['personName'] ?? d['partnerName']).toString())],
+            ? (supplierAvatarByName[_normalizeName(
+                    (d['personName'] ?? d['partnerName']).toString(),
+                  )] ??
+                  partnerAvatarByName[_normalizeName(
+                    (d['personName'] ?? d['partnerName']).toString(),
+                  )])
+            : customerAvatarByName[_normalizeName(
+                (d['personName'] ?? d['partnerName']).toString(),
+              )],
         createdAt: _toInt(d['createdAt']),
         phone: isPayable
-          ? (supplierPhoneByName[_normalizeName((d['personName'] ?? d['partnerName']).toString())] ??
-            partnerPhoneByName[_normalizeName((d['personName'] ?? d['partnerName']).toString())])
-          : customerPhoneByName[_normalizeName((d['personName'] ?? d['partnerName']).toString())],
+            ? (supplierPhoneByName[_normalizeName(
+                    (d['personName'] ?? d['partnerName']).toString(),
+                  )] ??
+                  partnerPhoneByName[_normalizeName(
+                    (d['personName'] ?? d['partnerName']).toString(),
+                  )])
+            : customerPhoneByName[_normalizeName(
+                (d['personName'] ?? d['partnerName']).toString(),
+              )],
       );
 
       if (isPayable) {
@@ -752,12 +831,17 @@ class FinanceV2DataService {
 
     // Trả hàng (sales_returns) — chỉ phương thức tiền mặt/CK mới ảnh hưởng dòng tiền
     for (final ret in salesReturns) {
-      final method = (ret['refundMethod'] as String? ?? 'TIỀN MẶT').toString().trim().toUpperCase();
+      final method = (ret['refundMethod'] as String? ?? 'TIỀN MẶT')
+          .toString()
+          .trim()
+          .toUpperCase();
       if (method == 'CÔNG NỢ') continue; // chỉ giảm nợ, không ảnh hưởng quỹ
       final amount = _toInt(ret['totalReturnAmount']);
       if (amount <= 0) continue;
       final cost = _toInt(ret['totalReturnCost']);
-      final ts = _toInt(ret['returnDate'] > 0 ? ret['returnDate'] : (ret['createdAt'] ?? 0));
+      final ts = _toInt(
+        ret['returnDate'] > 0 ? ret['returnDate'] : (ret['createdAt'] ?? 0),
+      );
       final custName = (ret['customerName'] as String? ?? '').toString().trim();
       final note = (ret['note'] as String? ?? '').toString().trim();
       final fid = (ret['firestoreId'] ?? ret['id'] ?? ts).toString();
@@ -766,25 +850,32 @@ class FinanceV2DataService {
       saleIn = (saleIn - amount).clamp(0, saleIn > 0 ? saleIn : amount);
       saleCogs = (saleCogs - cost).clamp(0, saleCogs > 0 ? saleCogs : cost);
 
-      transactions.add(FinanceV2Txn(
-        id: 'refund_$fid',
-        createdAt: ts,
-        type: 'REFUND',
-        title: 'Trả hàng: ${note.isNotEmpty ? note : (custName.isNotEmpty ? custName : 'Hoàn tiền khách')}',
-        subtitle: 'KH: ${custName.isNotEmpty ? custName : 'Khách lẻ'} · ${method == 'CHUYEN_KHOAN' ? 'Chuyển khoản' : method}',
-        amount: amount,
-        isIncome: false,
-        paymentMethod: method,
-        customerName: custName,
-        referenceId: fid,
-      ));
+      transactions.add(
+        FinanceV2Txn(
+          id: 'refund_$fid',
+          createdAt: ts,
+          type: 'REFUND',
+          title:
+              'Trả hàng: ${note.isNotEmpty ? note : (custName.isNotEmpty ? custName : 'Hoàn tiền khách')}',
+          subtitle:
+              'KH: ${custName.isNotEmpty ? custName : 'Khách lẻ'} · ${method == 'CHUYEN_KHOAN' ? 'Chuyển khoản' : method}',
+          amount: amount,
+          isIncome: false,
+          paymentMethod: method,
+          customerName: custName,
+          referenceId: fid,
+        ),
+      );
     }
 
     transactions.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
     final totalIn = saleIn + repairIn + extraIn;
     final totalOut = expenseOut;
-    final operatingExpenseOut = expenseOut - debtRepayOut - importExpenseOut; // chi vận hành thuần, loại trả nợ NCC và nhập hàng
+    final operatingExpenseOut =
+        expenseOut -
+        debtRepayOut -
+        importExpenseOut; // chi vận hành thuần, loại trả nợ NCC và nhập hàng
     final netCashflow = totalIn - totalOut;
     // Lãi gộp bán hàng theo cash basis — nhất quán với incomeFromSales (saleIn)
     final grossProfitFromSales = saleIn - saleCogs;
@@ -796,9 +887,12 @@ class FinanceV2DataService {
     final previousNetCashflow = previousTotalIn - previousTotalOut;
     final previousGrossProfitFromSales = previousSaleIn - previousSaleCogs;
     // Lãi gộp sửa chữa kỳ trước theo cash basis — nhất quán với previousRepairIn
-    final previousGrossProfitFromRepairs = previousRepairIn - previousRepairCogs;
+    final previousGrossProfitFromRepairs =
+        previousRepairIn - previousRepairCogs;
     final incomeTxCount = transactions.where((t) => t.isIncome).length;
-    final avgIncomePerTransaction = incomeTxCount > 0 ? (totalIn ~/ incomeTxCount) : 0;
+    final avgIncomePerTransaction = incomeTxCount > 0
+        ? (totalIn ~/ incomeTxCount)
+        : 0;
 
     final Map<String, int> expenseByCategory = {};
     for (final e in expenses) {
@@ -832,10 +926,11 @@ class FinanceV2DataService {
     if (linhKienCost > 0) {
       expenseByCategory['Linh kiện sửa chữa'] = linhKienCost;
     }
-    final topExpenseCategories = expenseByCategory.entries
-        .map((e) => FinanceV2CategoryStat(label: e.key, amount: e.value))
-        .toList()
-      ..sort((a, b) => b.amount.compareTo(a.amount));
+    final topExpenseCategories =
+        expenseByCategory.entries
+            .map((e) => FinanceV2CategoryStat(label: e.key, amount: e.value))
+            .toList()
+          ..sort((a, b) => b.amount.compareTo(a.amount));
 
     final cards = <FinanceV2MetricCard>[
       FinanceV2MetricCard(
@@ -848,14 +943,8 @@ class FinanceV2DataService {
         amount: totalOut,
         previousAmount: previousTotalOut,
       ),
-      FinanceV2MetricCard(
-        label: 'Phải thu',
-        amount: receivableTotal,
-      ),
-      FinanceV2MetricCard(
-        label: 'Phải trả',
-        amount: payableTotal,
-      ),
+      FinanceV2MetricCard(label: 'Phải thu', amount: receivableTotal),
+      FinanceV2MetricCard(label: 'Phải trả', amount: payableTotal),
       FinanceV2MetricCard(
         label: 'Dòng tiền ròng',
         amount: netCashflow,
@@ -878,10 +967,12 @@ class FinanceV2DataService {
 
       final debtType = (d['type'] ?? 'CUSTOMER_OWES').toString();
       // Only count receivables (khách nợ), not payables
-      if (debtType != 'CUSTOMER_OWES' && debtType != 'CUSTOMER_DEPOSIT') continue;
+      if (debtType != 'CUSTOMER_OWES' && debtType != 'CUSTOMER_DEPOSIT')
+        continue;
 
       final createdAt = _toInt(d['createdAt']);
-      final daysSinceCreation = ((nowMs - createdAt) / (1000 * 60 * 60 * 24)).floor();
+      final daysSinceCreation = ((nowMs - createdAt) / (1000 * 60 * 60 * 24))
+          .floor();
 
       if (daysSinceCreation <= 30) {
         debtAging['0-30'] = (debtAging['0-30'] ?? 0) + remaining;
@@ -962,18 +1053,16 @@ class FinanceV2DataService {
     }
 
     final keys = bucketMap.keys.toList()..sort();
-    return keys
-        .map((k) {
-          final acc = bucketMap[k]!;
-          return FinanceV2PeriodBucket(
-            key: k,
-            label: acc.label,
-            totalIn: acc.totalIn,
-            totalOut: acc.totalOut,
-            txCount: acc.txCount,
-          );
-        })
-        .toList();
+    return keys.map((k) {
+      final acc = bucketMap[k]!;
+      return FinanceV2PeriodBucket(
+        key: k,
+        label: acc.label,
+        totalIn: acc.totalIn,
+        totalOut: acc.totalOut,
+        txCount: acc.txCount,
+      );
+    }).toList();
   }
 
   String _normalizeName(dynamic input) {

@@ -1737,14 +1737,59 @@ class OrderListViewState extends State<OrderListView> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            r.model,
-                            style: AppTextStyles.subtitle1.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: const Color(0xFF0F172A),
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
+                          Wrap(
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            spacing: 6,
+                            runSpacing: 4,
+                            children: [
+                              Text(
+                                r.model,
+                                style: AppTextStyles.subtitle1.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF0F172A),
+                                ),
+                              ),
+                              if (r.issue.isNotEmpty)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFDECEC),
+                                    border: Border.all(
+                                      color: const Color(0xFFFFCDD2),
+                                    ),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Padding(
+                                        padding: EdgeInsets.only(top: 2),
+                                        child: Icon(
+                                          Icons.build_rounded,
+                                          size: 13,
+                                          color: Color(0xFFD32F2F),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Flexible(
+                                        child: Text(
+                                          r.issue.split('|').first,
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFFD32F2F),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                            ],
                           ),
                         ],
                       ),
@@ -1824,21 +1869,6 @@ class OrderListViewState extends State<OrderListView> {
                       fontWeight: FontWeight.w600,
                       fontSize: 12,
                     ),
-                    // Lỗi / Vấn đề
-                    if (r.issue.isNotEmpty)
-                      _repairInfoChip(
-                        '🔧 ${r.issue.split('|').first}',
-                        Colors.red.shade100,
-                        maxLines: 2,
-                      ),
-                    // Mô tả lỗi chi tiết (phần sau dấu |)
-                    if (r.issue.contains('|') && r.issue.split('|').length > 1)
-                      _repairInfoChip(
-                        '📋 ${r.issue.split('|').sublist(1).join(', ')}',
-                        Colors.orange.shade50,
-                        textColor: Colors.orange.shade900,
-                        maxLines: 2,
-                      ),
                     // Giá thu khách (chỉ hiện khi có giá > 0)
                     if (displayPrice > 0)
                       _repairInfoChip(
@@ -1883,6 +1913,16 @@ class OrderListViewState extends State<OrderListView> {
                       _repairInfoChip(
                         '🧰 ${r.accessories}',
                         Colors.blue.shade100,
+                      ),
+                    // Vị trí lưu kho (nếu có)
+                    if (r.storageLocationCode != null &&
+                        r.storageLocationCode!.isNotEmpty)
+                      _repairInfoChip(
+                        '📍 ${r.storageLocationCode}',
+                        Colors.indigo.shade50,
+                        textColor: Colors.indigo.shade700,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
                       ),
                   ],
                 ),

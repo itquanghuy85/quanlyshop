@@ -28,7 +28,6 @@ class _CustomerProfileViewState extends State<CustomerProfileView> {
   final _service = CustomerService();
   final _nameCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
-  final _emailCtrl = TextEditingController();
   final _addressCtrl = TextEditingController();
   final _notesCtrl = TextEditingController();
 
@@ -55,7 +54,6 @@ class _CustomerProfileViewState extends State<CustomerProfileView> {
     final c = widget.customer;
     _nameCtrl.text = c.name;
     _phoneCtrl.text = c.phone;
-    _emailCtrl.text = c.email ?? '';
     _addressCtrl.text = c.address ?? '';
     _notesCtrl.text = c.notes ?? '';
     _avatarUrl = c.avatarUrl ?? '';
@@ -66,7 +64,6 @@ class _CustomerProfileViewState extends State<CustomerProfileView> {
   void dispose() {
     _nameCtrl.dispose();
     _phoneCtrl.dispose();
-    _emailCtrl.dispose();
     _addressCtrl.dispose();
     _notesCtrl.dispose();
     super.dispose();
@@ -79,7 +76,10 @@ class _CustomerProfileViewState extends State<CustomerProfileView> {
       if (!mounted) return;
       setState(() => _history = data);
     } catch (e) {
-      NotificationService.showSnackBar('Không tải được lịch sử: $e', color: Colors.red);
+      NotificationService.showSnackBar(
+        'Không tải được lịch sử: $e',
+        color: Colors.red,
+      );
     } finally {
       if (mounted) setState(() => _loadingHistory = false);
     }
@@ -108,7 +108,10 @@ class _CustomerProfileViewState extends State<CustomerProfileView> {
     final name = _nameCtrl.text.trim();
     final phone = _phoneCtrl.text.trim();
     if (name.isEmpty || phone.isEmpty) {
-      NotificationService.showSnackBar('Tên và số điện thoại là bắt buộc', color: Colors.red);
+      NotificationService.showSnackBar(
+        'Tên và số điện thoại là bắt buộc',
+        color: Colors.red,
+      );
       return;
     }
 
@@ -136,28 +139,39 @@ class _CustomerProfileViewState extends State<CustomerProfileView> {
         finalAvatarUrl = urls.first;
       }
 
-    final updated = base.copyWith(
-      avatarUrl: finalAvatarUrl,
-      name: name,
-      phone: phone,
-      email: _emailCtrl.text.trim().isEmpty ? null : _emailCtrl.text.trim(),
-      address: _addressCtrl.text.trim().isEmpty ? null : _addressCtrl.text.trim(),
-      notes: _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
-      updatedAt: DateTime.now().millisecondsSinceEpoch,
-    );
+      final updated = base.copyWith(
+        avatarUrl: finalAvatarUrl,
+        name: name,
+        phone: phone,
+        email: base.email,
+        address: _addressCtrl.text.trim().isEmpty
+            ? null
+            : _addressCtrl.text.trim(),
+        notes: _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      );
 
       final ok = await _service.updateCustomer(updated);
       if (!mounted) return;
       if (!ok) {
-        NotificationService.showSnackBar('Lưu khách hàng thất bại', color: Colors.red);
+        NotificationService.showSnackBar(
+          'Lưu khách hàng thất bại',
+          color: Colors.red,
+        );
         return;
       }
       _avatarUrl = finalAvatarUrl;
       _pendingAvatarPath = null;
-      NotificationService.showSnackBar('Đã lưu hồ sơ khách hàng', color: Colors.green);
+      NotificationService.showSnackBar(
+        'Đã lưu hồ sơ khách hàng',
+        color: Colors.green,
+      );
       Navigator.pop(context, updated);
     } catch (e) {
-      NotificationService.showSnackBar('Lỗi lưu khách hàng: $e', color: Colors.red);
+      NotificationService.showSnackBar(
+        'Lỗi lưu khách hàng: $e',
+        color: Colors.red,
+      );
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -170,7 +184,10 @@ class _CustomerProfileViewState extends State<CustomerProfileView> {
         title: const Text('Xóa khách hàng'),
         content: Text('Bạn có chắc muốn xóa ${_nameCtrl.text.trim()}?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Hủy')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Hủy'),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             child: const Text('Xóa', style: TextStyle(color: Colors.red)),
@@ -187,10 +204,16 @@ class _CustomerProfileViewState extends State<CustomerProfileView> {
       final deleted = await _service.deleteCustomer(id);
       if (!mounted) return;
       if (!deleted) {
-        NotificationService.showSnackBar('Xóa khách hàng thất bại', color: Colors.red);
+        NotificationService.showSnackBar(
+          'Xóa khách hàng thất bại',
+          color: Colors.red,
+        );
         return;
       }
-      NotificationService.showSnackBar('Đã xóa khách hàng', color: Colors.green);
+      NotificationService.showSnackBar(
+        'Đã xóa khách hàng',
+        color: Colors.green,
+      );
       Navigator.pop(context, {'deleted': true});
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -205,31 +228,50 @@ class _CustomerProfileViewState extends State<CustomerProfileView> {
       final sale = await DBHelper().getSaleById(id);
       if (!mounted) return;
       if (sale == null) {
-        NotificationService.showSnackBar('Không tìm thấy đơn bán', color: AppColors.warning);
+        NotificationService.showSnackBar(
+          'Không tìm thấy đơn bán',
+          color: AppColors.warning,
+        );
         return;
       }
-      await Navigator.push(context, MaterialPageRoute(builder: (_) => SaleDetailView(sale: sale)));
+      await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => SaleDetailView(sale: sale)),
+      );
     } else if (type == 'repair') {
       final repair = await DBHelper().getRepairById(id);
       if (!mounted) return;
       if (repair == null) {
-        NotificationService.showSnackBar('Không tìm thấy đơn sửa', color: AppColors.warning);
+        NotificationService.showSnackBar(
+          'Không tìm thấy đơn sửa',
+          color: AppColors.warning,
+        );
         return;
       }
-      await Navigator.push(context, MaterialPageRoute(builder: (_) => RepairDetailView(repair: repair)));
+      await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => RepairDetailView(repair: repair)),
+      );
     }
   }
 
   List<Map<String, dynamic>> get _filteredHistory {
-    final all = List<Map<String, dynamic>>.from(_history['history'] as List<dynamic>? ?? const []);
+    final all = List<Map<String, dynamic>>.from(
+      _history['history'] as List<dynamic>? ?? const [],
+    );
     if (_historyFilter == 'all') return all;
-    return all.where((e) => (e['type'] ?? '').toString() == _historyFilter).toList();
+    return all
+        .where((e) => (e['type'] ?? '').toString() == _historyFilter)
+        .toList();
   }
 
   @override
   Widget build(BuildContext context) {
-    final totalSpent = (_history['totalSpent'] as int?) ?? widget.customer.totalSpent;
-    final totalRepair = (_history['totalRepairCost'] as int?) ?? widget.customer.totalRepairCost;
+    final totalSpent =
+        (_history['totalSpent'] as int?) ?? widget.customer.totalSpent;
+    final totalRepair =
+        (_history['totalRepairCost'] as int?) ??
+        widget.customer.totalRepairCost;
     final avatarProvider = EntityAvatar.imageProviderFromUrl(_avatarUrl);
 
     return Scaffold(
@@ -238,6 +280,31 @@ class _CustomerProfileViewState extends State<CustomerProfileView> {
         title: const Text('Hồ sơ khách hàng'),
         backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
+        actions: [
+          PopupMenuButton<String>(
+            tooltip: 'Tác vụ nhanh',
+            onSelected: (value) {
+              setState(() => _historyFilter = value);
+            },
+            itemBuilder: (_) => const [
+              PopupMenuItem(value: 'all', child: Text('Tất cả')),
+              PopupMenuItem(value: 'sale', child: Text('Mua bán')),
+              PopupMenuItem(value: 'repair', child: Text('Sửa chữa')),
+              PopupMenuItem(value: 'payment', child: Text('Thanh toán')),
+            ],
+            icon: const Icon(Icons.filter_list_rounded),
+          ),
+          IconButton(
+            tooltip: 'Lưu hồ sơ',
+            onPressed: _saving ? null : _save,
+            icon: const Icon(Icons.save_rounded),
+          ),
+          IconButton(
+            tooltip: 'Xóa khách hàng',
+            onPressed: _saving ? null : _deleteCustomer,
+            icon: const Icon(Icons.delete_outline_rounded),
+          ),
+        ],
         flexibleSpace: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
@@ -270,7 +337,7 @@ class _CustomerProfileViewState extends State<CustomerProfileView> {
                       _nameCtrl.text.trim(),
                     ),
                     child: Container(
-                      height: 190,
+                      height: 95,
                       width: double.infinity,
                       clipBehavior: Clip.antiAlias,
                       decoration: BoxDecoration(
@@ -308,12 +375,18 @@ class _CustomerProfileViewState extends State<CustomerProfileView> {
                                       _avatarUrl,
                                       _nameCtrl.text,
                                     ),
-                                    icon: const Icon(Icons.fullscreen, color: Colors.white),
+                                    icon: const Icon(
+                                      Icons.fullscreen,
+                                      color: Colors.white,
+                                    ),
                                   ),
                                 IconButton(
                                   tooltip: 'Đổi ảnh',
                                   onPressed: _pickAvatar,
-                                  icon: const Icon(Icons.camera_alt, color: Colors.white),
+                                  icon: const Icon(
+                                    Icons.camera_alt,
+                                    color: Colors.white,
+                                  ),
                                 ),
                               ],
                             ),
@@ -324,7 +397,9 @@ class _CustomerProfileViewState extends State<CustomerProfileView> {
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    _nameCtrl.text.trim().isEmpty ? 'Khách hàng' : _nameCtrl.text.trim(),
+                    _nameCtrl.text.trim().isEmpty
+                        ? 'Khách hàng'
+                        : _nameCtrl.text.trim(),
                     maxLines: 2,
                     textAlign: TextAlign.center,
                     overflow: TextOverflow.ellipsis,
@@ -336,7 +411,9 @@ class _CustomerProfileViewState extends State<CustomerProfileView> {
                   const SizedBox(height: 2),
                   Text(
                     _phoneCtrl.text.trim(),
-                    style: AppTextStyles.subtitle1.copyWith(color: Colors.white70),
+                    style: AppTextStyles.subtitle1.copyWith(
+                      color: Colors.white70,
+                    ),
                   ),
                 ],
               ),
@@ -380,34 +457,19 @@ class _CustomerProfileViewState extends State<CustomerProfileView> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Tác vụ nhanh', style: AppTextStyles.headline6),
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        _actionChip('Tất cả', 'all'),
-                        _actionChip('Mua bán', 'sale'),
-                        _actionChip('Sửa chữa', 'repair'),
-                        _actionChip('Thanh toán', 'payment'),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
                     Row(
                       children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: _saving ? null : _save,
-                            icon: const Icon(Icons.save),
-                            label: const Text('Chỉnh sửa và Lưu'),
-                          ),
-                        ),
+                        Text('Bộ lọc lịch sử:', style: AppTextStyles.body1),
                         const SizedBox(width: 8),
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: _saving ? null : _deleteCustomer,
-                            icon: const Icon(Icons.delete_outline, color: Colors.red),
-                            label: const Text('Xóa', style: TextStyle(color: Colors.red)),
+                        Chip(
+                          label: Text(
+                            _historyFilter == 'sale'
+                                ? 'Mua bán'
+                                : _historyFilter == 'repair'
+                                ? 'Sửa chữa'
+                                : _historyFilter == 'payment'
+                                ? 'Thanh toán'
+                                : 'Tất cả',
                           ),
                         ),
                       ],
@@ -424,36 +486,47 @@ class _CustomerProfileViewState extends State<CustomerProfileView> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Thông tin khách hàng', style: AppTextStyles.headline6),
+                    Text(
+                      'Thông tin khách hàng',
+                      style: AppTextStyles.headline6,
+                    ),
                     const SizedBox(height: 10),
                     TextField(
                       controller: _nameCtrl,
-                      decoration: const InputDecoration(labelText: 'Họ và tên', prefixIcon: Icon(Icons.person)),
+                      decoration: const InputDecoration(
+                        labelText: 'Họ và tên',
+                        prefixIcon: Icon(Icons.person),
+                      ),
                       onChanged: (_) => setState(() {}),
                     ),
                     const SizedBox(height: 10),
                     TextField(
                       controller: _phoneCtrl,
                       keyboardType: TextInputType.phone,
-                      decoration: const InputDecoration(labelText: 'Số điện thoại', prefixIcon: Icon(Icons.phone)),
-                    ),
-                    const SizedBox(height: 10),
-                    TextField(
-                      controller: _emailCtrl,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: const InputDecoration(labelText: 'Email', prefixIcon: Icon(Icons.email)),
+                      decoration: const InputDecoration(
+                        labelText: 'Số điện thoại',
+                        prefixIcon: Icon(Icons.phone),
+                      ),
                     ),
                     const SizedBox(height: 10),
                     TextField(
                       controller: _addressCtrl,
-                      maxLines: 2,
-                      decoration: const InputDecoration(labelText: 'Địa chỉ', prefixIcon: Icon(Icons.location_on)),
+                      minLines: 1,
+                      maxLines: 1,
+                      decoration: const InputDecoration(
+                        labelText: 'Địa chỉ',
+                        prefixIcon: Icon(Icons.location_on),
+                      ),
                     ),
                     const SizedBox(height: 10),
                     TextField(
                       controller: _notesCtrl,
-                      maxLines: 3,
-                      decoration: const InputDecoration(labelText: 'Ghi chú', prefixIcon: Icon(Icons.notes)),
+                      minLines: 1,
+                      maxLines: 1,
+                      decoration: const InputDecoration(
+                        labelText: 'Ghi chú',
+                        prefixIcon: Icon(Icons.notes),
+                      ),
                     ),
                   ],
                 ),
@@ -469,7 +542,10 @@ class _CustomerProfileViewState extends State<CustomerProfileView> {
                   children: [
                     Row(
                       children: [
-                        Text('Lịch sử giao dịch', style: AppTextStyles.headline6),
+                        Text(
+                          'Lịch sử giao dịch',
+                          style: AppTextStyles.headline6,
+                        ),
                         const Spacer(),
                         if (_loadingHistory)
                           const SizedBox(
@@ -481,13 +557,18 @@ class _CustomerProfileViewState extends State<CustomerProfileView> {
                     ),
                     const SizedBox(height: 8),
                     if (_filteredHistory.isEmpty)
-                      Text('Chưa có lịch sử phù hợp', style: AppTextStyles.caption)
+                      Text(
+                        'Chưa có lịch sử phù hợp',
+                        style: AppTextStyles.caption,
+                      )
                     else
                       ..._filteredHistory.take(20).map((h) {
                         final dateMs = (h['date'] as int?) ?? 0;
                         final amount = (h['amount'] as int?) ?? 0;
                         final dateText = dateMs > 0
-                            ? DateFormat('dd/MM/yyyy HH:mm').format(DateTime.fromMillisecondsSinceEpoch(dateMs))
+                            ? DateFormat('dd/MM/yyyy HH:mm').format(
+                                DateTime.fromMillisecondsSinceEpoch(dateMs),
+                              )
                             : '--';
                         final type = (h['type'] ?? '').toString();
                         final label = type == 'sale'
@@ -502,19 +583,31 @@ class _CustomerProfileViewState extends State<CustomerProfileView> {
                             radius: 14,
                             backgroundColor: type == 'sale'
                                 ? Colors.green.shade100
-                                : (type == 'repair' ? Colors.orange.shade100 : Colors.blue.shade100),
+                                : (type == 'repair'
+                                      ? Colors.orange.shade100
+                                      : Colors.blue.shade100),
                             child: Icon(
                               type == 'sale'
                                   ? Icons.shopping_bag
-                                  : (type == 'repair' ? Icons.build : Icons.payments_outlined),
+                                  : (type == 'repair'
+                                        ? Icons.build
+                                        : Icons.payments_outlined),
                               size: 14,
                               color: type == 'sale'
                                   ? Colors.green.shade700
-                                  : (type == 'repair' ? Colors.orange.shade700 : Colors.blue.shade700),
+                                  : (type == 'repair'
+                                        ? Colors.orange.shade700
+                                        : Colors.blue.shade700),
                             ),
                           ),
-                          title: Text('$label • ${MoneyUtils.formatCompact(amount)}', style: AppTextStyles.body1),
-                          subtitle: Text('${h['description'] ?? ''}\n$dateText', style: AppTextStyles.caption),
+                          title: Text(
+                            '$label • ${MoneyUtils.formatCompact(amount)}',
+                            style: AppTextStyles.body1,
+                          ),
+                          subtitle: Text(
+                            '${h['description'] ?? ''}\n$dateText',
+                            style: AppTextStyles.caption,
+                          ),
                           isThreeLine: true,
                         );
                       }),
@@ -525,17 +618,6 @@ class _CustomerProfileViewState extends State<CustomerProfileView> {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _actionChip(String label, String value) {
-    final selected = _historyFilter == value;
-    return FilterChip(
-      label: Text(label),
-      selected: selected,
-      onSelected: (_) {
-        setState(() => _historyFilter = value);
-      },
     );
   }
 
@@ -551,9 +633,19 @@ class _CustomerProfileViewState extends State<CustomerProfileView> {
         children: [
           Icon(icon, color: const Color(0xFF0B66D1), size: 18),
           const SizedBox(height: 4),
-          Text(value, maxLines: 1, overflow: TextOverflow.ellipsis, style: AppTextStyles.body1.copyWith(fontWeight: FontWeight.bold)),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppTextStyles.body1.copyWith(fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 2),
-          Text(title, style: AppTextStyles.caption, maxLines: 1, overflow: TextOverflow.ellipsis),
+          Text(
+            title,
+            style: AppTextStyles.caption,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
         ],
       ),
     );

@@ -275,6 +275,7 @@ try {
 - **Firebase:** Integrated (Auth, Firestore, Storage, Functions)
 - **KiotViet:** Integrated (API sync)
 - **Payments:** Integrated (PaymentIntentService)
+- **Finance V2 Excel:** Tất cả nhãn kỹ thuật đã chuyển sang tiếng Việt (action types, column headers, sheet names, số tiền có dấu phẩy)
 
 ---
 
@@ -288,6 +289,6 @@ try {
 
 ---
 
-**Cập nhật lần cuối:** 2026-05-15  
+**Cập nhật lần cuối:** 2026-05-19  
 **Người cập nhật:** GitHub Copilot  
 **Phiên bản:** 1.0

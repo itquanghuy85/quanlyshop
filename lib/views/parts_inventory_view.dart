@@ -24,6 +24,8 @@ import '../services/business_type_helper.dart';
 import '../utils/vietnamese_utils.dart';
 import '../services/supplier_service.dart';
 import 'supplier_form_view.dart';
+import '../models/storage_location_model.dart';
+import '../widgets/storage_location_selector.dart';
 
 /// Widget content để embed vào InventoryView tab - Phiên bản chuyên nghiệp
 class PartsInventoryViewContent extends StatefulWidget {
@@ -1030,6 +1032,28 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                         ),
                       ),
                     ],
+                    if ((p['locationCode'] as String? ?? '').isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.indigo.shade50,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: Colors.indigo.shade200),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.location_on_rounded, size: 11, color: Colors.indigo.shade700),
+                            const SizedBox(width: 3),
+                            Text(
+                              p['locationCode'] as String,
+                              style: TextStyle(fontSize: 11, color: Colors.indigo.shade700, fontWeight: FontWeight.w600),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -1683,6 +1707,17 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                           DateTime.fromMillisecondsSinceEpoch(createdAt),
                         ),
                         Icons.calendar_today,
+                      ),
+                    ],
+                    if ((p['locationCode'] as String? ?? '').isNotEmpty) ...[
+                      const Divider(height: 20),
+                      _detailRow(
+                        'Vị trí kho',
+                        [p['locationCode'], p['locationName']]
+                            .where((v) => (v as String? ?? '').isNotEmpty)
+                            .join(' · '),
+                        Icons.location_on_rounded,
+                        Colors.indigo,
                       ),
                     ],
                   ],
@@ -2777,6 +2812,15 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
     final formKey = GlobalKey<FormState>();
     int? selectedSupplierId = part?['supplierId'] as int?;
     String paymentMethod = 'TIỀN MẶT';
+    StorageLocation? selectedLocation = part != null &&
+            (part['locationCode'] as String? ?? '').isNotEmpty
+        ? StorageLocation(
+            firestoreId: part['locationId'] as String?,
+            code: part['locationCode'] as String? ?? '',
+            name: part['locationName'] as String? ?? '',
+            createdAt: DateTime.now().millisecondsSinceEpoch,
+          )
+        : null;
 
     // Flag tránh đăng ký listener nhiều lần trong StatefulBuilder
     bool _listenerAdded = false;
@@ -3099,6 +3143,29 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                           ),
                         ),
                     ],
+                    // ── Vị trí lưu kho ───────────────────────────
+                    const SizedBox(height: 8),
+                    const Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'VỊ TRÍ LƯU KHO',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF2563EB),
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    StorageLocationSelector(
+                      selectedLocationId: selectedLocation?.firestoreId,
+                      selectedLocationCode: selectedLocation?.code,
+                      selectedLocationName: selectedLocation?.name,
+                      onSelected: (loc) =>
+                          setS(() => selectedLocation = loc),
+                    ),
+                    const SizedBox(height: 4),
                   ],
                 ),
               ),
@@ -3126,6 +3193,7 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                     final qty = int.tryParse(qtyC.text) ?? 0;
                     if (!isEdit && qty <= 0) return;
 
+                    final capLoc = selectedLocation;
                     final data = {
                       'partName': partName,
                       'compatibleModels': modelC.text.toUpperCase(),
@@ -3135,6 +3203,11 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                       'supplierId': selectedSupplierId,
                       'paymentMethod': paymentMethod,
                       'updatedAt': now,
+                      if (capLoc != null) ...{
+                        'locationId': capLoc.firestoreId,
+                        'locationCode': capLoc.code,
+                        'locationName': capLoc.name,
+                      },
                     };
 
                     if (part == null) {

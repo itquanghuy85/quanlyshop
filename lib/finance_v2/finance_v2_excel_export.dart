@@ -18,32 +18,32 @@ class FinanceV2ExcelExport {
 
   // ── Thin dark border ──────────────────────────────────
   static xl.Border get _thin => xl.Border(
-        borderColorHex: xl.ExcelColor.fromHexString('#BFBFBF'),
-        borderStyle: xl.BorderStyle.Thin,
-      );
+    borderColorHex: xl.ExcelColor.fromHexString('#BFBFBF'),
+    borderStyle: xl.BorderStyle.Thin,
+  );
 
   // ── Header style: indigo bg, white bold text, thin border ──
   static xl.CellStyle _headerStyle() => xl.CellStyle(
-        bold: true,
-        backgroundColorHex: xl.ExcelColor.fromHexString('#164A9E'),
-        fontColorHex: xl.ExcelColor.fromHexString('#FFFFFF'),
-        horizontalAlign: xl.HorizontalAlign.Center,
-        topBorder: _thin,
-        bottomBorder: _thin,
-        leftBorder: _thin,
-        rightBorder: _thin,
-      );
+    bold: true,
+    backgroundColorHex: xl.ExcelColor.fromHexString('#164A9E'),
+    fontColorHex: xl.ExcelColor.fromHexString('#FFFFFF'),
+    horizontalAlign: xl.HorizontalAlign.Center,
+    topBorder: _thin,
+    bottomBorder: _thin,
+    leftBorder: _thin,
+    rightBorder: _thin,
+  );
 
   // ── Alternating data row style ─────────────────────────
   static xl.CellStyle _rowStyle(int rowIndex) => xl.CellStyle(
-        backgroundColorHex: rowIndex.isOdd
-            ? xl.ExcelColor.fromHexString('#EEF3FB') // light blue-grey
-            : xl.ExcelColor.fromHexString('#FFFFFF'),
-        topBorder: _thin,
-        bottomBorder: _thin,
-        leftBorder: _thin,
-        rightBorder: _thin,
-      );
+    backgroundColorHex: rowIndex.isOdd
+        ? xl.ExcelColor.fromHexString('#EEF3FB') // light blue-grey
+        : xl.ExcelColor.fromHexString('#FFFFFF'),
+    topBorder: _thin,
+    bottomBorder: _thin,
+    leftBorder: _thin,
+    rightBorder: _thin,
+  );
 
   static void _writeHeaders(xl.Sheet sheet, List<String> headers) {
     final style = _headerStyle();
@@ -57,7 +57,10 @@ class FinanceV2ExcelExport {
   }
 
   static void _writeDataRow(
-      xl.Sheet sheet, int rowIndex, List<dynamic> values) {
+    xl.Sheet sheet,
+    int rowIndex,
+    List<dynamic> values,
+  ) {
     final style = _rowStyle(rowIndex);
     for (int i = 0; i < values.length; i++) {
       final cell = sheet.cell(
@@ -118,7 +121,8 @@ class FinanceV2ExcelExport {
       }
     }
 
-    if (excel.sheets.containsKey('Sheet1') && sheets.every((s) => s.sheetName != 'Sheet1')) {
+    if (excel.sheets.containsKey('Sheet1') &&
+        sheets.every((s) => s.sheetName != 'Sheet1')) {
       excel.delete('Sheet1');
     }
 
@@ -158,18 +162,18 @@ class FinanceV2ExcelExport {
       final bytes = excel.save();
       if (bytes == null) {
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Lỗi tạo file Excel')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Lỗi tạo file Excel')));
         }
         return;
       }
 
       if (kIsWeb) {
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Đang tải xuống: $fileName')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Đang tải xuống: $fileName')));
         }
         return;
       }
@@ -201,7 +205,11 @@ class FinanceV2ExcelExport {
         context: context,
         builder: (ctx) {
           return AlertDialog(
-            icon: const Icon(Icons.check_circle, color: AppColors.success, size: 48),
+            icon: const Icon(
+              Icons.check_circle,
+              color: AppColors.success,
+              size: 48,
+            ),
             title: const Text('Xuất file thành công!'),
             content: Column(
               mainAxisSize: MainAxisSize.min,
@@ -210,9 +218,11 @@ class FinanceV2ExcelExport {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: AppColors.success,
+                      color: AppColors.success.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppColors.success),
+                      border: Border.all(
+                        color: AppColors.success.withValues(alpha: 0.35),
+                      ),
                     ),
                     child: Row(
                       children: [
@@ -223,7 +233,7 @@ class FinanceV2ExcelExport {
                             'Đã lưu:\n$fileName',
                             style: TextStyle(
                               fontSize: 13,
-                              color: AppColors.success,
+                              color: const Color(0xFF1B5E20),
                             ),
                           ),
                         ),
@@ -265,9 +275,9 @@ class FinanceV2ExcelExport {
     } catch (e) {
       debugPrint('Finance V2 Excel export error: $e');
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi xuất file: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Lỗi xuất file: $e')));
       }
     }
   }
@@ -315,7 +325,10 @@ extension FinanceV2ExcelDetailed on FinanceV2ExcelExport {
   }
 
   static String _buildFileNameStatic(
-      String prefix, DateTime? start, DateTime? end) {
+    String prefix,
+    DateTime? start,
+    DateTime? end,
+  ) {
     final fmt = DateFormat('ddMMyyyy');
     if (start != null && end != null) {
       return '${prefix}_${fmt.format(start)}_${fmt.format(end)}.xlsx';
@@ -326,64 +339,69 @@ extension FinanceV2ExcelDetailed on FinanceV2ExcelExport {
 
 class FinanceV2DetailedExporter {
   static xl.Border get _thin => xl.Border(
-        borderColorHex: xl.ExcelColor.fromHexString('#BFBFBF'),
-        borderStyle: xl.BorderStyle.Thin,
-      );
+    borderColorHex: xl.ExcelColor.fromHexString('#BFBFBF'),
+    borderStyle: xl.BorderStyle.Thin,
+  );
 
   /// Section title style: dark blue #1565C0, white bold
   static xl.CellStyle _sectionTitleStyle() => xl.CellStyle(
-        bold: true,
-        backgroundColorHex: xl.ExcelColor.fromHexString('#1565C0'),
-        fontColorHex: xl.ExcelColor.fromHexString('#FFFFFF'),
-        horizontalAlign: xl.HorizontalAlign.Left,
-        topBorder: _thin,
-        bottomBorder: _thin,
-        leftBorder: _thin,
-        rightBorder: _thin,
-      );
+    bold: true,
+    backgroundColorHex: xl.ExcelColor.fromHexString('#1565C0'),
+    fontColorHex: xl.ExcelColor.fromHexString('#FFFFFF'),
+    horizontalAlign: xl.HorizontalAlign.Left,
+    topBorder: _thin,
+    bottomBorder: _thin,
+    leftBorder: _thin,
+    rightBorder: _thin,
+  );
 
   /// Column header style: lighter blue, white bold, centered
   static xl.CellStyle _colHeaderStyle() => xl.CellStyle(
-        bold: true,
-        backgroundColorHex: xl.ExcelColor.fromHexString('#1E88E5'),
-        fontColorHex: xl.ExcelColor.fromHexString('#FFFFFF'),
-        horizontalAlign: xl.HorizontalAlign.Center,
-        topBorder: _thin,
-        bottomBorder: _thin,
-        leftBorder: _thin,
-        rightBorder: _thin,
-      );
+    bold: true,
+    backgroundColorHex: xl.ExcelColor.fromHexString('#1E88E5'),
+    fontColorHex: xl.ExcelColor.fromHexString('#FFFFFF'),
+    horizontalAlign: xl.HorizontalAlign.Center,
+    topBorder: _thin,
+    bottomBorder: _thin,
+    leftBorder: _thin,
+    rightBorder: _thin,
+  );
 
   /// Alternating data row: even = light gray, odd = white
   static xl.CellStyle _dataRowStyle(int relIndex) => xl.CellStyle(
-        backgroundColorHex: relIndex.isEven
-            ? xl.ExcelColor.fromHexString('#F5F5F5')
-            : xl.ExcelColor.fromHexString('#FFFFFF'),
-        topBorder: _thin,
-        bottomBorder: _thin,
-        leftBorder: _thin,
-        rightBorder: _thin,
-      );
+    backgroundColorHex: relIndex.isEven
+        ? xl.ExcelColor.fromHexString('#F5F5F5')
+        : xl.ExcelColor.fromHexString('#FFFFFF'),
+    topBorder: _thin,
+    bottomBorder: _thin,
+    leftBorder: _thin,
+    rightBorder: _thin,
+  );
 
   /// Write a section title spanning [colCount] columns at [row] (merged via repeated writes)
   static void _writeSectionTitle(
-      xl.Sheet sheet, int row, String title, int colCount) {
+    xl.Sheet sheet,
+    int row,
+    String title,
+    int colCount,
+  ) {
     final style = _sectionTitleStyle();
     for (int c = 0; c < colCount; c++) {
       final cell = sheet.cell(
-          xl.CellIndex.indexByColumnRow(columnIndex: c, rowIndex: row));
+        xl.CellIndex.indexByColumnRow(columnIndex: c, rowIndex: row),
+      );
       cell.value = c == 0 ? xl.TextCellValue(title) : xl.TextCellValue('');
       cell.cellStyle = style;
     }
   }
 
   /// Write column headers at [row]
-  static void _writeColHeaders(
-      xl.Sheet sheet, int row, List<String> headers) {
+  static void _writeColHeaders(xl.Sheet sheet, int row, List<String> headers) {
     final style = _colHeaderStyle();
     for (int c = 0; c < headers.length; c++) {
       final cell = sheet.cell(
-          xl.CellIndex.indexByColumnRow(columnIndex: c, rowIndex: row));
+        xl.CellIndex.indexByColumnRow(columnIndex: c, rowIndex: row),
+      );
       cell.value = xl.TextCellValue(headers[c]);
       cell.cellStyle = style;
     }
@@ -391,11 +409,16 @@ class FinanceV2DetailedExporter {
 
   /// Write a data row at [row], [relIndex] controls alternating color
   static void _writeDataRow(
-      xl.Sheet sheet, int row, int relIndex, List<dynamic> values) {
+    xl.Sheet sheet,
+    int row,
+    int relIndex,
+    List<dynamic> values,
+  ) {
     final style = _dataRowStyle(relIndex);
     for (int c = 0; c < values.length; c++) {
       final cell = sheet.cell(
-          xl.CellIndex.indexByColumnRow(columnIndex: c, rowIndex: row));
+        xl.CellIndex.indexByColumnRow(columnIndex: c, rowIndex: row),
+      );
       final v = values[c];
       if (v is int) {
         cell.value = xl.IntCellValue(v);
@@ -411,8 +434,13 @@ class FinanceV2DetailedExporter {
   /// Write blank rows at [row]
   static void _writeBlankRows(xl.Sheet sheet, int row, int count) {
     for (int r = 0; r < count; r++) {
-      sheet.cell(xl.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row + r))
-          .value = xl.TextCellValue('');
+      sheet
+          .cell(
+            xl.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row + r),
+          )
+          .value = xl.TextCellValue(
+        '',
+      );
     }
   }
 
@@ -435,15 +463,22 @@ class FinanceV2DetailedExporter {
         int row = 0;
         // Header row
         for (int c = 0; c < extra.headers.length; c++) {
-          ws.cell(xl.CellIndex.indexByColumnRow(columnIndex: c, rowIndex: row))
-            .value = xl.TextCellValue(extra.headers[c]);
+          ws
+              .cell(
+                xl.CellIndex.indexByColumnRow(columnIndex: c, rowIndex: row),
+              )
+              .value = xl.TextCellValue(
+            extra.headers[c],
+          );
         }
         row++;
         // Data rows
         for (final dataRow in extra.rows) {
           for (int c = 0; c < dataRow.length; c++) {
             final v = dataRow[c];
-            final cell = ws.cell(xl.CellIndex.indexByColumnRow(columnIndex: c, rowIndex: row));
+            final cell = ws.cell(
+              xl.CellIndex.indexByColumnRow(columnIndex: c, rowIndex: row),
+            );
             if (v is int) {
               cell.value = xl.IntCellValue(v);
             } else if (v is double) {
@@ -461,7 +496,9 @@ class FinanceV2DetailedExporter {
 
     // Find max col count
     final maxCols = sections.fold<int>(
-        4, (m, s) => s.colHeaders.length > m ? s.colHeaders.length : m);
+      4,
+      (m, s) => s.colHeaders.length > m ? s.colHeaders.length : m,
+    );
 
     int currentRow = 0;
     for (int si = 0; si < sections.length; si++) {

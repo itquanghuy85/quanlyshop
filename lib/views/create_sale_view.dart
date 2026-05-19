@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -48,6 +49,7 @@ import '../expansion/safe_mode/expansion_feature_flags.dart';
 import '../expansion/safe_mode/pricing_models.dart';
 import 'expansion/vat/create_invoice_view.dart';
 import 'expansion/pricing/price_selector_sheet.dart';
+import '../widgets/app_cached_image.dart';
 
 class CreateSaleView extends StatefulWidget {
   final Product? preSelectedProduct;
@@ -2867,6 +2869,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
         itemBuilder: (ctx, i) {
           final p = _filteredInStock[i];
           return ListTile(
+            leading: _buildProductThumb(p),
             title: Text(
               p.name,
               style: AppTextStyles.body1.copyWith(fontWeight: FontWeight.bold),
@@ -2903,6 +2906,52 @@ class _CreateSaleViewState extends State<CreateSaleView> {
             },
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildProductThumb(Product p) {
+    const double size = 40;
+    const radius = BorderRadius.all(Radius.circular(8));
+    if (p.localImagePath != null && p.localImagePath!.isNotEmpty) {
+      return ClipRRect(
+        borderRadius: radius,
+        child: Image.file(
+          File(p.localImagePath!),
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _productThumbPlaceholder(size, radius),
+        ),
+      );
+    }
+    if (p.images != null && p.images!.isNotEmpty) {
+      return AppCachedImage(
+        imageUrl: p.images!,
+        width: size,
+        height: size,
+        fit: BoxFit.cover,
+        borderRadius: radius,
+        memCacheWidth: 80,
+        memCacheHeight: 80,
+      );
+    }
+    return _productThumbPlaceholder(size, radius);
+  }
+
+  Widget _productThumbPlaceholder(double size, BorderRadius radius) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: const Color(0xFFF1F5F9),
+        borderRadius: radius,
+        border: Border.all(color: const Color(0xFFCBD5E1)),
+      ),
+      child: const Icon(
+        Icons.inventory_2_outlined,
+        size: 20,
+        color: Color(0xFF94A3B8),
       ),
     );
   }

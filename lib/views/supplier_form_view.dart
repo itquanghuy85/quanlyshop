@@ -136,8 +136,19 @@ class _SupplierFormViewState extends State<SupplierFormView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Avatar NCC
-            Center(
+            // Avatar NCC — banner header style
+            Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(bottom: 8),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF0068FF), Color(0xFF0084FF)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 24),
               child: Column(
                 children: [
                   EntityAvatar(
@@ -148,14 +159,31 @@ class _SupplierFormViewState extends State<SupplierFormView> {
                     onEditTap: _pickAvatar,
                     tappableToView: _pendingAvatar != null || (_avatarUrl?.isNotEmpty == true),
                   ),
-                  const SizedBox(height: 6),
-                  TextButton.icon(
-                    onPressed: _pickAvatar,
-                    icon: const Icon(Icons.camera_alt, size: 16),
-                    label: const Text('Chọn ảnh đại diện'),
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  const SizedBox(height: 10),
+                  GestureDetector(
+                    onTap: _pickAvatar,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.5)),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.camera_alt, size: 14, color: Colors.white),
+                          SizedBox(width: 6),
+                          Text(
+                            'Chọn ảnh đại diện',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.white,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],

@@ -14,7 +14,6 @@ import '../services/user_service.dart';
 import '../services/first_time_guide_service.dart';
 import '../services/payment_intent_service.dart';
 import '../services/category_service.dart';
-import '../services/business_type_helper.dart';
 import '../data/db_helper.dart';
 import '../utils/money_utils.dart';
 import '../widgets/currency_text_field.dart';
@@ -80,8 +79,6 @@ class _SupplierListViewState extends State<SupplierListView>
   int _partnerOwingCount = 0;
 
   ShopSettings? _shopSettings;
-  BusinessTerminology get _terms =>
-      BusinessTypeHelper.instance.getTerminology(_shopSettings);
   bool get _isElectronics =>
       _shopSettings?.businessType == 'electronics' ||
       _shopSettings?.businessType == null;
@@ -100,15 +97,19 @@ class _SupplierListViewState extends State<SupplierListView>
     _load();
     _loadPartners();
     _eventBusSub = EventBus().stream
-        .where((e) =>
-            e == 'suppliers_changed' ||
-            e == 'debts_changed' ||
-            e == 'repair_partners_changed' ||
-            e == EventBus.dataRefresh ||
-            e == EventBus.shopChanged)
+        .where(
+          (e) =>
+              e == 'suppliers_changed' ||
+              e == 'debts_changed' ||
+              e == 'repair_partners_changed' ||
+              e == EventBus.dataRefresh ||
+              e == EventBus.shopChanged,
+        )
         .listen((event) {
           if (!mounted) return;
-          debugPrint('🏢 [SupplierListView] Nhận event "$event" → debounce reload');
+          debugPrint(
+            '🏢 [SupplierListView] Nhận event "$event" → debounce reload',
+          );
           _debouncedReload();
         });
     // Hiển thị hướng dẫn cho người dùng mới
@@ -425,6 +426,111 @@ class _SupplierListViewState extends State<SupplierListView>
     return 'Còn nợ';
   }
 
+  bool get _isSupplierTab => !_isElectronics || _tabController.index == 0;
+
+  String get _activeTopFilterLabel {
+    if (_isSupplierTab) {
+      if (_filterDebt) return 'Còn nợ';
+      if (_filterSettled) return 'Đã tất toán';
+      if (_filterOverdue) return 'Quá hạn';
+      if (_sort == 'last_tx') return 'Giao dịch gần đây';
+      return 'Tất cả';
+    }
+
+    if (_filterPartnerActive) return 'Hoạt động';
+    if (_filterPartnerInactive) return 'Ngừng HĐ';
+    if (_filterPartnerOwing) return 'Còn nợ';
+    if (_partnerSort == 'name') return 'Theo tên';
+    return 'Tất cả';
+  }
+
+  void _applySupplierTopFilter(String key) {
+    setState(() {
+      _filterDebt = false;
+      _filterSettled = false;
+      _filterOverdue = false;
+      _filterFavorite = false;
+      _sort = 'debt_desc';
+
+      if (key == 'hasDebt') {
+        _filterDebt = true;
+      } else if (key == 'settled') {
+        _filterSettled = true;
+      } else if (key == 'overdue') {
+        _filterOverdue = true;
+      } else if (key == 'recent') {
+        _sort = 'last_tx';
+      }
+    });
+  }
+
+  void _applyPartnerTopFilter(String key) {
+    setState(() {
+      _filterPartnerActive = false;
+      _filterPartnerInactive = false;
+      _filterPartnerOwing = false;
+      _partnerSort = 'debt_desc';
+
+      if (key == 'active') {
+        _filterPartnerActive = true;
+      } else if (key == 'inactive') {
+        _filterPartnerInactive = true;
+      } else if (key == 'owing') {
+        _filterPartnerOwing = true;
+      } else if (key == 'byName') {
+        _partnerSort = 'name';
+      }
+    });
+  }
+
+  Future<void> _openTopSearchDialog() async {
+    final isSupplier = _isSupplierTab;
+    final controller = TextEditingController(
+      text: isSupplier ? _searchCtrl.text : _partnerSearchCtrl.text,
+    );
+
+    final keyword = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(
+          isSupplier ? 'Tìm kiếm nhà cung cấp' : 'Tìm kiếm đối tác sửa chữa',
+        ),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(
+            prefixIcon: Icon(Icons.search),
+            hintText: 'Nhập tên, SĐT hoặc ghi chú...',
+          ),
+          onSubmitted: (value) => Navigator.pop(ctx, value),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, ''),
+            child: const Text('Xóa'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Hủy'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+            child: const Text('Áp dụng'),
+          ),
+        ],
+      ),
+    );
+
+    if (keyword == null || !mounted) return;
+    setState(() {
+      if (isSupplier) {
+        _searchCtrl.text = keyword.trim();
+      } else {
+        _partnerSearchCtrl.text = keyword.trim();
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -464,6 +570,46 @@ class _SupplierListViewState extends State<SupplierListView>
           ],
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.search),
+            tooltip: _isSupplierTab
+                ? 'Tìm kiếm nhà cung cấp'
+                : 'Tìm kiếm đối tác sửa chữa',
+            onPressed: _openTopSearchDialog,
+          ),
+          PopupMenuButton<String>(
+            tooltip: 'Lọc: $_activeTopFilterLabel',
+            onSelected: (value) {
+              if (_isSupplierTab) {
+                _applySupplierTopFilter(value);
+              } else {
+                _applyPartnerTopFilter(value);
+              }
+            },
+            itemBuilder: (_) {
+              if (_isSupplierTab) {
+                return const [
+                  PopupMenuItem(value: 'all', child: Text('Tất cả')),
+                  PopupMenuItem(value: 'hasDebt', child: Text('Còn nợ')),
+                  PopupMenuItem(value: 'settled', child: Text('Đã tất toán')),
+                  PopupMenuItem(value: 'overdue', child: Text('Quá hạn')),
+                  PopupMenuItem(
+                    value: 'recent',
+                    child: Text('Giao dịch gần đây'),
+                  ),
+                ];
+              }
+
+              return const [
+                PopupMenuItem(value: 'all', child: Text('Tất cả')),
+                PopupMenuItem(value: 'active', child: Text('Hoạt động')),
+                PopupMenuItem(value: 'inactive', child: Text('Ngừng HĐ')),
+                PopupMenuItem(value: 'owing', child: Text('Còn nợ')),
+                PopupMenuItem(value: 'byName', child: Text('Theo tên')),
+              ];
+            },
+            icon: const Icon(Icons.filter_alt_outlined),
+          ),
           IconButton(
             icon: const Icon(Icons.shopping_cart),
             tooltip: 'Tạo đơn bán hàng',
@@ -551,8 +697,6 @@ class _SupplierListViewState extends State<SupplierListView>
               children: [
                 _buildHeader(),
                 const SizedBox(height: 8),
-                _buildSearchFilter(),
-                const SizedBox(height: 8),
                 ...filtered.map(_buildCard),
                 if (filtered.isEmpty)
                   Padding(
@@ -581,8 +725,6 @@ class _SupplierListViewState extends State<SupplierListView>
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               children: [
                 _buildPartnerHeader(),
-                const SizedBox(height: 8),
-                _buildPartnerSearchFilter(),
                 const SizedBox(height: 8),
                 ...filtered.map(_buildPartnerCard),
                 if (filtered.isEmpty)
@@ -693,107 +835,86 @@ class _SupplierListViewState extends State<SupplierListView>
     );
   }
 
-  Widget _buildSearchFilter() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        TextField(
-          controller: _searchCtrl,
-          onChanged: (_) => setState(() {}),
-          decoration: const InputDecoration(
-            prefixIcon: Icon(Icons.search),
-            hintText: 'Tìm NCC theo tên / SĐT / ghi chú',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            FilterChip(
-              label: const Text('Còn nợ'),
-              selected: _filterDebt,
-              onSelected: (v) => setState(() => _filterDebt = v),
-            ),
-            FilterChip(
-              label: const Text('Đã tất toán'),
-              selected: _filterSettled,
-              onSelected: (v) => setState(() => _filterSettled = v),
-            ),
-            FilterChip(
-              label: const Text('Quá hạn'),
-              selected: _filterOverdue,
-              onSelected: (v) => setState(() => _filterOverdue = v),
-            ),
-            FilterChip(
-              label: const Text('Ưu tiên'),
-              selected: _filterFavorite,
-              onSelected: (v) => setState(() => _filterFavorite = v),
-            ),
-            ChoiceChip(
-              label: const Text('Nợ cao → thấp'),
-              selected: _sort == 'debt_desc',
-              onSelected: (v) => setState(() => _sort = 'debt_desc'),
-            ),
-            ChoiceChip(
-              label: const Text('Giao dịch gần nhất'),
-              selected: _sort == 'last_tx',
-              onSelected: (v) => setState(() => _sort = 'last_tx'),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
   Widget _buildCard(_SupplierCardData d) {
     final color = _statusColor(d);
     final status = _statusText(d);
     final date = d.lastTransactionAt != null
-        ? DateFormat(
-            'dd/MM/yyyy',
-          ).format(DateTime.fromMillisecondsSinceEpoch(d.lastTransactionAt!))
+        ? DateFormat('dd/MM').format(
+            DateTime.fromMillisecondsSinceEpoch(d.lastTransactionAt!))
         : 'Chưa có GD';
 
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Material(
         color: AppColors.surface,
+        elevation: 2,
+        shadowColor: AppColors.shadow,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: const [
-          BoxShadow(
-            color: AppColors.shadow,
-            blurRadius: 6,
-            offset: Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          // Thông tin NCC
-            EntityAvatar(
-              imageUrl: d.supplier.avatarUrl,
-              name: d.supplier.name,
-              radius: 22,
-            ),
-            const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () async {
+            await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => SupplierDetailView(supplier: d.supplier),
+              ),
+            );
+            await _load();
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Row(
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
+                EntityAvatar(
+                  imageUrl: d.supplier.avatarUrl,
+                  name: d.supplier.name,
+                  radius: 24,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
                         d.supplier.name,
                         style: AppTextStyles.body1.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
                         overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
                       ),
-                    ),
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              d.remain > 0
+                                  ? 'Nợ: ${MoneyUtils.formatCompactCurrency(d.remain)}'
+                                  : 'Đã tất toán',
+                              style: AppTextStyles.caption.copyWith(
+                                color: color,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            '• $date',
+                            style: AppTextStyles.caption.copyWith(
+                              color: AppColors.onSurface.withValues(alpha: 0.5),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,
@@ -811,130 +932,21 @@ class _SupplierListViewState extends State<SupplierListView>
                         ),
                       ),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Text('Nợ: ', style: AppTextStyles.caption),
-                    Flexible(
-                      child: Text(
-                        MoneyUtils.formatCompactCurrency(d.remain),
-                        style: AppTextStyles.caption.copyWith(
-                          color: color,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        overflow: TextOverflow.ellipsis,
+                    if (d.remain > 0)
+                      IconButton(
+                        onPressed: () async => await _openPayDialog(d),
+                        icon: const Icon(Icons.payments_rounded, size: 20),
+                        color: AppColors.success,
+                        tooltip: 'Thanh toán nhanh',
+                        padding: const EdgeInsets.all(4),
+                        constraints: const BoxConstraints(),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'GD: $date',
-                      style: AppTextStyles.caption.copyWith(
-                        color: AppColors.onSurface.withOpacity(0.6),
-                      ),
-                    ),
                   ],
                 ),
               ],
             ),
           ),
-
-          // Buttons compact
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Nút thanh toán (chỉ hiện nếu còn nợ)
-              if (d.remain > 0)
-                IconButton(
-                  onPressed: () async => await _openPayDialog(d),
-
-                  icon: const Icon(Icons.payments, size: 20),
-                  color: AppColors.success,
-                  tooltip: 'Thanh toán',
-                  padding: const EdgeInsets.all(6),
-                  constraints: const BoxConstraints(),
-                ),
-              // Menu thêm
-              PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert, size: 20),
-                padding: const EdgeInsets.all(6),
-                onSelected: (value) async {
-                  switch (value) {
-                    case 'history':
-                      await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              SupplierDetailView(supplier: d.supplier),
-                        ),
-                      );
-                      await _load();
-                      break;
-                    case 'edit':
-                      await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => SupplierFormView(editing: d.supplier),
-                        ),
-                      );
-                      await _load();
-                      break;
-                    case 'delete':
-                      await _confirmDeleteSupplier(d);
-                      break;
-                    case 'pay':
-                      await _openPayDialog(d);
-                      break;
-                  }
-                },
-                itemBuilder: (context) => [
-                  const PopupMenuItem(
-                    value: 'history',
-                    child: Row(
-                      children: [
-                        Icon(Icons.receipt_long, size: 18),
-                        SizedBox(width: 8),
-                        Text('Lịch sử nhập'),
-                      ],
-                    ),
-                  ),
-                  if (d.remain > 0)
-                    const PopupMenuItem(
-                      value: 'pay',
-                      child: Row(
-                        children: [
-                          Icon(Icons.payments, size: 18, color: Colors.green),
-                          SizedBox(width: 8),
-                          Text('Thanh toán'),
-                        ],
-                      ),
-                    ),
-                  const PopupMenuItem(
-                    value: 'edit',
-                    child: Row(
-                      children: [
-                        Icon(Icons.edit, size: 18),
-                        SizedBox(width: 8),
-                        Text('Sửa thông tin'),
-                      ],
-                    ),
-                  ),
-                  const PopupMenuItem(
-                    value: 'delete',
-                    child: Row(
-                      children: [
-                        Icon(Icons.delete, size: 18, color: Colors.red),
-                        SizedBox(width: 8),
-                        Text('Xóa', style: TextStyle(color: Colors.red)),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -1039,16 +1051,15 @@ class _SupplierListViewState extends State<SupplierListView>
       // Tìm khoản nợ NCC còn dư — bao gồm mọi loại nợ nhà cung cấp
       final debts = await _db.getAllDebts();
       final supplierDebtTypes = {'SHOP_OWES', 'OTHER_SHOP_OWES', 'OWED'};
-      final target = debts.firstWhere(
-        (e) {
-          final type = (e['type'] ?? e['debtType'] ?? '').toString().toUpperCase();
-          return supplierDebtTypes.contains(type) &&
-              (e['personName'] ?? '').toString().toUpperCase() ==
-                  d.supplier.name.toUpperCase() &&
-              (e['totalAmount'] as int? ?? 0) > (e['paidAmount'] as int? ?? 0);
-        },
-        orElse: () => {},
-      );
+      final target = debts.firstWhere((e) {
+        final type = (e['type'] ?? e['debtType'] ?? '')
+            .toString()
+            .toUpperCase();
+        return supplierDebtTypes.contains(type) &&
+            (e['personName'] ?? '').toString().toUpperCase() ==
+                d.supplier.name.toUpperCase() &&
+            (e['totalAmount'] as int? ?? 0) > (e['paidAmount'] as int? ?? 0);
+      }, orElse: () => {});
 
       if (target.isEmpty) {
         NotificationService.showSnackBar(
@@ -1058,7 +1069,8 @@ class _SupplierListViewState extends State<SupplierListView>
         return;
       }
 
-      final debtFId = target['firestoreId'] as String? ?? 'debt_supplier_${d.supplier.id}';
+      final debtFId =
+          target['firestoreId'] as String? ?? 'debt_supplier_${d.supplier.id}';
 
       // Convert payment method string to enum
       final method = methodStr == 'CHUYỂN KHOẢN'
@@ -1084,7 +1096,8 @@ class _SupplierListViewState extends State<SupplierListView>
           'supplierName': d.supplier.name,
           'debtId': target['id'],
           'debtFirestoreId': debtFId,
-          'debtType': (target['type'] ?? target['debtType'] ?? 'SHOP_OWES').toString(),
+          'debtType': (target['type'] ?? target['debtType'] ?? 'SHOP_OWES')
+              .toString(),
           'suggestedMethod': methodStr,
         },
       );
@@ -1163,120 +1176,114 @@ class _SupplierListViewState extends State<SupplierListView>
     );
   }
 
-  Widget _buildPartnerSearchFilter() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        TextField(
-          controller: _partnerSearchCtrl,
-          onChanged: (_) => setState(() {}),
-          decoration: const InputDecoration(
-            prefixIcon: Icon(Icons.search),
-            hintText: 'Tìm đối tác theo tên / SĐT / ghi chú',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            FilterChip(
-              label: const Text('Hoạt động'),
-              selected: _filterPartnerActive,
-              onSelected: (v) => setState(() => _filterPartnerActive = v),
-            ),
-            FilterChip(
-              label: const Text('Ngừng HĐ'),
-              selected: _filterPartnerInactive,
-              onSelected: (v) => setState(() => _filterPartnerInactive = v),
-            ),
-            FilterChip(
-              label: const Text('Còn nợ'),
-              selected: _filterPartnerOwing,
-              onSelected: (v) => setState(() => _filterPartnerOwing = v),
-            ),
-            ChoiceChip(
-              label: const Text('Theo tên'),
-              selected: _partnerSort == 'name',
-              onSelected: (v) => setState(() => _partnerSort = 'name'),
-            ),
-            ChoiceChip(
-              label: const Text('Nợ cao → thấp'),
-              selected: _partnerSort == 'debt_desc',
-              onSelected: (v) => setState(() => _partnerSort = 'debt_desc'),
-            ),
-            ChoiceChip(
-              label: const Text('Nhiều đơn nhất'),
-              selected: _partnerSort == 'orders_desc',
-              onSelected: (v) => setState(() => _partnerSort = 'orders_desc'),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
   Widget _buildPartnerCard(_PartnerCardData d) {
     final color = d.remain > 0 ? AppColors.warning : AppColors.success;
     final status = d.remain > 0 ? 'Còn nợ' : 'Tất toán';
-    final activeColor = d.partner.active
-        ? AppColors.success
-        : AppColors.onSurface.withOpacity(0.5);
 
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Material(
         color: AppColors.surface,
+        elevation: 2,
+        shadowColor: AppColors.shadow,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: const [
-          BoxShadow(
-            color: AppColors.shadow,
-            blurRadius: 6,
-            offset: Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          // Icon trạng thái hoạt động
-          Icon(
-            d.partner.active ? Icons.check_circle : Icons.cancel,
-            color: activeColor,
-            size: 16,
-          ),
-          const SizedBox(width: 8),
-          EntityAvatar(
-            imageUrl: d.partner.avatarUrl,
-            name: d.partner.name,
-            radius: 20,
-          ),
-          const SizedBox(width: 8),
-
-          // Thông tin đối tác
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () async {
+            await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => RepairPartnerDetailView(partner: d.partner),
+              ),
+            );
+            await _loadPartners();
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Row(
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        d.partner.name,
-                        style: AppTextStyles.body1.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                        overflow: TextOverflow.ellipsis,
+                EntityAvatar(
+                  imageUrl: d.partner.avatarUrl,
+                  name: d.partner.name,
+                  radius: 24,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              d.partner.name,
+                              style: AppTextStyles.body1.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
+                          ),
+                          if (!d.partner.active)
+                            Container(
+                              margin: const EdgeInsets.only(left: 4),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                'Ngừng HĐ',
+                                style: AppTextStyles.caption.copyWith(
+                                  color: Colors.grey,
+                                  fontSize: 10,
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
-                    ),
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              d.remain > 0
+                                  ? 'Nợ: ${MoneyUtils.formatCompactCurrency(d.remain)}'
+                                  : 'Đã tất toán',
+                              style: AppTextStyles.caption.copyWith(
+                                color: color,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            '• ${d.totalOrders} đơn',
+                            style: AppTextStyles.caption.copyWith(
+                              color: AppColors.onSurface.withValues(alpha: 0.5),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,
                         vertical: 3,
                       ),
                       decoration: BoxDecoration(
-                        color: color.withOpacity(0.1),
+                        color: color.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
@@ -1287,117 +1294,21 @@ class _SupplierListViewState extends State<SupplierListView>
                         ),
                       ),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Text('Nợ: ', style: AppTextStyles.caption),
-                    Flexible(
-                      child: Text(
-                        MoneyUtils.formatCompactCurrency(d.remain),
-                        style: AppTextStyles.caption.copyWith(
-                          color: color,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        overflow: TextOverflow.ellipsis,
+                    if (d.remain > 0)
+                      IconButton(
+                        onPressed: () async => await _openPartnerPayDialog(d),
+                        icon: const Icon(Icons.payments_rounded, size: 20),
+                        color: AppColors.success,
+                        tooltip: 'Thanh toán nhanh',
+                        padding: const EdgeInsets.all(4),
+                        constraints: const BoxConstraints(),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Đơn: ${d.totalOrders}',
-                      style: AppTextStyles.caption.copyWith(
-                        color: AppColors.onSurface.withOpacity(0.6),
-                      ),
-                    ),
                   ],
                 ),
               ],
             ),
           ),
-
-          // Buttons compact
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Nút thanh toán (chỉ hiện nếu còn nợ)
-              if (d.remain > 0)
-                IconButton(
-                  onPressed: () async => await _openPartnerPayDialog(d),
-                  icon: const Icon(Icons.payments, size: 20),
-                  color: AppColors.success,
-                  tooltip: 'Thanh toán',
-                  padding: const EdgeInsets.all(6),
-                  constraints: const BoxConstraints(),
-                ),
-              // Menu thêm
-              PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert, size: 20),
-                padding: const EdgeInsets.all(6),
-                onSelected: (value) async {
-                  switch (value) {
-                    case 'detail':
-                      await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              RepairPartnerDetailView(partner: d.partner),
-                        ),
-                      );
-                      await _loadPartners();
-                      break;
-                    case 'edit':
-                      await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              RepairPartnerFormView(editing: d.partner),
-                        ),
-                      );
-                      await _loadPartners();
-                      break;
-                    case 'pay':
-                      await _openPartnerPayDialog(d);
-                      break;
-                  }
-                },
-                itemBuilder: (context) => [
-                  const PopupMenuItem(
-                    value: 'detail',
-                    child: Row(
-                      children: [
-                        Icon(Icons.history, size: 18),
-                        SizedBox(width: 8),
-                        Text('Chi tiết / Lịch sử'),
-                      ],
-                    ),
-                  ),
-                  if (d.remain > 0)
-                    const PopupMenuItem(
-                      value: 'pay',
-                      child: Row(
-                        children: [
-                          Icon(Icons.payments, size: 18, color: Colors.green),
-                          SizedBox(width: 8),
-                          Text('Thanh toán'),
-                        ],
-                      ),
-                    ),
-                  const PopupMenuItem(
-                    value: 'edit',
-                    child: Row(
-                      children: [
-                        Icon(Icons.edit, size: 18),
-                        SizedBox(width: 8),
-                        Text('Sửa thông tin'),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -1523,242 +1434,6 @@ class _SupplierListViewState extends State<SupplierListView>
     );
   }
 
-  Future<String?> _showPasswordDialog() async {
-    String password = '';
-    return showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            const Icon(Icons.lock, color: AppColors.primary, size: 24),
-            const SizedBox(width: 12),
-            Text(
-              'XÁC NHẬN XÓA',
-              style: AppTextStyles.headline6.copyWith(color: AppColors.primary),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Chỉ chủ shop/quản lý được phép xóa nhà cung cấp.\nNhập mật khẩu tài khoản để xác nhận:',
-              style: AppTextStyles.body2.copyWith(
-                color: AppColors.onSurface.withOpacity(0.7),
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              obscureText: true,
-              onChanged: (value) => password = value,
-              style: AppTextStyles.body1,
-              decoration: InputDecoration(
-                hintText: 'Mật khẩu',
-                hintStyle: AppTextStyles.body2.copyWith(
-                  color: AppColors.onSurface.withOpacity(0.5),
-                ),
-                prefixIcon: const Icon(
-                  Icons.password,
-                  color: AppColors.primary,
-                  size: 20,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppColors.outline),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppColors.outline),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(
-                    color: AppColors.primary,
-                    width: 2,
-                  ),
-                ),
-                filled: true,
-                fillColor: AppColors.surface,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            style: TextButton.styleFrom(
-              foregroundColor: AppColors.onSurface.withOpacity(0.7),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            ),
-            child: Text('HỦY', style: AppTextStyles.button),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, password),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: AppColors.onPrimary,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: Text('XÁC NHẬN', style: AppTextStyles.button),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _confirmDeleteSupplier(_SupplierCardData d) async {
-    final messenger = ScaffoldMessenger.of(context);
-
-    // Yêu cầu xác thực mật khẩu trước khi xóa
-    final password = await _showPasswordDialog();
-    if (password == null || password.isEmpty) return;
-
-    // Xác thực mật khẩu
-    final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser == null) {
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            'Vui lòng đăng nhập lại',
-            style: AppTextStyles.body2.copyWith(color: AppColors.onError),
-          ),
-          backgroundColor: AppColors.error,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        ),
-      );
-      return;
-    }
-
-    try {
-      final credential = EmailAuthProvider.credential(
-        email: currentUser.email!,
-        password: password,
-      );
-      await currentUser.reauthenticateWithCredential(credential);
-    } catch (e) {
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            'Mật khẩu không đúng!',
-            style: AppTextStyles.body2.copyWith(color: AppColors.onError),
-          ),
-          backgroundColor: AppColors.error,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        ),
-      );
-      return;
-    }
-
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            const Icon(
-              Icons.warning_amber_rounded,
-              color: AppColors.warning,
-              size: 28,
-            ),
-            const SizedBox(width: 12),
-            Text(
-              "XÓA NHÀ CUNG CẤP",
-              style: AppTextStyles.headline6.copyWith(color: AppColors.error),
-            ),
-          ],
-        ),
-        content: Text(
-          "Bạn chắc chắn muốn xóa nhà cung cấp \"${d.supplier.name}\" khỏi danh sách? Các ${_terms.productLabel.toLowerCase()} cũ vẫn giữ nguyên thông tin NCC dạng chữ.",
-          style: AppTextStyles.body2,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            style: TextButton.styleFrom(
-              foregroundColor: AppColors.onSurface.withOpacity(0.7),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            ),
-            child: Text("HỦY", style: AppTextStyles.button),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-              foregroundColor: AppColors.onError,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: Text("XÓA", style: AppTextStyles.button),
-          ),
-        ],
-      ),
-    );
-
-    if (ok == true) {
-      // Sử dụng SupplierService để xóa cả local và cloud (soft delete)
-      final success = await _supplierService.deleteSupplier(
-        d.supplier.id,
-        firestoreId: d.supplier.firestoreId,
-        supplierName: d.supplier.name,
-      );
-
-      if (success) {
-        messenger.showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(
-                  Icons.check_circle,
-                  color: AppColors.onSuccess,
-                  size: 20,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'ĐÃ XÓA NHÀ CUNG CẤP',
-                  style: AppTextStyles.body2.copyWith(
-                    color: AppColors.onSuccess,
-                  ),
-                ),
-              ],
-            ),
-            backgroundColor: AppColors.success,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-            duration: const Duration(seconds: 3),
-          ),
-        );
-        await _load();
-      } else {
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text(
-              'Lỗi: Không thể xóa nhà cung cấp',
-              style: AppTextStyles.body2.copyWith(color: AppColors.onError),
-            ),
-            backgroundColor: AppColors.error,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    }
-  }
 }
 
 class _SupplierCardData {

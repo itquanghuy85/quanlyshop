@@ -14,7 +14,22 @@
       "Read(//tmp/**)",
       "Bash(sed -n '120,130p' lib/views/food/expiry_management_view.dart)",
       "Bash(sed -n '460,475p' lib/views/food/expiry_management_view.dart)",
-      "PowerShell(flutter devices 2>&1)"
+      "PowerShell(flutter devices 2>&1)",
+      "Bash(adb -s HE5TAAIJAADIZ9JV install -r build\\\\app\\\\outputs\\\\flutter-apk\\\\app-debug.apk)",
+      "PowerShell(adb -s HE5TAAIJAADIZ9JV install -r build\\\\app\\\\outputs\\\\flutter-apk\\\\app-debug.apk)",
+      "PowerShell(head -10)",
+      "PowerShell(flutter install -d HE5TAAIJAADIZ9JV --debug 2>&1)",
+      "Bash(grep -v \"^$\")",
+      "Bash(git checkout *)",
+      "Bash(adb install *)",
+      "PowerShell(adb install -r \"d:\\\\FlutterProjects\\\\quanlyshop\\\\build\\\\app\\\\outputs\\\\flutter-apk\\\\app-debug.apk\")",
+      "Bash(git commit -m ' *)",
+      "Bash(xargs -I{} git show c8aacf9a:{})",
+      "Bash(Get-ChildItem -Recurse -Filter \"*finance*\" d:\\\\FlutterProjects\\\\quanlyshop\\\\lib)",
+      "Bash(Select-Object FullName)",
+      "Bash(ls \"D:/ảnh claude/\" | grep -i \"16052026\\\\|xlsx\")",
+      "Read(//d/ảnh claude/**)",
+      "Bash(python3 -c ' *)"
     ]
   }
 }

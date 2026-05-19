@@ -176,6 +176,11 @@ class Repair {
   // ShopId để phân tách dữ liệu đa cửa hàng
   String? shopId;
 
+  // === STORAGE LOCATION (v98) - Vị trí lưu kho sau khi sửa xong ===
+  String? storageLocationId;
+  String? storageLocationCode;
+  String? storageLocationName;
+
   // Getter for receive images
   List<String> get receiveImages {
     if (imagePath == null || imagePath!.trim().isEmpty) return [];
@@ -276,6 +281,10 @@ class Repair {
     this.costPaymentMethod,
     this.costRecordedAt,
     this.costRecordedAmount,
+    // Storage location
+    this.storageLocationId,
+    this.storageLocationCode,
+    this.storageLocationName,
   });
 
   int get servicesCost => services.fold(0, (sum, s) => sum + s.cost);
@@ -348,6 +357,9 @@ class Repair {
       'costRecordedAt': costRecordedAt,
       'costRecordedAmount': costRecordedAmount,
       'shopId': shopId,
+      'storageLocationId': storageLocationId,
+      'storageLocationCode': storageLocationCode,
+      'storageLocationName': storageLocationName,
     };
   }
 
@@ -420,6 +432,9 @@ class Repair {
           : null,
       costRecordedAmount: _parseIntSafe(map['costRecordedAmount']),
       shopId: map['shopId'],
+      storageLocationId: map['storageLocationId'],
+      storageLocationCode: map['storageLocationCode'],
+      storageLocationName: map['storageLocationName'],
     );
   }
 
@@ -468,6 +483,9 @@ class Repair {
     int? costRecordedAt,
     int? costRecordedAmount,
     String? shopId,
+    String? storageLocationId,
+    String? storageLocationCode,
+    String? storageLocationName,
   }) {
     return Repair(
       id: id ?? this.id,
@@ -519,6 +537,9 @@ class Repair {
           costRecordedAt ?? this.costRecordedAt,
         costRecordedAmount:
           costRecordedAmount ?? this.costRecordedAmount,
+      storageLocationId: storageLocationId ?? this.storageLocationId,
+      storageLocationCode: storageLocationCode ?? this.storageLocationCode,
+      storageLocationName: storageLocationName ?? this.storageLocationName,
     );
   }
 }

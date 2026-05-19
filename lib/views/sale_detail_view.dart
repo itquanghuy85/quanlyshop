@@ -73,7 +73,9 @@ class _SaleDetailViewState extends State<SaleDetailView> {
       BusinessTypeHelper.instance.getTerminology(_shopSettings);
 
   // Theme colors cho màn hình chi tiết đơn bán hàng
-  final Color _primaryColor = const Color(0xFF2E7D32); // Xanh lá - đồng bộ bán hàng
+  final Color _primaryColor = const Color(
+    0xFF2E7D32,
+  ); // Xanh lá - đồng bộ bán hàng
   final Color _accentColor = const Color(0xFF388E3C);
   final Color _backgroundColor = const Color(0xFFF4F6FA);
 
@@ -233,7 +235,9 @@ class _SaleDetailViewState extends State<SaleDetailView> {
   String _money(int amount) => MoneyUtils.formatCompactCurrency(amount);
 
   String? _extractImageFromSnapshot(Map<String, dynamic> item) {
-    final imageUrl = (item['imageUrl'] ?? item['image'] ?? '').toString().trim();
+    final imageUrl = (item['imageUrl'] ?? item['image'] ?? '')
+        .toString()
+        .trim();
     if (imageUrl.isNotEmpty) return imageUrl;
     final rawImages = item['images'];
     if (rawImages is List && rawImages.isNotEmpty) {
@@ -241,7 +245,11 @@ class _SaleDetailViewState extends State<SaleDetailView> {
       if (first.isNotEmpty) return first;
     }
     if (rawImages is String && rawImages.trim().isNotEmpty) {
-      final parts = rawImages.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+      final parts = rawImages
+          .split(',')
+          .map((e) => e.trim())
+          .where((e) => e.isNotEmpty)
+          .toList();
       if (parts.isNotEmpty) return parts.first;
     }
     return null;
@@ -261,18 +269,25 @@ class _SaleDetailViewState extends State<SaleDetailView> {
               (item['name'] ?? item['productName'] ?? '').toString(),
             ).trim();
             if (name.isEmpty) continue;
-            final imei = (item['imei'] ?? item['serial'] ?? '').toString().trim();
+            final imei = (item['imei'] ?? item['serial'] ?? '')
+                .toString()
+                .trim();
             final sku = (item['sku'] ?? '').toString().trim();
-            final productId = (item['id'] ?? item['productId'] ?? item['firestoreId'] ?? '').toString().trim();
-            items.add(ProductLinkRef(
-              productId: productId.isEmpty ? null : productId,
-              displayName: name,
-              imei: imei.isEmpty ? null : imei,
-              serial: imei.isEmpty ? null : imei,
-              sku: sku.isEmpty ? null : sku,
-              imageUrl: _extractImageFromSnapshot(item),
-              sourceEvent: 'product_detail_opened_from_sale',
-            ));
+            final productId =
+                (item['id'] ?? item['productId'] ?? item['firestoreId'] ?? '')
+                    .toString()
+                    .trim();
+            items.add(
+              ProductLinkRef(
+                productId: productId.isEmpty ? null : productId,
+                displayName: name,
+                imei: imei.isEmpty ? null : imei,
+                serial: imei.isEmpty ? null : imei,
+                sku: sku.isEmpty ? null : sku,
+                imageUrl: _extractImageFromSnapshot(item),
+                sourceEvent: 'product_detail_opened_from_sale',
+              ),
+            );
           }
         }
       } catch (e) {
@@ -292,13 +307,17 @@ class _SaleDetailViewState extends State<SaleDetailView> {
         .toList();
     for (var i = 0; i < names.length; i++) {
       final imei = i < imeis.length ? imeis[i] : '';
-      final isInventoryMarker = imei.toUpperCase().startsWith('PKX') || imei.toUpperCase() == 'NO_IMEI';
-      items.add(ProductLinkRef(
-        displayName: names[i],
-        imei: (imei.isEmpty || isInventoryMarker) ? null : imei,
-        serial: (imei.isEmpty || isInventoryMarker) ? null : imei,
-        sourceEvent: 'product_detail_opened_from_sale',
-      ));
+      final isInventoryMarker =
+          imei.toUpperCase().startsWith('PKX') ||
+          imei.toUpperCase() == 'NO_IMEI';
+      items.add(
+        ProductLinkRef(
+          displayName: names[i],
+          imei: (imei.isEmpty || isInventoryMarker) ? null : imei,
+          serial: (imei.isEmpty || isInventoryMarker) ? null : imei,
+          sourceEvent: 'product_detail_opened_from_sale',
+        ),
+      );
     }
     return items;
   }
@@ -1117,7 +1136,8 @@ class _SaleDetailViewState extends State<SaleDetailView> {
           direction: 'OUT',
           paymentMethod: s.paymentMethod,
           title: 'HỦY ĐƠN BÁN',
-          description: 'Hủy đơn: ${s.productNamesDisplay}. KH: ${s.customerName}',
+          description:
+              'Hủy đơn: ${s.productNamesDisplay}. KH: ${s.customerName}',
           customerName: s.customerName,
           phone: s.walkInPhone ?? s.phone,
           productInfo: s.productNamesDisplay,
@@ -1471,11 +1491,7 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                     '-${_money(s.discount)}',
                     color: Colors.orange,
                   ),
-                _item(
-                  "Tổng tiền",
-                  _money(s.finalPrice),
-                  color: Colors.red,
-                ),
+                _item("Tổng tiền", _money(s.finalPrice), color: Colors.red),
                 if (_canViewCostPrice && s.totalCost > 0) ...[
                   _item(
                     "Giá vốn",
@@ -1493,26 +1509,14 @@ class _SaleDetailViewState extends State<SaleDetailView> {
               ]),
               if (_isInstallmentNH)
                 _card("TRẢ GÓP - NGÂN HÀNG", [
-                  _item(
-                    "Down payment",
-                    _money(s.downPayment),
-                  ),
+                  _item("Down payment", _money(s.downPayment)),
                   _item("NH 1 giải ngân", s.bankName ?? "---"),
-                  _item(
-                    "Số tiền NH 1",
-                    _money(s.loanAmount),
-                  ),
+                  _item("Số tiền NH 1", _money(s.loanAmount)),
                   if (s.bankName2 != null && s.bankName2!.isNotEmpty) ...[
                     _item("NH 2 giải ngân", s.bankName2!),
-                    _item(
-                      "Số tiền NH 2",
-                      _money(s.loanAmount2),
-                    ),
+                    _item("Số tiền NH 2", _money(s.loanAmount2)),
                   ],
-                  _item(
-                    "Tổng vay NH",
-                    _money(s.loanAmount + s.loanAmount2),
-                  ),
+                  _item("Tổng vay NH", _money(s.loanAmount + s.loanAmount2)),
                   _item("Ngày dự kiến", _fmtShort(s.settlementPlannedAt)),
                   _item("Mã hồ sơ", s.settlementCode ?? "---"),
                   _item("Ghi chú", s.settlementNote ?? "---"),
@@ -1561,9 +1565,7 @@ class _SaleDetailViewState extends State<SaleDetailView> {
           decoration: BoxDecoration(
             color: _accentColor.withOpacity(0.07),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
-            border: Border(
-              left: BorderSide(color: _accentColor, width: 4),
-            ),
+            border: Border(left: BorderSide(color: _accentColor, width: 4)),
           ),
           child: Text(
             t,

@@ -37,6 +37,15 @@ class Product {
   String? customData; // JSON string cho dữ liệu tùy chỉnh theo ngành
   String? sku; // Mã SKU tự động sinh: [NHOM]-[MODEL]-[INFO]-[STT]
 
+  // === STORAGE LOCATION (v98) ===
+  String? locationId;
+  String? locationCode;
+  String? locationName;
+
+  // === IMAGE MANAGEMENT (v98) ===
+  String? localImagePath; // Local file path for pending upload
+  int? imageUpdatedAt;
+
   Product({
     this.id,
     this.firestoreId,
@@ -74,6 +83,13 @@ class Product {
     this.variantParentId,
     this.customData,
     this.sku,
+    // Storage location
+    this.locationId,
+    this.locationCode,
+    this.locationName,
+    // Image management
+    this.localImagePath,
+    this.imageUpdatedAt,
   });
 
   Map<String, dynamic> toMap() {
@@ -114,6 +130,13 @@ class Product {
       'variantParentId': variantParentId,
       'customData': customData,
       'sku': sku,
+      // Storage location
+      'locationId': locationId,
+      'locationCode': locationCode,
+      'locationName': locationName,
+      // Image management
+      'localImagePath': localImagePath,
+      'imageUpdatedAt': imageUpdatedAt,
     };
   }
 
@@ -197,6 +220,13 @@ class Product {
       variantParentId: map['variantParentId'],
       customData: map['customData'],
       sku: map['sku'],
+      // Storage location
+      locationId: map['locationId'],
+      locationCode: map['locationCode'],
+      locationName: map['locationName'],
+      // Image management
+      localImagePath: map['localImagePath'],
+      imageUpdatedAt: map['imageUpdatedAt'] is int ? map['imageUpdatedAt'] : null,
     );
   }
 
@@ -237,6 +267,13 @@ class Product {
     String? variantParentId,
     String? customData,
     String? sku,
+    // Storage location
+    String? locationId,
+    String? locationCode,
+    String? locationName,
+    // Image management
+    String? localImagePath,
+    int? imageUpdatedAt,
   }) {
     return Product(
       id: id ?? this.id,
@@ -275,6 +312,13 @@ class Product {
       variantParentId: variantParentId ?? this.variantParentId,
       customData: customData ?? this.customData,
       sku: sku ?? this.sku,
+      // Storage location
+      locationId: locationId ?? this.locationId,
+      locationCode: locationCode ?? this.locationCode,
+      locationName: locationName ?? this.locationName,
+      // Image management
+      localImagePath: localImagePath ?? this.localImagePath,
+      imageUpdatedAt: imageUpdatedAt ?? this.imageUpdatedAt,
     );
   }
 

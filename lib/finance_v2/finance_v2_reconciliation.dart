@@ -51,35 +51,74 @@ class FinanceV2ReconciliationResult {
   List<FinanceV2ReconciliationMetric> get failures =>
       metrics.where((m) => !m.passed).toList(growable: false);
 
+  /// Vietnamese label for a reconciliation metric key — used in Excel and UI.
+  static String metricLabel(String key) {
+    switch (key) {
+      case 'TOTAL_IN':
+        return 'Tổng tiền vào';
+      case 'TOTAL_OUT':
+        return 'Tổng tiền ra';
+      case 'NET':
+        return 'Dòng tiền thuần';
+      case 'TOTAL_REVENUE':
+        return 'Tổng doanh thu';
+      case 'TOTAL_COST':
+        return 'Tổng chi phí';
+      case 'TOTAL_PROFIT':
+        return 'Tổng lợi nhuận';
+      case 'TOTAL_DEBT_CUSTOMER':
+        return 'Tổng công nợ khách hàng';
+      case 'TOTAL_DEBT_SUPPLIER':
+        return 'Tổng công nợ nhà cung cấp';
+      default:
+        return key;
+    }
+  }
+
   List<List<dynamic>> toSheetRows() {
+    final statusLabel = passed ? 'Khớp ✓' : 'Sai lệch ✗';
     final rows = <List<dynamic>>[
-      <dynamic>['STATUS', passed ? 'PASS' : 'FAIL', '', '', '', ''],
-      <dynamic>['RULE', 'DIFF != 0 => FAIL', '', '', '', ''],
+      <dynamic>['Trạng thái đối soát', statusLabel, '', '', '', ''],
+      <dynamic>['Quy tắc', 'Chênh lệch ≠ 0 là sai lệch', '', '', '', ''],
       <dynamic>['', '', '', '', '', ''],
-      <dynamic>['metric', 'log_value', 'report_value', 'diff', 'status', 'detail'],
+      <dynamic>[
+        'Chỉ số',
+        'Giá trị từ nhật ký',
+        'Giá trị báo cáo',
+        'Chênh lệch',
+        'Kết quả',
+        'Ghi chú',
+      ],
     ];
 
     for (final m in metrics) {
       rows.add(<dynamic>[
-        m.key,
+        metricLabel(m.key),
         m.logValue,
         m.reportValue,
         m.diff,
-        m.passed ? 'PASS' : 'FAIL',
+        m.passed ? 'Khớp' : 'Sai lệch',
         m.detail,
       ]);
     }
 
     if (failures.isNotEmpty) {
       rows.add(<dynamic>['', '', '', '', '', '']);
-      rows.add(<dynamic>['FAIL_REASON', 'Lệch dữ liệu', '', '', '', '']);
+      rows.add(<dynamic>[
+        'Các mục sai lệch',
+        'Cần kiểm tra lại',
+        '',
+        '',
+        '',
+        '',
+      ]);
       for (final f in failures) {
         rows.add(<dynamic>[
-          f.key,
-          'Lệch ${f.diff.abs()}',
+          metricLabel(f.key),
+          'Lệch ${f.diff.abs()}đ',
           '',
           f.diff,
-          'FAIL',
+          'Sai lệch',
           f.detail,
         ]);
       }
@@ -154,49 +193,49 @@ class FinanceV2ReconciliationEngine {
         key: 'TOTAL_IN',
         logValue: totalIn,
         reportValue: report.totalIn,
-        detail: 'SUM(cash_in + transfer_in)',
+        detail: 'Tổng tiền mặt vào + chuyển khoản vào',
       ),
       FinanceV2ReconciliationMetric(
         key: 'TOTAL_OUT',
         logValue: totalOut,
         reportValue: report.totalOut,
-        detail: 'SUM(cash_out + transfer_out)',
+        detail: 'Tổng tiền mặt ra + chuyển khoản ra',
       ),
       FinanceV2ReconciliationMetric(
         key: 'NET',
         logValue: net,
         reportValue: report.net,
-        detail: 'TOTAL_IN - TOTAL_OUT',
+        detail: 'Tổng tiền vào − Tổng tiền ra',
       ),
       FinanceV2ReconciliationMetric(
         key: 'TOTAL_REVENUE',
         logValue: revenue,
         reportValue: report.totalRevenue,
-        detail: 'SALE + REPAIR - RETURN (line_amount)',
+        detail: 'Doanh thu bán hàng + sửa chữa − hoàn trả',
       ),
       FinanceV2ReconciliationMetric(
         key: 'TOTAL_COST',
         logValue: cost,
         reportValue: report.totalCost,
-        detail: 'COGS from log + OTHER_EXPENSE',
+        detail: 'Giá vốn hàng bán + chi phí vận hành',
       ),
       FinanceV2ReconciliationMetric(
         key: 'TOTAL_PROFIT',
         logValue: profit,
         reportValue: report.totalProfit,
-        detail: 'TOTAL_REVENUE - TOTAL_COST',
+        detail: 'Tổng doanh thu − Tổng chi phí',
       ),
       FinanceV2ReconciliationMetric(
         key: 'TOTAL_DEBT_CUSTOMER',
         logValue: debtCustomerClosing,
         reportValue: report.totalDebtCustomer,
-        detail: 'OPENING_DEBT_CUSTOMER + SUM(debt_customer_change)',
+        detail: 'Số dư đầu kỳ + biến động công nợ khách hàng',
       ),
       FinanceV2ReconciliationMetric(
         key: 'TOTAL_DEBT_SUPPLIER',
         logValue: debtSupplierClosing,
         reportValue: report.totalDebtSupplier,
-        detail: 'OPENING_DEBT_SUPPLIER + SUM(debt_supplier_change)',
+        detail: 'Số dư đầu kỳ + biến động công nợ nhà cung cấp',
       ),
     ];
 

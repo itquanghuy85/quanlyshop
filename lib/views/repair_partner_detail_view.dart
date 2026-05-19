@@ -19,6 +19,7 @@ import '../theme/app_text_styles.dart';
 import '../widgets/gradient_fab.dart';
 import '../utils/excel_export_helper.dart';
 import '../widgets/entity_avatar.dart';
+import 'repair_partner_form_view.dart';
 
 class RepairPartnerDetailView extends StatefulWidget {
   final RepairPartner partner;
@@ -158,6 +159,55 @@ class _RepairPartnerDetailViewState extends State<RepairPartnerDetailView>
       (_stats['totalCost'] as int?) ?? _totalDebt;
     int get _totalPaid => _directPaid + _paidDebt;
 
+  Future<void> _editPartner() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => RepairPartnerFormView(editing: widget.partner),
+      ),
+    );
+    _load();
+  }
+
+  Future<void> _deletePartner() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Xóa đối tác sửa chữa'),
+        content: Text('Xóa "${widget.partner.name}" khỏi danh sách?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('HỦY'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('XÓA', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+
+    final success = await _partnerService.deleteRepairPartner(
+      widget.partner.id!,
+      firestoreId: widget.partner.firestoreId,
+    );
+    if (success) {
+      EventBus().emit('repair_partners_changed');
+      if (mounted) Navigator.pop(context);
+    } else {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Lỗi: Không thể xóa đối tác'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -198,6 +248,16 @@ class _RepairPartnerDetailViewState extends State<RepairPartnerDetailView>
                 orders: _histories.map((h) => h.toMap()).toList(),
               ),
             ),
+          IconButton(
+            icon: const Icon(Icons.edit_rounded),
+            tooltip: 'Sửa thông tin',
+            onPressed: _editPartner,
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete_rounded),
+            tooltip: 'Xóa đối tác',
+            onPressed: _deletePartner,
+          ),
         ],
         bottom: TabBar(
           controller: _tab,
