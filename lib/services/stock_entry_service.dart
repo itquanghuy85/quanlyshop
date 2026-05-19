@@ -1024,6 +1024,14 @@ class StockEntryService {
     } on TimeoutException {
       _showError('Không có mạng. Vui lòng kết nối internet để xác nhận nhập kho.');
       return false;
+    } on FirebaseException catch (e) {
+      if (e.code == 'unavailable' || e.code == 'failed-precondition') {
+        _showError('Không có mạng. Vui lòng kết nối internet để xác nhận nhập kho.');
+      } else {
+        debugPrint('❌ confirmEntry FirebaseException: $e');
+        _showError('Lỗi xác nhận: ${e.message ?? e.code}');
+      }
+      return false;
     } catch (e) {
       debugPrint('❌ confirmEntry ERROR: $e');
       _showError('Lỗi xác nhận: $e');
