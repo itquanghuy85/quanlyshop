@@ -17,6 +17,8 @@ import '../widgets/currency_text_field.dart';
 import '../theme/app_text_styles.dart';
 import '../widgets/responsive_wrapper.dart';
 import '../data/db_helper.dart';
+import '../models/storage_location_model.dart';
+import '../widgets/storage_location_selector.dart';
 import 'quick_input_codes_view.dart';
 import 'pending_stock_list_view.dart';
 
@@ -88,6 +90,7 @@ class _SmartStockInViewState extends State<SmartStockInView> {
   String? _selectedSupplierId; // Firestore ID
   int? _selectedSupplierLocalId; // SQLite local ID
   String? _selectedPaymentMethod;
+  StorageLocation? _selectedLocation;
 
   // Data
   List<Map<String, dynamic>> _suppliers = [];
@@ -551,6 +554,15 @@ class _SmartStockInViewState extends State<SmartStockInView> {
       }
       _labelInfoCtrl.text = item.labelInfo ?? '';
       _labelNoteCtrl.text = item.labelNote ?? '';
+      // Restore location
+      if ((item.locationCode ?? '').isNotEmpty) {
+        _selectedLocation = StorageLocation(
+          firestoreId: item.locationId,
+          code: item.locationCode!,
+          name: item.locationName ?? '',
+          createdAt: DateTime.now().millisecondsSinceEpoch,
+        );
+      }
     }
 
     _selectedSupplierId = entry.supplierId;
@@ -737,6 +749,10 @@ class _SmartStockInViewState extends State<SmartStockInView> {
           : null,
       // Fashion
       size: isFashionProduct ? _selectedSize : null,
+      // Storage location
+      locationId: _selectedLocation?.firestoreId,
+      locationCode: _selectedLocation?.code,
+      locationName: _selectedLocation?.name,
     );
   }
 
@@ -985,6 +1001,17 @@ class _SmartStockInViewState extends State<SmartStockInView> {
 
                             // Thông tin kế toán
                             _buildAccountingSection(),
+
+                            const SizedBox(height: 12),
+
+                            // Vị trí lưu kho
+                            StorageLocationSelector(
+                              selectedLocationId: _selectedLocation?.firestoreId,
+                              selectedLocationCode: _selectedLocation?.code,
+                              selectedLocationName: _selectedLocation?.name,
+                              onSelected: (loc) =>
+                                  setState(() => _selectedLocation = loc),
+                            ),
 
                             const SizedBox(height: 16),
 

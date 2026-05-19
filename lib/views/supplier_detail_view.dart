@@ -7,6 +7,7 @@ import '../models/payment_intent_model.dart';
 import '../constants/financial_constants.dart';
 import '../services/supplier_service.dart';
 import '../services/payment_intent_service.dart';
+import '../services/user_service.dart';
 import '../data/db_helper.dart';
 import '../utils/money_utils.dart';
 import '../widgets/currency_text_field.dart';
@@ -16,7 +17,10 @@ import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 import '../widgets/gradient_fab.dart';
 import '../utils/excel_export_helper.dart';
+import '../models/product_model.dart';
 import '../widgets/entity_avatar.dart';
+import 'inventory_detail_view.dart';
+import 'supplier_form_view.dart';
 
 class SupplierDetailView extends StatefulWidget {
   final Supplier supplier;
@@ -35,12 +39,14 @@ class _SupplierDetailViewState extends State<SupplierDetailView> with TickerProv
   List<Map<String, dynamic>> _debts = [];
   List<Map<String, dynamic>> _payments = [];
   Map<String, dynamic> _stats = {};
+  List<Product> _products = [];
   bool _loading = true;
+  String? _shopId;
 
   @override
   void initState() {
     super.initState();
-    _tab = TabController(length: 3, vsync: this);
+    _tab = TabController(length: 4, vsync: this);
     _load();
     EventBus().stream.where((e) => e == 'debts_changed' || e == 'suppliers_changed').listen((_) {
       if (mounted) _load();
@@ -50,28 +56,53 @@ class _SupplierDetailViewState extends State<SupplierDetailView> with TickerProv
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
+      _shopId ??= await UserService.getCurrentShopId();
       // Truyền cả supplierId và supplierName để tìm được cả các record lưu với supplierId = 0
-      final imports = await _db.getSupplierImportHistory(
-        widget.supplier.id!,
-        supplierName: widget.supplier.name,
-      );
-      final debts = (await _db.getAllDebts())
-          .where((d) => d['type'] == 'SHOP_OWES' && (d['personName'] ?? '').toString().toUpperCase() == widget.supplier.name.toUpperCase() && (d['deleted'] ?? 0) != 1)
+      final results = await Future.wait([
+        _db.getSupplierImportHistory(
+          widget.supplier.id!,
+          supplierName: widget.supplier.name,
+        ),
+        _db.getAllDebts(),
+        _service.getSupplierStatistics(
+          widget.supplier.id!.toString(),
+          supplierName: widget.supplier.name,
+        ),
+        if (_shopId != null)
+          _db.getProductsBySupplier(
+            _shopId!,
+            supplierName: widget.supplier.name,
+            supplierId: widget.supplier.firestoreId,
+          )
+        else
+          Future.value(<Product>[]),
+      ]);
+
+      final imports = results[0] as List<Map<String, dynamic>>;
+      final allDebts = results[1] as List<Map<String, dynamic>>;
+      final stats = results[2] as Map<String, dynamic>;
+      final products = results[3] as List<Product>;
+
+      final debts = allDebts
+          .where((d) =>
+              d['type'] == 'SHOP_OWES' &&
+              (d['personName'] ?? '').toString().toUpperCase() ==
+                  widget.supplier.name.toUpperCase() &&
+              (d['deleted'] ?? 0) != 1)
           .toList();
+
       final List<Map<String, dynamic>> payments = [];
       for (final d in debts) {
         final p = await _db.getDebtPayments(d['id'] as int);
         payments.addAll(p);
       }
-      final stats = await _service.getSupplierStatistics(
-        widget.supplier.id!.toString(),
-        supplierName: widget.supplier.name,
-      );
+
       setState(() {
         _imports = imports;
         _debts = debts;
         _payments = payments;
         _stats = stats;
+        _products = products;
         _loading = false;
       });
     } catch (e) {
@@ -83,6 +114,104 @@ class _SupplierDetailViewState extends State<SupplierDetailView> with TickerProv
   int get _totalDebt => _debts.fold(0, (s, d) => s + (d['totalAmount'] as int? ?? 0));
   int get _paidDebt => _debts.fold(0, (s, d) => s + (d['paidAmount'] as int? ?? 0));
   int get _remainDebt => _totalDebt - _paidDebt;
+
+  Future<void> _editSupplier() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SupplierFormView(editing: widget.supplier),
+      ),
+    );
+    _load();
+  }
+
+  Future<void> _deleteSupplier() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final password = await _showPasswordDialog();
+    if (password == null || password.isEmpty) return;
+
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Vui lòng đăng nhập lại'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+    try {
+      final credential = EmailAuthProvider.credential(
+        email: currentUser.email!,
+        password: password,
+      );
+      await currentUser.reauthenticateWithCredential(credential);
+    } catch (_) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Mật khẩu không đúng!'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+    if (!mounted) return;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Xóa nhà cung cấp'),
+        content: Text('Xóa "${widget.supplier.name}" khỏi danh sách?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('HỦY')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('XÓA', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+
+    final success = await _service.deleteSupplier(
+      widget.supplier.id,
+      firestoreId: widget.supplier.firestoreId,
+      supplierName: widget.supplier.name,
+    );
+    if (success) {
+      EventBus().emit('suppliers_changed');
+      if (mounted) Navigator.pop(context);
+    } else {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Lỗi: Không thể xóa nhà cung cấp'), backgroundColor: Colors.red),
+      );
+    }
+  }
+
+  Future<String?> _showPasswordDialog() async {
+    String password = '';
+    return showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Xác nhận xóa'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Nhập mật khẩu tài khoản để xác nhận:'),
+            const SizedBox(height: 12),
+            TextField(
+              obscureText: true,
+              autofocus: true,
+              onChanged: (v) => password = v,
+              decoration: const InputDecoration(hintText: 'Mật khẩu'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('HỦY')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, password),
+            child: const Text('XÁC NHẬN'),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -124,6 +253,16 @@ class _SupplierDetailViewState extends State<SupplierDetailView> with TickerProv
                 imports: _imports,
               ),
             ),
+          IconButton(
+            icon: const Icon(Icons.edit_rounded),
+            tooltip: 'Sửa thông tin',
+            onPressed: _editSupplier,
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete_rounded),
+            tooltip: 'Xóa NCC',
+            onPressed: _deleteSupplier,
+          ),
         ],
         bottom: TabBar(
           controller: _tab,
@@ -134,6 +273,7 @@ class _SupplierDetailViewState extends State<SupplierDetailView> with TickerProv
             Tab(text: 'Lịch sử nhập'),
             Tab(text: 'Công nợ'),
             Tab(text: 'Thống kê'),
+            Tab(text: 'Sản phẩm'),
           ],
         ),
       ),
@@ -145,6 +285,7 @@ class _SupplierDetailViewState extends State<SupplierDetailView> with TickerProv
                 _buildImportTab(),
                 _buildDebtTab(),
                 _buildStatsTab(),
+                _buildProductsTab(),
               ],
             )),
       floatingActionButton: _tab.index == 1
@@ -302,6 +443,90 @@ class _SupplierDetailViewState extends State<SupplierDetailView> with TickerProv
         subtitle: Text('$date | ${p['paymentMethod'] ?? ''}'),
         trailing: Text(p['note'] ?? '', style: AppTextStyles.caption),
       ),
+    );
+  }
+
+  Widget _buildProductsTab() {
+    if (_products.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.inventory_2_outlined, size: 48, color: Colors.grey.shade400),
+            const SizedBox(height: 12),
+            Text(
+              'Chưa có sản phẩm trong kho\ntừ nhà cung cấp này',
+              textAlign: TextAlign.center,
+              style: AppTextStyles.body1.copyWith(color: Colors.grey.shade500),
+            ),
+          ],
+        ),
+      );
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.all(12),
+      itemCount: _products.length,
+      itemBuilder: (_, i) {
+        final p = _products[i];
+        final isSold = p.status == 0;
+        return Card(
+          margin: const EdgeInsets.only(bottom: 8),
+          child: ListTile(
+            leading: CircleAvatar(
+              backgroundColor:
+                  isSold ? Colors.red.shade50 : Colors.green.shade50,
+              child: Icon(
+                isSold ? Icons.sell_outlined : Icons.phone_android_rounded,
+                size: 20,
+                color: isSold ? Colors.red.shade400 : Colors.green.shade600,
+              ),
+            ),
+            title: Text(
+              p.name,
+              style: AppTextStyles.body1.copyWith(fontWeight: FontWeight.w600),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            subtitle: Row(
+              children: [
+                Text(
+                  isSold ? 'Đã bán' : 'Còn hàng · x${p.quantity}',
+                  style: AppTextStyles.caption.copyWith(
+                    color: isSold ? Colors.red.shade400 : Colors.green.shade600,
+                  ),
+                ),
+                if ((p.locationCode ?? '').isNotEmpty) ...[
+                  const SizedBox(width: 6),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEFF6FF),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: const Color(0xFF93C5FD)),
+                    ),
+                    child: Text(
+                      p.locationCode!,
+                      style: const TextStyle(
+                          fontSize: 11, color: Color(0xFF1D4ED8)),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            trailing: Text(
+              '${MoneyUtils.formatCompactCurrency(p.price)}đ',
+              style: AppTextStyles.body1
+                  .copyWith(color: Colors.green.shade700, fontWeight: FontWeight.bold),
+            ),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => InventoryDetailView(product: p)),
+            ),
+          ),
+        );
+      },
     );
   }
 

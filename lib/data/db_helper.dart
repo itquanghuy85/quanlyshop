@@ -15,6 +15,7 @@ import '../models/purchase_order_model.dart';
 import '../models/attendance_model.dart';
 import '../models/leave_request_model.dart';
 import '../models/quick_input_code_model.dart';
+import '../models/storage_location_model.dart';
 import '../services/user_service.dart';
 
 /// Kết quả của [DBHelper.deductPartsAndUpdateRepairAtomic].
@@ -482,7 +483,7 @@ class DBHelper {
 
     final db = await openDatabase(
       path,
-      version: 97,
+      version: 98,
       onConfigure: (db) async {
         try {
           await db.rawQuery('PRAGMA foreign_keys = ON');
@@ -1000,6 +1001,29 @@ class DBHelper {
         );
         await db.execute(
           "CREATE UNIQUE INDEX IF NOT EXISTS idx_customers_shop_phone_unique ON customers(shopId, phone) WHERE phone IS NOT NULL AND phone <> ''",
+        );
+        // === STORAGE LOCATIONS TABLE (v98) ===
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS storage_locations(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            firestoreId TEXT UNIQUE,
+            shopId TEXT,
+            code TEXT,
+            name TEXT,
+            warehouse TEXT,
+            floor TEXT,
+            shelf TEXT,
+            bin TEXT,
+            note TEXT,
+            isActive INTEGER DEFAULT 1,
+            createdAt INTEGER,
+            updatedAt INTEGER,
+            isSynced INTEGER DEFAULT 0,
+            deleted INTEGER DEFAULT 0
+          )
+        ''');
+        await db.execute(
+          'CREATE INDEX IF NOT EXISTS idx_storage_locations_shopId ON storage_locations(shopId)',
         );
       },
       onUpgrade: (db, oldV, newV) async {
@@ -1854,6 +1878,65 @@ class DBHelper {
             executor: db,
             logScope: 'DB upgrade v97',
           );
+        }
+        if (oldV < 98) {
+          // v98: Storage locations + product/repair location fields + product image fields
+          try {
+            await db.execute('''
+              CREATE TABLE IF NOT EXISTS storage_locations(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                firestoreId TEXT UNIQUE,
+                shopId TEXT,
+                code TEXT,
+                name TEXT,
+                warehouse TEXT,
+                floor TEXT,
+                shelf TEXT,
+                bin TEXT,
+                note TEXT,
+                isActive INTEGER DEFAULT 1,
+                createdAt INTEGER,
+                updatedAt INTEGER,
+                isSynced INTEGER DEFAULT 0,
+                deleted INTEGER DEFAULT 0
+              )
+            ''');
+            await db.execute(
+              'CREATE INDEX IF NOT EXISTS idx_storage_locations_shopId ON storage_locations(shopId)',
+            );
+          } catch (e) {
+            debugPrint('DB upgrade v98 (storage_locations): $e');
+          }
+          // Add location + image fields to products
+          for (final entry in [
+            ['locationId', 'TEXT'],
+            ['locationCode', 'TEXT'],
+            ['locationName', 'TEXT'],
+            ['localImagePath', 'TEXT'],
+            ['imageUpdatedAt', 'INTEGER'],
+          ]) {
+            await _ensureColumnExists(
+              executor: db,
+              table: 'products',
+              column: entry[0],
+              definition: entry[1],
+              logScope: 'DB upgrade v98',
+            );
+          }
+          // Add storage location fields to repairs
+          for (final entry in [
+            ['storageLocationId', 'TEXT'],
+            ['storageLocationCode', 'TEXT'],
+            ['storageLocationName', 'TEXT'],
+          ]) {
+            await _ensureColumnExists(
+              executor: db,
+              table: 'repairs',
+              column: entry[0],
+              definition: entry[1],
+              logScope: 'DB upgrade v98',
+            );
+          }
         }
         if (oldV < 26) {
           // Migration to remove kpkPrice and pkPrice columns from products and quick_input_codes tables
@@ -3232,6 +3315,25 @@ class DBHelper {
             await db.execute('ALTER TABLE products ADD COLUMN sku TEXT');
             debugPrint('DB onOpen: added sku column to products');
           }
+
+          // Ensure storage location + image columns exist (v98)
+          for (final entry in [
+            ['locationId', 'TEXT'],
+            ['locationCode', 'TEXT'],
+            ['locationName', 'TEXT'],
+            ['localImagePath', 'TEXT'],
+            ['imageUpdatedAt', 'INTEGER'],
+          ]) {
+            final colName = entry[0];
+            final colDef = entry[1];
+            final colNames = cols.map((c) => c['name'] as String).toSet();
+            if (!colNames.contains(colName)) {
+              await db.execute(
+                'ALTER TABLE products ADD COLUMN $colName $colDef',
+              );
+              debugPrint('DB onOpen: added $colName to products');
+            }
+          }
         } catch (e) {
           debugPrint('DB onOpen check error: $e');
         }
@@ -3409,6 +3511,24 @@ class DBHelper {
               'ALTER TABLE repairs ADD COLUMN requestedDeliveryPrice INTEGER',
             );
             debugPrint('DB onOpen: added requestedDeliveryPrice to repairs');
+          }
+          if (!colNames.contains('storageLocationId')) {
+            await db.execute(
+              'ALTER TABLE repairs ADD COLUMN storageLocationId TEXT',
+            );
+            debugPrint('DB onOpen: added storageLocationId to repairs');
+          }
+          if (!colNames.contains('storageLocationCode')) {
+            await db.execute(
+              'ALTER TABLE repairs ADD COLUMN storageLocationCode TEXT',
+            );
+            debugPrint('DB onOpen: added storageLocationCode to repairs');
+          }
+          if (!colNames.contains('storageLocationName')) {
+            await db.execute(
+              'ALTER TABLE repairs ADD COLUMN storageLocationName TEXT',
+            );
+            debugPrint('DB onOpen: added storageLocationName to repairs');
           }
         } catch (e) {
           debugPrint('DB onOpen check error (repairs columns): $e');
@@ -10349,5 +10469,165 @@ class DBHelper {
       whereArgs: [shopId, now],
       orderBy: 'expiryDate ASC',
     );
+  }
+
+  // =========================================================================
+  // STORAGE LOCATIONS (v98)
+  // =========================================================================
+
+  Future<int> upsertStorageLocation(StorageLocation loc) async {
+    final db = await database;
+    final map = loc.toMap();
+    map.remove('id');
+    if (loc.id != null) {
+      await db.update(
+        'storage_locations',
+        map,
+        where: 'id = ?',
+        whereArgs: [loc.id],
+      );
+      return loc.id!;
+    }
+    return await db.insert(
+      'storage_locations',
+      map,
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<List<StorageLocation>> getStorageLocations(String shopId, {bool activeOnly = false}) async {
+    final db = await database;
+    final where = activeOnly
+        ? '(shopId = ? OR shopId IS NULL) AND (deleted = 0 OR deleted IS NULL) AND isActive = 1'
+        : '(shopId = ? OR shopId IS NULL) AND (deleted = 0 OR deleted IS NULL)';
+    final rows = await db.query(
+      'storage_locations',
+      where: where,
+      whereArgs: [shopId],
+      orderBy: 'code ASC',
+    );
+    return rows.map(StorageLocation.fromMap).toList();
+  }
+
+  Future<StorageLocation?> getStorageLocationById(int id) async {
+    final db = await database;
+    final rows = await db.query(
+      'storage_locations',
+      where: 'id = ?',
+      whereArgs: [id],
+      limit: 1,
+    );
+    if (rows.isEmpty) return null;
+    return StorageLocation.fromMap(rows.first);
+  }
+
+  Future<void> deleteStorageLocation(int id) async {
+    final db = await database;
+    await db.update(
+      'storage_locations',
+      {'deleted': 1, 'updatedAt': DateTime.now().millisecondsSinceEpoch},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  /// Returns paginated products at a given locationCode (or locationId).
+  Future<List<Product>> getProductsByLocation(
+    String shopId, {
+    required String locationCode,
+    int page = 0,
+    int pageSize = 20,
+    String search = '',
+  }) async {
+    final db = await database;
+    final args = <dynamic>[shopId, locationCode];
+    var where =
+        'shopId = ? AND locationCode = ? AND (deleted = 0 OR deleted IS NULL) AND status != 0';
+    if (search.isNotEmpty) {
+      where += ' AND (name LIKE ? OR imei LIKE ? OR sku LIKE ?)';
+      final q = '%$search%';
+      args.addAll([q, q, q]);
+    }
+    final rows = await db.query(
+      'products',
+      where: where,
+      whereArgs: args,
+      orderBy: 'createdAt DESC',
+      limit: pageSize,
+      offset: page * pageSize,
+    );
+    return rows.map(Product.fromMap).toList();
+  }
+
+  /// Returns count + total cost + total price for products at a given locationCode.
+  Future<Map<String, dynamic>> getLocationStats(
+      String shopId, String locationCode) async {
+    final db = await database;
+    final rows = await db.rawQuery(
+      '''SELECT COUNT(*) AS cnt,
+                COALESCE(SUM(quantity), 0) AS totalQty,
+                COALESCE(SUM(cost * quantity), 0) AS totalCost,
+                COALESCE(SUM(price * quantity), 0) AS totalValue
+         FROM products
+         WHERE shopId = ? AND locationCode = ?
+           AND (deleted = 0 OR deleted IS NULL) AND status != 0''',
+      [shopId, locationCode],
+    );
+    return rows.isNotEmpty ? rows.first : {};
+  }
+
+  /// Returns all in-stock products linked to a supplier (by supplierId or name).
+  Future<List<Product>> getProductsBySupplier(
+    String shopId, {
+    required String supplierName,
+    String? supplierId,
+    int page = 0,
+    int pageSize = 30,
+  }) async {
+    final db = await database;
+    final offset = page * pageSize;
+    final nameUpper = supplierName.toUpperCase();
+    final rows = await db.rawQuery(
+      '''SELECT * FROM products
+         WHERE shopId = ?
+           AND (deleted = 0 OR deleted IS NULL)
+           AND status != 0
+           AND (
+             UPPER(supplier) = ?
+             ${supplierId != null ? "OR supplierId = ?" : ""}
+           )
+         ORDER BY createdAt DESC
+         LIMIT ? OFFSET ?''',
+      [
+        shopId,
+        nameUpper,
+        if (supplierId != null) supplierId,
+        pageSize,
+        offset,
+      ],
+    );
+    return rows.map((r) => Product.fromMap(Map<String, dynamic>.from(r))).toList();
+  }
+
+  /// Returns stats for ALL locations in one query (code → stats map).
+  Future<Map<String, Map<String, dynamic>>> getAllLocationStats(
+      String shopId) async {
+    final db = await database;
+    final rows = await db.rawQuery(
+      '''SELECT locationCode,
+                COUNT(*) AS cnt,
+                COALESCE(SUM(quantity), 0) AS totalQty,
+                COALESCE(SUM(cost * quantity), 0) AS totalCost,
+                COALESCE(SUM(price * quantity), 0) AS totalValue
+         FROM products
+         WHERE shopId = ? AND locationCode IS NOT NULL AND locationCode != ''
+           AND (deleted = 0 OR deleted IS NULL) AND status != 0
+         GROUP BY locationCode''',
+      [shopId],
+    );
+    return {
+      for (final r in rows)
+        r['locationCode'] as String: Map<String, dynamic>.from(r),
+    };
   }
 }

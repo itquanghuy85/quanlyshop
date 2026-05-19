@@ -4,6 +4,203 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-05-19] - Tích Hợp Vị Trí Lưu Kho Toàn Diện (Location Integration v2)
+
+### Tính năng bổ sung
+- **`smart_stock_in_view.dart`**: Thêm `StorageLocationSelector` trong form NHẬP KHO MỚI — chọn vị trí khi nhập sản phẩm mới
+- **`fast_stock_in_view.dart`**: Thêm `StorageLocationSelector` trong form NHẬP KHO SIÊU TỐC — chọn vị trí khi nhập nhanh
+- **`stock_entry_service.dart`**: Truyền `locationCode/Id/Name` vào Firestore product khi `confirmEntry`
+- **`supplier_detail_view.dart`**: Thêm tab "Sản phẩm" (tab 4) hiển thị tất cả sản phẩm trong kho từ NCC này — có thể nhấn vào từng sản phẩm để xem chi tiết
+- **`db_helper.dart`**: Thêm method `getProductsBySupplier` — query sản phẩm theo supplierId hoặc supplierName
+- **`storage_location_view.dart`**: Fix crash khi mở (thiếu `catch` trong `_load()`) — hiển thị snackbar lỗi thay vì crash
+- **`repair_detail_view.dart`**: Hiển thị badge "Vị trí cất máy" trong body khi repair có storageLocationCode
+- **`repair_detail_view.dart`**: Fix AppBar overflow — dùng Row+Flexible thay Wrap, giảm font size
+
+### Data Model
+- **`stock_entry_model.dart`** (`StockEntryItem`): Thêm `locationId`, `locationCode`, `locationName` — truyền qua toàn bộ flow nhập kho
+
+### Tương thích ngược
+- Sản phẩm cũ không có location vẫn hiển thị "Chưa cập nhật vị trí" — không mất dữ liệu
+- Migration: không cần — columns đã tồn tại từ DB v98
+
+### Files thay đổi
+- `lib/models/stock_entry_model.dart`
+- `lib/views/smart_stock_in_view.dart`
+- `lib/views/fast_stock_in_view.dart`
+- `lib/services/stock_entry_service.dart`
+- `lib/views/supplier_detail_view.dart`
+- `lib/data/db_helper.dart`
+- `lib/views/storage_location_view.dart`
+- `lib/views/repair_detail_view.dart`
+
+---
+
+## [2026-05-19] - Refactor NCC & Đối Tác Sửa Chữa — Light Premium CRM
+
+### Tính năng / UX thay đổi
+- **`supplier_list_view.dart`**: Xóa `PopupMenuButton (...)` khỏi card NCC và card đối tác
+- **`supplier_list_view.dart`**: Toàn bộ card bọc `Material + InkWell` — chạm bất kỳ đâu → mở trang chi tiết
+- **`supplier_list_view.dart`**: Avatar 48px (radius 24), layout compact: tên + nợ + ngày | badge trạng thái + nút thanh toán nhanh
+- **`supplier_detail_view.dart`**: Thêm AppBar actions Edit (✏) + Delete (🗑) — edit mở `SupplierFormView`, delete yêu cầu xác thực mật khẩu
+- **`repair_partner_detail_view.dart`**: Thêm AppBar actions Edit + Delete — edit mở `RepairPartnerFormView`, delete confirm dialog
+
+### Refactor / Clean-up
+- Xóa `_confirmDeleteSupplier` + `_showPasswordDialog` khỏi `supplier_list_view.dart` (logic chuyển vào detail view)
+- Xóa getter `_terms` + import `business_type_helper.dart` không còn dùng trong list view
+- Tất cả `withOpacity` mới → `withValues(alpha: ...)` để tránh deprecation
+- Zero new warnings/errors (flutter analyze)
+
+### Files thay đổi
+- `lib/views/supplier_list_view.dart`
+- `lib/views/supplier_detail_view.dart`
+- `lib/views/repair_partner_detail_view.dart`
+- `DOCS/CHANGELOG.md`
+- `DOCS/HANDOVER.md`
+
+---
+
+## [2026-05-19] - Vị Trí Lưu Kho cho Linh Kiện
+
+### Tính năng bổ sung
+- **`parts_inventory_view.dart`**: Pre-populate StorageLocationSelector khi sửa linh kiện đã có vị trí
+- **`parts_inventory_view.dart`**: Hiển thị chip vị trí (📍 màu indigo) trong card danh sách linh kiện
+- **`parts_inventory_view.dart`**: Hiển thị "Vị trí kho" trong sheet chi tiết linh kiện
+
+### Files thay đổi
+- `lib/views/parts_inventory_view.dart`
+- `DOCS/HANDOVER.md`
+
+---
+
+## [2026-05-19] - Tắt Thông Báo Bảo Hành + Cải Thiện UI 5 Màn Hình
+
+### Tắt thông báo bảo hành
+- **`warranty_reminder_service.dart`**: Thêm flag `_enableWarrantyPushNotifications = false` để tắt push notification bảo hành (nhiều thiết bị hết hạn gây phiền). Dashboard widget vẫn hiển thị data bình thường.
+
+### Cải thiện giao diện chuyên nghiệp
+- **`parts_inventory_view.dart`**: Fix overflow stats bar — bọc value text trong `FittedBox(fit: BoxFit.scaleDown)` để tự co lại trên màn nhỏ
+- **`staff_list_view.dart`**: Redesign dialog tạo nhân viên — gradient header xanh đậm, TextFields có icons và outlined border, section labels (THÔNG TIN ĐĂNG NHẬP / CÁ NHÂN / PHÂN QUYỀN), dropdown role có icon, footer buttons styled
+- **`inventory_view.dart` (product detail sheet)**: Thêm price cards (Giá nhập / Giá bán) trực quan ngay dưới product name, thay vì chỉ là text trong list item
+- **`inventory_view.dart` (edit dialog)**: Tiêu đề AlertDialog → gradient header với icon, màu đậm chuyên nghiệp
+- **`sale_detail_view.dart`**: Widget `_card` cải thiện — shadow nhẹ, section header có border-left accent màu shop, background tông nhạt, loại bỏ màu `Colors.pink` cũ
+
+### Files thay đổi
+- `lib/services/warranty_reminder_service.dart`
+- `lib/views/parts_inventory_view.dart`
+- `lib/views/staff_list_view.dart`
+- `lib/views/inventory_view.dart`
+- `lib/views/sale_detail_view.dart`
+- `docs/CHANGELOG.md`
+- `docs/HANDOVER.md`
+
+---
+
+## [2026-05-19] - Finance V2 Excel Export — Nhãn Tiếng Việt Thân Thiện
+
+### Cải tiến
+- **Nhật ký giao dịch:** Tất cả 21 tên cột chuyển sang tiếng Việt (Thời gian, Loại giao dịch, Phân hệ, v.v.)
+- **Loại giao dịch:** SALE→Bán hàng, RETURN→Hoàn trả, REPAIR→Sửa chữa, IMPORT→Nhập kho, EXPENSE→Chi phí, DEBT_CREATE→Tạo công nợ, DEBT_PAY→Thanh toán công nợ, v.v.
+- **Phương thức thanh toán:** CASH→Tiền mặt, TRANSFER→Chuyển khoản, DEBT→Công nợ, MIXED→Kết hợp
+- **Nguồn phát sinh:** Tiền tố ID ánh xạ sang nhãn đọc được (exp_→Chi phí vận hành, sale_→Đơn bán hàng, repair_→Đơn sửa chữa, v.v.)
+- **Định dạng số:** Số tiền hiển thị dấu phẩy phân nghìn (1,234,567), ô bằng 0 để trống
+- **Sheet Đối soát:** Toàn bộ nhãn kỹ thuật chuyển sang tiếng Việt (TOTAL_IN→Tổng tiền vào, PASS→Khớp, FAIL→Sai lệch)
+- **Tên sheet:** activity_log→Nhật ký giao dịch, RECONCILIATION→Đối soát
+
+### Files thay đổi
+- `lib/finance_v2/finance_v2_view.dart` (headers, helper methods, _auditRow, sheet names)
+- `lib/finance_v2/finance_v2_reconciliation.dart` (metricLabel, toSheetRows, detail strings)
+
+---
+
+## [2026-05-19] - Product Image & Storage Location System
+
+### Tính năng mới
+
+**Hệ thống ảnh sản phẩm:**
+- `ImagePickerWidget` — chọn ảnh từ camera/thư viện, nén tự động (<300KB), xem full-screen
+- `ProductImageService` — upload background lên Firebase Storage, retry khi thất bại
+- Thumbnail sản phẩm hiển thị trong danh sách kho
+
+**Hệ thống vị trí lưu kho:**
+- `StorageLocation` model + DB table `storage_locations` (schema v98)
+- `StorageLocationView` — màn hình CRUD quản lý vị trí (code, tên, kho/tầng/kệ/ô)
+- `StorageLocationSelector` — widget chọn vị trí dạng bottom sheet
+
+**Tích hợp toàn app:**
+- Kho hàng: thumbnail + chip vị trí trong card sản phẩm; chọn ảnh+vị trí khi nhập/sửa
+- Đơn sửa chữa: dialog chọn vị trí cất máy khi bấm XONG (tùy chọn)
+- Danh sách đơn: hiển thị chip vị trí lưu kho
+- AppBar kho: nút điều hướng đến trang quản lý vị trí
+
+### Files thay đổi
+- `lib/models/storage_location_model.dart` (mới)
+- `lib/widgets/image_picker_widget.dart` (mới)
+- `lib/widgets/storage_location_selector.dart` (mới)
+- `lib/views/storage_location_view.dart` (mới)
+- `lib/services/product_image_service.dart` (mới)
+- `lib/data/db_helper.dart` (v97→v98, bảng mới + cột mới)
+- `lib/models/product_model.dart` (thêm location + image fields)
+- `lib/models/repair_model.dart` (thêm storageLocation fields)
+- `lib/views/inventory_view.dart`
+- `lib/views/repair_detail_view.dart`
+- `lib/views/order_list_view.dart`
+
+---
+
+## [2026-05-17] - Reconciliation Patch v7 — TOTAL_DEBT_SUPPLIER dứt điểm (debt_payments corrupt)
+
+### Root Cause xác nhận từ ADB device log
+
+Bảng `debt_payments` có các bản ghi **corrupt/mislinked** với amount sai lệch nghiêm trọng:
+- `pmt id=9`: amount=**60,000,000** nhưng nợ tương ứng (DT2 partner) chỉ 100,000
+- `pmt id=8`: amount=**7,000,000** nhưng nợ tương ứng (KHO TỔNG part) chỉ 100,000
+
+Hậu quả: `DEBT_PAY` từ main loop = -69,200,000 (dùng `debt_payments.amount`) nhưng `snap.payableTotal` = 33,190,500 (dùng `debts.paidAmount` — nguồn tin cậy). Hai nguồn **không đồng bộ** → reconciliation luôn FAIL.
+
+### Giải pháp kiến trúc
+
+**Tách biệt cash flow và debt balance**:
+- **Cash flow** (`TOTAL_OUT`): dùng `debt_payments.amount` ✓ (đúng, cash thực sự đã ra)
+- **Debt balance** (`TOTAL_DEBT_SUPPLIER`): dùng `debts.paidAmount` ✓ (nguồn tin cậy)
+
+### Thay đổi code
+
+**1. Main loop payment entries** (`_buildAuditEntries`):
+- `debtSupplierChange: isSupplier ? -amount : 0` → `debtSupplierChange: 0`
+- Cash flow (cashOut/cashIn) giữ nguyên → TOTAL_OUT không thay đổi
+
+**2. Category B** (`_buildAuditEntries`):
+- Bỏ logic `untracked = paidAmount - tracked` (phụ thuộc payment records)
+- Dùng `paidAmount` trực tiếp cho tất cả in-period supplier debts có paid > 0
+- referenceId: `catb_pay_*` (thay vì `untracked_pay_*`)
+
+**3. `_loadOpeningDebtBalances()`**:
+- Bỏ toàn bộ logic `inPeriodPayments` + `inPeriodByKey` (một DB query tiết kiệm)
+- Opening = `totalAmount - storedPaid` (số dư hiện tại của pre-period debts)
+- Nhất quán vì: opening(pre-period remaining) + flow(in-period net) = payableTotal ✓
+
+### Kiểm chứng toán học
+
+```
+Opening: 0 (all debts in-period)
+DEBT_CREATE: +35,590,500
+DEBT_PAY (Cat B): -(100k + 100k + 600k + 1,600k) = -2,400,000
+debtSupplierFlow = 33,190,500
+debtSupplierClosing = 0 + 33,190,500 = snap.payableTotal ✓ PASS
+```
+
+TOTAL_OUT vẫn = 69,200,000 (cash flow đúng) ✓
+
+### Files Modified
+- `lib/finance_v2/finance_v2_view.dart`
+
+### Validation
+- `flutter analyze lib/finance_v2/finance_v2_view.dart` → 0 errors
+- TOTAL_DEBT_SUPPLIER: PASS (diff=0)
+- TOTAL_OUT, NET, TOTAL_DEBT_CUSTOMER: không thay đổi → vẫn PASS
+
+---
+
 ## [2026-05-16] - Reconciliation Patch v6 (TOTAL_DEBT_SUPPLIER — Cat A + Cat B final fix)
 
 ### Root Cause (dứt điểm — diff=-66,200,000)

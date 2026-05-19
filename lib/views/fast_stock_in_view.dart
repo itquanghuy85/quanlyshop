@@ -26,6 +26,8 @@ import '../utils/sku_generator.dart';
 import '../utils/imei_extractor.dart';
 import '../widgets/currency_text_field.dart';
 import '../widgets/imei_scan_result_dialog.dart';
+import '../models/storage_location_model.dart';
+import '../widgets/storage_location_selector.dart';
 import 'quick_input_codes_view.dart';
 import 'pending_stock_list_view.dart';
 
@@ -88,6 +90,7 @@ class _FastStockInViewState extends State<FastStockInView> {
   String? selectedCondition;
   String? selectedSupplier;
   String? selectedPaymentMethod;
+  StorageLocation? selectedLocation;
 
   final TextEditingController modelCtrl = TextEditingController();
   final TextEditingController imeiCtrl = TextEditingController();
@@ -1081,6 +1084,9 @@ class _FastStockInViewState extends State<FastStockInView> {
             ? labelNoteCtrl.text.trim().toUpperCase()
             : null,
         productType: 'DIEN_THOAI',
+        locationId: selectedLocation?.firestoreId,
+        locationCode: selectedLocation?.code,
+        locationName: selectedLocation?.name,
       );
 
       // Tạo StockEntry (DRAFT)
@@ -1853,6 +1859,16 @@ class _FastStockInViewState extends State<FastStockInView> {
                     const SizedBox(height: 8),
                   ],
                   _buildCurrencyField('Giá bán (VNĐ)', priceCtrl, Icons.sell),
+
+                  const SizedBox(height: 12),
+                  // Vị trí lưu kho
+                  StorageLocationSelector(
+                    selectedLocationId: selectedLocation?.firestoreId,
+                    selectedLocationCode: selectedLocation?.code,
+                    selectedLocationName: selectedLocation?.name,
+                    onSelected: (loc) =>
+                        setState(() => selectedLocation = loc),
+                  ),
 
                   const SizedBox(height: 24),
                   // Nút chính: Lưu vào Hàng Chờ Xác Nhận

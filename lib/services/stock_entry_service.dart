@@ -609,6 +609,13 @@ class StockEntryService {
               if (!isFashion && item.sku != null && item.sku!.isNotEmpty)
                 'sku': item.sku,
               if (item.unit != null && item.unit!.isNotEmpty) 'unit': item.unit,
+              // Storage location
+              if (item.locationCode != null && item.locationCode!.isNotEmpty)
+                'locationCode': item.locationCode,
+              if (item.locationId != null && item.locationId!.isNotEmpty)
+                'locationId': item.locationId,
+              if (item.locationName != null && item.locationName!.isNotEmpty)
+                'locationName': item.locationName,
             });
           } // End for loop products
         }

@@ -52,6 +52,8 @@ import 'repair_partner_view.dart';
 import '../widgets/clickable_customer_header.dart';
 import 'repair_invoice_template_view.dart';
 import 'repair_invoice_preview_view.dart';
+import '../widgets/storage_location_selector.dart';
+import '../models/storage_location_model.dart';
 
 class RepairDetailView extends StatefulWidget {
   final Repair repair;
@@ -816,6 +818,76 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     if (!kIsWeb) return normalized;
     final web = normalized.where(_isWebImageSource).toList();
     return web;
+  }
+
+  /// Show location picker dialog before marking repair as done (status 3).
+  Future<void> _promptLocationAndMarkDone() async {
+    StorageLocation? pickedLoc;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setS) => AlertDialog(
+          title: const Text(
+            'Chọn vị trí cất máy',
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+          ),
+          contentPadding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+          content: SizedBox(
+            width: 320,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Tuỳ chọn: chọn vị trí lưu kho để dễ tìm máy sau khi sửa xong.',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+                const SizedBox(height: 12),
+                StorageLocationSelector(
+                  selectedLocationId: pickedLoc?.firestoreId,
+                  selectedLocationCode: pickedLoc?.code,
+                  selectedLocationName: pickedLoc?.name,
+                  onSelected: (loc) => setS(() => pickedLoc = loc),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Hủy'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text(
+                'Bỏ qua',
+                style: TextStyle(color: Colors.grey),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.success,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('XONG'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (confirmed != true) return;
+    // Save location to repair before updating status
+    if (pickedLoc != null) {
+      final updated = r.copyWith(
+        storageLocationId: pickedLoc!.firestoreId ?? pickedLoc!.id?.toString(),
+        storageLocationCode: pickedLoc!.code,
+        storageLocationName: pickedLoc!.name,
+      );
+      await db.upsertRepair(updated);
+      setState(() => r = updated);
+    }
+    await _updateStatus(3);
   }
 
   Future<void> _updateStatus(int newStatus) async {
@@ -3306,6 +3378,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
+        toolbarHeight: r.issue.isNotEmpty ? 72.0 : kToolbarHeight,
         flexibleSpace: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -3329,12 +3402,63 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                 loc.repairOrderDetail,
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
-                  fontSize: 18,
+                  fontSize: 17,
                 ),
               ),
-              Text(
-                r.model,
-                style: const TextStyle(fontSize: 13, color: Colors.white70),
+              Row(
+                children: [
+                  Flexible(
+                    child: Text(
+                      r.model,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.white70,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                  ),
+                  if (r.issue.isNotEmpty) ...[
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFDECEC),
+                          border: Border.all(color: const Color(0xFFFFCDD2)),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.build_rounded,
+                              size: 11,
+                              color: Color(0xFFD32F2F),
+                            ),
+                            const SizedBox(width: 3),
+                            Flexible(
+                              child: Text(
+                                r.issue,
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFFD32F2F),
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ],
           ),
@@ -3402,6 +3526,43 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                   ),
                 ),
               ),
+
+              // === Storage location badge ===
+              if ((r.storageLocationCode ?? '').isNotEmpty)
+                Card(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.location_on_rounded,
+                            size: 18, color: Color(0xFF1E40AF)),
+                        const SizedBox(width: 8),
+                        Text('Vị trí cất máy:',
+                            style: AppTextStyles.caption.copyWith(
+                                color: Colors.grey.shade600)),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEFF6FF),
+                            border: Border.all(color: const Color(0xFF93C5FD)),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            '${r.storageLocationCode}${(r.storageLocationName ?? '').isNotEmpty ? ' · ${r.storageLocationName}' : ''}',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF1E40AF),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
 
               // === COMPACT: Tài chính + Dịch vụ gộp ===
               Card(
@@ -3722,7 +3883,6 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                       ),
                       const SizedBox(height: 6),
                       // Info rows - hiển thị trực tiếp, không ẩn trong dropdown
-                      _compactInfoRow(loc.deviceIssueLabel, r.issue),
                       _compactInfoRow(
                         'Nhận',
                         _formatStageActorWithTime(
@@ -5920,7 +6080,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     Widget? statusButton;
         if (r.status < 3) {
           statusButton = ElevatedButton.icon(
-            onPressed: _isUpdating ? null : () => _updateStatus(3),
+            onPressed: _isUpdating ? null : _promptLocationAndMarkDone,
             icon: _isUpdating
                 ? const SizedBox(
                     width: 12,

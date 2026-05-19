@@ -38,10 +38,15 @@ class StockEntryItem {
   
   // Thời trang - Fashion
   final String? size;  // XS, S, M, L, XL, XXL, 28, 29, 30, 31...
-  
+
   // Loại sản phẩm
   final String productType;  // DIEN_THOAI, PHU_KIEN, LINH_KIEN, QUAN_AO, GIAY_DEP...
-  
+
+  // Vị trí lưu kho
+  final String? locationId;
+  final String? locationCode;
+  final String? locationName;
+
   StockEntryItem({
     this.id,
     required this.name,
@@ -60,6 +65,9 @@ class StockEntryItem {
     this.unit,
     this.size,
     required this.productType,
+    this.locationId,
+    this.locationCode,
+    this.locationName,
   });
   
   Map<String, dynamic> toMap() {
@@ -81,6 +89,9 @@ class StockEntryItem {
       if (unit != null && unit!.isNotEmpty) 'unit': unit,
       if (size != null && size!.isNotEmpty) 'size': size,
       'productType': productType,
+      if (locationId != null && locationId!.isNotEmpty) 'locationId': locationId,
+      if (locationCode != null && locationCode!.isNotEmpty) 'locationCode': locationCode,
+      if (locationName != null && locationName!.isNotEmpty) 'locationName': locationName,
     };
   }
   
@@ -103,6 +114,9 @@ class StockEntryItem {
       unit: map['unit'],
       size: map['size'],
       productType: map['productType'] ?? 'DIEN_THOAI',
+      locationId: map['locationId'],
+      locationCode: map['locationCode'],
+      locationName: map['locationName'],
     );
   }
   
@@ -124,6 +138,9 @@ class StockEntryItem {
     String? unit,
     String? size,
     String? productType,
+    String? locationId,
+    String? locationCode,
+    String? locationName,
   }) {
     return StockEntryItem(
       id: id ?? this.id,
@@ -143,6 +160,9 @@ class StockEntryItem {
       unit: unit ?? this.unit,
       size: size ?? this.size,
       productType: productType ?? this.productType,
+      locationId: locationId ?? this.locationId,
+      locationCode: locationCode ?? this.locationCode,
+      locationName: locationName ?? this.locationName,
     );
   }
   
