@@ -3378,7 +3378,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        toolbarHeight: r.issue.isNotEmpty ? 72.0 : kToolbarHeight,
+        toolbarHeight: kToolbarHeight,
         flexibleSpace: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -3405,60 +3405,14 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                   fontSize: 17,
                 ),
               ),
-              Row(
-                children: [
-                  Flexible(
-                    child: Text(
-                      r.model,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Colors.white70,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
-                    ),
-                  ),
-                  if (r.issue.isNotEmpty) ...[
-                    const SizedBox(width: 6),
-                    Flexible(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 3,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFDECEC),
-                          border: Border.all(color: const Color(0xFFFFCDD2)),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            const Icon(
-                              Icons.build_rounded,
-                              size: 11,
-                              color: Color(0xFFD32F2F),
-                            ),
-                            const SizedBox(width: 3),
-                            Flexible(
-                              child: Text(
-                                r.issue,
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFFD32F2F),
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
+              Text(
+                r.model,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Colors.white70,
+                ),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
               ),
             ],
           ),
@@ -3526,6 +3480,55 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                   ),
                 ),
               ),
+
+              // === Device issue/fault banner ===
+              if (r.issue.isNotEmpty)
+                Card(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  color: const Color(0xFFFFF8F8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: const BorderSide(color: Color(0xFFFFCDD2)),
+                  ),
+                  elevation: 0,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 10),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.build_rounded,
+                            size: 16, color: Color(0xFFD32F2F)),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'LỖI THIẾT BỊ',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFFD32F2F),
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                r.issue,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: Color(0xFF7F1D1D),
+                                  height: 1.4,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
 
               // === Storage location badge ===
               if ((r.storageLocationCode ?? '').isNotEmpty)

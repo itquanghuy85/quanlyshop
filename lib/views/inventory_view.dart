@@ -55,6 +55,8 @@ import '../widgets/storage_location_selector.dart';
 import '../services/product_image_service.dart';
 import '../models/storage_location_model.dart';
 import 'storage_location_view.dart';
+import '../theme/popup_theme.dart';
+import '../widgets/app_popup.dart';
 
 class InventoryView extends StatefulWidget {
   final String role;
@@ -345,6 +347,35 @@ class _InventoryViewState extends State<InventoryView>
     _applySearchQuery(value);
   }
 
+  static ButtonStyle _compactFilledBtn(Color color) =>
+      ElevatedButton.styleFrom(
+        backgroundColor: color,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        minimumSize: Size.zero,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(PopupTheme.radiusButton),
+        ),
+        textStyle: const TextStyle(
+            fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.2),
+      );
+
+  static ButtonStyle _compactOutlineBtn(Color color) =>
+      OutlinedButton.styleFrom(
+        foregroundColor: color,
+        side: BorderSide(color: color, width: 1.5),
+        minimumSize: Size.zero,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(PopupTheme.radiusButton),
+        ),
+        textStyle: const TextStyle(
+            fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.2),
+      );
+
   Widget _input(
     TextEditingController c,
     String l,
@@ -474,415 +505,571 @@ class _InventoryViewState extends State<InventoryView>
     final showCapacityDetail =
         normalizedCapacity.isNotEmpty &&
         !displayName.contains(normalizedCapacity);
-    showAppBottomSheet(
+    if (!mounted) return;
+    final imagePath = (displayProduct.images ?? '')
+        .split(',')
+        .map((e) => e.trim())
+        .firstWhere((e) => e.isNotEmpty, orElse: () => '');
+    final hasLocation = (displayProduct.locationCode ?? '').isNotEmpty;
+    final profit = displayProduct.price - displayProduct.cost;
+
+    showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
-      ),
-      builder: (ctx) => Container(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
+      backgroundColor: Colors.transparent,
+      useSafeArea: true,
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.88,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        expand: false,
+        builder: (_, scrollCtrl) => Container(
+          decoration: const BoxDecoration(
+            color: PopupTheme.bgDark,
+            borderRadius: BorderRadius.vertical(
+              top: Radius.circular(PopupTheme.radiusSheet),
             ),
-            const SizedBox(height: 20),
-            // Banner KHO TẠM nếu sản phẩm pending
-            if (displayProduct.isPending) ...[
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  color: Colors.orange.shade50,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.orange.shade200),
-                ),
+          ),
+          child: Column(
+            children: [
+              // ── Drag handle ──────────────────────────────────────
+              const PopupDragHandle(),
+              // ── Header: image + name + close ─────────────────────
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 16, 0),
                 child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(
-                      Icons.hourglass_empty,
-                      color: Colors.orange.shade700,
-                      size: 24,
-                    ),
-                    const SizedBox(width: 12),
+                    PopupProductImage(imageUrl: imagePath, size: 72),
+                    const SizedBox(width: 14),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'KHO TẠM - Chờ xác nhận giá',
-                            style: AppTextStyles.headline4.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.orange.shade800,
+                            displayName,
+                            style: const TextStyle(
+                              color: PopupTheme.textPrimary,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              height: 1.3,
                             ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          if (displayProduct.pendingSupplier != null)
+                          if (displayProduct.capacity != null &&
+                              displayProduct.capacity!.isNotEmpty ||
+                              displayProduct.color != null &&
+                              displayProduct.color!.isNotEmpty ||
+                              displayProduct.condition.isNotEmpty) ...[
+                            const SizedBox(height: 3),
                             Text(
-                              'NCC dự kiến: ${displayProduct.pendingSupplier}',
-                              style: AppTextStyles.subtitle1.copyWith(
-                                color: Colors.orange.shade600,
+                              [
+                                if (displayProduct.capacity?.isNotEmpty == true)
+                                  displayProduct.capacity!,
+                                if (displayProduct.color?.isNotEmpty == true)
+                                  displayProduct.color!,
+                                if (displayProduct.condition.isNotEmpty)
+                                  displayProduct.condition,
+                              ].join(' · '),
+                              style: const TextStyle(
+                                color: PopupTheme.textSecondary,
+                                fontSize: 12,
                               ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
+                          ],
                         ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: () => Navigator.pop(ctx),
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: PopupTheme.surfaceDark,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: PopupTheme.borderDark),
+                        ),
+                        child: const Icon(
+                          Icons.close,
+                          color: PopupTheme.textSecondary,
+                          size: 18,
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
-            ],
-            Text(
-              displayName,
-              style: AppTextStyles.headline3.copyWith(
-                fontWeight: FontWeight.bold,
-                color: displayProduct.isPending
-                    ? Colors.orange.shade800
-                    : const Color(0xFF2962FF),
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 8),
-            // Thanh giá nhanh
-            if (!displayProduct.isPending) ...[
-              Row(
-                children: [
-                  if (_canViewCostPrice) ...[
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-                        decoration: BoxDecoration(
-                          color: Colors.orange.shade50,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: Colors.orange.shade200),
+              const SizedBox(height: 12),
+              // ── Tags row ──────────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  children: [
+                    if (displayProduct.isPending)
+                      const PopupBadge(
+                        label: 'KHO TẠM',
+                        color: PopupTheme.yellow,
+                        icon: Icons.hourglass_bottom_rounded,
+                      )
+                    else
+                      PopupBadge(
+                        label: displayProduct.quantity > 0 ? 'CÒN HÀNG' : 'HẾT HÀNG',
+                        color: displayProduct.quantity > 0
+                            ? PopupTheme.green
+                            : PopupTheme.red,
+                        icon: displayProduct.quantity > 0
+                            ? Icons.check_circle_outline
+                            : Icons.remove_circle_outline,
+                      ),
+                    if (_enableSerial &&
+                        (displayProduct.imei ?? '').isNotEmpty) ...[
+                      const SizedBox(width: 8),
+                      PopupBadge(
+                        label: '# ${displayProduct.imei!}',
+                        color: PopupTheme.purple,
+                        icon: Icons.fingerprint,
+                      ),
+                    ],
+                    if (displayProduct.updatedAt != null) ...[
+                      const SizedBox(width: 8),
+                      PopupBadge(
+                        label: DateFormat('dd/MM/yyyy').format(
+                          DateTime.fromMillisecondsSinceEpoch(
+                              displayProduct.updatedAt!),
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        color: PopupTheme.blue,
+                        icon: Icons.calendar_today_outlined,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(height: 4),
+              // ── Scrollable content ────────────────────────────────
+              Expanded(
+                child: ListView(
+                  controller: scrollCtrl,
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+                  children: [
+                    // Pending warning banner
+                    if (displayProduct.isPending) ...[
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(14),
+                        margin: const EdgeInsets.only(bottom: 12),
+                        decoration: BoxDecoration(
+                          color: PopupTheme.yellow.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(PopupTheme.radiusCard),
+                          border: Border.all(
+                            color: PopupTheme.yellow.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Row(
                           children: [
-                            Text('Giá nhập', style: TextStyle(fontSize: 11, color: Colors.orange.shade700)),
-                            Text(
-                              '${MoneyUtils.formatCurrency(displayProduct.cost)} đ',
-                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.orange.shade800),
+                            const Icon(Icons.hourglass_empty,
+                                color: PopupTheme.yellow, size: 20),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'KHO TẠM – Chờ xác nhận giá',
+                                    style: TextStyle(
+                                      color: PopupTheme.yellow,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                  if (displayProduct.pendingSupplier != null)
+                                    Text(
+                                      'NCC dự kiến: ${displayProduct.pendingSupplier}',
+                                      style: const TextStyle(
+                                        color: PopupTheme.textSecondary,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                ],
+                              ),
                             ),
                           ],
                         ),
                       ),
+                    ],
+                    // ── Stats cards ───────────────────────────────
+                    Row(
+                      children: [
+                        Expanded(
+                          child: PopupStatCard(
+                            icon: Icons.inventory_2_outlined,
+                            color: PopupTheme.blue,
+                            value: '${displayProduct.quantity}',
+                            label: 'SL tồn kho',
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        if (_canViewCostPrice) ...[
+                          Expanded(
+                            child: PopupStatCard(
+                              icon: Icons.attach_money_rounded,
+                              color: PopupTheme.yellow,
+                              value: displayProduct.isPending
+                                  ? '?'
+                                  : MoneyUtils.formatCompactCurrency(
+                                      displayProduct.cost),
+                              label: 'Giá nhập',
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                        ],
+                        Expanded(
+                          child: PopupStatCard(
+                            icon: Icons.sell_outlined,
+                            color: PopupTheme.green,
+                            value: displayProduct.isPending
+                                ? '?'
+                                : MoneyUtils.formatCompactCurrency(displayProduct.price),
+                            label: 'Giá bán',
+                          ),
+                        ),
+                        if (_canViewCostPrice && !displayProduct.isPending) ...[
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: PopupStatCard(
+                              icon: Icons.trending_up_rounded,
+                              color: profit >= 0
+                                  ? PopupTheme.teal
+                                  : PopupTheme.red,
+                              value: MoneyUtils.formatCompactCurrency(profit.abs()),
+                              label: profit >= 0 ? 'Lợi nhuận' : 'Lỗ',
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
-                    const SizedBox(width: 8),
-                  ],
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                    const SizedBox(height: 14),
+                    // ── Info rows ─────────────────────────────────
+                    Container(
                       decoration: BoxDecoration(
-                        color: Colors.blue.shade50,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.blue.shade200),
+                        color: PopupTheme.surfaceDark,
+                        borderRadius: BorderRadius.circular(PopupTheme.radiusCard),
+                        border: Border.all(color: PopupTheme.borderDark),
                       ),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 4),
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Giá bán', style: TextStyle(fontSize: 11, color: Colors.blue.shade700)),
-                          Text(
-                            '${MoneyUtils.formatCurrency(displayProduct.price)} đ',
-                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.blue.shade800),
+                          if (_enableSerial)
+                            PopupInfoRow(
+                              icon: Icons.fingerprint,
+                              iconColor: PopupTheme.purple,
+                              label: _terms.specialField1Label,
+                              value: (displayProduct.imei ?? '').isEmpty
+                                  ? 'N/A'
+                                  : displayProduct.imei!,
+                            ),
+                          if (_isElectronics && showCapacityDetail) ...[
+                            const Divider(
+                                height: 1, color: PopupTheme.borderDark),
+                            PopupInfoRow(
+                              icon: Icons.storage_rounded,
+                              iconColor: PopupTheme.blue,
+                              label: 'Dung lượng',
+                              value: displayProduct.capacity ?? '',
+                            ),
+                          ] else if (_isFashion &&
+                              (displayProduct.capacity?.isNotEmpty ?? false)) ...[
+                            const Divider(
+                                height: 1, color: PopupTheme.borderDark),
+                            PopupInfoRow(
+                              icon: Icons.straighten,
+                              iconColor: PopupTheme.blue,
+                              label: 'Kích thước',
+                              value: displayProduct.capacity!,
+                            ),
+                          ],
+                          const Divider(height: 1, color: PopupTheme.borderDark),
+                          PopupInfoRow(
+                            icon: Icons.business_outlined,
+                            iconColor: PopupTheme.teal,
+                            label: 'Nhà cung cấp',
+                            value: displayProduct.isPending
+                                ? (displayProduct.pendingSupplier ??
+                                    'Chưa xác nhận')
+                                : (displayProduct.supplier ?? 'N/A'),
+                          ),
+                          if (_canViewCostPrice) ...[
+                            const Divider(
+                                height: 1, color: PopupTheme.borderDark),
+                            PopupInfoRow(
+                              icon: Icons.arrow_downward_rounded,
+                              iconColor: PopupTheme.yellow,
+                              label: 'Giá nhập',
+                              value: displayProduct.isPending
+                                  ? 'Chờ xác nhận'
+                                  : '${MoneyUtils.formatCurrency(displayProduct.cost)} đ',
+                              valueColor: PopupTheme.yellow,
+                              bold: true,
+                            ),
+                          ],
+                          const Divider(height: 1, color: PopupTheme.borderDark),
+                          PopupInfoRow(
+                            icon: Icons.arrow_upward_rounded,
+                            iconColor: PopupTheme.green,
+                            label: 'Giá bán',
+                            value: displayProduct.isPending
+                                ? 'Chờ xác nhận'
+                                : '${MoneyUtils.formatCurrency(displayProduct.price)} đ',
+                            valueColor: PopupTheme.green,
+                            bold: true,
+                          ),
+                          const Divider(height: 1, color: PopupTheme.borderDark),
+                          PopupInfoRow(
+                            icon: Icons.payment_outlined,
+                            iconColor: PopupTheme.blue,
+                            label: 'Thanh toán',
+                            value: displayProduct.isPending
+                                ? 'Chờ xác nhận'
+                                : (displayProduct.paymentMethod ?? 'N/A'),
+                          ),
+                          if (displayProduct.labelNote != null &&
+                              displayProduct.labelNote!.isNotEmpty) ...[
+                            const Divider(
+                                height: 1, color: PopupTheme.borderDark),
+                            PopupInfoRow(
+                              icon: Icons.notes_rounded,
+                              iconColor: PopupTheme.textSecondary,
+                              label: 'Ghi chú',
+                              value: displayProduct.labelNote!,
+                            ),
+                          ],
+                          if (hasLocation) ...[
+                            const Divider(
+                                height: 1, color: PopupTheme.borderDark),
+                            PopupInfoRow(
+                              icon: Icons.location_on_rounded,
+                              iconColor: PopupTheme.teal,
+                              label: 'Vị trí kho',
+                              value: [
+                                displayProduct.locationCode,
+                                displayProduct.locationName,
+                              ]
+                                  .where(
+                                      (v) => v != null && v.isNotEmpty)
+                                  .join(' · '),
+                              valueColor: PopupTheme.teal,
+                            ),
+                          ],
+                          const Divider(height: 1, color: PopupTheme.borderDark),
+                          PopupInfoRow(
+                            icon: Icons.update_rounded,
+                            iconColor: PopupTheme.textMuted,
+                            label: 'Cập nhật cuối',
+                            value: displayProduct.updatedAt != null
+                                ? DateFormat('dd/MM/yyyy HH:mm').format(
+                                    DateTime.fromMillisecondsSinceEpoch(
+                                      displayProduct.updatedAt!,
+                                    ),
+                                  )
+                                : 'N/A',
+                            valueColor: PopupTheme.textSecondary,
                           ),
                         ],
                       ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-            ] else
-              const SizedBox(height: 4),
-            // Show capacity/size based on business type
-            if (_isElectronics && showCapacityDetail)
-              _detailItem("Chi tiết máy", displayProduct.capacity ?? "")
-            else if (_isFashion &&
-                (displayProduct.capacity?.isNotEmpty ?? false))
-              _detailItem("Size", displayProduct.capacity ?? ""),
-            if (_enableSerial)
-              _detailItem(
-                _terms.specialField1Label,
-                displayProduct.imei ?? "N/A",
-              ),
-            _detailItem(
-              "Nhà cung cấp",
-              displayProduct.isPending
-                  ? (displayProduct.pendingSupplier ?? "Chưa xác nhận")
-                  : (displayProduct.supplier ?? "N/A"),
-            ),
-            if (_canViewCostPrice)
-              _detailItem(
-                "Giá nhập",
-                displayProduct.isPending
-                    ? "Chờ xác nhận"
-                    : "${MoneyUtils.formatCurrency(displayProduct.cost)} đ",
-                color: displayProduct.isPending ? Colors.orange : null,
-              ),
-            _detailItem(
-              "Giá bán",
-              displayProduct.isPending
-                  ? "Chờ xác nhận"
-                  : "${MoneyUtils.formatCurrency(displayProduct.price)} đ",
-              color: displayProduct.isPending ? Colors.orange : Colors.red,
-            ),
-            _detailItem(
-              "Thanh toán",
-              displayProduct.isPending
-                  ? "Chờ xác nhận"
-                  : (displayProduct.paymentMethod ?? "N/A"),
-            ),
-            if (displayProduct.labelNote != null &&
-                displayProduct.labelNote!.isNotEmpty)
-              _detailItem("Ghi chú", displayProduct.labelNote!),
-            _detailItem(
-              "Cập nhật cuối",
-              displayProduct.updatedAt != null
-                  ? DateFormat('dd/MM/yyyy HH:mm').format(
-                      DateTime.fromMillisecondsSinceEpoch(
-                        displayProduct.updatedAt!,
-                      ),
-                    )
-                  : "N/A",
-              color: Colors.grey,
-            ),
-            if (repairs.isNotEmpty && _enableRepair) ...[
-              const Divider(height: 30),
-              Text(
-                "LỊCH SỬ SỬA CHỮA",
-                style: AppTextStyles.headline3.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: const Color(0xFF2962FF),
-                ),
-              ),
-              const SizedBox(height: 10),
-              ...repairs.map(
-                (r) => Container(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey[300]!),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Khách: ${r.customerName}",
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      Text(
-                        "Vấn đề: ${r.issue}",
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      Text(
-                        "Trạng thái: ${_getStatusText(r.status)}",
-                        style: TextStyle(color: _getStatusColor(r.status)),
-                      ),
-                      Text(
-                        "Ngày nhận: ${DateFormat('dd/MM/yyyy').format(DateTime.fromMillisecondsSinceEpoch(r.createdAt))}",
-                        style: AppTextStyles.subtitle1.copyWith(
-                          color: Colors.grey,
+                    // ── Repair history ────────────────────────────
+                    if (repairs.isNotEmpty && _enableRepair) ...[
+                      const PopupSectionDivider(title: 'LỊCH SỬ SỬA CHỮA'),
+                      ...repairs.map(
+                        (r) => Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: PopupTheme.surfaceDark,
+                            borderRadius:
+                                BorderRadius.circular(PopupTheme.radiusCard),
+                            border: Border.all(color: PopupTheme.borderDark),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.person_outline,
+                                      size: 14,
+                                      color: PopupTheme.textSecondary),
+                                  const SizedBox(width: 6),
+                                  Expanded(
+                                    child: Text(
+                                      r.customerName,
+                                      style: const TextStyle(
+                                        color: PopupTheme.textPrimary,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 12,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: _getStatusColor(r.status)
+                                          .withValues(alpha: 0.15),
+                                      borderRadius:
+                                          BorderRadius.circular(20),
+                                    ),
+                                    child: Text(
+                                      _getStatusText(r.status),
+                                      style: TextStyle(
+                                        color: _getStatusColor(r.status),
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                r.issue,
+                                style: const TextStyle(
+                                  color: PopupTheme.textSecondary,
+                                  fontSize: 11,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                DateFormat('dd/MM/yyyy').format(
+                                    DateTime.fromMillisecondsSinceEpoch(
+                                        r.createdAt)),
+                                style: const TextStyle(
+                                  color: PopupTheme.textMuted,
+                                  fontSize: 10,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ],
-                  ),
-                ),
-              ),
-            ],
-            const Divider(height: 30),
-            // Nút XÁC NHẬN GIÁ cho kho tạm
-            if (p.isPending) ...[
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    _showConfirmCostDialog(p);
-                  },
-                  icon: const Icon(Icons.check_circle, color: Colors.white),
-                  label: Text(
-                    "XÁC NHẬN GIÁ - CHUYỂN KHO CHÍNH",
-                    style: AppTextStyles.headline5.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-            ],
-            // Quick stock-in button for PHU_KIEN / LINH_KIEN
-            if (p.type == 'PHU_KIEN' || p.type == 'LINH_KIEN') ...[
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    _showQuickStockInDialog(p);
-                  },
-                  icon: const Icon(
-                    Icons.add_shopping_cart,
-                    color: Colors.white,
-                  ),
-                  label: Text(
-                    'NHẬP THÊM (${p.quantity} trong kho)',
-                    style: AppTextStyles.subtitle1.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.teal,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-            ],
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () async {
-                      Navigator.pop(ctx);
-                      // Hiện popup chọn máy in
-                      final printerConfig = await showPrinterSelectionDialog(
-                        context,
-                      );
-                      if (printerConfig == null) return; // User hủy
-
-                      final printerType = printerConfig['type'] as PrinterType?;
-                      final bluetoothPrinter =
-                          printerConfig['bluetoothPrinter'];
-                      final wifiIp = printerConfig['wifiIp'] as String?;
-
-                      if (!mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Đang in tem...'),
-                          duration: Duration(seconds: 1),
+                    const SizedBox(height: 10),
+                    // ── Special: Xác nhận giá (kho tạm) ─────────
+                    if (p.isPending) ...[
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            _showConfirmCostDialog(p);
+                          },
+                          icon: const Icon(Icons.check_circle_outline, size: 16),
+                          label: const Text('XÁC NHẬN GIÁ – CHUYỂN KHO CHÍNH'),
+                          style: PopupTheme.primaryButton(color: PopupTheme.yellow),
                         ),
-                      );
-
-                      // In tem theo cài đặt từ THIẾT KẾ TEM
-                      final ok =
-                          await UnifiedPrinterService.printProductQRLabel(
-                            p.toMap(),
-                            printerType: printerType,
-                            bluetoothPrinter: bluetoothPrinter,
-                            customMac: bluetoothPrinter is Map
-                                ? bluetoothPrinter['macAddress']
-                                : null,
-                            wifiIp: wifiIp,
-                          );
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              ok ? '✅ In tem thành công!' : '❌ Lỗi khi in tem',
-                            ),
-                            backgroundColor: ok ? Colors.green : Colors.red,
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                    // ── Action buttons: one row, Wrap fallback ────
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      alignment: WrapAlignment.start,
+                      children: [
+                        // IN TEM
+                        OutlinedButton.icon(
+                          onPressed: () async {
+                            Navigator.pop(ctx);
+                            final printerConfig =
+                                await showPrinterSelectionDialog(context);
+                            if (printerConfig == null) return;
+                            final printerType =
+                                printerConfig['type'] as PrinterType?;
+                            final bluetoothPrinter =
+                                printerConfig['bluetoothPrinter'];
+                            final wifiIp =
+                                printerConfig['wifiIp'] as String?;
+                            if (!mounted) return;
+                            NotificationService.showSnackBar(
+                                'Đang in tem...', color: Colors.teal);
+                            final ok = await UnifiedPrinterService
+                                .printProductQRLabel(
+                              p.toMap(),
+                              printerType: printerType,
+                              bluetoothPrinter: bluetoothPrinter,
+                              customMac: bluetoothPrinter is Map
+                                  ? bluetoothPrinter['macAddress']
+                                  : null,
+                              wifiIp: wifiIp,
+                            );
+                            if (mounted) {
+                              NotificationService.showSnackBar(
+                                ok ? 'In tem thành công' : 'Lỗi khi in tem',
+                                color: ok ? Colors.green : Colors.red,
+                              );
+                            }
+                          },
+                          icon: const Icon(Icons.qr_code_2, size: 15),
+                          label: const Text('IN TEM'),
+                          style: _compactOutlineBtn(PopupTheme.blue),
+                        ),
+                        // SỬA
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            _editProduct(p);
+                          },
+                          icon: const Icon(Icons.edit_outlined, size: 15),
+                          label: const Text('SỬA'),
+                          style: _compactFilledBtn(PopupTheme.orange),
+                        ),
+                        // BÁN
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            _createSaleOrder(p);
+                          },
+                          icon: const Icon(Icons.shopping_cart_outlined,
+                              size: 15),
+                          label: const Text('BÁN'),
+                          style: _compactFilledBtn(PopupTheme.blue),
+                        ),
+                        // NHẬP THÊM (PHU_KIEN / LINH_KIEN)
+                        if (p.type == 'PHU_KIEN' || p.type == 'LINH_KIEN')
+                          OutlinedButton.icon(
+                            onPressed: () {
+                              Navigator.pop(ctx);
+                              _showQuickStockInDialog(p);
+                            },
+                            icon: const Icon(Icons.add_shopping_cart, size: 15),
+                            label: Text('NHẬP THÊM (${p.quantity})'),
+                            style: _compactOutlineBtn(PopupTheme.teal),
                           ),
-                        );
-                      }
-                    },
-                    icon: const Icon(Icons.qr_code_2, color: Colors.white),
-                    label: Text(
-                      "IN TEM",
-                      style: AppTextStyles.caption.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
+                        // XÓA
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            _showDeleteConfirmation(p);
+                          },
+                          icon: const Icon(Icons.delete_outline, size: 15),
+                          label: const Text('XÓA'),
+                          style: _compactFilledBtn(PopupTheme.red),
+                        ),
+                      ],
                     ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      padding: const EdgeInsets.symmetric(vertical: 6),
-                      minimumSize: const Size(0, 36),
-                    ),
-                  ),
+                    const SizedBox(height: 6),
+                  ],
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.pop(ctx);
-                      _editProduct(p);
-                    },
-                    icon: const Icon(Icons.edit, color: Colors.white),
-                    label: Text(
-                      "SỬA",
-                      style: AppTextStyles.caption.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.orange,
-                      padding: const EdgeInsets.symmetric(vertical: 6),
-                      minimumSize: const Size(0, 36),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.pop(ctx);
-                      _createSaleOrder(p);
-                    },
-                    icon: const Icon(Icons.shopping_cart, color: Colors.white),
-                    label: Text(
-                      "BÁN",
-                      style: AppTextStyles.caption.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2962FF),
-                      padding: const EdgeInsets.symmetric(vertical: 6),
-                      minimumSize: const Size(0, 36),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => Navigator.pop(ctx),
-                    icon: const Icon(Icons.close),
-                    label: Text("ĐÓNG", style: AppTextStyles.caption),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 6),
-                      minimumSize: const Size(0, 36),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1247,6 +1434,7 @@ class _InventoryViewState extends State<InventoryView>
               children: [
                 // Hãng
                 DropdownButtonFormField<String>(
+                  // ignore: deprecated_member_use
                   value: ProductConstants.brands.contains(selectedBrand)
                       ? selectedBrand
                       : null,
@@ -1504,10 +1692,10 @@ class _InventoryViewState extends State<InventoryView>
                             Container(
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: AppColors.warning.withOpacity(0.1),
+                                color: AppColors.warning.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(
-                                  color: AppColors.warning.withOpacity(0.3),
+                                  color: AppColors.warning.withValues(alpha: 0.3),
                                 ),
                               ),
                               child: Column(
@@ -1810,32 +1998,6 @@ class _InventoryViewState extends State<InventoryView>
     }
   }
 
-  Widget _detailItem(String l, String v, {Color? color}) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 6),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          l,
-          style: AppTextStyles.caption.copyWith(color: AppColors.onSurface),
-        ),
-        const SizedBox(width: 16),
-        Flexible(
-          child: Text(
-            v,
-            style: AppTextStyles.body2.copyWith(
-              fontWeight: FontWeight.bold,
-              color: color ?? AppColors.onSurface,
-            ),
-            textAlign: TextAlign.right,
-            maxLines: 3,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ],
-    ),
-  );
 
   Color _getBrandColor(String name) {
     String n = name.toUpperCase();
@@ -2433,55 +2595,6 @@ class _InventoryViewState extends State<InventoryView>
             splashRadius: 20,
           ),
           IconButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const PtyPrintDesignerView()),
-              );
-            },
-            icon: const Icon(
-              Icons.qr_code_2_rounded,
-              color: AppBarAccents.inventory,
-              size: 22,
-            ),
-            tooltip: 'In tem',
-            splashRadius: 20,
-          ),
-          IconButton(
-            onPressed: () async {
-              if (_filterType == 'LINH_KIEN') {
-                final result = await ExportDateFilterDialog.show(
-                  context,
-                  title: 'Xuất kho linh kiện',
-                );
-                if (result == null || !mounted) return;
-                await ExcelExportHelper.exportRepairParts(
-                  context,
-                  startMs: result['startMs'],
-                  endMs: result['endMs'],
-                );
-              } else {
-                final result = await ExportDateFilterDialog.show(
-                  context,
-                  title: 'Xuất kho hàng',
-                );
-                if (result == null || !mounted) return;
-                await ExcelExportHelper.exportProducts(
-                  context,
-                  startMs: result['startMs'],
-                  endMs: result['endMs'],
-                );
-              }
-            },
-            icon: const Icon(
-              Icons.file_download_outlined,
-              color: AppBarAccents.inventory,
-              size: 22,
-            ),
-            tooltip: 'Excel',
-            splashRadius: 20,
-          ),
-          IconButton(
             onPressed: _openSearchDialog,
             icon: const Icon(
               Icons.search,
@@ -2514,22 +2627,78 @@ class _InventoryViewState extends State<InventoryView>
                 : 'Ẩn hàng hết',
             splashRadius: 20,
           ),
-          IconButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const StorageLocationView(),
-                ),
-              ).then((_) => _refresh());
-            },
+          PopupMenuButton<String>(
             icon: const Icon(
-              Icons.location_on_rounded,
+              Icons.more_vert,
               color: AppBarAccents.inventory,
               size: 22,
             ),
-            tooltip: 'Vị trí lưu kho',
-            splashRadius: 20,
+            tooltip: 'Thêm',
+            onSelected: (value) async {
+              if (value == 'location') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const StorageLocationView()),
+                ).then((_) => _refresh());
+              } else if (value == 'print') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const PtyPrintDesignerView()),
+                );
+              } else if (value == 'excel') {
+                if (_filterType == 'LINH_KIEN') {
+                  final result = await ExportDateFilterDialog.show(
+                    context,
+                    title: 'Xuất kho linh kiện',
+                  );
+                  if (result == null || !mounted) return;
+                  await ExcelExportHelper.exportRepairParts(
+                    context,
+                    startMs: result['startMs'],
+                    endMs: result['endMs'],
+                  );
+                } else {
+                  final result = await ExportDateFilterDialog.show(
+                    context,
+                    title: 'Xuất kho hàng',
+                  );
+                  if (result == null || !mounted) return;
+                  await ExcelExportHelper.exportProducts(
+                    context,
+                    startMs: result['startMs'],
+                    endMs: result['endMs'],
+                  );
+                }
+              }
+            },
+            itemBuilder: (_) => const [
+              PopupMenuItem(
+                value: 'location',
+                child: Row(children: [
+                  Icon(Icons.location_on_rounded, size: 18),
+                  SizedBox(width: 10),
+                  Text('Vị trí lưu kho'),
+                ]),
+              ),
+              PopupMenuItem(
+                value: 'print',
+                child: Row(children: [
+                  Icon(Icons.qr_code_2_rounded, size: 18),
+                  SizedBox(width: 10),
+                  Text('In tem'),
+                ]),
+              ),
+              PopupMenuItem(
+                value: 'excel',
+                child: Row(children: [
+                  Icon(Icons.file_download_outlined, size: 18),
+                  SizedBox(width: 10),
+                  Text('Xuất Excel'),
+                ]),
+              ),
+            ],
           ),
           IconButton(
             onPressed: _refresh,
@@ -2718,6 +2887,7 @@ class _InventoryViewState extends State<InventoryView>
             children: [
               // Type selector - dynamic based on business type
               DropdownButtonFormField<String>(
+                // ignore: deprecated_member_use
                 value: _selectedType,
                 decoration: InputDecoration(
                   labelText:
@@ -3243,7 +3413,7 @@ class _InventoryViewState extends State<InventoryView>
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.15) : Colors.grey.shade100,
+          color: isSelected ? color.withValues(alpha: 0.15) : Colors.grey.shade100,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected ? color : Colors.grey.shade300,
@@ -3385,7 +3555,8 @@ class _InventoryViewState extends State<InventoryView>
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: (p.localImagePath != null &&
+                    child:
+                        (p.localImagePath != null &&
                             p.localImagePath!.isNotEmpty)
                         ? Image.file(
                             File(p.localImagePath!),
@@ -3724,7 +3895,7 @@ class _InventoryViewState extends State<InventoryView>
         decoration: BoxDecoration(
           color: bgColor,
           borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: color.withOpacity(0.4)),
+          border: Border.all(color: color.withValues(alpha: 0.4)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -4418,10 +4589,8 @@ class _InventoryViewState extends State<InventoryView>
                   const SizedBox(height: 8),
                   ImagePickerWidget(
                     localPath: localImagePath,
-                    onImagePicked: (path) =>
-                        setS(() => localImagePath = path),
-                    onImageDeleted: () =>
-                        setS(() => localImagePath = null),
+                    onImagePicked: (path) => setS(() => localImagePath = path),
+                    onImageDeleted: () => setS(() => localImagePath = null),
                     size: 72,
                   ),
                   const SizedBox(height: 10),
@@ -4429,8 +4598,7 @@ class _InventoryViewState extends State<InventoryView>
                     selectedLocationId: selectedLocation?.firestoreId,
                     selectedLocationCode: selectedLocation?.code,
                     selectedLocationName: selectedLocation?.name,
-                    onSelected: (loc) =>
-                        setS(() => selectedLocation = loc),
+                    onSelected: (loc) => setS(() => selectedLocation = loc),
                   ),
                 ],
               ),
@@ -4860,7 +5028,8 @@ class _InventoryViewState extends State<InventoryView>
     String? supplier = p.supplier;
     bool isSaving = false;
     String? editLocalImagePath = p.localImagePath;
-    StorageLocation? editSelectedLocation = (p.locationCode?.isNotEmpty ?? false)
+    StorageLocation? editSelectedLocation =
+        (p.locationCode?.isNotEmpty ?? false)
         ? StorageLocation(
             firestoreId: p.locationId,
             code: p.locationCode!,
@@ -4946,34 +5115,14 @@ class _InventoryViewState extends State<InventoryView>
                   user?.email?.split('@').first.toUpperCase() ?? "NV";
               // Cảnh báo nếu giá vốn thay đổi và sản phẩm đã ở kho chính
               if (newCost != p.cost && !p.isPending) {
-                final confirmed = await showDialog<bool>(
+                final confirmed = await showPremiumConfirm(
                   context: ctx,
-                  builder: (warnCtx) => AlertDialog(
-                    title: const Text(
-                      'CẢNH BÁO THAY ĐỔI GIÁ VỐN',
-                      style: TextStyle(
-                        color: Colors.orange,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    content: const Text(
-                      'Sản phẩm này đã được lưu vào kho. Sửa giá vốn sẽ không ảnh hưởng các đơn cũ nhưng có thể làm sai báo cáo lãi gộp. Bạn có chắc muốn tiếp tục?',
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(warnCtx, false),
-                        child: const Text('Hủy'),
-                      ),
-                      ElevatedButton(
-                        onPressed: () => Navigator.pop(warnCtx, true),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.orange,
-                          foregroundColor: Colors.white,
-                        ),
-                        child: const Text('Xác nhận'),
-                      ),
-                    ],
-                  ),
+                  icon: Icons.warning_amber_rounded,
+                  headerGradient: PopupTheme.headerOrange,
+                  title: 'Cảnh báo thay đổi giá vốn',
+                  message: 'Sản phẩm này đã được lưu vào kho. Sửa giá vốn sẽ không ảnh hưởng các đơn cũ nhưng có thể làm sai báo cáo lãi gộp. Bạn có chắc muốn tiếp tục?',
+                  confirmLabel: 'Xác nhận',
+                  confirmColor: PopupTheme.orange,
                 );
                 if (confirmed != true) {
                   setS(() => isSaving = false);
@@ -5031,15 +5180,17 @@ class _InventoryViewState extends State<InventoryView>
 
           return AlertDialog(
             titlePadding: EdgeInsets.zero,
+            backgroundColor: PopupTheme.bgDark,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(PopupTheme.radiusDialog),
+            ),
             title: Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFF1A237E), Color(0xFF2962FF)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+                gradient: PopupTheme.headerEdit,
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(PopupTheme.radiusDialog),
                 ),
-                borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
               ),
               child: Row(
                 children: [
@@ -5052,37 +5203,58 @@ class _InventoryViewState extends State<InventoryView>
                         fontWeight: FontWeight.bold,
                         fontSize: 15,
                         color: Colors.white,
+                        letterSpacing: 0.5,
                       ),
                     ),
                   ),
                 ],
               ),
             ),
-            content: SingleChildScrollView(
-              child: Column(
+            content: Theme(
+              data: Theme.of(ctx).copyWith(
+                inputDecorationTheme: Theme.of(ctx).inputDecorationTheme.copyWith(
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                ),
+              ),
+              child: SingleChildScrollView(
+                child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   // Loại hàng (KHÓA - không cho thay đổi)
                   InputDecorator(
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: "Loại hàng (không đổi)",
-                      prefixIcon: Icon(
+                      labelStyle: const TextStyle(
+                        color: PopupTheme.textMuted,
+                        fontSize: 12,
+                      ),
+                      prefixIcon: const Icon(
                         Icons.lock,
                         size: 16,
-                        color: Colors.grey,
+                        color: PopupTheme.textMuted,
                       ),
                       filled: true,
-                      fillColor: Color(0xFFF5F5F5),
+                      fillColor: PopupTheme.cardDark,
                       isDense: true,
-                      contentPadding: EdgeInsets.symmetric(
+                      contentPadding: const EdgeInsets.symmetric(
                         horizontal: 12,
                         vertical: 8,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(PopupTheme.radiusField),
+                        borderSide: const BorderSide(color: PopupTheme.borderDark),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(PopupTheme.radiusField),
+                        borderSide: const BorderSide(color: PopupTheme.borderDark),
                       ),
                     ),
                     child: Text(
                       type,
-                      style: AppTextStyles.subtitle1.copyWith(
-                        color: Colors.black54,
+                      style: const TextStyle(
+                        color: PopupTheme.textMuted,
+                        fontSize: 14,
                       ),
                     ),
                   ),
@@ -5091,27 +5263,51 @@ class _InventoryViewState extends State<InventoryView>
                   if (_businessType == 'electronics') ...[
                     const SizedBox(height: 8),
                     DropdownButtonFormField<String>(
+                      // ignore: deprecated_member_use
                       value: ProductConstants.brands.contains(selectedBrand)
                           ? selectedBrand
                           : null,
-                      decoration: const InputDecoration(
+                      dropdownColor: PopupTheme.surfaceDark,
+                      style: const TextStyle(
+                        color: PopupTheme.textPrimary,
+                        fontSize: 13,
+                      ),
+                      decoration: InputDecoration(
                         labelText: "Hãng *",
-                        prefixIcon: Icon(Icons.business, size: 16),
-                        border: OutlineInputBorder(),
+                        labelStyle: const TextStyle(
+                          color: PopupTheme.textSecondary,
+                          fontSize: 13,
+                        ),
+                        prefixIcon: const Icon(
+                          Icons.business,
+                          size: 16,
+                          color: PopupTheme.textSecondary,
+                        ),
+                        filled: true,
+                        fillColor: PopupTheme.surfaceDark,
                         isDense: true,
-                        contentPadding: EdgeInsets.symmetric(
+                        contentPadding: const EdgeInsets.symmetric(
                           horizontal: 12,
                           vertical: 8,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(PopupTheme.radiusField),
+                          borderSide: const BorderSide(color: PopupTheme.borderDark),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(PopupTheme.radiusField),
+                          borderSide: const BorderSide(color: PopupTheme.borderDark),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(PopupTheme.radiusField),
+                          borderSide: const BorderSide(color: PopupTheme.blue, width: 1.5),
                         ),
                       ),
                       items: ProductConstants.brands
                           .map(
                             (b) => DropdownMenuItem(
                               value: b,
-                              child: Text(
-                                b,
-                                style: const TextStyle(fontSize: 13),
-                              ),
+                              child: Text(b, style: const TextStyle(fontSize: 13)),
                             ),
                           )
                           .toList(),
@@ -5135,76 +5331,73 @@ class _InventoryViewState extends State<InventoryView>
                       children: [
                         Expanded(
                           child: DropdownButtonFormField<String>(
+                            // ignore: deprecated_member_use
                             value: _isFashion
-                                ? (ProductConstants.clothingSizes.contains(
-                                        selectedCapacity,
-                                      )
-                                      ? selectedCapacity
-                                      : null)
-                                : (ProductConstants.capacities.contains(
-                                        selectedCapacity,
-                                      )
-                                      ? selectedCapacity
-                                      : null),
+                                ? (ProductConstants.clothingSizes.contains(selectedCapacity) ? selectedCapacity : null)
+                                : (ProductConstants.capacities.contains(selectedCapacity) ? selectedCapacity : null),
                             isExpanded: true,
+                            dropdownColor: PopupTheme.surfaceDark,
+                            style: const TextStyle(color: PopupTheme.textPrimary, fontSize: 13),
                             decoration: InputDecoration(
-                              labelText: _isFashion
-                                  ? 'Kích thước'
-                                  : 'Dung lượng',
+                              labelText: _isFashion ? 'Kích thước' : 'Dung lượng',
+                              labelStyle: const TextStyle(color: PopupTheme.textSecondary, fontSize: 13),
                               prefixIcon: Icon(
                                 _isFashion ? Icons.straighten : Icons.storage,
                                 size: 16,
+                                color: PopupTheme.textSecondary,
                               ),
-                              border: const OutlineInputBorder(),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 8,
+                              filled: true,
+                              fillColor: PopupTheme.surfaceDark,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(PopupTheme.radiusField),
+                                borderSide: const BorderSide(color: PopupTheme.borderDark),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(PopupTheme.radiusField),
+                                borderSide: const BorderSide(color: PopupTheme.borderDark),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(PopupTheme.radiusField),
+                                borderSide: const BorderSide(color: PopupTheme.blue, width: 1.5),
                               ),
                             ),
-                            items:
-                                (_isFashion
-                                        ? ProductConstants.clothingSizes
-                                        : ProductConstants.capacities)
-                                    .map(
-                                      (c) => DropdownMenuItem(
-                                        value: c,
-                                        child: Text(
-                                          c,
-                                          style: const TextStyle(fontSize: 13),
-                                        ),
-                                      ),
-                                    )
-                                    .toList(),
+                            items: (_isFashion ? ProductConstants.clothingSizes : ProductConstants.capacities)
+                                .map((c) => DropdownMenuItem(value: c, child: Text(c, style: const TextStyle(fontSize: 13))))
+                                .toList(),
                             onChanged: (v) => setS(() => selectedCapacity = v),
                           ),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: DropdownButtonFormField<String>(
-                            value:
-                                ProductConstants.colors.contains(selectedColor)
-                                ? selectedColor
-                                : null,
+                            // ignore: deprecated_member_use
+                            value: ProductConstants.colors.contains(selectedColor) ? selectedColor : null,
                             isExpanded: true,
-                            decoration: const InputDecoration(
+                            dropdownColor: PopupTheme.surfaceDark,
+                            style: const TextStyle(color: PopupTheme.textPrimary, fontSize: 13),
+                            decoration: InputDecoration(
                               labelText: 'Màu sắc',
-                              prefixIcon: Icon(Icons.color_lens, size: 16),
-                              border: OutlineInputBorder(),
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 8,
+                              labelStyle: const TextStyle(color: PopupTheme.textSecondary, fontSize: 13),
+                              prefixIcon: const Icon(Icons.color_lens, size: 16, color: PopupTheme.textSecondary),
+                              filled: true,
+                              fillColor: PopupTheme.surfaceDark,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(PopupTheme.radiusField),
+                                borderSide: const BorderSide(color: PopupTheme.borderDark),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(PopupTheme.radiusField),
+                                borderSide: const BorderSide(color: PopupTheme.borderDark),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(PopupTheme.radiusField),
+                                borderSide: const BorderSide(color: PopupTheme.blue, width: 1.5),
                               ),
                             ),
                             items: ProductConstants.colors
-                                .map(
-                                  (c) => DropdownMenuItem(
-                                    value: c,
-                                    child: Text(
-                                      c,
-                                      style: const TextStyle(fontSize: 13),
-                                    ),
-                                  ),
-                                )
+                                .map((c) => DropdownMenuItem(value: c, child: Text(c, style: const TextStyle(fontSize: 13))))
                                 .toList(),
                             onChanged: (v) => setS(() => selectedColor = v),
                           ),
@@ -5213,17 +5406,29 @@ class _InventoryViewState extends State<InventoryView>
                     ),
                   if (!_isElectronics && !_isFashion)
                     DropdownButtonFormField<String>(
-                      value: ProductConstants.colors.contains(selectedColor)
-                          ? selectedColor
-                          : null,
+                      // ignore: deprecated_member_use
+                      value: ProductConstants.colors.contains(selectedColor) ? selectedColor : null,
                       isExpanded: true,
-                      decoration: const InputDecoration(
+                      dropdownColor: PopupTheme.surfaceDark,
+                      style: const TextStyle(color: PopupTheme.textPrimary, fontSize: 13),
+                      decoration: InputDecoration(
                         labelText: 'Màu sắc',
-                        prefixIcon: Icon(Icons.color_lens, size: 16),
-                        border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
+                        labelStyle: const TextStyle(color: PopupTheme.textSecondary, fontSize: 13),
+                        prefixIcon: const Icon(Icons.color_lens, size: 16, color: PopupTheme.textSecondary),
+                        filled: true,
+                        fillColor: PopupTheme.surfaceDark,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(PopupTheme.radiusField),
+                          borderSide: const BorderSide(color: PopupTheme.borderDark),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(PopupTheme.radiusField),
+                          borderSide: const BorderSide(color: PopupTheme.borderDark),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(PopupTheme.radiusField),
+                          borderSide: const BorderSide(color: PopupTheme.blue, width: 1.5),
                         ),
                       ),
                       items: ProductConstants.colors
@@ -5243,26 +5448,32 @@ class _InventoryViewState extends State<InventoryView>
                   // Tình trạng (MỚI, 99, 98...)
                   const SizedBox(height: 8),
                   DropdownButtonFormField<String>(
+                    // ignore: deprecated_member_use
                     value: selectedCondition,
-                    decoration: const InputDecoration(
+                    dropdownColor: PopupTheme.surfaceDark,
+                    style: const TextStyle(color: PopupTheme.textPrimary, fontSize: 13),
+                    decoration: InputDecoration(
                       labelText: 'Tình trạng',
-                      prefixIcon: Icon(Icons.grade, size: 16),
-                      border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
+                      labelStyle: const TextStyle(color: PopupTheme.textSecondary, fontSize: 13),
+                      prefixIcon: const Icon(Icons.grade, size: 16, color: PopupTheme.textSecondary),
+                      filled: true,
+                      fillColor: PopupTheme.surfaceDark,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(PopupTheme.radiusField),
+                        borderSide: const BorderSide(color: PopupTheme.borderDark),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(PopupTheme.radiusField),
+                        borderSide: const BorderSide(color: PopupTheme.borderDark),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(PopupTheme.radiusField),
+                        borderSide: const BorderSide(color: PopupTheme.blue, width: 1.5),
                       ),
                     ),
                     items: ProductConstants.conditionsShort
-                        .map(
-                          (c) => DropdownMenuItem(
-                            value: c,
-                            child: Text(
-                              c,
-                              style: const TextStyle(fontSize: 13),
-                            ),
-                          ),
-                        )
+                        .map((c) => DropdownMenuItem(value: c, child: Text(c, style: const TextStyle(fontSize: 13))))
                         .toList(),
                     onChanged: (v) => setS(() => selectedCondition = v),
                   ),
@@ -5281,16 +5492,28 @@ class _InventoryViewState extends State<InventoryView>
                       controller: labelNoteC,
                       maxLines: 2,
                       textCapitalization: TextCapitalization.characters,
-                      style: const TextStyle(fontSize: 13),
-                      decoration: const InputDecoration(
+                      style: const TextStyle(fontSize: 13, color: PopupTheme.textPrimary),
+                      decoration: InputDecoration(
                         labelText: 'Ghi chú',
                         hintText: 'Ghi chú thêm về sản phẩm...',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.note_alt_outlined, size: 18),
+                        labelStyle: const TextStyle(color: PopupTheme.textSecondary, fontSize: 13),
+                        hintStyle: const TextStyle(color: PopupTheme.textMuted, fontSize: 13),
+                        prefixIcon: const Icon(Icons.note_alt_outlined, size: 18, color: PopupTheme.textSecondary),
                         isDense: true,
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
+                        filled: true,
+                        fillColor: PopupTheme.surfaceDark,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(PopupTheme.radiusField),
+                          borderSide: const BorderSide(color: PopupTheme.borderDark),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(PopupTheme.radiusField),
+                          borderSide: const BorderSide(color: PopupTheme.borderDark),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(PopupTheme.radiusField),
+                          borderSide: const BorderSide(color: PopupTheme.blue, width: 1.5),
                         ),
                       ),
                     ),
@@ -5309,26 +5532,26 @@ class _InventoryViewState extends State<InventoryView>
                   if (_canViewCostPrice) ...[
                     if (!p.isPending || p.status == 0)
                       InputDecorator(
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           labelText: "Giá vốn (đã nhập kho - không đổi)",
-                          prefixIcon: Icon(
-                            Icons.lock,
-                            size: 16,
-                            color: Colors.grey,
-                          ),
+                          labelStyle: const TextStyle(color: PopupTheme.textMuted, fontSize: 13),
+                          prefixIcon: const Icon(Icons.lock, size: 16, color: PopupTheme.textMuted),
                           filled: true,
-                          fillColor: Color(0xFFF5F5F5),
+                          fillColor: PopupTheme.cardDark,
                           isDense: true,
-                          contentPadding: EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(PopupTheme.radiusField),
+                            borderSide: const BorderSide(color: PopupTheme.borderDark),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(PopupTheme.radiusField),
+                            borderSide: const BorderSide(color: PopupTheme.borderDark),
                           ),
                         ),
                         child: Text(
                           CurrencyTextField.formatDisplay(p.cost),
-                          style: AppTextStyles.subtitle1.copyWith(
-                            color: Colors.black54,
-                          ),
+                          style: const TextStyle(color: PopupTheme.textMuted, fontSize: 14),
                         ),
                       )
                     else
@@ -5353,11 +5576,13 @@ class _InventoryViewState extends State<InventoryView>
                   // Phase 2: Food module - Expiry & Batch fields
                   if (_enableExpiry || _enableBatch) ...[
                     const Divider(height: 30, thickness: 1),
-                    Text(
+                    const Text(
                       "HẠN SỬ DỤNG",
-                      style: AppTextStyles.headline4.copyWith(
+                      style: TextStyle(
+                        fontSize: 12,
                         fontWeight: FontWeight.bold,
-                        color: Colors.orange.shade700,
+                        color: PopupTheme.orange,
+                        letterSpacing: 0.5,
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -5385,15 +5610,22 @@ class _InventoryViewState extends State<InventoryView>
                         child: InputDecorator(
                           decoration: InputDecoration(
                             labelText: 'Ngày hết hạn',
-                            prefixIcon: Icon(
-                              Icons.event,
-                              color: Colors.orange.shade600,
+                            labelStyle: const TextStyle(color: PopupTheme.textSecondary, fontSize: 13),
+                            prefixIcon: const Icon(Icons.event, color: PopupTheme.orange),
+                            filled: true,
+                            fillColor: PopupTheme.surfaceDark,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(PopupTheme.radiusField),
+                              borderSide: const BorderSide(color: PopupTheme.borderDark),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(PopupTheme.radiusField),
+                              borderSide: const BorderSide(color: PopupTheme.borderDark),
                             ),
                             suffixIcon: expiryDate != null
                                 ? IconButton(
-                                    icon: const Icon(Icons.clear),
-                                    onPressed: () =>
-                                        setS(() => expiryDate = null),
+                                    icon: const Icon(Icons.clear, color: PopupTheme.textMuted),
+                                    onPressed: () => setS(() => expiryDate = null),
                                   )
                                 : null,
                           ),
@@ -5403,8 +5635,8 @@ class _InventoryViewState extends State<InventoryView>
                                 : 'Chưa chọn',
                             style: TextStyle(
                               color: expiryDate != null
-                                  ? Colors.black
-                                  : Colors.grey,
+                                  ? PopupTheme.textPrimary
+                                  : PopupTheme.textMuted,
                             ),
                           ),
                         ),
@@ -5418,15 +5650,15 @@ class _InventoryViewState extends State<InventoryView>
                   ],
 
                   // Ảnh sản phẩm & vị trí lưu kho
-                  const Divider(height: 20, thickness: 1),
-                  Align(
+                  const Divider(height: 20, thickness: 1, color: PopupTheme.borderDark),
+                  const Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
                       'ẢNH & VỊ TRÍ LƯU KHO',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
-                        color: Colors.blue.shade800,
+                        color: PopupTheme.blue,
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -5437,8 +5669,7 @@ class _InventoryViewState extends State<InventoryView>
                     localPath: editLocalImagePath,
                     onImagePicked: (path) =>
                         setS(() => editLocalImagePath = path),
-                    onImageDeleted: () =>
-                        setS(() => editLocalImagePath = null),
+                    onImageDeleted: () => setS(() => editLocalImagePath = null),
                     size: 72,
                   ),
                   const SizedBox(height: 10),
@@ -5446,8 +5677,7 @@ class _InventoryViewState extends State<InventoryView>
                     selectedLocationId: editSelectedLocation?.firestoreId,
                     selectedLocationCode: editSelectedLocation?.code,
                     selectedLocationName: editSelectedLocation?.name,
-                    onSelected: (loc) =>
-                        setS(() => editSelectedLocation = loc),
+                    onSelected: (loc) => setS(() => editSelectedLocation = loc),
                   ),
                   const SizedBox(height: 8),
 
@@ -5468,26 +5698,26 @@ class _InventoryViewState extends State<InventoryView>
                       Expanded(
                         flex: 2,
                         child: InputDecorator(
-                          decoration: const InputDecoration(
+                          decoration: InputDecoration(
                             labelText: "Nhà cung cấp (không đổi)",
-                            prefixIcon: Icon(
-                              Icons.lock,
-                              size: 16,
-                              color: Colors.grey,
-                            ),
+                            labelStyle: const TextStyle(color: PopupTheme.textMuted, fontSize: 13),
+                            prefixIcon: const Icon(Icons.lock, size: 16, color: PopupTheme.textMuted),
                             filled: true,
-                            fillColor: Color(0xFFF5F5F5),
+                            fillColor: PopupTheme.cardDark,
                             isDense: true,
-                            contentPadding: EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(PopupTheme.radiusField),
+                              borderSide: const BorderSide(color: PopupTheme.borderDark),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(PopupTheme.radiusField),
+                              borderSide: const BorderSide(color: PopupTheme.borderDark),
                             ),
                           ),
                           child: Text(
                             supplier ?? 'Không có',
-                            style: AppTextStyles.subtitle1.copyWith(
-                              color: Colors.black54,
-                            ),
+                            style: const TextStyle(color: PopupTheme.textMuted, fontSize: 14),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -5495,23 +5725,36 @@ class _InventoryViewState extends State<InventoryView>
                     ],
                   ),
                 ],
+                ),
               ),
             ),
+            actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            actionsAlignment: MainAxisAlignment.spaceBetween,
             actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text("HỦY"),
-              ),
-              ElevatedButton(
-                onPressed: isSaving ? null : () => saveProcess(),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2962FF),
+              SizedBox(
+                width: 100,
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  style: PopupTheme.secondaryButton(),
+                  child: const Text("HỦY"),
                 ),
-                child: const Text(
-                  "CẬP NHẬT",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 10),
+                  child: ElevatedButton(
+                    onPressed: isSaving ? null : () => saveProcess(),
+                    style: PopupTheme.primaryButton(),
+                    child: isSaving
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Text("CẬP NHẬT"),
                   ),
                 ),
               ),
@@ -5543,7 +5786,7 @@ class _InventoryViewState extends State<InventoryView>
       child: Text(
         text,
         style: AppTextStyles.subtitle1.copyWith(
-          color: AppColors.onSurface.withOpacity(0.8),
+          color: AppColors.onSurface.withValues(alpha: 0.8),
         ),
       ),
     );

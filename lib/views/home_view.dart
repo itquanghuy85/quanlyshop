@@ -61,6 +61,7 @@ import 'hr_salary_settings_view.dart';
 import 'smart_stock_in_view.dart';
 import 'pending_stock_list_view.dart';
 import 'import_history_view.dart';
+import 'storage_location_view.dart';
 import 'user_guide_view.dart';
 import '../data/db_helper.dart';
 import '../widgets/pending_stock_widget.dart';
@@ -1465,10 +1466,8 @@ class _HomeViewState extends State<HomeView>
     await _pushRoute(
       context,
       MaterialPageRoute(
-        builder: (_) => BranchListView(
-          shopId: shopId,
-          flags: _multiBranchFlags,
-        ),
+        builder: (_) =>
+            BranchListView(shopId: shopId, flags: _multiBranchFlags),
       ),
     );
 
@@ -1479,8 +1478,9 @@ class _HomeViewState extends State<HomeView>
 
   Widget _buildCurrentBranchButton() {
     if (!_enableMultiBranch) return const SizedBox.shrink();
-    final branchName =
-        _currentBranchName.trim().isEmpty ? 'Chưa chọn' : _currentBranchName;
+    final branchName = _currentBranchName.trim().isEmpty
+        ? 'Chưa chọn'
+        : _currentBranchName;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -1493,7 +1493,9 @@ class _HomeViewState extends State<HomeView>
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           foregroundColor: Colors.blueGrey.shade700,
           side: BorderSide(color: Colors.blueGrey.shade200),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
         ),
       ),
     );
@@ -1513,7 +1515,9 @@ class _HomeViewState extends State<HomeView>
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           foregroundColor: Colors.blueGrey.shade700,
           side: BorderSide(color: Colors.blueGrey.shade200),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
         ),
       ),
     );
@@ -1642,12 +1646,16 @@ class _HomeViewState extends State<HomeView>
       String resolvedRole = _effectiveRole;
       try {
         final userInfo = await UserService.getUserInfo(user.uid);
-        final firestoreRole =
-            (userInfo['role'] ?? '').toString().trim().toLowerCase();
+        final firestoreRole = (userInfo['role'] ?? '')
+            .toString()
+            .trim()
+            .toLowerCase();
         if (firestoreRole.isNotEmpty) {
           resolvedRole = firestoreRole;
         } else {
-          final fastRole = (await UserService.getRoleFast()).trim().toLowerCase();
+          final fastRole = (await UserService.getRoleFast())
+              .trim()
+              .toLowerCase();
           if (fastRole.isNotEmpty) {
             resolvedRole = fastRole;
           }
@@ -1666,7 +1674,7 @@ class _HomeViewState extends State<HomeView>
           (prefs.getString('cached_userPhotoUrl_${user.uid}') ?? '').trim();
       final cachedShopLogo =
           (prefs.getString('cached_shopLogoUrl_${user.uid}') ?? '').trim();
-        final cachedShopCover =
+      final cachedShopCover =
           (prefs.getString('cached_shopCoverUrl_${user.uid}') ?? '').trim();
       debugPrint(
         '_loadUserAndShopInfo: Cache - userName=$cachedUserName, shopName=$cachedShopName',
@@ -1767,9 +1775,10 @@ class _HomeViewState extends State<HomeView>
             debugPrint('_loadUserAndShopInfo: Shop doc data=$shopData');
             shopName = normalizeLegacyShopName(shopData?['name']?.toString());
             shopLogoUrl = (shopData?['logoUrl'] ?? '').toString().trim();
-            shopCoverUrl = (shopData?['coverUrl'] ?? shopData?['bannerUrl'] ?? '')
-                .toString()
-                .trim();
+            shopCoverUrl =
+                (shopData?['coverUrl'] ?? shopData?['bannerUrl'] ?? '')
+                    .toString()
+                    .trim();
             debugPrint(
               '_loadUserAndShopInfo: shopName from Firestore=$shopName',
             );
@@ -1798,11 +1807,15 @@ class _HomeViewState extends State<HomeView>
                   );
                 }
                 if (shopLogoUrl.isEmpty) {
-                  shopLogoUrl = (profileData?['logoUrl'] ?? '').toString().trim();
+                  shopLogoUrl = (profileData?['logoUrl'] ?? '')
+                      .toString()
+                      .trim();
                 }
                 if (shopCoverUrl.isEmpty) {
                   shopCoverUrl =
-                      (profileData?['coverUrl'] ?? profileData?['bannerUrl'] ?? '')
+                      (profileData?['coverUrl'] ??
+                              profileData?['bannerUrl'] ??
+                              '')
                           .toString()
                           .trim();
                 }
@@ -1907,7 +1920,8 @@ class _HomeViewState extends State<HomeView>
 
   String _resolveAvatarUploadErrorMessage() {
     final raw = (StorageService.lastUploadErrorMessage ?? '').toLowerCase();
-    final denied = StorageService.lastUploadPermissionDenied ||
+    final denied =
+        StorageService.lastUploadPermissionDenied ||
         raw.contains('permission denied') ||
         raw.contains('unauthorized') ||
         raw.contains('permission-denied');
@@ -1921,7 +1935,10 @@ class _HomeViewState extends State<HomeView>
     if (_updatingMyAvatar) return;
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      NotificationService.showSnackBar('Vui lòng đăng nhập lại', color: Colors.red);
+      NotificationService.showSnackBar(
+        'Vui lòng đăng nhập lại',
+        color: Colors.red,
+      );
       return;
     }
 
@@ -1955,7 +1972,9 @@ class _HomeViewState extends State<HomeView>
         await user.updatePhotoURL(uploadedUrl);
         await user.reload();
       } catch (e) {
-        debugPrint('HomeView updatePhotoURL failed, fallback Firestore photo only: $e');
+        debugPrint(
+          'HomeView updatePhotoURL failed, fallback Firestore photo only: $e',
+        );
       }
 
       final prefs = await SharedPreferences.getInstance();
@@ -2556,14 +2575,15 @@ class _HomeViewState extends State<HomeView>
         if (category.contains('NHẬP') ||
             category.contains('LINH KIỆN') ||
             category.contains('PURCHASE')) {
-          final amount = (expense['amount'] as num?)?.toInt() ??
+          final amount =
+              (expense['amount'] as num?)?.toInt() ??
               int.tryParse((expense['amount'] ?? '0').toString()) ??
               0;
           importOutConsistent += amount;
         }
       }
 
-        final partnerPaidExtraConsistent = analysis.partnerPaid;
+      final partnerPaidExtraConsistent = analysis.partnerPaid;
 
       // Thống kê số lượng
       doneT = fRepairs.length;
@@ -2689,8 +2709,11 @@ class _HomeViewState extends State<HomeView>
           _todaySaleIncome = financeSnapshot.incomeFromSales;
           _todayRepairIncome = financeSnapshot.incomeFromRepairs;
           _todayDebtCollected = debtCollectedConsistent;
-            _todayMiscIncome = (financeSnapshot.incomeOther - debtCollectedConsistent)
-              .clamp(0, financeSnapshot.incomeOther);
+          _todayMiscIncome =
+              (financeSnapshot.incomeOther - debtCollectedConsistent).clamp(
+                0,
+                financeSnapshot.incomeOther,
+              );
           _todayImportOut = importOutConsistent;
           _todayPartnerPaid = partnerPaidExtraConsistent;
           _todayRepairPartsCostFund = analysis.repairPartsCostFund;
@@ -3577,7 +3600,7 @@ class _HomeViewState extends State<HomeView>
         decoration: BoxDecoration(
           image: hasCover
               ? DecorationImage(
-                image: CachedNetworkImageProvider(_shopCoverUrl),
+                  image: CachedNetworkImageProvider(_shopCoverUrl),
                   fit: BoxFit.cover,
                   alignment: Alignment.center,
                 )
@@ -3585,7 +3608,10 @@ class _HomeViewState extends State<HomeView>
           gradient: hasCover
               ? null
               : LinearGradient(
-                  colors: [AppColors.primary, AppColors.primary.withOpacity(0.8)],
+                  colors: [
+                    AppColors.primary,
+                    AppColors.primary.withOpacity(0.8),
+                  ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -3601,143 +3627,147 @@ class _HomeViewState extends State<HomeView>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-          // Dòng lời chào
-          Row(
-            children: [
-              Icon(
-                greetingIcon,
-                color: Colors.white.withOpacity(0.9),
-                size: 18,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                greeting,
-                style: AppTextStyles.headline6.copyWith(
+            // Dòng lời chào
+            Row(
+              children: [
+                Icon(
+                  greetingIcon,
                   color: Colors.white.withOpacity(0.9),
-                  fontWeight: FontWeight.w500,
+                  size: 18,
                 ),
-              ),
-              const Spacer(),
-              Text(
-                DateFormat('EEEE, dd/MM', 'vi').format(DateTime.now()),
-                style: AppTextStyles.caption.copyWith(
-                  color: Colors.white.withOpacity(0.8),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-
-          // Tên người dùng
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              GestureDetector(
-                onTap: _openMyStaffProfile,
-                child: Container(
-                  width: 46,
-                  height: 46,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white.withOpacity(0.7), width: 2),
+                const SizedBox(width: 6),
+                Text(
+                  greeting,
+                  style: AppTextStyles.headline6.copyWith(
+                    color: Colors.white.withOpacity(0.9),
+                    fontWeight: FontWeight.w500,
                   ),
-                  child: Hero(
-                    tag: 'hero_staff_avatar_${FirebaseAuth.instance.currentUser?.uid ?? 'me'}',
-                    child: ClipOval(
-                      child: _userPhotoUrl.isNotEmpty
-                          ? Image.network(
-                              _userPhotoUrl,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => const Icon(
+                ),
+                const Spacer(),
+                Text(
+                  DateFormat('EEEE, dd/MM', 'vi').format(DateTime.now()),
+                  style: AppTextStyles.caption.copyWith(
+                    color: Colors.white.withOpacity(0.8),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+
+            // Tên người dùng
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                GestureDetector(
+                  onTap: _openMyStaffProfile,
+                  child: Container(
+                    width: 46,
+                    height: 46,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.7),
+                        width: 2,
+                      ),
+                    ),
+                    child: Hero(
+                      tag:
+                          'hero_staff_avatar_${FirebaseAuth.instance.currentUser?.uid ?? 'me'}',
+                      child: ClipOval(
+                        child: _userPhotoUrl.isNotEmpty
+                            ? Image.network(
+                                _userPhotoUrl,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => const Icon(
+                                  Icons.person_rounded,
+                                  color: Colors.white,
+                                  size: 24,
+                                ),
+                              )
+                            : const Icon(
                                 Icons.person_rounded,
                                 color: Colors.white,
                                 size: 24,
                               ),
-                            )
-                          : const Icon(
-                              Icons.person_rounded,
-                              color: Colors.white,
-                              size: 24,
-                            ),
+                      ),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _userName.isNotEmpty
-                          ? _userName
-                          : (FirebaseAuth.instance.currentUser?.email
-                                    ?.split('@')
-                                    .first ??
-                                loc.userLabel),
-                      style: AppTextStyles.headline3.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 2),
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: roleColor.withOpacity(0.9),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(roleIcon, color: Colors.white, size: 12),
-                              const SizedBox(width: 4),
-                              Text(
-                                roleText,
-                                style: AppTextStyles.body1.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _userName.isNotEmpty
+                            ? _userName
+                            : (FirebaseAuth.instance.currentUser?.email
+                                      ?.split('@')
+                                      .first ??
+                                  loc.userLabel),
+                        style: AppTextStyles.headline3.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
                         ),
-                        if (_shopName.isNotEmpty) ...[
-                          const SizedBox(width: 8),
-                          Flexible(
-                            child: GestureDetector(
-                              onTap: _openShopSettingsFromGreeting,
-                              child: Text(
-                                '• $_shopName',
-                                style: AppTextStyles.subtitle1.copyWith(
-                                  color: Colors.white.withOpacity(0.85),
-                                  decoration: TextDecoration.underline,
-                                  decorationColor: Colors.white70,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: roleColor.withOpacity(0.9),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(roleIcon, color: Colors.white, size: 12),
+                                const SizedBox(width: 4),
+                                Text(
+                                  roleText,
+                                  style: AppTextStyles.body1.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
+                              ],
                             ),
                           ),
+                          if (_shopName.isNotEmpty) ...[
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child: GestureDetector(
+                                onTap: _openShopSettingsFromGreeting,
+                                child: Text(
+                                  '• $_shopName',
+                                  style: AppTextStyles.subtitle1.copyWith(
+                                    color: Colors.white.withOpacity(0.85),
+                                    decoration: TextDecoration.underline,
+                                    decorationColor: Colors.white70,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ),
+                          ],
                         ],
-                      ],
-                    ),
-                  ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
           ],
         ),
-        ),
+      ),
     );
   }
 
@@ -4325,7 +4355,8 @@ class _HomeViewState extends State<HomeView>
                 )
               else ...[
                 const SizedBox(height: 8),
-                if (_homeCommunityStream == null || _homeCommunityShopId.isEmpty)
+                if (_homeCommunityStream == null ||
+                    _homeCommunityShopId.isEmpty)
                   Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
@@ -4357,19 +4388,20 @@ class _HomeViewState extends State<HomeView>
                         );
                       }
 
-                      final docs = (snapshot.data?.docs ?? const [])
-                          .where((d) => d.data()['deleted'] != true)
-                          .toList()
-                        ..sort((a, b) {
-                          final ad =
-                              (a.data()['createdAt'] as Timestamp?)?.toDate();
-                          final bd =
-                              (b.data()['createdAt'] as Timestamp?)?.toDate();
-                          if (ad == null && bd == null) return 0;
-                          if (ad == null) return 1;
-                          if (bd == null) return -1;
-                          return bd.compareTo(ad);
-                        });
+                      final docs =
+                          (snapshot.data?.docs ?? const [])
+                              .where((d) => d.data()['deleted'] != true)
+                              .toList()
+                            ..sort((a, b) {
+                              final ad = (a.data()['createdAt'] as Timestamp?)
+                                  ?.toDate();
+                              final bd = (b.data()['createdAt'] as Timestamp?)
+                                  ?.toDate();
+                              if (ad == null && bd == null) return 0;
+                              if (ad == null) return 1;
+                              if (bd == null) return -1;
+                              return bd.compareTo(ad);
+                            });
 
                       if (docs.isEmpty) {
                         return Align(
@@ -4384,10 +4416,11 @@ class _HomeViewState extends State<HomeView>
                       return Column(
                         children: docs.take(3).map((doc) {
                           final data = doc.data();
-                          final content =
-                              (data['content'] ?? '').toString().trim();
-                          final author =
-                              (data['authorName'] ?? 'Nhân viên').toString();
+                          final content = (data['content'] ?? '')
+                              .toString()
+                              .trim();
+                          final author = (data['authorName'] ?? 'Nhân viên')
+                              .toString();
                           final imageUrl =
                               (data['imageUrl'] ??
                                       data['photoUrl'] ??
@@ -4405,16 +4438,13 @@ class _HomeViewState extends State<HomeView>
                             onTap: () => _pushRoute(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => CommunityView(
-                                  initialPostId: doc.id,
-                                ),
+                                builder: (_) =>
+                                    CommunityView(initialPostId: doc.id),
                               ),
                             ),
                             borderRadius: BorderRadius.circular(8),
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 6,
-                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 6),
                               child: Row(
                                 children: [
                                   Container(
@@ -5110,9 +5140,7 @@ class _HomeViewState extends State<HomeView>
         case ShortcutType.financialReport:
           return () => _pushRoute(
             context,
-            MaterialPageRoute(
-              builder: (_) => const finance_v2.FinanceV2View(),
-            ),
+            MaterialPageRoute(builder: (_) => const finance_v2.FinanceV2View()),
           );
         case ShortcutType.activityLog:
           return () => _pushRoute(
@@ -5293,9 +5321,7 @@ class _HomeViewState extends State<HomeView>
             Colors.purple,
             () => _pushRoute(
               context,
-              MaterialPageRoute(
-                builder: (_) => finance_v2.FinanceV2View(),
-              ),
+              MaterialPageRoute(builder: (_) => finance_v2.FinanceV2View()),
             ),
           ),
         if (_ok('allowViewAttendance'))
@@ -7214,6 +7240,18 @@ class _HomeViewState extends State<HomeView>
                   ),
                   subtitle: 'Xem phiếu nhập kho đã xác nhận',
                 ),
+                _tabMenuItem(
+                  'Vị trí lưu kho',
+                  Icons.location_on_rounded,
+                  Colors.indigo,
+                  () => _pushRoute(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const StorageLocationView(),
+                    ),
+                  ),
+                  subtitle: 'Quản lý vị trí lưu kho',
+                ),
               ],
             ),
           ],
@@ -7342,9 +7380,7 @@ class _HomeViewState extends State<HomeView>
                     featureName: 'Cộng đồng shop',
                     onAllowed: () => _pushRoute(
                       context,
-                      MaterialPageRoute(
-                        builder: (_) => const CommunityView(),
-                      ),
+                      MaterialPageRoute(builder: (_) => const CommunityView()),
                     ),
                   ),
                 ),
@@ -7556,12 +7592,10 @@ class _HomeViewState extends State<HomeView>
     IconData icon,
     Color color,
     VoidCallback onTap,
-    VoidCallback onHelpTap,
-    {
+    VoidCallback onHelpTap, {
     bool locked = false,
     String? lockHint,
-    }
-  ) {
+  }) {
     final displayColor = locked ? Colors.grey : color;
     return Card(
       elevation: 0,
@@ -7592,7 +7626,11 @@ class _HomeViewState extends State<HomeView>
                   color: displayColor.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(locked ? Icons.lock_outline : icon, color: displayColor, size: 18),
+                child: Icon(
+                  locked ? Icons.lock_outline : icon,
+                  color: displayColor,
+                  size: 18,
+                ),
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -8355,7 +8393,8 @@ class _HomeViewState extends State<HomeView>
                     () => _pushRoute(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const admin_view.SuperAdminConsoleView(),
+                        builder: (_) =>
+                            const admin_view.SuperAdminConsoleView(),
                       ),
                     ),
                     subtitle: loc.adminCenterDescription,
@@ -8392,7 +8431,9 @@ class _HomeViewState extends State<HomeView>
         : (user?.photoURL ?? '').trim();
     final hasPhoto = resolvedPhotoUrl.isNotEmpty;
     final hasShopLogo = _shopLogoUrl.trim().isNotEmpty;
-    final shopName = _shopName.trim().isNotEmpty ? _shopName.trim() : 'Cửa hàng của bạn';
+    final shopName = _shopName.trim().isNotEmpty
+        ? _shopName.trim()
+        : 'Cửa hàng của bạn';
     final googleLinked = SocialAuthService.isGoogleLinked();
     final appleLinked = SocialAuthService.isAppleLinked();
     final passwordLinked = SocialAuthService.isPasswordLinked();
@@ -8440,14 +8481,18 @@ class _HomeViewState extends State<HomeView>
                         elevation: 2,
                         child: InkWell(
                           customBorder: const CircleBorder(),
-                          onTap: _updatingMyAvatar ? null : _pickAndUploadMyAvatar,
+                          onTap: _updatingMyAvatar
+                              ? null
+                              : _pickAndUploadMyAvatar,
                           child: Padding(
                             padding: const EdgeInsets.all(5),
                             child: _updatingMyAvatar
                                 ? const SizedBox(
                                     width: 12,
                                     height: 12,
-                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
                                   )
                                 : const Icon(
                                     Icons.camera_alt,
@@ -8522,7 +8567,11 @@ class _HomeViewState extends State<HomeView>
                         : null,
                     child: hasShopLogo
                         ? null
-                        : const Icon(Icons.store, size: 14, color: Colors.indigo),
+                        : const Icon(
+                            Icons.store,
+                            size: 14,
+                            color: Colors.indigo,
+                          ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(

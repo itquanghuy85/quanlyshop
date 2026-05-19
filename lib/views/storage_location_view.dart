@@ -50,9 +50,24 @@ class _StorageLocationViewState extends State<StorageLocationView> {
         _db.getAllLocationStats(_shopId!),
       ]);
       if (mounted) {
+        final locations = results[0] as List<StorageLocation>;
+        final statsMap = results[1] as Map<String, Map<String, dynamic>>;
+        // Show locations derived from products even if no formal record exists
+        final formalCodes =
+            locations.map((l) => l.code.trim().toUpperCase()).toSet();
+        for (final key in statsMap.keys) {
+          if (!formalCodes.contains(key.trim().toUpperCase())) {
+            locations.add(StorageLocation(
+              code: key,
+              name: key,
+              shopId: _shopId,
+              createdAt: DateTime.now().millisecondsSinceEpoch,
+            ));
+          }
+        }
         setState(() {
-          _locations = results[0] as List<StorageLocation>;
-          _statsMap = results[1] as Map<String, Map<String, dynamic>>;
+          _locations = locations;
+          _statsMap = statsMap;
           _applyFilter();
         });
       }
@@ -156,8 +171,13 @@ class _StorageLocationViewState extends State<StorageLocationView> {
     }
   }
 
-  Map<String, dynamic> _statsFor(StorageLocation loc) =>
-      _statsMap[loc.code] ?? {};
+  Map<String, dynamic> _statsFor(StorageLocation loc) {
+    final code = loc.code.trim().toUpperCase();
+    for (final entry in _statsMap.entries) {
+      if (entry.key.trim().toUpperCase() == code) return entry.value;
+    }
+    return {};
+  }
 
   int _totalLocations() => _locations.length;
   int _totalProducts() => _statsMap.values
@@ -168,14 +188,13 @@ class _StorageLocationViewState extends State<StorageLocationView> {
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6FA),
       appBar: _buildAppBar(),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: FloatingActionButton(
         onPressed: () => _openForm(),
         backgroundColor: const Color(0xFF1E40AF),
         foregroundColor: Colors.white,
-        icon: const Icon(Icons.add_location_alt_rounded, size: 20),
-        label: const Text('Thêm vị trí',
-            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
         elevation: 3,
+        tooltip: 'Thêm vị trí',
+        child: const Icon(Icons.add_location_alt_rounded, size: 24),
       ),
       body: Column(
         children: [
@@ -378,7 +397,7 @@ class _StorageLocationViewState extends State<StorageLocationView> {
       );
     }
     return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(12, 6, 12, 24),
+      padding: const EdgeInsets.fromLTRB(12, 6, 12, 88),
       itemCount: _filtered.length,
       separatorBuilder: (_, __) => const SizedBox(height: 8),
       itemBuilder: (_, i) => _buildCard(_filtered[i]),

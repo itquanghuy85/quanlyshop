@@ -7,9 +7,9 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 ## Current Status
 
 **Version:** 1.x (develop)  
-**Last Updated:** 2026-05-16  
+**Last Updated:** 2026-05-19  
 **Build Status:** ✓ Passing  
-**Database Version:** SQLite v17  
+**Database Version:** SQLite v98 (storage_locations)  
 
 ### Overview
 Dự án HULUCA Shop Manager là ứng dụng Flutter quản lý cửa hàng sửa chữa điện thoại với Firebase backend. Ứng dụng hỗ trợ:
@@ -21,6 +21,49 @@ Dự án HULUCA Shop Manager là ứng dụng Flutter quản lý cửa hàng s�
 ---
 
 ## Completed Tasks (Recent)
+
+- [x] **UI Fixes: Lỗi Thiết Bị, Vị Trí Lưu Kho, AppBar Inventory (2026-05-19)**
+  - `repair_detail_view.dart`: Issue badge xuống body (Card đỏ), AppBar sạch
+  - `home_view.dart`: Shortcut "Vị trí lưu kho" trong tab Kho
+  - `storage_location_view.dart`: Fix list rỗng (virtual locations từ products), stats case-insensitive, FAB tròn
+  - `inventory_view.dart`: Gộp 3 icon ít dùng vào PopupMenu "⋮" → tránh nút + đè nút back
+
+- [x] **Fix Offline: Dừng Loading Vô Hạn Khi Mất Mạng (2026-05-19)**
+  - `stock_entry_service.dart`: timeout + cache fallback cho confirmEntry/cancelEntry
+  - Spinner dừng, hiển thị thông báo tiếng Việt khi offline
+
+- [x] **Refactor NCC & Đối Tác Sửa Chữa — Light Premium CRM (2026-05-19)**
+  - Xóa popup `...` khỏi tất cả card; toàn bộ card tappable → mở detail view
+  - `supplier_list_view.dart`: compact card (avatar 48px, badge + quick-pay), không còn `PopupMenuButton`
+  - `supplier_detail_view.dart`: AppBar actions Edit + Delete (password auth trước khi xóa)
+  - `repair_partner_detail_view.dart`: AppBar actions Edit + Delete
+  - Logic xóa NCC chuyển từ list view → detail view; `_confirmDeleteSupplier` + `_showPasswordDialog` đã xóa khỏi list view
+
+- [x] **Product Image & Storage Location System (2026-05-19)**
+  - `StorageLocation` model + DB table `storage_locations` (schema v98)
+  - `StorageLocationView` — màn hình CRUD quản lý vị trí kho
+  - `StorageLocationSelector` widget — bottom sheet chọn vị trí
+  - `LocationBadge` widget — hiển thị badge vị trí
+  - `ImagePickerWidget` — chọn ảnh camera/thư viện, nén tự động <300KB
+  - `ProductImageService` — upload background lên Firebase Storage
+  - Tích hợp: thumbnail + chip vị trí trong card sản phẩm kho
+  - Tích hợp: chọn vị trí cất máy khi đánh dấu sửa XONG
+  - Tích hợp: chip vị trí trong danh sách đơn sửa chữa
+  - Nút điều hướng đến StorageLocationView từ AppBar kho
+
+- [x] **Tắt Thông Báo Bảo Hành + Cải Thiện UI 5 Màn Hình (2026-05-19)**
+  - Tắt push notification bảo hành: `_enableWarrantyPushNotifications = false` trong `WarrantyReminderService`
+  - Fix overflow stats bar linh kiện: `FittedBox(fit: BoxFit.scaleDown)`
+  - Redesign dialog tạo nhân viên: gradient header, icons, section labels
+  - Cải thiện product detail bottom sheet: price cards trực quan
+  - Cải thiện edit product dialog: gradient header thay text đơn giản
+  - Cải thiện `_card` widget sale detail: shadow, accent border, loại bỏ Colors.pink
+
+- [x] **Reconciliation Patch v7 — TOTAL_DEBT_SUPPLIER dứt điểm (2026-05-17)**
+  - Root cause xác nhận từ ADB device log: `debt_payments` có bản ghi corrupt (60M cho nợ 100k, 7M cho nợ 100k).
+  - Giải pháp: tách biệt cash flow (dùng `debt_payments.amount`) và debt balance (dùng `debts.paidAmount`).
+  - Main loop `debtSupplierChange=0`, Category B dùng full `paidAmount`, `_loadOpeningDebtBalances` đơn giản hóa.
+  - Kết quả: debtSupplierClosing = 33,190,500 = payableTotal → **TOTAL_DEBT_SUPPLIER PASS** ✓
 
 - [x] **Reconciliation Patch v5 — TOTAL_DEBT_SUPPLIER dứt điểm** (2026-05-16)
   - Root cause: payments link tới deleted debts (`deleted=1`) vẫn bị tính vào `debtSupplierChange` do LEFT JOIN không phân biệt deleted.
