@@ -5217,7 +5217,9 @@ class _InventoryViewState extends State<InventoryView>
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 ),
               ),
-              child: SingleChildScrollView(
+              child: SizedBox(
+                width: double.maxFinite,
+                child: SingleChildScrollView(
                 child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -5726,6 +5728,7 @@ class _InventoryViewState extends State<InventoryView>
                   ),
                 ],
                 ),
+              ),
               ),
             ),
             actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
