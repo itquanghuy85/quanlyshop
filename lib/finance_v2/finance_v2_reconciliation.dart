@@ -179,7 +179,10 @@ class FinanceV2ReconciliationEngine {
         continue;
       }
       if (action == 'OTHER_EXPENSE' || action == 'EXPENSE') {
-        cost += cashOut + transferOut;
+        // Use lineCostTotal when set (covers partner payments with 0 cashOut),
+        // fall back to cashOut + transferOut for legacy entries without lineCostTotal.
+        final lct = _toInt(e['lineCostTotal']);
+        cost += lct > 0 ? lct : (cashOut + transferOut);
       }
     }
 

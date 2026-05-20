@@ -4,6 +4,32 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-05-20] - Fix Sai Lệch Số Liệu Nhật Ký Tài Chính (3 vấn đề)
+
+### Vấn đề & Nguyên nhân
+
+**1. Giá vốn lẻ đến đồng (7 đơn tháng 3)**
+App mới phân bổ giá vốn theo tỉ lệ cho bundle sản phẩm → ra số lẻ (VD: 5,974,867đ). BC làm tròn nghìn, nhật ký không → lệch doanh thu/lợi nhuận.
+
+**2. Chi phí đối tác sửa chữa không vào nhật ký**
+Thanh toán đối tác SC đi qua `PaymentIntentService` (hệ thống công nợ) → xuất hiện trong BC là "Chi phí đối tác" nhưng nhật ký không có dòng tương ứng → lệch tổng chi phí.
+
+**3. Số dư đầu kỳ CN NCC bị bỏ sót (type 'OWE' từ app cũ)**
+`_loadOpeningDebtBalances` chỉ nhận `SHOP_OWES`, `OTHER_SHOP_OWES`, `OWED` — bỏ sót `OWE` là type do app cũ dùng cho nợ NCC → số dư đầu kỳ = 0 thay vì đúng.
+
+### Sửa
+- **`finance_v2_view.dart`**:
+  - Round `revenueCost` và `lineCostTotal` về 1000đ khi xây dựng nhật ký
+  - Load `repairPartnerPayments` trong `_buildDetailedAuditLogEntries` → tạo EXPENSE entry riêng cho từng khoản đối tác SC (không nhân đôi tiền ra, chỉ ghi `lineCostTotal`)
+  - Thêm `'OWE'` vào `isPayable` check trong `_loadOpeningDebtBalances`
+- **`finance_v2_reconciliation.dart`**: Sửa công thức chi phí EXPENSE dùng `lineCostTotal` thay vì `cashOut + transferOut` (hỗ trợ partner entries không có cashOut)
+
+### Files thay đổi
+- `lib/finance_v2/finance_v2_view.dart`
+- `lib/finance_v2/finance_v2_reconciliation.dart`
+
+---
+
 ## [2026-05-20] - Fix Popup Trắng Khi Sửa Sản Phẩm Trong Kho
 
 ### Vấn đề

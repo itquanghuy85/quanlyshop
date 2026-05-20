@@ -3281,6 +3281,8 @@ class _FinanceV2ViewState extends State<FinanceV2View>
       startMs,
       endMs,
     );
+    final repairPartnerPayments =
+        await _db.getRepairPartnerPaymentsByDateRange(startMs, endMs);
 
     final entries = <Map<String, dynamic>>[];
 
@@ -3333,8 +3335,8 @@ class _FinanceV2ViewState extends State<FinanceV2View>
       // REVENUE COST: Tỉ lệ theo recognizedAmount/finalPrice (khớp với recognizedCost của data service)
       int revenueCost = 0;
       if (recognizedAmount > 0 && sale.totalCost > 0 && sale.finalPrice > 0) {
-        revenueCost = ((sale.totalCost * recognizedAmount) / sale.finalPrice)
-            .round();
+        // Round to nearest 1000đ to avoid fractional costs in journal
+        revenueCost = (((sale.totalCost * recognizedAmount) / sale.finalPrice) / 1000).round() * 1000;
         revenueCost = revenueCost.clamp(0, sale.totalCost);
         revenueCost = revenueCost.clamp(0, recognizedAmount);
       }
@@ -3350,7 +3352,8 @@ class _FinanceV2ViewState extends State<FinanceV2View>
         if (lines.length > 1 && sale.finalPrice > 0) {
           final ratio = baseAmount / sale.finalPrice;
           lineAmount = (recognizedAmount * ratio).round();
-          lineCostTotal = (revenueCost * ratio).round();
+          // Round to nearest 1000đ for each bundle item
+          lineCostTotal = (((revenueCost * ratio) / 1000).round() * 1000);
           distributedAmount += lineAmount;
           distributedCost += lineCostTotal;
         }
@@ -3360,7 +3363,7 @@ class _FinanceV2ViewState extends State<FinanceV2View>
         }
         final lineUnitPrice = qty > 0 ? (lineAmount / qty).round() : lineAmount;
         final lineUnitCost = qty > 0
-            ? (lineCostTotal / qty).round()
+            ? (((lineCostTotal / qty) / 1000).round() * 1000)
             : lineCostTotal;
         int cashIn = saleCashIn;
         int transferIn = saleTransferIn;
@@ -3757,6 +3760,53 @@ class _FinanceV2ViewState extends State<FinanceV2View>
       });
     }
 
+    // Repair partner payments — add as EXPENSE entries so they appear in the
+    // journal as "Chi phí đối tác sửa chữa" and are counted in total cost.
+    // Cash flow is already captured via DEBT_PAY entries, so cashOut = 0 here
+    // (use lineCostTotal for cost tracking only, no double-count of tiền ra).
+    final expenseFsIds = {
+      for (final e in expenses)
+        (e['firestoreId'] ?? '').toString().trim(),
+    };
+    for (final p in repairPartnerPayments) {
+      final paymentFid = (p['firestoreId'] ?? '').toString().trim();
+      if (paymentFid.isEmpty) continue;
+      // Skip if already represented as a regular expense record
+      final expectedExpFid = paymentFid.startsWith('rpp_')
+          ? 'exp_partner_${paymentFid.substring(4)}'
+          : 'exp_partner_$paymentFid';
+      if (expenseFsIds.contains(expectedExpFid)) continue;
+      final amount = (p['amount'] as num?)?.toInt() ?? 0;
+      if (amount <= 0) continue;
+      final ts = (p['paidAt'] as num?)?.toInt() ?? 0;
+      final partnerName = (p['partnerName'] ?? '').toString().trim();
+      entries.add({
+        'ts': ts,
+        'actionType': 'EXPENSE',
+        'referenceId': paymentFid,
+        'cashIn': 0,
+        'cashOut': 0,
+        'transferIn': 0,
+        'transferOut': 0,
+        'debtCustomerChange': 0,
+        'debtSupplierChange': 0,
+        'inventoryChange': 0,
+        'lineAmount': 0,
+        'lineCostTotal': amount,
+        'row': _auditRow(
+          timestamp: ts,
+          actionType: 'EXPENSE',
+          referenceId: paymentFid,
+          cost: amount,
+          lineCostTotal: amount,
+          actorName: '',
+          description: partnerName.isNotEmpty
+              ? 'Đối tác sửa chữa: $partnerName'
+              : 'Đối tác sửa chữa',
+        ),
+      });
+    }
+
     // Build tracked-payment maps for Category B synthetic DEBT_PAY logic below.
     // trackedByDebtId: numeric linkedDebtId; trackedByDebtFsId: debtFirestoreId.
     // Both are needed: some payments have wrong numeric debtId but correct firestoreId.
@@ -4003,10 +4053,12 @@ class _FinanceV2ViewState extends State<FinanceV2View>
       final debtType = (debt['type'] ?? debt['debtType'] ?? '')
           .toString()
           .toUpperCase();
+      // 'OWE' is the legacy type used by old app versions for supplier debts
       final isPayable =
           debtType == 'SHOP_OWES' ||
           debtType == 'OTHER_SHOP_OWES' ||
-          debtType == 'OWED';
+          debtType == 'OWED' ||
+          debtType == 'OWE';
       debugPrint(
         'DBG_OPENING_DEBT: id=$debtLocalKey type=$debtType total=$totalAmount storedPaid=$storedPaid opening=$openingRemaining isPayable=$isPayable person=${debt['personName'] ?? debt['partnerName']}',
       );
