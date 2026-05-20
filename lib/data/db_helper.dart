@@ -8392,6 +8392,13 @@ class DBHelper {
     );
   }
 
+  /// Returns ALL repair_partners rows including deleted/inactive ones.
+  /// Used by DebtSummaryService to detect orphan debts for deleted partners.
+  Future<List<Map<String, dynamic>>> getAllRepairPartnersRaw() async {
+    final db = await database;
+    return await db.query('repair_partners', orderBy: 'name ASC');
+  }
+
   Future<void> upsertRepairPartner(Map<String, dynamic> data) async {
     final db = await database;
     final firestoreId = data['firestoreId'];

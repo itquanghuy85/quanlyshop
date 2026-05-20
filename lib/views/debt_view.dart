@@ -14,6 +14,7 @@ import '../services/adjustment_service.dart';
 import '../services/first_time_guide_service.dart';
 import '../services/debt_summary_service.dart';
 import '../services/repair_partner_service.dart';
+import '../models/repair_partner_model.dart';
 import '../services/payment_intent_service.dart';
 import '../models/payment_intent_model.dart';
 import '../services/audit_service.dart';
@@ -1104,6 +1105,7 @@ class _DebtViewState extends State<DebtView>
     final remainingDebt = _toInt(partner['remainingDebt']);
     final note = partner['note']?.toString() ?? '';
     final source = partner['source'] ?? 'repairs';
+    final isMissing = partner['missingPartner'] == true;
     final isAltRow = index.isEven;
     final hasMeaningfulNote =
         note.trim().isNotEmpty && note.trim().toLowerCase() != 'nợ';
@@ -1148,16 +1150,20 @@ class _DebtViewState extends State<DebtView>
                       ),
                     ),
                   ),
-                  // Type icon
+                  // Type icon (warning if partner document missing)
                   Container(
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
-                      color: Colors.orange.withValues(alpha: 0.3),
+                      color: isMissing
+                          ? Colors.red.withValues(alpha: 0.15)
+                          : Colors.orange.withValues(alpha: 0.3),
                       borderRadius: BorderRadius.circular(7),
                     ),
                     child: Icon(
-                      Icons.handshake,
-                      color: Colors.orange.shade800,
+                      isMissing ? Icons.warning_amber_rounded : Icons.handshake,
+                      color: isMissing
+                          ? Colors.red.shade700
+                          : Colors.orange.shade800,
                       size: 16,
                     ),
                   ),
@@ -1167,14 +1173,33 @@ class _DebtViewState extends State<DebtView>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          name.toUpperCase(),
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: AppTextStyles.headline5.fontSize,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                name.toUpperCase(),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: AppTextStyles.headline5.fontSize,
+                                  color: isMissing ? Colors.red.shade700 : null,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            if (isMissing)
+                              Padding(
+                                padding: const EdgeInsets.only(left: 4),
+                                child: Tooltip(
+                                  message: 'Đối tác không còn trong hệ thống',
+                                  child: Icon(
+                                    Icons.info_outline,
+                                    size: 14,
+                                    color: Colors.red.shade400,
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
                         if (phone.isNotEmpty)
                           Text(
@@ -1332,34 +1357,75 @@ class _DebtViewState extends State<DebtView>
     );
   }
 
-  /// Điều hướng đến trang chi tiết đối tác để thanh toán
-  /// (Thay vì thanh toán trực tiếp ở đây, chuyển đến trang chi tiết có đầy đủ lịch sử và audit log)
+  /// Điều hướng đến trang chi tiết đối tác để thanh toán.
+  /// Nếu đối tác đã bị xóa / không tìm thấy, vẫn hiển thị thông báo rõ ràng
+  /// thay vì xóa bản ghi nợ khỏi màn hình.
   Future<void> _navigateToPartnerDetail(Map<String, dynamic> partner) async {
-    final partnerId = partner['id'];
-    if (partnerId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Không tìm thấy thông tin đối tác!')),
+    final partnerId = partner['partnerId'] ?? partner['id'];
+    final partnerName = partner['name']?.toString() ?? '';
+    final isMissing = partner['missingPartner'] == true;
+    final source = partner['source'] ?? 'repairs';
+
+    // Manual debts may not have a valid partnerId — try to find by name first
+    if (partnerId == null || isMissing) {
+      debugPrint(
+        '⚠️ [DebtView] partner not found: id=$partnerId name="$partnerName" source=$source',
       );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Đối tác "$partnerName" không còn trong hệ thống nhưng khoản nợ vẫn được giữ lại.',
+            ),
+            backgroundColor: Colors.orange.shade700,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
       return;
     }
 
     try {
       // Lấy thông tin đối tác đầy đủ từ service
-      final partnerObj = await _partnerService.getRepairPartnerById(partnerId);
+      RepairPartner? partnerObj =
+          await _partnerService.getRepairPartnerById(partnerId);
+
+      // Fallback: search by name if ID lookup failed (e.g. after reinstall/re-sync)
+      if (partnerObj == null && partnerName.isNotEmpty) {
+        debugPrint(
+          '⚠️ [DebtView] ID lookup failed for id=$partnerId, trying by name "$partnerName"',
+        );
+        final all = await _partnerService.getRepairPartners();
+        final upper = partnerName.trim().toUpperCase();
+        try {
+          partnerObj = all.firstWhere(
+            (p) => p.name.trim().toUpperCase() == upper,
+          );
+        } catch (_) {
+          partnerObj = null;
+        }
+      }
+
       if (partnerObj != null && mounted) {
         final result = await Navigator.push<bool>(
           context,
           MaterialPageRoute(
-            builder: (_) => RepairPartnerDetailView(partner: partnerObj),
+            builder: (_) => RepairPartnerDetailView(partner: partnerObj!),
           ),
         );
-        // Refresh nếu có thay đổi từ trang chi tiết
-        if (result == true) {
-          _refresh();
-        }
+        if (result == true) _refresh();
       } else if (mounted) {
+        debugPrint(
+          '⚠️ [DebtView] Partner not found after fallback: id=$partnerId name="$partnerName"',
+        );
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Không tìm thấy đối tác!')),
+          SnackBar(
+            content: Text(
+              'Không tìm thấy đối tác "$partnerName". Khoản nợ vẫn còn trong danh sách.',
+            ),
+            backgroundColor: Colors.orange.shade700,
+            duration: const Duration(seconds: 4),
+          ),
         );
       }
     } catch (e) {

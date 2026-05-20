@@ -4,6 +4,39 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-05-20] - Fix Công Nợ Đối Tác Bị Mất Sau Refresh
+
+### Vấn đề
+Khi refresh màn hình Quản Lý Công Nợ (tab Đối Tác):
+- Một số khoản nợ đối tác biến mất khỏi danh sách
+- Tổng nợ giảm không chính xác
+- Snackbar "Không tìm thấy đối tác!" xuất hiện khi bấm Thanh Toán
+
+### Nguyên nhân
+1. `getRepairPartners()` chỉ lấy `active = 1` → đối tác đã xóa mềm (`deleted=1`) bị lọc hoàn toàn, kéo theo khoản nợ tự động biến mất
+2. `_navigateToPartnerDetail` dùng `partner['id']` (là `debtId` với nợ thủ công) để lookup `repair_partners` → luôn thất bại
+3. Khi lookup thất bại → snackbar nhưng không thông tin rõ, bản ghi nợ vẫn giữ nguyên trên màn hình
+
+### Sửa
+
+**A. `debt_summary_service.dart`** — Orphan partner detection
+- Thêm `getAllRepairPartnersRaw()` trong `db_helper.dart` (trả về toàn bộ hàng kể cả `deleted=1`)
+- Sau khi xử lý đối tác active, quét thêm đối tác deleted/inactive
+- Nếu `remain > 0` → thêm vào danh sách với `missingPartner: true` + log `debugPrint`
+- Nợ thủ công: thử khớp `personName` với đối tác active; nếu không tìm được → `missingPartner: true`
+- Bỏ qua nợ thủ công đã được đại diện bởi entry auto-detect cùng partner
+
+**B. `debt_view.dart`** — Card + Navigation
+- `_partnerDebtCard`: khi `missingPartner == true` → icon cảnh báo đỏ thay handshake, tên đỏ + tooltip
+- `_navigateToPartnerDetail`: sử dụng `partner['partnerId']` thay `partner['id']`; fallback tìm theo tên nếu ID lookup thất bại; snackbar giải thích rõ ràng thay vì im lặng
+
+### Files thay đổi
+- `lib/services/debt_summary_service.dart`
+- `lib/data/db_helper.dart`
+- `lib/views/debt_view.dart`
+
+---
+
 ## [2026-05-20] - Tab Linh Kiện: Nút + AppBar, Auto-Open Thêm Từ Đơn Sửa, Fix Dialog
 
 ### Thay đổi
