@@ -132,7 +132,7 @@ class _StorageLocationViewState extends State<StorageLocationView> {
   Future<void> _confirmDelete(StorageLocation loc) async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (ctx) => AlertDialog(
         backgroundColor: PopupTheme.bgDark,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(PopupTheme.radiusDialog),
@@ -148,12 +148,12 @@ class _StorageLocationViewState extends State<StorageLocationView> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => Navigator.pop(ctx, false),
             child: const Text('Hủy',
                 style: TextStyle(color: PopupTheme.textSecondary)),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: PopupTheme.red,
               foregroundColor: Colors.white,
@@ -1393,7 +1393,7 @@ class _LocationFormDialogState extends State<_LocationFormDialog> {
       ),
       contentPadding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
       content: SizedBox(
-        width: 340,
+        width: double.maxFinite,
         child: Form(
           key: _formKey,
           child: SingleChildScrollView(

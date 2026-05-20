@@ -4,6 +4,30 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-05-20] - Fix Popup Trắng iOS (Vị Trí Kho & Sửa Sản Phẩm)
+
+### Vấn đề
+Trên iOS, hai popup hiện trắng hoàn toàn không bấm được:
+1. **"Tạo mới vị trí lưu kho"** (FAB trong `StorageLocationView`)
+2. **"Sửa sản phẩm"** trong màn hình Kho (vẫn trắng sau fix SizedBox trước đó)
+
+### Nguyên nhân & Sửa
+
+**A. `_LocationFormDialog` — `SizedBox(width: 340)` → `double.maxFinite`**
+Fixed-width 340 không phải pattern chuẩn; đổi thành `double.maxFinite` để iOS tính layout đúng, khớp với fix `_editProduct`.
+
+**B. `_confirmDelete` — context sai trong dialog action**
+`builder: (_) => AlertDialog(actions: [Navigator.pop(context, ...)])` dùng outer context thay vì dialog's context → iOS freezes dialog. Sửa: đổi `builder: (ctx)` và dùng `Navigator.pop(ctx, ...)`.
+
+**C. `StorageLocationSelector._showPicker` — nested modal trong dialog**
+`showModalBottomSheet(context: dialogContext)` → trên iOS, bottom sheet push vào navigator của dialog thay vì root navigator → dialog đóng băng. Sửa: thêm `useRootNavigator: true`.
+
+### Files thay đổi
+- `lib/views/storage_location_view.dart`
+- `lib/widgets/storage_location_selector.dart`
+
+---
+
 ## [2026-05-20] - Fix Sai Lệch Số Liệu Nhật Ký Tài Chính (3 vấn đề)
 
 ### Vấn đề & Nguyên nhân
