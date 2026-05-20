@@ -1451,27 +1451,31 @@ class _LocationFormDialogState extends State<_LocationFormDialog> {
         ),
       ),
       actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-      actionsAlignment: MainAxisAlignment.spaceBetween,
       actions: [
-        SizedBox(
-          width: 90,
-          child: OutlinedButton(
-            onPressed: () => Navigator.pop(context),
-            style: PopupTheme.secondaryButton(),
-            child: const Text('Hủy'),
-          ),
-        ),
-        Expanded(
-          child: ElevatedButton.icon(
-            onPressed: _submit,
-            icon: Icon(
-              isEdit ? Icons.save_rounded : Icons.add_rounded,
-              size: 16,
+        Row(
+          children: [
+            SizedBox(
+              width: 90,
+              child: OutlinedButton(
+                onPressed: () => Navigator.pop(context),
+                style: PopupTheme.secondaryButton(),
+                child: const Text('Hủy'),
+              ),
             ),
-            label: Text(isEdit ? 'Lưu thay đổi' : 'Thêm vị trí'),
-            style: PopupTheme.primaryButton(
-                color: isEdit ? PopupTheme.blue : PopupTheme.green),
-          ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: _submit,
+                icon: Icon(
+                  isEdit ? Icons.save_rounded : Icons.add_rounded,
+                  size: 16,
+                ),
+                label: Text(isEdit ? 'Lưu thay đổi' : 'Thêm vị trí'),
+                style: PopupTheme.primaryButton(
+                    color: isEdit ? PopupTheme.blue : PopupTheme.green),
+              ),
+            ),
+          ],
         ),
       ],
     );

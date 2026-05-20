@@ -5733,34 +5733,35 @@ class _InventoryViewState extends State<InventoryView>
               ),
             ),
             actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            actionsAlignment: MainAxisAlignment.spaceBetween,
             actions: [
-              SizedBox(
-                width: 100,
-                child: OutlinedButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  style: PopupTheme.secondaryButton(),
-                  child: const Text("HỦY"),
-                ),
-              ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 10),
-                  child: ElevatedButton(
-                    onPressed: isSaving ? null : () => saveProcess(),
-                    style: PopupTheme.primaryButton(),
-                    child: isSaving
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Text("CẬP NHẬT"),
+              Row(
+                children: [
+                  SizedBox(
+                    width: 100,
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      style: PopupTheme.secondaryButton(),
+                      child: const Text("HỦY"),
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: isSaving ? null : () => saveProcess(),
+                      style: PopupTheme.primaryButton(),
+                      child: isSaving
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text("CẬP NHẬT"),
+                    ),
+                  ),
+                ],
               ),
             ],
           );

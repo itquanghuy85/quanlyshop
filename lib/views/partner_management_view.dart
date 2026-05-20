@@ -1329,52 +1329,55 @@ class _PartnerManagementViewState extends State<PartnerManagementView>
           ),
         ),
         actions: [
-          // Nút xóa ở actions
-          TextButton.icon(
-            onPressed: () {
-              Navigator.pop(ctx);
-              _confirmDeletePartner(partner);
-            },
-            icon: const Icon(Icons.delete, color: Colors.red, size: 18),
-            label: const Text('Xóa', style: TextStyle(color: Colors.red)),
-          ),
-          const Spacer(),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Hủy'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (nameCtrl.text.trim().isEmpty) {
-                ScaffoldMessenger.of(ctx).showSnackBar(
-                  const SnackBar(content: Text('Vui lòng nhập tên đối tác')),
-                );
-                return;
-              }
-              if (phoneCtrl.text.trim().isNotEmpty) {
-                final phoneError = UserService.validatePhone(
-                  phoneCtrl.text.trim(),
-                  AppLocalizations.of(ctx)!,
-                );
-                if (phoneError != null) {
-                  ScaffoldMessenger.of(
-                    ctx,
-                  ).showSnackBar(SnackBar(content: Text(phoneError)));
-                  return;
-                }
-              }
+          Row(
+            children: [
+              TextButton.icon(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  _confirmDeletePartner(partner);
+                },
+                icon: const Icon(Icons.delete, color: Colors.red, size: 18),
+                label: const Text('Xóa', style: TextStyle(color: Colors.red)),
+              ),
+              const Spacer(),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Hủy'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  if (nameCtrl.text.trim().isEmpty) {
+                    ScaffoldMessenger.of(ctx).showSnackBar(
+                      const SnackBar(content: Text('Vui lòng nhập tên đối tác')),
+                    );
+                    return;
+                  }
+                  if (phoneCtrl.text.trim().isNotEmpty) {
+                    final phoneError = UserService.validatePhone(
+                      phoneCtrl.text.trim(),
+                      AppLocalizations.of(ctx)!,
+                    );
+                    if (phoneError != null) {
+                      ScaffoldMessenger.of(
+                        ctx,
+                      ).showSnackBar(SnackBar(content: Text(phoneError)));
+                      return;
+                    }
+                  }
 
-              final service = RepairPartnerService();
-              final updated = partner.copyWith(
-                name: nameCtrl.text.trim().toUpperCase(),
-                phone: phoneCtrl.text.trim(),
-                note: noteCtrl.text.trim(),
-              );
-              await service.updateRepairPartner(updated);
-              await _loadData();
-              if (mounted) Navigator.pop(ctx);
-            },
-            child: const Text('Lưu'),
+                  final service = RepairPartnerService();
+                  final updated = partner.copyWith(
+                    name: nameCtrl.text.trim().toUpperCase(),
+                    phone: phoneCtrl.text.trim(),
+                    note: noteCtrl.text.trim(),
+                  );
+                  await service.updateRepairPartner(updated);
+                  await _loadData();
+                  if (mounted) Navigator.pop(ctx);
+                },
+                child: const Text('Lưu'),
+              ),
+            ],
           ),
         ],
       ),
@@ -1422,56 +1425,59 @@ class _PartnerManagementViewState extends State<PartnerManagementView>
           ),
         ),
         actions: [
-          // Nút xóa ở actions
-          TextButton.icon(
-            onPressed: () {
-              Navigator.pop(ctx);
-              _confirmDeleteSupplier(supplier);
-            },
-            icon: const Icon(Icons.delete, color: Colors.red, size: 18),
-            label: const Text('Xóa', style: TextStyle(color: Colors.red)),
-          ),
-          const Spacer(),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Hủy'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (nameCtrl.text.trim().isEmpty) {
-                ScaffoldMessenger.of(ctx).showSnackBar(
-                  const SnackBar(
-                    content: Text('Vui lòng nhập tên nhà cung cấp'),
-                  ),
-                );
-                return;
-              }
-              if (phoneCtrl.text.trim().isNotEmpty) {
-                final phoneError = UserService.validatePhone(
-                  phoneCtrl.text.trim(),
-                  AppLocalizations.of(ctx)!,
-                );
-                if (phoneError != null) {
-                  ScaffoldMessenger.of(
-                    ctx,
-                  ).showSnackBar(SnackBar(content: Text(phoneError)));
-                  return;
-                }
-              }
+          Row(
+            children: [
+              TextButton.icon(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  _confirmDeleteSupplier(supplier);
+                },
+                icon: const Icon(Icons.delete, color: Colors.red, size: 18),
+                label: const Text('Xóa', style: TextStyle(color: Colors.red)),
+              ),
+              const Spacer(),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Hủy'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  if (nameCtrl.text.trim().isEmpty) {
+                    ScaffoldMessenger.of(ctx).showSnackBar(
+                      const SnackBar(
+                        content: Text('Vui lòng nhập tên nhà cung cấp'),
+                      ),
+                    );
+                    return;
+                  }
+                  if (phoneCtrl.text.trim().isNotEmpty) {
+                    final phoneError = UserService.validatePhone(
+                      phoneCtrl.text.trim(),
+                      AppLocalizations.of(ctx)!,
+                    );
+                    if (phoneError != null) {
+                      ScaffoldMessenger.of(
+                        ctx,
+                      ).showSnackBar(SnackBar(content: Text(phoneError)));
+                      return;
+                    }
+                  }
 
-              final service = SupplierService();
-              final updated = supplier.copyWith(
-                name: nameCtrl.text.trim().toUpperCase(),
-                phone: phoneCtrl.text.trim(),
-                email: emailCtrl.text.trim(),
-                address: addressCtrl.text.trim(),
-                note: noteCtrl.text.trim(),
-              );
-              await service.updateSupplier(updated);
-              await _loadData();
-              if (mounted) Navigator.pop(ctx);
-            },
-            child: const Text('Lưu'),
+                  final service = SupplierService();
+                  final updated = supplier.copyWith(
+                    name: nameCtrl.text.trim().toUpperCase(),
+                    phone: phoneCtrl.text.trim(),
+                    email: emailCtrl.text.trim(),
+                    address: addressCtrl.text.trim(),
+                    note: noteCtrl.text.trim(),
+                  );
+                  await service.updateSupplier(updated);
+                  await _loadData();
+                  if (mounted) Navigator.pop(ctx);
+                },
+                child: const Text('Lưu'),
+              ),
+            ],
           ),
         ],
       ),
