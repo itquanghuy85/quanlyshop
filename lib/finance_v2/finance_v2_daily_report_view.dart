@@ -18,6 +18,9 @@ import '../services/event_bus.dart';
 import '../data/db_helper.dart';
 import '../views/debt_view.dart';
 import '../services/daily_financial_analysis_service.dart';
+import '../models/product_model.dart';
+import '../models/repair_model.dart';
+import '../models/sale_order_model.dart';
 
 class FinanceV2DailyReportView extends StatefulWidget {
   final bool embeddedInTab;
@@ -511,6 +514,9 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
     final start = range.$1;
     final end = range.$2;
 
+    final startMs = DateTime(start.year, start.month, start.day).millisecondsSinceEpoch;
+    final endMs = DateTime(end.year, end.month, end.day, 23, 59, 59).millisecondsSinceEpoch;
+
     // Always refresh snapshot before export to avoid stale data after shop switch.
     final s = await _service.loadSnapshot(start: start, end: end);
     final attendance = await _loadAttendanceSummary(start: start, end: end);
@@ -524,8 +530,53 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
     final shopInfo = await LabelSettingsService().getShopLabelSettings();
     final shopId = await UserService.getCurrentShopId();
     final generatedAt = DateFormat('dd/MM/yyyy HH:mm:ss').format(DateTime.now());
-    final analysis = await _buildAuditAnalysis(start, end);
-    final inventory = await _buildInventoryAudit(start, end, s, analysis);
+
+    // Pre-fetch all data needed by _buildAuditAnalysis and _buildInventoryAudit
+    // in parallel so each dataset is loaded only once.
+    final salesF = _db.getSalesByDateRange(startMs, endMs);
+    final repairsF = _db.getDeliveredRepairsByDateRange(startMs, endMs);
+    final expensesF = _db.getExpensesByDateRange(startMs, endMs);
+    final debtPayF = _db.getDebtPaymentsForCashFlowByDateRange(startMs, endMs);
+    final supplierPayF = _db.getSupplierPaymentsByDateRange(startMs, endMs);
+    final partnerPayF = _db.getRepairPartnerPaymentsByDateRange(startMs, endMs);
+    final importsF = _db.getAllImportHistoryByDateRange(startMs, endMs);
+    final returnsF = _db.getSalesReturnsByDateRange(startMs, endMs);
+    final productsF = _db.getInStockProducts();
+    final repairPartsF = _db.getRepairPartsAsProducts();
+    final salvageF = _db.getAllSalvagePhones();
+
+    final preSales = await salesF;
+    final preRepairs = await repairsF;
+    final preExpenses = await expensesF;
+    final preDebtPayments = await debtPayF;
+    final preSupplierPayments = await supplierPayF;
+    final prePartnerPayments = await partnerPayF;
+    final preImports = await importsF;
+    final preReturns = await returnsF;
+    final preProducts = await productsF;
+    final preRepairParts = await repairPartsF;
+    final preSalvage = await salvageF;
+
+    // Both helpers receive pre-loaded data — zero duplicate DB reads
+    final analysis = await _buildAuditAnalysis(
+      start, end,
+      preloadedSales: preSales,
+      preloadedRepairs: preRepairs,
+      preloadedExpenses: preExpenses,
+      preloadedDebtPayments: preDebtPayments,
+      preloadedSupplierPayments: preSupplierPayments,
+      preloadedRepairPartnerPayments: prePartnerPayments,
+      preloadedImportHistory: preImports,
+      preloadedSalesReturns: preReturns,
+    );
+    final inventory = await _buildInventoryAudit(
+      start, end, s, analysis,
+      preloadedImports: preImports,
+      preloadedReturns: preReturns,
+      preloadedProducts: preProducts,
+      preloadedRepairParts: preRepairParts,
+      preloadedSalvage: preSalvage,
+    );
 
     final totalRevenue = s.incomeFromSales + s.incomeFromRepairs + s.incomeOther;
     final totalCost = s.cogsFromSales + s.cogsFromRepairs + s.operatingExpenseOut;
@@ -637,34 +688,61 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
     );
   }
 
-  Future<DailyFinancialAnalysis> _buildAuditAnalysis(DateTime start, DateTime end) async {
+  /// Build cashflow analysis.
+  /// Pass pre-loaded lists to avoid re-fetching data already in memory.
+  /// [preloadedRepairs] must be raw [Repair] objects (not mapped).
+  Future<DailyFinancialAnalysis> _buildAuditAnalysis(
+    DateTime start,
+    DateTime end, {
+    List<SaleOrder>? preloadedSales,
+    List<Repair>? preloadedRepairs,
+    List<Map<String, dynamic>>? preloadedExpenses,
+    List<Map<String, dynamic>>? preloadedDebtPayments,
+    List<Map<String, dynamic>>? preloadedSupplierPayments,
+    List<Map<String, dynamic>>? preloadedRepairPartnerPayments,
+    List<Map<String, dynamic>>? preloadedImportHistory,
+    List<Map<String, dynamic>>? preloadedSalesReturns,
+  }) async {
     final startMs = DateTime(start.year, start.month, start.day).millisecondsSinceEpoch;
     final endMs = DateTime(end.year, end.month, end.day, 23, 59, 59).millisecondsSinceEpoch;
-    final sales = await _db.getSalesByDateRange(startMs, endMs);
+
+    // Fetch only what wasn't pre-loaded; start independent fetches in parallel.
+    final salesF = preloadedSales == null ? _db.getSalesByDateRange(startMs, endMs) : null;
+    final repairsF = preloadedRepairs == null ? _db.getDeliveredRepairsByDateRange(startMs, endMs) : null;
+    final expensesF = preloadedExpenses == null ? _db.getExpensesByDateRange(startMs, endMs) : null;
+    final debtPayF = preloadedDebtPayments == null ? _db.getDebtPaymentsForCashFlowByDateRange(startMs, endMs) : null;
+    final supplierPayF = preloadedSupplierPayments == null ? _db.getSupplierPaymentsByDateRange(startMs, endMs) : null;
+    final partnerPayF = preloadedRepairPartnerPayments == null ? _db.getRepairPartnerPaymentsByDateRange(startMs, endMs) : null;
+    final importsF = preloadedImportHistory == null ? _db.getAllImportHistoryByDateRange(startMs, endMs) : null;
+    final returnsF = preloadedSalesReturns == null ? _db.getSalesReturnsByDateRange(startMs, endMs) : null;
+
+    final sales = preloadedSales ?? await salesF!;
+    final rawRepairs = preloadedRepairs ?? await repairsF!;
+    final expenses = preloadedExpenses ?? await expensesF!;
+    final debtPayments = preloadedDebtPayments ?? await debtPayF!;
+    final supplierPayments = preloadedSupplierPayments ?? await supplierPayF!;
+    final repairPartnerPayments = preloadedRepairPartnerPayments ?? await partnerPayF!;
+    final supplierImports = preloadedImportHistory ?? await importsF!;
+    final salesReturns = preloadedSalesReturns ?? await returnsF!;
+
     final settlementSales = sales
-        .where((sale) => sale.isInstallment && sale.settlementReceivedAt != null && sale.settlementReceivedAt! >= startMs && sale.settlementReceivedAt! <= endMs)
-        .map((sale) => sale.toMap())
+        .where((s) => s.isInstallment && s.settlementReceivedAt != null && s.settlementReceivedAt! >= startMs && s.settlementReceivedAt! <= endMs)
+        .map((s) => s.toMap())
         .toList();
-    final repairs = (await _db.getDeliveredRepairsByDateRange(startMs, endMs)).map((r) => r.toMap()).toList();
-    final expenses = await _db.getExpensesByDateRange(startMs, endMs);
-    final debtPayments = await _db.getDebtPaymentsForCashFlowByDateRange(startMs, endMs);
-    final supplierPayments = await _db.getSupplierPaymentsByDateRange(startMs, endMs);
-    final repairPartnerPayments = await _db.getRepairPartnerPaymentsByDateRange(startMs, endMs);
-    final supplierImports = await _db.getAllImportHistoryByDateRange(startMs, endMs);
-    final salesReturns = await _db.getSalesReturnsByDateRange(startMs, endMs);
-    final repairPartsCostFundRows = (await _db.getDeliveredRepairsByDateRange(startMs, endMs))
-        .where((repair) => repair.costRecordedInFund && repair.costRecordedAt != null && repair.costRecordedAt! >= startMs && repair.costRecordedAt! <= endMs)
-        .map((repair) => <String, dynamic>{
-              'costRecordedAmount': repair.costRecordedAmount,
-              'totalCost': repair.totalCost,
-              'costPaymentMethod': repair.costPaymentMethod,
+    // Re-use rawRepairs for both mapped repairs and repairPartsCostFundRows (avoids duplicate DB fetch)
+    final repairPartsCostFundRows = rawRepairs
+        .where((r) => r.costRecordedInFund && r.costRecordedAt != null && r.costRecordedAt! >= startMs && r.costRecordedAt! <= endMs)
+        .map((r) => <String, dynamic>{
+              'costRecordedAmount': r.costRecordedAmount,
+              'totalCost': r.totalCost,
+              'costPaymentMethod': r.costPaymentMethod,
             })
         .toList();
 
     return DailyFinancialAnalysisService.analyze(
       sales: sales.map((e) => e.toMap()).toList(),
       settlementSales: settlementSales,
-      repairs: repairs,
+      repairs: rawRepairs.map((r) => r.toMap()).toList(),
       expenses: expenses,
       debtPayments: debtPayments,
       supplierPayments: supplierPayments,
@@ -676,19 +754,34 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
     );
   }
 
+  /// Build inventory audit.
+  /// Pass pre-loaded lists to skip re-fetching data already in memory.
   Future<Map<String, int>> _buildInventoryAudit(
     DateTime start,
     DateTime end,
     FinanceV2Snapshot snapshot,
-    DailyFinancialAnalysis analysis,
-  ) async {
+    DailyFinancialAnalysis analysis, {
+    List<Map<String, dynamic>>? preloadedImports,
+    List<Map<String, dynamic>>? preloadedReturns,
+    List<Product>? preloadedProducts,
+    List<Product>? preloadedRepairParts,
+    List<Map<String, dynamic>>? preloadedSalvage,
+  }) async {
     final startMs = DateTime(start.year, start.month, start.day).millisecondsSinceEpoch;
     final endMs = DateTime(end.year, end.month, end.day, 23, 59, 59).millisecondsSinceEpoch;
-    final products = await _db.getInStockProducts();
-    final repairParts = await _db.getRepairPartsAsProducts();
-    final salvage = await _db.getAllSalvagePhones();
-    final imports = await _db.getAllImportHistoryByDateRange(startMs, endMs);
-    final returns = await _db.getSalesReturnsByDateRange(startMs, endMs);
+
+    // Start only the fetches that weren't pre-loaded
+    final productsF = preloadedProducts == null ? _db.getInStockProducts() : null;
+    final repairPartsF = preloadedRepairParts == null ? _db.getRepairPartsAsProducts() : null;
+    final salvageF = preloadedSalvage == null ? _db.getAllSalvagePhones() : null;
+    final importsF = preloadedImports == null ? _db.getAllImportHistoryByDateRange(startMs, endMs) : null;
+    final returnsF = preloadedReturns == null ? _db.getSalesReturnsByDateRange(startMs, endMs) : null;
+
+    final products = preloadedProducts ?? await productsF!;
+    final repairParts = preloadedRepairParts ?? await repairPartsF!;
+    final salvage = preloadedSalvage ?? await salvageF!;
+    final imports = preloadedImports ?? await importsF!;
+    final returns = preloadedReturns ?? await returnsF!;
 
     final productsClose = products.fold<int>(0, (total, p) => total + (p.cost * p.quantity));
     final repairPartsClose = repairParts.fold<int>(0, (total, p) => total + (p.cost * p.quantity));
@@ -949,14 +1042,40 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
     final endMs = DateTime(end.year, end.month, end.day, 23, 59, 59).millisecondsSinceEpoch;
 
     final s = _snapshot!;
-    final analysis = await _buildAuditAnalysis(start, end);
 
-    // Load raw data
-    final sales = await _db.getSalesByDateRange(startMs, endMs);
-    final repairs = await _db.getDeliveredRepairsByDateRange(startMs, endMs);
-    final imports = await _db.getAllImportHistoryByDateRange(startMs, endMs);
-    final expenses = await _db.getExpensesByDateRange(startMs, endMs);
-    final debtsInRange = await _db.getDebtsByDateRange(startMs, endMs);
+    // Load all raw data once — start independent fetches in parallel
+    final salesF = _db.getSalesByDateRange(startMs, endMs);
+    final repairsF = _db.getDeliveredRepairsByDateRange(startMs, endMs);
+    final expensesF = _db.getExpensesByDateRange(startMs, endMs);
+    final debtPayF = _db.getDebtPaymentsForCashFlowByDateRange(startMs, endMs);
+    final supplierPayF = _db.getSupplierPaymentsByDateRange(startMs, endMs);
+    final partnerPayF = _db.getRepairPartnerPaymentsByDateRange(startMs, endMs);
+    final importsF = _db.getAllImportHistoryByDateRange(startMs, endMs);
+    final returnsF = _db.getSalesReturnsByDateRange(startMs, endMs);
+    final debtsInRangeF = _db.getDebtsByDateRange(startMs, endMs);
+
+    final sales = await salesF;
+    final repairs = await repairsF;
+    final expenses = await expensesF;
+    final debtPayments = await debtPayF;
+    final supplierPayments = await supplierPayF;
+    final repairPartnerPayments = await partnerPayF;
+    final imports = await importsF;
+    final salesReturns = await returnsF;
+    final debtsInRange = await debtsInRangeF;
+
+    // Build analysis from pre-loaded data — zero additional DB reads
+    final analysis = await _buildAuditAnalysis(
+      start, end,
+      preloadedSales: sales,
+      preloadedRepairs: repairs,
+      preloadedExpenses: expenses,
+      preloadedDebtPayments: debtPayments,
+      preloadedSupplierPayments: supplierPayments,
+      preloadedRepairPartnerPayments: repairPartnerPayments,
+      preloadedImportHistory: imports,
+      preloadedSalesReturns: salesReturns,
+    );
 
     // Helper: format ms to HH:mm
     String hm(int ms) => ms > 0
@@ -1247,10 +1366,37 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
     final startMs = DateTime(start.year, start.month, start.day).millisecondsSinceEpoch;
     final endMs = DateTime(end.year, end.month, end.day, 23, 59, 59).millisecondsSinceEpoch;
 
-    final analysis = await _buildAuditAnalysis(start, end);
-    final sales = await _db.getSalesByDateRange(startMs, endMs);
-    final repairs = await _db.getDeliveredRepairsByDateRange(startMs, endMs);
-    final imports = await _db.getAllImportHistoryByDateRange(startMs, endMs);
+    // Load all raw data once — start independent fetches in parallel
+    final salesF = _db.getSalesByDateRange(startMs, endMs);
+    final repairsF = _db.getDeliveredRepairsByDateRange(startMs, endMs);
+    final expensesF = _db.getExpensesByDateRange(startMs, endMs);
+    final debtPayF = _db.getDebtPaymentsForCashFlowByDateRange(startMs, endMs);
+    final supplierPayF = _db.getSupplierPaymentsByDateRange(startMs, endMs);
+    final partnerPayF = _db.getRepairPartnerPaymentsByDateRange(startMs, endMs);
+    final importsF = _db.getAllImportHistoryByDateRange(startMs, endMs);
+    final returnsF = _db.getSalesReturnsByDateRange(startMs, endMs);
+
+    final sales = await salesF;
+    final repairs = await repairsF;
+    final expenses = await expensesF;
+    final debtPayments = await debtPayF;
+    final supplierPayments = await supplierPayF;
+    final repairPartnerPayments = await partnerPayF;
+    final imports = await importsF;
+    final salesReturns = await returnsF;
+
+    // Build analysis from pre-loaded data — zero additional DB reads
+    final analysis = await _buildAuditAnalysis(
+      start, end,
+      preloadedSales: sales,
+      preloadedRepairs: repairs,
+      preloadedExpenses: expenses,
+      preloadedDebtPayments: debtPayments,
+      preloadedSupplierPayments: supplierPayments,
+      preloadedRepairPartnerPayments: repairPartnerPayments,
+      preloadedImportHistory: imports,
+      preloadedSalesReturns: salesReturns,
+    );
 
     final shopInfo = await LabelSettingsService().getShopLabelSettings();
 

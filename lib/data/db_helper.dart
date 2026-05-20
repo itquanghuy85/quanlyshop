@@ -8292,6 +8292,20 @@ class DBHelper {
     );
   }
 
+  /// Bulk-load items for multiple import orders in a single query (avoids N+1).
+  /// If [orderIds] is empty, returns an empty list immediately.
+  Future<List<Map<String, dynamic>>> getAllImportOrderItemsForOrders(
+    List<String> orderIds,
+  ) async {
+    if (orderIds.isEmpty) return [];
+    final db = await database;
+    final placeholders = List.filled(orderIds.length, '?').join(', ');
+    return await db.rawQuery(
+      'SELECT * FROM import_order_items WHERE importOrderFirestoreId IN ($placeholders) AND deleted = 0',
+      orderIds,
+    );
+  }
+
   Future<Map<String, dynamic>?> getImportOrderByStockEntryId(
     String stockEntryId,
   ) async {

@@ -276,48 +276,43 @@ class FinanceV2DataService {
       previousStartMs = previousEndMs - periodMs + 1;
     }
 
-    final sales = await _db.getSalesByDateRange(startMs, endMs);
-    final repairs = await _db.getDeliveredRepairsByDateRange(startMs, endMs);
-    final expenses = await _db.getExpensesByDateRange(startMs, endMs);
-    final repairPartnerPayments = await _db.getRepairPartnerPaymentsByDateRange(
-      startMs,
-      endMs,
-    );
-    final debtPayments = await _db.getDebtPaymentsForCashFlowByDateRange(
-      startMs,
-      endMs,
-    );
-    final salesReturns = await _db.getSalesReturnsByDateRange(startMs, endMs);
-    final importHistory = await _db.getAllImportHistoryByDateRange(
-      startMs,
-      endMs,
-    );
-    final debts = await _db.getDebtsForFinanceSnapshot();
-    final activities = await _db.getFinancialActivities(
-      startDate: startMs,
-      endDate: endMs,
-      limit: 500,
-    );
+    // Start all 17 independent reads simultaneously so sqflite can pipeline them.
+    final salesF = _db.getSalesByDateRange(startMs, endMs);
+    final repairsF = _db.getDeliveredRepairsByDateRange(startMs, endMs);
+    final expensesF = _db.getExpensesByDateRange(startMs, endMs);
+    final repairPartnerPaymentsF = _db.getRepairPartnerPaymentsByDateRange(startMs, endMs);
+    final debtPaymentsF = _db.getDebtPaymentsForCashFlowByDateRange(startMs, endMs);
+    final salesReturnsF = _db.getSalesReturnsByDateRange(startMs, endMs);
+    final importHistoryF = _db.getAllImportHistoryByDateRange(startMs, endMs);
+    final debtsF = _db.getDebtsForFinanceSnapshot();
+    final activitiesF = _db.getFinancialActivities(startDate: startMs, endDate: endMs, limit: 500);
+    final previousSalesF = _db.getSalesByDateRange(previousStartMs, previousEndMs);
+    final previousRepairsF = _db.getDeliveredRepairsByDateRange(previousStartMs, previousEndMs);
+    final previousExpensesF = _db.getExpensesByDateRange(previousStartMs, previousEndMs);
+    final previousRepairPartnerPaymentsF = _db.getRepairPartnerPaymentsByDateRange(previousStartMs, previousEndMs);
+    final previousDebtPaymentsF = _db.getDebtPaymentsForCashFlowByDateRange(previousStartMs, previousEndMs);
+    final suppliersF = _db.getSuppliers();
+    final partnersF = _db.getRepairPartners();
+    final customersF = _db.getCustomers();
 
-    final previousSales = await _db.getSalesByDateRange(
-      previousStartMs,
-      previousEndMs,
-    );
-    final previousRepairs = await _db.getDeliveredRepairsByDateRange(
-      previousStartMs,
-      previousEndMs,
-    );
-    final previousExpenses = await _db.getExpensesByDateRange(
-      previousStartMs,
-      previousEndMs,
-    );
-    final previousRepairPartnerPayments = await _db
-        .getRepairPartnerPaymentsByDateRange(previousStartMs, previousEndMs);
-    final previousDebtPayments = await _db
-        .getDebtPaymentsForCashFlowByDateRange(previousStartMs, previousEndMs);
-    final suppliers = await _db.getSuppliers();
-    final partners = await _db.getRepairPartners();
-    final customers = await _db.getCustomers();
+    // Collect results (all DB work started above in parallel)
+    final sales = await salesF;
+    final repairs = await repairsF;
+    final expenses = await expensesF;
+    final repairPartnerPayments = await repairPartnerPaymentsF;
+    final debtPayments = await debtPaymentsF;
+    final salesReturns = await salesReturnsF;
+    final importHistory = await importHistoryF;
+    final debts = await debtsF;
+    final activities = await activitiesF;
+    final previousSales = await previousSalesF;
+    final previousRepairs = await previousRepairsF;
+    final previousExpenses = await previousExpensesF;
+    final previousRepairPartnerPayments = await previousRepairPartnerPaymentsF;
+    final previousDebtPayments = await previousDebtPaymentsF;
+    final suppliers = await suppliersF;
+    final partners = await partnersF;
+    final customers = await customersF;
 
     final supplierAvatarByName = <String, String>{};
     final supplierPhoneByName = <String, String>{};

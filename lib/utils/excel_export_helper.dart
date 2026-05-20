@@ -2062,11 +2062,22 @@ class ExcelExportHelper {
       'Tình trạng',
     ]);
 
+    // Load ALL items for all orders in one query (avoids N+1)
+    final orderIds = orders
+        .map((o) => o.firestoreId ?? '')
+        .where((id) => id.isNotEmpty)
+        .toList();
+    final allItemRows =
+        await DBHelper().getAllImportOrderItemsForOrders(orderIds);
+    final itemsByOrderId = <String, List<ImportOrderItem>>{};
+    for (final row in allItemRows) {
+      final key = (row['importOrderFirestoreId'] as String?) ?? '';
+      (itemsByOrderId[key] ??= []).add(ImportOrderItem.fromMap(row));
+    }
+
     int detailRow = 1;
     for (final o in orders) {
-      final items = await ImportOrderService.getImportOrderItems(
-        o.firestoreId ?? '',
-      );
+      final items = itemsByOrderId[o.firestoreId ?? ''] ?? [];
       for (final item in items) {
         _writeRow(detailSheet, detailRow, [
           detailRow,
