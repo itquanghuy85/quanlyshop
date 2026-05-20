@@ -1394,6 +1394,7 @@ class _LocationFormDialogState extends State<_LocationFormDialog> {
       contentPadding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
       content: SizedBox(
         width: double.maxFinite,
+        height: MediaQuery.of(context).size.height * 0.65,
         child: Form(
           key: _formKey,
           child: SingleChildScrollView(

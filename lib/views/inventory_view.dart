@@ -5219,6 +5219,7 @@ class _InventoryViewState extends State<InventoryView>
               ),
               child: SizedBox(
                 width: double.maxFinite,
+                height: MediaQuery.of(ctx).size.height * 0.65,
                 child: SingleChildScrollView(
                 child: Column(
                 mainAxisSize: MainAxisSize.min,
