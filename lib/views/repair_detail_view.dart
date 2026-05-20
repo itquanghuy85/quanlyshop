@@ -2153,8 +2153,11 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) =>
-            InventoryView(role: role, initialFilterType: 'LINH_KIEN'),
+        builder: (_) => InventoryView(
+          role: role,
+          initialFilterType: 'LINH_KIEN',
+          triggerPartsAdd: true,
+        ),
       ),
     );
   }

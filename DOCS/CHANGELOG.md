@@ -4,6 +4,29 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-05-20] - Tab Linh Kiện: Nút + AppBar, Auto-Open Thêm Từ Đơn Sửa, Fix Dialog
+
+### Thay đổi
+
+**A. Tab Linh Kiện — Xóa FAB, Thêm Nút + AppBar**
+- `PartsInventoryViewContent`: Xóa FAB "Thêm linh kiện" ở dưới cùng
+- `InventoryView`: Khi tab LINH_KIEN active → AppBar hiển thị nút `+` thay cho nút "Nhập kho"
+- Trigger qua `ValueNotifier<int> _partsAddTrigger` truyền xuống widget con
+
+**B. Chi Tiết Đơn Sửa "NHẬP LK MỚI" → Tự Mở Dialog Thêm**
+- `repair_detail_view.dart`: `_navigateToPartsInventory()` truyền `triggerPartsAdd: true` vào `InventoryView`
+- `InventoryView.initState()`: Nếu `triggerPartsAdd == true` → bắn `_partsAddTrigger` sau frame đầu tiên → dialog thêm linh kiện tự mở
+
+**C. Fix Dialog Sửa/Thêm Linh Kiện — iOS Rendering**
+- `_showEditPartDialog` (embedded tab) + `_showAddPartDialog` (standalone): bọc content bằng `SizedBox(width: double.maxFinite)` → fix trường tên không hiển thị trên iOS
+
+### Files thay đổi
+- `lib/views/parts_inventory_view.dart`
+- `lib/views/inventory_view.dart`
+- `lib/views/repair_detail_view.dart`
+
+---
+
 ## [2026-05-20] - Fix Popup Trắng iOS (Vị Trí Kho & Sửa Sản Phẩm)
 
 ### Vấn đề

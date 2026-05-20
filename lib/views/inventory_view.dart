@@ -61,10 +61,12 @@ import '../widgets/app_popup.dart';
 class InventoryView extends StatefulWidget {
   final String role;
   final String initialFilterType;
+  final bool triggerPartsAdd;
   const InventoryView({
     super.key,
     required this.role,
     this.initialFilterType = 'TẤT CẢ',
+    this.triggerPartsAdd = false,
   });
   @override
   State<InventoryView> createState() => _InventoryViewState();
@@ -170,6 +172,9 @@ class _InventoryViewState extends State<InventoryView>
   BusinessTerminology get _terms =>
       BusinessTypeHelper.instance.getTerminology(_shopSettings);
 
+  // Notifier to trigger add-part dialog from AppBar button
+  final ValueNotifier<int> _partsAddTrigger = ValueNotifier<int>(0);
+
   @override
   void initState() {
     super.initState();
@@ -182,6 +187,10 @@ class _InventoryViewState extends State<InventoryView>
     // Hiển thị hướng dẫn cho người dùng mới
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _showFirstTimeGuide();
+      // Auto-open add dialog if requested (e.g. from repair detail "NHẬP LK MỚI")
+      if (widget.triggerPartsAdd && _filterType == 'LINH_KIEN') {
+        _partsAddTrigger.value++;
+      }
     });
   }
 
@@ -228,6 +237,7 @@ class _InventoryViewState extends State<InventoryView>
 
   @override
   void dispose() {
+    _partsAddTrigger.dispose();
     _inventoryRefreshDebounce?.cancel();
     _inventoryEventSub?.cancel();
     _scrollController.removeListener(_onScroll);
@@ -2579,21 +2589,33 @@ class _InventoryViewState extends State<InventoryView>
         accentColor: AppBarAccents.inventory,
         centerTitle: false,
         actions: [
-          IconButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const SmartStockInView()),
-              ).then((_) => _refresh());
-            },
-            icon: const Icon(
-              Icons.add_box_rounded,
-              color: AppBarAccents.inventory,
-              size: 22,
+          if (_filterType == 'LINH_KIEN')
+            IconButton(
+              onPressed: () => _partsAddTrigger.value++,
+              icon: const Icon(
+                Icons.add_rounded,
+                color: AppBarAccents.inventory,
+                size: 22,
+              ),
+              tooltip: 'Thêm linh kiện',
+              splashRadius: 20,
+            )
+          else
+            IconButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const SmartStockInView()),
+                ).then((_) => _refresh());
+              },
+              icon: const Icon(
+                Icons.add_box_rounded,
+                color: AppBarAccents.inventory,
+                size: 22,
+              ),
+              tooltip: 'Nhập kho',
+              splashRadius: 20,
             ),
-            tooltip: 'Nhập kho',
-            splashRadius: 20,
-          ),
           IconButton(
             onPressed: _openSearchDialog,
             icon: const Icon(
@@ -2719,7 +2741,7 @@ class _InventoryViewState extends State<InventoryView>
             _buildCategoryChips(),
             Expanded(
               child: _filterType == 'LINH_KIEN'
-                  ? const PartsInventoryViewContent()
+                  ? PartsInventoryViewContent(addTrigger: _partsAddTrigger)
                   : _buildInventoryTab(),
             ),
           ],

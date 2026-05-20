@@ -29,7 +29,8 @@ import '../widgets/storage_location_selector.dart';
 
 /// Widget content để embed vào InventoryView tab - Phiên bản chuyên nghiệp
 class PartsInventoryViewContent extends StatefulWidget {
-  const PartsInventoryViewContent({super.key});
+  final ValueNotifier<int>? addTrigger;
+  const PartsInventoryViewContent({super.key, this.addTrigger});
   @override
   State<PartsInventoryViewContent> createState() =>
       _PartsInventoryViewContentState();
@@ -109,6 +110,12 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
         });
     // Scroll controller listener for scroll-to-top button
     _scrollController.addListener(_onScroll);
+    // Listen to external add trigger from parent AppBar
+    widget.addTrigger?.addListener(_onAddTriggered);
+  }
+
+  void _onAddTriggered() {
+    _showAddNewPartDialog();
   }
 
   void _onScroll() {
@@ -129,6 +136,7 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
 
   @override
   void dispose() {
+    widget.addTrigger?.removeListener(_onAddTriggered);
     _partsRefreshDebounce?.cancel();
     _eventBusSub?.cancel();
     _scrollController.removeListener(_onScroll);
@@ -419,24 +427,6 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                       ),
                     ),
                   ),
-                // Add new part FAB
-                Positioned(
-                  bottom: 16,
-                  right: 16,
-                  child: FloatingActionButton.extended(
-                    heroTag: 'addPartFAB',
-                    onPressed: _showAddNewPartDialog,
-                    backgroundColor: _primaryColor,
-                    icon: const Icon(Icons.add, color: Colors.white),
-                    label: Text(
-                      'Thêm ${_terms.category3}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
               ],
             ),
     );
@@ -1851,25 +1841,27 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text("SỬA ${_terms.category3.toUpperCase()}"),
-        content: SingleChildScrollView(
-          child: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ValidatedTextField(
-                  controller: nameC,
-                  label: "Tên ${_terms.category3}",
-                  icon: Icons.inventory,
-                  uppercase: true,
-                  required: true,
-                ),
-                ValidatedTextField(
-                  controller: modelC,
-                  label: "Dòng máy tương thích",
-                  icon: Icons.phone_android,
-                  uppercase: true,
-                ),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: SingleChildScrollView(
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ValidatedTextField(
+                    controller: nameC,
+                    label: "Tên ${_terms.category3}",
+                    icon: Icons.inventory,
+                    uppercase: true,
+                    required: true,
+                  ),
+                  ValidatedTextField(
+                    controller: modelC,
+                    label: "Dòng máy tương thích",
+                    icon: Icons.phone_android,
+                    uppercase: true,
+                  ),
                 const SizedBox(height: 12),
                 // Info banner
                 Container(
@@ -1958,6 +1950,7 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                 ),
               ],
             ),
+          ),
           ),
         ),
         actions: [
@@ -2839,24 +2832,26 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                   ? "SỬA ${_terms.category3.toUpperCase()}"
                   : "NHẬP ${_terms.category3.toUpperCase()} MỚI",
             ),
-            content: SingleChildScrollView(
-              child: Form(
-                key: formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    ValidatedTextField(
-                      controller: nameC,
-                      label: "Tên ${_terms.category3} (VD: PIN IPHONE 11)",
-                      icon: Icons.inventory,
-                      uppercase: true,
-                      required: true,
-                    ),
-                    ValidatedTextField(
-                      controller: modelC,
-                      label: "Dòng máy tương thích",
-                      icon: Icons.phone_android,
+            content: SizedBox(
+              width: double.maxFinite,
+              child: SingleChildScrollView(
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ValidatedTextField(
+                        controller: nameC,
+                        label: "Tên ${_terms.category3} (VD: PIN IPHONE 11)",
+                        icon: Icons.inventory,
+                        uppercase: true,
+                        required: true,
+                      ),
+                      ValidatedTextField(
+                        controller: modelC,
+                        label: "Dòng máy tương thích",
+                        icon: Icons.phone_android,
                       uppercase: true,
                     ),
                     const SizedBox(height: 12),
@@ -3165,8 +3160,9 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                       onSelected: (loc) =>
                           setS(() => selectedLocation = loc),
                     ),
-                    const SizedBox(height: 4),
-                  ],
+                      const SizedBox(height: 4),
+                    ],
+                  ),
                 ),
               ),
             ),
