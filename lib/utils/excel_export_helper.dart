@@ -800,6 +800,8 @@ class ExcelExportHelper {
       'Ngày nhập',
       'Mô tả',
       'SKU',
+      'Vị trí (Code)',
+      'Vị trí (Tên)',
     ]);
 
     for (int i = 0; i < products.length; i++) {
@@ -821,6 +823,8 @@ class ExcelExportHelper {
         _fmtDateTime(p.createdAt),
         p.description,
         p.sku ?? '',
+        p.locationCode ?? '',
+        p.locationName ?? '',
       ]);
     }
 
@@ -880,6 +884,8 @@ class ExcelExportHelper {
       'Hình thức TT',
       'Ngày nhập',
       'Cập nhật lần cuối',
+      'Vị trí (Code)',
+      'Vị trí (Tên)',
     ]);
 
     for (int i = 0; i < parts.length; i++) {
@@ -898,6 +904,8 @@ class ExcelExportHelper {
         p['paymentMethod'] ?? '',
         _fmtDateTime(p['createdAt']),
         _fmtDateTime(p['updatedAt']),
+        p['locationCode'] ?? '',
+        p['locationName'] ?? '',
       ]);
     }
 

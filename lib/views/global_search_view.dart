@@ -207,7 +207,12 @@ class _GlobalSearchViewState extends State<GlobalSearchView> {
       icon = Icons.shopping_cart;
     } else if (item is Product) {
       title = item.name;
-      subtitle = item.imei != null ? '${_terms.specialField1Label}: ${item.imei}' : 'Số lượng: ${item.quantity}';
+      final locationPart = (item.locationCode != null && item.locationCode!.isNotEmpty)
+          ? ' · ${item.locationCode}'
+          : (item.locationName != null && item.locationName!.isNotEmpty ? ' · ${item.locationName}' : '');
+      subtitle = item.imei != null
+          ? '${_terms.specialField1Label}: ${item.imei}$locationPart'
+          : 'Số lượng: ${item.quantity}$locationPart';
       icon = Icons.inventory;
     } else if (item is QuickInputCode) {
       title = item.name;
