@@ -10509,6 +10509,31 @@ class DBHelper {
   // STORAGE LOCATIONS (v98)
   // =========================================================================
 
+  Future<void> upsertStorageLocationFromMap(Map<String, dynamic> data) async {
+    final db = await database;
+    final map = Map<String, dynamic>.from(data);
+    map.remove('id');
+    // Normalize booleans from Firestore
+    if (map['isActive'] is bool) map['isActive'] = (map['isActive'] as bool) ? 1 : 0;
+    if (map['deleted'] is bool) map['deleted'] = (map['deleted'] as bool) ? 1 : 0;
+    map['isSynced'] = 1;
+    await db.insert(
+      'storage_locations',
+      map,
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<void> deleteStorageLocationByFirestoreId(String firestoreId) async {
+    final db = await database;
+    await db.update(
+      'storage_locations',
+      {'deleted': 1, 'updatedAt': DateTime.now().millisecondsSinceEpoch},
+      where: 'firestoreId = ?',
+      whereArgs: [firestoreId],
+    );
+  }
+
   Future<int> upsertStorageLocation(StorageLocation loc) async {
     final db = await database;
     final map = loc.toMap();
@@ -10532,8 +10557,8 @@ class DBHelper {
   Future<List<StorageLocation>> getStorageLocations(String shopId, {bool activeOnly = false}) async {
     final db = await database;
     final where = activeOnly
-        ? '(shopId = ? OR shopId IS NULL) AND (deleted = 0 OR deleted IS NULL) AND isActive = 1'
-        : '(shopId = ? OR shopId IS NULL) AND (deleted = 0 OR deleted IS NULL)';
+        ? 'shopId = ? AND (deleted = 0 OR deleted IS NULL) AND isActive = 1'
+        : 'shopId = ? AND (deleted = 0 OR deleted IS NULL)';
     final rows = await db.query(
       'storage_locations',
       where: where,

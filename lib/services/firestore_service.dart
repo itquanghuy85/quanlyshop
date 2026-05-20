@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/repair_model.dart';
+import '../models/storage_location_model.dart';
 import '../models/product_model.dart';
 import '../models/sale_order_model.dart';
 import '../models/purchase_order_model.dart';
@@ -2228,6 +2229,50 @@ class FirestoreService {
     } catch (e) {
       debugPrint('❌ Error deleting custom salary adjustment: $e');
       return false;
+    }
+  }
+
+  // ─── Storage Locations ──────────────────────────────────────────────────────
+
+  static Future<String?> addStorageLocation(StorageLocation loc) async {
+    try {
+      final shopId = loc.shopId ?? await UserService.getCurrentShopId();
+      final docId = loc.firestoreId ?? 'loc_${loc.createdAt}_${loc.code}';
+      final data = loc.toMap()
+        ..remove('id')
+        ..remove('firestoreId')
+        ..['shopId'] = shopId
+        ..['updatedAt'] = FirestoreWriteHelper.serverUpdatedAt()
+        ..['deleted'] = false;
+      await _db.collection('storage_locations').doc(docId).set(data, SetOptions(merge: true));
+      return docId;
+    } catch (e) {
+      debugPrint('❌ addStorageLocation: $e');
+      return null;
+    }
+  }
+
+  static Future<void> updateStorageLocation(StorageLocation loc) async {
+    if (loc.firestoreId == null) return;
+    try {
+      final data = loc.toMap()
+        ..remove('id')
+        ..remove('firestoreId')
+        ..['updatedAt'] = FirestoreWriteHelper.serverUpdatedAt();
+      await _db.collection('storage_locations').doc(loc.firestoreId).update(data);
+    } catch (e) {
+      debugPrint('❌ updateStorageLocation: $e');
+    }
+  }
+
+  static Future<void> deleteStorageLocation(String firestoreId) async {
+    try {
+      await _db.collection('storage_locations').doc(firestoreId).update({
+        'deleted': true,
+        'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
+      });
+    } catch (e) {
+      debugPrint('❌ deleteStorageLocation: $e');
     }
   }
 }

@@ -5,6 +5,7 @@ import '../data/db_helper.dart';
 import '../models/product_model.dart';
 import '../models/repair_model.dart';
 import '../models/storage_location_model.dart';
+import '../services/firestore_service.dart';
 import '../services/user_service.dart';
 import '../theme/popup_theme.dart';
 import '../utils/money_utils.dart';
@@ -113,19 +114,30 @@ class _StorageLocationViewState extends State<StorageLocationView> {
       ),
     );
     if (result != null) {
-      final id = await _db.upsertStorageLocation(result);
+      // Ensure firestoreId is set before writing to Firestore
+      final fid = result.firestoreId ?? 'loc_${result.createdAt}_${result.code}';
+      final withFid = result.copyWith(firestoreId: fid, isSynced: true);
+      final id = await _db.upsertStorageLocation(withFid);
       if (result.id == null) {
-        await _db.upsertStorageLocation(result.copyWith(id: id));
+        await _db.upsertStorageLocation(withFid.copyWith(id: id));
+      }
+      // Sync to Firestore
+      if (existing == null) {
+        await FirestoreService.addStorageLocation(withFid.copyWith(id: id));
+      } else {
+        await FirestoreService.updateStorageLocation(withFid.copyWith(id: id));
       }
       await _load();
     }
   }
 
   Future<void> _toggleActive(StorageLocation loc) async {
-    await _db.upsertStorageLocation(loc.copyWith(
+    final updated = loc.copyWith(
       isActive: !loc.isActive,
       updatedAt: DateTime.now().millisecondsSinceEpoch,
-    ));
+    );
+    await _db.upsertStorageLocation(updated);
+    await FirestoreService.updateStorageLocation(updated);
     await _load();
   }
 
@@ -169,6 +181,9 @@ class _StorageLocationViewState extends State<StorageLocationView> {
     );
     if (ok == true && loc.id != null) {
       await _db.deleteStorageLocation(loc.id!);
+      if (loc.firestoreId != null) {
+        await FirestoreService.deleteStorageLocation(loc.firestoreId!);
+      }
       await _load();
     }
   }

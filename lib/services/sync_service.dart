@@ -2281,6 +2281,34 @@ class SyncService {
       debugPrint("Lỗi khởi tạo salvage_phones sync: $e");
     }
 
+    // Storage locations
+    try {
+      _subscribeToCollection(
+        collection: 'storage_locations',
+        shopId: shopId,
+        permissions: permissions,
+        role: role,
+        isSuperAdmin: isSuperAdmin,
+        onChanged: (data, docId) async {
+          try {
+            final db = DBHelper();
+            if (data['deleted'] == true) {
+              await db.deleteStorageLocationByFirestoreId(docId);
+            } else {
+              data['firestoreId'] = docId;
+              _convertTimestampFields(data);
+              await db.upsertStorageLocationFromMap(data);
+            }
+          } catch (e) {
+            debugPrint("Lỗi sync storage_location $docId: $e");
+          }
+        },
+        onBatchDone: onDataChanged,
+      );
+    } catch (e) {
+      debugPrint("Lỗi khởi tạo storage_locations sync: $e");
+    }
+
     PerfMonitor.stop('deferredSync');
     debugPrint(
       "✅ Deferred sync done — total ${_subscriptions.length} subscriptions active "
