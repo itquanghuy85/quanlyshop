@@ -3099,7 +3099,8 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     final normalized = debtType.trim().toUpperCase();
     return normalized == 'SHOP_OWES' ||
         normalized == 'OTHER_SHOP_OWES' ||
-        normalized == 'OWED';
+        normalized == 'OWED' ||
+        normalized == 'REPAIR_PARTNER';
   }
 
   String _canonicalImportReference(String? rawReference) {
@@ -4058,7 +4059,8 @@ class _FinanceV2ViewState extends State<FinanceV2View>
           debtType == 'SHOP_OWES' ||
           debtType == 'OTHER_SHOP_OWES' ||
           debtType == 'OWED' ||
-          debtType == 'OWE';
+          debtType == 'OWE' ||
+          debtType == 'REPAIR_PARTNER';
       debugPrint(
         'DBG_OPENING_DEBT: id=$debtLocalKey type=$debtType total=$totalAmount storedPaid=$storedPaid opening=$openingRemaining isPayable=$isPayable person=${debt['personName'] ?? debt['partnerName']}',
       );

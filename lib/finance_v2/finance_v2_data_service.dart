@@ -359,6 +359,7 @@ class FinanceV2DataService {
     int debtRepayOut =
         0; // Trả nợ NCC/đối tác (SHOP_OWES) — tách riêng để hiển thị
     int extraIn = 0;
+    int debtCollectIn = 0; // Thu nợ KH — tracked separately so incomeOther excludes it
     int saleCogs = 0;
     int repairCogs = 0;
 
@@ -644,6 +645,7 @@ class FinanceV2DataService {
 
       if (isIncome) {
         extraIn += amount;
+        debtCollectIn += amount;
       } else {
         expenseOut += amount;
         debtRepayOut += amount; // Ghi nhận riêng phần trả nợ NCC/đối tác
@@ -788,7 +790,8 @@ class FinanceV2DataService {
       final isPayable =
           debtType == 'SHOP_OWES' ||
           debtType == 'OTHER_SHOP_OWES' ||
-          debtType == 'OWED';
+          debtType == 'OWED' ||
+          debtType == 'REPAIR_PARTNER';
 
       final item = FinanceV2DebtItem(
         id: (d['firestoreId'] ?? d['id'] ?? debtType).toString(),
@@ -998,7 +1001,7 @@ class FinanceV2DataService {
       grossProfitFromSales: grossProfitFromSales,
       grossProfitFromRepairs: grossProfitFromRepairs,
       grossProfitTotal: grossProfitTotal,
-      incomeOther: extraIn,
+      incomeOther: extraIn - debtCollectIn,
       transactionCount: transactions.length,
       avgIncomePerTransaction: avgIncomePerTransaction,
       previousTotalIn: previousTotalIn,
