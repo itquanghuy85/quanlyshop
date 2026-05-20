@@ -422,8 +422,10 @@ class _ActivityFeedCardState extends State<ActivityFeedCard> {
             'totalPrice',
             'soldAt',
             'paymentMethod',
+            'productNames',
+            'sellerName',
           ],
-          where: 'soldAt >= ?',
+          where: 'soldAt >= ? AND (deleted IS NULL OR deleted != 1)',
           whereArgs: [startMs],
           orderBy: 'soldAt DESC',
           limit: 5,
@@ -475,27 +477,23 @@ class _ActivityFeedCardState extends State<ActivityFeedCard> {
             'paymentMethod',
             'debtType',
             'note',
+            'personName',
+            'customerName',
           ],
-          where: 'paidAt >= ?',
+          where: 'paidAt >= ? AND (deleted IS NULL OR deleted != 1)',
           whereArgs: [startMs],
           orderBy: 'paidAt DESC',
           limit: 5,
         ),
-        // Recent supplier payments (last 5)
-        db.query(
-          'supplier_payments',
-          columns: [
-            'firestoreId',
-            'amount',
-            'paidAt',
-            'paymentMethod',
-            'supplierId',
-            'note',
-          ],
-          where: 'paidAt >= ?',
-          whereArgs: [startMs],
-          orderBy: 'paidAt DESC',
-          limit: 5,
+        // Recent supplier payments (last 5) — JOIN suppliers to get name
+        db.rawQuery(
+          '''SELECT sp.firestoreId, sp.amount, sp.paidAt, sp.paymentMethod,
+                    sp.supplierId, sp.note, s.name AS supplierName
+             FROM supplier_payments sp
+             LEFT JOIN suppliers s ON s.id = sp.supplierId
+             WHERE sp.paidAt >= ? AND (sp.deleted IS NULL OR sp.deleted != 1)
+             ORDER BY sp.paidAt DESC LIMIT 5''',
+          [startMs],
         ),
         // Recent repair partner payments (last 5)
         db
@@ -521,15 +519,35 @@ class _ActivityFeedCardState extends State<ActivityFeedCard> {
 
       // Sales
       for (final s in results[0]) {
-        final name = s['customerName'] ?? 'Khách lẻ';
+        final name = (s['customerName'] as String? ?? '').trim();
+        final products = (s['productNames'] as String? ?? '').trim();
+        final seller = (s['sellerName'] as String? ?? '').trim();
         final price = (s['totalPrice'] as num?)?.toInt() ?? 0;
         final at = (s['soldAt'] as num?)?.toInt() ?? 0;
         final fid = s['firestoreId'] as String?;
+
+        // Title: "Bán hàng - <seller>" or "Bán hàng" if no seller
+        final saleTitle = seller.isNotEmpty ? 'Bán hàng - $seller' : 'Bán hàng';
+        // Subtitle: product name (truncated) + customer if present
+        String saleSubtitle = '';
+        if (products.isNotEmpty) {
+          final firstProduct = products.split(',').first.trim();
+          saleSubtitle = firstProduct.length > 30
+              ? '${firstProduct.substring(0, 30)}…'
+              : firstProduct;
+        }
+        if (name.isNotEmpty && name != 'Khách lẻ') {
+          saleSubtitle = saleSubtitle.isNotEmpty
+              ? '$saleSubtitle · $name'
+              : name;
+        }
+
         activities.add(
           _ActivityItem(
             icon: Icons.shopping_cart,
             color: Colors.green,
-            title: 'Bán hàng - $name',
+            title: saleTitle,
+            subtitle: saleSubtitle,
             amount: '+${MoneyUtils.formatCompact(price)}',
             amountColor: Colors.green,
             timestamp: at,
@@ -597,17 +615,20 @@ class _ActivityFeedCardState extends State<ActivityFeedCard> {
         final at = (d['paidAt'] as num?)?.toInt() ?? 0;
         final debtType = (d['debtType'] as String? ?? '').toUpperCase();
         final note = (d['note'] ?? '').toString();
+        final personName = ((d['personName'] as String?) ?? (d['customerName'] as String?) ?? '').trim();
         final isShopOwes =
             debtType == 'SHOP_OWES' ||
             debtType == 'OTHER_SHOP_OWES' ||
-            debtType == 'OWED';
+            debtType == 'OWED' ||
+            debtType == 'REPAIR_PARTNER';
+        final debtLabel = personName.isNotEmpty ? personName : (note.isNotEmpty ? note : '');
         activities.add(
           _ActivityItem(
             icon: isShopOwes ? Icons.payment : Icons.account_balance_wallet,
             color: isShopOwes ? Colors.deepOrange : Colors.cyan,
             title: isShopOwes
-                ? 'Trả nợ NCC${note.isNotEmpty ? ' - $note' : ''}'
-                : 'Thu nợ KH${note.isNotEmpty ? ' - $note' : ''}',
+                ? 'Trả nợ NCC${debtLabel.isNotEmpty ? ' - $debtLabel' : ''}'
+                : 'Thu nợ KH${debtLabel.isNotEmpty ? ' - $debtLabel' : ''}',
             amount: isShopOwes
                 ? '-${MoneyUtils.formatCompact(amount)}'
                 : '+${MoneyUtils.formatCompact(amount)}',
@@ -622,12 +643,13 @@ class _ActivityFeedCardState extends State<ActivityFeedCard> {
       for (final sp in results[4]) {
         final amount = (sp['amount'] as num?)?.toInt() ?? 0;
         final at = (sp['paidAt'] as num?)?.toInt() ?? 0;
-        final supplier = (sp['supplierId'] ?? 'NCC').toString();
+        final supplierName = ((sp['supplierName'] as String?) ?? '').trim();
+        final supplierLabel = supplierName.isNotEmpty ? supplierName : 'NCC';
         activities.add(
           _ActivityItem(
             icon: Icons.local_shipping,
             color: Colors.brown,
-            title: 'Trả NCC - $supplier',
+            title: 'Trả NCC - $supplierLabel',
             amount: '-${MoneyUtils.formatCompact(amount)}',
             amountColor: Colors.brown,
             timestamp: at,
@@ -839,16 +861,32 @@ class _ActivityFeedCardState extends State<ActivityFeedCard> {
               child: Icon(item.icon, color: item.color, size: 14),
             ),
             const SizedBox(width: 8),
-            // Title
+            // Title + subtitle
             Expanded(
-              child: Text(
-                item.title,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    item.title,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (item.subtitle.isNotEmpty)
+                    Text(
+                      item.subtitle,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey.shade600,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                ],
               ),
             ),
             // Amount
@@ -881,6 +919,7 @@ class _ActivityItem {
   final IconData icon;
   final Color color;
   final String title;
+  final String subtitle;
   final String amount;
   final Color amountColor;
   final int timestamp;
@@ -891,6 +930,7 @@ class _ActivityItem {
     required this.icon,
     required this.color,
     required this.title,
+    this.subtitle = '',
     required this.amount,
     required this.amountColor,
     required this.timestamp,
