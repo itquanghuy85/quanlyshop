@@ -483,7 +483,7 @@ class DBHelper {
 
     final db = await openDatabase(
       path,
-      version: 98,
+      version: 99,
       onConfigure: (db) async {
         try {
           await db.rawQuery('PRAGMA foreign_keys = ON');
@@ -824,7 +824,10 @@ class DBHelper {
             updatedAt INTEGER,
             createdBy TEXT,
             isSynced INTEGER DEFAULT 0,
-            deleted INTEGER DEFAULT 0
+            deleted INTEGER DEFAULT 0,
+            locationId TEXT,
+            locationCode TEXT,
+            locationName TEXT
           )
         ''');
         await db.execute(
@@ -1935,6 +1938,22 @@ class DBHelper {
               column: entry[0],
               definition: entry[1],
               logScope: 'DB upgrade v98',
+            );
+          }
+        }
+        if (oldV < 99) {
+          // v99: Add location fields to salvage_phones (Kho máy xác)
+          for (final entry in [
+            ['locationId', 'TEXT'],
+            ['locationCode', 'TEXT'],
+            ['locationName', 'TEXT'],
+          ]) {
+            await _ensureColumnExists(
+              executor: db,
+              table: 'salvage_phones',
+              column: entry[0],
+              definition: entry[1],
+              logScope: 'DB upgrade v99',
             );
           }
         }

@@ -15,6 +15,9 @@ class SalvagePhone {
   String? createdBy; // email or name of staff
   bool isSynced;
   bool deleted;
+  String? locationId;
+  String? locationCode;
+  String? locationName;
 
   SalvagePhone({
     this.id,
@@ -32,6 +35,9 @@ class SalvagePhone {
     this.createdBy,
     this.isSynced = false,
     this.deleted = false,
+    this.locationId,
+    this.locationCode,
+    this.locationName,
   });
 
   Map<String, dynamic> toMap() {
@@ -51,6 +57,9 @@ class SalvagePhone {
       'createdBy': createdBy,
       'isSynced': isSynced ? 1 : 0,
       'deleted': deleted ? 1 : 0,
+      'locationId': locationId,
+      'locationCode': locationCode,
+      'locationName': locationName,
     };
   }
 
@@ -73,10 +82,13 @@ class SalvagePhone {
           : (int.tryParse('${map['createdAt']}') ?? 0),
       updatedAt: map['updatedAt'] is int
           ? map['updatedAt']
-          : (int.tryParse('${map['updatedAt']}') ?? null),
+          : int.tryParse('${map['updatedAt']}'),
       createdBy: map['createdBy']?.toString(),
       isSynced: map['isSynced'] == 1 || map['isSynced'] == true,
       deleted: map['deleted'] == 1 || map['deleted'] == true,
+      locationId: map['locationId']?.toString(),
+      locationCode: map['locationCode']?.toString(),
+      locationName: map['locationName']?.toString(),
     );
   }
 
@@ -92,6 +104,9 @@ class SalvagePhone {
       'createdAt': createdAt,
       'updatedAt': updatedAt,
       'createdBy': createdBy,
+      'locationId': locationId,
+      'locationCode': locationCode,
+      'locationName': locationName,
     };
   }
 
@@ -111,6 +126,9 @@ class SalvagePhone {
     String? createdBy,
     bool? isSynced,
     bool? deleted,
+    String? locationId,
+    String? locationCode,
+    String? locationName,
   }) {
     return SalvagePhone(
       id: id ?? this.id,
@@ -128,6 +146,9 @@ class SalvagePhone {
       createdBy: createdBy ?? this.createdBy,
       isSynced: isSynced ?? this.isSynced,
       deleted: deleted ?? this.deleted,
+      locationId: locationId ?? this.locationId,
+      locationCode: locationCode ?? this.locationCode,
+      locationName: locationName ?? this.locationName,
     );
   }
 

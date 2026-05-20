@@ -19,6 +19,7 @@ import '../widgets/custom_app_bar.dart';
 import '../widgets/currency_text_field.dart';
 import '../widgets/gradient_fab.dart';
 import '../widgets/responsive_wrapper.dart';
+import '../widgets/storage_location_selector.dart';
 
 class SalvagePhoneView extends StatefulWidget {
   const SalvagePhoneView({super.key});
@@ -91,7 +92,9 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
               _search,
             ) ||
             (p.customerPhone ?? '').contains(_search) ||
-            VietnameseUtils.containsVietnamese(p.notes ?? '', _search);
+            VietnameseUtils.containsVietnamese(p.notes ?? '', _search) ||
+            (p.locationCode ?? '').toLowerCase().contains(_search.toLowerCase()) ||
+            VietnameseUtils.containsVietnamese(p.locationName ?? '', _search);
       }).toList();
     }
 
@@ -417,6 +420,24 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
                       color: Colors.grey.shade400,
                     ),
                   ),
+                  if (p.locationCode != null && p.locationCode!.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Row(
+                        children: [
+                          Icon(Icons.location_on_rounded, size: 11, color: const Color(0xFF1D4ED8)),
+                          const SizedBox(width: 2),
+                          Flexible(
+                            child: Text(
+                              '${p.locationCode} · ${p.locationName ?? ''}',
+                              style: const TextStyle(fontSize: 11, color: Color(0xFF1D4ED8)),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -584,6 +605,12 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
                     ),
                   if (p.notes != null && p.notes!.isNotEmpty)
                     _detailRow(Icons.notes, 'Ghi chú', p.notes!),
+                  if (p.locationCode != null && p.locationCode!.isNotEmpty)
+                    _detailRow(
+                      Icons.location_on_rounded,
+                      'Vị trí kho',
+                      '${p.locationCode} · ${p.locationName ?? ''}',
+                    ),
 
                   // Images
                   if (p.imageList.isNotEmpty) ...[
@@ -761,6 +788,9 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
         existing != null ? List.from(existing.imageList) : [];
     bool saving = false;
     bool showImages = existing != null && existing.imageList.isNotEmpty;
+    String? selectedLocationId = existing?.locationId;
+    String? selectedLocationCode = existing?.locationCode;
+    String? selectedLocationName = existing?.locationName;
 
     showDialog(
       context: context,
@@ -826,6 +856,25 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
                           prefixIcon: Icon(Icons.notes),
                           border: OutlineInputBorder(),
                         ),
+                      ),
+                      const SizedBox(height: 10),
+                      StorageLocationSelector(
+                        selectedLocationId: selectedLocationId,
+                        selectedLocationCode: selectedLocationCode,
+                        selectedLocationName: selectedLocationName,
+                        onSelected: (loc) {
+                          setDlg(() {
+                            if (loc == null) {
+                              selectedLocationId = null;
+                              selectedLocationCode = null;
+                              selectedLocationName = null;
+                            } else {
+                              selectedLocationId = loc.firestoreId ?? loc.id?.toString();
+                              selectedLocationCode = loc.code;
+                              selectedLocationName = loc.name;
+                            }
+                          });
+                        },
                       ),
                       const SizedBox(height: 10),
                       // Image section
@@ -927,6 +976,9 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
                                 'createdBy': existing.createdBy ?? user,
                                 'isSynced': 0,
                                 'deleted': 0,
+                                'locationId': selectedLocationId,
+                                'locationCode': selectedLocationCode,
+                                'locationName': selectedLocationName,
                               };
                               await DBHelper().upsertSalvagePhone(data);
                               final saved = await DBHelper()
@@ -963,6 +1015,9 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
                                 'createdBy': user,
                                 'isSynced': 0,
                                 'deleted': 0,
+                                'locationId': selectedLocationId,
+                                'locationCode': selectedLocationCode,
+                                'locationName': selectedLocationName,
                               };
                               await DBHelper().upsertSalvagePhone(data);
                               final saved = await DBHelper()
