@@ -38,7 +38,7 @@ class AiChatOverlay extends StatefulWidget {
 }
 
 class _AiChatOverlayState extends State<AiChatOverlay>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   // ── Visibility ────────────────────────────────────────────────────────────
   bool _open = false;
 

@@ -276,7 +276,7 @@ class FinanceV2DataService {
       previousStartMs = previousEndMs - periodMs + 1;
     }
 
-    // Start all 17 independent reads simultaneously so sqflite can pipeline them.
+    // Start all reads simultaneously so sqflite can pipeline them.
     final salesF = _db.getSalesByDateRange(startMs, endMs);
     final repairsF = _db.getDeliveredRepairsByDateRange(startMs, endMs);
     final expensesF = _db.getExpensesByDateRange(startMs, endMs);
@@ -286,6 +286,7 @@ class FinanceV2DataService {
     final importHistoryF = _db.getAllImportHistoryByDateRange(startMs, endMs);
     final debtsF = _db.getDebtsForFinanceSnapshot();
     final activitiesF = _db.getFinancialActivities(startDate: startMs, endDate: endMs, limit: 500);
+    final costFundRepairsF = _db.getRepairsCostFundByDateRange(startMs, endMs);
     final previousSalesF = _db.getSalesByDateRange(previousStartMs, previousEndMs);
     final previousRepairsF = _db.getDeliveredRepairsByDateRange(previousStartMs, previousEndMs);
     final previousExpensesF = _db.getExpensesByDateRange(previousStartMs, previousEndMs);
@@ -305,6 +306,7 @@ class FinanceV2DataService {
     final importHistory = await importHistoryF;
     final debts = await debtsF;
     final activities = await activitiesF;
+    final costFundRepairs = await costFundRepairsF;
     final previousSales = await previousSalesF;
     final previousRepairs = await previousRepairsF;
     final previousExpenses = await previousExpensesF;
@@ -533,6 +535,37 @@ class FinanceV2DataService {
               : (e['createdBy'] ?? '').toString().trim(),
           paymentMethod: (e['paymentMethod'] ?? '').toString(),
           referenceId: (e['firestoreId'] ?? e['id'] ?? '').toString(),
+        ),
+      );
+    }
+
+    // Chi phí linh kiện SC đã ghi sổ quỹ (costRecordedInFund = 1)
+    // Dùng repairs table (costRecordedAt in range) thay vì financial_activity_log
+    // để luôn lấy giá trị mới nhất và tránh trùng lặp khi user ghi lại nhiều lần.
+    for (final r in costFundRepairs) {
+      final amount = _toInt(r['costRecordedAmount']) > 0
+          ? _toInt(r['costRecordedAmount'])
+          : _toInt(r['cost']);
+      if (amount <= 0) continue;
+      final ts = _toInt(r['costRecordedAt']);
+      final method = (r['costPaymentMethod'] ?? 'TIỀN MẶT').toString();
+      final customerName = (r['customerName'] ?? '').toString().trim();
+      final model = (r['model'] ?? '').toString().trim();
+      expenseOut += amount;
+      transactions.add(
+        FinanceV2Txn(
+          id: 'parts_cost_${r['firestoreId'] ?? r['id'] ?? ts}',
+          createdAt: ts,
+          type: 'EXPENSE',
+          title: 'Vốn linh kiện${customerName.isNotEmpty ? ": $customerName" : ""}',
+          subtitle:
+              'Chi linh kiện SC${model.isNotEmpty ? " · $model" : ""} · $method',
+          amount: amount,
+          isIncome: false,
+          paymentMethod: method,
+          customerName: customerName.isNotEmpty ? customerName : null,
+          itemName: model.isNotEmpty ? model : null,
+          referenceId: (r['firestoreId'] ?? '').toString(),
         ),
       );
     }

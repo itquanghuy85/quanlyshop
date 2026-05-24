@@ -541,6 +541,7 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
     final partnerPayF = _db.getRepairPartnerPaymentsByDateRange(startMs, endMs);
     final importsF = _db.getAllImportHistoryByDateRange(startMs, endMs);
     final returnsF = _db.getSalesReturnsByDateRange(startMs, endMs);
+    final costFundF = _db.getRepairsCostFundByDateRange(startMs, endMs);
     final productsF = _db.getInStockProducts();
     final repairPartsF = _db.getRepairPartsAsProducts();
     final salvageF = _db.getAllSalvagePhones();
@@ -553,6 +554,7 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
     final prePartnerPayments = await partnerPayF;
     final preImports = await importsF;
     final preReturns = await returnsF;
+    final preCostFundRows = await costFundF;
     final preProducts = await productsF;
     final preRepairParts = await repairPartsF;
     final preSalvage = await salvageF;
@@ -568,6 +570,7 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
       preloadedRepairPartnerPayments: prePartnerPayments,
       preloadedImportHistory: preImports,
       preloadedSalesReturns: preReturns,
+      preloadedCostFundRows: preCostFundRows,
     );
     final inventory = await _buildInventoryAudit(
       start, end, s, analysis,
@@ -702,6 +705,7 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
     List<Map<String, dynamic>>? preloadedRepairPartnerPayments,
     List<Map<String, dynamic>>? preloadedImportHistory,
     List<Map<String, dynamic>>? preloadedSalesReturns,
+    List<Map<String, dynamic>>? preloadedCostFundRows,
   }) async {
     final startMs = DateTime(start.year, start.month, start.day).millisecondsSinceEpoch;
     final endMs = DateTime(end.year, end.month, end.day, 23, 59, 59).millisecondsSinceEpoch;
@@ -715,6 +719,7 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
     final partnerPayF = preloadedRepairPartnerPayments == null ? _db.getRepairPartnerPaymentsByDateRange(startMs, endMs) : null;
     final importsF = preloadedImportHistory == null ? _db.getAllImportHistoryByDateRange(startMs, endMs) : null;
     final returnsF = preloadedSalesReturns == null ? _db.getSalesReturnsByDateRange(startMs, endMs) : null;
+    final costFundF = preloadedCostFundRows == null ? _db.getRepairsCostFundByDateRange(startMs, endMs) : null;
 
     final sales = preloadedSales ?? await salesF!;
     final rawRepairs = preloadedRepairs ?? await repairsF!;
@@ -724,18 +729,19 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
     final repairPartnerPayments = preloadedRepairPartnerPayments ?? await partnerPayF!;
     final supplierImports = preloadedImportHistory ?? await importsF!;
     final salesReturns = preloadedSalesReturns ?? await returnsF!;
+    final costFundRaw = preloadedCostFundRows ?? await costFundF!;
 
     final settlementSales = sales
         .where((s) => s.isInstallment && s.settlementReceivedAt != null && s.settlementReceivedAt! >= startMs && s.settlementReceivedAt! <= endMs)
         .map((s) => s.toMap())
         .toList();
-    // Re-use rawRepairs for both mapped repairs and repairPartsCostFundRows (avoids duplicate DB fetch)
-    final repairPartsCostFundRows = rawRepairs
-        .where((r) => r.costRecordedInFund && r.costRecordedAt != null && r.costRecordedAt! >= startMs && r.costRecordedAt! <= endMs)
+    // Use dedicated cost-fund query (by costRecordedAt) so repairs delivered on a
+    // different day are still included when the cost was recorded in this period.
+    final repairPartsCostFundRows = costFundRaw
         .map((r) => <String, dynamic>{
-              'costRecordedAmount': r.costRecordedAmount,
-              'totalCost': r.totalCost,
-              'costPaymentMethod': r.costPaymentMethod,
+              'costRecordedAmount': r['costRecordedAmount'],
+              'totalCost': r['cost'],
+              'costPaymentMethod': r['costPaymentMethod'],
             })
         .toList();
 

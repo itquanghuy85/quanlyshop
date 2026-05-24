@@ -4448,6 +4448,44 @@ class DBHelper {
     return List.generate(maps.length, (i) => Repair.fromMap(maps[i]));
   }
 
+  /// Repairs where cost was recorded into the cash fund in a given date range.
+  /// Used by Finance V2 to include parts cost in cash-out totals.
+  Future<List<Map<String, dynamic>>> getRepairsCostFundByDateRange(
+    int startMs,
+    int endMs,
+  ) async {
+    final shopId = UserService.getShopIdSync();
+    final db = await database;
+    if (shopId != null && shopId.isNotEmpty) {
+      return db.query(
+        'repairs',
+        columns: [
+          'id', 'firestoreId', 'customerName', 'model',
+          'costRecordedAmount', 'cost', 'costPaymentMethod', 'costRecordedAt',
+        ],
+        where:
+            '(shopId = ? OR shopId IS NULL) AND costRecordedInFund = 1 '
+            'AND costRecordedAt IS NOT NULL AND costRecordedAt >= ? AND costRecordedAt <= ? '
+            'AND (deleted = 0 OR deleted IS NULL)',
+        whereArgs: [shopId, startMs, endMs],
+        orderBy: 'costRecordedAt DESC',
+      );
+    }
+    return db.query(
+      'repairs',
+      columns: [
+        'id', 'firestoreId', 'customerName', 'model',
+        'costRecordedAmount', 'cost', 'costPaymentMethod', 'costRecordedAt',
+      ],
+      where:
+          'costRecordedInFund = 1 AND costRecordedAt IS NOT NULL '
+          'AND costRecordedAt >= ? AND costRecordedAt <= ? '
+          'AND (deleted = 0 OR deleted IS NULL)',
+      whereArgs: [startMs, endMs],
+      orderBy: 'costRecordedAt DESC',
+    );
+  }
+
   Future<SaleOrder?> getSaleById(int id) async {
     final res = await (await database).query(
       'sales',
