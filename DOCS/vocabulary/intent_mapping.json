@@ -1,0 +1,110 @@
+{
+  "_comment": "Intent mapping for NLP routing (normalized input).",
+  "_version": "1.1",
+  "_source": "repair_vocabulary_service + natural_order_parser_service + ai_chat_service",
+  "intent_synonyms": {
+    "create_repair_order": [
+      "tao don sua",
+      "tao phieu sua",
+      "nhan may",
+      "bao gia sua",
+      "sua may",
+      "fix may",
+      "thay man",
+      "ep kinh",
+      "thay pin",
+      "mat face id"
+    ],
+    "create_sale_order": [
+      "tao don ban",
+      "tao hoa don",
+      "ban may",
+      "ban dien thoai",
+      "xuat hoa don",
+      "tra gop",
+      "ban phu kien"
+    ],
+    "create_stock_entry": [
+      "nhap kho",
+      "nhap hang",
+      "them kho",
+      "nhan hang",
+      "nhap linh kien",
+      "nhap phu kien"
+    ],
+    "view_repair": [
+      "don sua",
+      "sua chua",
+      "phieu sua",
+      "may dang sua",
+      "cho sua",
+      "da giao may",
+      "bao hanh"
+    ],
+    "view_sales": [
+      "ban hang",
+      "hoa don",
+      "don ban",
+      "doanh so",
+      "ban duoc bao nhieu"
+    ],
+    "view_stock": [
+      "kho",
+      "ton kho",
+      "linh kien",
+      "phu kien",
+      "gia von",
+      "hang ton"
+    ],
+    "view_debts": [
+      "cong no",
+      "khach no",
+      "ncc no",
+      "no phai thu",
+      "no phai tra",
+      "doi soat no"
+    ],
+    "view_finance": [
+      "tai chinh",
+      "doanh thu",
+      "loi nhuan",
+      "thu chi",
+      "bao cao",
+      "tong hop"
+    ],
+    "navigation": [
+      "mo tab sua",
+      "mo tab ban",
+      "mo kho",
+      "mo cong no",
+      "mo tai chinh",
+      "quay lai"
+    ]
+  },
+  "disambiguation_rules": [
+    {
+      "if_contains": ["sua", "thay", "ep", "fix"],
+      "prefer_intent": "create_repair_order"
+    },
+    {
+      "if_contains": ["ban", "hoa don", "tra gop"],
+      "prefer_intent": "create_sale_order"
+    },
+    {
+      "if_contains": ["nhap kho", "nhap hang", "them kho"],
+      "prefer_intent": "create_stock_entry"
+    },
+    {
+      "if_contains": ["doanh thu", "loi nhuan", "tai chinh"],
+      "prefer_intent": "view_finance"
+    },
+    {
+      "if_contains": ["cong no", "khach no", "ncc no"],
+      "prefer_intent": "view_debts"
+    }
+  ],
+  "fallback": {
+    "intent": "unknown",
+    "strategy": "ask_for_clarification_with_suggestions"
+  }
+}

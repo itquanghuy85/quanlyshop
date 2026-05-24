@@ -4,6 +4,36 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-05-25c] - Hoàn Tất Industry Vocabulary Engine + Audit Rủi Ro AI
+
+### Added
+- `DOCS/vocabulary/vocabulary.json`
+	- Bản tổng hợp vocabulary engine theo domain cửa hàng sửa chữa điện thoại.
+	- Bao gồm: brands, device families, repair issues, business entities, supported intents, preprocess pipelines.
+- `DOCS/vocabulary/intent_mapping.json`
+	- Mapping intent đầy đủ cho luồng: tạo đơn sửa, tạo đơn bán, nhập kho, xem kho, công nợ, tài chính.
+	- Bổ sung `disambiguation_rules` và `fallback` cho câu mơ hồ.
+- `DOCS/AI_SECURITY_RISK_AUDIT.md`
+	- Audit rủi ro đọc dữ liệu AI context và rủi ro token/key trong luồng `chatAssistant` + `createRepairOrderAI`.
+	- Nêu rõ mức độ rủi ro, bằng chứng, và checklist hardening theo ưu tiên P0/P1/P2.
+
+### Changed
+- `DOCS/vocabulary/alias_mapping.json`
+	- Mở rộng alias thiết bị/sửa chữa/slang theo thực tế vận hành cửa hàng.
+- `DOCS/vocabulary/typo_mapping.json`
+	- Bổ sung lỗi chính tả phổ biến cho brand/model/repair/business terms.
+- `DOCS/vocabulary/phonetic_mapping.json`
+	- Mở rộng map nhận diện giọng nói (số đọc model, nhầm âm kỹ thuật).
+- `docs/DOCUMENTATION_INDEX.md`
+	- Bổ sung nhóm tài liệu AI & NLP cho vocabulary engine và security audit.
+- `docs/HANDOVER.md`
+	- Cập nhật trạng thái hoàn tất task vocabulary engine + audit rủi ro AI.
+
+### Validation
+- `flutter analyze`: hoàn tất, vẫn còn warning/info legacy toàn dự án (không phát sinh lỗi compile mới từ thay đổi tài liệu).
+- `flutter build apk --debug`: thành công, tạo `build/app/outputs/flutter-apk/app-debug.apk`.
+- JSON syntax check: OK cho 5 file vocabulary (`ConvertFrom-Json`).
+
 ## [2026-05-25b] — Progressive Intent Clarification + Máy Xác + NCC Link Kho
 
 ### Added

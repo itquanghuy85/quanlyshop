@@ -1,0 +1,65 @@
+{
+  "_comment": "Phonetic mapping after normalize() for voice-entered commands.",
+  "_version": "1.1",
+  "_source": "lib/services/repair_vocabulary_service.dart (kPhoneticMap)",
+  "_note": "Voice regex runs first, this map is the second pass for normalized text.",
+  "number_words_to_iphone": {
+    "muoi mot": "iphone 11",
+    "muoi hai": "iphone 12",
+    "muoi ba": "iphone 13",
+    "muoi bon": "iphone 14",
+    "muoi lam": "iphone 15",
+    "muoi sau": "iphone 16",
+    "muoi bay": "iphone 7",
+    "muoi tam": "iphone 8",
+    "muoi mot prm": "iphone 11 pro max",
+    "muoi hai prm": "iphone 12 pro max",
+    "muoi ba prm": "iphone 13 pro max",
+    "muoi bon prm": "iphone 14 pro max",
+    "muoi lam prm": "iphone 15 pro max",
+    "muoi ba pro max": "iphone 13 pro max",
+    "muoi bon pro max": "iphone 14 pro max",
+    "muoi lam pro max": "iphone 15 pro max"
+  },
+  "number_words_to_samsung": {
+    "a muoi hai": "samsung a12",
+    "a muoi ba": "samsung a13",
+    "a muoi bon": "samsung a14",
+    "a muoi lam": "samsung a15",
+    "s hai muoi hai": "samsung s22",
+    "s hai muoi ba": "samsung s23",
+    "s hai muoi bon": "samsung s24",
+    "es hai muoi hai": "samsung s22",
+    "es hai muoi ba": "samsung s23",
+    "es hai muoi bon": "samsung s24"
+  },
+  "voice_mishearings": {
+    "ep kieng": "ep kinh",
+    "mat fei": "mat face id",
+    "mat fee": "mat face id",
+    "lam nguon": "sua nguon",
+    "con nguon": "mat nguon",
+    "loa noi": "loa trong",
+    "loa bao": "loa ngoai",
+    "cam t": "camera truoc",
+    "cam s": "camera sau",
+    "tao don": "tao don"
+  },
+  "voice_examples": [
+    {
+      "voice_input": "muoi ba prm",
+      "normalized": "muoi ba prm",
+      "mapped": "iphone 13 pro max"
+    },
+    {
+      "voice_input": "mat fei ip muoi bon",
+      "normalized": "mat fei ip muoi bon",
+      "mapped": "mat face id iphone 14"
+    },
+    {
+      "voice_input": "a muoi hai vo man",
+      "normalized": "a muoi hai vo man",
+      "mapped": "samsung a12 vo man hinh"
+    }
+  ]
+}

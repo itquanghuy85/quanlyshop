@@ -56,6 +56,16 @@
 | File | Mục đích | Cập nhật khi |
 |------|---------|-----------|
 | **DOCS/PERMISSION_AUDIT_REPORT.md** | Audit quyền user, roles, data isolation | Thay đổi permission logic, role definitions |
+| **DOCS/AI_SECURITY_RISK_AUDIT.md** | Audit rủi ro AI context, dữ liệu nhạy cảm, token/key exposure | Thay đổi luồng AI cloud, prompt context, logging |
+
+### AI & NLP
+| File | Mục đích | Cập nhật khi |
+|------|---------|-----------|
+| **DOCS/vocabulary/vocabulary.json** | Từ điển tổng hợp ngành sửa chữa điện thoại (device/repair/finance/intent) | Mở rộng domain vocabulary |
+| **DOCS/vocabulary/alias_mapping.json** | Mapping alias/slang -> canonical terms | Thêm viết tắt/slang mới |
+| **DOCS/vocabulary/typo_mapping.json** | Mapping lỗi chính tả -> canonical terms | Thêm typo phổ biến mới |
+| **DOCS/vocabulary/phonetic_mapping.json** | Mapping nhầm âm STT -> canonical terms | Cải thiện voice recognition pipeline |
+| **DOCS/vocabulary/intent_mapping.json** | Mapping từ khóa -> intent + disambiguation rules | Thêm/sửa intent hoặc routing NLP |
 
 ### UI & Design
 | File | Mục đích | Cập nhật khi |

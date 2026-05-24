@@ -1,0 +1,100 @@
+{
+  "meta": {
+    "engine": "industry_vocabulary_engine",
+    "domain": "phone_repair_shop_vn",
+    "version": "1.1",
+    "updated_at": "2026-05-25",
+    "normalization": [
+      "lowercase",
+      "trim_spaces",
+      "remove_vietnamese_diacritics"
+    ]
+  },
+  "brands": [
+    "iphone",
+    "samsung",
+    "oppo",
+    "vivo",
+    "xiaomi",
+    "redmi",
+    "realme",
+    "nokia",
+    "tecno",
+    "huawei",
+    "asus"
+  ],
+  "device_families": {
+    "iphone": ["7", "8", "x", "xr", "xs", "xs max", "11", "12", "13", "14", "15", "16", "mini", "plus", "pro", "pro max", "se", "se 2", "se 3"],
+    "samsung": ["a12", "a13", "a14", "a15", "a32", "a52", "a53", "a54", "s22", "s23", "s24", "s22 ultra", "s23 ultra", "s24 ultra"]
+  },
+  "repair_issues": [
+    "mat face id",
+    "vo man hinh",
+    "thay man hinh",
+    "ep kinh",
+    "hao pin",
+    "pin yeu",
+    "thay pin",
+    "mat nguon",
+    "sua nguon",
+    "ic nguon",
+    "ic sac",
+    "mat song",
+    "mat wifi",
+    "mat micro",
+    "hong micro",
+    "camera truoc",
+    "camera sau",
+    "camera mo",
+    "kinh camera",
+    "loa trong",
+    "loa ngoai",
+    "mat rung",
+    "bo rung",
+    "thay bo rung",
+    "liet cam ung",
+    "cam ung nhay",
+    "trang man hinh",
+    "den man hinh",
+    "kiem tra mainboard",
+    "thay ic",
+    "re-ball bga",
+    "ngan mach",
+    "ro dong dien",
+    "nand ic",
+    "baseband ic",
+    "audio ic",
+    "wifi ic"
+  ],
+  "business_entities": {
+    "customer": ["khach", "khach hang"],
+    "supplier": ["ncc", "nha cung cap"],
+    "staff": ["ktv", "ky thuat vien", "nhan vien"],
+    "stock": ["kho", "ton kho", "linh kien", "phu kien"],
+    "finance": ["doanh thu", "loi nhuan", "gia von", "cong no", "thu", "chi"]
+  },
+  "supported_intents": [
+    "create_repair_order",
+    "create_sale_order",
+    "create_stock_entry",
+    "view_repair",
+    "view_sales",
+    "view_stock",
+    "view_debts",
+    "view_finance",
+    "unknown"
+  ],
+  "pipelines": {
+    "query_preprocess": [
+      "typo_map",
+      "repair_aliases",
+      "device_aliases",
+      "single_word_slang",
+      "intent_synonyms"
+    ],
+    "voice_preprocess": [
+      "voice_regex_correction_service",
+      "phonetic_map"
+    ]
+  }
+}

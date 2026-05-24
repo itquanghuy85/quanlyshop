@@ -7,12 +7,12 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 ## ⚡ Trạng thái hiện tại
 
 **Version:** 1.x (develop) → 2.0 planning  
-**Last Updated:** 2026-05-23  
+**Last Updated:** 2026-05-25  
 **Build Status:** ✅ Debug build passing (`flutter build apk --debug`)  
 **Analyze Status:** ⚠️ `flutter analyze` còn `1552` issues pre-existing  
 **Database Version:** SQLite v17  
 **Branch:** master  
-**Active Initiative:** 🤖 Bổ sung luồng nhập nhanh đơn sửa/đơn bán bằng câu lệnh tự nhiên, giữ nguyên engine lưu đơn hiện tại
+**Active Initiative:** 🤖 Hoàn thiện Industry Vocabulary Engine + hardening luồng AI context/token
 
 ---
 
@@ -21,6 +21,32 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Phase đang thực hiện:** Chưa bắt đầu (chuẩn bị khởi động Phase 01)  
 **Tài liệu đã khởi tạo:** Toàn bộ `docs/` structure  
 **Tiến độ:** 0 / 8 phases hoàn thành
+
+---
+
+## ✅ Vừa hoàn thành (2026-05-25)
+
+1. **Hoàn tất Industry Vocabulary Engine (2026-05-25)**
+  - Tạo đủ 5 output theo yêu cầu tại `DOCS/vocabulary/`:
+    - `vocabulary.json`
+    - `alias_mapping.json`
+    - `typo_mapping.json`
+    - `phonetic_mapping.json`
+    - `intent_mapping.json`
+  - Chuẩn hóa theo pipeline normalize -> typo -> alias -> intent.
+  - Bổ sung coverage cho thiết bị, lỗi sửa chữa, kho, tài chính, và intent điều hướng.
+
+2. **Audit rủi ro đọc dữ liệu và rủi ro token AI (2026-05-25)**
+  - Tạo `DOCS/AI_SECURITY_RISK_AUDIT.md`.
+  - Kết luận chính:
+    - API key DeepSeek đang an toàn ở server-side secret.
+    - Rủi ro còn lại chủ yếu nằm ở data minimization/context over-sharing và logging prompt/answer.
+  - Đưa ra kế hoạch hardening theo P0/P1/P2.
+
+3. **Validation kỹ thuật cho đợt cập nhật tài liệu (2026-05-25)**
+  - `flutter analyze`: chạy xong, còn warning/info legacy (không có compile error mới do task này).
+  - `flutter build apk --debug`: thành công.
+  - JSON syntax check cho 5 file vocabulary: OK.
 
 ---
 
