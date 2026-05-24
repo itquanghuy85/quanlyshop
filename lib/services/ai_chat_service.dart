@@ -6,23 +6,37 @@ import '../utils/vietnamese_utils.dart';
 // ── Stats snapshot ─────────────────────────────────────────────────────────────
 
 class AiChatStats {
-  final int salesToday;
-  final int revenueToday;
-  final int profitToday;
+  // Today — totals (sales + delivered repairs)
+  final int salesToday;           // số đơn bán hàng
+  final int revenueToday;         // tổng doanh thu (bán + sửa giao)
+  final int profitToday;          // tổng lợi nhuận
+
+  // Today — breakdown
+  final int saleRevenueToday;     // doanh thu bán hàng
+  final int repairRevenueToday;   // doanh thu sửa chữa (đã giao)
+  final int deliveredRepairsToday; // số đơn sửa đã giao hôm nay
+
+  // Repairs all statuses today (for count + pending list)
   final int repairsToday;
   final int repairsPending;
+
+  // Stock
   final int stockCount;
   final int stockCapital;
+
+  // Debts
   final int debtReceivable;
   final int debtPayable;
 
-  // Monthly aggregates
+  // Monthly totals
   final int salesThisMonth;
-  final int revenueThisMonth;
+  final int saleRevenueThisMonth;
+  final int repairRevenueThisMonth;
+  final int revenueThisMonth;     // tổng tháng
   final int profitThisMonth;
   final int repairsThisMonth;
 
-  // Detail lists for "gồm những đơn nào" / "ai nợ nhiều nhất"
+  // Detail lists
   final List<String> repairSummaries;
   final List<String> topDebtorLines;
 
@@ -30,6 +44,9 @@ class AiChatStats {
     this.salesToday = 0,
     this.revenueToday = 0,
     this.profitToday = 0,
+    this.saleRevenueToday = 0,
+    this.repairRevenueToday = 0,
+    this.deliveredRepairsToday = 0,
     this.repairsToday = 0,
     this.repairsPending = 0,
     this.stockCount = 0,
@@ -37,6 +54,8 @@ class AiChatStats {
     this.debtReceivable = 0,
     this.debtPayable = 0,
     this.salesThisMonth = 0,
+    this.saleRevenueThisMonth = 0,
+    this.repairRevenueThisMonth = 0,
     this.revenueThisMonth = 0,
     this.profitThisMonth = 0,
     this.repairsThisMonth = 0,
@@ -48,6 +67,9 @@ class AiChatStats {
         'salesToday': salesToday,
         'revenueToday': revenueToday,
         'profitToday': profitToday,
+        'saleRevenueToday': saleRevenueToday,
+        'repairRevenueToday': repairRevenueToday,
+        'deliveredRepairsToday': deliveredRepairsToday,
         'repairsToday': repairsToday,
         'repairsPending': repairsPending,
         'stockCount': stockCount,
@@ -55,6 +77,8 @@ class AiChatStats {
         'debtReceivable': debtReceivable,
         'debtPayable': debtPayable,
         'salesThisMonth': salesThisMonth,
+        'saleRevenueThisMonth': saleRevenueThisMonth,
+        'repairRevenueThisMonth': repairRevenueThisMonth,
         'revenueThisMonth': revenueThisMonth,
         'profitThisMonth': profitThisMonth,
         'repairsThisMonth': repairsThisMonth,
@@ -85,69 +109,93 @@ class AiChatService {
     final db = DBHelper();
     final now = DateTime.now();
 
-    // Today range
     final dayStart = DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
     final dayEnd = DateTime(now.year, now.month, now.day, 23, 59, 59).millisecondsSinceEpoch;
 
-    // Month range
     final monthStart = DateTime(now.year, now.month, 1).millisecondsSinceEpoch;
     final monthEnd = DateTime(now.year, now.month + 1, 1)
         .subtract(const Duration(seconds: 1))
         .millisecondsSinceEpoch;
 
     final results = await Future.wait([
-      db.getSalesByDateRange(dayStart, dayEnd),
-      db.getRepairsByCreatedAtRange(dayStart, dayEnd),
-      db.getInventorySummary(),
-      db.getDebtsForFinanceSnapshot(),
-      db.getSalesByDateRange(monthStart, monthEnd),
-      db.getRepairsByCreatedAtRange(monthStart, monthEnd),
+      db.getSalesByDateRange(dayStart, dayEnd),                    // [0] sales hôm nay
+      db.getRepairsByCreatedAtRange(dayStart, dayEnd),             // [1] tất cả đơn sửa hôm nay (để đếm + list)
+      db.getInventorySummary(),                                     // [2] tồn kho
+      db.getDebtsForFinanceSnapshot(),                             // [3] công nợ
+      db.getSalesByDateRange(monthStart, monthEnd),                 // [4] sales tháng
+      db.getRepairsByCreatedAtRange(monthStart, monthEnd),         // [5] đơn sửa tháng (đếm)
+      db.getDeliveredRepairsByDateRange(dayStart, dayEnd),         // [6] đơn sửa ĐÃ GIAO hôm nay (tính doanh thu)
+      db.getDeliveredRepairsByDateRange(monthStart, monthEnd),     // [7] đơn sửa ĐÃ GIAO tháng
     ]);
 
     final sales = results[0] as List;
-    final repairs = results[1] as List;
+    final repairs = results[1] as List;           // tất cả đơn sửa (mọi trạng thái)
     final inventory = results[2] as Map<String, int>;
     final debts = results[3] as List<Map<String, dynamic>>;
     final salesMonth = results[4] as List;
-    final repairsMonth = results[5] as List;
+    final repairsMonth = results[5] as List;      // tất cả đơn sửa tháng
+    final deliveredRepairs = results[6] as List;  // đơn sửa đã giao hôm nay
+    final deliveredRepairsMonth = results[7] as List; // đã giao tháng
 
-    // Today aggregates
-    int revenue = 0, profit = 0;
+    // ── Doanh thu bán hàng ──
+    int saleRevenue = 0, saleProfit = 0;
     for (final s in sales) {
-      final fp = s.finalPrice as int? ?? 0;
-      final tc = s.totalCost as int? ?? 0;
-      revenue += fp;
-      profit += fp - tc;
+      final fp = (s.finalPrice as num?)?.toInt() ?? 0;
+      final tc = (s.totalCost as num?)?.toInt() ?? 0;
+      saleRevenue += fp;
+      saleProfit += fp - tc;
     }
 
-    // Monthly aggregates
-    int revenueMonth = 0, profitMonth = 0;
+    // ── Doanh thu sửa chữa (chỉ đơn đã giao) ──
+    int repairRevenue = 0, repairProfit = 0;
+    for (final r in deliveredRepairs) {
+      final price = (r.price as num?)?.toInt() ?? 0;
+      final cost = (r.totalCost as num?)?.toInt() ?? 0;
+      repairRevenue += price;
+      repairProfit += price - cost;
+    }
+
+    // ── Monthly sales ──
+    int saleRevenueMonth = 0, profitMonth = 0;
     for (final s in salesMonth) {
-      final fp = s.finalPrice as int? ?? 0;
-      final tc = s.totalCost as int? ?? 0;
-      revenueMonth += fp;
+      final fp = (s.finalPrice as num?)?.toInt() ?? 0;
+      final tc = (s.totalCost as num?)?.toInt() ?? 0;
+      saleRevenueMonth += fp;
       profitMonth += fp - tc;
     }
 
+    // ── Monthly repair revenue ──
+    int repairRevenueMonth = 0, repairProfitMonth = 0;
+    for (final r in deliveredRepairsMonth) {
+      final price = (r.price as num?)?.toInt() ?? 0;
+      final cost = (r.totalCost as num?)?.toInt() ?? 0;
+      repairRevenueMonth += price;
+      repairProfitMonth += price - cost;
+    }
+
+    // ── Đơn sửa: đếm + list (mọi trạng thái) ──
     int pending = 0;
     final repairSummaries = <String>[];
     const statusLabel = {1: 'Mới nhận', 2: 'Đang sửa', 3: 'Xong chờ lấy', 4: 'Đã giao'};
     for (final r in repairs) {
-      final status = r.status as int? ?? 0;
+      final status = (r.status as num?)?.toInt() ?? 0;
       if (status < 4) pending++;
       final model = (r.model as String?)?.trim() ?? '';
       final issue = (r.issue as String?)?.trim() ?? '';
       final name = (r.customerName as String?)?.trim() ?? '';
+      final price = (r.price as num?)?.toInt() ?? 0;
       final statusStr = statusLabel[status] ?? 'Không rõ';
       final summary = [
         if (model.isNotEmpty) model,
         if (issue.isNotEmpty) issue else 'chưa ghi lỗi',
         if (name.isNotEmpty) name,
+        if (price > 0) fmt(price),
         '($statusStr)',
       ].join(' - ');
       repairSummaries.add(summary);
     }
 
+    // ── Công nợ ──
     int debtReceivable = 0, debtPayable = 0;
     final debtorMap = <String, int>{};
     for (final d in debts) {
@@ -177,8 +225,11 @@ class AiChatService {
 
     return AiChatStats(
       salesToday: sales.length,
-      revenueToday: revenue,
-      profitToday: profit,
+      revenueToday: saleRevenue + repairRevenue,
+      profitToday: saleProfit + repairProfit,
+      saleRevenueToday: saleRevenue,
+      repairRevenueToday: repairRevenue,
+      deliveredRepairsToday: deliveredRepairs.length,
       repairsToday: repairs.length,
       repairsPending: pending,
       stockCount: inventory['totalQty'] ?? 0,
@@ -186,8 +237,10 @@ class AiChatService {
       debtReceivable: debtReceivable,
       debtPayable: debtPayable,
       salesThisMonth: salesMonth.length,
-      revenueThisMonth: revenueMonth,
-      profitThisMonth: profitMonth,
+      saleRevenueThisMonth: saleRevenueMonth,
+      repairRevenueThisMonth: repairRevenueMonth,
+      revenueThisMonth: saleRevenueMonth + repairRevenueMonth,
+      profitThisMonth: profitMonth + repairProfitMonth,
       repairsThisMonth: repairsMonth.length,
       repairSummaries: repairSummaries.take(20).toList(),
       topDebtorLines: topDebtorLines,
@@ -199,18 +252,24 @@ class AiChatService {
   String? quickAnswer(String question, AiChatStats stats) {
     final n = VietnameseUtils.normalize(question.toLowerCase());
 
-    // Tổng hợp tài chính (ưu tiên check trước vì overlap keywords)
+    // Tổng hợp tài chính
     if (_has(n, ['tai chinh', 'tong hop', 'tom tat', 'bao cao', 'tong ket'])) {
       final buf = StringBuffer();
       buf.writeln('**Tóm tắt tài chính hôm nay:**');
-      buf.writeln('• Doanh thu: **${fmt(stats.revenueToday)}** (${stats.salesToday} đơn)');
+      if (stats.salesToday > 0) {
+        buf.writeln('• Bán hàng: **${stats.salesToday} đơn** — ${fmt(stats.saleRevenueToday)}');
+      }
+      if (stats.deliveredRepairsToday > 0) {
+        buf.writeln('• Sửa chữa đã giao: **${stats.deliveredRepairsToday} đơn** — ${fmt(stats.repairRevenueToday)}');
+      }
+      buf.writeln('• Tổng doanh thu: **${fmt(stats.revenueToday)}**');
       buf.writeln('• Lợi nhuận: **${fmt(stats.profitToday)}**');
-      buf.writeln('• Đơn sửa: **${stats.repairsToday}** mới, **${stats.repairsPending}** chưa giao');
+      buf.writeln('• Đơn sửa đang chờ: **${stats.repairsPending} đơn**');
       buf.writeln();
       buf.writeln('**Tháng này:**');
-      buf.writeln('• Doanh thu: **${fmt(stats.revenueThisMonth)}** (${stats.salesThisMonth} đơn)');
-      buf.writeln('• Lợi nhuận: **${fmt(stats.profitThisMonth)}**');
-      buf.writeln('• Đơn sửa: **${stats.repairsThisMonth}** đơn');
+      buf.writeln('• Bán hàng: ${stats.salesThisMonth} đơn (${fmt(stats.saleRevenueThisMonth)})');
+      buf.writeln('• Sửa chữa: ${stats.repairsThisMonth} đơn (${fmt(stats.repairRevenueThisMonth)})');
+      buf.writeln('• Tổng doanh thu: **${fmt(stats.revenueThisMonth)}** | Lợi nhuận: **${fmt(stats.profitThisMonth)}**');
       buf.writeln();
       buf.write('• Công nợ phải thu: **${fmt(stats.debtReceivable)}**');
       buf.write(' | Phải trả: **${fmt(stats.debtPayable)}**');
@@ -218,19 +277,26 @@ class AiChatService {
     }
 
     // Tháng này
-    if (_has(n, ['thang nay', 'thang nay the nao', 'thang', 'doanh thu thang'])) {
-      return 'Tháng này bán được **${stats.salesThisMonth} đơn**, '
-          'doanh thu **${fmt(stats.revenueThisMonth)}**, '
-          'lợi nhuận **${fmt(stats.profitThisMonth)}**. '
-          'Đơn sửa chữa: **${stats.repairsThisMonth} đơn**.';
+    if (_has(n, ['thang nay', 'doanh thu thang']) &&
+        !_has(n, ['gom', 'chi tiet', 'danh sach'])) {
+      return 'Tháng này: bán hàng **${stats.salesThisMonth} đơn** (${fmt(stats.saleRevenueThisMonth)}), '
+          'sửa chữa giao **${fmt(stats.repairRevenueThisMonth)}**. '
+          'Tổng doanh thu **${fmt(stats.revenueThisMonth)}**, '
+          'lợi nhuận **${fmt(stats.profitThisMonth)}**.';
     }
 
     // Doanh thu hôm nay
     if (_has(n, ['doanh thu', 'ban duoc', 'thu duoc', 'ban hang']) &&
         !_has(n, ['gom', 'nhung', 'nao', 'chi tiet', 'danh sach', 'thang'])) {
-      return 'Hôm nay bán được **${stats.salesToday} đơn**, '
-          'doanh thu **${fmt(stats.revenueToday)}**, '
-          'lợi nhuận **${fmt(stats.profitToday)}**.';
+      final buf = StringBuffer();
+      if (stats.saleRevenueToday > 0 || stats.salesToday > 0) {
+        buf.write('Bán hàng: **${stats.salesToday} đơn** (${fmt(stats.saleRevenueToday)}). ');
+      }
+      if (stats.repairRevenueToday > 0 || stats.deliveredRepairsToday > 0) {
+        buf.write('Sửa chữa giao: **${stats.deliveredRepairsToday} đơn** (${fmt(stats.repairRevenueToday)}). ');
+      }
+      buf.write('Tổng doanh thu: **${fmt(stats.revenueToday)}**, lợi nhuận: **${fmt(stats.profitToday)}**.');
+      return buf.toString();
     }
 
     // Tồn kho
@@ -256,8 +322,9 @@ class AiChatService {
     // Đơn sửa tổng quát
     if (_has(n, ['don sua', 'sua may', 'sua chua', 'dang sua', 'cho lay'])) {
       final answer = StringBuffer(
-          'Hôm nay nhận **${stats.repairsToday} đơn sửa** mới.\n'
-          'Đang sửa chưa giao: **${stats.repairsPending} đơn**.');
+          'Hôm nay nhận **${stats.repairsToday} đơn sửa** mới. '
+          'Đã giao: **${stats.deliveredRepairsToday} đơn**, '
+          'đang chờ: **${stats.repairsPending} đơn**.');
       if (stats.repairsPending > 0) {
         final pending = stats.repairSummaries
             .where((s) =>
@@ -273,7 +340,7 @@ class AiChatService {
     }
 
     // Ai nợ nhiều nhất
-    if (_has(n, ['ai no nhieu nhat', 'no ai nhieu', 'top no', 'ai no nhieu',
+    if (_has(n, ['ai no nhieu nhat', 'no ai nhieu', 'top no',
                   'no nhieu nhat', 'ai no tien nhieu'])) {
       if (stats.topDebtorLines.isEmpty) {
         return 'Hiện không có công nợ phải thu nào.';
@@ -297,14 +364,15 @@ class AiChatService {
 
     // Lợi nhuận
     if (_has(n, ['loi nhuan', 'lai bao nhieu', 'loi bao nhieu'])) {
-      return 'Lợi nhuận hôm nay: **${fmt(stats.profitToday)}**.';
+      return 'Lợi nhuận hôm nay: **${fmt(stats.profitToday)}** '
+          '(bán hàng + sửa chữa đã giao).';
     }
 
     // Chào hỏi
     if (_has(n, ['xin chao', 'hello', 'chao ban', 'chao ai', 'ban la ai'])) {
       return 'Xin chào! Tôi là **AI Trợ Lý** của shop. Bạn có thể hỏi tôi:\n'
-          '• Doanh thu / lợi nhuận hôm nay hoặc tháng này\n'
-          '• Tổng hợp tài chính\n'
+          '• Doanh thu hôm nay (bán hàng + sửa chữa đã giao)\n'
+          '• Tổng hợp tài chính / tháng này\n'
           '• Tồn kho hiện tại\n'
           '• Công nợ & ai nợ nhiều nhất\n'
           '• Đơn sửa đang chờ\n'

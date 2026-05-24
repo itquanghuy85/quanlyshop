@@ -2242,15 +2242,19 @@ exports.chatAssistant = onCall(
     const s = stats ?? {};
 
     const todayLines = [
-      `• Bán hàng: ${s.salesToday ?? 0} đơn | Doanh thu: ${fmt(s.revenueToday)} | Lợi nhuận: ${fmt(s.profitToday)}`,
-      `• Đơn sửa chữa: ${s.repairsToday ?? 0} đơn mới | Đang sửa chưa giao: ${s.repairsPending ?? 0} đơn`,
+      `• Bán hàng: ${s.salesToday ?? 0} đơn | Doanh thu bán: ${fmt(s.saleRevenueToday ?? s.revenueToday)}`,
+      `• Sửa chữa đã giao: ${s.deliveredRepairsToday ?? 0} đơn | Doanh thu sửa: ${fmt(s.repairRevenueToday)}`,
+      `• Tổng doanh thu hôm nay: ${fmt(s.revenueToday)} | Lợi nhuận: ${fmt(s.profitToday)}`,
+      `• Đơn sửa chữa: ${s.repairsToday ?? 0} đơn mới tạo | Đang chờ giao: ${s.repairsPending ?? 0} đơn`,
       `• Tồn kho: ${s.stockCount ?? 0} sản phẩm | Giá vốn tồn: ${fmt(s.stockCapital)}`,
       `• Công nợ phải thu: ${fmt(s.debtReceivable)} | Phải trả: ${fmt(s.debtPayable)}`,
     ];
 
     const monthLines = (s.salesThisMonth != null || s.revenueThisMonth != null) ? [
-      `• Bán hàng: ${s.salesThisMonth ?? 0} đơn | Doanh thu: ${fmt(s.revenueThisMonth)} | Lợi nhuận: ${fmt(s.profitThisMonth)}`,
-      `• Đơn sửa chữa: ${s.repairsThisMonth ?? 0} đơn`,
+      `• Bán hàng: ${s.salesThisMonth ?? 0} đơn (${fmt(s.saleRevenueThisMonth ?? 0)})`,
+      `• Sửa chữa đã giao tháng này: ${fmt(s.repairRevenueThisMonth ?? 0)}`,
+      `• Tổng doanh thu tháng: ${fmt(s.revenueThisMonth)} | Lợi nhuận: ${fmt(s.profitThisMonth)}`,
+      `• Đơn sửa chữa tạo tháng này: ${s.repairsThisMonth ?? 0} đơn`,
     ] : [];
 
     const debtorSection = Array.isArray(s.topDebtorLines) && s.topDebtorLines.length > 0
