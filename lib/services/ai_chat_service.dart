@@ -16,6 +16,10 @@ class AiChatStats {
   final int debtReceivable;
   final int debtPayable;
 
+  // Detail lists for "gồm những đơn nào" / "ai nợ nhiều nhất"
+  final List<String> repairSummaries;   // ["Samsung A52 - thay màn (Nguyễn Hùng - Đang sửa)", ...]
+  final List<String> topDebtorLines;    // ["Nguyễn Văn A: 5.2tr", ...]
+
   const AiChatStats({
     this.salesToday = 0,
     this.revenueToday = 0,
@@ -26,6 +30,8 @@ class AiChatStats {
     this.stockCapital = 0,
     this.debtReceivable = 0,
     this.debtPayable = 0,
+    this.repairSummaries = const [],
+    this.topDebtorLines = const [],
   });
 
   Map<String, dynamic> toJson() => {
@@ -38,6 +44,8 @@ class AiChatStats {
         'stockCapital': stockCapital,
         'debtReceivable': debtReceivable,
         'debtPayable': debtPayable,
+        'repairSummaries': repairSummaries,
+        'topDebtorLines': topDebtorLines,
       };
 }
 
@@ -88,11 +96,26 @@ class AiChatService {
     }
 
     int pending = 0;
+    final repairSummaries = <String>[];
+    const statusLabel = {1: 'Mới nhận', 2: 'Đang sửa', 3: 'Xong chờ lấy', 4: 'Đã giao'};
     for (final r in repairs) {
-      if ((r.status as int? ?? 0) < 4) pending++;
+      final status = r.status as int? ?? 0;
+      if (status < 4) pending++;
+      final model = (r.model as String?)?.trim() ?? '';
+      final issue = (r.issue as String?)?.trim() ?? '';
+      final name = (r.customerName as String?)?.trim() ?? '';
+      final statusStr = statusLabel[status] ?? 'Không rõ';
+      final summary = [
+        if (model.isNotEmpty) model,
+        if (issue.isNotEmpty) issue else 'chưa ghi lỗi',
+        if (name.isNotEmpty) name,
+        '($statusStr)',
+      ].join(' - ');
+      repairSummaries.add(summary);
     }
 
     int debtReceivable = 0, debtPayable = 0;
+    final debtorMap = <String, int>{};
     for (final d in debts) {
       final total = d['totalAmount'] as int? ?? 0;
       final paid = d['paidAmount'] as int? ?? 0;
@@ -104,10 +127,20 @@ class AiChatService {
           debtType == 'PHAI_THU' ||
           type.contains('THU')) {
         debtReceivable += remaining;
+        final name = (d['personName'] as String?)?.trim() ?? 'Không rõ';
+        debtorMap[name] = (debtorMap[name] ?? 0) + remaining;
       } else {
         debtPayable += remaining;
       }
     }
+
+    // Top 5 debtors sorted by amount desc
+    final sortedDebtors = debtorMap.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    final topDebtorLines = sortedDebtors
+        .take(5)
+        .map((e) => '${e.key}: **${fmt(e.value)}**')
+        .toList();
 
     return AiChatStats(
       salesToday: sales.length,
@@ -119,6 +152,8 @@ class AiChatService {
       stockCapital: inventory['totalCapital'] ?? 0,
       debtReceivable: debtReceivable,
       debtPayable: debtPayable,
+      repairSummaries: repairSummaries.take(20).toList(),
+      topDebtorLines: topDebtorLines,
     );
   }
 
@@ -129,31 +164,81 @@ class AiChatService {
   String? quickAnswer(String question, AiChatStats stats) {
     final n = VietnameseUtils.normalize(question.toLowerCase());
 
-    if (_has(n, ['doanh thu', 'ban duoc', 'thu duoc', 'ban hang'])) {
-      return 'Hôm nay bán được **${stats.salesToday} đơn**, doanh thu **${_fmt(stats.revenueToday)}**, lợi nhuận **${_fmt(stats.profitToday)}**.';
+    // Doanh thu
+    if (_has(n, ['doanh thu', 'ban duoc', 'thu duoc', 'ban hang']) &&
+        !_has(n, ['gom', 'nhung', 'nao', 'chi tiet', 'danh sach'])) {
+      return 'Hôm nay bán được **${stats.salesToday} đơn**, doanh thu **${fmt(stats.revenueToday)}**, lợi nhuận **${fmt(stats.profitToday)}**.';
     }
+
+    // Tồn kho
     if (_has(n, ['ton kho', 'hang con', 'kiem kho', 'so luong hang'])) {
-      return 'Tồn kho hiện tại: **${stats.stockCount} sản phẩm**, giá vốn **${_fmt(stats.stockCapital)}**.';
+      return 'Tồn kho hiện tại: **${stats.stockCount} sản phẩm**, giá vốn **${fmt(stats.stockCapital)}**.';
     }
-    if (_has(n, ['cong no', 'no', 'khach no', 'thu no'])) {
-      return 'Công nợ phải thu: **${_fmt(stats.debtReceivable)}**\n'
-          'Công nợ phải trả: **${_fmt(stats.debtPayable)}**.';
+
+    // Đơn sửa danh sách chi tiết
+    if (_has(n, ['gom nhung don', 'don nao', 'nhung don', 'don hom nay',
+                  'danh sach don', 'co nhung don gi'])) {
+      if (stats.repairSummaries.isEmpty) {
+        return 'Hôm nay chưa có đơn sửa nào.';
+      }
+      final lines = stats.repairSummaries
+          .asMap()
+          .entries
+          .map((e) => '${e.key + 1}. ${e.value}')
+          .join('\n');
+      return 'Đơn sửa hôm nay (${stats.repairsToday} đơn):\n$lines';
     }
+
+    // Đơn sửa tổng quát
     if (_has(n, ['don sua', 'sua may', 'sua chua', 'dang sua', 'cho lay'])) {
-      return 'Hôm nay nhận **${stats.repairsToday} đơn sửa** mới.\n'
-          'Đang sửa chưa giao: **${stats.repairsPending} đơn**.';
+      final answer = StringBuffer('Hôm nay nhận **${stats.repairsToday} đơn sửa** mới.\n'
+          'Đang sửa chưa giao: **${stats.repairsPending} đơn**.');
+      if (stats.repairsPending > 0) {
+        final pending = stats.repairSummaries
+            .where((s) => s.contains('Đang sửa') || s.contains('Mới nhận') || s.contains('Xong chờ'))
+            .take(5)
+            .map((s) => '• $s')
+            .join('\n');
+        if (pending.isNotEmpty) answer.write('\n$pending');
+      }
+      return answer.toString();
     }
-    if (_has(n, ['loi nhuan', 'lai', 'profit'])) {
-      return 'Lợi nhuận hôm nay: **${_fmt(stats.profitToday)}**.';
+
+    // Ai nợ nhiều nhất
+    if (_has(n, ['ai no nhieu nhat', 'no ai nhieu', 'top no', 'ai no nhieu',
+                  'no nhieu nhat', 'ai no tien nhieu'])) {
+      if (stats.topDebtorLines.isEmpty) {
+        return 'Hiện không có công nợ phải thu nào.';
+      }
+      return 'Top khách nợ nhiều nhất:\n${stats.topDebtorLines.map((l) => '• $l').join('\n')}';
     }
-    if (_has(n, ['xin chao', 'hello', 'hi', 'chao'])) {
-      return 'Chào bạn! Tôi là AI Trợ Lý của shop. Bạn có thể hỏi tôi về:\n'
+
+    // Công nợ tổng
+    if (_has(n, ['cong no', 'khach no', 'thu no', 'no chua tra'])) {
+      final answer = StringBuffer(
+          'Công nợ phải thu: **${fmt(stats.debtReceivable)}**\n'
+          'Công nợ phải trả: **${fmt(stats.debtPayable)}**.');
+      if (stats.topDebtorLines.isNotEmpty) {
+        answer.write('\n\nTop khách nợ:\n${stats.topDebtorLines.take(3).map((l) => '• $l').join('\n')}');
+      }
+      return answer.toString();
+    }
+
+    // Lợi nhuận
+    if (_has(n, ['loi nhuan', 'lai bao nhieu', 'loi bao nhieu'])) {
+      return 'Lợi nhuận hôm nay: **${fmt(stats.profitToday)}**.';
+    }
+
+    // Chào hỏi
+    if (_has(n, ['xin chao', 'hello', 'chao ban', 'chao ai', 'ban la ai'])) {
+      return 'Xin chào! Tôi là **AI Trợ Lý** của shop. Bạn có thể hỏi tôi:\n'
           '• Doanh thu / lợi nhuận hôm nay\n'
           '• Tồn kho hiện tại\n'
-          '• Công nợ khách hàng\n'
+          '• Công nợ & ai nợ nhiều nhất\n'
           '• Đơn sửa đang chờ\n'
-          '• Hoặc bất kỳ câu hỏi nào về shop!';
+          '• Bất kỳ câu hỏi nào về shop!';
     }
+
     return null;
   }
 
@@ -181,27 +266,30 @@ class AiChatService {
       final data = res.data as Map<Object?, Object?>;
       final answer = data['answer'] as String?;
       if (answer == null || answer.isEmpty) {
-        return (null, 'AI không trả lời. Hãy thử lại.');
+        return (null, 'AI không trả lời được. Hãy thử lại sau.');
       }
       return (answer, null);
     } on FirebaseFunctionsException catch (e) {
       if (e.code == 'resource-exhausted') {
-        return (null, 'Đã đạt giới hạn AI hôm nay. Thử lại sau.');
+        return (null, 'Đã đạt giới hạn câu hỏi AI. Thử lại sau 1 phút.');
       }
-      return (null, 'Lỗi AI: ${e.message}');
+      if (e.code == 'unauthenticated') {
+        return (null, 'Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
+      }
+      // Internal errors: show friendly message, not raw code
+      return (null, 'AI hiện không trả lời được câu hỏi này. Thử hỏi cách khác hoặc dùng chip gợi ý.');
     } catch (_) {
-      return (null, 'Không kết nối được AI. Kiểm tra mạng và thử lại.');
+      return (null, 'Mất kết nối mạng. Kiểm tra internet và thử lại.');
     }
   }
 
   // ── Format helpers ────────────────────────────────────────────────────────
 
-  static String _fmt(int amount) {
+  static String fmt(int amount) {
     if (amount == 0) return '0đ';
     if (amount >= 1000000) {
       final m = amount / 1000000;
-      final s = m % 1 == 0 ? '${m.toInt()}' : m.toStringAsFixed(1);
-      return '${s}tr';
+      return '${m % 1 == 0 ? m.toInt() : m.toStringAsFixed(1)}tr';
     }
     final raw = amount.toString();
     final buf = StringBuffer();

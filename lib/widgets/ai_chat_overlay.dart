@@ -693,20 +693,5 @@ class _AiChatOverlayState extends State<AiChatOverlay>
     );
   }
 
-  static String _fmtStats(int amount) {
-    if (amount == 0) return '0đ';
-    if (amount >= 1000000) {
-      final m = amount / 1000000;
-      return '${m % 1 == 0 ? m.toInt() : m.toStringAsFixed(1)}tr';
-    }
-    final raw = amount.toString();
-    final buf = StringBuffer();
-    int count = 0;
-    for (int i = raw.length - 1; i >= 0; i--) {
-      if (count > 0 && count % 3 == 0) buf.write('.');
-      buf.write(raw[i]);
-      count++;
-    }
-    return '${buf.toString().split('').reversed.join()}đ';
-  }
+  static String _fmtStats(int amount) => AiChatService.fmt(amount);
 }

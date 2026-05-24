@@ -122,7 +122,7 @@ class VoiceCorrectionService {
     (RegExp(r'\bmi\s*ni\b'),              'Mini'),
 
     // ── DÒNG SAMSUNG ────────────────────────────────────────────────────────
-    (RegExp(r'\bgal\w*\s*[as]\s*\d+\b'),  'Galaxy A'),
+    (RegExp(r'\bgal\w*\b'),               'Galaxy'),   // "gal..." → Galaxy (giữ model phía sau)
     (RegExp(r'\bfe\b'),                   'FE'),
     (RegExp(r'\btab\s*[as]\w*\b'),        'Galaxy Tab'),
 
@@ -401,6 +401,31 @@ class VoiceCorrectionService {
     (RegExp(r'\bdon\s*dang\s*sua\b'),     'đơn đang sửa'),
     (RegExp(r'\bmay\s*chua\s*xong\b'),    'máy chưa xong'),
     (RegExp(r'\bcho\s*lay\b'),            'chờ lấy'),
+
+    // ── TỪ NHẬP KHÁCH HÀNG / ĐƠN HÀNG THƯỜNG BỊ MẤT DẤU ────────────────────
+    // STT tiếng Việt hay bỏ dấu những từ không chuyên ngành → phục hồi
+    (RegExp(r'\bkhach\b'),                'khách'),
+    (RegExp(r'\bten\b'),                  'tên'),
+    (RegExp(r'\bso\s*dien\s*thoai\b'),    'số điện thoại'),
+    (RegExp(r'\bso\s*dt\b'),              'số điện thoại'),
+    (RegExp(r'\bgia\s*(?=\d)'),           'giá '),       // "gia 500" → "giá 500"
+    (RegExp(r'\bgia\s*von\b'),            'giá vốn'),
+    (RegExp(r'\bgia\s*ban\b'),            'giá bán'),
+    (RegExp(r'\bghi\s*chu\b'),            'ghi chú'),
+    (RegExp(r'\bdat\s*coc\b'),            'đặt cọc'),
+    (RegExp(r'\bthu\s*khach\b'),          'thu khách'),
+    (RegExp(r'\bthu\s*truoc\b'),          'thu trước'),
+    (RegExp(r'\bmau\b(?=\s+\w)'),         'màu'),        // "mau den" → "màu đen"
+    (RegExp(r'\bncc\b'),                  'NCC'),        // nhà cung cấp
+    (RegExp(r'\bnha\s*cung\s*cap\b'),     'nhà cung cấp'),
+    (RegExp(r'\bimei\b'),                 'IMEI'),
+    (RegExp(r'\bmodel\b'),                'model'),
+    (RegExp(r'\bso\s*luong\b'),           'số lượng'),
+    (RegExp(r'\bdon\s*gia\b'),            'đơn giá'),
+    (RegExp(r'\btien\s*mat\b'),           'tiền mặt'),
+    (RegExp(r'\bchuyen\s*khoan\b'),       'chuyển khoản'),
+    (RegExp(r'\btra\s*gop\b'),            'trả góp'),
+    (RegExp(r'\bcong\s*no\b'),            'công nợ'),
   ];
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -425,6 +450,26 @@ class VoiceCorrectionService {
     'hai':      '2',
     'mot':      '1',
   };
+
+  /// Ghép brand + series letter + số rời thành model chuẩn.
+  /// "Samsung a 52" → "Samsung A52", "Redmi note 12" → "Redmi Note 12"
+  static String _fixSeriesNumbers(String text) {
+    // Samsung A/M/S/F/Z-series: "Samsung a 52" → "Samsung A52"
+    text = text.replaceAllMapped(
+      RegExp(r'\b(Samsung)\s+([aAmMsSfFzZ])\s+(\d+)\b'),
+      (m) => '${m[1]} ${m[2]!.toUpperCase()}${m[3]}',
+    );
+    // Redmi Note / POCO X: "Redmi note 12" → "Redmi Note 12"
+    text = text.replaceAllMapped(
+      RegExp(r'\b(Redmi|POCO)\s+(note|x|f|m|c)\s+(\d+)\b', caseSensitive: false),
+      (m) => '${m[1]} ${_cap(m[2]!)} ${m[3]}',
+    );
+    // iPhone số đứng riêng: "iPhone 13 pro" — đã OK, không cần xử lý thêm
+    return text;
+  }
+
+  static String _cap(String s) =>
+      s.isEmpty ? s : s[0].toUpperCase() + s.substring(1).toLowerCase();
 
   static String _convertNumberWords(String text) {
     // Duyệt qua từng match của brand context rồi thử convert từ số phía sau
@@ -502,6 +547,9 @@ class VoiceCorrectionService {
     final beforeNum = working;
     working = _convertNumberWords(working);
     if (working != beforeNum) applied.add('số model');
+
+    // Bước 4b: Ghép tên dòng máy với model number (dạng "Samsung a 52" → "Samsung A52")
+    working = _fixSeriesNumbers(working);
 
     // Bước 5: Viết hoa chữ đầu câu
     if (working.isNotEmpty) {

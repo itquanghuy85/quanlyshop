@@ -271,40 +271,86 @@ class NaturalOrderParserService {
   }
 
   static String? _extractCustomerName(String original, String normalized) {
-    const key = 'khach';
-    final idx = normalized.indexOf(key);
-    if (idx < 0) return null;
+    // Priority: "tên [name]" marker is more precise than "khách"
+    int start = -1;
+    for (final marker in ['ten ', 'khach ten ', 'khach ']) {
+      final idx = normalized.indexOf(marker);
+      if (idx >= 0) {
+        start = idx + marker.length;
+        break;
+      }
+    }
+    if (start < 0) return null;
 
-    final start = idx + key.length;
+    // Stop before phone/price markers
     var end = normalized.length;
-    for (final stop in [' sdt', ' so dt', ' phone', ' imei', ' tra gop']) {
+    for (final stop in [
+      ' so dien thoai', ' sdt', ' so dt', ' phone',
+      ' imei', ' tra gop', ' gia ', ' thu ', ' loi ',
+    ]) {
       final stopIdx = normalized.indexOf(stop, start);
       if (stopIdx >= 0 && stopIdx < end) end = stopIdx;
     }
+    // Stop before a 10-digit phone number
+    final phoneMatch = RegExp(r'0\d{9,10}').firstMatch(normalized.substring(start));
+    if (phoneMatch != null) {
+      final absPos = start + phoneMatch.start;
+      if (absPos < end) end = absPos;
+    }
 
     if (start >= end || start >= original.length) return null;
-    final slice = original.substring(start, end).trim();
+    final slice = original
+        .substring(start, end.clamp(0, original.length))
+        .trim();
     if (slice.isEmpty) return null;
 
     final cleaned = slice
-        .replaceAll(RegExp(r'[^A-Za-z0-9À-ỹà-ỹ\s]'), ' ')
+        .replaceAll(RegExp(r'[^A-Za-zÀ-ỹà-ỹ\s]'), ' ')
+        .replaceAll(RegExp(r'\s+'), ' ')
         .trim();
     return cleaned.isEmpty ? null : cleaned.toUpperCase();
   }
 
+  static final _kBrandPattern = RegExp(
+    r'\b(iPhone|Samsung|Galaxy|Oppo|Xiaomi|Vivo|Realme|Nokia|Redmi|POCO|Huawei|Tecno|Infinix|Motorola)\b',
+    caseSensitive: false,
+  );
+
   static String _extractRepairModel(String original, String normalized) {
+    // 1. Brand-first: find brand name and read ahead for the model
+    final brandMatch = _kBrandPattern.firstMatch(original);
+    if (brandMatch != null) {
+      final brandStart = brandMatch.start;
+      var end = original.length;
+      // Stop before customer / price / issue markers
+      for (final stop in [
+        ' khách', ' khach', ' tên', ' ten ', ' số điện thoại',
+        ' so dien thoai', ' giá', ' gia ', ' lỗi', ' loi ', ' thu ',
+      ]) {
+        final idx = original.toLowerCase().indexOf(stop, brandStart + 1);
+        if (idx >= 0 && idx < end) end = idx;
+      }
+      // Also stop before a 10-digit phone number
+      final phoneM = RegExp(r'0\d{9,10}').firstMatch(original.substring(brandStart));
+      if (phoneM != null) {
+        final abs = brandStart + phoneM.start;
+        if (abs < end) end = abs;
+      }
+      final model = original.substring(brandStart, end).trim();
+      if (model.isNotEmpty) return model.toUpperCase();
+    }
+
+    // 2. Fallback: slice after "sửa/sua" until customer/price marker
     final idx = normalized.indexOf('sua');
     if (idx < 0) return '';
-
     final start = idx + 3;
     var end = normalized.length;
-    for (final stop in [' thay ', ' khach ', ' sdt', ' gia ', ' gia', ' imei ']) {
+    for (final stop in [' khach', ' ten ', ' sdt', ' gia ', ' gia', ' imei']) {
       final stopIdx = normalized.indexOf(stop, start);
       if (stopIdx >= 0 && stopIdx < end) end = stopIdx;
     }
-
     if (start >= end || start >= original.length) return '';
-    return original.substring(start, end).trim().toUpperCase();
+    return original.substring(start, end.clamp(0, original.length)).trim().toUpperCase();
   }
 
   static String _extractRepairIssue(String original, String normalized) {
