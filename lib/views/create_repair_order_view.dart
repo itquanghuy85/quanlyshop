@@ -32,6 +32,7 @@ import '../constants/financial_constants.dart';
 import '../services/customer_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
+import '../theme/design_tokens.dart';
 import '../services/event_bus.dart';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/entity_avatar.dart';
@@ -40,10 +41,17 @@ import '../l10n/app_localizations.dart';
 import '../models/storage_location_model.dart';
 import '../widgets/storage_location_selector.dart';
 import 'order_list_view.dart';
+import '../theme/popup_theme.dart';
+import '../widgets/app_popup.dart';
+import '../widgets/ai_order_input_sheet.dart';
 
 class CreateRepairOrderView extends StatefulWidget {
   final String role;
-  const CreateRepairOrderView({super.key, this.role = 'user'});
+
+  /// When set, auto-opens the AI input sheet with this text pre-filled.
+  final String? initialAiText;
+
+  const CreateRepairOrderView({super.key, this.role = 'user', this.initialAiText});
 
   @override
   State<CreateRepairOrderView> createState() => _CreateRepairOrderViewState();
@@ -85,6 +93,12 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
   List<RepairPartner> _partners = [];
   bool _isWalkIn = false;
   bool _canViewCostPrice = false;
+  bool _showAdvancedFields = false; // quick intake mode — collapse secondary fields
+
+  // Customer quick card state
+  Map<String, dynamic>? _lastRepair;   // most recent repair row for this phone
+  int _customerTotalRepairs = 0;
+  int _customerActiveDebt = 0;         // net debt amount (positive = owes shop)
 
   // Shop settings for dynamic terminology
   ShopSettings? _shopSettings;
@@ -111,7 +125,11 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
     super.initState();
     _loadShopSettings();
     phoneCtrl.addListener(() {
-      if (phoneCtrl.text.length == 10) _smartFill();
+      if (phoneCtrl.text.length == 10) {
+        _smartFill();
+      } else if (phoneCtrl.text.length < 9) {
+        _clearCustomerQuickCard();
+      }
       setState(() {}); // Refresh UI for add customer button
     });
     nameCtrl.addListener(
@@ -120,7 +138,11 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
     _loadPartners();
     // Hiển thị hướng dẫn cho người dùng mới
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _showFirstTimeGuide();
+      if (widget.initialAiText != null && widget.initialAiText!.isNotEmpty) {
+        _showNaturalRepairInputDialog(prefilled: widget.initialAiText);
+      } else {
+        _showFirstTimeGuide();
+      }
     });
   }
 
@@ -183,6 +205,31 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
     );
   }
 
+  Future<void> _showNaturalRepairInputDialog({String? prefilled}) async {
+    final result = await AiOrderInputSheet.show(
+      context,
+      mode: AiSheetMode.repair,
+      prefilledText: prefilled,
+    );
+    if (!mounted || result == null) return;
+
+    setState(() {
+      if (result.device.isNotEmpty) modelCtrl.text = result.device;
+      if (result.issue.isNotEmpty) issueCtrl.text = result.issue;
+      if (result.deposit > 0) {
+        priceCtrl.text = MoneyUtils.formatCurrency(result.deposit);
+      }
+      if (result.customerName.isNotEmpty) nameCtrl.text = result.customerName;
+      if (result.customerPhone.isNotEmpty) phoneCtrl.text = result.customerPhone;
+      _isWalkIn = result.customerName.isEmpty && result.customerPhone.isEmpty;
+    });
+
+    NotificationService.showSnackBar(
+      result.fromAi ? 'AI đã tự điền đơn sửa.' : 'Đã nhận diện và điền đơn sửa.',
+      color: Colors.green,
+    );
+  }
+
   void _loadPartners() async {
     try {
       final perms = await UserService.getCurrentUserPermissions();
@@ -199,15 +246,59 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
   }
 
   void _smartFill() async {
+    final phone = phoneCtrl.text;
+    final dbInst = await db.database;
+
+    // Auto-fill name/address from repair history
     final res = await db.getUniqueCustomersAll();
     if (!mounted) return;
-    final find = res.where((c) => c['phone'] == phoneCtrl.text).toList();
+    final find = res.where((c) => c['phone'] == phone).toList();
     if (find.isNotEmpty) {
-      setState(() {
-        nameCtrl.text = find.first['customerName'] ?? "";
-        addressCtrl.text = (find.first['address'] ?? "").toString();
-      });
+      nameCtrl.text = find.first['customerName'] ?? "";
+      addressCtrl.text = (find.first['address'] ?? "").toString();
     }
+
+    // Load customer quick card data
+    final repairs = await dbInst.rawQuery(
+      "SELECT model, issue, price, status, createdAt FROM repairs WHERE phone = ? AND deleted != 1 ORDER BY createdAt DESC LIMIT 1",
+      [phone],
+    );
+    final countRow = await dbInst.rawQuery(
+      "SELECT COUNT(*) as cnt FROM repairs WHERE phone = ? AND deleted != 1",
+      [phone],
+    );
+    final debts = await dbInst.rawQuery(
+      "SELECT totalAmount, paidAmount, type FROM debts WHERE phone = ? AND deleted != 1",
+      [phone],
+    );
+    if (!mounted) return;
+
+    int netDebt = 0;
+    for (final d in debts) {
+      final total = (d['totalAmount'] as int?) ?? 0;
+      final paid = (d['paidAmount'] as int?) ?? 0;
+      final remaining = total - paid;
+      if (remaining <= 0) continue;
+      if (d['type'] == 'CUSTOMER_OWES') {
+        netDebt += remaining;
+      } else {
+        netDebt -= remaining;
+      }
+    }
+
+    setState(() {
+      _lastRepair = repairs.isNotEmpty ? Map<String, dynamic>.from(repairs.first) : null;
+      _customerTotalRepairs = (countRow.first['cnt'] as int?) ?? 0;
+      _customerActiveDebt = netDebt;
+    });
+  }
+
+  void _clearCustomerQuickCard() {
+    setState(() {
+      _lastRepair = null;
+      _customerTotalRepairs = 0;
+      _customerActiveDebt = 0;
+    });
   }
 
   Future<void> _selectCustomer() async {
@@ -890,8 +981,11 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
     String? selectedPaymentMethod = editService?.paymentMethod ?? 'TIỀN MẶT';
     final paymentMethods = ['TIỀN MẶT', 'CHUYỂN KHOẢN', 'CÔNG NỢ'];
 
-    showDialog(
+    showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) {
           final query = partnerSearchCtrl.text.trim();
@@ -905,136 +999,187 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
             filteredPartners.insert(0, selectedPartner!);
           }
 
-          return AlertDialog(
-            title: Text(editService != null ? loc.editService : loc.addServiceTitle),
-            content: Form(
-              key: formKey,
-              child: SingleChildScrollView(
+          return Padding(
+            padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
+            child: Container(
+              decoration: const BoxDecoration(
+                color: PopupTheme.bgDark,
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(PopupTheme.radiusSheet),
+                ),
+              ),
+              child: Form(
+                key: formKey,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    TextFormField(
-                      controller: serviceCtrl,
-                      decoration: InputDecoration(labelText: loc.serviceName),
-                      textCapitalization: TextCapitalization.characters,
-                      validator: (v) => (v ?? '').trim().isEmpty
-                          ? loc.pleaseEnterServiceName
-                          : null,
-                    ),
-                    const SizedBox(height: 10),
-                    if (_canViewCostPrice)
-                      CurrencyTextField(
-                        controller: costCtrl,
-                        label: loc.costVND,
-                        validator: (v) => MoneyUtils.validateAmount(
-                          v ?? '',
-                          min: 1,
-                          fieldName: loc.costVND,
-                        ),
-                      ),
-                    const SizedBox(height: 10),
-                    TextField(
-                      controller: partnerSearchCtrl,
-                      decoration: InputDecoration(
-                        labelText: 'Tìm đối tác',
-                        prefixIcon: const Icon(Icons.search),
-                        suffixIcon: query.isEmpty
-                            ? null
-                            : IconButton(
-                                onPressed: () {
-                                  partnerSearchCtrl.clear();
-                                  setS(() {});
-                                },
-                                icon: const Icon(Icons.close),
-                              ),
-                      ),
-                      onChanged: (_) => setS(() {}),
-                    ),
-                    const SizedBox(height: 10),
-                    DropdownButtonFormField<RepairPartner>(
-                      decoration: InputDecoration(
-                        labelText: loc.partnerOptional,
-                        helperText: filteredPartners.isEmpty
-                            ? 'Không tìm thấy đối tác phù hợp'
-                            : '${filteredPartners.length} đối tác',
-                      ),
-                      value: selectedPartner,
-                      items: [
-                        DropdownMenuItem(
-                          value: null,
-                          child: Text(loc.noPartner),
-                        ),
-                        ...filteredPartners.map(
-                          (p) => DropdownMenuItem(
-                            value: p,
-                            child: Text(
-                              p.phone != null && p.phone!.isNotEmpty
-                                  ? '${p.name} • ${p.phone}'
-                                  : p.name,
-                              overflow: TextOverflow.ellipsis,
+                    const PopupDragHandle(),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.build_circle_outlined, color: PopupTheme.blue),
+                          const SizedBox(width: 8),
+                          Text(
+                            editService != null ? loc.editService.toUpperCase() : loc.addServiceTitle.toUpperCase(),
+                            style: const TextStyle(
+                              color: PopupTheme.textPrimary,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
-                        ),
-                      ],
-                      onChanged: (p) => setS(() => selectedPartner = p),
-                    ),
-                  // Phương thức thanh toán (chỉ hiện khi có đối tác) - đồng bộ với repair_detail_view
-                  if (selectedPartner != null) ...[
-                    const SizedBox(height: 10),
-                    DropdownButtonFormField<String>(
-                      decoration: InputDecoration(
-                        labelText: loc.partnerPaymentMethod,
-                        prefixIcon: const Icon(Icons.payment, size: 20),
+                        ],
                       ),
-                      value: selectedPaymentMethod,
-                      items: paymentMethods
-                          .map(
-                            (m) => DropdownMenuItem(value: m, child: Text(m)),
-                          )
-                          .toList(),
-                      onChanged: (v) => setS(() => selectedPaymentMethod = v),
-                      validator: (v) =>
-                          selectedPartner != null && (v == null || v.isEmpty)
-                          ? loc.pleaseSelectPaymentMethod
-                          : null,
                     ),
-                  ],
+                    Flexible(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            TextFormField(
+                              controller: serviceCtrl,
+                              style: const TextStyle(color: PopupTheme.textPrimary),
+                              decoration: InputDecoration(labelText: loc.serviceName),
+                              textCapitalization: TextCapitalization.characters,
+                              validator: (v) => (v ?? '').trim().isEmpty
+                                  ? loc.pleaseEnterServiceName
+                                  : null,
+                            ),
+                            const SizedBox(height: 10),
+                            if (_canViewCostPrice)
+                              CurrencyTextField(
+                                controller: costCtrl,
+                                label: loc.costVND,
+                                validator: (v) => MoneyUtils.validateAmount(
+                                  v ?? '',
+                                  min: 1,
+                                  fieldName: loc.costVND,
+                                ),
+                              ),
+                            const SizedBox(height: 10),
+                            TextField(
+                              controller: partnerSearchCtrl,
+                              style: const TextStyle(color: PopupTheme.textPrimary),
+                              decoration: InputDecoration(
+                                labelText: 'Tìm đối tác',
+                                prefixIcon: const Icon(Icons.search),
+                                suffixIcon: query.isEmpty
+                                    ? null
+                                    : IconButton(
+                                        onPressed: () {
+                                          partnerSearchCtrl.clear();
+                                          setS(() {});
+                                        },
+                                        icon: const Icon(Icons.close),
+                                      ),
+                              ),
+                              onChanged: (_) => setS(() {}),
+                            ),
+                            const SizedBox(height: 10),
+                            DropdownButtonFormField<RepairPartner>(
+                              decoration: InputDecoration(
+                                labelText: loc.partnerOptional,
+                                helperText: filteredPartners.isEmpty
+                                    ? 'Không tìm thấy đối tác phù hợp'
+                                    : '${filteredPartners.length} đối tác',
+                              ),
+                              value: selectedPartner,
+                              items: [
+                                DropdownMenuItem(
+                                  value: null,
+                                  child: Text(loc.noPartner),
+                                ),
+                                ...filteredPartners.map(
+                                  (p) => DropdownMenuItem(
+                                    value: p,
+                                    child: Text(
+                                      p.phone != null && p.phone!.isNotEmpty
+                                          ? '${p.name} • ${p.phone}'
+                                          : p.name,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                              onChanged: (p) => setS(() => selectedPartner = p),
+                            ),
+                            if (selectedPartner != null) ...[
+                              const SizedBox(height: 10),
+                              DropdownButtonFormField<String>(
+                                decoration: InputDecoration(
+                                  labelText: loc.partnerPaymentMethod,
+                                  prefixIcon: const Icon(Icons.payment, size: 20),
+                                ),
+                                value: selectedPaymentMethod,
+                                items: paymentMethods
+                                    .map(
+                                      (m) => DropdownMenuItem(value: m, child: Text(m)),
+                                    )
+                                    .toList(),
+                                onChanged: (v) => setS(() => selectedPaymentMethod = v),
+                                validator: (v) =>
+                                    selectedPartner != null && (v == null || v.isEmpty)
+                                    ? loc.pleaseSelectPaymentMethod
+                                    : null,
+                              ),
+                            ],
+                            const SizedBox(height: 16),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => Navigator.pop(ctx),
+                              child: Text(loc.cancel),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            flex: 2,
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: PopupTheme.blue,
+                                foregroundColor: Colors.white,
+                              ),
+                              onPressed: () {
+                                if (!(formKey.currentState?.validate() ?? false)) return;
+                                final cost = MoneyUtils.parseCurrency(costCtrl.text);
+                                final service = RepairService(
+                                  firestoreId: editService?.firestoreId ?? RepairPartnerService.generateServiceFirestoreId(),
+                                  serviceName: serviceCtrl.text.trim().toUpperCase(),
+                                  cost: cost,
+                                  partnerId: selectedPartner?.id,
+                                  partnerName: selectedPartner?.name,
+                                  paymentMethod: selectedPartner != null ? selectedPaymentMethod : null,
+                                );
+                                setState(() {
+                                  if (editService != null) {
+                                    final index = _services.indexOf(editService);
+                                    _services[index] = service;
+                                  } else {
+                                    _services.add(service);
+                                  }
+                                });
+                                EventBus().emit('repair_services_changed');
+                                Navigator.pop(ctx);
+                              },
+                              child: Text(editService != null ? loc.update : loc.add),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: Text(loc.cancel),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  if (!(formKey.currentState?.validate() ?? false)) return;
-                  // Không nhân 1000 - user đã nhập số đầy đủ với formatter
-                  final cost = MoneyUtils.parseCurrency(costCtrl.text);
-                  final service = RepairService(
-                    firestoreId: editService?.firestoreId ?? RepairPartnerService.generateServiceFirestoreId(),
-                    serviceName: serviceCtrl.text.trim().toUpperCase(),
-                    cost: cost,
-                    partnerId: selectedPartner?.id,
-                    partnerName: selectedPartner?.name,
-                    paymentMethod: selectedPartner != null ? selectedPaymentMethod : null,
-                  );
-                  setState(() {
-                    if (editService != null) {
-                      final index = _services.indexOf(editService);
-                      _services[index] = service;
-                    } else {
-                      _services.add(service);
-                    }
-                  });
-                  EventBus().emit('repair_services_changed');
-                  Navigator.pop(ctx);
-                },
-                child: Text(editService != null ? loc.update : loc.add),
-              ),
-            ],
           );
         },
       ),
@@ -1051,71 +1196,273 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
         accentColor: AppBarAccents.repairs,
         actions: [
           IconButton(
-            onPressed: _saveAndPrint,
-            icon: const Icon(Icons.print_rounded, color: AppBarAccents.repairs, size: 22),
-            splashRadius: 20,
+            onPressed: _showNaturalRepairInputDialog,
+            tooltip: 'Nhập nhanh bằng câu lệnh',
+            icon: const Icon(Icons.auto_awesome),
           ),
-          const SizedBox(width: 4),
         ],
       ),
-      body: _saving
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const CircularProgressIndicator(),
-                  const SizedBox(height: 16),
-                  Text(_uploadStatus, style: AppTextStyles.caption),
-                ],
-              ),
-            )
-          : ResponsiveCenter(
-              maxWidth: 800,
-              child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // === COMPACT: KHÁCH + MÁY + LỖI trong 1 Card ===
-                  _buildCompactMainSection(),
-                  const SizedBox(height: 8),
-
-                  // === DỊCH VỤ ===
-                  _buildCompactServicesSection(),
-                  const SizedBox(height: 8),
-
-                  // === BẢO MẬT + PHỤ KIỆN ===
-                  _buildCompactSecurityAccessoriesSection(),
-                  const SizedBox(height: 8),
-
-                  // === GHI CHÚ + HÌNH ẢNH ===
-                  _buildCompactNotesImagesSection(),
-
-                  const SizedBox(height: 16),
-                  // === NÚT LƯU ===
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: ElevatedButton.icon(
-                      onPressed: _saving ? null : _onlySave,
-                      icon: const Icon(Icons.save_rounded, size: 20),
-                      label: Text(loc.saveOrder, style: const TextStyle(fontWeight: FontWeight.bold)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: _saving
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const CircularProgressIndicator(),
+                        const SizedBox(height: 16),
+                        Text(_uploadStatus, style: AppTextStyles.caption),
+                      ],
                     ),
+                  )
+                : _buildSafeFormBody(),
+          ),
+          if (!_saving)
+            Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFF),
+                border: Border(top: BorderSide(color: Colors.grey.shade100)),
+              ),
+              child: SafeArea(
+                top: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 132,
+                        child: OutlinedButton.icon(
+                          onPressed: _saveAndPrint,
+                          icon: const Icon(Icons.print_rounded, size: 18),
+                          label: const Text('Lưu & In'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppBarAccents.repairs,
+                            side: const BorderSide(color: AppBarAccents.repairs),
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: _onlySave,
+                          icon: const Icon(Icons.save_rounded, size: 20),
+                          label: Text(loc.saveOrder, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 13),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 12),
-                ],
+                ),
               ),
             ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSafeFormBody() {
+    try {
+      return ResponsiveCenter(
+        maxWidth: 800,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildCompactMainSection(),
+              const SizedBox(height: 8),
+              _buildCompactServicesSection(),
+              const SizedBox(height: 8),
+              Center(
+                child: TextButton.icon(
+                  onPressed: () =>
+                      setState(() => _showAdvancedFields = !_showAdvancedFields),
+                  icon: Icon(
+                    _showAdvancedFields
+                        ? Icons.expand_less_rounded
+                        : Icons.expand_more_rounded,
+                    size: 18,
+                  ),
+                  label: Text(
+                    _showAdvancedFields
+                        ? 'Ẩn bớt'
+                        : 'Thêm chi tiết (bảo mật, ngoại quan, phụ kiện, ảnh)',
+                    style: AppTextStyles.caption
+                        .copyWith(color: Colors.blueGrey),
+                  ),
+                  style:
+                      TextButton.styleFrom(foregroundColor: Colors.blueGrey),
+                ),
+              ),
+              if (_showAdvancedFields) ...[
+                _buildCompactSecurityAccessoriesSection(),
+                const SizedBox(height: 8),
+                _buildCompactNotesImagesSection(),
+                const SizedBox(height: 8),
+              ],
+              const SizedBox(height: 4),
+            ],
           ),
+        ),
+      );
+    } catch (e, st) {
+      debugPrint('❌ CreateRepairOrderView build error: $e');
+      debugPrint('$st');
+      return _buildEmergencyFallbackForm(e.toString());
+    }
+  }
+
+  Widget _buildEmergencyFallbackForm(String err) {
+    return Padding(
+      padding: const EdgeInsets.all(12),
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange.shade200),
+              ),
+              child: Text(
+                'Màn hình đang chạy ở chế độ dự phòng do lỗi render. Bạn vẫn có thể tạo đơn.\n$err',
+                style: AppTextStyles.caption.copyWith(
+                  color: Colors.orange.shade900,
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            _compactInput(
+              phoneCtrl,
+              _isWalkIn ? loc.phoneOptional : loc.phoneRequired,
+              Icons.phone,
+              type: TextInputType.phone,
+            ),
+            const SizedBox(height: 8),
+            _compactInput(
+              nameCtrl,
+              _isWalkIn ? loc.customerNameOptional : loc.customerName,
+              Icons.person,
+              caps: true,
+            ),
+            const SizedBox(height: 8),
+            _compactInput(
+              modelCtrl,
+              loc.deviceModel,
+              Icons.phone_android,
+              caps: true,
+            ),
+            const SizedBox(height: 8),
+            _compactInput(
+              issueCtrl,
+              loc.deviceIssue,
+              Icons.build,
+              caps: true,
+            ),
+            const SizedBox(height: 8),
+            CurrencyTextField(
+              controller: priceCtrl,
+              label: loc.estimatedPrice,
+              icon: Icons.monetization_on,
+            ),
+            const SizedBox(height: 8),
+            TextFormField(
+              controller: notesCtrl,
+              maxLines: 2,
+              decoration: InputDecoration(
+                hintText: loc.notesPlaceholder,
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
   /// COMPACT: Khách hàng + Máy + Lỗi + Giá trong 1 Card
+  Widget _buildCustomerQuickCard() {
+    final repair = _lastRepair;
+    final hasDebt = _customerActiveDebt != 0;
+    final debtColor = _customerActiveDebt > 0 ? Colors.red.shade700 : Colors.green.shade700;
+    final debtLabel = _customerActiveDebt > 0 ? 'Còn nợ' : 'Shop nợ';
+
+    String? lastDate;
+    if (repair != null) {
+      final ts = repair['createdAt'] as int?;
+      if (ts != null && ts > 0) {
+        final dt = DateTime.fromMillisecondsSinceEpoch(ts);
+        lastDate = '${dt.day}/${dt.month}/${dt.year}';
+      }
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.blue.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.blue.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.history_rounded, size: 16, color: Colors.blue.shade400),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      'Khách cũ · $_customerTotalRepairs đơn',
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.blue.shade700),
+                    ),
+                    if (hasDebt) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: debtColor.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          '$debtLabel ${MoneyUtils.formatCompactCurrency(_customerActiveDebt.abs())}',
+                          style: TextStyle(fontSize: 10, color: debtColor, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                if (repair != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    '${repair['model'] ?? ''}${repair['issue'] != null ? ' · ${repair['issue']}' : ''}${lastDate != null ? ' · $lastDate' : ''}',
+                    style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildCompactMainSection() {
     return Card(
       margin: EdgeInsets.zero,
@@ -1131,6 +1478,37 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
                 const SizedBox(width: 6),
                 Text(loc.customerAndDevice, style: AppTextStyles.body1.copyWith(fontWeight: FontWeight.bold, color: Colors.blue)),
                 const Spacer(),
+                Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    IconButton(
+                      onPressed: _showAddImageOptions,
+                      icon: const Icon(Icons.camera_alt, size: 18),
+                      tooltip: 'Thêm ảnh',
+                      constraints: const BoxConstraints(),
+                      padding: const EdgeInsets.only(right: 8),
+                      color: Colors.blue,
+                    ),
+                    if (_images.isNotEmpty)
+                      Positioned(
+                        right: 2,
+                        top: -2,
+                        child: Container(
+                          padding: const EdgeInsets.all(2),
+                          decoration: const BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                          constraints: const BoxConstraints(minWidth: 15, minHeight: 15),
+                          child: Text(
+                            '${_images.length}',
+                            style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
                 IconButton(
                   onPressed: _selectCustomer,
                   icon: const Icon(Icons.search, size: 18),
@@ -1195,17 +1573,21 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
               ],
             ),
             const SizedBox(height: 8),
-            // Địa chỉ khách hàng
-            _compactInput(addressCtrl, 'Địa chỉ KH (tùy chọn)', Icons.location_on, caps: true),
-            const SizedBox(height: 8),
-            // Vị trí cất máy (tùy chọn)
-            StorageLocationSelector(
-              selectedLocationId: _selectedLocation?.firestoreId,
-              selectedLocationCode: _selectedLocation?.code,
-              selectedLocationName: _selectedLocation?.name,
-              onSelected: (loc) => setState(() => _selectedLocation = loc),
-            ),
-            const SizedBox(height: 8),
+            // Customer quick card — visible once phone matches a known customer
+            if (_customerTotalRepairs > 0) _buildCustomerQuickCard(),
+            if (_customerTotalRepairs > 0) const SizedBox(height: 8),
+            // Advanced: address + storage location (hidden in quick mode)
+            if (_showAdvancedFields) ...[
+              _compactInput(addressCtrl, 'Địa chỉ KH (tùy chọn)', Icons.location_on, caps: true),
+              const SizedBox(height: 8),
+              StorageLocationSelector(
+                selectedLocationId: _selectedLocation?.firestoreId,
+                selectedLocationCode: _selectedLocation?.code,
+                selectedLocationName: _selectedLocation?.name,
+                onSelected: (loc) => setState(() => _selectedLocation = loc),
+              ),
+              const SizedBox(height: 8),
+            ],
             // Row 2: Quick brands + Model
             _quick(brands, modelCtrl, modelF),
             _compactInput(modelCtrl, loc.deviceModel, Icons.phone_android, caps: true, focusNode: modelF, nextFocus: issueF),
@@ -1339,8 +1721,8 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
               decoration: InputDecoration(
                 hintText: loc.notesPlaceholder,
                 isDense: true,
-                contentPadding: const EdgeInsets.all(10),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                contentPadding: DesignTokens.formContentPadding,
+                border: OutlineInputBorder(borderRadius: DesignTokens.brSm),
               ),
             ),
             const SizedBox(height: 8),
@@ -1364,10 +1746,10 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
       decoration: InputDecoration(
         labelText: label,
         labelStyle: AppTextStyles.body1,
-        prefixIcon: Icon(icon, size: 18),
+        prefixIcon: Icon(icon, size: DesignTokens.iconMd),
         isDense: true,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+        contentPadding: DesignTokens.formContentPadding,
+        border: OutlineInputBorder(borderRadius: DesignTokens.brSm),
       ),
     );
   }
@@ -1540,7 +1922,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
             icon: const Icon(Icons.add_a_photo),
             label: const Text('Thêm ảnh'),
             style: OutlinedButton.styleFrom(
-              minimumSize: const Size(110, 44),
+              minimumSize: const Size(0, DesignTokens.buttonHeight),
               side: BorderSide(color: Colors.blue.shade300),
               foregroundColor: Colors.blue.shade700,
             ),

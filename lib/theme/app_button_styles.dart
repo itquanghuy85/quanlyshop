@@ -9,14 +9,15 @@ class AppButtonStyles {
   AppButtonStyles._();
 
   // ========== DIMENSIONS ==========
+  // Compact — change here to resize ALL buttons app-wide (via theme).
   /// Chiều cao button chính
-  static const double buttonHeight = 48.0;
+  static const double buttonHeight = 36.0;
 
   /// Chiều cao button nhỏ
-  static const double smallButtonHeight = 36.0;
+  static const double smallButtonHeight = 30.0;
 
   /// Chiều cao button lớn
-  static const double largeButtonHeight = 56.0;
+  static const double largeButtonHeight = 44.0;
 
   /// Border radius cho button
   static const double borderRadius = 8.0;
@@ -28,10 +29,10 @@ class AppButtonStyles {
   static const double largeBorderRadius = 12.0;
 
   /// Padding ngang cho button
-  static const double horizontalPadding = 16.0;
+  static const double horizontalPadding = 14.0;
 
   /// Padding dọc cho button
-  static const double verticalPadding = 12.0;
+  static const double verticalPadding = 8.0;
 
   // ========== ELEVATED BUTTON ==========
   /// Style cho ElevatedButton chính

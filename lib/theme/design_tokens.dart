@@ -26,22 +26,36 @@ class DesignTokens {
   static BorderRadius get brFull => BorderRadius.circular(radiusFull);
 
   // ========== ICON SIZES ==========
-  static const double iconXs  = 14;
-  static const double iconSm  = 16;
-  static const double iconMd  = 18;
-  static const double iconLg  = 20;
-  static const double iconXl  = 24;
+  static const double iconXs  = 12;
+  static const double iconSm  = 14;
+  static const double iconMd  = 16;
+  static const double iconLg  = 18;
+  static const double iconXl  = 20;
 
   // ========== ICON CONTAINER ==========
-  static const double iconContainer = 30;
-  static const double iconContainerLg = 36;
+  static const double iconContainer = 26;
+  static const double iconContainerLg = 30;
 
   // ========== FIELD / BUTTON HEIGHTS ==========
-  static const double fieldHeight     = 46;
-  static const double fieldHeightSm   = 40;
-  static const double buttonHeight    = 44;
-  static const double buttonHeightSm  = 36;
-  static const double listItemHeight  = 50;
+  // Compact — ~2/3 of previous values for dense form layouts
+  static const double fieldHeight     = 36;
+  static const double fieldHeightSm   = 30;
+  static const double buttonHeight    = 36;
+  static const double buttonHeightSm  = 30;
+  static const double listItemHeight  = 44;
+
+  // ========== FORM CONTENT PADDING ==========
+  // Single source of truth — change here to resize all themed fields
+  static const double formPaddingH = 10.0;
+  static const double formPaddingV = 7.0;
+  static const EdgeInsets formContentPadding = EdgeInsets.symmetric(
+    horizontal: formPaddingH,
+    vertical: formPaddingV,
+  );
+  static const double formFontSize     = 13.0;
+  static const double formLabelSize    = 12.0;
+  static const double formSectionGap   = 8.0;
+  static const double formSectionPad   = 10.0;
 
   // ========== GAPS ==========
   static const double iconTextGap = AppSpacing.sm;

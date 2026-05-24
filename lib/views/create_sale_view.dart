@@ -13,6 +13,7 @@ import '../models/customer_model.dart';
 import '../models/sale_order_model.dart';
 import '../models/debt_model.dart';
 import '../services/notification_service.dart';
+import '../widgets/payment_result_sheet.dart';
 import '../services/firestore_service.dart';
 import '../services/customer_service.dart';
 import '../services/sync_service.dart';
@@ -41,6 +42,7 @@ import '../widgets/responsive_wrapper.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 import '../theme/app_button_styles.dart';
+import '../theme/design_tokens.dart';
 import 'smart_stock_in_view.dart';
 import 'supplier_list_view.dart';
 import '../l10n/app_localizations.dart';
@@ -50,12 +52,17 @@ import '../expansion/safe_mode/pricing_models.dart';
 import 'expansion/vat/create_invoice_view.dart';
 import 'expansion/pricing/price_selector_sheet.dart';
 import '../widgets/app_cached_image.dart';
+import '../widgets/custom_app_bar.dart';
+import '../widgets/ai_order_input_sheet.dart';
 
 class CreateSaleView extends StatefulWidget {
   final Product? preSelectedProduct;
-  final SaleOrder? editSale; // Thêm parameter cho edit mode
+  final SaleOrder? editSale;
 
-  const CreateSaleView({super.key, this.preSelectedProduct, this.editSale});
+  /// When set, auto-opens the AI input sheet with this text pre-filled.
+  final String? initialAiText;
+
+  const CreateSaleView({super.key, this.preSelectedProduct, this.editSale, this.initialAiText});
   @override
   State<CreateSaleView> createState() => _CreateSaleViewState();
 }
@@ -124,6 +131,11 @@ class _CreateSaleViewState extends State<CreateSaleView> {
   bool _isSaving = false;
   bool _hasPermission = false;
 
+  // Customer quick card state
+  Map<String, dynamic>? _lastRepair;
+  int _customerTotalOrders = 0;
+  int _customerActiveDebt = 0;
+
   // Multi-Industry: Shop Settings
   ShopSettings? _shopSettings;
   bool get _enableSerial => _shopSettings?.enableSerial ?? true;
@@ -152,10 +164,21 @@ class _CreateSaleViewState extends State<CreateSaleView> {
     loanAmountCtrl.addListener(_onLoanAmount1Changed);
     // Refresh UI for add customer button when name/phone changes
     nameCtrl.addListener(() => setState(() {}));
-    phoneCtrl.addListener(() => setState(() {}));
+    phoneCtrl.addListener(() {
+      if (phoneCtrl.text.length == 10) {
+        _loadCustomerQuickData(phoneCtrl.text);
+      } else if (phoneCtrl.text.length < 9) {
+        setState(() { _lastRepair = null; _customerTotalOrders = 0; _customerActiveDebt = 0; });
+      }
+      setState(() {});
+    });
     // Hiển thị hướng dẫn cho người dùng mới
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _showFirstTimeGuide();
+      if (widget.initialAiText != null && widget.initialAiText!.isNotEmpty) {
+        _showNaturalSaleInputDialog(prefilled: widget.initialAiText);
+      } else {
+        _showFirstTimeGuide();
+      }
     });
   }
 
@@ -210,6 +233,195 @@ class _CreateSaleViewState extends State<CreateSaleView> {
     final perms = await UserService.getCurrentUserPermissions();
     if (!mounted) return;
     setState(() => _hasPermission = perms['allowViewSales'] ?? false);
+  }
+
+  Future<void> _loadCustomerQuickData(String phone) async {
+    final dbInst = await db.database;
+    final repairs = await dbInst.rawQuery(
+      "SELECT model, issue, price, status, createdAt FROM repairs WHERE phone = ? AND deleted != 1 ORDER BY createdAt DESC LIMIT 1",
+      [phone],
+    );
+    final salesCount = await dbInst.rawQuery(
+      "SELECT COUNT(*) as cnt FROM sales WHERE phone = ? AND deleted != 1",
+      [phone],
+    );
+    final repairsCount = await dbInst.rawQuery(
+      "SELECT COUNT(*) as cnt FROM repairs WHERE phone = ? AND deleted != 1",
+      [phone],
+    );
+    final debts = await dbInst.rawQuery(
+      "SELECT totalAmount, paidAmount, type FROM debts WHERE phone = ? AND deleted != 1",
+      [phone],
+    );
+    if (!mounted) return;
+    int netDebt = 0;
+    for (final d in debts) {
+      final remaining = ((d['totalAmount'] as int?) ?? 0) - ((d['paidAmount'] as int?) ?? 0);
+      if (remaining <= 0) continue;
+      netDebt += d['type'] == 'CUSTOMER_OWES' ? remaining : -remaining;
+    }
+    final total = ((salesCount.first['cnt'] as int?) ?? 0) + ((repairsCount.first['cnt'] as int?) ?? 0);
+    setState(() {
+      _lastRepair = repairs.isNotEmpty ? Map<String, dynamic>.from(repairs.first) : null;
+      _customerTotalOrders = total;
+      _customerActiveDebt = netDebt;
+    });
+  }
+
+  Future<void> _showNaturalSaleInputDialog({String? prefilled}) async {
+    if (_isLoading) {
+      NotificationService.showSnackBar(
+        'Đang tải dữ liệu kho, vui lòng thử lại sau vài giây.',
+        color: Colors.orange,
+      );
+      return;
+    }
+
+    final draft = await AiOrderInputSheet.show(
+      context,
+      mode: AiSheetMode.sale,
+      prefilledText: prefilled,
+    );
+    if (!mounted || draft == null) return;
+
+    // Product matching: IMEI exact → name fuzzy
+    Product? matched;
+    if (draft.imei.isNotEmpty) {
+      final needle = draft.imei.toUpperCase();
+      for (final p in _allInStock) {
+        if ((p.imei ?? '').toUpperCase() == needle) {
+          matched = p;
+          break;
+        }
+      }
+    }
+    if (matched == null && draft.productHint.isNotEmpty) {
+      for (final p in _allInStock) {
+        if (VietnameseUtils.containsVietnamese(p.name, draft.productHint)) {
+          matched = p;
+          break;
+        }
+      }
+    }
+
+    if (matched == null) {
+      NotificationService.showSnackBar(
+        'Không tìm thấy sản phẩm "${draft.productHint}" trong kho.',
+        color: Colors.red,
+      );
+      return;
+    }
+
+    await _addProductToSale(matched);
+
+    setState(() {
+      if (draft.customerName.isNotEmpty) nameCtrl.text = draft.customerName;
+      if (draft.customerPhone.isNotEmpty) phoneCtrl.text = draft.customerPhone;
+
+      if (draft.imei.isNotEmpty) {
+        final idx = _selectedItems.lastIndexWhere(
+          (e) => (e['product'] as Product).id == matched?.id,
+        );
+        if (idx >= 0) {
+          _selectedItems[idx]['imei'] = draft.imei.toUpperCase();
+          final productId = (matched?.id ?? 0).toString();
+          if (_imeiControllers.containsKey(productId)) {
+            _imeiControllers[productId]!.text = draft.imei.toUpperCase();
+          }
+        }
+      }
+
+      if (draft.totalPrice > 0) {
+        priceCtrl.text = MoneyUtils.formatCurrency(draft.totalPrice);
+      }
+
+      if (draft.paymentMethod.isNotEmpty) {
+        _paymentMethod = draft.paymentMethod;
+        _isInstallment = _paymentMethod == 'TRẢ GÓP (NH)';
+        _isCombined = _paymentMethod == 'KẾT HỢP';
+      }
+
+      if (draft.financePartner.isNotEmpty) {
+        bankCtrl.text = draft.financePartner.toUpperCase();
+      }
+
+      if (_isInstallment && downPaymentCtrl.text.trim().isEmpty) {
+        downPaymentCtrl.text = '0';
+      }
+    });
+
+    NotificationService.showSnackBar(
+      draft.fromAi ? 'AI đã tự điền đơn bán.' : 'Đã nhận diện và điền đơn bán.',
+      color: Colors.green,
+    );
+  }
+
+  Widget _buildCustomerQuickCard() {
+    final repair = _lastRepair;
+    final hasDebt = _customerActiveDebt != 0;
+    final debtColor = _customerActiveDebt > 0 ? Colors.red.shade700 : Colors.green.shade700;
+    final debtLabel = _customerActiveDebt > 0 ? 'Còn nợ' : 'Shop nợ';
+    String? lastDate;
+    if (repair != null) {
+      final ts = repair['createdAt'] as int?;
+      if (ts != null && ts > 0) {
+        final dt = DateTime.fromMillisecondsSinceEpoch(ts);
+        lastDate = '${dt.day}/${dt.month}/${dt.year}';
+      }
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.green.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.green.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.history_rounded, size: 16, color: Colors.green.shade400),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      'Khách cũ · $_customerTotalOrders giao dịch',
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.green.shade700),
+                    ),
+                    if (hasDebt) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: debtColor.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          '$debtLabel ${MoneyUtils.formatCompactCurrency(_customerActiveDebt.abs())}',
+                          style: TextStyle(fontSize: 10, color: debtColor, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                if (repair != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    'Sửa: ${repair['model'] ?? ''}${lastDate != null ? ' · $lastDate' : ''}',
+                    style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -1616,12 +1828,16 @@ class _CreateSaleViewState extends State<CreateSaleView> {
         },
       );
 
-      NotificationService.showSnackBar(
-        isLocalOnly
-            ? "ĐÃ LƯU BÁN OFFLINE - CHƯA ĐỒNG BỘ CLOUD"
-            : "ĐÃ BÁN HÀNG THÀNH CÔNG!",
-        color: isLocalOnly ? Colors.orange : Colors.green,
-      );
+      if (mounted) {
+        await PaymentResultSheet.show(
+          context: context,
+          state: isLocalOnly ? PaymentResultState.queued : PaymentResultState.success,
+          amount: finalPrice,
+          paymentMethod: _paymentMethod,
+          personName: sale.customerName,
+          isCollecting: false,
+        );
+      }
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       setState(() => _isSaving = false);
@@ -1682,20 +1898,13 @@ class _CreateSaleViewState extends State<CreateSaleView> {
     if (!_hasPermission) {
       return Scaffold(
         backgroundColor: AppColors.background,
-        appBar: AppBar(
-          flexibleSpace: Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF1B5E20), Color(0xFF2E7D32)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
+        appBar: CustomAppBar.build(
+          title: 'TẠO ĐƠN BÁN HÀNG',
+          gradient: const LinearGradient(
+            colors: [Color(0xFF1B5E20), Color(0xFF2E7D32)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
-          backgroundColor: Colors.transparent,
-          foregroundColor: Colors.white,
-          elevation: 0,
-          title: const Text("TẠO ĐƠN BÁN HÀNG"),
         ),
         body: Center(
           child: Text(
@@ -1711,47 +1920,20 @@ class _CreateSaleViewState extends State<CreateSaleView> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF1B5E20), Color(0xFF2E7D32)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
+      appBar: CustomAppBar.build(
+        title: widget.editSale != null ? 'SỬA ĐƠN BÁN HÀNG' : 'TẠO ĐƠN BÁN HÀNG',
+        subtitle: '${_selectedItems.length} ${_terms.productLabel.toLowerCase()} đã chọn',
+        gradient: const LinearGradient(
+          colors: [Color(0xFF1B5E20), Color(0xFF2E7D32)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: Tooltip(
-          message: widget.editSale != null
-              ? "Chỉnh sửa thông tin đơn bán hàng"
-              : "Chọn ${_terms.productLabel.toLowerCase()}, nhập thông tin khách và hoàn tất đơn bán.",
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                widget.editSale != null
-                    ? "SỬA ĐƠN BÁN HÀNG"
-                    : "TẠO ĐƠN BÁN HÀNG",
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: AppTextStyles.headline2.fontSize,
-                ),
-              ),
-              Text(
-                '${_selectedItems.length} ${_terms.productLabel.toLowerCase()} đã chọn',
-                style: TextStyle(
-                  fontSize: AppTextStyles.body1.fontSize,
-                  color: Colors.white70,
-                ),
-              ),
-            ],
-          ),
-        ),
-        automaticallyImplyLeading: true,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.auto_awesome),
+            tooltip: 'Nhập nhanh bằng câu lệnh',
+            onPressed: _showNaturalSaleInputDialog,
+          ),
           IconButton(
             icon: const Icon(Icons.business_center),
             tooltip: 'Quản lý NCC & Đối tác',
@@ -1964,16 +2146,17 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                               controller: addressCtrl,
                               decoration: const InputDecoration(
                                 labelText: 'Địa chỉ KH (tùy chọn)',
-                                prefixIcon: Icon(Icons.location_on, size: 18),
+                                prefixIcon: Icon(Icons.location_on, size: DesignTokens.iconLg),
                                 isDense: true,
-                                contentPadding: EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 10,
-                                ),
+                                contentPadding: DesignTokens.formContentPadding,
                               ),
                               textCapitalization: TextCapitalization.characters,
                               style: AppTextStyles.body2,
                             ),
+                            if (_customerTotalOrders > 0) ...[
+                              const SizedBox(height: 6),
+                              _buildCustomerQuickCard(),
+                            ],
                             _buildCustomerSuggestions(),
                           ],
                         ),
@@ -2379,10 +2562,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                                   size: 18,
                                 ),
                                 isDense: true,
-                                contentPadding: EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 8,
-                                ),
+                                contentPadding: DesignTokens.formContentPadding,
                               ),
                               textCapitalization: TextCapitalization.characters,
                               style: AppTextStyles.body2,
@@ -2460,10 +2640,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                                     size: 18,
                                   ),
                                   isDense: true,
-                                  contentPadding: EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 8,
-                                  ),
+                                  contentPadding: DesignTokens.formContentPadding,
                                 ),
                                 textCapitalization:
                                     TextCapitalization.characters,
@@ -2516,12 +2693,9 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                   isExpanded: true,
                   decoration: InputDecoration(
                     labelText: _terms.specialField2Label,
-                    prefixIcon: const Icon(Icons.verified_user, size: 16),
+                    prefixIcon: const Icon(Icons.verified_user, size: DesignTokens.iconMd),
                     isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 6,
-                    ),
+                    contentPadding: DesignTokens.formContentPadding,
                   ),
                   items: ["KO BH", "1 THÁNG", "3 THÁNG", "6 THÁNG", "12 THÁNG"]
                       .map(
@@ -2546,12 +2720,9 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                 maxLines: 1,
                 decoration: const InputDecoration(
                   labelText: "Ghi chú",
-                  prefixIcon: Icon(Icons.note, size: 16),
+                  prefixIcon: Icon(Icons.note, size: DesignTokens.iconMd),
                   isDense: true,
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 8,
-                  ),
+                  contentPadding: DesignTokens.formContentPadding,
                 ),
                 style: AppTextStyles.body2,
               ),

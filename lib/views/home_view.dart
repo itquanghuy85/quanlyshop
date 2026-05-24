@@ -58,6 +58,7 @@ import 'recent_activity_view.dart';
 import 'firestore_connectivity_test_view.dart';
 import 'firebase_rw_stats_view.dart';
 import 'hr_salary_settings_view.dart';
+import 'label_settings_view.dart';
 import 'smart_stock_in_view.dart';
 import 'pending_stock_list_view.dart';
 import 'import_history_view.dart';
@@ -118,6 +119,9 @@ import 'expansion/branch/branch_selector_view.dart';
 import 'expansion/branch/branch_list_view.dart';
 import '../finance_v2/finance_v2_view.dart' as finance_v2;
 import '../finance_v2/finance_v2_data_service.dart';
+import '../widgets/quick_action/quick_action_bubble.dart';
+import '../widgets/quick_action/quick_action_controller.dart';
+import '../widgets/ai_command_bar.dart';
 
 class HomeView extends StatefulWidget {
   final String role;
@@ -183,6 +187,24 @@ class _HomeShopReadScope {
   List<Object?> get breakdownRecordCountArgs => coreRecordCountArgs;
 }
 
+class _SettingsItem {
+  final String group;
+  final String title;
+  final String? subtitle;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  _SettingsItem({
+    required this.group,
+    required this.title,
+    this.subtitle,
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
+}
+
 class _HomeViewState extends State<HomeView>
     with TickerProviderStateMixin, WidgetsBindingObserver {
   static const String _lastTabIndexPrefKey = 'home_last_tab_index_v1';
@@ -202,6 +224,9 @@ class _HomeViewState extends State<HomeView>
   String? _restoredTabId;
   final Map<String, GlobalKey<NavigatorState>> _tabNavigatorKeys = {};
   final Map<String, int> _tabHostVersions = {};
+
+  // Quick Action Bubble
+  QuickActionController? _quickActionController;
 
   /// Getter for localization - dùng chung cho tất cả methods
   AppLocalizations get loc => AppLocalizations.of(context)!;
@@ -224,6 +249,10 @@ class _HomeViewState extends State<HomeView>
     unawaited(_loadHomeCommunityDashboardPref());
     unawaited(_refreshHomeCommunityStream());
     unawaited(StorageService.retryPendingUploads());
+    _quickActionController = QuickActionController(
+      enableRepair: _enableRepair,
+      role: widget.role,
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkNotificationStatus();
       _initialSetup();
@@ -399,6 +428,28 @@ class _HomeViewState extends State<HomeView>
     return Navigator.of(context).push(route);
   }
 
+  // Fade+slide transition for settings navigations (Phase 6 motion polish)
+  Future<T?> _fadePush<T>(BuildContext ctx, Widget child) {
+    return _pushRoute(
+      ctx,
+      PageRouteBuilder<T>(
+        pageBuilder: (_, __, ___) => child,
+        transitionsBuilder: (_, animation, __, child) => FadeTransition(
+          opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
+          child: SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0.04, 0),
+              end: Offset.zero,
+            ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOut)),
+            child: child,
+          ),
+        ),
+        transitionDuration: const Duration(milliseconds: 220),
+        reverseTransitionDuration: const Duration(milliseconds: 180),
+      ),
+    );
+  }
+
   void _openExpensePageAndAdd({required bool isIncome}) {
     _pushRoute(
       context,
@@ -559,6 +610,7 @@ class _HomeViewState extends State<HomeView>
       BusinessTypeHelper.instance.getTerminology(_shopSettings);
 
   final bool _isSuperAdmin = UserService.isCurrentUserSuperAdmin();
+  final _settingsSearchController = TextEditingController();
   bool get hasFullAccess =>
       _isSuperAdmin || widget.role == 'owner' || widget.role == 'admin';
   String get _effectiveRole {
@@ -1404,10 +1456,13 @@ class _HomeViewState extends State<HomeView>
     _autoSyncTimer?.cancel();
     _statsDebounceTimer?.cancel();
     _phoneSearchCtrl.dispose();
+    _settingsSearchController.dispose();
     _debtOverviewDebounceTimer?.cancel();
     _branchService.close();
+    _quickActionController?.dispose();
     super.dispose();
   }
+
 
   Future<void> _loadCurrentBranchName() async {
     if (!_enableMultiBranch) return;
@@ -2236,6 +2291,12 @@ class _HomeViewState extends State<HomeView>
         _updateAvailableTabs();
       });
 
+      // Sync quick-action bubble with latest shop settings
+      _quickActionController?.updateConfig(
+        enableRepair: _enableRepair,
+        role: widget.role,
+      );
+
       // CRITICAL: Nếu chưa có settings, hiện wizard để chọn loại hình kinh doanh
       // Guard để tránh hiện wizard nhiều lần (do EventBus + onShopChanged cùng gọi)
       if (settings == null && mounted) {
@@ -2950,41 +3011,54 @@ class _HomeViewState extends State<HomeView>
         ],
       ),
       body: _buildResponsiveBody(),
-      bottomNavigationBar: _buildResponsiveBottomNav(),
+      bottomNavigationBar: _buildBottomWithAiBar(),
     );
 
+    final Widget rootWidget;
     if (!shouldInterceptRootBack) {
-      return homeScaffold;
+      rootWidget = homeScaffold;
+    } else {
+      rootWidget = PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) async {
+          if (didPop) return;
+          if (await _maybePopCurrentTabNavigator()) {
+            return;
+          }
+          final ok = await showDialog<bool>(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: Text(loc.exitApp),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: Text(loc.cancel),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  child: Text(loc.exit),
+                ),
+              ],
+            ),
+          );
+          if (ok == true) {
+            await SystemNavigator.pop();
+          }
+        },
+        child: homeScaffold,
+      );
     }
 
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, _) async {
-        if (didPop) return;
-        if (await _maybePopCurrentTabNavigator()) {
-          return;
-        }
-        final ok = await showDialog<bool>(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: Text(loc.exitApp),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: Text(loc.cancel),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                child: Text(loc.exit),
-              ),
-            ],
-          ),
-        );
-        if (ok == true) {
-          await SystemNavigator.pop();
-        }
-      },
-      child: homeScaffold,
+    // Bubble lives in the same widget tree as HomeView — no cross-overlay
+    // InheritedWidget dependencies, so no _dependents.isEmpty assertion.
+    // It naturally disappears when sub-views are pushed (they cover HomeView).
+    final ctrl = _quickActionController;
+    if (ctrl == null) return rootWidget;
+    return Stack(
+      children: [
+        rootWidget,
+        QuickActionBubble(controller: ctrl),
+      ],
     );
   }
 
@@ -3174,6 +3248,17 @@ class _HomeViewState extends State<HomeView>
   }
 
   /// Bottom nav: only show on narrow screens
+  Widget _buildBottomWithAiBar() {
+    final nav = _buildResponsiveBottomNav();
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        AiCommandBar(role: widget.role),
+        if (nav != null) nav,
+      ],
+    );
+  }
+
   Widget? _buildResponsiveBottomNav() {
     final r = context.responsive;
     if (r.isWideLayout || _navItems.length < 2) return null;
@@ -8285,139 +8370,276 @@ class _HomeViewState extends State<HomeView>
   }
 
   Widget _buildSettingsTab() {
-    final loc = AppLocalizations.of(context)!;
-    final currentLangLabel = _currentLocale.languageCode == 'en'
-        ? loc.english
-        : loc.vietnamese;
+    return StatefulBuilder(
+      builder: (ctx, rebuild) {
+        final loc = AppLocalizations.of(ctx)!;
+        final query = _settingsSearchController.text.trim().toLowerCase();
+        final langLabel = _currentLocale.languageCode == 'en'
+            ? loc.english
+            : loc.vietnamese;
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: ResponsiveCenter(
-        child: ListView(
-          padding: EdgeInsets.symmetric(
-            horizontal: context.responsive.horizontalPadding,
-            vertical: 10,
+        final allItems = <_SettingsItem>[
+          // === Cửa hàng ===
+          if (hasFullAccess)
+            _SettingsItem(
+              group: 'shop',
+              title: loc.shopSettings,
+              subtitle: loc.shopSettingsDescription,
+              icon: Icons.store_rounded,
+              color: Colors.blue,
+              onTap: () => _fadePush(context, const ShopSettingsView()),
+            ),
+          _SettingsItem(
+            group: 'shop',
+            title: 'Tuỳ chỉnh dashboard',
+            subtitle: 'Chọn thẻ hiển thị và thứ tự trang chủ',
+            icon: Icons.dashboard_customize_rounded,
+            color: Colors.indigo,
+            onTap: _openDashboardSettings,
           ),
-          children: [
-            Text(
-              loc.settings,
-              style: AppTextStyles.headline6.copyWith(
-                color: AppColors.onSurface,
+          // === Giao diện & Ngôn ngữ ===
+          _SettingsItem(
+            group: 'interface',
+            title: loc.languageApp,
+            subtitle: '$langLabel — ${loc.languageAndInterface}',
+            icon: Icons.language_rounded,
+            color: AppColors.primary,
+            onTap: _showLanguageSheet,
+          ),
+          // === Thiết bị & In ấn ===
+          _SettingsItem(
+            group: 'device',
+            title: loc.printer,
+            subtitle: loc.printerSettingsDescription,
+            icon: Icons.print_rounded,
+            color: AppColors.success,
+            onTap: () => _fadePush(context, const PrinterSettingsView()),
+          ),
+          _SettingsItem(
+            group: 'device',
+            title: 'Cài đặt tem nhãn',
+            subtitle: 'Thiết kế và tuỳ chỉnh mẫu tem in',
+            icon: Icons.label_rounded,
+            color: Colors.teal,
+            onTap: () => _fadePush(context, const LabelSettingsView()),
+          ),
+          // === Nhân sự & Chấm công ===
+          if (hasFullAccess)
+            _SettingsItem(
+              group: 'staff',
+              title: 'Cài đặt lương',
+              subtitle: 'Cấu hình bảng lương, phụ cấp và khấu trừ',
+              icon: Icons.payments_rounded,
+              color: Colors.orange,
+              onTap: () => _fadePush(context, const HRSalarySettingsView()),
+            ),
+          if (hasFullAccess)
+            _SettingsItem(
+              group: 'staff',
+              title: 'Lịch làm việc',
+              subtitle: 'Quản lý ca làm, giờ mở/đóng cửa',
+              icon: Icons.schedule_rounded,
+              color: Colors.indigo,
+              onTap: () => _fadePush(context, const WorkScheduleSettingsView()),
+            ),
+          // === Thông báo ===
+          _SettingsItem(
+            group: 'notifications',
+            title: loc.notifications,
+            subtitle: loc.notificationSettingsDescription,
+            icon: Icons.notifications_rounded,
+            color: const Color(0xFF9C27B0),
+            onTap: () => _fadePush(context, const NotificationSettingsView()),
+          ),
+          // === Hướng dẫn ===
+          _SettingsItem(
+            group: 'help',
+            title: loc.userGuide,
+            subtitle: 'Hướng dẫn sử dụng từng tính năng',
+            icon: Icons.help_outline_rounded,
+            color: Colors.teal,
+            onTap: () => _fadePush(context, UserGuideView(userRole: widget.role)),
+          ),
+          _SettingsItem(
+            group: 'help',
+            title: loc.aboutDeveloper,
+            subtitle: loc.aboutDeveloperDescription,
+            icon: Icons.info_outline_rounded,
+            color: AppColors.secondary,
+            onTap: () => _fadePush(context, const AboutDeveloperView()),
+          ),
+          // === Dữ liệu & Hệ thống (admin) ===
+          if (hasFullAccess)
+            _SettingsItem(
+              group: 'system',
+              title: 'Nhật ký kiểm toán',
+              subtitle: 'Lịch sử thao tác và thay đổi dữ liệu',
+              icon: Icons.history_rounded,
+              color: Colors.blueGrey,
+              onTap: () => _fadePush(context, const AuditLogView()),
+            ),
+          if (_isSuperAdmin)
+            _SettingsItem(
+              group: 'system',
+              title: loc.adminCenter,
+              subtitle: loc.adminCenterDescription,
+              icon: Icons.admin_panel_settings_rounded,
+              color: AppColors.error,
+              onTap: () => _fadePush(context, const admin_view.SuperAdminConsoleView()),
+            ),
+          if (_isSuperAdmin)
+            _SettingsItem(
+              group: 'system',
+              title: 'Kiểm tra kết nối',
+              subtitle: 'Kiểm tra Firestore và độ trễ mạng',
+              icon: Icons.network_check_rounded,
+              color: Colors.purple,
+              onTap: () => _fadePush(context, const FirestoreConnectivityTestView()),
+            ),
+          if (_isSuperAdmin)
+            _SettingsItem(
+              group: 'system',
+              title: 'Thống kê đọc/ghi',
+              subtitle: 'Phân tích số lần đọc/ghi Firebase',
+              icon: Icons.bar_chart_rounded,
+              color: Colors.deepOrange,
+              onTap: () => _fadePush(context, const FirebaseRwStatsView()),
+            ),
+        ];
+
+        final filtered = query.isEmpty
+            ? allItems
+            : allItems
+                .where(
+                  (item) =>
+                      item.title.toLowerCase().contains(query) ||
+                      (item.subtitle?.toLowerCase().contains(query) ?? false),
+                )
+                .toList();
+
+        List<Widget> buildGroup(String groupId, String groupTitle) {
+          final items = (query.isEmpty ? allItems : filtered)
+              .where((i) => i.group == groupId)
+              .toList();
+          if (items.isEmpty) return [];
+          return [
+            _buildSectionHeader(groupTitle),
+            ...items.map(
+              (item) => _tabMenuItem(
+                item.title,
+                item.icon,
+                item.color,
+                item.onTap,
+                subtitle: item.subtitle,
               ),
             ),
-            const SizedBox(height: 10),
+          ];
+        }
 
-            // ====== SHOP SWITCHER (Owner với nhiều shop) ======
-            ShopSwitcherWidget(
-              onShopChanged: () {
-                // Reload data when shop changes
-                _loadStats();
-                _loadUserAndShopInfo();
-                _loadShopSettings(); // Ensure shop settings reload after switch
-              },
-            ),
-
-            // ====== TÀI KHOẢN ======
-            _buildHomeAccountCard(),
-            const SizedBox(height: 12),
-
-            Card(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+        return Scaffold(
+          backgroundColor: AppColors.background,
+          body: ResponsiveCenter(
+            child: ListView(
+              padding: EdgeInsets.symmetric(
+                horizontal: ctx.responsive.horizontalPadding,
+                vertical: 10,
               ),
-              child: ListTile(
-                leading: const Icon(Icons.language, color: AppColors.primary),
-                title: Text(loc.languageApp),
-                subtitle: Text(loc.languageAndInterface),
-                trailing: Text(currentLangLabel),
-                onTap: _showLanguageSheet,
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // CÀI ĐẶT CỬA HÀNG - Đưa ra ngoài đầu tiên
-            if (hasFullAccess)
-              _tabMenuItem(
-                loc.shopSettings,
-                Icons.store,
-                Colors.blue,
-                () => _pushRoute(
-                  context,
-                  MaterialPageRoute(builder: (_) => const ShopSettingsView()),
-                ),
-                subtitle: loc.shopSettingsDescription,
-              ),
-
-            // SYNC HEALTH STATUS CARD - Chỉ còn 1 nút đồng bộ duy nhất
-            _buildSyncHealthStatusCard(),
-            const SizedBox(height: 10),
-
-            // Menu items - grid 2 cột trên wide
-            GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: context.responsive.isMobile ? 1 : 2,
-              mainAxisSpacing: 6,
-              crossAxisSpacing: 8,
-              childAspectRatio: context.responsive.isMobile ? 5.5 : 5.0,
               children: [
-                _tabMenuItem(
-                  loc.notifications,
-                  Icons.notifications,
-                  AppColors.primary,
-                  () => _pushRoute(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const NotificationSettingsView(),
+                // Search bar
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: TextField(
+                    controller: _settingsSearchController,
+                    onChanged: (_) => rebuild(() {}),
+                    decoration: InputDecoration(
+                      hintText: 'Tìm cài đặt...',
+                      prefixIcon: const Icon(Icons.search, size: 20),
+                      suffixIcon: query.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear, size: 18),
+                              onPressed: () {
+                                _settingsSearchController.clear();
+                                rebuild(() {});
+                              },
+                            )
+                          : null,
+                      contentPadding: const EdgeInsets.symmetric(
+                        vertical: 0,
+                        horizontal: 12,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      filled: true,
+                      fillColor: Colors.white,
                     ),
                   ),
-                  subtitle: loc.notificationSettingsDescription,
                 ),
-                _tabMenuItem(
-                  loc.printer,
-                  Icons.print,
-                  AppColors.success,
-                  () => _pushRoute(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const PrinterSettingsView(),
-                    ),
-                  ),
-                  subtitle: loc.printerSettingsDescription,
-                ),
-                if (_isSuperAdmin)
-                  _tabMenuItem(
-                    loc.adminCenter,
-                    Icons.admin_panel_settings,
-                    AppColors.error,
-                    () => _pushRoute(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            const admin_view.SuperAdminConsoleView(),
+
+                if (query.isNotEmpty) ...[
+                  // Search results
+                  if (filtered.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 32),
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.search_off_rounded,
+                            size: 48,
+                            color: Colors.grey.shade300,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Không tìm thấy cài đặt nào',
+                            style: AppTextStyles.body1.copyWith(
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  else
+                    ...filtered.map(
+                      (item) => _tabMenuItem(
+                        item.title,
+                        item.icon,
+                        item.color,
+                        item.onTap,
+                        subtitle: item.subtitle,
                       ),
                     ),
-                    subtitle: loc.adminCenterDescription,
+                ] else ...[
+                  // Account & shop switcher
+                  ShopSwitcherWidget(
+                    onShopChanged: () {
+                      _loadStats();
+                      _loadUserAndShopInfo();
+                      _loadShopSettings();
+                    },
                   ),
-                _tabMenuItem(
-                  loc.aboutDeveloper,
-                  Icons.info,
-                  AppColors.secondary,
-                  () => _pushRoute(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const AboutDeveloperView(),
-                    ),
-                  ),
-                  subtitle: loc.aboutDeveloperDescription,
-                ),
+                  _buildHomeAccountCard(),
+                  const SizedBox(height: 16),
+
+                  // Grouped sections
+                  ...buildGroup('shop', 'Cửa hàng'),
+                  ...buildGroup('interface', 'Giao diện & Ngôn ngữ'),
+                  ...buildGroup('device', 'Thiết bị & In ấn'),
+                  if (hasFullAccess) ...buildGroup('staff', 'Nhân sự & Chấm công'),
+                  ...buildGroup('notifications', 'Thông báo'),
+                  ...buildGroup('help', 'Hướng dẫn'),
+                  if (hasFullAccess || _isSuperAdmin)
+                    ...buildGroup('system', 'Dữ liệu & Hệ thống'),
+
+                  const SizedBox(height: 12),
+                  _buildSyncHealthStatusCard(),
+                ],
+
+                const SizedBox(height: 30),
               ],
             ),
-
-            // Đăng xuất nằm trong account card ở trên
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 

@@ -25,6 +25,7 @@ class AppTheme {
       textTheme: AppTypography.textTheme,
 
       // ========== APP BAR ==========
+      // toolbarHeight aligned with CustomAppBar.kAppBarHeight = 44
       appBarTheme: const AppBarTheme(
         backgroundColor: Color(0xFF0068FF), // Zalo Blue
         foregroundColor: AppColors.surface,
@@ -35,13 +36,13 @@ class AppTheme {
         titleTextStyle: TextStyle(
           color: AppColors.surface,
           fontWeight: FontWeight.w600,
-          fontSize: 20,
+          fontSize: 14,
           height: 1.3,
           letterSpacing: -0.3,
         ),
         iconTheme: IconThemeData(color: AppColors.surface, size: 22),
         actionsIconTheme: IconThemeData(color: AppColors.surface, size: 22),
-        toolbarHeight: 52,
+        toolbarHeight: 44,
       ),
 
       // ========== BOTTOM NAVIGATION ==========
@@ -112,55 +113,65 @@ class AppTheme {
       ),
 
       // ========== INPUT DECORATION ==========
+      // Compact sizes — controlled via DesignTokens.formPaddingH/V & formFontSize.
+      // Change those constants to resize ALL form fields app-wide.
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: AppColors.surface,
         isDense: true,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+        contentPadding: DesignTokens.formContentPadding,
         border: OutlineInputBorder(
-          borderRadius: DesignTokens.brMd,
+          borderRadius: DesignTokens.brSm,
           borderSide: const BorderSide(color: AppColors.outline, width: 1),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: DesignTokens.brMd,
+          borderRadius: DesignTokens.brSm,
           borderSide: const BorderSide(color: AppColors.outline, width: 1),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: DesignTokens.brMd,
+          borderRadius: DesignTokens.brSm,
           borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: DesignTokens.brMd,
+          borderRadius: DesignTokens.brSm,
           borderSide: const BorderSide(color: AppColors.error, width: 1),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderRadius: DesignTokens.brMd,
+          borderRadius: DesignTokens.brSm,
           borderSide: const BorderSide(color: AppColors.error, width: 1.5),
         ),
         labelStyle: const TextStyle(
-          fontSize: 14,
+          fontSize: DesignTokens.formLabelSize,
           color: AppColors.textSecondary,
           fontWeight: FontWeight.w400,
         ),
         floatingLabelStyle: const TextStyle(
-          fontSize: 11,
+          fontSize: 10,
           color: AppColors.primary,
           fontWeight: FontWeight.w500,
         ),
         hintStyle: const TextStyle(
-          fontSize: 14,
+          fontSize: DesignTokens.formFontSize,
           color: AppColors.textHint,
           fontWeight: FontWeight.w400,
         ),
         errorStyle: const TextStyle(
-          fontSize: 11,
+          fontSize: 10,
           color: AppColors.error,
-          height: 1.4,
+          height: 1.3,
         ),
         prefixIconColor: AppColors.textSecondary,
         suffixIconColor: AppColors.textSecondary,
         iconColor: AppColors.textSecondary,
-        helperStyle: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+        helperStyle: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+        prefixIconConstraints: const BoxConstraints(
+          minWidth: DesignTokens.iconMd + 16,
+          minHeight: DesignTokens.iconMd,
+        ),
+        suffixIconConstraints: const BoxConstraints(
+          minWidth: DesignTokens.iconMd + 16,
+          minHeight: DesignTokens.iconMd,
+        ),
       ),
 
       // ========== LIST TILE ==========
