@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../data/db_helper.dart';
 import '../utils/vietnamese_utils.dart';
+import 'repair_vocabulary_service.dart';
 
 // ── AI Action ──────────────────────────────────────────────────────────────────
 
@@ -418,7 +419,7 @@ class AiChatService {
 
   AiQuickResponse? quickAnswer(String question, AiChatStats stats, {String? lastIntent}) {
     final raw = VietnameseUtils.normalize(question.toLowerCase());
-    final n = _expandSynonyms(raw);
+    final n = RepairVocabularyService.instance.preprocessQuery(_expandSynonyms(raw));
 
     // Tạo đơn bán → switch to sales tab
     if (_has(n, ['tao don ban', 'them don ban', 'ban hang moi'])) {
@@ -699,7 +700,7 @@ class AiChatService {
 
   AiClarifyResponse? detectAmbiguousIntent(String question) {
     final raw = VietnameseUtils.normalize(question.toLowerCase().trim());
-    final n = _expandSynonyms(raw);
+    final n = RepairVocabularyService.instance.preprocessQuery(_expandSynonyms(raw));
     final words = n.trim().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
     final wordCount = words.length;
 
@@ -811,8 +812,7 @@ class AiChatService {
     }
 
     // ── Domain: thương hiệu (iPhone, Samsung…) ──
-    const brands = ['iphone', 'samsung', 'xiaomi', 'oppo', 'vivo', 'realme', 'nokia', 'huawei'];
-    for (final brand in brands) {
+    for (final brand in RepairVocabularyService.kBrands) {
       if (n.contains(brand)) {
         return AiClarifyResponse(
           'Bạn muốn:',
