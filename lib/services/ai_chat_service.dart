@@ -12,6 +12,8 @@ enum AiActionType {
   viewDebts,
   viewDebtPayable,
   viewStock,
+  openSalesTab,
+  openRepairsTab,
 }
 
 class AiAction {
@@ -27,6 +29,21 @@ class AiQuickResponse {
   final String text;
   final List<AiAction> actions;
   const AiQuickResponse(this.text, {this.actions = const []});
+}
+
+// ── Intent clarification ────────────────────────────────────────────────────────
+
+class AiIntentSuggestion {
+  final String label;
+  final String query; // query sent to _send() when tapped
+  final IconData icon;
+  const AiIntentSuggestion({required this.label, required this.query, required this.icon});
+}
+
+class AiClarifyResponse {
+  final String prompt;
+  final List<AiIntentSuggestion> suggestions;
+  const AiClarifyResponse(this.prompt, {required this.suggestions});
 }
 
 // ── Stats snapshot ─────────────────────────────────────────────────────────────
@@ -356,6 +373,16 @@ class AiChatService {
     icon: Icons.store_outlined,
     type: AiActionType.viewDebtPayable,
   );
+  static const _kOpenSalesTabAction = AiAction(
+    label: 'Mở tab Bán hàng',
+    icon: Icons.point_of_sale_outlined,
+    type: AiActionType.openSalesTab,
+  );
+  static const _kOpenRepairsTabAction = AiAction(
+    label: 'Mở tab Sửa chữa',
+    icon: Icons.build_outlined,
+    type: AiActionType.openRepairsTab,
+  );
 
   // Expand common synonyms before intent matching so short / variant phrasing works.
   static String _expandSynonyms(String normalized) {
@@ -392,6 +419,22 @@ class AiChatService {
   AiQuickResponse? quickAnswer(String question, AiChatStats stats, {String? lastIntent}) {
     final raw = VietnameseUtils.normalize(question.toLowerCase());
     final n = _expandSynonyms(raw);
+
+    // Tạo đơn bán → switch to sales tab
+    if (_has(n, ['tao don ban', 'them don ban', 'ban hang moi'])) {
+      return const AiQuickResponse(
+        'Chuyển sang màn hình **Bán hàng** để tạo đơn bán mới:',
+        actions: [_kOpenSalesTabAction],
+      );
+    }
+
+    // Tạo đơn sửa → switch to repairs tab
+    if (_has(n, ['tao don sua', 'them don sua', 'tiep nhan sua'])) {
+      return const AiQuickResponse(
+        'Chuyển sang màn hình **Sửa chữa** để tiếp nhận máy mới:',
+        actions: [_kOpenRepairsTabAction],
+      );
+    }
 
     // Context continuation: "gần nhất" alone → use lastIntent to resolve
     if (_has(n, ['gan nhat']) && !_has(n, ['ban', 'sua', 'don'])) {
@@ -643,6 +686,143 @@ class AiChatService {
         '• Công nợ phải thu / phải trả NCC\n'
         '• Đơn sửa đang chờ, đơn bán gần nhất',
       );
+    }
+
+    return null;
+  }
+
+  // ── Progressive Intent Clarification ─────────────────────────────────────────
+  //
+  // Called when quickAnswer() returns null.  If the input is short/ambiguous
+  // but maps to a known domain, return clarification chips instead of going
+  // straight to cloud AI.
+
+  AiClarifyResponse? detectAmbiguousIntent(String question) {
+    final raw = VietnameseUtils.normalize(question.toLowerCase().trim());
+    final n = _expandSynonyms(raw);
+    final words = n.trim().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+    final wordCount = words.length;
+
+    // Only fire for short (≤ 3 words) inputs — longer ones are likely specific
+    if (wordCount > 3) return null;
+
+    // Guard: already contains a specific qualifier → quickAnswer or cloud handles it
+    if (_has(n, [
+      'hom nay', 'thang nay', 'nam nay', 'gan nhat', 'moi nhat',
+      'tao', 'them', 'mo', 'kiem tra', 'bao nhieu', 'danh sach',
+      'tong', 'chi tiet', 'nhieu nhat', 'it nhat', 'sap het',
+      'dang cho', 'dang sua', 'da giao', 'chua tra',
+    ])) { return null; }
+
+    // ── Domain: bán hàng ──
+    if (_has(n, ['ban']) &&
+        !_has(n, ['tra no', 'ncc', 'linh kien', 'phu kien', 'san pham'])) {
+      return const AiClarifyResponse(
+        'Bạn muốn:',
+        suggestions: [
+          AiIntentSuggestion(label: 'Tạo đơn bán', query: 'tạo đơn bán', icon: Icons.add_shopping_cart_rounded),
+          AiIntentSuggestion(label: 'Đơn bán gần nhất', query: 'đơn bán gần nhất', icon: Icons.receipt_long_rounded),
+          AiIntentSuggestion(label: 'Doanh thu hôm nay', query: 'doanh thu hôm nay', icon: Icons.trending_up_rounded),
+          AiIntentSuggestion(label: 'Bán hàng tháng này', query: 'bán hàng tháng này', icon: Icons.calendar_month_rounded),
+          AiIntentSuggestion(label: 'Sản phẩm bán chạy', query: 'sản phẩm bán chạy nhất', icon: Icons.star_rounded),
+        ],
+      );
+    }
+
+    // ── Domain: sửa chữa ──
+    if (_has(n, ['sua']) && !_has(n, ['nha', 'may sua', 'sach'])) {
+      return const AiClarifyResponse(
+        'Bạn muốn:',
+        suggestions: [
+          AiIntentSuggestion(label: 'Tạo đơn sửa', query: 'tạo đơn sửa', icon: Icons.add_circle_outline_rounded),
+          AiIntentSuggestion(label: 'Đơn sửa hôm nay', query: 'sửa chữa hôm nay', icon: Icons.today_rounded),
+          AiIntentSuggestion(label: 'Đơn đang chờ', query: 'đơn sửa đang chờ', icon: Icons.pending_actions_rounded),
+          AiIntentSuggestion(label: 'Đơn sửa gần nhất', query: 'đơn sửa gần nhất', icon: Icons.build_circle_rounded),
+          AiIntentSuggestion(label: 'Sửa chữa tháng này', query: 'sửa chữa tháng này', icon: Icons.calendar_today_rounded),
+        ],
+      );
+    }
+
+    // ── Domain: kho ──
+    if (_has(n, ['kho']) && !_has(n, ['nhap kho', 'xuat kho', 'lich su'])) {
+      return const AiClarifyResponse(
+        'Bạn muốn:',
+        suggestions: [
+          AiIntentSuggestion(label: 'Tồn kho hiện tại', query: 'tồn kho hiện tại', icon: Icons.inventory_2_rounded),
+          AiIntentSuggestion(label: 'Sản phẩm sắp hết', query: 'sản phẩm sắp hết hàng', icon: Icons.warning_amber_rounded),
+          AiIntentSuggestion(label: 'Kho linh kiện', query: 'kho linh kiện', icon: Icons.memory_rounded),
+          AiIntentSuggestion(label: 'Lịch sử nhập kho', query: 'lịch sử nhập kho', icon: Icons.history_rounded),
+          AiIntentSuggestion(label: 'Nhà cung cấp', query: 'nhà cung cấp', icon: Icons.store_rounded),
+        ],
+      );
+    }
+
+    // ── Domain: nợ / công nợ ──
+    if (_has(n, ['no', 'cong no']) &&
+        !_has(n, ['ngoai no', 'tro no', 'nhap no', 'ton kho'])) {
+      return const AiClarifyResponse(
+        'Bạn muốn:',
+        suggestions: [
+          AiIntentSuggestion(label: 'Khách nợ nhiều nhất', query: 'ai nợ nhiều nhất', icon: Icons.person_rounded),
+          AiIntentSuggestion(label: 'Tổng công nợ', query: 'tổng công nợ', icon: Icons.account_balance_wallet_rounded),
+          AiIntentSuggestion(label: 'Nợ nhà cung cấp', query: 'nợ nhà cung cấp', icon: Icons.store_rounded),
+          AiIntentSuggestion(label: 'Khoản phải thu', query: 'thu nợ khách', icon: Icons.south_rounded),
+          AiIntentSuggestion(label: 'Khoản phải trả', query: 'trả nợ NCC', icon: Icons.north_rounded),
+        ],
+      );
+    }
+
+    // ── Domain: tài chính / thống kê ──
+    if (_has(n, ['tai chinh', 'thong ke', 'bao cao', 'doanh thu'])) {
+      return const AiClarifyResponse(
+        'Bạn muốn:',
+        suggestions: [
+          AiIntentSuggestion(label: 'Hôm nay', query: 'doanh thu hôm nay', icon: Icons.today_rounded),
+          AiIntentSuggestion(label: 'Tháng này', query: 'tài chính tháng này', icon: Icons.calendar_month_rounded),
+          AiIntentSuggestion(label: 'Năm nay', query: 'năm nay', icon: Icons.bar_chart_rounded),
+          AiIntentSuggestion(label: 'Tổng hợp', query: 'tổng hợp tài chính', icon: Icons.summarize_rounded),
+          AiIntentSuggestion(label: 'Lợi nhuận', query: 'lợi nhuận', icon: Icons.trending_up_rounded),
+        ],
+      );
+    }
+
+    // ── Domain: NCC / nhà cung cấp ──
+    if (_has(n, ['ncc', 'nha cung cap'])) {
+      return const AiClarifyResponse(
+        'Bạn muốn:',
+        suggestions: [
+          AiIntentSuggestion(label: 'Nợ nhà cung cấp', query: 'nợ nhà cung cấp', icon: Icons.money_off_rounded),
+          AiIntentSuggestion(label: 'Danh sách NCC', query: 'danh sách nhà cung cấp', icon: Icons.list_rounded),
+          AiIntentSuggestion(label: 'NCC nợ nhiều nhất', query: 'nhà cung cấp nào nợ nhiều nhất', icon: Icons.trending_up_rounded),
+        ],
+      );
+    }
+
+    // ── Domain: linh kiện / phụ kiện ──
+    if (_has(n, ['linh kien', 'phu kien'])) {
+      return const AiClarifyResponse(
+        'Bạn muốn:',
+        suggestions: [
+          AiIntentSuggestion(label: 'Tồn kho linh kiện', query: 'tồn kho linh kiện', icon: Icons.memory_rounded),
+          AiIntentSuggestion(label: 'Linh kiện sắp hết', query: 'linh kiện sắp hết', icon: Icons.warning_amber_rounded),
+          AiIntentSuggestion(label: 'Nhập linh kiện', query: 'nhập linh kiện mới', icon: Icons.add_box_rounded),
+        ],
+      );
+    }
+
+    // ── Domain: thương hiệu (iPhone, Samsung…) ──
+    const brands = ['iphone', 'samsung', 'xiaomi', 'oppo', 'vivo', 'realme', 'nokia', 'huawei'];
+    for (final brand in brands) {
+      if (n.contains(brand)) {
+        return AiClarifyResponse(
+          'Bạn muốn:',
+          suggestions: [
+            AiIntentSuggestion(label: 'Tìm trong kho', query: 'tồn kho $brand', icon: Icons.search_rounded),
+            AiIntentSuggestion(label: 'Tạo đơn sửa', query: 'tạo đơn sửa $brand', icon: Icons.build_rounded),
+            AiIntentSuggestion(label: 'Đơn bán gần nhất', query: 'đơn bán $brand gần nhất', icon: Icons.receipt_rounded),
+          ],
+        );
+      }
     }
 
     return null;

@@ -18,7 +18,12 @@ class _Msg {
   final String text;
   final bool isLoading;
   final List<AiAction> actions;
-  _Msg(this.role, this.text, {this.isLoading = false, this.actions = const []});
+  final List<AiIntentSuggestion> suggestions;
+  _Msg(this.role, this.text, {
+    this.isLoading = false,
+    this.actions = const [],
+    this.suggestions = const [],
+  });
 }
 
 // ── Quick chip presets ─────────────────────────────────────────────────────────
@@ -202,6 +207,23 @@ class _AiChatOverlayState extends State<AiChatOverlay>
       return;
     }
 
+    // Ambiguous domain → show clarification chips instead of calling cloud
+    final clarify = AiChatService.instance.detectAmbiguousIntent(q);
+    if (clarify != null) {
+      await Future.delayed(const Duration(milliseconds: 200));
+      if (!mounted) return;
+      setState(() {
+        _sending = false;
+        _messages.add(_Msg(
+          _Role.assistant,
+          clarify.prompt,
+          suggestions: clarify.suggestions,
+        ));
+      });
+      _scrollToBottom();
+      return;
+    }
+
     // Cloud AI answer
     setState(() {
       _messages.add(_Msg(_Role.assistant, '', isLoading: true));
@@ -233,10 +255,9 @@ class _AiChatOverlayState extends State<AiChatOverlay>
     if (actions.isEmpty) return;
     final type = actions.first.type;
     _lastIntent = switch (type) {
-      AiActionType.openLatestRepair => 'repair',
-      AiActionType.openLatestSale => 'sale',
-      AiActionType.viewDebts => 'debt',
-      AiActionType.viewDebtPayable => 'debt',
+      AiActionType.openLatestRepair || AiActionType.openRepairsTab => 'repair',
+      AiActionType.openLatestSale || AiActionType.openSalesTab => 'sale',
+      AiActionType.viewDebts || AiActionType.viewDebtPayable => 'debt',
       AiActionType.viewStock => 'stock',
     };
   }
@@ -266,6 +287,12 @@ class _AiChatOverlayState extends State<AiChatOverlay>
         _toggle();
       case AiActionType.viewStock:
         AiNavBridge.switchToTab(AiNavBridge.tabInventory);
+        _toggle();
+      case AiActionType.openSalesTab:
+        AiNavBridge.switchToTab(AiNavBridge.tabSales);
+        _toggle();
+      case AiActionType.openRepairsTab:
+        AiNavBridge.switchToTab(AiNavBridge.tabRepairs);
         _toggle();
     }
   }
@@ -579,6 +606,7 @@ class _AiChatOverlayState extends State<AiChatOverlay>
   Widget _buildBubble(_Msg msg) {
     final isUser = msg.role == _Role.user;
     final hasActions = !isUser && msg.actions.isNotEmpty && !msg.isLoading;
+    final hasSuggestions = !isUser && msg.suggestions.isNotEmpty && !msg.isLoading;
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Column(
@@ -625,7 +653,53 @@ class _AiChatOverlayState extends State<AiChatOverlay>
             ],
           ),
           if (hasActions) _buildActionRow(msg.actions),
+          if (hasSuggestions) _buildSuggestionChips(msg.suggestions),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSuggestionChips(List<AiIntentSuggestion> suggestions) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8, left: 36),
+      child: Wrap(
+        spacing: 6,
+        runSpacing: 6,
+        children: suggestions.map((s) {
+          return GestureDetector(
+            onTap: _sending ? null : () => _send(s.query),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+              decoration: BoxDecoration(
+                color: _kPurpleLight,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: _kPurple.withValues(alpha: 0.3)),
+                boxShadow: [
+                  BoxShadow(
+                    color: _kPurple.withValues(alpha: 0.06),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(s.icon, size: 13, color: _kPurple),
+                  const SizedBox(width: 5),
+                  Text(
+                    s.label,
+                    style: const TextStyle(
+                      color: _kPurple,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }).toList(),
       ),
     );
   }
