@@ -4,6 +4,22 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-05-25b] — Progressive Intent Clarification + Máy Xác + NCC Link Kho
+
+### Added
+- `lib/services/ai_chat_service.dart` + `lib/widgets/ai_chat_overlay.dart`
+  - **Progressive Intent Clarification**: nhập ngắn ("bán", "sửa", "kho", "nợ", "tài chính", "NCC", "linh kiện", tên hãng) → AI hiển thị chip gợi ý thay vì đi thẳng cloud
+  - `AiIntentSuggestion` + `AiClarifyResponse` types; `detectAmbiguousIntent()` method
+  - `AiActionType.openSalesTab` / `openRepairsTab` — đóng panel + chuyển tab
+  - `quickAnswer()`: thêm handler "tạo đơn bán" → salesTab, "tạo đơn sửa" → repairsTab
+- `lib/widgets/quick_action/quick_action_sheet.dart` — thêm "Máy xác mới" (SalvagePhoneView, icon brown)
+
+### Changed
+- `lib/widgets/app_popup.dart` — `PopupInfoRow` thêm param `trailingIcon` để phân biệt copy vs navigate chevron
+- `lib/views/inventory_view.dart` — row "Nhà cung cấp" trong popup sản phẩm kho bây giờ tappable → mở `SupplierDetailView`; màu teal khi có link
+
+---
+
 ## [2026-05-25] — AI Stats Year Scope + Fix Mở Đơn Bán Từ AI
 
 ### Added
