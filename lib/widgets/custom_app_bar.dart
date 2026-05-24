@@ -40,11 +40,31 @@ class CustomAppBar {
   static const Color kTextSecondary = Color(0xFF616161);
   static const Color kDivider = Color(0xFFEEEEEE);
 
-  /// AppBar với Gradient - Modern style
+  // ========== SUB-SCREEN STYLE ==========
+  // Indigo gradient — clearly distinct from HomeView's pure-blue gradient.
+  static const Color kSubBg = Color(0xFF3949AB);         // indigo-600
+  static const Color kSubBgEnd = Color(0xFF5C6BC0);      // indigo-400
+  static const Color kSubAccent = Colors.white;
+  static const Color kSubTitle = Colors.white;
+  static const Color kSubDivider = Color(0x26FFFFFF);    // white 15%
+
+  static const LinearGradient kSubGradient = LinearGradient(
+    colors: [kSubBg, kSubBgEnd],
+    begin: Alignment.centerLeft,
+    end: Alignment.centerRight,
+  );
+
+  /// AppBar với Gradient - Modern style.
+  ///
+  /// Sub-screens (showBackButton == true) automatically receive the compact
+  /// surface-white style instead of the blue gradient, so they feel visually
+  /// distinct from the main HomeView AppBar.
   static PreferredSizeWidget build({
     required String title,
     String? subtitle,
-    Color? accentColor, // Màu accent cho border/indicator
+    Widget? titleWidget,
+    LinearGradient? gradient,
+    Color? accentColor,
     Color? backgroundColor,
     List<Widget>? actions,
     Widget? leading,
@@ -54,11 +74,69 @@ class CustomAppBar {
     double? elevation,
     VoidCallback? onBackPressed,
     SystemUiOverlayStyle? systemOverlayStyle,
-    bool useGradient = true, // Mặc định dùng gradient
+    bool useGradient = true,
   }) {
-    final accent = accentColor ?? kPrimaryColor;
+    // ── Sub-screen style (any view with a back button) ────────────────────
+    if (showBackButton && useGradient) {
+      return AppBar(
+        toolbarHeight: kAppBarHeight,
+        elevation: elevation ?? 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
+        systemOverlayStyle: SystemUiOverlayStyle.light,
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
+        centerTitle: centerTitle,
+        automaticallyImplyLeading: showBackButton,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(gradient: kSubGradient),
+        ),
+        leading: leading ??
+            (onBackPressed != null
+                ? IconButton(
+                    icon: const Icon(
+                      Icons.arrow_back_ios_new_rounded,
+                      size: 18,
+                      color: Colors.white,
+                    ),
+                    onPressed: onBackPressed,
+                  )
+                : Builder(
+                    builder: (ctx) => IconButton(
+                      icon: const Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        size: 18,
+                        color: Colors.white,
+                      ),
+                      onPressed: () => Navigator.of(ctx).maybePop(),
+                    ),
+                  )),
+        title: titleWidget ?? _buildSubTitle(title, subtitle, Colors.white),
+        actions: actions != null
+            ? [
+                ...actions.map(
+                  (a) => Theme(
+                    data: ThemeData(
+                        iconTheme:
+                            const IconThemeData(color: Colors.white)),
+                    child: a,
+                  ),
+                ),
+                const SizedBox(width: 4),
+              ]
+            : null,
+        bottom: bottom ??
+            PreferredSize(
+              preferredSize: const Size.fromHeight(1),
+              child: Container(color: kSubDivider, height: 1),
+            ),
+      );
+    }
 
-    // Nếu dùng gradient
+    // ── Main gradient style (HomeView — showBackButton: false) ────────────
+    final accent = accentColor ?? kPrimaryColor;
+    final resolvedGradient = gradient ?? kDefaultGradient;
+
     if (useGradient) {
       return AppBar(
         toolbarHeight: kAppBarHeight,
@@ -69,23 +147,12 @@ class CustomAppBar {
         backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
         centerTitle: centerTitle,
-        automaticallyImplyLeading: showBackButton,
+        automaticallyImplyLeading: false,
         flexibleSpace: Container(
-          decoration: const BoxDecoration(gradient: kDefaultGradient),
+          decoration: BoxDecoration(gradient: resolvedGradient),
         ),
-        leading:
-            leading ??
-            (showBackButton && onBackPressed != null
-                ? IconButton(
-                    icon: const Icon(
-                      Icons.arrow_back_ios_rounded,
-                      size: 20,
-                      color: Colors.white,
-                    ),
-                    onPressed: onBackPressed,
-                  )
-                : null),
-        title: _buildTitleWhite(title, subtitle),
+        leading: leading,
+        title: titleWidget ?? _buildTitleWhite(title, subtitle),
         actions: actions != null
             ? [
                 ...actions.map(
@@ -103,7 +170,7 @@ class CustomAppBar {
       );
     }
 
-    // Nền sáng - chữ tối (legacy style)
+    // ── Legacy white style (useGradient: false) ───────────────────────────
     final bgColor = backgroundColor ?? kSurfaceWhite;
     final isLight = bgColor.computeLuminance() > 0.5;
     final fgColor = isLight ? kTextPrimary : Colors.white;
@@ -241,15 +308,61 @@ class CustomAppBar {
     VoidCallback? onBackPressed,
     bool useGradient = true,
   }) {
-    final accent = accentColor ?? kPrimaryColor;
+    final accent = accentColor ?? (showBackButton ? kSubAccent : kPrimaryColor);
 
-    // Khi title rỗng và không có back button → ẩn toolbar để không tạo khoảng trống thừa
+    // Khi title rỗng và không có back button → ẩn toolbar
     final double resolvedToolbarHeight =
         (title.isEmpty && !showBackButton && (actions == null || actions.isEmpty))
             ? 0.0
             : kAppBarHeight;
 
-    // Gradient style
+    // ── Sub-screen tab style (any view with a back button) ────────────────
+    if (showBackButton && useGradient) {
+      return AppBar(
+        toolbarHeight: resolvedToolbarHeight,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
+        systemOverlayStyle: SystemUiOverlayStyle.light,
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
+        automaticallyImplyLeading: showBackButton,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(gradient: kSubGradient),
+        ),
+        leading: showBackButton && onBackPressed != null
+            ? IconButton(
+                icon: const Icon(
+                  Icons.arrow_back_ios_new_rounded,
+                  size: 18,
+                  color: Colors.white,
+                ),
+                onPressed: onBackPressed,
+              )
+            : null,
+        title: _buildSubTitle(title, subtitle, Colors.white),
+        actions: actions != null
+            ? [
+                ...actions.map(
+                  (a) => Theme(
+                    data: ThemeData(
+                        iconTheme:
+                            const IconThemeData(color: Colors.white)),
+                    child: a,
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ]
+            : null,
+        bottom: CustomTabBar.buildOnSub(
+          controller: tabController,
+          tabs: tabs,
+          isScrollable: isScrollable,
+        ),
+      );
+    }
+
+    // ── Main gradient tab style (HomeView — showBackButton: false) ─────────
     if (useGradient) {
       return AppBar(
         toolbarHeight: resolvedToolbarHeight,
@@ -259,20 +372,10 @@ class CustomAppBar {
         systemOverlayStyle: SystemUiOverlayStyle.light,
         backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
-        automaticallyImplyLeading: showBackButton,
+        automaticallyImplyLeading: false,
         flexibleSpace: Container(
           decoration: const BoxDecoration(gradient: kDefaultGradient),
         ),
-        leading: showBackButton && onBackPressed != null
-            ? IconButton(
-                icon: const Icon(
-                  Icons.arrow_back_ios_rounded,
-                  size: 20,
-                  color: Colors.white,
-                ),
-                onPressed: onBackPressed,
-              )
-            : null,
         title: _buildTitleWhite(title, subtitle),
         actions: actions != null
             ? [
@@ -375,6 +478,51 @@ class CustomAppBar {
   }
 
   // ========== PRIVATE HELPERS ==========
+
+  /// Build title for sub-screens (dark text + accent subtitle)
+  static Widget _buildSubTitle(String title, String? subtitle, Color accent) {
+    if (subtitle == null) {
+      return Text(
+        title,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(
+          fontWeight: FontWeight.w700,
+          fontSize: kTitleFontSize,
+          color: kSubTitle,
+          letterSpacing: -0.2,
+        ),
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: kTitleFontSize,
+            color: kSubTitle,
+            letterSpacing: -0.2,
+          ),
+        ),
+        const SizedBox(height: 1),
+        Text(
+          subtitle,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: kSubtitleFontSize,
+            fontWeight: FontWeight.w400,
+            color: accent.withValues(alpha: 0.8),
+          ),
+        ),
+      ],
+    );
+  }
 
   /// Build title for gradient (white text)
   static Widget _buildTitleWhite(String title, String? subtitle) {
@@ -595,6 +743,39 @@ class CustomTabBar {
         ),
         indicatorPadding: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
         dividerColor: Colors.transparent,
+        padding: padding ?? const EdgeInsets.symmetric(horizontal: 4),
+        labelPadding: const EdgeInsets.symmetric(horizontal: 12),
+        tabs: tabs,
+      ),
+    );
+  }
+
+  /// TabBar cho sub-screen indigo gradient (text trắng, underline trắng)
+  static PreferredSizeWidget buildOnSub({
+    required TabController controller,
+    required List<Tab> tabs,
+    bool isScrollable = false,
+    EdgeInsetsGeometry? padding,
+  }) {
+    return PreferredSize(
+      preferredSize: const Size.fromHeight(CustomAppBar.kTabBarHeight),
+      child: TabBar(
+        controller: controller,
+        isScrollable: isScrollable,
+        labelColor: Colors.white,
+        unselectedLabelColor: Colors.white.withValues(alpha: 0.65),
+        labelStyle: TextStyle(
+          fontWeight: FontWeight.w600,
+          fontSize: AppTextStyles.subtitle1.fontSize,
+        ),
+        unselectedLabelStyle: TextStyle(
+          fontWeight: FontWeight.w400,
+          fontSize: AppTextStyles.subtitle1.fontSize,
+        ),
+        indicatorSize: TabBarIndicatorSize.label,
+        indicatorWeight: 2,
+        indicatorColor: Colors.white,
+        dividerColor: Colors.white.withValues(alpha: 0.15),
         padding: padding ?? const EdgeInsets.symmetric(horizontal: 4),
         labelPadding: const EdgeInsets.symmetric(horizontal: 12),
         tabs: tabs,
