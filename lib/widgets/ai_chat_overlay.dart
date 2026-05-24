@@ -58,6 +58,7 @@ class _AiChatOverlayState extends State<AiChatOverlay>
   final _speech = SpeechToText();
   bool _speechAvailable = false;
   bool _recording = false;
+  bool _micAutoSent = false; // prevents double-send when finalResult fires
   late final AnimationController _pulse;
 
   // ── Colors ────────────────────────────────────────────────────────────────
@@ -220,12 +221,15 @@ class _AiChatOverlayState extends State<AiChatOverlay>
     if (_recording) {
       await _speech.stop();
       setState(() => _recording = false);
-      if (_ctrl.text.trim().isNotEmpty) _send();
+      // Only send if finalResult callback hasn't already sent
+      if (!_micAutoSent && _ctrl.text.trim().isNotEmpty) _send();
+      _micAutoSent = false;
       return;
     }
     if (!_speechAvailable) return;
     setState(() {
       _recording = true;
+      _micAutoSent = false;
       _ctrl.clear();
     });
     await _speech.listen(
@@ -237,7 +241,10 @@ class _AiChatOverlayState extends State<AiChatOverlay>
         if (result.finalResult) {
           _speech.stop();
           setState(() => _recording = false);
-          if (_ctrl.text.trim().isNotEmpty) _send();
+          if (_ctrl.text.trim().isNotEmpty) {
+            _micAutoSent = true;
+            _send();
+          }
         }
       },
       listenOptions: SpeechListenOptions(
@@ -362,6 +369,7 @@ class _AiChatOverlayState extends State<AiChatOverlay>
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: SafeArea(
+        top: false,
         bottom: false,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),

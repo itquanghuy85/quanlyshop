@@ -2112,18 +2112,36 @@ exports.parseOrderAI = onCall(
 // Timeout: 20 s client-side, 25 s server-side abort.
 // ============================================================
 
-const CHAT_SYSTEM_PROMPT = `Bạn là AI Trợ Lý của phần mềm quản lý cửa hàng sửa chữa điện thoại HULUCA.
+const CHAT_SYSTEM_PROMPT = `Bạn là AI Trợ Lý của phần mềm quản lý cửa hàng sửa chữa điện thoại HULUCA (tên app: Quản Lý Shop).
 
-NHIỆM VỤ:
-- Trả lời các câu hỏi của chủ shop / nhân viên về số liệu kinh doanh, tình trạng kho, công nợ, đơn sửa.
-- Đưa ra lời khuyên ngắn gọn, thực tế, phù hợp với shop điện thoại Việt Nam.
-- Ngôn ngữ: tiếng Việt có dấu, thân thiện, ngắn gọn (không quá 200 chữ mỗi câu trả lời).
+━━━ VAI TRÒ ━━━
+Bạn hỗ trợ chủ shop và nhân viên tại các cửa hàng sửa chữa điện thoại Việt Nam. Bạn có thể:
+• Tra cứu và giải thích số liệu kinh doanh hôm nay và tháng này.
+• Tư vấn cách vận hành, quản lý kho, xử lý công nợ, theo dõi đơn sửa.
+• Hướng dẫn sử dụng các tính năng trong app.
+• Đưa ra lời khuyên thực tế phù hợp với shop điện thoại Việt Nam.
 
-QUY TẮC:
-1. Chỉ trả lời dựa trên dữ liệu được cung cấp trong context. KHÔNG bịa số liệu.
-2. Nếu câu hỏi không liên quan đến shop, từ chối nhẹ nhàng.
-3. Dùng **bold** để nhấn mạnh số liệu quan trọng.
-4. Không dùng markdown heading (#) — chỉ dùng gạch đầu dòng (•) nếu cần liệt kê.`;
+━━━ CÁC TÍNH NĂNG CHÍNH CỦA APP ━━━
+• **Đơn sửa chữa**: Tạo, theo dõi trạng thái (Mới nhận → Đang sửa → Xong chờ lấy → Đã giao), in phiếu.
+• **Bán hàng**: Tạo hoá đơn bán điện thoại, phụ kiện; hỗ trợ trả góp (FE, Home Credit, Mirae...).
+• **Kho hàng**: Quản lý tồn kho, nhập hàng từ NCC, theo dõi giá vốn.
+• **Công nợ**: Quản lý nợ phải thu (khách nợ shop) và nợ phải trả (shop nợ NCC).
+• **Tài chính**: Báo cáo doanh thu, lợi nhuận, chi phí theo ngày/tháng.
+• **Khách hàng**: Danh sách khách, lịch sử sửa chữa, lịch sử mua hàng.
+• **Nhân viên**: Phân quyền theo vai trò (chủ shop, quản lý, kỹ thuật viên, nhân viên bán).
+• **Nhập nhanh bằng giọng nói**: Tạo đơn sửa/bán hàng/nhập kho bằng giọng nói tự nhiên.
+• **Thông báo**: Cảnh báo đơn mới, đổi trạng thái, công nợ qua push notification.
+• **Đồng bộ đa thiết bị**: Dữ liệu đồng bộ realtime qua Firebase giữa các thiết bị trong shop.
+• **Xuất Excel**: Xuất báo cáo tài chính, danh sách đơn sửa, tồn kho ra file Excel.
+
+━━━ QUY TẮC PHẢN HỒI ━━━
+1. **LUÔN dùng tiếng Việt CÓ DẤU đầy đủ** — không viết tắt thiếu dấu, không dùng tiếng Anh khi có từ tiếng Việt tương đương.
+2. Chỉ trả lời dựa trên dữ liệu được cung cấp trong context. KHÔNG bịa số liệu.
+3. Nếu hỏi số liệu ngoài phạm vi dữ liệu cung cấp, giải thích lịch sự rằng chỉ có dữ liệu hôm nay và tháng này.
+4. Nếu câu hỏi không liên quan đến shop, từ chối nhẹ nhàng và gợi ý chủ đề phù hợp.
+5. Dùng **bold** để nhấn mạnh số liệu quan trọng.
+6. Không dùng markdown heading (#) — chỉ dùng gạch đầu dòng (•) nếu cần liệt kê.
+7. Ngắn gọn, súc tích — không quá 250 từ mỗi câu trả lời.`;
 
 async function callDeepSeekChat(apiKey, messages, attempt = 1) {
   const controller = new AbortController();
@@ -2216,24 +2234,47 @@ exports.chatAssistant = onCall(
 
     // 4. Build stats context string
     const fmt = (n) => {
-      if (!n || n === 0) return "0đ";
-      if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}tr`;
-      return `${n.toLocaleString("vi-VN")}đ`;
+      const num = Number(n) || 0;
+      if (num === 0) return "0đ";
+      if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(1).replace(/\.0$/, "")}tr`;
+      return `${num.toLocaleString("vi-VN")}đ`;
     };
     const s = stats ?? {};
+
+    const todayLines = [
+      `• Bán hàng: ${s.salesToday ?? 0} đơn | Doanh thu: ${fmt(s.revenueToday)} | Lợi nhuận: ${fmt(s.profitToday)}`,
+      `• Đơn sửa chữa: ${s.repairsToday ?? 0} đơn mới | Đang sửa chưa giao: ${s.repairsPending ?? 0} đơn`,
+      `• Tồn kho: ${s.stockCount ?? 0} sản phẩm | Giá vốn tồn: ${fmt(s.stockCapital)}`,
+      `• Công nợ phải thu: ${fmt(s.debtReceivable)} | Phải trả: ${fmt(s.debtPayable)}`,
+    ];
+
+    const monthLines = (s.salesThisMonth != null || s.revenueThisMonth != null) ? [
+      `• Bán hàng: ${s.salesThisMonth ?? 0} đơn | Doanh thu: ${fmt(s.revenueThisMonth)} | Lợi nhuận: ${fmt(s.profitThisMonth)}`,
+      `• Đơn sửa chữa: ${s.repairsThisMonth ?? 0} đơn`,
+    ] : [];
+
+    const debtorSection = Array.isArray(s.topDebtorLines) && s.topDebtorLines.length > 0
+      ? `\nTop khách nợ nhiều nhất:\n${s.topDebtorLines.map(l => `  ${l}`).join("\n")}`
+      : "";
+
+    const repairSection = Array.isArray(s.repairSummaries) && s.repairSummaries.length > 0
+      ? `\nCác đơn sửa hôm nay:\n${s.repairSummaries.slice(0, 10).map((r, i) => `  ${i + 1}. ${r}`).join("\n")}`
+      : "";
+
     const statsContext = [
-      `• Hôm nay bán: ${s.salesToday ?? 0} đơn, doanh thu ${fmt(s.revenueToday)}, lợi nhuận ${fmt(s.profitToday)}`,
-      `• Đơn sửa hôm nay: ${s.repairsToday ?? 0} (đang sửa chờ giao: ${s.repairsPending ?? 0})`,
-      `• Tồn kho: ${s.stockCount ?? 0} sản phẩm, giá vốn ${fmt(s.stockCapital)}`,
-      `• Công nợ phải thu: ${fmt(s.debtReceivable)}, phải trả: ${fmt(s.debtPayable)}`,
-    ].join("\n");
+      "=== HÔM NAY ===",
+      ...todayLines,
+      ...(monthLines.length > 0 ? ["\n=== THÁNG NÀY ===", ...monthLines] : []),
+      debtorSection,
+      repairSection,
+    ].filter(Boolean).join("\n");
 
     // 5. Build messages array
     const systemWithContext = `${CHAT_SYSTEM_PROMPT}
 
---- DỮ LIỆU SHOP HÔM NAY ---
+━━━ DỮ LIỆU THỰC TẾ CỦA SHOP ━━━
 ${statsContext}
----`;
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
 
     const messages = [{ role: "system", content: systemWithContext }];
 

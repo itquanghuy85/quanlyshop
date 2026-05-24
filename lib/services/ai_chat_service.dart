@@ -16,9 +16,15 @@ class AiChatStats {
   final int debtReceivable;
   final int debtPayable;
 
+  // Monthly aggregates
+  final int salesThisMonth;
+  final int revenueThisMonth;
+  final int profitThisMonth;
+  final int repairsThisMonth;
+
   // Detail lists for "gồm những đơn nào" / "ai nợ nhiều nhất"
-  final List<String> repairSummaries;   // ["Samsung A52 - thay màn (Nguyễn Hùng - Đang sửa)", ...]
-  final List<String> topDebtorLines;    // ["Nguyễn Văn A: 5.2tr", ...]
+  final List<String> repairSummaries;
+  final List<String> topDebtorLines;
 
   const AiChatStats({
     this.salesToday = 0,
@@ -30,6 +36,10 @@ class AiChatStats {
     this.stockCapital = 0,
     this.debtReceivable = 0,
     this.debtPayable = 0,
+    this.salesThisMonth = 0,
+    this.revenueThisMonth = 0,
+    this.profitThisMonth = 0,
+    this.repairsThisMonth = 0,
     this.repairSummaries = const [],
     this.topDebtorLines = const [],
   });
@@ -44,6 +54,10 @@ class AiChatStats {
         'stockCapital': stockCapital,
         'debtReceivable': debtReceivable,
         'debtPayable': debtPayable,
+        'salesThisMonth': salesThisMonth,
+        'revenueThisMonth': revenueThisMonth,
+        'profitThisMonth': profitThisMonth,
+        'repairsThisMonth': repairsThisMonth,
         'repairSummaries': repairSummaries,
         'topDebtorLines': topDebtorLines,
       };
@@ -70,29 +84,49 @@ class AiChatService {
   Future<AiChatStats> getTodayStats() async {
     final db = DBHelper();
     final now = DateTime.now();
-    final start =
-        DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
-    final end = DateTime(now.year, now.month, now.day, 23, 59, 59)
+
+    // Today range
+    final dayStart = DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
+    final dayEnd = DateTime(now.year, now.month, now.day, 23, 59, 59).millisecondsSinceEpoch;
+
+    // Month range
+    final monthStart = DateTime(now.year, now.month, 1).millisecondsSinceEpoch;
+    final monthEnd = DateTime(now.year, now.month + 1, 1)
+        .subtract(const Duration(seconds: 1))
         .millisecondsSinceEpoch;
 
     final results = await Future.wait([
-      db.getSalesByDateRange(start, end),
-      db.getRepairsByCreatedAtRange(start, end),
+      db.getSalesByDateRange(dayStart, dayEnd),
+      db.getRepairsByCreatedAtRange(dayStart, dayEnd),
       db.getInventorySummary(),
       db.getDebtsForFinanceSnapshot(),
+      db.getSalesByDateRange(monthStart, monthEnd),
+      db.getRepairsByCreatedAtRange(monthStart, monthEnd),
     ]);
 
     final sales = results[0] as List;
     final repairs = results[1] as List;
     final inventory = results[2] as Map<String, int>;
     final debts = results[3] as List<Map<String, dynamic>>;
+    final salesMonth = results[4] as List;
+    final repairsMonth = results[5] as List;
 
+    // Today aggregates
     int revenue = 0, profit = 0;
     for (final s in sales) {
       final fp = s.finalPrice as int? ?? 0;
       final tc = s.totalCost as int? ?? 0;
       revenue += fp;
       profit += fp - tc;
+    }
+
+    // Monthly aggregates
+    int revenueMonth = 0, profitMonth = 0;
+    for (final s in salesMonth) {
+      final fp = s.finalPrice as int? ?? 0;
+      final tc = s.totalCost as int? ?? 0;
+      revenueMonth += fp;
+      profitMonth += fp - tc;
     }
 
     int pending = 0;
@@ -134,7 +168,6 @@ class AiChatService {
       }
     }
 
-    // Top 5 debtors sorted by amount desc
     final sortedDebtors = debtorMap.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
     final topDebtorLines = sortedDebtors
@@ -152,6 +185,10 @@ class AiChatService {
       stockCapital: inventory['totalCapital'] ?? 0,
       debtReceivable: debtReceivable,
       debtPayable: debtPayable,
+      salesThisMonth: salesMonth.length,
+      revenueThisMonth: revenueMonth,
+      profitThisMonth: profitMonth,
+      repairsThisMonth: repairsMonth.length,
       repairSummaries: repairSummaries.take(20).toList(),
       topDebtorLines: topDebtorLines,
     );
@@ -159,20 +196,47 @@ class AiChatService {
 
   // ── Fast local answers ────────────────────────────────────────────────────
 
-  /// Returns a ready-made answer for simple stat queries, or null if the
-  /// question requires cloud AI.
   String? quickAnswer(String question, AiChatStats stats) {
     final n = VietnameseUtils.normalize(question.toLowerCase());
 
-    // Doanh thu
+    // Tổng hợp tài chính (ưu tiên check trước vì overlap keywords)
+    if (_has(n, ['tai chinh', 'tong hop', 'tom tat', 'bao cao', 'tong ket'])) {
+      final buf = StringBuffer();
+      buf.writeln('**Tóm tắt tài chính hôm nay:**');
+      buf.writeln('• Doanh thu: **${fmt(stats.revenueToday)}** (${stats.salesToday} đơn)');
+      buf.writeln('• Lợi nhuận: **${fmt(stats.profitToday)}**');
+      buf.writeln('• Đơn sửa: **${stats.repairsToday}** mới, **${stats.repairsPending}** chưa giao');
+      buf.writeln();
+      buf.writeln('**Tháng này:**');
+      buf.writeln('• Doanh thu: **${fmt(stats.revenueThisMonth)}** (${stats.salesThisMonth} đơn)');
+      buf.writeln('• Lợi nhuận: **${fmt(stats.profitThisMonth)}**');
+      buf.writeln('• Đơn sửa: **${stats.repairsThisMonth}** đơn');
+      buf.writeln();
+      buf.write('• Công nợ phải thu: **${fmt(stats.debtReceivable)}**');
+      buf.write(' | Phải trả: **${fmt(stats.debtPayable)}**');
+      return buf.toString();
+    }
+
+    // Tháng này
+    if (_has(n, ['thang nay', 'thang nay the nao', 'thang', 'doanh thu thang'])) {
+      return 'Tháng này bán được **${stats.salesThisMonth} đơn**, '
+          'doanh thu **${fmt(stats.revenueThisMonth)}**, '
+          'lợi nhuận **${fmt(stats.profitThisMonth)}**. '
+          'Đơn sửa chữa: **${stats.repairsThisMonth} đơn**.';
+    }
+
+    // Doanh thu hôm nay
     if (_has(n, ['doanh thu', 'ban duoc', 'thu duoc', 'ban hang']) &&
-        !_has(n, ['gom', 'nhung', 'nao', 'chi tiet', 'danh sach'])) {
-      return 'Hôm nay bán được **${stats.salesToday} đơn**, doanh thu **${fmt(stats.revenueToday)}**, lợi nhuận **${fmt(stats.profitToday)}**.';
+        !_has(n, ['gom', 'nhung', 'nao', 'chi tiet', 'danh sach', 'thang'])) {
+      return 'Hôm nay bán được **${stats.salesToday} đơn**, '
+          'doanh thu **${fmt(stats.revenueToday)}**, '
+          'lợi nhuận **${fmt(stats.profitToday)}**.';
     }
 
     // Tồn kho
     if (_has(n, ['ton kho', 'hang con', 'kiem kho', 'so luong hang'])) {
-      return 'Tồn kho hiện tại: **${stats.stockCount} sản phẩm**, giá vốn **${fmt(stats.stockCapital)}**.';
+      return 'Tồn kho hiện tại: **${stats.stockCount} sản phẩm**, '
+          'giá vốn **${fmt(stats.stockCapital)}**.';
     }
 
     // Đơn sửa danh sách chi tiết
@@ -191,11 +255,15 @@ class AiChatService {
 
     // Đơn sửa tổng quát
     if (_has(n, ['don sua', 'sua may', 'sua chua', 'dang sua', 'cho lay'])) {
-      final answer = StringBuffer('Hôm nay nhận **${stats.repairsToday} đơn sửa** mới.\n'
+      final answer = StringBuffer(
+          'Hôm nay nhận **${stats.repairsToday} đơn sửa** mới.\n'
           'Đang sửa chưa giao: **${stats.repairsPending} đơn**.');
       if (stats.repairsPending > 0) {
         final pending = stats.repairSummaries
-            .where((s) => s.contains('Đang sửa') || s.contains('Mới nhận') || s.contains('Xong chờ'))
+            .where((s) =>
+                s.contains('Đang sửa') ||
+                s.contains('Mới nhận') ||
+                s.contains('Xong chờ'))
             .take(5)
             .map((s) => '• $s')
             .join('\n');
@@ -210,7 +278,8 @@ class AiChatService {
       if (stats.topDebtorLines.isEmpty) {
         return 'Hiện không có công nợ phải thu nào.';
       }
-      return 'Top khách nợ nhiều nhất:\n${stats.topDebtorLines.map((l) => '• $l').join('\n')}';
+      return 'Top khách nợ nhiều nhất:\n'
+          '${stats.topDebtorLines.map((l) => '• $l').join('\n')}';
     }
 
     // Công nợ tổng
@@ -219,7 +288,9 @@ class AiChatService {
           'Công nợ phải thu: **${fmt(stats.debtReceivable)}**\n'
           'Công nợ phải trả: **${fmt(stats.debtPayable)}**.');
       if (stats.topDebtorLines.isNotEmpty) {
-        answer.write('\n\nTop khách nợ:\n${stats.topDebtorLines.take(3).map((l) => '• $l').join('\n')}');
+        answer.write(
+            '\n\nTop khách nợ:\n'
+            '${stats.topDebtorLines.take(3).map((l) => '• $l').join('\n')}');
       }
       return answer.toString();
     }
@@ -232,7 +303,8 @@ class AiChatService {
     // Chào hỏi
     if (_has(n, ['xin chao', 'hello', 'chao ban', 'chao ai', 'ban la ai'])) {
       return 'Xin chào! Tôi là **AI Trợ Lý** của shop. Bạn có thể hỏi tôi:\n'
-          '• Doanh thu / lợi nhuận hôm nay\n'
+          '• Doanh thu / lợi nhuận hôm nay hoặc tháng này\n'
+          '• Tổng hợp tài chính\n'
           '• Tồn kho hiện tại\n'
           '• Công nợ & ai nợ nhiều nhất\n'
           '• Đơn sửa đang chờ\n'
@@ -247,7 +319,6 @@ class AiChatService {
 
   // ── Cloud AI ──────────────────────────────────────────────────────────────
 
-  /// Returns (answer, errorMessage).
   Future<(String?, String?)> askAI(
     String question,
     AiChatStats stats,
@@ -276,7 +347,6 @@ class AiChatService {
       if (e.code == 'unauthenticated') {
         return (null, 'Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
       }
-      // Internal errors: show friendly message, not raw code
       return (null, 'AI hiện không trả lời được câu hỏi này. Thử hỏi cách khác hoặc dùng chip gợi ý.');
     } catch (_) {
       return (null, 'Mất kết nối mạng. Kiểm tra internet và thử lại.');
