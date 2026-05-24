@@ -78,6 +78,7 @@ import '../services/sync_orchestrator.dart';
 import '../services/sync_health_check.dart';
 import '../services/user_service.dart';
 import '../services/firestore_service.dart';
+import '../services/ai_nav_bridge.dart';
 import '../services/notification_service.dart';
 import '../services/storage_service.dart';
 import '../services/encryption_service.dart';
@@ -257,6 +258,7 @@ class _HomeViewState extends State<HomeView>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkNotificationStatus();
       _initialSetup();
+      _registerAiNavBridge();
       SyncService.initRealTimeSync(() {
         _debouncedLoadStats();
         _debouncedLoadDebtOverview();
@@ -393,8 +395,16 @@ class _HomeViewState extends State<HomeView>
 
   void _setCurrentTab(int index) {
     if (index < 0 || index >= _navItems.length) return;
+    AiNavBridge.screenContext.value = _tabIdAt(index);
     setState(() => _currentIndex = index);
     unawaited(_persistCurrentTabSelection(index));
+  }
+
+  void _registerAiNavBridge() {
+    AiNavBridge.registerTabSwitcher((tabId) {
+      final idx = _visibleTabConfigs.indexWhere((c) => c['id'] == tabId);
+      if (idx >= 0) _setCurrentTab(idx);
+    });
   }
 
   String _tabIdAt(int index) {

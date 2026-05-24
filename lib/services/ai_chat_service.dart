@@ -221,24 +221,25 @@ class AiChatService {
       repairSummaries.add(summary);
     }
 
-    // ── Công nợ ──
+    // ── Công nợ — same classification as Finance V2 ──
+    // Payable types: SHOP_OWES, OTHER_SHOP_OWES, OWED, REPAIR_PARTNER
+    // Everything else (CUSTOMER_OWES, etc.) = receivable
     int debtReceivable = 0, debtPayable = 0;
     final debtorMap = <String, int>{};
+    const payableTypes = {'SHOP_OWES', 'OTHER_SHOP_OWES', 'OWED', 'REPAIR_PARTNER'};
     for (final d in debts) {
       final total = d['totalAmount'] as int? ?? 0;
       final paid = d['paidAmount'] as int? ?? 0;
       final remaining = total - paid;
       if (remaining <= 0) continue;
-      final type = (d['type'] as String? ?? '').toUpperCase();
-      final debtType = (d['debtType'] as String? ?? '').toUpperCase();
-      if (type == 'RECEIVABLE' ||
-          debtType == 'PHAI_THU' ||
-          type.contains('THU')) {
+      final type = (d['type'] as String? ?? 'CUSTOMER_OWES').toString();
+      final isPayable = payableTypes.contains(type);
+      if (isPayable) {
+        debtPayable += remaining;
+      } else {
         debtReceivable += remaining;
         final name = (d['personName'] as String?)?.trim() ?? 'Không rõ';
         debtorMap[name] = (debtorMap[name] ?? 0) + remaining;
-      } else {
-        debtPayable += remaining;
       }
     }
 
@@ -301,8 +302,57 @@ class AiChatService {
     type: AiActionType.viewDebtPayable,
   );
 
-  AiQuickResponse? quickAnswer(String question, AiChatStats stats) {
-    final n = VietnameseUtils.normalize(question.toLowerCase());
+  // Expand common synonyms before intent matching so short / variant phrasing works.
+  static String _expandSynonyms(String normalized) {
+    const synonyms = <String, String>{
+      'bill': 'hoa don ban',
+      'invoice': 'hoa don ban',
+      'receipt': 'hoa don ban',
+      'moi nhat': 'gan nhat',
+      'gan day': 'gan nhat',
+      'ban gan': 'don ban gan nhat',
+      'ban moi': 'don ban gan nhat',
+      'xem ban': 'don ban gan nhat',
+      'sua gan': 'don sua gan nhat',
+      'sua moi': 'don sua gan nhat',
+      'xem sua': 'don sua gan nhat',
+      'no ai': 'ai no nhieu nhat',
+      'no ncc': 'tra no ncc',
+      'nha cung cap': 'ncc',
+      'supplier': 'ncc',
+      'inventory': 'ton kho',
+      'stock': 'ton kho',
+      'revenue': 'doanh thu',
+      'profit': 'loi nhuan',
+      'linh phu': 'linh kien',
+      'phu tung': 'linh kien',
+    };
+    String result = normalized;
+    for (final e in synonyms.entries) {
+      result = result.replaceAll(e.key, e.value);
+    }
+    return result;
+  }
+
+  AiQuickResponse? quickAnswer(String question, AiChatStats stats, {String? lastIntent}) {
+    final raw = VietnameseUtils.normalize(question.toLowerCase());
+    final n = _expandSynonyms(raw);
+
+    // Context continuation: "gần nhất" alone → use lastIntent to resolve
+    if (_has(n, ['gan nhat']) && !_has(n, ['ban', 'sua', 'don'])) {
+      if (lastIntent == 'sale') {
+        return const AiQuickResponse(
+          'Mở hóa đơn bán hàng gần nhất:',
+          actions: [_kOpenLatestSaleAction],
+        );
+      }
+      if (lastIntent == 'repair') {
+        return const AiQuickResponse(
+          'Mở đơn sửa chữa gần nhất:',
+          actions: [_kOpenLatestRepairAction],
+        );
+      }
+    }
 
     // Tổng hợp tài chính
     if (_has(n, ['tai chinh', 'tong hop', 'tom tat', 'bao cao', 'tong ket'])) {
@@ -537,19 +587,19 @@ class AiChatService {
       final data = res.data as Map<Object?, Object?>;
       final answer = data['answer'] as String?;
       if (answer == null || answer.isEmpty) {
-        return (null, 'AI không trả lời được. Hãy thử lại sau.');
+        return (null, 'Em chưa trả lời được. Anh thử hỏi lại nhé.');
       }
       return (answer, null);
     } on FirebaseFunctionsException catch (e) {
       if (e.code == 'resource-exhausted') {
-        return (null, 'Đã đạt giới hạn câu hỏi AI. Thử lại sau 1 phút.');
+        return (null, 'Đã đạt giới hạn câu hỏi AI trong phút này. Thử lại sau nhé.');
       }
       if (e.code == 'unauthenticated') {
         return (null, 'Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
       }
-      return (null, 'AI hiện không trả lời được câu hỏi này. Thử hỏi cách khác hoặc dùng chip gợi ý.');
+      return (null, 'Em chưa hiểu câu hỏi này. Anh thử hỏi về: doanh thu, tồn kho, đơn sửa, công nợ...');
     } catch (_) {
-      return (null, 'Mất kết nối mạng. Kiểm tra internet và thử lại.');
+      return (null, 'Mất kết nối. Kiểm tra internet và thử lại.');
     }
   }
 

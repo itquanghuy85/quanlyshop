@@ -3,6 +3,7 @@ import 'package:speech_to_text/speech_to_text.dart';
 
 import '../data/db_helper.dart';
 import '../services/ai_chat_service.dart';
+import '../services/ai_nav_bridge.dart';
 import '../services/voice_correction_service.dart';
 import '../theme/popup_theme.dart';
 import '../views/repair_detail_view.dart';
@@ -57,6 +58,8 @@ class _AiChatOverlayState extends State<AiChatOverlay>
   final _scrollCtrl = ScrollController();
   bool _sending = false;
   AiChatStats? _stats;
+  // Tracks last resolved topic for "gần nhất" context continuity
+  String? _lastIntent; // 'repair' | 'sale' | 'debt' | 'stock' | null
 
   // ── Voice ─────────────────────────────────────────────────────────────────
   final _speech = SpeechToText();
@@ -181,9 +184,11 @@ class _AiChatOverlayState extends State<AiChatOverlay>
     final stats = _stats ?? await AiChatService.instance.getTodayStats();
     if (mounted) setState(() => _stats = stats);
 
-    // Fast local answer
-    final quick = AiChatService.instance.quickAnswer(q, stats);
+    // Fast local answer (pass lastIntent for context continuity)
+    final quick = AiChatService.instance.quickAnswer(q, stats, lastIntent: _lastIntent);
     if (quick != null) {
+      // Update intent context from the response's actions
+      _updateLastIntent(quick.actions);
       await Future.delayed(const Duration(milliseconds: 300));
       if (!mounted) return;
       setState(() {
@@ -219,30 +224,45 @@ class _AiChatOverlayState extends State<AiChatOverlay>
     _scrollToBottom();
   }
 
+  // ── Intent tracking ───────────────────────────────────────────────────────
+
+  void _updateLastIntent(List<AiAction> actions) {
+    if (actions.isEmpty) return;
+    final type = actions.first.type;
+    _lastIntent = switch (type) {
+      AiActionType.openLatestRepair => 'repair',
+      AiActionType.openLatestSale => 'sale',
+      AiActionType.viewDebts => 'debt',
+      AiActionType.viewDebtPayable => 'debt',
+      AiActionType.viewStock => 'stock',
+    };
+  }
+
   // ── Action handler ────────────────────────────────────────────────────────
 
   Future<void> _handleAction(AiAction action) async {
-    final db = DBHelper();
     switch (action.type) {
       case AiActionType.openLatestRepair:
-        final repair = await db.getLatestRepair();
+        final repair = await DBHelper().getLatestRepair();
         if (!mounted || repair == null) return;
-        _toggle();
+        // Navigate first, then close overlay so context is still valid
         Navigator.of(context, rootNavigator: true).push(
           MaterialPageRoute(builder: (_) => RepairDetailView(repair: repair)),
         );
-      case AiActionType.openLatestSale:
-        final sale = await db.getLatestSale();
-        if (!mounted || sale == null) return;
         _toggle();
+      case AiActionType.openLatestSale:
+        final sale = await DBHelper().getLatestSale();
+        if (!mounted || sale == null) return;
         Navigator.of(context, rootNavigator: true).push(
           MaterialPageRoute(builder: (_) => SaleDetailView(sale: sale)),
         );
+        _toggle();
       case AiActionType.viewDebts:
       case AiActionType.viewDebtPayable:
+        AiNavBridge.switchToTab(AiNavBridge.tabFinance);
+        _toggle();
       case AiActionType.viewStock:
-        // These tabs live in HomeView bottom nav — just close the overlay;
-        // the user can tap the tab themselves.
+        AiNavBridge.switchToTab(AiNavBridge.tabInventory);
         _toggle();
     }
   }
@@ -405,29 +425,38 @@ class _AiChatOverlayState extends State<AiChatOverlay>
         top: false,
         bottom: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
+          padding: const EdgeInsets.fromLTRB(14, 10, 4, 10),
           child: Row(
             children: [
-              const Icon(Icons.auto_awesome_rounded,
-                  color: Colors.white, size: 20),
+              Container(
+                width: 30,
+                height: 30,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.auto_awesome_rounded,
+                    color: Colors.white, size: 16),
+              ),
               const SizedBox(width: 10),
               const Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'AI Trợ Lý Shop',
+                      'AI Trợ Lý',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.2,
                       ),
                     ),
                     Text(
                       'Hỏi về doanh thu, tồn kho, công nợ...',
                       style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 11,
+                        color: Colors.white54,
+                        fontSize: 10.5,
                       ),
                     ),
                   ],
@@ -435,7 +464,9 @@ class _AiChatOverlayState extends State<AiChatOverlay>
               ),
               IconButton(
                 icon: const Icon(Icons.refresh_rounded,
-                    color: Colors.white70, size: 20),
+                    color: Colors.white54, size: 18),
+                padding: const EdgeInsets.all(8),
+                constraints: const BoxConstraints(),
                 tooltip: 'Làm mới dữ liệu',
                 onPressed: () async {
                   setState(() => _stats = null);
@@ -443,9 +474,13 @@ class _AiChatOverlayState extends State<AiChatOverlay>
                 },
               ),
               IconButton(
-                icon: const Icon(Icons.close_rounded, color: Colors.white),
+                icon: const Icon(Icons.close_rounded,
+                    color: Colors.white70, size: 20),
+                padding: const EdgeInsets.all(8),
+                constraints: const BoxConstraints(),
                 onPressed: _toggle,
               ),
+              const SizedBox(width: 4),
             ],
           ),
         ),
@@ -720,36 +755,49 @@ class _AiChatOverlayState extends State<AiChatOverlay>
             ),
           // Text field
           Expanded(
-            child: TextField(
-              controller: _ctrl,
-              maxLines: 3,
-              minLines: 1,
-              textInputAction: TextInputAction.send,
-              style: const TextStyle(
-                  color: PopupTheme.textPrimary, fontSize: 13.5),
-              decoration: InputDecoration(
-                hintText: 'Hỏi về doanh thu, tồn kho...',
-                hintStyle: const TextStyle(
-                    color: PopupTheme.textMuted, fontSize: 13),
-                filled: true,
-                fillColor: PopupTheme.surfaceDark,
-                contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12, vertical: 10),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: PopupTheme.borderDark),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide:
-                      const BorderSide(color: _kPurple, width: 1.5),
-                ),
-              ),
-              onSubmitted: (_) => _send(),
+            child: ValueListenableBuilder<String>(
+              valueListenable: AiNavBridge.screenContext,
+              builder: (_, screen, __) {
+                final hint = switch (screen) {
+                  AiNavBridge.tabSales => 'Hỏi về đơn bán, doanh thu...',
+                  AiNavBridge.tabRepairs => 'Hỏi về đơn sửa, tình trạng...',
+                  AiNavBridge.tabInventory => 'Kiểm tra tồn kho, linh kiện...',
+                  AiNavBridge.tabFinance => 'Hỏi về công nợ, tài chính...',
+                  _ => 'Hỏi về doanh thu, tồn kho...',
+                };
+                return TextField(
+                  controller: _ctrl,
+                  maxLines: 3,
+                  minLines: 1,
+                  textInputAction: TextInputAction.send,
+                  style: const TextStyle(
+                      color: PopupTheme.textPrimary, fontSize: 13.5),
+                  decoration: InputDecoration(
+                    hintText: hint,
+                    hintStyle: const TextStyle(
+                        color: PopupTheme.textMuted, fontSize: 13),
+                    filled: true,
+                    fillColor: PopupTheme.surfaceDark,
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide:
+                          const BorderSide(color: PopupTheme.borderDark),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide:
+                          const BorderSide(color: _kPurple, width: 1.5),
+                    ),
+                  ),
+                  onSubmitted: (_) => _send(),
+                );
+              },
             ),
           ),
           const SizedBox(width: 8),
