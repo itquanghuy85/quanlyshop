@@ -250,6 +250,7 @@ class PopupInfoRow extends StatelessWidget {
   final Color? valueColor;
   final bool bold;
   final VoidCallback? onTap;
+  final IconData? trailingIcon; // overrides default copy icon when onTap != null
 
   const PopupInfoRow({
     super.key,
@@ -260,6 +261,7 @@ class PopupInfoRow extends StatelessWidget {
     this.valueColor,
     this.bold = false,
     this.onTap,
+    this.trailingIcon,
   });
 
   @override
@@ -303,9 +305,13 @@ class PopupInfoRow extends StatelessWidget {
               ),
             ),
             if (onTap != null)
-              const Padding(
-                padding: EdgeInsets.only(left: 4),
-                child: Icon(Icons.copy_outlined, size: 13, color: PopupTheme.textMuted),
+              Padding(
+                padding: const EdgeInsets.only(left: 4),
+                child: Icon(
+                  trailingIcon ?? Icons.copy_outlined,
+                  size: 13,
+                  color: PopupTheme.textMuted,
+                ),
               ),
           ],
         ),

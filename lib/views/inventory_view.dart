@@ -60,6 +60,8 @@ import 'storage_location_view.dart';
 import '../theme/popup_theme.dart';
 import '../widgets/app_popup.dart';
 import '../widgets/ai_order_input_sheet.dart';
+import '../models/supplier_model.dart';
+import 'supplier_detail_view.dart';
 
 class InventoryView extends StatefulWidget {
   final String role;
@@ -526,6 +528,18 @@ class _InventoryViewState extends State<InventoryView>
     }
   }
 
+  Future<void> _openSupplierByName(String name) async {
+    if (name.isEmpty || name == 'N/A') return;
+    final map = await DBHelper().getSupplierByName(name);
+    if (!mounted) return;
+    final supplier = map != null
+        ? Supplier.fromMap(map)
+        : Supplier(name: name, shopId: '');
+    Navigator.of(context, rootNavigator: true).push(
+      MaterialPageRoute(builder: (_) => SupplierDetailView(supplier: supplier)),
+    );
+  }
+
   void _showProductDetail(Product p) async {
     HapticFeedback.lightImpact();
 
@@ -849,6 +863,18 @@ class _InventoryViewState extends State<InventoryView>
                                 ? (displayProduct.pendingSupplier ??
                                     'Chưa xác nhận')
                                 : (displayProduct.supplier ?? 'N/A'),
+                            valueColor: (!displayProduct.isPending &&
+                                    (displayProduct.supplier ?? '').isNotEmpty &&
+                                    displayProduct.supplier != 'N/A')
+                                ? PopupTheme.teal
+                                : null,
+                            trailingIcon: Icons.chevron_right_rounded,
+                            onTap: (!displayProduct.isPending &&
+                                    (displayProduct.supplier ?? '').isNotEmpty)
+                                ? () => _openSupplierByName(
+                                      displayProduct.supplier ?? '',
+                                    )
+                                : null,
                           ),
                           if (_canViewCostPrice) ...[
                             const Divider(

@@ -5,6 +5,7 @@ import '../../views/create_sale_view.dart';
 import '../../views/smart_stock_in_view.dart';
 import '../../views/debt_view.dart';
 import '../../views/expense_view.dart';
+import '../../views/salvage_phone_view.dart';
 
 class QuickActionSheet extends StatelessWidget {
   final QuickActionController controller;
@@ -119,6 +120,12 @@ class QuickActionSheet extends StatelessWidget {
             openCreateDialogOnStart: true,
           ),
         ),
+      ),
+      _ActionItem(
+        icon: Icons.phonelink_erase_rounded,
+        label: 'Máy xác mới',
+        color: const Color(0xFF8D6E63),
+        onTap: () => push(const SalvagePhoneView()),
       ),
     ]);
 
