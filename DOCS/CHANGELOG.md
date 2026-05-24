@@ -4,6 +4,26 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-05-24] — Fix NCC Detail + AI Overlay + NCC Tappable Links
+
+### Fixed
+- `lib/views/supplier_detail_view.dart`
+  - "Lịch sử nhập": hiển thị debts (SHOP_OWES) khi không có import history chính thức — phù hợp với thực tế ghi nợ nhập
+  - "Thống kê": tính từ `_debts` thay vì service stats (trước trả về toàn 0)
+  - "Sản phẩm" KHO TỔNG: query thêm sản phẩm có `supplier IS NULL/''` cho warehouse-type supplier
+- `lib/widgets/ai_chat_overlay.dart`: fix crash "No Material widget ancestor" — bọc panel bằng `Material` thay vì `Container`
+- `lib/data/db_helper.dart`
+  - Thêm `getSupplierByName(name)` — tìm NCC theo tên trong shop hiện tại
+  - Thêm `isWarehouse` param cho `getProductsBySupplier()`
+
+### Added
+- NCC tappable links — bấm vào tên nhà cung cấp mở thẳng `SupplierDetailView`:
+  - `lib/views/inventory_detail_view.dart` — row "Nhà cung cấp" trong chi tiết sản phẩm kho
+  - `lib/views/parts_inventory_view.dart` — row "Nhà cung cấp" trong chi tiết linh kiện
+  - `lib/views/import_order_detail_view.dart` — row "NCC" trong chi tiết đơn nhập
+
+---
+
 ## [2026-05-23] — Nhập Nhanh Đơn Sửa/Đơn Bán Bằng Câu Lệnh Tự Nhiên
 
 ### Added
