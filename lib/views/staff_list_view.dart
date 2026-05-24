@@ -1188,22 +1188,7 @@ class _StaffListViewState extends State<StaffListView> {
     // Kiểm tra quyền truy cập
     if (!_hasManageStaffAccess && !_isSuperAdmin) {
       return Scaffold(
-        appBar: AppBar(
-          flexibleSpace: Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF0068FF), Color(0xFF0084FF)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-          ),
-          backgroundColor: Colors.transparent,
-          foregroundColor: Colors.white,
-          elevation: 0,
-          title: const Text("QUẢN LÝ NHÂN VIÊN"),
-          automaticallyImplyLeading: true,
-        ),
+        appBar: CustomAppBar.build(title: 'QUẢN LÝ NHÂN VIÊN'),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -2239,7 +2224,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
       // Upload photo if it's a local file
       String? photoUrl = _photoPath;
       if (_photoPath != null && !_photoPath!.startsWith('http')) {
-        print('Uploading photo: $_photoPath');
+        debugPrint('Uploading photo: $_photoPath');
         photoUrl = await StorageService.uploadAndGetUrl(
           _photoPath!,
           'user_photos/${widget.uid}',
@@ -2261,10 +2246,9 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
           );
           return;
         }
-        print('Photo uploaded successfully: $photoUrl');
+        debugPrint('Photo uploaded: $photoUrl');
       }
 
-      print('Updating user info for ${widget.uid}');
 
       // Đảm bảo luôn có shopId tươi nhất từ Firestore (không dùng cache cũ)
       // để Firestore rules có thể xác minh quyền chủ shop khi ghi.
@@ -2331,7 +2315,6 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
         );
         debugPrint('✅ updateUserInfo success for ${widget.uid}');
 
-        print('Updating user permissions for ${widget.uid}');
         // Lưu cấu hình phân quyền hiển thị nội dung
         await UserService.updateUserPermissions(
           uid: widget.uid,

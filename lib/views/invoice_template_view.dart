@@ -3,6 +3,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '../widgets/validated_text_field.dart';
+import '../widgets/custom_app_bar.dart';
 import '../l10n/app_localizations.dart';
 
 class InvoiceTemplateView extends StatefulWidget {
@@ -80,20 +81,8 @@ class _InvoiceTemplateViewState extends State<InvoiceTemplateView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF0068FF), Color(0xFF0084FF)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: Text(loc.invoiceTemplateTitle),
+      appBar: CustomAppBar.build(
+        title: loc.invoiceTemplateTitle,
         actions: [
           IconButton(
             icon: const Icon(Icons.save),

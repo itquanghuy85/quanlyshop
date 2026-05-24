@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/custom_app_bar.dart';
 import '../../widgets/responsive_wrapper.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/product_model.dart';
@@ -100,9 +101,8 @@ class _ExpiryManagementViewState extends State<ExpiryManagementView>
     final loc = AppLocalizations.of(context)!;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Quản lý hạn sử dụng'),
-        elevation: 0,
+      appBar: CustomAppBar.build(
+        title: 'Quản lý hạn sử dụng',
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
@@ -115,15 +115,21 @@ class _ExpiryManagementViewState extends State<ExpiryManagementView>
             tooltip: loc.refresh,
           ),
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          isScrollable: true,
-          tabs: [
-            _buildTab('⛔ Hết hạn', _expiredProducts.length, Colors.red),
-            _buildTab('⚠️ Sắp hết', _nearExpiryProducts.length, Colors.orange),
-            _buildTab('✅ Còn hạn', _goodProducts.length, Colors.green),
-            _buildTab('📦 Theo lô', _batches.length, Colors.blue),
-          ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(44),
+          child: TabBar(
+            controller: _tabController,
+            isScrollable: true,
+            labelColor: Colors.white,
+            unselectedLabelColor: Colors.white70,
+            indicatorColor: Colors.white,
+            tabs: [
+              _buildTab('⛔ Hết hạn', _expiredProducts.length, Colors.red),
+              _buildTab('⚠️ Sắp hết', _nearExpiryProducts.length, Colors.orange),
+              _buildTab('✅ Còn hạn', _goodProducts.length, Colors.green),
+              _buildTab('📦 Theo lô', _batches.length, Colors.blue),
+            ],
+          ),
         ),
       ),
       body: ResponsiveCenter(child: _isLoading

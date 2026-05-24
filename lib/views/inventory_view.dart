@@ -21,6 +21,8 @@ import '../services/sync_orchestrator.dart';
 import '../services/sync_service.dart';
 import '../services/unified_printer_service.dart';
 import '../services/notification_service.dart';
+import '../widgets/empty_state_widget.dart';
+import '../widgets/skeleton_list.dart';
 import '../services/user_service.dart';
 import '../services/event_bus.dart';
 import '../services/supplier_service.dart';
@@ -57,6 +59,7 @@ import '../models/storage_location_model.dart';
 import 'storage_location_view.dart';
 import '../theme/popup_theme.dart';
 import '../widgets/app_popup.dart';
+import '../widgets/ai_order_input_sheet.dart';
 
 class InventoryView extends StatefulWidget {
   final String role;
@@ -322,34 +325,69 @@ class _InventoryViewState extends State<InventoryView>
 
   Future<void> _openSearchDialog() async {
     final controller = TextEditingController(text: _searchQuery);
-    final value = await showDialog<String>(
+    final value = await showModalBottomSheet<String>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Tìm ${_terms.productLabel.toLowerCase()}'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: InputDecoration(
-            hintText:
-                'Nhập ${_terms.productLabel.toLowerCase()}, ${_terms.category2.toLowerCase()} hoặc ${_terms.specialField1Label}...',
-            prefixIcon: const Icon(Icons.search),
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
+        child: Container(
+          decoration: const BoxDecoration(
+            color: PopupTheme.bgDark,
+            borderRadius: BorderRadius.vertical(
+              top: Radius.circular(PopupTheme.radiusSheet),
+            ),
           ),
-          onSubmitted: (text) => Navigator.pop(ctx, text),
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const PopupDragHandle(),
+              Text(
+                'Tìm ${_terms.productLabel.toLowerCase()}',
+                style: AppTextStyles.headline4.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: PopupTheme.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: controller,
+                autofocus: true,
+                decoration: InputDecoration(
+                  hintText:
+                      'Nhập ${_terms.productLabel.toLowerCase()}, ${_terms.category2.toLowerCase()} hoặc ${_terms.specialField1Label}...',
+                  prefixIcon: const Icon(Icons.search),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(PopupTheme.radiusField),
+                  ),
+                ),
+                onSubmitted: (text) => Navigator.pop(ctx, text),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, ''),
+                    child: const Text('Xóa'),
+                  ),
+                  const SizedBox(width: 4),
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text('Hủy'),
+                  ),
+                  const Spacer(),
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(ctx, controller.text),
+                    child: const Text('Tìm'),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, ''),
-            child: const Text('Xóa'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Hủy'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, controller.text),
-            child: const Text('Tìm'),
-          ),
-        ],
       ),
     );
 
@@ -1105,31 +1143,46 @@ class _InventoryViewState extends State<InventoryView>
     );
     String paymentMethod = 'TIỀN MẶT';
 
-    showDialog(
+    showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) {
-          return AlertDialog(
-            title: Row(
-              children: [
-                Icon(Icons.add_shopping_cart, color: Colors.green.shade700),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'NHẬP THÊM',
-                    style: AppTextStyles.headline3.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
+        builder: (ctx, setSheetState) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.viewInsetsOf(ctx).bottom,
+          ),
+          child: Container(
+            decoration: const BoxDecoration(
+              color: PopupTheme.bgDark,
+              borderRadius: BorderRadius.vertical(
+                top: Radius.circular(PopupTheme.radiusSheet),
+              ),
             ),
-            content: SizedBox(
-              width: responsiveDialogWidth(context),
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+            child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  const PopupDragHandle(),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.add_shopping_cart,
+                        color: Colors.green.shade700,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'NHẬP THÊM',
+                        style: AppTextStyles.headline3.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
                   // Product info
                   Container(
                     padding: const EdgeInsets.all(12),
@@ -1179,12 +1232,14 @@ class _InventoryViewState extends State<InventoryView>
                     controller: qtyCtrl,
                     keyboardType: TextInputType.number,
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    onChanged: (_) => setDialogState(() {}),
+                    onChanged: (_) => setSheetState(() {}),
                     decoration: InputDecoration(
                       labelText: 'Số lượng nhập thêm',
                       prefixIcon: const Icon(Icons.add_circle_outline),
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(
+                          PopupTheme.radiusField,
+                        ),
                       ),
                     ),
                   ),
@@ -1194,11 +1249,12 @@ class _InventoryViewState extends State<InventoryView>
                     controller: costCtrl,
                     label: 'Giá nhập (VNĐ)',
                     icon: Icons.attach_money,
-                    onValueChanged: (_) => setDialogState(() {}),
+                    onValueChanged: (_) => setSheetState(() {}),
                   ),
                   Builder(
                     builder: (_) {
-                      final importQty = int.tryParse(qtyCtrl.text.trim()) ?? 0;
+                      final importQty =
+                          int.tryParse(qtyCtrl.text.trim()) ?? 0;
                       final importCost = CurrencyTextField.parseValue(
                         costCtrl.text,
                       );
@@ -1231,7 +1287,9 @@ class _InventoryViewState extends State<InventoryView>
                       labelText: 'Phương thức thanh toán',
                       prefixIcon: const Icon(Icons.payment),
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(
+                          PopupTheme.radiusField,
+                        ),
                       ),
                     ),
                     items: const [
@@ -1248,50 +1306,69 @@ class _InventoryViewState extends State<InventoryView>
                         child: Text('Công nợ'),
                       ),
                     ],
-                    onChanged: (v) => setDialogState(() => paymentMethod = v!),
+                    onChanged: (v) => setSheetState(() => paymentMethod = v!),
+                  ),
+                  const SizedBox(height: 20),
+                  // Actions
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          child: const Text('HỦY'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        flex: 2,
+                        child: ElevatedButton.icon(
+                          icon: const Icon(Icons.check, color: Colors.white),
+                          label: const Text(
+                            'NHẬP KHO',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                          ),
+                          onPressed: () async {
+                            final qty = int.tryParse(qtyCtrl.text) ?? 0;
+                            if (qty <= 0) {
+                              NotificationService.showSnackBar(
+                                'Vui lòng nhập số lượng hợp lệ',
+                                color: Colors.red,
+                              );
+                              return;
+                            }
+                            final cost = CurrencyTextField.parseValue(
+                              costCtrl.text,
+                            );
+                            if (cost <= 0) {
+                              NotificationService.showSnackBar(
+                                'Vui lòng nhập giá nhập hợp lệ',
+                                color: Colors.red,
+                              );
+                              return;
+                            }
+                            Navigator.pop(ctx);
+                            await _processQuickStockIn(
+                              p,
+                              qty,
+                              cost,
+                              paymentMethod,
+                            );
+                          },
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('HỦY'),
-              ),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.check, color: Colors.white),
-                label: const Text(
-                  'NHẬP KHO',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                onPressed: () async {
-                  final qty = int.tryParse(qtyCtrl.text) ?? 0;
-                  if (qty <= 0) {
-                    NotificationService.showSnackBar(
-                      'Vui lòng nhập số lượng hợp lệ',
-                      color: Colors.red,
-                    );
-                    return;
-                  }
-                  final cost = CurrencyTextField.parseValue(costCtrl.text);
-                  if (cost <= 0) {
-                    NotificationService.showSnackBar(
-                      'Vui lòng nhập giá nhập hợp lệ',
-                      color: Colors.red,
-                    );
-                    return;
-                  }
-                  Navigator.pop(ctx);
-                  await _processQuickStockIn(p, qty, cost, paymentMethod);
-                },
-              ),
-            ],
-          );
-        },
+          ),
+        ),
       ),
     );
   }
@@ -1399,6 +1476,23 @@ class _InventoryViewState extends State<InventoryView>
       debugPrint('Quick stock-in error: $e');
       NotificationService.showSnackBar('Lỗi: $e', color: Colors.red);
     }
+  }
+
+  Future<void> _showAiStockQuickEntry() async {
+    final result = await AiOrderInputSheet.show(context, mode: AiSheetMode.stock);
+    if (!mounted || result == null) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SmartStockInView(
+          prefilledName: result.stockProductName.isNotEmpty
+              ? result.stockProductName
+              : null,
+          prefilledQuantity: result.quantity > 1 ? result.quantity : null,
+          prefilledCostPrice: result.unitPrice > 0 ? result.unitPrice : null,
+        ),
+      ),
+    ).then((_) => _refresh());
   }
 
   void _createSaleOrder(Product p) {
@@ -1767,24 +1861,53 @@ class _InventoryViewState extends State<InventoryView>
   }
 
   void _showProductActionDialog(Product p) {
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Chọn hành động'),
-        content: Column(
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        padding: const EdgeInsets.fromLTRB(0, 8, 0, 24),
+        child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // Drag handle
+            Container(
+              width: 36,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            // Product name header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+              child: Text(
+                p.name,
+                style: AppTextStyles.headline3.copyWith(fontSize: 14),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+              ),
+            ),
+            const Divider(height: 1),
             ListTile(
-              leading: const Icon(Icons.edit, color: AppColors.primary),
+              leading: const Icon(Icons.edit_rounded, color: AppColors.primary),
               title: const Text('Chỉnh sửa'),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 24),
               onTap: () {
                 Navigator.pop(ctx);
-                _editProduct(p); // Dùng dialog chỉnh sửa đầy đủ
+                _editProduct(p);
               },
             ),
             ListTile(
-              leading: const Icon(Icons.delete, color: AppColors.error),
+              leading: Icon(Icons.visibility_off_rounded, color: Colors.red.shade700),
               title: const Text('Ẩn khỏi kho'),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 24),
               onTap: () {
                 Navigator.pop(ctx);
                 _showDeleteConfirmation(p);
@@ -2025,25 +2148,19 @@ class _InventoryViewState extends State<InventoryView>
   }
 
   Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(
-            Icons.inventory_2_outlined,
-            size: 80,
-            color: AppColors.grey400,
-          ),
-          const SizedBox(height: 10),
-          Text(
-            "KHO HÀNG ĐANG TRỐNG",
-            style: AppTextStyles.headline6.copyWith(
-              color: AppColors.onSurface,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
+    final isFiltered = _searchQuery.isNotEmpty ||
+        _filterType != 'TẤT CẢ' ||
+        _filterLocationCode != null;
+    return EmptyStateWidget(
+      icon: isFiltered
+          ? Icons.search_off_rounded
+          : Icons.inventory_2_outlined,
+      title: isFiltered ? 'Không tìm thấy sản phẩm' : 'Kho hàng đang trống',
+      subtitle: isFiltered
+          ? 'Thử bỏ bộ lọc hoặc tìm từ khóa khác'
+          : _showOutOfStock
+              ? null
+              : 'Bật "Hết hàng" để xem sản phẩm đã hết',
     );
   }
 
@@ -2393,7 +2510,7 @@ class _InventoryViewState extends State<InventoryView>
         await db.insertInventoryCheck(_currentCheck!.toMap());
       }
     } catch (e) {
-      print('Error loading current check: $e');
+      debugPrint('Error loading current check: $e');
     }
   }
 
@@ -2547,21 +2664,8 @@ class _InventoryViewState extends State<InventoryView>
     if (!_hasInventoryAccess) {
       return Scaffold(
         backgroundColor: AppColors.background,
-        appBar: AppBar(
-          flexibleSpace: Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF0068FF), Color(0xFF0084FF)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-          ),
-          backgroundColor: Colors.transparent,
-          foregroundColor: Colors.white,
-          elevation: 0,
-          title: const Text("QUẢN LÝ KHO TỔNG"),
-          automaticallyImplyLeading: true,
+        appBar: CustomAppBar.build(
+          title: 'QUẢN LÝ KHO TỔNG',
         ),
         body: Center(
           child: Column(
@@ -2600,7 +2704,17 @@ class _InventoryViewState extends State<InventoryView>
               tooltip: 'Thêm linh kiện',
               splashRadius: 20,
             )
-          else
+          else ...[
+            IconButton(
+              onPressed: _showAiStockQuickEntry,
+              icon: const Icon(
+                Icons.auto_awesome_rounded,
+                color: AppBarAccents.inventory,
+                size: 22,
+              ),
+              tooltip: 'Nhập kho nhanh (AI)',
+              splashRadius: 20,
+            ),
             IconButton(
               onPressed: () {
                 Navigator.push(
@@ -2616,6 +2730,7 @@ class _InventoryViewState extends State<InventoryView>
               tooltip: 'Nhập kho',
               splashRadius: 20,
             ),
+          ],
           IconButton(
             onPressed: _openSearchDialog,
             icon: const Icon(
@@ -2626,27 +2741,6 @@ class _InventoryViewState extends State<InventoryView>
             tooltip: _searchQuery.trim().isEmpty
                 ? 'Tìm kiếm'
                 : 'Tìm kiếm: "$_searchQuery"',
-            splashRadius: 20,
-          ),
-          IconButton(
-            onPressed: () {
-              final wasFullData = _needsFullData;
-              setState(() => _showOutOfStock = !_showOutOfStock);
-              final isFullData = _needsFullData;
-              if (wasFullData != isFullData) {
-                _refreshLocalData();
-              }
-            },
-            icon: Icon(
-              _showOutOfStock ? Icons.visibility : Icons.visibility_off,
-              color: _showOutOfStock
-                  ? AppColors.warning
-                  : AppBarAccents.inventory,
-              size: 22,
-            ),
-            tooltip: _showOutOfStock
-                ? 'Đang hiển thị cả hàng hết'
-                : 'Ẩn hàng hết',
             splashRadius: 20,
           ),
           PopupMenuButton<String>(
@@ -2785,13 +2879,13 @@ class _InventoryViewState extends State<InventoryView>
       children: [
         Column(
           children: [
-            // App Bar Section
-            Container(
-              color: AppColors.surface,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(
-                children: [
-                  if (_isSelectionMode) ...[
+            // Selection mode action bar
+            if (_isSelectionMode)
+              Container(
+                color: AppColors.surface,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Row(
+                  children: [
                     IconButton(
                       icon: const Icon(Icons.close, color: AppColors.error),
                       onPressed: () => setState(() {
@@ -2815,13 +2909,9 @@ class _InventoryViewState extends State<InventoryView>
                         size: 28,
                       ),
                     ),
-                  ] else ...[
-                    // Quick action buttons moved to AppBar; keep header minimal
-                    const Spacer(),
                   ],
-                ],
+                ),
               ),
-            ),
 
             // Summary Section
             if (!_isSelectionMode)
@@ -2834,7 +2924,10 @@ class _InventoryViewState extends State<InventoryView>
             // Product List
             Expanded(
               child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
+                  ? const SkeletonListView(
+                      variant: SkeletonVariant.inventoryRow,
+                      padding: EdgeInsets.fromLTRB(12, 0, 12, 76),
+                    )
                   : filteredList.isEmpty
                   ? _buildEmptyState()
                   : RefreshIndicator(
@@ -3296,6 +3389,8 @@ class _InventoryViewState extends State<InventoryView>
             ],
             const SizedBox(width: 8),
             _buildLocationFilterChip(),
+            const SizedBox(width: 8),
+            _buildOutOfStockChip(),
           ],
         ),
       ),
@@ -3342,6 +3437,46 @@ class _InventoryViewState extends State<InventoryView>
               const SizedBox(width: 4),
               Icon(Icons.close, size: 13, color: Colors.indigo.shade700),
             ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOutOfStockChip() {
+    return InkWell(
+      onTap: () {
+        final wasFullData = _needsFullData;
+        setState(() => _showOutOfStock = !_showOutOfStock);
+        if (wasFullData != _needsFullData) _refreshLocalData();
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: _showOutOfStock ? Colors.amber.shade100 : Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: _showOutOfStock ? Colors.amber.shade700 : Colors.grey.shade300,
+            width: _showOutOfStock ? 2 : 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              _showOutOfStock ? Icons.visibility_rounded : Icons.visibility_off_rounded,
+              size: 16,
+              color: _showOutOfStock ? Colors.amber.shade800 : Colors.grey,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              'Hết hàng',
+              style: AppTextStyles.subtitle1.copyWith(
+                fontWeight: _showOutOfStock ? FontWeight.bold : FontWeight.normal,
+                color: _showOutOfStock ? Colors.amber.shade800 : Colors.grey.shade700,
+              ),
+            ),
           ],
         ),
       ),

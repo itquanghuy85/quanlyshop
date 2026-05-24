@@ -13,6 +13,7 @@ import '../services/first_time_guide_service.dart';
 import '../services/category_service.dart';
 import '../services/business_type_helper.dart';
 import '../utils/imei_extractor.dart';
+import '../widgets/custom_app_bar.dart';
 import '../widgets/validated_text_field.dart';
 import '../widgets/imei_scan_result_dialog.dart';
 import '../theme/app_colors.dart';
@@ -276,34 +277,15 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF0F4F8),
-      appBar: AppBar(
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF0068FF), Color(0xFF0084FF)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
-        title: const Text(
-          "NHẬP KHO SIÊU TỐC",
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
-        ),
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        automaticallyImplyLeading: true,
-        bottom: TabBar(
+      appBar: CustomAppBar.build(
+        title: 'NHẬP KHO SIÊU TỐC',
+        bottom: CustomTabBar.buildGradient(
           controller: _tabController,
           tabs: const [
             Tab(icon: Icon(Icons.add_circle, size: 18), text: "Nhập"),
             Tab(icon: Icon(Icons.qr_code_scanner, size: 18), text: "Scan"),
             Tab(icon: Icon(Icons.inventory, size: 18), text: "Batch"),
           ],
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          indicatorColor: Colors.white,
         ),
         actions: [
           IconButton(

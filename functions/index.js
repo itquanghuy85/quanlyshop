@@ -1,12 +1,23 @@
 const admin = require("firebase-admin");
+const crypto = require("crypto");
 const { onDocumentCreated, onDocumentUpdated, onDocumentWritten } = require("firebase-functions/v2/firestore");
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { setGlobalOptions } = require("firebase-functions/v2/options");
+const { defineSecret } = require("firebase-functions/params");
 
 admin.initializeApp();
 // Giới hạn region & timeout mặc định
 setGlobalOptions({ region: "asia-southeast1", timeoutSeconds: 30 });
+
+// ============================================================
+// DEEPSEEK AI SECRET
+// ============================================================
+// Đặt secret bằng lệnh:
+//   firebase secrets:set DEEPSEEK_API_KEY
+// Key KHÔNG commit vào git — chỉ tồn tại trong Google Secret Manager.
+// ============================================================
+const deepseekApiKey = defineSecret("DEEPSEEK_API_KEY");
 
 // ============================================================
 // CUSTOM CLAIMS MANAGEMENT
@@ -1310,9 +1321,9 @@ exports.syncUserClaimsV2 = onCall(async (request) => {
   }
   
   const callerEmail = auth.token.email || "";
-  const callerRole = (auth.token.role || "").toString().toLowerCase();
-  const isSuperAdmin = auth.token.isSuperAdmin === true || callerRole === "super_admin";
-  
+  const callerTokenRole = (auth.token.role || "").toString().toLowerCase();
+  const isSuperAdmin = auth.token.isSuperAdmin === true || callerTokenRole === "super_admin";
+
   // Get caller's data to check permissions
   const callerDoc = await admin.firestore().collection('users').doc(auth.uid).get();
   const callerData = callerDoc.data() || {};
@@ -1617,3 +1628,473 @@ exports.deleteUserData = onCall(async (request) => {
     message: `Đã xóa user ${userData.email || targetUserId} và dữ liệu liên quan`,
   };
 });
+
+// ============================================================
+// DEEPSEEK AI — REPAIR ORDER PARSER
+// ============================================================
+// Endpoint callable từ Flutter qua cloud_functions SDK.
+// Flutter KHÔNG biết API key — key chỉ tồn tại trong Secret Manager.
+//
+// Rate limit: mỗi user tối đa 30 lần/phút (lưu trong Firestore).
+// Timeout: 25 s để tránh Firebase hard-limit 30 s.
+// Retry: 1 lần khi gặp 429 hoặc 5xx từ DeepSeek.
+// ============================================================
+
+const DEEPSEEK_BASE_URL = "https://api.deepseek.com/v1/chat/completions";
+const DEEPSEEK_MODEL = "deepseek-chat";
+
+// ── Prompt hệ thống ────────────────────────────────────────────────────────
+const REPAIR_SYSTEM_PROMPT = `Bạn là hệ thống phân tích ngôn ngữ tự nhiên cho phần mềm quản lý cửa hàng sửa chữa điện thoại Việt Nam.
+
+NHIỆM VỤ:
+Phân tích câu nhập của kỹ thuật viên/nhân viên và trả về JSON chuẩn.
+
+SCHEMA (bắt buộc — không được thêm / bớt field):
+{
+  "intent": "create_repair_order" | "unknown",
+  "customer_name": "<string — để rỗng nếu không có>",
+  "customer_phone": "<string — để rỗng nếu không có>",
+  "device": "<string — tên thiết bị, ví dụ 'iPhone 13 Pro Max' — để rỗng nếu không có>",
+  "issue": "<string — mô tả lỗi ngắn gọn — để rỗng nếu không có>",
+  "deposit": <number — giá sửa / tiền thu khách, đơn vị VNĐ, 0 nếu không có>
+}
+
+QUY TẮC CỨNG:
+1. Chỉ trả JSON thuần — KHÔNG markdown, KHÔNG giải thích.
+2. KHÔNG bịa dữ liệu. Thiếu field → để rỗng / 0.
+3. Số tiền: "1tr2" = 1200000, "500k" = 500000, "800" nếu không có đơn vị thì = 800000 (giả định nghìn đồng nếu < 10000).
+4. Tên khách: tìm sau từ khóa "khách", "tên", "cho", "của". Nếu ambiguous → để rỗng.
+5. SĐT: chuỗi 10 số bắt đầu bằng 0, hoặc +84...
+6. Thiết bị: nhận diện thương hiệu (iphone, samsung, oppo, vivo, xiaomi, realme, nokia, tecno) + model.
+7. intent = "create_repair_order" khi có ít nhất thiết bị HOẶC lỗi cần sửa.
+8. intent = "unknown" khi không thể xác định là đơn sửa chữa.`;
+
+// ── Gọi DeepSeek với retry ─────────────────────────────────────────────────
+async function callDeepSeek(apiKey, userText, attempt = 1) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 22000); // 22 s
+
+  try {
+    const res = await fetch(DEEPSEEK_BASE_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: DEEPSEEK_MODEL,
+        messages: [
+          { role: "system", content: REPAIR_SYSTEM_PROMPT },
+          { role: "user", content: userText.trim() },
+        ],
+        temperature: 0.1,       // ổn định, không sáng tạo
+        max_tokens: 256,         // JSON ngắn, không cần nhiều
+        response_format: { type: "json_object" },
+      }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (res.status === 429 || res.status >= 500) {
+      if (attempt < 2) {
+        console.warn(`⚠️ DeepSeek ${res.status} — retry ${attempt}`);
+        await new Promise((r) => setTimeout(r, 1500));
+        return callDeepSeek(apiKey, userText, attempt + 1);
+      }
+      throw new HttpsError("resource-exhausted", `DeepSeek lỗi ${res.status}`);
+    }
+
+    if (!res.ok) {
+      const errBody = await res.text();
+      console.error("❌ DeepSeek error body:", errBody);
+      throw new HttpsError("internal", `DeepSeek HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    return data.choices?.[0]?.message?.content ?? null;
+  } catch (err) {
+    clearTimeout(timeoutId);
+    if (err.name === "AbortError") {
+      throw new HttpsError("deadline-exceeded", "DeepSeek timeout sau 22 s");
+    }
+    if (err instanceof HttpsError) throw err;
+    console.error("❌ callDeepSeek exception:", err);
+    throw new HttpsError("internal", "Lỗi kết nối AI");
+  }
+}
+
+// ── Rate limit: 30 req/phút/user ──────────────────────────────────────────
+async function checkRateLimit(uid) {
+  const db = admin.firestore();
+  const now = Date.now();
+  const windowMs = 60_000;       // 1 phút
+  const maxRequests = 30;
+  const ref = db.doc(`_ai_rate_limit/${uid}`);
+
+  return db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const data = snap.data() ?? { count: 0, windowStart: now };
+
+    if (now - data.windowStart > windowMs) {
+      tx.set(ref, { count: 1, windowStart: now });
+      return true;
+    }
+    if (data.count >= maxRequests) return false;
+    tx.update(ref, { count: admin.firestore.FieldValue.increment(1) });
+    return true;
+  });
+}
+
+// ── Parse & validate JSON từ AI ───────────────────────────────────────────
+function parseAiRepairResult(rawJson) {
+  let parsed;
+  try {
+    parsed = typeof rawJson === "string" ? JSON.parse(rawJson) : rawJson;
+  } catch {
+    throw new HttpsError("internal", "AI trả về JSON không hợp lệ");
+  }
+
+  // Sanitise — chỉ giữ đúng các field trong schema
+  return {
+    intent: parsed.intent === "create_repair_order" ? "create_repair_order" : "unknown",
+    customer_name: (parsed.customer_name ?? "").toString().trim(),
+    customer_phone: (parsed.customer_phone ?? "").toString().trim(),
+    device: (parsed.device ?? "").toString().trim(),
+    issue: (parsed.issue ?? "").toString().trim(),
+    deposit: Math.max(0, parseInt(parsed.deposit ?? 0, 10) || 0),
+  };
+}
+
+// ── Callable function chính ────────────────────────────────────────────────
+exports.createRepairOrderAI = onCall(
+  {
+    secrets: [deepseekApiKey],
+    timeoutSeconds: 30,
+    memory: "256MiB",
+    region: "asia-southeast1",
+  },
+  async (request) => {
+    // 1. Xác thực
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "Yêu cầu đăng nhập");
+    }
+    const uid = request.auth.uid;
+
+    // 2. Validate input
+    const text = (request.data?.text ?? "").toString().trim();
+    if (!text || text.length < 3) {
+      throw new HttpsError("invalid-argument", "Văn bản quá ngắn");
+    }
+    if (text.length > 500) {
+      throw new HttpsError("invalid-argument", "Văn bản quá dài (tối đa 500 ký tự)");
+    }
+
+    // 3. Rate limit
+    const allowed = await checkRateLimit(uid);
+    if (!allowed) {
+      throw new HttpsError("resource-exhausted", "Quá nhiều yêu cầu. Thử lại sau 1 phút.");
+    }
+
+    // 4. Gọi DeepSeek
+    const apiKey = deepseekApiKey.value();
+    console.log(`🤖 createRepairOrderAI uid=${uid} text="${text.substring(0, 60)}..."`);
+
+    const rawContent = await callDeepSeek(apiKey, text);
+    if (!rawContent) {
+      throw new HttpsError("internal", "AI không trả về kết quả");
+    }
+
+    // 5. Parse & trả kết quả
+    const result = parseAiRepairResult(rawContent);
+    console.log(`✅ createRepairOrderAI result:`, JSON.stringify(result));
+
+    return { success: true, data: result };
+  }
+);
+
+// ============================================================
+// DEEPSEEK AI — UNIVERSAL ORDER PARSER (repair / sale / stock)
+// ============================================================
+// Cải tiến so với createRepairOrderAI:
+//   • Xử lý cả 3 loại đơn: sửa chữa, bán hàng, nhập kho
+//   • Server-side Firestore cache (TTL 24h) — tiết kiệm token
+//   • Prompt huấn luyện phong phú hơn với nhiều ví dụ thực tế
+//   • hint_mode giúp AI ưu tiên loại đơn được chỉ định
+// ============================================================
+
+const UNIVERSAL_SYSTEM_PROMPT = `Bạn là AI phân tích lệnh nhanh cho phần mềm quản lý cửa hàng điện thoại Việt Nam.
+
+NHIỆM VỤ: Phân tích câu nhập tự nhiên của nhân viên → trả về JSON chuẩn.
+
+━━━ INTENT & SCHEMA ━━━
+
+[1] create_repair_order — có từ: sửa, thay, fix, màn, pin, ep, nạp, nạp source, mất face id, vỡ màn:
+{"intent":"create_repair_order","device":"<model máy, VD: iPhone 13 Pro Max>","issue":"<lỗi cần sửa ngắn gọn>","deposit":<giá sửa / tiền thu khách VNĐ, 0 nếu không có>,"customer_name":"<tên khách>","customer_phone":"<SĐT 10 số>"}
+
+[2] create_sale_order — có từ: bán, xuất, bán cho, bán hàng:
+{"intent":"create_sale_order","product_hint":"<tên/mô tả sản phẩm>","imei":"<IMEI nếu có>","payment_method":"<TIỀN MẶT|CHUYỂN KHOẢN|TRẢ GÓP (NH)|KẾT HỢP>","finance_partner":"<FE|HOME|MIRAE|HD|MB|F83|T86>","total_price":<giá bán VNĐ, 0 nếu không có>,"customer_name":"<tên khách>","customer_phone":"<SĐT 10 số>"}
+
+[3] create_stock_entry — có từ: nhập kho, nhập hàng, nhận hàng, thêm kho:
+{"intent":"create_stock_entry","product_name":"<tên sản phẩm>","quantity":<số lượng, mặc định 1>,"unit_price":<giá vốn/máy VNĐ, 0 nếu không>,"supplier_name":"<tên NCC nếu có>"}
+
+[4] unknown — không xác định được:
+{"intent":"unknown"}
+
+━━━ QUY TẮC CỨNG ━━━
+1. Chỉ trả JSON thuần — KHÔNG markdown, KHÔNG giải thích thêm.
+2. KHÔNG bịa dữ liệu. Thiếu field → để rỗng "" / 0.
+3. Tiền VNĐ: "1tr2"=1200000, "1.5tr"=1500000, "500k"=500000, "800" (không đơn vị, <10000)=800000.
+4. Tên khách: tìm sau từ "khách","tên","cho","của". Nếu không chắc → để rỗng.
+5. SĐT: chuỗi 10 số bắt đầu 0 (VD: 0901234567). Không dùng dấu cách.
+6. Thương hiệu máy: iphone/samsung/oppo/vivo/xiaomi/realme/nokia/tecno/huawei/asus.
+7. Thanh toán: "trả góp"→"TRẢ GÓP (NH)", "chuyển khoản"→"CHUYỂN KHOẢN", "tiền mặt"→"TIỀN MẶT", "kết hợp"→"KẾT HỢP".
+8. Đối tác tài chính: nhận diện FE Credit, Home Credit, Mirae Asset, HD Saison, MB Shinsei, F88, T-Fintech.
+
+━━━ VÍ DỤ ━━━
+Input: "sửa iphone 13 mất face id khách Hùng 0901234567 thu 500k"
+Output: {"intent":"create_repair_order","device":"iPhone 13","issue":"Mất Face ID","deposit":500000,"customer_name":"Hùng","customer_phone":"0901234567"}
+
+Input: "thay màn samsung a55 khách Nam 0965111222 giá 1tr2"
+Output: {"intent":"create_repair_order","device":"Samsung A55","issue":"Thay màn hình","deposit":1200000,"customer_name":"Nam","customer_phone":"0965111222"}
+
+Input: "bán iphone 14 pro max imei 123456789 khách Linh 0912333444 chuyển khoản giá 25tr"
+Output: {"intent":"create_sale_order","product_hint":"iPhone 14 Pro Max","imei":"123456789","payment_method":"CHUYỂN KHOẢN","finance_partner":"","total_price":25000000,"customer_name":"Linh","customer_phone":"0912333444"}
+
+Input: "bán samsung a34 trả góp FE khách Minh 0987654321"
+Output: {"intent":"create_sale_order","product_hint":"Samsung A34","imei":"","payment_method":"TRẢ GÓP (NH)","finance_partner":"FE","total_price":0,"customer_name":"Minh","customer_phone":"0987654321"}
+
+Input: "nhập kho 5 iphone 14 giá vốn 18tr NCC Minh Đức"
+Output: {"intent":"create_stock_entry","product_name":"iPhone 14","quantity":5,"unit_price":18000000,"supplier_name":"Minh Đức"}
+
+Input: "nhập 3 samsung a55 giá 7tr5 mỗi máy"
+Output: {"intent":"create_stock_entry","product_name":"Samsung A55","quantity":3,"unit_price":7500000,"supplier_name":""}`;
+
+// ── Server-side result cache (Firestore, TTL 24h) ─────────────────────────
+const AI_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const AI_CACHE_COLLECTION = "_ai_cache";
+
+function _cacheHash(text, hintMode) {
+  const key = `${(hintMode || "").toLowerCase()}:${text.toLowerCase().replace(/\s+/g, " ").trim()}`;
+  return crypto.createHash("md5").update(key).digest("hex");
+}
+
+async function _getCachedResult(hash) {
+  try {
+    const db = admin.firestore();
+    const doc = await db.collection(AI_CACHE_COLLECTION).doc(hash).get();
+    if (!doc.exists) return null;
+    const data = doc.data();
+    if (!data || Date.now() - data.cachedAt > AI_CACHE_TTL_MS) return null;
+    console.log(`🔁 parseOrderAI: server cache hit hash=${hash}`);
+    return data.result;
+  } catch (err) {
+    console.warn("⚠️ cache read error:", err.message);
+    return null;
+  }
+}
+
+async function _setCachedResult(hash, result) {
+  try {
+    const db = admin.firestore();
+    await db.collection(AI_CACHE_COLLECTION).doc(hash).set({
+      result,
+      cachedAt: Date.now(),
+    });
+  } catch (err) {
+    console.warn("⚠️ cache write error:", err.message);
+  }
+}
+
+// ── Parse & validate universal JSON from AI ────────────────────────────────
+function _parseUniversalResult(rawJson, hintMode) {
+  let parsed;
+  try {
+    parsed = typeof rawJson === "string" ? JSON.parse(rawJson) : rawJson;
+  } catch {
+    throw new HttpsError("internal", "AI trả về JSON không hợp lệ");
+  }
+
+  const intent = (parsed.intent ?? "unknown").toString().trim();
+  const validIntents = [
+    "create_repair_order",
+    "create_sale_order",
+    "create_stock_entry",
+    "unknown",
+  ];
+  const safeIntent = validIntents.includes(intent) ? intent : "unknown";
+
+  const _str = (v) => (v ?? "").toString().trim();
+  const _int = (v, def = 0) => {
+    const n = parseInt(v ?? def, 10);
+    return isNaN(n) || n < 0 ? def : n;
+  };
+
+  if (safeIntent === "create_repair_order") {
+    return {
+      intent: safeIntent,
+      device: _str(parsed.device),
+      issue: _str(parsed.issue),
+      deposit: _int(parsed.deposit),
+      customer_name: _str(parsed.customer_name),
+      customer_phone: _str(parsed.customer_phone),
+    };
+  }
+
+  if (safeIntent === "create_sale_order") {
+    return {
+      intent: safeIntent,
+      product_hint: _str(parsed.product_hint),
+      imei: _str(parsed.imei),
+      payment_method: _str(parsed.payment_method),
+      finance_partner: _str(parsed.finance_partner),
+      total_price: _int(parsed.total_price),
+      customer_name: _str(parsed.customer_name),
+      customer_phone: _str(parsed.customer_phone),
+    };
+  }
+
+  if (safeIntent === "create_stock_entry") {
+    return {
+      intent: safeIntent,
+      product_name: _str(parsed.product_name),
+      quantity: _int(parsed.quantity, 1),
+      unit_price: _int(parsed.unit_price),
+      supplier_name: _str(parsed.supplier_name),
+    };
+  }
+
+  return { intent: "unknown" };
+}
+
+// ── Universal callable function ────────────────────────────────────────────
+exports.parseOrderAI = onCall(
+  {
+    secrets: [deepseekApiKey],
+    timeoutSeconds: 30,
+    memory: "256MiB",
+    region: "asia-southeast1",
+  },
+  async (request) => {
+    // 1. Auth
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "Yêu cầu đăng nhập");
+    }
+    const uid = request.auth.uid;
+
+    // 2. Validate input
+    const text = (request.data?.text ?? "").toString().trim();
+    if (!text || text.length < 3) {
+      throw new HttpsError("invalid-argument", "Văn bản quá ngắn (tối thiểu 3 ký tự)");
+    }
+    if (text.length > 600) {
+      throw new HttpsError("invalid-argument", "Văn bản quá dài (tối đa 600 ký tự)");
+    }
+    const hintMode = (request.data?.hint_mode ?? "").toString().trim().toLowerCase();
+
+    // 3. Server-side cache check (no rate-limit cost)
+    const hash = _cacheHash(text, hintMode);
+    const cached = await _getCachedResult(hash);
+    if (cached) {
+      return { success: true, data: cached, cached: true };
+    }
+
+    // 4. Rate limit (only on cache miss)
+    const allowed = await checkRateLimit(uid);
+    if (!allowed) {
+      throw new HttpsError("resource-exhausted", "Quá nhiều yêu cầu. Thử lại sau 1 phút.");
+    }
+
+    // 5. Build prompt (hint_mode prepended for context)
+    const hintPrefix = hintMode === "repair"
+      ? "[Ưu tiên: đơn sửa chữa] "
+      : hintMode === "sale"
+      ? "[Ưu tiên: đơn bán hàng] "
+      : hintMode === "stock"
+      ? "[Ưu tiên: nhập kho] "
+      : "";
+
+    const userText = hintPrefix + text;
+    console.log(`🤖 parseOrderAI uid=${uid} hint=${hintMode} text="${text.substring(0, 80)}"`);
+
+    // 6. Call DeepSeek (reuse existing callDeepSeek with universal prompt)
+    const apiKey = deepseekApiKey.value();
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 22000);
+
+    let rawContent;
+    try {
+      const res = await fetch(DEEPSEEK_BASE_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: DEEPSEEK_MODEL,
+          messages: [
+            { role: "system", content: UNIVERSAL_SYSTEM_PROMPT },
+            { role: "user", content: userText },
+          ],
+          temperature: 0.05,
+          max_tokens: 300,
+          response_format: { type: "json_object" },
+        }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      if (res.status === 429 || res.status >= 500) {
+        // 1 retry
+        await new Promise((r) => setTimeout(r, 1500));
+        const res2 = await fetch(DEEPSEEK_BASE_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model: DEEPSEEK_MODEL,
+            messages: [
+              { role: "system", content: UNIVERSAL_SYSTEM_PROMPT },
+              { role: "user", content: userText },
+            ],
+            temperature: 0.05,
+            max_tokens: 300,
+            response_format: { type: "json_object" },
+          }),
+        });
+        if (!res2.ok) throw new HttpsError("resource-exhausted", `DeepSeek ${res2.status}`);
+        const d2 = await res2.json();
+        rawContent = d2.choices?.[0]?.message?.content ?? null;
+      } else if (!res.ok) {
+        const errBody = await res.text();
+        console.error("❌ DeepSeek error:", errBody);
+        throw new HttpsError("internal", `DeepSeek HTTP ${res.status}`);
+      } else {
+        const data = await res.json();
+        rawContent = data.choices?.[0]?.message?.content ?? null;
+      }
+    } catch (err) {
+      clearTimeout(timeoutId);
+      if (err.name === "AbortError") {
+        throw new HttpsError("deadline-exceeded", "DeepSeek timeout sau 22 s");
+      }
+      if (err instanceof HttpsError) throw err;
+      throw new HttpsError("internal", "Lỗi kết nối AI");
+    }
+
+    if (!rawContent) {
+      throw new HttpsError("internal", "AI không trả về kết quả");
+    }
+
+    // 7. Parse & sanitise
+    const result = _parseUniversalResult(rawContent, hintMode);
+    console.log(`✅ parseOrderAI: intent=${result.intent}`);
+
+    // 8. Store in server cache (fire-and-forget)
+    _setCachedResult(hash, result);
+
+    return { success: true, data: result, cached: false };
+  }
+);

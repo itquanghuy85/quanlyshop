@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/firebase_rw_stats_service.dart';
+import '../widgets/custom_app_bar.dart';
 
 class FirebaseRwStatsView extends StatefulWidget {
   const FirebaseRwStatsView({super.key});
@@ -45,8 +46,8 @@ class _FirebaseRwStatsViewState extends State<FirebaseRwStatsView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('THỐNG KÊ DỮ LIỆU READ/WRITE'),
+      appBar: CustomAppBar.build(
+        title: 'THỐNG KÊ DỮ LIỆU READ/WRITE',
         actions: [
           IconButton(
             tooltip: 'Làm mới',

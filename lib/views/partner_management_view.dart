@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/responsive_wrapper.dart';
+import '../widgets/custom_app_bar.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -445,34 +446,10 @@ class _PartnerManagementViewState extends State<PartnerManagementView>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF0068FF), Color(0xFF0084FF)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        title: const Text(
-          'Quản lý đối tác & NCC',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-            fontSize: AppTextStyles.h2,
-          ),
-        ),
-        bottom: TabBar(
+      appBar: CustomAppBar.build(
+        title: 'Quản lý đối tác & NCC',
+        bottom: CustomTabBar.buildGradient(
           controller: _tabController,
-          labelStyle: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w700,
-          ),
-          unselectedLabelStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
-          indicatorColor: Colors.white,
           tabs: const [
             Tab(text: 'ĐỐI TÁC SỬA CHỮA'),
             Tab(text: 'NHÀ CUNG CẤP'),

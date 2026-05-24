@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import '../widgets/custom_app_bar.dart';
 import '../widgets/responsive_wrapper.dart';
 import '../models/product_category_model.dart';
 import '../models/shop_settings_model.dart';
 import '../services/category_service.dart';
 import '../services/business_type_helper.dart';
+import '../theme/popup_theme.dart';
+import '../widgets/app_popup.dart';
 
 /// Màn hình quản lý danh mục sản phẩm
 /// Multi-Industry Extension - Phase 1
@@ -61,8 +64,8 @@ class _CategoryManagementViewState extends State<CategoryManagementView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Quản lý danh mục'),
+      appBar: CustomAppBar.build(
+        title: 'Quản lý danh mục',
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
@@ -210,137 +213,186 @@ class _CategoryManagementViewState extends State<CategoryManagementView> {
     bool hasVariants = category?.hasVariants ?? false;
     bool hasWarranty = category?.hasWarranty ?? false;
 
-    showDialog(
+    showAppBottomSheet(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: Text(isEdit ? 'Sửa danh mục' : 'Thêm danh mục'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Icon selector
-                Row(
-                  children: [
-                    GestureDetector(
-                      onTap: () => _showIconPicker(selectedIcon, (icon) {
-                        setDialogState(() => selectedIcon = icon);
-                      }),
-                      child: Container(
-                        width: 60,
-                        height: 60,
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade100,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.grey.shade300),
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          return Padding(
+            padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
+            child: Container(
+              decoration: const BoxDecoration(
+                color: PopupTheme.bgDark,
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(PopupTheme.radiusSheet),
+                ),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const PopupDragHandle(),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.category_outlined, color: PopupTheme.blue),
+                        const SizedBox(width: 8),
+                        Text(
+                          isEdit ? 'SỬA DANH MỤC' : 'THÊM DANH MỤC',
+                          style: const TextStyle(
+                            color: PopupTheme.textPrimary,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                        child: Center(
-                          child: Text(selectedIcon, style: const TextStyle(fontSize: 32)),
-                        ),
+                      ],
+                    ),
+                  ),
+                  Flexible(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              GestureDetector(
+                                onTap: () => _showIconPicker(selectedIcon, (icon) {
+                                  setDialogState(() => selectedIcon = icon);
+                                }),
+                                child: Container(
+                                  width: 60,
+                                  height: 60,
+                                  decoration: BoxDecoration(
+                                    color: PopupTheme.surfaceDark,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: PopupTheme.textSecondary.withValues(alpha: 0.3)),
+                                  ),
+                                  child: Center(
+                                    child: Text(selectedIcon, style: const TextStyle(fontSize: 32)),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              const Text('Nhấn để chọn icon', style: TextStyle(fontSize: 14, color: PopupTheme.textSecondary)),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          TextField(
+                            controller: nameController,
+                            style: const TextStyle(color: PopupTheme.textPrimary),
+                            decoration: const InputDecoration(
+                              labelText: 'Tên danh mục *',
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: descController,
+                            style: const TextStyle(color: PopupTheme.textPrimary),
+                            decoration: const InputDecoration(
+                              labelText: 'Mô tả / Đơn vị tính',
+                              hintText: 'Ví dụ: cái, kg, hộp...',
+                              border: OutlineInputBorder(),
+                            ),
+                            maxLines: 2,
+                          ),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'Tính năng',
+                            style: TextStyle(fontWeight: FontWeight.bold, color: PopupTheme.textPrimary),
+                          ),
+                          SwitchListTile(
+                            title: Text('Theo dõi ${_terms.specialField1Label}', style: const TextStyle(color: PopupTheme.textPrimary)),
+                            subtitle: const Text('Cho sản phẩm cần theo dõi serial', style: TextStyle(color: PopupTheme.textSecondary)),
+                            value: trackSerial,
+                            onChanged: (v) => setDialogState(() => trackSerial = v),
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                          SwitchListTile(
+                            title: const Text('Theo dõi hạn sử dụng', style: TextStyle(color: PopupTheme.textPrimary)),
+                            subtitle: const Text('Cho thực phẩm', style: TextStyle(color: PopupTheme.textSecondary)),
+                            value: trackExpiry,
+                            onChanged: (v) => setDialogState(() => trackExpiry = v),
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                          SwitchListTile(
+                            title: const Text('Có biến thể (size/màu)', style: TextStyle(color: PopupTheme.textPrimary)),
+                            subtitle: const Text('Cho thời trang', style: TextStyle(color: PopupTheme.textSecondary)),
+                            value: hasVariants,
+                            onChanged: (v) => setDialogState(() => hasVariants = v),
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                          SwitchListTile(
+                            title: Text('Có ${_terms.specialField2Label.toLowerCase()}', style: const TextStyle(color: PopupTheme.textPrimary)),
+                            subtitle: const Text('Cho sản phẩm có thời hạn bảo hành', style: TextStyle(color: PopupTheme.textSecondary)),
+                            value: hasWarranty,
+                            onChanged: (v) => setDialogState(() => hasWarranty = v),
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                          const SizedBox(height: 8),
+                        ],
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    const Text('Nhấn để chọn icon', style: TextStyle(fontSize: 14)),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                // Name
-                TextField(
-                  controller: nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Tên danh mục *',
-                    border: OutlineInputBorder(),
                   ),
-                ),
-                const SizedBox(height: 12),
-                // Description
-                TextField(
-                  controller: descController,
-                  decoration: const InputDecoration(
-                    labelText: 'Mô tả / Đơn vị tính',
-                    hintText: 'Ví dụ: cái, kg, hộp...',
-                    border: OutlineInputBorder(),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.pop(ctx),
+                            child: const Text('HỦY'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 2,
+                          child: FilledButton(
+                            onPressed: () async {
+                              if (nameController.text.trim().isEmpty) {
+                                ScaffoldMessenger.of(ctx).showSnackBar(
+                                const SnackBar(content: Text('Vui lòng nhập tên danh mục')),
+                              );
+                                return;
+                              }
+                              Navigator.pop(ctx);
+                              final newCategory = ProductCategory(
+                                id: category?.id ?? '',
+                                firestoreId: category?.firestoreId ?? '',
+                                shopId: category?.shopId ?? '',
+                                name: nameController.text.trim(),
+                                description: descController.text.trim(),
+                                icon: selectedIcon,
+                                trackSerial: trackSerial,
+                                trackExpiry: trackExpiry,
+                                hasVariants: hasVariants,
+                                hasWarranty: hasWarranty,
+                                sortOrder: category?.sortOrder ?? _categories.length,
+                                isActive: true,
+                              );
+                              if (isEdit) {
+                                await _categoryService.updateCategory(newCategory);
+                              } else {
+                                await _categoryService.addCategory(newCategory);
+                              }
+                              _loadCategories();
+                            },
+                            child: Text(isEdit ? 'CẬP NHẬT' : 'THÊM'),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  maxLines: 2,
-                ),
-                const SizedBox(height: 16),
-                // Feature toggles
-                const Text('Tính năng', style: TextStyle(fontWeight: FontWeight.bold)),
-                SwitchListTile(
-                  title: Text('Theo dõi ${_terms.specialField1Label}'),
-                  subtitle: const Text('Cho sản phẩm cần theo dõi serial'),
-                  value: trackSerial,
-                  onChanged: (v) => setDialogState(() => trackSerial = v),
-                  contentPadding: EdgeInsets.zero,
-                ),
-                SwitchListTile(
-                  title: const Text('Theo dõi hạn sử dụng'),
-                  subtitle: const Text('Cho thực phẩm'),
-                  value: trackExpiry,
-                  onChanged: (v) => setDialogState(() => trackExpiry = v),
-                  contentPadding: EdgeInsets.zero,
-                ),
-                SwitchListTile(
-                  title: const Text('Có biến thể (size/màu)'),
-                  subtitle: const Text('Cho thời trang'),
-                  value: hasVariants,
-                  onChanged: (v) => setDialogState(() => hasVariants = v),
-                  contentPadding: EdgeInsets.zero,
-                ),
-                SwitchListTile(
-                  title: Text('Có ${_terms.specialField2Label.toLowerCase()}'),
-                  subtitle: const Text('Cho sản phẩm có thời hạn bảo hành'),
-                  value: hasWarranty,
-                  onChanged: (v) => setDialogState(() => hasWarranty = v),
-                  contentPadding: EdgeInsets.zero,
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Hủy'),
-            ),
-            FilledButton(
-              onPressed: () async {
-                if (nameController.text.trim().isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Vui lòng nhập tên danh mục')),
-                  );
-                  return;
-                }
-
-                Navigator.pop(context);
-
-                final newCategory = ProductCategory(
-                  id: category?.id ?? '',
-                  firestoreId: category?.firestoreId ?? '',
-                  shopId: category?.shopId ?? '',
-                  name: nameController.text.trim(),
-                  description: descController.text.trim(),
-                  icon: selectedIcon,
-                  trackSerial: trackSerial,
-                  trackExpiry: trackExpiry,
-                  hasVariants: hasVariants,
-                  hasWarranty: hasWarranty,
-                  sortOrder: category?.sortOrder ?? _categories.length,
-                  isActive: true,
-                );
-
-                if (isEdit) {
-                  await _categoryService.updateCategory(newCategory);
-                } else {
-                  await _categoryService.addCategory(newCategory);
-                }
-
-                _loadCategories();
-              },
-              child: Text(isEdit ? 'Cập nhật' : 'Thêm'),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }

@@ -8125,9 +8125,11 @@ class DBHelper {
     List<dynamic> whereArgs;
 
     if (referenceId != null && referenceId.toString().isNotEmpty) {
+      // Match by referenceId alone (stockEntry ID uniquely identifies the batch).
+      // Do NOT include importDate: local and Firestore timestamps differ by ms.
       whereClause =
-          "referenceId = ? AND productName = ? AND IFNULL(imei, '') = ? AND importDate = ?";
-      whereArgs = [referenceId, productName, imei, importDate];
+          "referenceId = ? AND productName = ? AND IFNULL(imei, '') = ?";
+      whereArgs = [referenceId, productName, imei];
     } else {
       whereClause =
           "productName = ? AND IFNULL(imei, '') = ? AND importDate = ? AND totalAmount = ? AND quantity = ? AND costPrice = ? AND supplierName = ?";

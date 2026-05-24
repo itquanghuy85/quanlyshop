@@ -207,24 +207,8 @@ class _PendingPaymentsListViewState extends State<PendingPaymentsListView>
   }
 
   PreferredSizeWidget _buildAppBar() {
-    return AppBar(
-      flexibleSpace: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [CustomAppBar.kGradientStart, CustomAppBar.kGradientEnd],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-      ),
-      backgroundColor: Colors.transparent,
-      foregroundColor: Colors.white,
-      elevation: 0,
-      iconTheme: const IconThemeData(color: Colors.white),
-      title: const Text(
-        'Thanh Toán',
-        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: Colors.white),
-      ),
+    return CustomAppBar.build(
+      title: 'Thanh Toán',
       actions: [
         IconButton(
           icon: const Icon(Icons.bar_chart_rounded, size: 22),

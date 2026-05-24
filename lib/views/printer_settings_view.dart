@@ -12,12 +12,12 @@ import '../services/wifi_printer_service.dart';
 import '../services/network_printer_scanner.dart';
 import '../services/user_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../theme/app_text_styles.dart';
 import 'label_designer_view.dart';
 import 'imei_qr_printer_view.dart';
 import 'pty_print_designer_view.dart';
 import 'repair_invoice_template_view.dart';
 import 'sale_invoice_template_view.dart';
+import '../widgets/custom_app_bar.dart';
 
 /// Màn hình cài đặt máy in - Đơn giản, tập trung vào kết nối
 class PrinterSettingsView extends StatefulWidget {
@@ -247,10 +247,10 @@ class _PrinterSettingsViewState extends State<PrinterSettingsView> {
     
     NotificationService.showSnackBar(AppLocalizations.of(context)!.testingConnection, color: Colors.blue);
     try {
-      print('WIFI_TEST: Connecting to $ip:9100...');
+      debugPrint('WIFI_TEST: Connecting to $ip:9100...');
       // Test connection by trying to connect to printer port
       final socket = await Socket.connect(ip, 9100, timeout: const Duration(seconds: 8));
-      print('WIFI_TEST: Socket connected, sending test print...');
+      debugPrint('WIFI_TEST: Socket connected, sending test print...');
       
       // Tạo lệnh ESC/POS test
       final profile = await CapabilityProfile.load();
@@ -269,21 +269,21 @@ class _PrinterSettingsViewState extends State<PrinterSettingsView> {
       // Gửi dữ liệu
       socket.add(bytes);
       await socket.flush();
-      print('WIFI_TEST: Data sent, ${bytes.length} bytes');
+      debugPrint('WIFI_TEST: Data sent, ${bytes.length} bytes');
       
       await Future.delayed(const Duration(milliseconds: 500));
       await socket.close();
-      print('WIFI_TEST: Socket closed');
+      debugPrint('WIFI_TEST: Socket closed');
       
       NotificationService.showSnackBar('✅ In thử WiFi thành công!', color: Colors.green);
     } on SocketException catch (e) {
-      print('WIFI_TEST: SocketException: $e');
+      debugPrint('WIFI_TEST: SocketException: $e');
       NotificationService.showSnackBar('❌ Lỗi kết nối: ${e.message}', color: Colors.red);
     } on TimeoutException catch (e) {
-      print('WIFI_TEST: Timeout: $e');
+      debugPrint('WIFI_TEST: Timeout: $e');
       NotificationService.showSnackBar('❌ Timeout: Không kết nối được $ip', color: Colors.red);
     } catch (e) {
-      print('WIFI_TEST: Error: $e');
+      debugPrint('WIFI_TEST: Error: $e');
       NotificationService.showSnackBar(AppLocalizations.of(context)!.connectionFailed(e.toString()), color: Colors.red);
     }
   }
@@ -468,9 +468,9 @@ class _PrinterSettingsViewState extends State<PrinterSettingsView> {
       bytes.addAll(generator.feed(2));
       bytes.addAll(generator.cut());
       
-      print('BT_TEST: Sending ${bytes.length} bytes...');
+      debugPrint('BT_TEST: Sending ${bytes.length} bytes...');
       final printResult = await BluetoothPrinterService.printBytes(bytes);
-      print('BT_TEST: Print result: $printResult');
+      debugPrint('BT_TEST: Print result: $printResult');
       
       if (printResult) {
         NotificationService.showSnackBar('✅ In thử Bluetooth thành công!', color: Colors.green);
@@ -486,20 +486,12 @@ class _PrinterSettingsViewState extends State<PrinterSettingsView> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
-      appBar: AppBar(
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF0068FF), Color(0xFF0084FF)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
+      appBar: CustomAppBar.build(
+        title: '',
+        titleWidget: Text(
+          AppLocalizations.of(context)!.printerSettings,
+          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: Text(AppLocalizations.of(context)!.printerSettings, style: TextStyle(fontWeight: FontWeight.bold, fontSize: AppTextStyles.headline3.fontSize)),
         actions: [
           IconButton(
             icon: const Icon(Icons.save),

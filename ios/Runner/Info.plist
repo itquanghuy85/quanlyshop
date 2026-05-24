@@ -38,6 +38,10 @@
 	<string>Ứng dụng cần vị trí để chấm công và xác định địa điểm làm việc khi sử dụng các tính năng liên quan.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Ứng dụng cần vị trí để chấm công và xác định địa điểm làm việc.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Ứng dụng cần microphone để nhận diện giọng nói khi nhập nhanh đơn hàng.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Ứng dụng dùng nhận diện giọng nói để tự động điền thông tin đơn hàng.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Ứng dụng cần quyền lưu ảnh vào thư viện.</string>
 	<key>NSPhotoLibraryUsageDescription</key>

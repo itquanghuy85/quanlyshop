@@ -9,6 +9,7 @@ import '../services/notification_service.dart';
 import '../services/storage_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
+import '../widgets/custom_app_bar.dart';
 import '../widgets/entity_avatar.dart';
 import '../widgets/responsive_wrapper.dart';
 import '../data/db_helper.dart';
@@ -276,10 +277,8 @@ class _CustomerProfileViewState extends State<CustomerProfileView> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Hồ sơ khách hàng'),
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
+      appBar: CustomAppBar.build(
+        title: 'Hồ sơ khách hàng',
         actions: [
           PopupMenuButton<String>(
             tooltip: 'Tác vụ nhanh',
@@ -305,15 +304,6 @@ class _CustomerProfileViewState extends State<CustomerProfileView> {
             icon: const Icon(Icons.delete_outline_rounded),
           ),
         ],
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF0A56C2), Color(0xFF0E74DB)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
       ),
       body: ResponsiveCenter(
         child: ListView(

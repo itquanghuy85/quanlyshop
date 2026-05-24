@@ -14,6 +14,7 @@ import 'repair_detail_view.dart';
 import 'sale_detail_view.dart';
 import '../utils/excel_export_helper.dart';
 import '../widgets/export_date_filter_dialog.dart';
+import '../widgets/custom_app_bar.dart';
 
 class WarrantyView extends StatefulWidget {
   const WarrantyView({super.key});
@@ -153,28 +154,8 @@ class _WarrantyViewState extends State<WarrantyView> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF0F4F8),
-      appBar: AppBar(
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF0068FF), Color(0xFF0084FF)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
-        title: Text(
-          "SIÊU TRUNG TÂM BẢO HÀNH",
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: AppTextStyles.headline3.fontSize,
-            color: Colors.white,
-          ),
-        ),
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        automaticallyImplyLeading: true,
+      appBar: CustomAppBar.build(
+        title: 'SIÊU TRUNG TÂM BẢO HÀNH',
         actions: [
           IconButton(
             onPressed: _loadAllWarranty,

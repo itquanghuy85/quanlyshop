@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../widgets/responsive_wrapper.dart';
+import '../widgets/custom_app_bar.dart';
 import '../services/user_service.dart';
 import '../services/claims_service.dart';
 import '../services/super_admin_security_service.dart';
@@ -36,34 +37,19 @@ class SuperAdminView extends StatelessWidget {
       length: 2,
       child: Scaffold(
         backgroundColor: const Color(0xFFF8FAFF),
-        appBar: AppBar(
-          flexibleSpace: Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF0068FF), Color(0xFF0084FF)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+        appBar: CustomAppBar.build(
+          title: 'SUPER ADMIN CONTROL',
+          bottom: const PreferredSize(
+            preferredSize: Size.fromHeight(kToolbarHeight),
+            child: TabBar(
+              labelColor: Colors.white,
+              unselectedLabelColor: Colors.white70,
+              indicatorColor: Colors.white,
+              tabs: [
+                Tab(text: 'SHOPS'),
+                Tab(text: 'USERS'),
+              ],
             ),
-          ),
-          backgroundColor: Colors.transparent,
-          foregroundColor: Colors.white,
-          elevation: 0,
-          title: Text(
-            'SUPER ADMIN CONTROL',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: AppTextStyles.headline3.fontSize,
-            ),
-          ),
-          bottom: const TabBar(
-            labelColor: Colors.white,
-            unselectedLabelColor: Colors.white70,
-            indicatorColor: Colors.white,
-            tabs: [
-              Tab(text: 'SHOPS'),
-              Tab(text: 'USERS'),
-            ],
           ),
         ),
         body: ResponsiveCenter(

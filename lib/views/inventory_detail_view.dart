@@ -8,6 +8,7 @@ import '../models/product_model.dart';
 import '../theme/app_text_styles.dart';
 import '../utils/money_utils.dart';
 import '../widgets/app_cached_image.dart';
+import '../widgets/custom_app_bar.dart';
 
 class InventoryDetailView extends StatelessWidget {
   final Product product;
@@ -26,11 +27,8 @@ class InventoryDetailView extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6FA),
-      appBar: AppBar(
-        title: const Text('Chi tiết sản phẩm'),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-        elevation: 0,
+      appBar: CustomAppBar.build(
+        title: 'Chi tiết sản phẩm',
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),

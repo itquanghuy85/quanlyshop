@@ -21,6 +21,8 @@ import '../l10n/app_localizations.dart';
 import '../utils/excel_export_helper.dart';
 import '../widgets/app_cached_image.dart';
 import 'shift_swap_view.dart';
+import '../theme/popup_theme.dart';
+import '../widgets/app_popup.dart';
 
 /// Trang theo dõi chấm công nhân viên cho quản lý/chủ shop
 /// 3 Tab: Tổng quan | Duyệt chấm công | Xin nghỉ
@@ -1538,171 +1540,131 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
     TimeOfDay? checkOutTime;
     String note = '';
 
-    showDialog(
+    showAppBottomSheet(
       context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDlg) {
-          return AlertDialog(
-            title: Row(
-              children: [
-                const Icon(Icons.add_alarm, size: 20),
-                const SizedBox(width: 8),
-                Text(
-                  AppLocalizations.of(context)!.forgotCheckinRequest,
-                  style: const TextStyle(fontSize: 16),
-                ),
-              ],
-            ),
-            content: SingleChildScrollView(
+          return Padding(
+            padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
+            child: Container(
+              decoration: const BoxDecoration(
+                color: PopupTheme.bgDark,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(PopupTheme.radiusSheet)),
+              ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Staff picker
-                  DropdownButtonFormField<String>(
-                    decoration: const InputDecoration(
-                      labelText: 'Nhân viên',
-                      border: OutlineInputBorder(),
-                      isDense: true,
-                    ),
-                    items: _staffList
-                        .map(
-                          (s) => DropdownMenuItem(
-                            value: s['id'] as String,
-                            child: Text(
-                              s['name'] as String,
-                              style: const TextStyle(fontSize: 13),
-                            ),
+                  const PopupDragHandle(),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.add_alarm, color: PopupTheme.blue),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            AppLocalizations.of(context)!.forgotCheckinRequest.toUpperCase(),
+                            style: const TextStyle(color: PopupTheme.textPrimary, fontSize: 15, fontWeight: FontWeight.bold),
                           ),
-                        )
-                        .toList(),
-                    onChanged: (v) => setDlg(() => selectedUserId = v),
-                  ),
-                  const SizedBox(height: 10),
-                  // Date picker
-                  ListTile(
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(
-                      'Ngày: ${DateFormat('dd/MM/yyyy').format(selectedDate)}',
-                      style: const TextStyle(fontSize: 13),
+                        ),
+                      ],
                     ),
-                    trailing: const Icon(Icons.calendar_today, size: 18),
-                    onTap: () async {
-                      final d = await showDatePicker(
-                        context: ctx,
-                        initialDate: selectedDate,
-                        firstDate: DateTime(2020),
-                        lastDate: DateTime.now(),
-                      );
-                      if (d != null) setDlg(() => selectedDate = d);
-                    },
                   ),
-                  // Check-in time
-                  ListTile(
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(
-                      'Giờ vào: ${checkInTime?.format(ctx) ?? '--:--'}',
-                      style: const TextStyle(fontSize: 13),
+                  Flexible(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          DropdownButtonFormField<String>(
+                            decoration: const InputDecoration(labelText: 'Nhân viên', border: OutlineInputBorder(), isDense: true),
+                            items: _staffList.map((s) => DropdownMenuItem(value: s['id'] as String, child: Text(s['name'] as String, style: const TextStyle(fontSize: 13)))).toList(),
+                            onChanged: (v) => setDlg(() => selectedUserId = v),
+                          ),
+                          const SizedBox(height: 10),
+                          ListTile(
+                            dense: true, contentPadding: EdgeInsets.zero,
+                            title: Text('Ngày: ${DateFormat('dd/MM/yyyy').format(selectedDate)}', style: const TextStyle(fontSize: 13, color: PopupTheme.textPrimary)),
+                            trailing: const Icon(Icons.calendar_today, size: 18, color: PopupTheme.textSecondary),
+                            onTap: () async {
+                              final d = await showDatePicker(context: ctx, initialDate: selectedDate, firstDate: DateTime(2020), lastDate: DateTime.now());
+                              if (d != null) setDlg(() => selectedDate = d);
+                            },
+                          ),
+                          ListTile(
+                            dense: true, contentPadding: EdgeInsets.zero,
+                            title: Text('Giờ vào: ${checkInTime?.format(ctx) ?? '--:--'}', style: const TextStyle(fontSize: 13, color: PopupTheme.textPrimary)),
+                            trailing: const Icon(Icons.access_time, size: 18, color: PopupTheme.textSecondary),
+                            onTap: () async {
+                              final t = await showTimePicker(context: ctx, initialTime: const TimeOfDay(hour: 8, minute: 0));
+                              if (t != null) setDlg(() => checkInTime = t);
+                            },
+                          ),
+                          ListTile(
+                            dense: true, contentPadding: EdgeInsets.zero,
+                            title: Text('Giờ ra: ${checkOutTime?.format(ctx) ?? '--:--'}', style: const TextStyle(fontSize: 13, color: PopupTheme.textPrimary)),
+                            trailing: const Icon(Icons.access_time, size: 18, color: PopupTheme.textSecondary),
+                            onTap: () async {
+                              final t = await showTimePicker(context: ctx, initialTime: const TimeOfDay(hour: 17, minute: 0));
+                              if (t != null) setDlg(() => checkOutTime = t);
+                            },
+                          ),
+                          const SizedBox(height: 8),
+                          TextField(
+                            style: const TextStyle(color: PopupTheme.textPrimary, fontSize: 13),
+                            decoration: const InputDecoration(labelText: 'Ghi chú', border: OutlineInputBorder(), isDense: true),
+                            onChanged: (v) => note = v,
+                          ),
+                          const SizedBox(height: 12),
+                        ],
+                      ),
                     ),
-                    trailing: const Icon(Icons.access_time, size: 18),
-                    onTap: () async {
-                      final t = await showTimePicker(
-                        context: ctx,
-                        initialTime: const TimeOfDay(hour: 8, minute: 0),
-                      );
-                      if (t != null) setDlg(() => checkInTime = t);
-                    },
                   ),
-                  // Check-out time
-                  ListTile(
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(
-                      'Giờ ra: ${checkOutTime?.format(ctx) ?? '--:--'}',
-                      style: const TextStyle(fontSize: 13),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                    child: Row(
+                      children: [
+                        Expanded(child: OutlinedButton(onPressed: () => Navigator.pop(ctx), child: const Text('HỦY'))),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 2,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white),
+                            onPressed: () async {
+                              if (selectedUserId == null || checkInTime == null) {
+                                NotificationService.showSnackBar('Chọn nhân viên và giờ vào', color: Colors.red);
+                                return;
+                              }
+                              final staff = _staffList.firstWhere((s) => s['id'] == selectedUserId);
+                              final dateKey = DateFormat('yyyy-MM-dd').format(selectedDate);
+                              final inMs = DateTime(selectedDate.year, selectedDate.month, selectedDate.day, checkInTime!.hour, checkInTime!.minute).millisecondsSinceEpoch;
+                              final outMs = checkOutTime != null
+                                  ? DateTime(selectedDate.year, selectedDate.month, selectedDate.day, checkOutTime!.hour, checkOutTime!.minute).millisecondsSinceEpoch
+                                  : null;
+                              Navigator.pop(ctx);
+                              final ok = await AttendanceApprovalService.createForgotCheckinRequest(
+                                userId: selectedUserId!, email: staff['email'], name: staff['name'],
+                                dateKey: dateKey, checkInAt: inMs, checkOutAt: outMs,
+                                note: note.isNotEmpty ? note : null,
+                              );
+                              if (ok) {
+                                NotificationService.showSnackBar('Đã tạo yêu cầu bổ sung chấm công', color: AppColors.success);
+                                await _loadData();
+                              }
+                            },
+                            child: const Text('TẠO YÊU CẦU'),
+                          ),
+                        ),
+                      ],
                     ),
-                    trailing: const Icon(Icons.access_time, size: 18),
-                    onTap: () async {
-                      final t = await showTimePicker(
-                        context: ctx,
-                        initialTime: const TimeOfDay(hour: 17, minute: 0),
-                      );
-                      if (t != null) setDlg(() => checkOutTime = t);
-                    },
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    decoration: const InputDecoration(
-                      labelText: 'Ghi chú',
-                      border: OutlineInputBorder(),
-                      isDense: true,
-                    ),
-                    onChanged: (v) => note = v,
-                    style: const TextStyle(fontSize: 13),
                   ),
                 ],
               ),
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Hủy'),
-              ),
-              ElevatedButton(
-                onPressed: () async {
-                  if (selectedUserId == null || checkInTime == null) {
-                    NotificationService.showSnackBar(
-                      'Chọn nhân viên và giờ vào',
-                      color: Colors.red,
-                    );
-                    return;
-                  }
-                  final staff = _staffList.firstWhere(
-                    (s) => s['id'] == selectedUserId,
-                  );
-                  final dateKey = DateFormat('yyyy-MM-dd').format(selectedDate);
-                  final inMs = DateTime(
-                    selectedDate.year,
-                    selectedDate.month,
-                    selectedDate.day,
-                    checkInTime!.hour,
-                    checkInTime!.minute,
-                  ).millisecondsSinceEpoch;
-                  final outMs = checkOutTime != null
-                      ? DateTime(
-                          selectedDate.year,
-                          selectedDate.month,
-                          selectedDate.day,
-                          checkOutTime!.hour,
-                          checkOutTime!.minute,
-                        ).millisecondsSinceEpoch
-                      : null;
-                  Navigator.pop(ctx);
-                  final ok =
-                      await AttendanceApprovalService.createForgotCheckinRequest(
-                        userId: selectedUserId!,
-                        email: staff['email'],
-                        name: staff['name'],
-                        dateKey: dateKey,
-                        checkInAt: inMs,
-                        checkOutAt: outMs,
-                        note: note.isNotEmpty ? note : null,
-                      );
-                  if (ok) {
-                    NotificationService.showSnackBar(
-                      'Đã tạo yêu cầu bổ sung chấm công',
-                      color: AppColors.success,
-                    );
-                    await _loadData();
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                ),
-                child: const Text('Tạo yêu cầu'),
-              ),
-            ],
           );
         },
       ),
@@ -1716,193 +1678,145 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
     TimeOfDay? otEnd;
     String note = '';
 
-    showDialog(
+    showAppBottomSheet(
       context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDlg) {
           final otMinutes = (otStart != null && otEnd != null)
-              ? ((otEnd!.hour * 60 + otEnd!.minute) -
-                        (otStart!.hour * 60 + otStart!.minute))
-                    .clamp(0, 480)
+              ? ((otEnd!.hour * 60 + otEnd!.minute) - (otStart!.hour * 60 + otStart!.minute)).clamp(0, 480)
               : 0;
-          return AlertDialog(
-            title: Row(
-              children: [
-                const Icon(Icons.more_time, size: 20),
-                const SizedBox(width: 8),
-                Text(
-                  AppLocalizations.of(context)!.editOvertime,
-                  style: const TextStyle(fontSize: 16),
-                ),
-              ],
-            ),
-            content: SingleChildScrollView(
+          return Padding(
+            padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
+            child: Container(
+              decoration: const BoxDecoration(
+                color: PopupTheme.bgDark,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(PopupTheme.radiusSheet)),
+              ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  DropdownButtonFormField<String>(
-                    decoration: const InputDecoration(
-                      labelText: 'Nhân viên',
-                      border: OutlineInputBorder(),
-                      isDense: true,
-                    ),
-                    items: _staffList
-                        .map(
-                          (s) => DropdownMenuItem(
-                            value: s['id'] as String,
-                            child: Text(
-                              s['name'] as String,
-                              style: const TextStyle(fontSize: 13),
-                            ),
+                  const PopupDragHandle(),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.more_time, color: Colors.deepOrange),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            AppLocalizations.of(context)!.editOvertime.toUpperCase(),
+                            style: const TextStyle(color: PopupTheme.textPrimary, fontSize: 15, fontWeight: FontWeight.bold),
                           ),
-                        )
-                        .toList(),
-                    onChanged: (v) => setDlg(() => selectedUserId = v),
-                  ),
-                  const SizedBox(height: 10),
-                  ListTile(
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(
-                      'Ngày: ${DateFormat('dd/MM/yyyy').format(selectedDate)}',
-                      style: const TextStyle(fontSize: 13),
-                    ),
-                    trailing: const Icon(Icons.calendar_today, size: 18),
-                    onTap: () async {
-                      final d = await showDatePicker(
-                        context: ctx,
-                        initialDate: selectedDate,
-                        firstDate: DateTime(2020),
-                        lastDate: DateTime.now(),
-                      );
-                      if (d != null) setDlg(() => selectedDate = d);
-                    },
-                  ),
-                  ListTile(
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(
-                      '${AppLocalizations.of(context)!.overtimeFrom}: ${otStart?.format(ctx) ?? '--:--'}',
-                      style: const TextStyle(fontSize: 13),
-                    ),
-                    trailing: const Icon(Icons.access_time, size: 18),
-                    onTap: () async {
-                      final t = await showTimePicker(
-                        context: ctx,
-                        initialTime: const TimeOfDay(hour: 17, minute: 0),
-                      );
-                      if (t != null) setDlg(() => otStart = t);
-                    },
-                  ),
-                  ListTile(
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(
-                      '${AppLocalizations.of(context)!.overtimeTo}: ${otEnd?.format(ctx) ?? '--:--'}',
-                      style: const TextStyle(fontSize: 13),
-                    ),
-                    trailing: const Icon(Icons.access_time, size: 18),
-                    onTap: () async {
-                      final t = await showTimePicker(
-                        context: ctx,
-                        initialTime: const TimeOfDay(hour: 20, minute: 0),
-                      );
-                      if (t != null) setDlg(() => otEnd = t);
-                    },
-                  ),
-                  if (otMinutes > 0)
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.deepOrange.withOpacity(0.08),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        '${AppLocalizations.of(context)!.overtimeMinutes}: $otMinutes phút (${(otMinutes / 60).toStringAsFixed(1)} giờ)',
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.deepOrange,
                         ),
+                      ],
+                    ),
+                  ),
+                  Flexible(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          DropdownButtonFormField<String>(
+                            decoration: const InputDecoration(labelText: 'Nhân viên', border: OutlineInputBorder(), isDense: true),
+                            items: _staffList.map((s) => DropdownMenuItem(value: s['id'] as String, child: Text(s['name'] as String, style: const TextStyle(fontSize: 13)))).toList(),
+                            onChanged: (v) => setDlg(() => selectedUserId = v),
+                          ),
+                          const SizedBox(height: 10),
+                          ListTile(
+                            dense: true, contentPadding: EdgeInsets.zero,
+                            title: Text('Ngày: ${DateFormat('dd/MM/yyyy').format(selectedDate)}', style: const TextStyle(fontSize: 13, color: PopupTheme.textPrimary)),
+                            trailing: const Icon(Icons.calendar_today, size: 18, color: PopupTheme.textSecondary),
+                            onTap: () async {
+                              final d = await showDatePicker(context: ctx, initialDate: selectedDate, firstDate: DateTime(2020), lastDate: DateTime.now());
+                              if (d != null) setDlg(() => selectedDate = d);
+                            },
+                          ),
+                          ListTile(
+                            dense: true, contentPadding: EdgeInsets.zero,
+                            title: Text('${AppLocalizations.of(context)!.overtimeFrom}: ${otStart?.format(ctx) ?? '--:--'}', style: const TextStyle(fontSize: 13, color: PopupTheme.textPrimary)),
+                            trailing: const Icon(Icons.access_time, size: 18, color: PopupTheme.textSecondary),
+                            onTap: () async {
+                              final t = await showTimePicker(context: ctx, initialTime: const TimeOfDay(hour: 17, minute: 0));
+                              if (t != null) setDlg(() => otStart = t);
+                            },
+                          ),
+                          ListTile(
+                            dense: true, contentPadding: EdgeInsets.zero,
+                            title: Text('${AppLocalizations.of(context)!.overtimeTo}: ${otEnd?.format(ctx) ?? '--:--'}', style: const TextStyle(fontSize: 13, color: PopupTheme.textPrimary)),
+                            trailing: const Icon(Icons.access_time, size: 18, color: PopupTheme.textSecondary),
+                            onTap: () async {
+                              final t = await showTimePicker(context: ctx, initialTime: const TimeOfDay(hour: 20, minute: 0));
+                              if (t != null) setDlg(() => otEnd = t);
+                            },
+                          ),
+                          if (otMinutes > 0)
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(color: Colors.deepOrange.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
+                              child: Text(
+                                '${AppLocalizations.of(context)!.overtimeMinutes}: $otMinutes phút (${(otMinutes / 60).toStringAsFixed(1)} giờ)',
+                                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.deepOrange),
+                              ),
+                            ),
+                          const SizedBox(height: 8),
+                          TextField(
+                            style: const TextStyle(color: PopupTheme.textPrimary, fontSize: 13),
+                            decoration: const InputDecoration(labelText: 'Ghi chú', border: OutlineInputBorder(), isDense: true),
+                            onChanged: (v) => note = v,
+                          ),
+                          const SizedBox(height: 12),
+                        ],
                       ),
                     ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    decoration: const InputDecoration(
-                      labelText: 'Ghi chú',
-                      border: OutlineInputBorder(),
-                      isDense: true,
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                    child: Row(
+                      children: [
+                        Expanded(child: OutlinedButton(onPressed: () => Navigator.pop(ctx), child: const Text('HỦY'))),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 2,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(backgroundColor: Colors.deepOrange, foregroundColor: Colors.white),
+                            onPressed: () async {
+                              if (selectedUserId == null || otStart == null || otEnd == null) {
+                                NotificationService.showSnackBar('Chọn nhân viên và giờ tăng ca', color: Colors.red);
+                                return;
+                              }
+                              final dateKey = DateFormat('yyyy-MM-dd').format(selectedDate);
+                              final existing = await _db.getAttendance(dateKey, selectedUserId!);
+                              if (existing == null) {
+                                NotificationService.showSnackBar('Không tìm thấy bản ghi chấm công ngày này', color: Colors.red);
+                                return;
+                              }
+                              if (ctx.mounted) Navigator.pop(ctx);
+                              final startMs = DateTime(selectedDate.year, selectedDate.month, selectedDate.day, otStart!.hour, otStart!.minute).millisecondsSinceEpoch;
+                              final endMs = DateTime(selectedDate.year, selectedDate.month, selectedDate.day, otEnd!.hour, otEnd!.minute).millisecondsSinceEpoch;
+                              final ok = await AttendanceApprovalService.editOvertime(
+                                record: existing, overtimeMinutes: otMinutes,
+                                overtimeStartAt: startMs, overtimeEndAt: endMs,
+                                note: note.isNotEmpty ? 'Tăng ca: $note' : null,
+                              );
+                              if (ok) {
+                                NotificationService.showSnackBar('Đã ghi nhận tăng ca $otMinutes phút', color: AppColors.success);
+                                await _loadData();
+                              }
+                            },
+                            child: const Text('GHI NHẬN OT'),
+                          ),
+                        ),
+                      ],
                     ),
-                    onChanged: (v) => note = v,
-                    style: const TextStyle(fontSize: 13),
                   ),
                 ],
               ),
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Hủy'),
-              ),
-              ElevatedButton(
-                onPressed: () async {
-                  if (selectedUserId == null ||
-                      otStart == null ||
-                      otEnd == null) {
-                    NotificationService.showSnackBar(
-                      'Chọn nhân viên và giờ tăng ca',
-                      color: Colors.red,
-                    );
-                    return;
-                  }
-                  final dateKey = DateFormat('yyyy-MM-dd').format(selectedDate);
-                  final existing = await _db.getAttendance(
-                    dateKey,
-                    selectedUserId!,
-                  );
-                  if (existing == null) {
-                    NotificationService.showSnackBar(
-                      'Không tìm thấy bản ghi chấm công ngày này',
-                      color: Colors.red,
-                    );
-                    return;
-                  }
-                  Navigator.pop(ctx);
-                  final startMs = DateTime(
-                    selectedDate.year,
-                    selectedDate.month,
-                    selectedDate.day,
-                    otStart!.hour,
-                    otStart!.minute,
-                  ).millisecondsSinceEpoch;
-                  final endMs = DateTime(
-                    selectedDate.year,
-                    selectedDate.month,
-                    selectedDate.day,
-                    otEnd!.hour,
-                    otEnd!.minute,
-                  ).millisecondsSinceEpoch;
-                  final ok = await AttendanceApprovalService.editOvertime(
-                    record: existing,
-                    overtimeMinutes: otMinutes,
-                    overtimeStartAt: startMs,
-                    overtimeEndAt: endMs,
-                    note: note.isNotEmpty ? 'Tăng ca: $note' : null,
-                  );
-                  if (ok) {
-                    NotificationService.showSnackBar(
-                      'Đã ghi nhận tăng ca $otMinutes phút',
-                      color: AppColors.success,
-                    );
-                    await _loadData();
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.deepOrange,
-                ),
-                child: const Text('Ghi nhận OT'),
-              ),
-            ],
           );
         },
       ),
@@ -2213,184 +2127,142 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
     DateTime endDate = DateTime.now().add(const Duration(days: 1));
     String reason = '';
 
-    showDialog(
+    showAppBottomSheet(
       context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDlg) {
           final days = endDate.difference(startDate).inDays + 1;
-          return AlertDialog(
-            title: Row(
-              children: [
-                const Icon(Icons.event_busy, size: 20),
-                const SizedBox(width: 8),
-                Text(
-                  AppLocalizations.of(context)!.createLeaveRequest,
-                  style: const TextStyle(fontSize: 16),
-                ),
-              ],
-            ),
-            content: SingleChildScrollView(
+          return Padding(
+            padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
+            child: Container(
+              decoration: const BoxDecoration(
+                color: PopupTheme.bgDark,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(PopupTheme.radiusSheet)),
+              ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  DropdownButtonFormField<String>(
-                    decoration: const InputDecoration(
-                      labelText: 'Nhân viên',
-                      border: OutlineInputBorder(),
-                      isDense: true,
-                    ),
-                    items: _staffList
-                        .map(
-                          (s) => DropdownMenuItem(
-                            value: s['id'] as String,
-                            child: Text(
-                              s['name'] as String,
-                              style: const TextStyle(fontSize: 13),
-                            ),
+                  const PopupDragHandle(),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.event_busy, color: Colors.orange),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            AppLocalizations.of(context)!.createLeaveRequest.toUpperCase(),
+                            style: const TextStyle(color: PopupTheme.textPrimary, fontSize: 15, fontWeight: FontWeight.bold),
                           ),
-                        )
-                        .toList(),
-                    onChanged: (v) => setDlg(() => selectedUserId = v),
-                  ),
-                  const SizedBox(height: 10),
-                  DropdownButtonFormField<String>(
-                    value: leaveType,
-                    decoration: InputDecoration(
-                      labelText: AppLocalizations.of(context)!.leaveType,
-                      border: const OutlineInputBorder(),
-                      isDense: true,
+                        ),
+                      ],
                     ),
-                    items: ['annual', 'sick', 'unpaid', 'personal', 'maternity']
-                        .map(
-                          (t) => DropdownMenuItem(
-                            value: t,
-                            child: Text(
-                              LeaveRequest.leaveTypeDisplayVi(t),
-                              style: const TextStyle(fontSize: 13),
-                            ),
+                  ),
+                  Flexible(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          DropdownButtonFormField<String>(
+                            decoration: const InputDecoration(labelText: 'Nhân viên', border: OutlineInputBorder(), isDense: true),
+                            items: _staffList.map((s) => DropdownMenuItem(value: s['id'] as String, child: Text(s['name'] as String, style: const TextStyle(fontSize: 13)))).toList(),
+                            onChanged: (v) => setDlg(() => selectedUserId = v),
                           ),
-                        )
-                        .toList(),
-                    onChanged: (v) => setDlg(() => leaveType = v ?? 'annual'),
-                  ),
-                  const SizedBox(height: 10),
-                  ListTile(
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(
-                      '${AppLocalizations.of(context)!.startDate}: ${DateFormat('dd/MM/yyyy').format(startDate)}',
-                      style: const TextStyle(fontSize: 13),
-                    ),
-                    trailing: const Icon(Icons.calendar_today, size: 18),
-                    onTap: () async {
-                      final d = await showDatePicker(
-                        context: ctx,
-                        initialDate: startDate,
-                        firstDate: DateTime.now(),
-                        lastDate: DateTime.now().add(const Duration(days: 365)),
-                      );
-                      if (d != null)
-                        setDlg(() {
-                          startDate = d;
-                          if (endDate.isBefore(startDate)) endDate = startDate;
-                        });
-                    },
-                  ),
-                  ListTile(
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(
-                      '${AppLocalizations.of(context)!.endDate}: ${DateFormat('dd/MM/yyyy').format(endDate)}',
-                      style: const TextStyle(fontSize: 13),
-                    ),
-                    trailing: const Icon(Icons.calendar_today, size: 18),
-                    onTap: () async {
-                      final d = await showDatePicker(
-                        context: ctx,
-                        initialDate: endDate,
-                        firstDate: startDate,
-                        lastDate: startDate.add(const Duration(days: 90)),
-                      );
-                      if (d != null) setDlg(() => endDate = d);
-                    },
-                  ),
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.08),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      '${AppLocalizations.of(context)!.totalDays}: $days ngày',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
+                          const SizedBox(height: 10),
+                          DropdownButtonFormField<String>(
+                            value: leaveType,
+                            decoration: InputDecoration(labelText: AppLocalizations.of(context)!.leaveType, border: const OutlineInputBorder(), isDense: true),
+                            items: ['annual', 'sick', 'unpaid', 'personal', 'maternity']
+                                .map((t) => DropdownMenuItem(value: t, child: Text(LeaveRequest.leaveTypeDisplayVi(t), style: const TextStyle(fontSize: 13))))
+                                .toList(),
+                            onChanged: (v) => setDlg(() => leaveType = v ?? 'annual'),
+                          ),
+                          const SizedBox(height: 10),
+                          ListTile(
+                            dense: true, contentPadding: EdgeInsets.zero,
+                            title: Text('${AppLocalizations.of(context)!.startDate}: ${DateFormat('dd/MM/yyyy').format(startDate)}', style: const TextStyle(fontSize: 13, color: PopupTheme.textPrimary)),
+                            trailing: const Icon(Icons.calendar_today, size: 18, color: PopupTheme.textSecondary),
+                            onTap: () async {
+                              final d = await showDatePicker(context: ctx, initialDate: startDate, firstDate: DateTime.now(), lastDate: DateTime.now().add(const Duration(days: 365)));
+                              if (d != null) setDlg(() { startDate = d; if (endDate.isBefore(startDate)) endDate = startDate; });
+                            },
+                          ),
+                          ListTile(
+                            dense: true, contentPadding: EdgeInsets.zero,
+                            title: Text('${AppLocalizations.of(context)!.endDate}: ${DateFormat('dd/MM/yyyy').format(endDate)}', style: const TextStyle(fontSize: 13, color: PopupTheme.textPrimary)),
+                            trailing: const Icon(Icons.calendar_today, size: 18, color: PopupTheme.textSecondary),
+                            onTap: () async {
+                              final d = await showDatePicker(context: ctx, initialDate: endDate, firstDate: startDate, lastDate: startDate.add(const Duration(days: 90)));
+                              if (d != null) setDlg(() => endDate = d);
+                            },
+                          ),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
+                            child: Text('${AppLocalizations.of(context)!.totalDays}: $days ngày', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: PopupTheme.textPrimary)),
+                          ),
+                          const SizedBox(height: 8),
+                          TextField(
+                            style: const TextStyle(color: PopupTheme.textPrimary, fontSize: 13),
+                            decoration: InputDecoration(labelText: AppLocalizations.of(context)!.leaveReason, border: const OutlineInputBorder(), isDense: true),
+                            onChanged: (v) => reason = v,
+                            maxLines: 2,
+                          ),
+                          const SizedBox(height: 12),
+                        ],
                       ),
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    decoration: InputDecoration(
-                      labelText: AppLocalizations.of(context)!.leaveReason,
-                      border: const OutlineInputBorder(),
-                      isDense: true,
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                    child: Row(
+                      children: [
+                        Expanded(child: OutlinedButton(onPressed: () => Navigator.pop(ctx), child: const Text('HỦY'))),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 2,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white),
+                            onPressed: () async {
+                              if (selectedUserId == null) {
+                                NotificationService.showSnackBar('Chọn nhân viên', color: Colors.red);
+                                return;
+                              }
+                              final staff = _staffList.firstWhere((s) => s['id'] == selectedUserId);
+                              final lr = LeaveRequest(
+                                userId: selectedUserId!, email: staff['email'], name: staff['name'],
+                                leaveType: leaveType,
+                                startDate: DateFormat('yyyy-MM-dd').format(startDate),
+                                endDate: DateFormat('yyyy-MM-dd').format(endDate),
+                                totalDays: days.toDouble(),
+                                reason: reason.isNotEmpty ? reason : null,
+                                status: 'pending',
+                                createdAt: DateTime.now().millisecondsSinceEpoch,
+                                updatedAt: DateTime.now().millisecondsSinceEpoch,
+                                isSynced: false,
+                              );
+                              Navigator.pop(ctx);
+                              final ok = await AttendanceApprovalService.createLeaveRequest(lr);
+                              if (ok) {
+                                NotificationService.showSnackBar('Đã tạo đơn xin nghỉ', color: AppColors.success);
+                                await _loadData();
+                              }
+                            },
+                            child: Text(AppLocalizations.of(context)!.createLeaveRequest),
+                          ),
+                        ),
+                      ],
                     ),
-                    onChanged: (v) => reason = v,
-                    maxLines: 2,
-                    style: const TextStyle(fontSize: 13),
                   ),
                 ],
               ),
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Hủy'),
-              ),
-              ElevatedButton(
-                onPressed: () async {
-                  if (selectedUserId == null) {
-                    NotificationService.showSnackBar(
-                      'Chọn nhân viên',
-                      color: Colors.red,
-                    );
-                    return;
-                  }
-                  final staff = _staffList.firstWhere(
-                    (s) => s['id'] == selectedUserId,
-                  );
-                  final lr = LeaveRequest(
-                    userId: selectedUserId!,
-                    email: staff['email'],
-                    name: staff['name'],
-                    leaveType: leaveType,
-                    startDate: DateFormat('yyyy-MM-dd').format(startDate),
-                    endDate: DateFormat('yyyy-MM-dd').format(endDate),
-                    totalDays: days.toDouble(),
-                    reason: reason.isNotEmpty ? reason : null,
-                    status: 'pending',
-                    createdAt: DateTime.now().millisecondsSinceEpoch,
-                    updatedAt: DateTime.now().millisecondsSinceEpoch,
-                    isSynced: false,
-                  );
-                  Navigator.pop(ctx);
-                  final ok = await AttendanceApprovalService.createLeaveRequest(
-                    lr,
-                  );
-                  if (ok) {
-                    NotificationService.showSnackBar(
-                      'Đã tạo đơn xin nghỉ',
-                      color: AppColors.success,
-                    );
-                    await _loadData();
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                ),
-                child: Text(AppLocalizations.of(context)!.createLeaveRequest),
-              ),
-            ],
           );
         },
       ),
@@ -2673,125 +2545,165 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
         : null;
     String note = '';
 
-    showDialog(
+    showAppBottomSheet(
       context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDlg) {
-          return AlertDialog(
-            title: Row(
-              children: [
-                const Icon(Icons.edit_calendar, size: 20),
-                const SizedBox(width: 8),
-                Flexible(
-                  child: Text(
-                    '${AppLocalizations.of(context)!.editCheckTime} - ${staff['name']}',
-                    style: const TextStyle(fontSize: 15),
-                    overflow: TextOverflow.ellipsis,
-                  ),
+          return Padding(
+            padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
+            child: Container(
+              decoration: const BoxDecoration(
+                color: PopupTheme.bgDark,
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(PopupTheme.radiusSheet),
                 ),
-              ],
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Ngày: ${record.dateKey}',
-                  style: TextStyle(fontSize: 13, color: AppColors.inactive),
-                ),
-                const SizedBox(height: 10),
-                ListTile(
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(
-                    'Giờ vào: ${newIn?.format(ctx) ?? '--:--'}',
-                    style: const TextStyle(fontSize: 13),
-                  ),
-                  trailing: const Icon(Icons.access_time, size: 18),
-                  onTap: () async {
-                    final t = await showTimePicker(
-                      context: ctx,
-                      initialTime: newIn ?? const TimeOfDay(hour: 8, minute: 0),
-                    );
-                    if (t != null) setDlg(() => newIn = t);
-                  },
-                ),
-                ListTile(
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(
-                    'Giờ ra: ${newOut?.format(ctx) ?? '--:--'}',
-                    style: const TextStyle(fontSize: 13),
-                  ),
-                  trailing: const Icon(Icons.access_time, size: 18),
-                  onTap: () async {
-                    final t = await showTimePicker(
-                      context: ctx,
-                      initialTime:
-                          newOut ?? const TimeOfDay(hour: 17, minute: 0),
-                    );
-                    if (t != null) setDlg(() => newOut = t);
-                  },
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  decoration: const InputDecoration(
-                    labelText: 'Ghi chú',
-                    border: OutlineInputBorder(),
-                    isDense: true,
-                  ),
-                  onChanged: (v) => note = v,
-                  style: const TextStyle(fontSize: 13),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Hủy'),
               ),
-              ElevatedButton(
-                onPressed: () async {
-                  final date = DateTime.parse(record.dateKey);
-                  final inMs = newIn != null
-                      ? DateTime(
-                          date.year,
-                          date.month,
-                          date.day,
-                          newIn!.hour,
-                          newIn!.minute,
-                        ).millisecondsSinceEpoch
-                      : null;
-                  final outMs = newOut != null
-                      ? DateTime(
-                          date.year,
-                          date.month,
-                          date.day,
-                          newOut!.hour,
-                          newOut!.minute,
-                        ).millisecondsSinceEpoch
-                      : null;
-                  Navigator.pop(ctx);
-                  final ok =
-                      await AttendanceApprovalService.editAttendanceTimes(
-                        record: record,
-                        checkInAt: inMs,
-                        checkOutAt: outMs,
-                        note: note.isNotEmpty ? note : null,
-                      );
-                  if (ok) {
-                    NotificationService.showSnackBar(
-                      'Đã sửa giờ chấm công',
-                      color: AppColors.success,
-                    );
-                    await _loadData();
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                ),
-                child: const Text('Lưu'),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const PopupDragHandle(),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.edit_calendar, color: PopupTheme.blue),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            '${AppLocalizations.of(context)!.editCheckTime} - ${staff['name']}',
+                            style: const TextStyle(
+                              color: PopupTheme.textPrimary,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Flexible(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Ngày: ${record.dateKey}',
+                            style: const TextStyle(fontSize: 13, color: PopupTheme.textSecondary),
+                          ),
+                          const SizedBox(height: 10),
+                          ListTile(
+                            dense: true,
+                            contentPadding: EdgeInsets.zero,
+                            title: Text(
+                              'Giờ vào: ${newIn?.format(ctx) ?? '--:--'}',
+                              style: const TextStyle(fontSize: 13, color: PopupTheme.textPrimary),
+                            ),
+                            trailing: const Icon(Icons.access_time, size: 18, color: PopupTheme.textSecondary),
+                            onTap: () async {
+                              final t = await showTimePicker(
+                                context: ctx,
+                                initialTime: newIn ?? const TimeOfDay(hour: 8, minute: 0),
+                              );
+                              if (t != null) setDlg(() => newIn = t);
+                            },
+                          ),
+                          ListTile(
+                            dense: true,
+                            contentPadding: EdgeInsets.zero,
+                            title: Text(
+                              'Giờ ra: ${newOut?.format(ctx) ?? '--:--'}',
+                              style: const TextStyle(fontSize: 13, color: PopupTheme.textPrimary),
+                            ),
+                            trailing: const Icon(Icons.access_time, size: 18, color: PopupTheme.textSecondary),
+                            onTap: () async {
+                              final t = await showTimePicker(
+                                context: ctx,
+                                initialTime: newOut ?? const TimeOfDay(hour: 17, minute: 0),
+                              );
+                              if (t != null) setDlg(() => newOut = t);
+                            },
+                          ),
+                          const SizedBox(height: 8),
+                          TextField(
+                            decoration: const InputDecoration(
+                              labelText: 'Ghi chú',
+                              border: OutlineInputBorder(),
+                              isDense: true,
+                            ),
+                            onChanged: (v) => note = v,
+                            style: const TextStyle(fontSize: 13, color: PopupTheme.textPrimary),
+                          ),
+                          const SizedBox(height: 8),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.pop(ctx),
+                            child: const Text('HỦY'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 2,
+                          child: ElevatedButton(
+                            onPressed: () async {
+                              final date = DateTime.parse(record.dateKey);
+                              final inMs = newIn != null
+                                  ? DateTime(
+                                      date.year,
+                                      date.month,
+                                      date.day,
+                                      newIn!.hour,
+                                      newIn!.minute,
+                                    ).millisecondsSinceEpoch
+                                  : null;
+                              final outMs = newOut != null
+                                  ? DateTime(
+                                      date.year,
+                                      date.month,
+                                      date.day,
+                                      newOut!.hour,
+                                      newOut!.minute,
+                                    ).millisecondsSinceEpoch
+                                  : null;
+                              Navigator.pop(ctx);
+                              final ok = await AttendanceApprovalService.editAttendanceTimes(
+                                record: record,
+                                checkInAt: inMs,
+                                checkOutAt: outMs,
+                                note: note.isNotEmpty ? note : null,
+                              );
+                              if (ok) {
+                                NotificationService.showSnackBar(
+                                  'Đã sửa giờ chấm công',
+                                  color: AppColors.success,
+                                );
+                                await _loadData();
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                            ),
+                            child: const Text('Lưu'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           );
         },
       ),
@@ -3392,39 +3304,90 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
 
   Future<String?> _showReasonDialog(String hint) async {
     String reason = '';
-    return showDialog<String>(
+    return showAppBottomSheet<String>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Lý do', style: TextStyle(fontSize: 16)),
-        content: TextField(
-          decoration: InputDecoration(
-            hintText: hint,
-            border: const OutlineInputBorder(),
-            isDense: true,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
+        child: Container(
+          decoration: const BoxDecoration(
+            color: PopupTheme.bgDark,
+            borderRadius: BorderRadius.vertical(
+              top: Radius.circular(PopupTheme.radiusSheet),
+            ),
           ),
-          onChanged: (v) => reason = v,
-          maxLines: 2,
-          style: const TextStyle(fontSize: 13),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const PopupDragHandle(),
+              const Padding(
+                padding: EdgeInsets.fromLTRB(20, 0, 20, 12),
+                child: Row(
+                  children: [
+                    Icon(Icons.edit_note, color: PopupTheme.blue),
+                    SizedBox(width: 8),
+                    Text(
+                      'LÝ DO',
+                      style: TextStyle(
+                        color: PopupTheme.textPrimary,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+                child: TextField(
+                  autofocus: true,
+                  style: const TextStyle(color: PopupTheme.textPrimary, fontSize: 13),
+                  decoration: InputDecoration(
+                    hintText: hint,
+                    border: const OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                  onChanged: (v) => reason = v,
+                  maxLines: 2,
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        child: const Text('HỦY'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      flex: 2,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: PopupTheme.blue,
+                          foregroundColor: Colors.white,
+                        ),
+                        onPressed: () {
+                          if (reason.trim().isEmpty) {
+                            NotificationService.showSnackBar('Nhập lý do', color: Colors.red);
+                            return;
+                          }
+                          Navigator.pop(ctx, reason.trim());
+                        },
+                        child: const Text('XÁC NHẬN'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Hủy'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (reason.trim().isEmpty) {
-                NotificationService.showSnackBar(
-                  'Nhập lý do',
-                  color: Colors.red,
-                );
-                return;
-              }
-              Navigator.pop(ctx, reason.trim());
-            },
-            child: const Text('Xác nhận'),
-          ),
-        ],
       ),
     );
   }

@@ -14,6 +14,7 @@ import '../models/repair_model.dart';
 import '../models/printer_types.dart';
 import '../widgets/validated_text_field.dart';
 import '../widgets/printer_selection_dialog.dart';
+import '../widgets/custom_app_bar.dart';
 
 class RepairReceiptView extends StatefulWidget {
   const RepairReceiptView({super.key});
@@ -152,20 +153,8 @@ class _RepairReceiptViewState extends State<RepairReceiptView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF0068FF), Color(0xFF0084FF)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: const Text('PHIẾ́U TIẾ́P NHẬN SỬa CHỮa'),
+      appBar: CustomAppBar.build(
+        title: 'PHIẾU TIẾP NHẬN SỬA CHỮA',
       ),
       body: ResponsiveCenter(child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),

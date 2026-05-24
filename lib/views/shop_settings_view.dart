@@ -26,6 +26,7 @@ import '../widgets/entity_avatar.dart';
 import '../models/shop_settings_model.dart';
 import '../widgets/validated_text_field.dart';
 import '../widgets/responsive_wrapper.dart';
+import '../widgets/custom_app_bar.dart';
 import '../theme/app_text_styles.dart';
 import '../theme/app_colors.dart';
 import 'adjustment_history_view.dart';
@@ -985,23 +986,8 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF0068FF), Color(0xFF0084FF)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
-        title: const Text(
-          "CÀI ĐẶT SHOP",
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
-        ),
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        elevation: 0,
+      appBar: CustomAppBar.build(
+        title: 'Cài đặt shop',
         actions: [
           if (_saving)
             const Padding(
@@ -1009,7 +995,7 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
               child: SizedBox(
                 width: 20,
                 height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
+                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
               ),
             )
           else

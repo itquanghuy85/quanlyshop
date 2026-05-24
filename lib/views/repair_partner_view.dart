@@ -12,6 +12,7 @@ import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 import 'repair_partner_detail_view.dart';
 import '../widgets/entity_avatar.dart';
+import '../widgets/custom_app_bar.dart';
 
 class RepairPartnerView extends StatefulWidget {
   const RepairPartnerView({super.key});
@@ -494,27 +495,8 @@ class _RepairPartnerViewState extends State<RepairPartnerView> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF0068FF), Color(0xFF0084FF)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: Row(
-          children: [
-            const Icon(Icons.handshake, color: Colors.white, size: 28),
-            const SizedBox(width: 12),
-            Text("ĐỐI TÁC SỬA CHỮA", style: AppTextStyles.headline6.copyWith(color: Colors.white)),
-          ],
-        ),
-        automaticallyImplyLeading: true,
+      appBar: CustomAppBar.build(
+        title: 'ĐỐI TÁC SỬA CHỮA',
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(80),
           child: Container(

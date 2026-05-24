@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/custom_app_bar.dart';
 import 'package:intl/intl.dart';
 
 import '../data/db_helper.dart';
@@ -224,35 +225,12 @@ class _StorageLocationViewState extends State<StorageLocationView> {
   }
 
   PreferredSizeWidget _buildAppBar() {
-    return AppBar(
-      flexibleSpace: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF1E40AF), Color(0xFF3B82F6)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-      ),
-      backgroundColor: Colors.transparent,
-      foregroundColor: Colors.white,
-      elevation: 0,
-      title: const Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text('Vị trí lưu kho',
-              style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white)),
-          Text('Kho · Tầng · Kệ',
-              style: TextStyle(fontSize: 12, color: Color(0xCCFFFFFF))),
-        ],
-      ),
+    return CustomAppBar.build(
+      title: 'Vị trí lưu kho',
+      subtitle: 'Kho · Tầng · Kệ',
       actions: [
         IconButton(
-          icon: const Icon(Icons.refresh_rounded, size: 22, color: Colors.white),
+          icon: const Icon(Icons.refresh_rounded, size: 22),
           onPressed: _load,
           tooltip: 'Làm mới',
         ),

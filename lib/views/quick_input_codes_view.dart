@@ -19,6 +19,7 @@ import '../widgets/currency_text_field.dart';
 import '../widgets/gradient_fab.dart';
 import 'smart_stock_in_view.dart';
 import 'fast_stock_in_view.dart';
+import '../widgets/custom_app_bar.dart';
 
 enum QuickInputFilter { all, active, inactive, unsynced }
 
@@ -372,27 +373,8 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
-      appBar: AppBar(
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF0068FF), Color(0xFF0084FF)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
-        title: const Text(
-          'MÃ NHẬP NHANH',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        elevation: 0,
+      appBar: CustomAppBar.build(
+        title: 'MÃ NHẬP NHANH',
         actions: [
           // Sync button với badge
           Stack(

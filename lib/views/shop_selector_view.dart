@@ -9,6 +9,7 @@ import '../services/claims_service.dart';
 import '../services/super_admin_security_service.dart';
 import '../data/db_helper.dart';
 import 'home_view.dart';
+import '../widgets/custom_app_bar.dart';
 
 /// Màn hình chọn shop cho Super Admin
 /// Super admin phải chọn shop trước khi xem dữ liệu
@@ -250,21 +251,8 @@ class _ShopSelectorViewState extends State<ShopSelectorView> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
-      appBar: AppBar(
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF0068FF), Color(0xFF0084FF)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
-        title: const Text('QUẢN LÝ SHOP', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 1)),
-        centerTitle: true,
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        elevation: 0,
+      appBar: CustomAppBar.build(
+        title: 'QUẢN LÝ SHOP',
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),

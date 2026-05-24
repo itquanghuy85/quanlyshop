@@ -8,6 +8,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../data/db_helper.dart';
 import '../l10n/app_localizations.dart';
 import '../theme/app_text_styles.dart';
+import '../widgets/skeleton_list.dart';
 import '../models/repair_model.dart';
 import '../models/shop_settings_model.dart';
 import '../services/event_bus.dart';
@@ -18,6 +19,8 @@ import '../services/user_service.dart';
 import '../services/encryption_service.dart';
 import '../services/sync_service.dart';
 import '../services/firestore_service.dart';
+import '../widgets/custom_app_bar.dart';
+import '../widgets/empty_state_widget.dart';
 import '../utils/vietnamese_utils.dart';
 import '../utils/money_utils.dart';
 import '../widgets/gradient_fab.dart';
@@ -29,6 +32,8 @@ import '../widgets/export_date_filter_dialog.dart';
 import '../theme/app_colors.dart';
 import '../widgets/responsive_wrapper.dart';
 import '../widgets/app_cached_image.dart';
+import '../widgets/sync_status_bar.dart';
+import '../services/connectivity_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 class OrderListView extends StatefulWidget {
@@ -1292,36 +1297,9 @@ class OrderListViewState extends State<OrderListView> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF0F4F8),
-      appBar: AppBar(
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF0068FF), Color(0xFF0084FF)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              "DANH SÁCH ${_terms.productLabel.toUpperCase()} SỬA",
-              style: AppTextStyles.headline2.copyWith(
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-            Text(
-              '$count ${_terms.productLabel.toLowerCase()} • $pendingCount đang xử lý',
-              style: AppTextStyles.caption.copyWith(color: Colors.white70),
-            ),
-          ],
-        ),
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        automaticallyImplyLeading: true,
+      appBar: CustomAppBar.build(
+        title: "DANH SÁCH ${_terms.productLabel.toUpperCase()} SỬA",
+        subtitle: '$count ${_terms.productLabel.toLowerCase()} • $pendingCount đang xử lý',
         actions: [
           IconButton(
             onPressed: () => Navigator.push(
@@ -1452,11 +1430,28 @@ class OrderListViewState extends State<OrderListView> {
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-              child: _buildListInsightBar(),
+              child: SyncStatusBar(
+                isOnline: ConnectivityService.instance.isOnline,
+                isRealtimeConnected: _isRealtimeConnected,
+                itemCount: _displayedRepairs.length,
+                itemLabel: 'đơn',
+                modeDetail: _useRealtimeIndexFallback ? 'fallback' : null,
+              ),
             ),
             Expanded(
               child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
+                  ? const SkeletonListView(
+                      variant: SkeletonVariant.repairCard,
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    )
+                  : _displayedRepairs.isEmpty
+                  ? EmptyStateWidget(
+                      icon: Icons.build_circle_outlined,
+                      title: _statusFilters.isNotEmpty ? 'Không có đơn theo bộ lọc này' : loc.noRepairOrders,
+                      subtitle: _statusFilters.isNotEmpty ? 'Thử bỏ lọc để xem tất cả đơn' : null,
+                      actionLabel: _statusFilters.isNotEmpty ? 'Bỏ lọc' : null,
+                      onAction: _statusFilters.isNotEmpty ? () => setState(() => _statusFilters.clear()) : null,
+                    )
                   : ListView.builder(
                     controller: _listScrollController,
                       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -2036,54 +2031,6 @@ class OrderListViewState extends State<OrderListView> {
     );
   }
 
-  Widget _buildListInsightBar() {
-    final modeLabel = _isRealtimeConnected
-        ? (_useRealtimeIndexFallback
-              ? 'Realtime Firestore (fallback no-index)'
-              : 'Realtime Firestore • 50 đơn mới nhất')
-        : 'Đang kết nối realtime...';
-    final statusLabel = _isRealtimeConnected
-        ? 'Đồng bộ tức thì giữa thiết bị'
-        : 'Chưa nhận snapshot server';
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.insights, size: 14, color: Color(0xFF2962FF)),
-          const SizedBox(width: 6),
-          Expanded(
-            child: Text(
-              '$modeLabel • Đang hiển thị ${_displayedRepairs.length} đơn',
-              style: TextStyle(
-                fontSize: 11,
-                color: Colors.grey.shade700,
-                fontWeight: FontWeight.w600,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          const SizedBox(width: 6),
-          Text(
-            statusLabel,
-            style: TextStyle(
-              fontSize: 10,
-              color: _isRealtimeConnected
-                  ? Colors.green.shade700
-                  : Colors.orange.shade700,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   String _getStatusLabel(int status, {bool pendingApproval = false}) {
     if (status == 3 && pendingApproval) {

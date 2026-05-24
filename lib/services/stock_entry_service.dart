@@ -1001,11 +1001,37 @@ class StockEntryService {
             );
           }
 
-          // NOTE: Không ghi supplier_import_history vào local DB ở đây
-          // Để sync_service tự đồng bộ từ Firestore để tránh duplicate records
-          // (trước đây firestoreId local != firestoreId từ Firestore => duplicate)
+          // Write supplier_import_history to local DB immediately so the
+          // supplier detail tab shows data before SyncService runs.
+          // upsertSupplierImportHistory deduplicates by referenceId+productName+imei
+          // so the later Firestore sync only updates the firestoreId, no duplicate.
+          final importNow = DateTime.now().millisecondsSinceEpoch;
+          final importerName =
+              _auth.currentUser?.email?.split('@').first.toUpperCase() ?? 'NV';
+          for (final item in entry.items) {
+            final history = {
+              'supplierId': supplierLocalId ?? entry.supplierId ?? 0,
+              'supplierName': entry.supplierName ?? '',
+              'productName': item.name,
+              'productBrand': item.brand ?? '',
+              'productModel': item.model ?? '',
+              'imei': item.imei ?? '',
+              'quantity': item.quantity,
+              'costPrice': (item.cost ?? 0).toInt(),
+              'totalAmount': item.totalCost.toInt(),
+              'paymentMethod': entry.paymentMethod,
+              'importDate': importNow,
+              'importedBy': importerName,
+              'importedByUid': _auth.currentUser?.uid ?? '',
+              'notes': entry.notes ?? '',
+              'referenceId': entryId,
+              'shopId': entry.shopId,
+              'isSynced': 0,
+            };
+            await db.upsertSupplierImportHistory(history);
+          }
           debugPrint(
-            '✅ confirmEntry: Local supplier_import_history synced from Firestore',
+            '✅ confirmEntry: Wrote ${entry.items.length} supplier_import_history rows to local DB',
           );
         } catch (e) {
           debugPrint('⚠️ confirmEntry: Failed to save local data: $e');

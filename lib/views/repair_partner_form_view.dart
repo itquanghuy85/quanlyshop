@@ -8,6 +8,7 @@ import '../services/storage_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 import '../widgets/entity_avatar.dart';
+import '../widgets/custom_app_bar.dart';
 
 class RepairPartnerFormView extends StatefulWidget {
   final RepairPartner? editing;
@@ -122,23 +123,8 @@ class _RepairPartnerFormViewState extends State<RepairPartnerFormView> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF11998e), Color(0xFF38ef7d)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: Text(
-          isEditing ? 'SỬA ĐỐI TÁC' : 'THÊM ĐỐI TÁC MỚI',
-          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
-        ),
+      appBar: CustomAppBar.build(
+        title: isEditing ? 'SỬA ĐỐI TÁC' : 'THÊM ĐỐI TÁC MỚI',
         actions: [
           if (_saving)
             const Center(

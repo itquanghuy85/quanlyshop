@@ -32,6 +32,7 @@ import 'create_sale_view.dart';
 import 'inventory_view.dart';
 import '../widgets/responsive_wrapper.dart';
 import '../widgets/entity_avatar.dart';
+import '../widgets/custom_app_bar.dart';
 
 class SupplierListView extends StatefulWidget {
   const SupplierListView({super.key});
@@ -535,40 +536,11 @@ class _SupplierListViewState extends State<SupplierListView>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF0068FF), Color(0xFF0084FF)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Quản lý đối tác',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: AppTextStyles.headline5.fontSize,
-              ),
-            ),
-            Text(
-              _isElectronics
-                  ? '${_items.length} NCC • ${_partners.length} đối tác'
-                  : '${_items.length} nhà cung cấp',
-              style: TextStyle(
-                fontSize: AppTextStyles.caption.fontSize,
-                color: Colors.white70,
-              ),
-            ),
-          ],
-        ),
+      appBar: CustomAppBar.build(
+        title: 'Quản lý đối tác',
+        subtitle: _isElectronics
+            ? '${_items.length} NCC • ${_partners.length} đối tác'
+            : '${_items.length} nhà cung cấp',
         actions: [
           IconButton(
             icon: const Icon(Icons.search),
@@ -593,13 +565,9 @@ class _SupplierListViewState extends State<SupplierListView>
                   PopupMenuItem(value: 'hasDebt', child: Text('Còn nợ')),
                   PopupMenuItem(value: 'settled', child: Text('Đã tất toán')),
                   PopupMenuItem(value: 'overdue', child: Text('Quá hạn')),
-                  PopupMenuItem(
-                    value: 'recent',
-                    child: Text('Giao dịch gần đây'),
-                  ),
+                  PopupMenuItem(value: 'recent', child: Text('Giao dịch gần đây')),
                 ];
               }
-
               return const [
                 PopupMenuItem(value: 'all', child: Text('Tất cả')),
                 PopupMenuItem(value: 'active', child: Text('Hoạt động')),
@@ -625,27 +593,16 @@ class _SupplierListViewState extends State<SupplierListView>
             tooltip: 'Quản lý kho',
             onPressed: () async {
               final uid = FirebaseAuth.instance.currentUser?.uid;
-              final role = uid != null
-                  ? await UserService.getUserRole(uid)
-                  : 'user';
+              final role = uid != null ? await UserService.getUserRole(uid) : 'user';
               if (!context.mounted) return;
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => InventoryView(role: role)),
-              );
+              Navigator.push(context, MaterialPageRoute(builder: (_) => InventoryView(role: role)));
             },
           ),
         ],
         bottom: _isElectronics
-            ? TabBar(
+            ? CustomTabBar.buildGradient(
                 controller: _tabController,
-                indicatorColor: Colors.white,
-                labelColor: Colors.white,
-                unselectedLabelColor: Colors.white70,
-                tabs: const [
-                  Tab(text: 'NHÀ CUNG CẤP'),
-                  Tab(text: 'ĐỐI TÁC SỬA CHỮA'),
-                ],
+                tabs: const [Tab(text: 'NHÀ CUNG CẤP'), Tab(text: 'ĐỐI TÁC SỬA CHỮA')],
               )
             : null,
       ),

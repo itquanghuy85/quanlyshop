@@ -13,6 +13,7 @@ import '../services/user_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 import 'staff_public_profile_view.dart';
+import '../widgets/custom_app_bar.dart';
 import '../widgets/entity_avatar.dart';
 import '../widgets/responsive_wrapper.dart';
 import '../widgets/safe_stream_builder.dart';
@@ -395,7 +396,7 @@ class _CommunityViewState extends State<CommunityView> {
 
     if (_shopId.isEmpty) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Cộng đồng shop')),
+        appBar: CustomAppBar.build(title: 'Cộng đồng shop'),
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(20),
@@ -432,10 +433,8 @@ class _CommunityViewState extends State<CommunityView> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: Text(
-          _shopName.isEmpty ? 'Cộng đồng shop' : 'Cộng đồng • $_shopName',
-        ),
+      appBar: CustomAppBar.build(
+        title: _shopName.isEmpty ? 'Cộng đồng shop' : 'Cộng đồng • $_shopName',
       ),
       body: ResponsiveCenter(
         child: Column(

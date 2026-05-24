@@ -207,21 +207,7 @@ class _StaffPermissionsViewState extends State<StaffPermissionsView> {
     // Kiểm tra quyền truy cập
     if (!_hasManageStaffAccess && !_isSuperAdmin) {
       return Scaffold(
-        appBar: AppBar(
-          flexibleSpace: Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF0068FF), Color(0xFF0084FF)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-          ),
-          backgroundColor: Colors.transparent,
-          foregroundColor: Colors.white,
-          elevation: 0,
-          title: const Text("QUẢN LÝ PHÂN QUYỀN"),
-        ),
+        appBar: CustomAppBar.build(title: 'QUẢN LÝ PHÂN QUYỀN'),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,

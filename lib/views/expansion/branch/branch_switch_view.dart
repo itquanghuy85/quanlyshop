@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../expansion/safe_mode/expansion_feature_flags.dart';
 import '../../../expansion/safe_mode/branch_models.dart';
 import '../../../expansion/safe_mode/branch_service.dart';
+import '../../../widgets/custom_app_bar.dart';
 
 /// Màn chọn / chuyển chi nhánh.
 /// Trả về [Branch] đã chọn khi pop, hoặc null nếu user huỷ.
@@ -111,7 +112,7 @@ class _BranchSwitchViewState extends State<BranchSwitchView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Chọn chi nhánh')),
+      appBar: CustomAppBar.build(title: 'Chọn chi nhánh'),
       body: !widget.flags.enableMultiBranch
           ? const Center(
               child: Column(

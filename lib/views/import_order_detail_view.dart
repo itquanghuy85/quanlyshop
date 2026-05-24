@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../models/import_order_model.dart';
 import '../services/import_order_service.dart';
 import '../theme/app_colors.dart';
+import '../widgets/custom_app_bar.dart';
 import '../utils/money_utils.dart';
 
 class ImportOrderDetailView extends StatefulWidget {
@@ -49,23 +50,8 @@ class _ImportOrderDetailViewState extends State<ImportOrderDetailView> {
     final isDebt = order.paymentStatus == 'DEBT';
 
     return Scaffold(
-      appBar: AppBar(
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF0068FF), Color(0xFF0084FF)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
-        title: Text(
-          order.orderCode,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
-        ),
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        elevation: 0,
+      appBar: CustomAppBar.build(
+        title: order.orderCode,
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())

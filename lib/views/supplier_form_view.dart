@@ -10,6 +10,7 @@ import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 import '../theme/app_button_styles.dart';
 import '../widgets/entity_avatar.dart';
+import '../widgets/custom_app_bar.dart';
 
 class SupplierFormView extends StatefulWidget {
   final Supplier? editing;
@@ -116,20 +117,8 @@ class _SupplierFormViewState extends State<SupplierFormView> {
     final isEdit = widget.editing != null;
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF0068FF), Color(0xFF0084FF)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
-        title: Text(isEdit ? 'SỬA NCC' : 'THÊM NCC', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        elevation: 0,
+      appBar: CustomAppBar.build(
+        title: isEdit ? 'SỬA NCC' : 'THÊM NCC',
       ),
       body: ResponsiveCenter(child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),

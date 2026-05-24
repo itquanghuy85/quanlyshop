@@ -7,6 +7,7 @@ import '../../services/salary_calculation_service.dart';
 import '../../services/user_service.dart';
 import '../../utils/money_input_formatter.dart';
 import 'add_custom_adjustment_dialog.dart';
+import '../../widgets/custom_app_bar.dart';
 
 /// Màn hình cài đặt Khấu trừ, Thuế, Bảo hiểm của shop
 class ShopDeductionSettingsView extends StatefulWidget {
@@ -121,28 +122,26 @@ class _ShopDeductionSettingsViewState extends State<ShopDeductionSettingsView>
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     return Scaffold(
-      appBar: AppBar(
-        toolbarHeight: 44,
-        title: const Text('Cài đặt Khấu trừ & Thuế', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
-        backgroundColor: colorScheme.primaryContainer,
-        foregroundColor: colorScheme.onPrimaryContainer,
-        bottom: TabBar(
-          controller: _tabController,
-          labelColor: colorScheme.onPrimaryContainer,
-          unselectedLabelColor: colorScheme.onPrimaryContainer.withOpacity(0.5),
-          indicatorColor: colorScheme.onPrimaryContainer,
-          indicatorWeight: 2,
-          labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-          unselectedLabelStyle: const TextStyle(fontSize: 13),
-          tabs: const [
-            Tab(icon: Icon(Icons.warning_amber_rounded, size: 18), text: 'Khấu trừ'),
-            Tab(icon: Icon(Icons.health_and_safety_rounded, size: 18), text: 'Bảo hiểm'),
-            Tab(icon: Icon(Icons.receipt_long_rounded, size: 18), text: 'Thuế TNCN'),
-            Tab(icon: Icon(Icons.card_giftcard_rounded, size: 18), text: 'Thưởng/Trừ'),
-          ],
+      appBar: CustomAppBar.build(
+        title: 'Cài đặt Khấu trừ & Thuế',
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(44),
+          child: TabBar(
+            controller: _tabController,
+            labelColor: Colors.white,
+            unselectedLabelColor: Colors.white70,
+            indicatorColor: Colors.white,
+            indicatorWeight: 2,
+            labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+            unselectedLabelStyle: const TextStyle(fontSize: 13),
+            tabs: const [
+              Tab(icon: Icon(Icons.warning_amber_rounded, size: 18), text: 'Khấu trừ'),
+              Tab(icon: Icon(Icons.health_and_safety_rounded, size: 18), text: 'Bảo hiểm'),
+              Tab(icon: Icon(Icons.receipt_long_rounded, size: 18), text: 'Thuế TNCN'),
+              Tab(icon: Icon(Icons.card_giftcard_rounded, size: 18), text: 'Thưởng/Trừ'),
+            ],
+          ),
         ),
         actions: [
           if (_isSaving)

@@ -41,6 +41,8 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- Quyền truy cập camera -->
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Nhận diện giọng nói (speech_to_text) -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <!-- Storage cho Android ≤12; Android 13+ dùng system photo picker (image_picker) -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />

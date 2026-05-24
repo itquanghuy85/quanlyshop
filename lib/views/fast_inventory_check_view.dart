@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../widgets/custom_app_bar.dart';
 import '../widgets/responsive_wrapper.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -2047,23 +2048,8 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
         }
       },
       child: Scaffold(
-      appBar: AppBar(
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF0068FF), Color(0xFF0084FF)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
-        title: const Text(
-          'KIỂM KHO NHANH',
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
-        ),
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        elevation: 0,
+      appBar: CustomAppBar.build(
+        title: 'KIỂM KHO NHANH',
         actions: [
           // Zone selector
           TextButton.icon(

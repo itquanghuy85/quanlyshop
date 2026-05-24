@@ -9,6 +9,7 @@ import '../models/shop_settings_model.dart';
 import '../services/category_service.dart';
 import '../services/business_type_helper.dart';
 import '../theme/app_text_styles.dart';
+import '../widgets/custom_app_bar.dart';
 import 'repair_detail_view.dart';
 import 'sale_detail_view.dart';
 import 'inventory_view.dart';
@@ -237,27 +238,9 @@ class _GlobalSearchViewState extends State<GlobalSearchView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF0068FF), Color(0xFF0084FF)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('TÌM KIẾM TOÀN APP', style: TextStyle(fontWeight: FontWeight.bold, fontSize: AppTextStyles.headline2.fontSize)),
-            Text('Tìm đơn sửa, đơn bán, ${_terms.productLabel.toLowerCase()}...', style: TextStyle(fontSize: AppTextStyles.body1.fontSize, color: Colors.white70)),
-          ],
-        ),
-        automaticallyImplyLeading: true,
+      appBar: CustomAppBar.build(
+        title: 'TÌM KIẾM TOÀN APP',
+        subtitle: 'Tìm đơn sửa, đơn bán, ${_terms.productLabel.toLowerCase()}...',
       ),
       body: ResponsiveCenter(
         child: Column(

@@ -20,6 +20,7 @@ import '../widgets/gradient_fab.dart';
 import '../utils/excel_export_helper.dart';
 import '../widgets/entity_avatar.dart';
 import 'repair_partner_form_view.dart';
+import '../widgets/custom_app_bar.dart';
 
 class RepairPartnerDetailView extends StatefulWidget {
   final RepairPartner partner;
@@ -212,17 +213,9 @@ class _RepairPartnerDetailViewState extends State<RepairPartnerDetailView>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF0068FF), Color(0xFF0084FF)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
-        title: Row(
+      appBar: CustomAppBar.build(
+        title: widget.partner.name,
+        titleWidget: Row(
           children: [
             EntityAvatar(
               imageUrl: widget.partner.avatarUrl,
@@ -234,9 +227,6 @@ class _RepairPartnerDetailViewState extends State<RepairPartnerDetailView>
             Flexible(child: Text(widget.partner.name, style: const TextStyle(color: Colors.white), overflow: TextOverflow.ellipsis)),
           ],
         ),
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        elevation: 0,
         actions: [
           if (_tab.index == 0 && _histories.isNotEmpty)
             IconButton(
@@ -259,11 +249,8 @@ class _RepairPartnerDetailViewState extends State<RepairPartnerDetailView>
             onPressed: _deletePartner,
           ),
         ],
-        bottom: TabBar(
+        bottom: CustomTabBar.buildGradient(
           controller: _tab,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          indicatorColor: Colors.white,
           tabs: const [
             Tab(text: 'ĐƠN GỬI SỬA'),
             Tab(text: 'CÔNG NỢ'),

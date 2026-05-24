@@ -10,6 +10,7 @@ import '../services/community_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 import '../widgets/entity_avatar.dart';
+import '../widgets/custom_app_bar.dart';
 import 'repair_detail_view.dart';
 import 'sale_detail_view.dart';
 
@@ -159,9 +160,7 @@ class _StaffPublicProfileViewState extends State<StaffPublicProfileView> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Hồ sơ nhân viên'),
-      ),
+      appBar: CustomAppBar.build(title: 'Hồ sơ nhân viên'),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(

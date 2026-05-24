@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../widgets/custom_app_bar.dart';
 import '../widgets/responsive_wrapper.dart';
 import '../services/dashboard_config_service.dart';
 import '../services/notification_service.dart';
@@ -128,11 +129,8 @@ class _DashboardSettingsViewState extends State<DashboardSettingsView>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text(
-          'Tùy chỉnh Dashboard',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
+      appBar: CustomAppBar.build(
+        title: 'Tùy chỉnh Dashboard',
         actions: [
           IconButton(
             icon: const Icon(Icons.restore),
@@ -148,18 +146,15 @@ class _DashboardSettingsViewState extends State<DashboardSettingsView>
             ),
           ),
         ],
-        bottom: TabBar(
+        bottom: CustomTabBar.buildGradient(
           controller: _tabController,
-          indicatorColor: Colors.white,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white60,
-          tabs: [
+          tabs: const [
             Tab(
-              icon: const Icon(Icons.dashboard, size: 18),
+              icon: Icon(Icons.dashboard, size: 18),
               text: 'Thẻ Dashboard',
             ),
             Tab(
-              icon: const Icon(Icons.apps, size: 18),
+              icon: Icon(Icons.apps, size: 18),
               text: 'Lối tắt nhanh',
             ),
           ],

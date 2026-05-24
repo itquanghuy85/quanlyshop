@@ -6,6 +6,7 @@ import '../services/sales_return_service.dart';
 import '../services/event_bus.dart';
 import '../utils/money_utils.dart';
 import '../widgets/responsive_wrapper.dart';
+import '../widgets/custom_app_bar.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 
@@ -94,10 +95,8 @@ class _SalesReturnListViewState extends State<SalesReturnListView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Danh sách trả hàng'),
-        backgroundColor: Colors.red.shade700,
-        foregroundColor: Colors.white,
+      appBar: CustomAppBar.build(
+        title: 'Danh sách trả hàng',
       ),
       body: ResponsiveCenter(
         child: Column(

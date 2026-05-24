@@ -13,6 +13,8 @@ import 'create_sale_view.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 import '../widgets/custom_app_bar.dart';
+import '../widgets/empty_state_widget.dart';
+import '../widgets/skeleton_list.dart';
 import '../utils/vietnamese_utils.dart';
 import '../utils/money_utils.dart';
 import '../utils/excel_export_helper.dart';
@@ -690,7 +692,10 @@ class _SaleListViewState extends State<SaleListView> {
         ),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const SkeletonListView(
+              variant: SkeletonVariant.repairCard,
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            )
           : ResponsiveCenter(
               child: Column(
                 children: [
@@ -812,35 +817,18 @@ class _SaleListViewState extends State<SaleListView> {
                   // List
                   Expanded(
                     child: list.isEmpty
-                        ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.shopping_bag_outlined,
-                                  size: 80,
-                                  color: AppColors.onSurface.withOpacity(0.3),
-                                ),
-                                const SizedBox(height: 10),
-                                Text(
-                                  "Không có đơn hàng nào",
-                                  style: AppTextStyles.body1.copyWith(
-                                    color: AppColors.onSurface.withOpacity(0.6),
-                                  ),
-                                ),
-                                if (_activeFilterCount > 0)
-                                  TextButton(
-                                    onPressed: () {
-                                      _timeFilter = widget.todayOnly
-                                          ? 'today'
-                                          : 'all';
-                                      _paymentStatusFilter = 'all';
-                                      _refresh();
-                                    },
-                                    child: const Text('Xóa bộ lọc'),
-                                  ),
-                              ],
-                            ),
+                        ? EmptyStateWidget(
+                            icon: Icons.shopping_bag_outlined,
+                            title: 'Không có đơn hàng nào',
+                            subtitle: _activeFilterCount > 0 ? 'Thử xóa bộ lọc để xem tất cả' : null,
+                            actionLabel: _activeFilterCount > 0 ? 'Xóa bộ lọc' : null,
+                            onAction: _activeFilterCount > 0
+                                ? () {
+                                    _timeFilter = widget.todayOnly ? 'today' : 'all';
+                                    _paymentStatusFilter = 'all';
+                                    _refresh();
+                                  }
+                                : null,
                           )
                         : ListView.builder(
                             controller: _scrollController,

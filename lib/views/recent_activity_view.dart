@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../core/utils/money_utils.dart';
 import '../services/event_bus.dart';
 import '../services/recent_activity_service.dart';
+import '../widgets/custom_app_bar.dart';
 
 class RecentActivityView extends StatefulWidget {
   const RecentActivityView({super.key});
@@ -88,8 +89,8 @@ class _RecentActivityViewState extends State<RecentActivityView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('HOẠT ĐỘNG GẦN ĐÂY'),
+      appBar: CustomAppBar.build(
+        title: 'HOẠT ĐỘNG GẦN ĐÂY',
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),

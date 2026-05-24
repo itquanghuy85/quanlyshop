@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../expansion/safe_mode/expansion_feature_flags.dart';
 import '../../../expansion/safe_mode/expansion_module_services.dart';
 import '../../../expansion/safe_mode/vat_invoice_service.dart';
+import '../../../widgets/custom_app_bar.dart';
 
 class CreateInvoiceView extends StatefulWidget {
   final ExpansionFeatureFlags flags;
@@ -217,7 +218,7 @@ class _CreateInvoiceViewState extends State<CreateInvoiceView> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF6F8FC),
-      appBar: AppBar(title: const Text('Tạo hóa đơn VAT')),
+      appBar: CustomAppBar.build(title: 'Tạo hóa đơn VAT'),
       body: Form(
         key: _formKey,
         child: ListView(

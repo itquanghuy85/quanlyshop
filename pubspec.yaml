@@ -63,6 +63,7 @@ dependencies:
   image: ^4.0.0
   firebase_app_check: ^0.3.2+10
   flutter_native_splash: ^2.4.0
+  speech_to_text: ^7.0.0
 
 dev_dependencies:
   flutter_test:

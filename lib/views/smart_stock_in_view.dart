@@ -22,13 +22,26 @@ import '../widgets/storage_location_selector.dart';
 import '../widgets/image_picker_widget.dart';
 import 'quick_input_codes_view.dart';
 import 'pending_stock_list_view.dart';
+import '../widgets/custom_app_bar.dart';
 
 /// Form nhập kho thông minh - hỗ trợ cả Nhập nhanh và Nhập tạm
 class SmartStockInView extends StatefulWidget {
-  final StockEntry? editEntry; // Để chỉnh sửa phiếu DRAFT
-  final QuickInputCode? quickInputCode; // Để điền từ mã nhập nhanh
+  final StockEntry? editEntry;
+  final QuickInputCode? quickInputCode;
 
-  const SmartStockInView({super.key, this.editEntry, this.quickInputCode});
+  /// Pre-filled from AI quick-entry sheet
+  final String? prefilledName;
+  final int? prefilledQuantity;
+  final int? prefilledCostPrice;
+
+  const SmartStockInView({
+    super.key,
+    this.editEntry,
+    this.quickInputCode,
+    this.prefilledName,
+    this.prefilledQuantity,
+    this.prefilledCostPrice,
+  });
 
   @override
   State<SmartStockInView> createState() => _SmartStockInViewState();
@@ -114,7 +127,17 @@ class _SmartStockInViewState extends State<SmartStockInView> {
   void initState() {
     super.initState();
     _loadData();
-    // Hiển thị hướng dẫn cho người dùng mới
+    // Pre-fill from AI quick-entry if provided
+    if (widget.prefilledName != null && widget.prefilledName!.isNotEmpty) {
+      _nameCtrl.text = widget.prefilledName!;
+    }
+    if (widget.prefilledQuantity != null && widget.prefilledQuantity! > 1) {
+      _quantityCtrl.text = widget.prefilledQuantity.toString();
+    }
+    if (widget.prefilledCostPrice != null && widget.prefilledCostPrice! > 0) {
+      _costCtrl.text =
+          CurrencyTextField.formatDisplay(widget.prefilledCostPrice!);
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _showFirstTimeGuide();
     });
@@ -945,27 +968,8 @@ class _SmartStockInViewState extends State<SmartStockInView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          widget.editEntry != null ? 'CHỈNH SỬA PHIẾU NHẬP' : 'NHẬP KHO MỚI',
-          style: TextStyle(
-            fontSize: AppTextStyles.headline3.fontSize,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF0068FF), Color(0xFF0084FF)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        elevation: 0,
+      appBar: CustomAppBar.build(
+        title: widget.editEntry != null ? 'CHỈNH SỬA PHIẾU NHẬP' : 'NHẬP KHO MỚI',
         actions: [
           IconButton(
             onPressed: _openPendingStockList,

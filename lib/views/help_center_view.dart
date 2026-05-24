@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/custom_app_bar.dart';
 import '../widgets/responsive_wrapper.dart';
 import '../data/help_center_repository.dart';
 import '../theme/app_text_styles.dart';
@@ -78,26 +79,8 @@ class _HelpCenterViewState extends State<HelpCenterView> {
     final featured = HelpCenterRepository.featuredTopics(audience: role);
 
     return Scaffold(
-      appBar: AppBar(
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF0068FF), Color(0xFF0084FF)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
-        title: const Text(
-          'Trung tâm hướng dẫn',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        elevation: 0,
+      appBar: CustomAppBar.build(
+        title: 'Trung tâm hướng dẫn',
       ),
       body: ResponsiveCenter(child: Column(
         children: [

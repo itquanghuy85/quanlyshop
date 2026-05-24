@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../widgets/custom_app_bar.dart';
 import '../widgets/responsive_wrapper.dart';
 import '../data/db_helper.dart';
 import '../models/sale_order_model.dart';
@@ -268,20 +269,8 @@ class _BankInstallmentReportViewState extends State<BankInstallmentReportView> {
       }
       return Scaffold(
         backgroundColor: const Color(0xFFF8FAFF),
-        appBar: AppBar(
-          flexibleSpace: Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF0068FF), Color(0xFF0084FF)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-          ),
-          backgroundColor: Colors.transparent,
-          foregroundColor: Colors.white,
-          elevation: 0,
-          title: const Text('TRẢ GÓP NGÂN HÀNG'),
+        appBar: CustomAppBar.build(
+          title: 'TRẢ GÓP NGÂN HÀNG',
         ),
         body: const Center(
           child: Text(
@@ -314,23 +303,8 @@ class _BankInstallmentReportViewState extends State<BankInstallmentReportView> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFF),
-      appBar: AppBar(
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF0068FF), Color(0xFF0084FF)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
-        title: Text(
-          'THỐNG KÊ TRẢ GÓP NH',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: AppTextStyles.headline3.fontSize, color: Colors.white),
-        ),
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        elevation: 0,
+      appBar: CustomAppBar.build(
+        title: 'THỐNG KÊ TRẢ GÓP NH',
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),

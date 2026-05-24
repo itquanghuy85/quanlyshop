@@ -7,6 +7,7 @@ import '../services/user_service.dart';
 import 'create_purchase_order_view.dart';
 import '../widgets/validated_text_field.dart';
 import '../widgets/responsive_wrapper.dart';
+import '../widgets/custom_app_bar.dart';
 
 class PurchaseOrderListView extends StatefulWidget {
   const PurchaseOrderListView({super.key});
@@ -163,21 +164,7 @@ class _PurchaseOrderListViewState extends State<PurchaseOrderListView> {
 
     if (!_hasPermission) {
       return Scaffold(
-        appBar: AppBar(
-          flexibleSpace: Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF0068FF), Color(0xFF0084FF)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-          ),
-          backgroundColor: Colors.transparent,
-          foregroundColor: Colors.white,
-          elevation: 0,
-          title: const Text("ĐƠN NHẬP HÀNG"),
-        ),
+        appBar: CustomAppBar.build(title: 'ĐƠN NHẬP HÀNG'),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -196,20 +183,8 @@ class _PurchaseOrderListViewState extends State<PurchaseOrderListView> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF0068FF), Color(0xFF0084FF)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: const Text("ĐƠN NHẬP HÀNG"),
+      appBar: CustomAppBar.build(
+        title: 'ĐƠN NHẬP HÀNG',
         actions: _hasCreatePermission ? [
           IconButton(
             onPressed: () => Navigator.push(

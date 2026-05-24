@@ -9,6 +9,7 @@ import '../data/db_helper.dart';
 import '../services/sales_return_service.dart';
 import '../services/notification_service.dart';
 import '../utils/money_utils.dart';
+import '../widgets/custom_app_bar.dart';
 import '../widgets/responsive_wrapper.dart';
 import '../constants/product_constants.dart';
 
@@ -238,10 +239,8 @@ class _CreateSalesReturnViewState extends State<CreateSalesReturnView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Trả hàng'),
-        backgroundColor: Colors.red.shade700,
-        foregroundColor: Colors.white,
+      appBar: CustomAppBar.build(
+        title: 'Trả hàng',
       ),
       body: ResponsiveCenter(
         child: _isLoading || _loadingItems

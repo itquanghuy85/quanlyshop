@@ -373,21 +373,7 @@ class _PayrollViewState extends State<PayrollView> {
     if (!_hasPermission) {
       return Scaffold(
         backgroundColor: FinanceV2Theme.pageBg,
-        appBar: AppBar(
-          flexibleSpace: Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF0068FF), Color(0xFF0084FF)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-          ),
-          backgroundColor: Colors.transparent,
-          foregroundColor: Colors.white,
-          elevation: 0,
-          title: const Text('BẢNG LƯƠNG'),
-        ),
+        appBar: CustomAppBar.build(title: 'BẢNG LƯƠNG'),
         body: Center(
           child: Text(
             "Bạn không có quyền truy cập tính năng này",

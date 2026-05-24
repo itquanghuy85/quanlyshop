@@ -9,6 +9,7 @@ import '../utils/excel_export_helper.dart';
 import '../utils/money_utils.dart';
 import '../constants/product_constants.dart';
 import 'import_order_detail_view.dart';
+import '../widgets/custom_app_bar.dart';
 
 class ImportHistoryView extends StatefulWidget {
   const ImportHistoryView({super.key});
@@ -191,23 +192,8 @@ class _ImportHistoryViewState extends State<ImportHistoryView> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF0068FF), Color(0xFF0084FF)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
-        title: const Text(
-          'LỊCH SỬ NHẬP KHO',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
-        ),
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        elevation: 0,
+      appBar: CustomAppBar.build(
+        title: 'LỊCH SỬ NHẬP KHO',
         actions: [
           IconButton(
             onPressed: _exportExcel,

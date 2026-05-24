@@ -2927,7 +2927,7 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
 
     final printerConfig = await showPrinterSelectionDialog(context);
     if (printerConfig == null) {
-      print('PTY_PRINT: User cancelled printer selection');
+      debugPrint('PTY_PRINT: User cancelled printer selection');
       return;
     }
 
@@ -2935,20 +2935,20 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
     final bluetoothPrinter = printerConfig['bluetoothPrinter'];
     final wifiIp = printerConfig['wifiIp'] as String?;
 
-    print('=== PTY_PRINT START ===');
-    print('PTY_PRINT: printerConfig = $printerConfig');
-    print('PTY_PRINT: printerType = $printerType');
-    print('PTY_PRINT: bluetoothPrinter = $bluetoothPrinter');
-    print(
+    debugPrint('=== PTY_PRINT START ===');
+    debugPrint('PTY_PRINT: printerConfig = $printerConfig');
+    debugPrint('PTY_PRINT: printerType = $printerType');
+    debugPrint('PTY_PRINT: bluetoothPrinter = $bluetoothPrinter');
+    debugPrint(
       'PTY_PRINT: bluetoothPrinter type = ${bluetoothPrinter?.runtimeType}',
     );
     if (bluetoothPrinter != null) {
-      print(
+      debugPrint(
         'PTY_PRINT: bluetoothPrinter.macAddress = ${bluetoothPrinter.macAddress}',
       );
     }
-    print('PTY_PRINT: wifiIp = $wifiIp');
-    print('PTY_PRINT: Items to print: ${items.length}');
+    debugPrint('PTY_PRINT: wifiIp = $wifiIp');
+    debugPrint('PTY_PRINT: Items to print: ${items.length}');
 
     setState(() => _isPrinting = true);
 
@@ -2962,7 +2962,7 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
     for (int i = 0; i < items.length; i++) {
       final product = items[i];
       try {
-        print(
+        debugPrint(
           'PTY_PRINT: [$i/${items.length}] Exporting bitmap for: ${product.name}',
         );
         final png = await _exportBitmap(
@@ -2970,16 +2970,16 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
           includeCodes: true,
           pxPerMm: pxPerMm,
         );
-        print('PTY_PRINT: [$i] Bitmap exported, size: ${png.length} bytes');
+        debugPrint('PTY_PRINT: [$i] Bitmap exported, size: ${png.length} bytes');
 
         if (png.isEmpty) {
-          print('PTY_PRINT: [$i] ERROR: Empty bitmap!');
+          debugPrint('PTY_PRINT: [$i] ERROR: Empty bitmap!');
           failed++;
           lastError = 'Bitmap trống';
           continue;
         }
 
-        print(
+        debugPrint(
           'PTY_PRINT: [$i] Calling printLabelBitmap (cut=$_autoCut, feedLines=$_feedLines)...',
         );
         final ok = await UnifiedPrinterService.printLabelBitmap(
@@ -2990,7 +2990,7 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
           feedLines: _feedLines,
           cut: _autoCut,
         );
-        print('PTY_PRINT: [$i] printLabelBitmap result: $ok');
+        debugPrint('PTY_PRINT: [$i] printLabelBitmap result: $ok');
 
         if (ok) {
           success++;
@@ -3003,14 +3003,14 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
           lastError = 'Không thể gửi dữ liệu đến máy in';
         }
       } catch (e, stackTrace) {
-        print('PTY_PRINT: [$i] Exception: $e');
-        print('PTY_PRINT: [$i] Stack: $stackTrace');
+        debugPrint('PTY_PRINT: [$i] Exception: $e');
+        debugPrint('PTY_PRINT: [$i] Stack: $stackTrace');
         failed++;
         lastError = e.toString();
       }
     }
 
-    print('=== PTY_PRINT END: success=$success, failed=$failed ===');
+    debugPrint('=== PTY_PRINT END: success=$success, failed=$failed ===');
 
     if (!mounted) return;
     setState(() => _isPrinting = false);

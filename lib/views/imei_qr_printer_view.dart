@@ -10,6 +10,7 @@ import '../theme/app_text_styles.dart';
 import '../widgets/printer_selection_dialog.dart';
 import '../models/printer_types.dart';
 import 'label_designer_view.dart';
+import '../widgets/custom_app_bar.dart';
 
 class ImeiQrPrinterView extends StatefulWidget {
   const ImeiQrPrinterView({super.key});
@@ -169,8 +170,8 @@ class _ImeiQrPrinterViewState extends State<ImeiQrPrinterView> {
   Widget build(BuildContext context) {
     final selectedCount = _selectedImeis.length;
     return Scaffold(
-      appBar: AppBar(
-        title: Text('In QR ${_terms.specialField1Label} - ${_terms.inventoryLabel}'),
+      appBar: CustomAppBar.build(
+        title: 'In QR ${_terms.specialField1Label} - ${_terms.inventoryLabel}',
         actions: [
           IconButton(
             tooltip: 'Thiết kế tem',

@@ -8,6 +8,7 @@ import '../services/category_service.dart';
 import '../models/shop_settings_model.dart';
 import '../theme/app_text_styles.dart';
 import '../widgets/responsive_wrapper.dart';
+import '../widgets/custom_app_bar.dart';
 
 class RegisterView extends StatefulWidget {
   final Function(Locale)? setLocale;
@@ -138,22 +139,12 @@ class _RegisterViewState extends State<RegisterView> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFF),
-      appBar: AppBar(
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF0068FF), Color(0xFF0084FF)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
+      appBar: CustomAppBar.build(
+        title: '',
+        titleWidget: Text(
+          AppLocalizations.of(context)!.registerAccount,
+          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: Text(AppLocalizations.of(context)!.registerAccount, style: TextStyle(fontSize: AppTextStyles.headline2.fontSize, fontWeight: FontWeight.bold)),
-        centerTitle: true,
-        automaticallyImplyLeading: true,
       ),
       body: ResponsiveCenter(
         maxWidth: 480,

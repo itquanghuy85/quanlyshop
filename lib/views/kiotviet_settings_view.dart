@@ -10,6 +10,7 @@ import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_typography.dart';
 import '../theme/design_tokens.dart';
+import '../widgets/custom_app_bar.dart';
 
 class KiotVietSettingsViewDelegate {
   const KiotVietSettingsViewDelegate();
@@ -329,17 +330,7 @@ class _KiotVietSettingsViewState extends State<KiotVietSettingsView> {
     try {
       return Scaffold(
         backgroundColor: AppColors.background,
-        appBar: AppBar(
-          title: Text(
-            'Kết nối KiotViet',
-            style: AppTypography.titleSmall.copyWith(
-              color: AppColors.onPrimary,
-            ),
-          ),
-          foregroundColor: AppColors.onPrimary,
-          backgroundColor: AppColors.primary,
-          elevation: 0,
-        ),
+        appBar: CustomAppBar.build(title: 'Kết nối KiotViet'),
         body: SafeArea(
           child: AnimatedSwitcher(
             duration: DesignTokens.motionNormal,
@@ -351,16 +342,7 @@ class _KiotVietSettingsViewState extends State<KiotVietSettingsView> {
       _logEvent('build_error', error: error, stackTrace: stackTrace);
       return Scaffold(
         backgroundColor: AppColors.background,
-        appBar: AppBar(
-          title: Text(
-            'Kết nối KiotViet',
-            style: AppTypography.titleSmall.copyWith(
-              color: AppColors.onPrimary,
-            ),
-          ),
-          foregroundColor: AppColors.onPrimary,
-          backgroundColor: AppColors.primary,
-        ),
+        appBar: CustomAppBar.build(title: 'Kết nối KiotViet'),
         body: _buildFullscreenState(
           icon: Icons.error_outline,
           iconColor: AppColors.error,

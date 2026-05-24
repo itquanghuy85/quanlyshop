@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../widgets/custom_app_bar.dart';
 import '../widgets/responsive_wrapper.dart';
 import '../theme/app_text_styles.dart';
 import '../utils/app_info.dart';
@@ -12,16 +13,8 @@ class AboutDeveloperView extends StatelessWidget {
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context)!;
     return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(loc.aboutDeveloper),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        foregroundColor: Colors.white,
+      appBar: CustomAppBar.build(
+        title: loc.aboutDeveloper,
       ),
       body: ResponsiveCenter(child: Container(
         decoration: const BoxDecoration(

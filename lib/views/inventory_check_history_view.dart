@@ -8,6 +8,7 @@ import '../models/inventory_check_model.dart';
 import '../utils/excel_export_helper.dart';
 import '../utils/money_utils.dart';
 import '../widgets/export_date_filter_dialog.dart';
+import '../widgets/custom_app_bar.dart';
 
 /// View for browsing saved inventory check history and exporting to Excel.
 class InventoryCheckHistoryView extends StatefulWidget {
@@ -75,20 +76,9 @@ class _InventoryCheckHistoryViewState extends State<InventoryCheckHistoryView> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Lịch sử kiểm kho'),
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF0068FF), Color(0xFF0084FF)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
-        foregroundColor: Colors.white,
+      appBar: CustomAppBar.build(
+        title: 'Lịch sử kiểm kho',
         actions: [
-          // Export all to Excel
           IconButton(
             icon: const Icon(Icons.file_download_outlined),
             tooltip: 'Xuất Excel tất cả',

@@ -19,6 +19,9 @@ import '../l10n/app_localizations.dart';
 import '../utils/vietnamese_utils.dart';
 import '../utils/excel_export_helper.dart';
 import '../widgets/export_date_filter_dialog.dart';
+import '../widgets/custom_app_bar.dart';
+import '../widgets/empty_state_widget.dart';
+import '../widgets/skeleton_list.dart';
 import '../expansion/safe_mode/expansion_feature_flags.dart';
 import 'expansion/crm/customer_loyalty_view.dart';
 import 'customer_profile_view.dart';
@@ -335,26 +338,8 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF0068FF), Color(0xFF0084FF)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
-        title: Text(
-          AppLocalizations.of(context)!.customerManagement,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        elevation: 0,
+      appBar: CustomAppBar.build(
+        title: AppLocalizations.of(context)!.customerManagement,
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
@@ -395,30 +380,17 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
             // Customer list
             Expanded(
               child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
+                  ? const SkeletonListView(
+                      variant: SkeletonVariant.listTile,
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    )
                   : _filteredCustomers.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.people_outline,
-                            size: 64,
-                            color: Colors.grey.shade400,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            _searchQuery.isEmpty
-                                ? AppLocalizations.of(context)!.noCustomersYet
-                                : AppLocalizations.of(
-                                    context,
-                                  )!.customerNotFound,
-                            style: AppTextStyles.body1.copyWith(
-                              color: Colors.grey.shade600,
-                            ),
-                          ),
-                        ],
-                      ),
+                  ? EmptyStateWidget(
+                      icon: Icons.people_outline,
+                      title: _searchQuery.isEmpty
+                          ? AppLocalizations.of(context)!.noCustomersYet
+                          : AppLocalizations.of(context)!.customerNotFound,
+                      subtitle: _searchQuery.isNotEmpty ? 'Thử tìm với từ khóa khác' : null,
                     )
                   : ListView.builder(
                       controller: _scrollController,
@@ -872,24 +844,10 @@ class CustomerHistoryDialog extends StatelessWidget {
             // History list
             Expanded(
               child: historyList.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.history,
-                            size: 48,
-                            color: Colors.grey.shade400,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Chưa có lịch sử',
-                            style: AppTextStyles.body1.copyWith(
-                              color: Colors.grey.shade600,
-                            ),
-                          ),
-                        ],
-                      ),
+                  ? const EmptyStateWidget(
+                      icon: Icons.history_rounded,
+                      title: 'Chưa có lịch sử',
+                      subtitle: 'Các đơn sửa và mua hàng sẽ hiển thị tại đây',
                     )
                   : ListView.builder(
                       itemCount: historyList.length,

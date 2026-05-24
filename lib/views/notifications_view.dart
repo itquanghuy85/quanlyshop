@@ -5,6 +5,7 @@ import '../widgets/notification_item.dart';
 import '../theme/app_colors.dart';
 import 'notification_settings_view.dart';
 import '../widgets/responsive_wrapper.dart';
+import '../widgets/custom_app_bar.dart';
 
 class NotificationsView extends StatefulWidget {
   const NotificationsView({super.key});
@@ -17,20 +18,8 @@ class _NotificationsViewState extends State<NotificationsView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF0068FF), Color(0xFF0084FF)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: const Text('Thông báo'),
+      appBar: CustomAppBar.build(
+        title: 'Thông báo',
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),

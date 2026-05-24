@@ -9,6 +9,7 @@ import '../services/sync_service.dart';
 import '../services/sync_orchestrator.dart';
 import '../data/db_helper.dart';
 import 'smart_stock_in_view.dart';
+import '../widgets/custom_app_bar.dart';
 
 enum QuickInputFilter { all, unsynced }
 
@@ -450,20 +451,8 @@ class _QuickInputManagementViewState extends State<QuickInputManagementView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF0068FF), Color(0xFF0084FF)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
-        title: const Text('Quản lý Mã Nhập Nhanh', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        elevation: 0,
+      appBar: CustomAppBar.build(
+        title: 'Quản lý Mã Nhập Nhanh',
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),

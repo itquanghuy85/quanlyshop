@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../expansion/safe_mode/expansion_feature_flags.dart';
 import '../../expansion/safe_mode/expansion_module_models.dart';
+import '../../widgets/custom_app_bar.dart';
 
 class ExpansionModulesHubView extends StatelessWidget {
   final ExpansionFeatureFlags flags;
@@ -28,7 +29,7 @@ class ExpansionModulesHubView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Expansion Modules (Safe Mode)')),
+      appBar: CustomAppBar.build(title: 'Expansion Modules (Safe Mode)'),
       body: ListView.builder(
         itemCount: ExpansionModuleCatalog.all.length,
         padding: const EdgeInsets.all(16),

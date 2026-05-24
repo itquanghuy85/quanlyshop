@@ -5,6 +5,7 @@ import '../../../expansion/safe_mode/expansion_feature_flags.dart';
 import '../../../expansion/safe_mode/branch_models.dart';
 import '../../../expansion/safe_mode/branch_service.dart';
 import 'branch_switch_view.dart';
+import '../../../widgets/custom_app_bar.dart';
 
 /// Màn quản lý danh sách chi nhánh.
 /// Chỉ hiển thị khi enableMultiBranch = true.
@@ -135,8 +136,8 @@ class _BranchListViewState extends State<BranchListView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Quản lý chi nhánh'),
+      appBar: CustomAppBar.build(
+        title: 'Quản lý chi nhánh',
         actions: [
           if (widget.flags.enableMultiBranch)
             IconButton(

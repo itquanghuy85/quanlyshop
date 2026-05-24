@@ -1382,23 +1382,10 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
   }
 
   PreferredSizeWidget _buildAppBar() {
-    return AppBar(
-      elevation: 0,
-      scrolledUnderElevation: 0,
-      surfaceTintColor: Colors.transparent,
-      backgroundColor: Colors.transparent,
-      foregroundColor: Colors.white,
-      systemOverlayStyle: SystemUiOverlayStyle.light,
-      flexibleSpace: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [AppBarAccents.chat, AppBarAccents.chat.withOpacity(0.8)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-      ),
-      title: _isSearching
+    return CustomAppBar.build(
+      title: 'Chat nội bộ',
+      subtitle: _onlineUsers.isNotEmpty ? '${_onlineUsers.length} người online' : null,
+      titleWidget: _isSearching
           ? Container(
               height: 40,
               decoration: BoxDecoration(
@@ -1429,28 +1416,7 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
                 onChanged: _search,
               ),
             )
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Chat nội bộ',
-                  style: TextStyle(
-                    fontSize: AppTextStyles.headline3.fontSize,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
-                ),
-                if (_onlineUsers.isNotEmpty)
-                  Text(
-                    '${_onlineUsers.length} người online',
-                    style: TextStyle(
-                      fontSize: AppTextStyles.subtitle1.fontSize,
-                      fontWeight: FontWeight.w400,
-                      color: Colors.white70,
-                    ),
-                  ),
-              ],
-            ),
+          : null,
       actions: [
         IconButton(
           icon: const Icon(Icons.groups_2_outlined, size: 22, color: Colors.white),
@@ -1508,12 +1474,7 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
             ),
           ],
         ),
-        const SizedBox(width: 4),
       ],
-      bottom: PreferredSize(
-        preferredSize: const Size.fromHeight(1),
-        child: Container(color: Colors.white.withOpacity(0.2), height: 1),
-      ),
     );
   }
 
@@ -2483,30 +2444,9 @@ class _ImageViewerDialogState extends State<_ImageViewerDialog> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (widget.senderName != null)
-              Text(
-                widget.senderName!,
-                style: TextStyle(
-                  fontSize: AppTextStyles.headline4.fontSize,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            if (widget.imageUrls.length > 1)
-              Text(
-                '${_currentIndex + 1}/${widget.imageUrls.length}',
-                style: TextStyle(
-                  fontSize: AppTextStyles.subtitle1.fontSize,
-                  color: Colors.white70,
-                ),
-              ),
-          ],
-        ),
+      appBar: CustomAppBar.build(
+        title: widget.senderName ?? '',
+        subtitle: widget.imageUrls.length > 1 ? '${_currentIndex + 1}/${widget.imageUrls.length}' : null,
         actions: [
           IconButton(
             icon: const Icon(Icons.download),

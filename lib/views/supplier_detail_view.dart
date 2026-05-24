@@ -18,7 +18,7 @@ import '../theme/app_text_styles.dart';
 import '../widgets/gradient_fab.dart';
 import '../utils/excel_export_helper.dart';
 import '../models/product_model.dart';
-import '../widgets/entity_avatar.dart';
+import '../widgets/custom_app_bar.dart';
 import 'inventory_detail_view.dart';
 import 'supplier_form_view.dart';
 
@@ -216,31 +216,8 @@ class _SupplierDetailViewState extends State<SupplierDetailView> with TickerProv
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF0068FF), Color(0xFF0084FF)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
-        title: Row(
-          children: [
-            EntityAvatar(
-              imageUrl: widget.supplier.avatarUrl,
-              name: widget.supplier.name,
-              radius: 18,
-              tappableToView: true,
-            ),
-            const SizedBox(width: 10),
-            Flexible(child: Text(widget.supplier.name, style: const TextStyle(color: Colors.white), overflow: TextOverflow.ellipsis)),
-          ],
-        ),
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        elevation: 0,
+      appBar: CustomAppBar.build(
+        title: widget.supplier.name,
         actions: [
           if (_tab.index == 0 && _imports.isNotEmpty)
             IconButton(

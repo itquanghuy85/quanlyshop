@@ -5,6 +5,7 @@ import '../services/backup_service.dart';
 import '../services/notification_service.dart';
 import '../theme/app_text_styles.dart';
 import '../theme/app_spacing.dart';
+import '../widgets/custom_app_bar.dart';
 
 class BackupRestoreView extends StatefulWidget {
   const BackupRestoreView({super.key});
@@ -148,13 +149,8 @@ class _BackupRestoreViewState extends State<BackupRestoreView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Sao lưu & Khôi phục'),
-        backgroundColor: AppColors.surface,
-        foregroundColor: AppColors.textPrimary,
-        elevation: 0,
-        scrolledUnderElevation: 0.5,
-        surfaceTintColor: Colors.transparent,
+      appBar: CustomAppBar.build(
+        title: 'Sao lưu & Khôi phục',
       ),
       body: Stack(
         children: [

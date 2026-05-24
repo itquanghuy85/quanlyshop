@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/shop_settings_model.dart';
 import '../../services/category_service.dart';
+import '../../widgets/custom_app_bar.dart';
 
 /// Wizard chọn ngành kinh doanh cho shop mới
 /// Phase 4: General Shop - Onboarding
@@ -76,10 +77,7 @@ class _BusinessTypeWizardState extends State<BusinessTypeWizard> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Thiết lập cửa hàng'),
-        centerTitle: true,
-      ),
+      appBar: CustomAppBar.build(title: 'Thiết lập cửa hàng'),
       body: Stepper(
         currentStep: _currentStep,
         onStepContinue: _onStepContinue,

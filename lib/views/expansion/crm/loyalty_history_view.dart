@@ -4,6 +4,7 @@ import '../../../expansion/safe_mode/expansion_feature_flags.dart';
 import '../../../expansion/safe_mode/expansion_module_services.dart';
 import '../../../expansion/safe_mode/crm_loyalty_models.dart';
 import '../../../expansion/safe_mode/crm_loyalty_service.dart';
+import '../../../widgets/custom_app_bar.dart';
 
 class LoyaltyHistoryView extends StatefulWidget {
   final String customerId;
@@ -71,17 +72,9 @@ class _LoyaltyHistoryViewState extends State<LoyaltyHistoryView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Lịch sử giao dịch', style: TextStyle(fontSize: 16)),
-            Text(
-              widget.customerName,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.normal),
-            ),
-          ],
-        ),
+      appBar: CustomAppBar.build(
+        title: 'Lịch sử giao dịch',
+        subtitle: widget.customerName,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),

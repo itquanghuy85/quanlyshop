@@ -4,6 +4,113 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-05-23] — Nhập Nhanh Đơn Sửa/Đơn Bán Bằng Câu Lệnh Tự Nhiên
+
+### Added
+- `lib/services/natural_order_parser_service.dart` — Parser câu lệnh tự nhiên cho 2 ý định: tạo đơn sửa và tạo đơn bán.
+
+### Changed
+- `lib/views/create_repair_order_view.dart`
+	- Thêm nút `auto_awesome` trên AppBar để nhập nhanh bằng 1 câu lệnh.
+	- Thêm dialog nhập câu lệnh và tự điền form đơn sửa.
+	- Nếu câu lệnh không có giá, tự điền `0đ` theo yêu cầu nghiệp vụ.
+- `lib/views/create_sale_view.dart`
+	- Thêm nút `auto_awesome` trên AppBar để nhập nhanh bằng 1 câu lệnh.
+	- Tự parse sản phẩm/IMEI/khách hàng/phương thức thanh toán.
+	- Tự tìm sản phẩm trong kho theo IMEI hoặc tên gợi ý rồi đưa vào đơn.
+	- Hỗ trợ nhận diện "trả góp FE" và tự điền `TRẢ GÓP (NH)` + ngân hàng `FE`.
+
+### Validation
+- Chạy `flutter analyze lib/services/natural_order_parser_service.dart lib/views/create_repair_order_view.dart lib/views/create_sale_view.dart`.
+- Kết quả: không phát sinh lỗi compile mới; còn các warning/info legacy đã tồn tại từ trước trong 2 màn hình tạo đơn.
+
+### Hotfix
+- `lib/views/create_repair_order_view.dart`
+	- Thêm `build-safe fallback` để chặn trạng thái trắng màn hình khi có lỗi render widget con.
+	- Khi có lỗi build, app chuyển sang form dự phòng (vẫn tạo đơn được) và log lỗi để debug thay vì blank screen.
+	- Fix dứt điểm lỗi layout `BoxConstraints(w=Infinity, 44.0<=h<=Infinity)` ở thanh nút dưới cùng bằng cách ràng buộc chiều rộng hữu hạn cho nút `Lưu & In`.
+
+---
+
+## [2026-05-22] — Audit Toàn Diện UX/UI Ứng Dụng
+
+### Added
+- `DOCS/UX_AUDIT/UX_SCORE_REPORT.md` — Chấm điểm tổng thể UX/UI, severity, priority và màn hình cần redesign.
+- `DOCS/UX_AUDIT/UX_PROBLEMS.md` — Liệt kê vấn đề UX, anti-pattern, technical debt và root causes.
+- `DOCS/UX_AUDIT/UX_IMPROVEMENTS.md` — Đề xuất cải thiện theo hướng system-first và workflow-first.
+- `DOCS/UX_AUDIT/DESIGN_SYSTEM_PROBLEMS.md` — Audit nợ design system, AppBar fragmentation, visual inconsistency.
+- `DOCS/UX_AUDIT/WORKFLOW_OPTIMIZATION.md` — Tối ưu luồng repair, inventory, debt, payment, settings.
+- `DOCS/UX_AUDIT/LOADING_AND_ASYNC_UX.md` — Audit loading/sync/save feedback và async communication.
+- `DOCS/UX_AUDIT/MODERNIZATION_PLAN.md` — Roadmap hiện đại hóa UX/UI theo phase, có ưu tiên và KPI.
+
+### Changed
+- `docs/DOCUMENTATION_INDEX.md` — Bổ sung nhóm tài liệu `DOCS/UX_AUDIT`.
+- `docs/HANDOVER.md` — Cập nhật initiative hiện tại và kết quả audit UX/UI.
+
+### Validation
+- Tài liệu audit đã tạo đủ `7` file trong `DOCS/UX_AUDIT`.
+- Audit dựa trên đọc trực tiếp các màn hình/ widget trọng yếu và số đo repo-level (`AppBar`, `CircularProgressIndicator`, `showDialog`, `showModalBottomSheet`).
+- `flutter analyze` / `flutter build`: không chạy lại cho task này vì chỉ thay đổi tài liệu, không sửa code runtime.
+
+---
+
+## [2026-05-22] — Tạo Hệ Thống Blueprint Tài Liệu Toàn App (DNA Rebuild)
+
+### Added
+- `DOCS/BLUEPRINT/index.md` — Chỉ mục blueprint và cấu trúc tài liệu.
+- `DOCS/BLUEPRINT/CORE_ARCHITECTURE.md` — Kiến trúc lõi, startup/async/data flow/sync.
+- `DOCS/BLUEPRINT/BUSINESS_LOGIC.md` — Logic nghiệp vụ theo flow thực tế.
+- `DOCS/BLUEPRINT/DESIGN_SYSTEM.md` — Design DNA (màu, type, spacing, hierarchy).
+- `DOCS/BLUEPRINT/COMPONENT_LIBRARY.md` — Thư viện component tái sử dụng.
+- `DOCS/BLUEPRINT/USER_FLOW_MAP.md` — User/admin/offline/sync flow map + screen graph.
+- `DOCS/BLUEPRINT/DATABASE_SCHEMA.md` — Schema SQLite/Firestore, quan hệ, index, migration.
+- `DOCS/BLUEPRINT/API_AND_SERVICES.md` — Vai trò services, retry/failure, service graph.
+- `DOCS/BLUEPRINT/OFFLINE_BEHAVIOR.md` — Hành vi app khi mất mạng và conflict handling.
+- `DOCS/BLUEPRINT/APP_REBUILD_GUIDE.md` — Hướng dẫn rebuild theo thứ tự ưu tiên.
+- `DOCS/BLUEPRINT/README_FINAL.md` — Tổng kết blueprint, rủi ro, khả năng rebuild.
+- `DOCS/BLUEPRINT/TODO_GAPS.md` — Danh sách gaps cần xác minh runtime.
+- `DOCS/BLUEPRINT/screens/*.md` — 112 hồ sơ màn hình/view (bao phủ toàn bộ `lib/views`).
+- `scripts/generate_blueprint_screens.ps1` — Script sinh hồ sơ màn hình.
+- `scripts/regenerate_blueprint_screens_vi.ps1` — Script chuẩn hóa hồ sơ màn hình tiếng Việt có dấu.
+
+### Changed
+- `docs/DOCUMENTATION_INDEX.md` — Bổ sung nhóm tài liệu BLUEPRINT và cập nhật ngày.
+
+### Validation
+- Blueprint generation: ✅ Thành công (`112` screen docs).
+- `flutter analyze`: ⚠️ Hoàn tất nhưng còn `1552` issues pre-existing toàn dự án (chủ yếu info/warning, không phải do thay đổi docs).
+- `flutter build apk --debug`: ✅ Thành công, tạo `build/app/outputs/flutter-apk/app-debug.apk`.
+
+---
+
+## [2026-05-21] — Khởi động dự án Flavor Split + Tối ưu Excel Export
+
+### Added
+- `docs/PROJECT_OVERVIEW.md` — Tổng quan dự án 2 flavor
+- `docs/ROADMAP_ONLINE_OFFLINE.md` — Lộ trình 8 phases
+- `docs/PROGRESS_TRACKER.md` — Theo dõi tiến độ
+- `docs/DECISIONS.md` — ADR-001 đến ADR-005 (quyết định kiến trúc)
+- `docs/RISKS_AND_ISSUES.md` — Risk register
+- `docs/TEST_RESULTS.md` — Template kết quả test
+- `docs/phases/PHASE_01_FLAVORS.md` đến `PHASE_08_TESTING.md`
+- `lib/data/db_helper.dart`: `getAllImportOrderItemsForOrders()` bulk query
+
+### Changed
+- `docs/ARCHITECTURE.md` — Cập nhật kiến trúc flavor split
+- `docs/HANDOVER.md` — Cập nhật trạng thái dự án
+
+### Fixed (perf)
+- `lib/finance_v2/finance_v2_data_service.dart`: `loadSnapshot()` — 17 queries tuần tự → parallel futures
+- `lib/finance_v2/finance_v2_daily_report_view.dart`:
+  - `_buildAuditAnalysis()`: fix duplicate repair fetch nội bộ; accept pre-loaded data (8 params)
+  - `_buildInventoryAudit()`: accept pre-loaded inventory data (5 params)
+  - `_exportDetailedReport()`: 14 reads → 9 reads (−36%)
+  - `_printDetailedReport()`: 12 reads → 9 reads (−25%)
+  - `_exportReport()`: 31 reads → 28 reads; parallel pre-fetch
+- `lib/utils/excel_export_helper.dart`: N+1 trong `exportImportOrders()` → 2 reads fixed
+
+---
+
 ## [2026-05-20] - Fix Công Nợ Đối Tác Bị Mất Sau Refresh
 
 ### Vấn đề

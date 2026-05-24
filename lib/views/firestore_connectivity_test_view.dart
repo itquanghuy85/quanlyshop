@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../services/firestore_connectivity_service.dart';
 import '../services/notification_service.dart';
+import '../widgets/custom_app_bar.dart';
 
 class FirestoreConnectivityTestView extends StatefulWidget {
   const FirestoreConnectivityTestView({super.key});
@@ -50,8 +51,8 @@ class _FirestoreConnectivityTestViewState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('TEST KẾT NỐI FIRESTORE'),
+      appBar: CustomAppBar.build(
+        title: 'TEST KẾT NỐI FIRESTORE',
         actions: [
           IconButton(
             onPressed: _isLoading ? null : _run,

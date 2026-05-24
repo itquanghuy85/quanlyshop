@@ -8,6 +8,7 @@ import '../utils/money_utils.dart';
 import '../services/unified_printer_service.dart';
 import '../services/bluetooth_printer_service.dart';
 import '../widgets/printer_selection_dialog.dart';
+import '../widgets/custom_app_bar.dart';
 
 class RepairInvoicePreviewView extends StatefulWidget {
   final Repair repair;
@@ -127,8 +128,8 @@ class _RepairInvoicePreviewViewState extends State<RepairInvoicePreviewView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('XEM TRƯỚC PHIẾU SỬA'),
+      appBar: CustomAppBar.build(
+        title: 'XEM TRƯỚC PHIẾU SỬA',
         actions: [
           IconButton(
             icon: const Icon(Icons.print),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/validated_text_field.dart';
+import '../widgets/custom_app_bar.dart';
 
 class RepairInvoiceTemplateView extends StatefulWidget {
   const RepairInvoiceTemplateView({super.key});
@@ -118,8 +119,8 @@ class _RepairInvoiceTemplateViewState extends State<RepairInvoiceTemplateView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('MẪU PHIẾU SỬA'),
+      appBar: CustomAppBar.build(
+        title: 'MẪU PHIẾU SỬA',
         actions: [
           IconButton(
             icon: const Icon(Icons.save),

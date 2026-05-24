@@ -77,6 +77,39 @@
 
 ---
 
+## 5.1 BLUEPRINT DOCUMENTATION (Rebuild DNA)
+
+| File | Mục đích | Cập nhật khi | Ưu tiên |
+|------|---------|-----------|---------|
+| **DOCS/BLUEPRINT/index.md** | Chỉ mục toàn bộ blueprint và liên kết từng phần | Có thêm/sửa module blueprint | ⭐⭐⭐ |
+| **DOCS/BLUEPRINT/CORE_ARCHITECTURE.md** | Kiến trúc lõi, startup/async/data flow/sync | Kiến trúc thay đổi | ⭐⭐⭐ |
+| **DOCS/BLUEPRINT/BUSINESS_LOGIC.md** | DNA nghiệp vụ thực tế theo flow | Logic nghiệp vụ thay đổi | ⭐⭐⭐ |
+| **DOCS/BLUEPRINT/DESIGN_SYSTEM.md** | Màu sắc, typography, spacing, visual hierarchy | Design system thay đổi | ⭐⭐ |
+| **DOCS/BLUEPRINT/COMPONENT_LIBRARY.md** | Component tái sử dụng và hành vi | Component mới/sửa | ⭐⭐ |
+| **DOCS/BLUEPRINT/USER_FLOW_MAP.md** | Bản đồ flow người dùng, sync flow, admin flow | Navigation/flow thay đổi | ⭐⭐⭐ |
+| **DOCS/BLUEPRINT/DATABASE_SCHEMA.md** | SQLite + Firestore schema, index, migration/sync | Schema/sync thay đổi | ⭐⭐⭐ |
+| **DOCS/BLUEPRINT/API_AND_SERVICES.md** | Trách nhiệm service, async/retry/failure | Service layer thay đổi | ⭐⭐⭐ |
+| **DOCS/BLUEPRINT/OFFLINE_BEHAVIOR.md** | Hành vi offline/online và conflict handling | Offline logic thay đổi | ⭐⭐⭐ |
+| **DOCS/BLUEPRINT/APP_REBUILD_GUIDE.md** | Thứ tự dựng lại app từ đầu | Đổi chiến lược rebuild | ⭐⭐⭐ |
+| **DOCS/BLUEPRINT/README_FINAL.md** | Tổng kết chất lượng blueprint + rủi ro | Mỗi lần tái tạo blueprint | ⭐⭐⭐ |
+| **DOCS/BLUEPRINT/TODO_GAPS.md** | Gaps cần test runtime/thực địa | Phát hiện điểm chưa rõ | ⭐⭐ |
+
+---
+
+## 5.2 UX AUDIT DOCUMENTATION
+
+| File | Mục đích | Cập nhật khi | Ưu tiên |
+|------|---------|-----------|---------|
+| **DOCS/UX_AUDIT/UX_SCORE_REPORT.md** | Bảng điểm UX/UI tổng thể, severity, priority | Mỗi lần audit UX lớn | ⭐⭐⭐ |
+| **DOCS/UX_AUDIT/UX_PROBLEMS.md** | Danh sách vấn đề UX/UI, anti-pattern, root causes | Phát hiện vấn đề UX mới | ⭐⭐⭐ |
+| **DOCS/UX_AUDIT/UX_IMPROVEMENTS.md** | Hướng cải thiện theo hệ thống và workflow | Chốt action plan UX | ⭐⭐⭐ |
+| **DOCS/UX_AUDIT/DESIGN_SYSTEM_PROBLEMS.md** | Nợ design system, fragmentation, visual debt | Refactor design system/UI foundation | ⭐⭐⭐ |
+| **DOCS/UX_AUDIT/WORKFLOW_OPTIMIZATION.md** | Tối ưu luồng repair/kho/nợ/settings/thanh toán | Flow vận hành thay đổi | ⭐⭐⭐ |
+| **DOCS/UX_AUDIT/LOADING_AND_ASYNC_UX.md** | Audit loading, sync, save feedback, async communication | Async/offline UX thay đổi | ⭐⭐⭐ |
+| **DOCS/UX_AUDIT/MODERNIZATION_PLAN.md** | Lộ trình hiện đại hóa UX/UI theo phase | Điều chỉnh roadmap UX | ⭐⭐⭐ |
+
+---
+
 ## 6. MISC DOCUMENTATION
 
 | File | Mục đích | Cập nhật khi |
@@ -254,5 +287,5 @@ project-root/
 
 ---
 
-**Cập nhật lần cuối:** 2026-05-15  
+**Cập nhật lần cuối:** 2026-05-22  
 **Phiên bản:** 1.0

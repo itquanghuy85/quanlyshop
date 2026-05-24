@@ -31,6 +31,8 @@ import '../widgets/custom_app_bar.dart';
 import '../widgets/responsive_wrapper.dart';
 import '../utils/excel_export_helper.dart';
 import '../widgets/export_date_filter_dialog.dart';
+import '../theme/popup_theme.dart';
+import '../widgets/app_popup.dart';
 
 class ExpenseView extends StatefulWidget {
   final bool embedded;
@@ -121,7 +123,7 @@ class _ExpenseViewState extends State<ExpenseView> {
           _filterExpenses();
           _isLoading = false;
         });
-        print('DEBUG: Web platform detected, skipping local DB');
+        debugPrint('DEBUG: Web platform detected, skipping local DB');
         return;
       }
 
@@ -151,12 +153,8 @@ class _ExpenseViewState extends State<ExpenseView> {
         _isLoading = false;
       });
 
-      // Debug logging
-      print(
-        'DEBUG: Loaded ${_expenses.length} expenses, filtered: ${_filteredExpenses.length}',
-      );
     } catch (e) {
-      print('DEBUG: Error loading expenses: $e');
+      debugPrint('DEBUG: Error loading expenses: $e');
       if (mounted) {
         setState(() => _isLoading = false);
       }
@@ -184,7 +182,7 @@ class _ExpenseViewState extends State<ExpenseView> {
         });
       }
     } catch (e) {
-      print('DEBUG: Sync error: $e');
+      debugPrint('DEBUG: Sync error: $e');
       if (mounted) {
         setState(() {
           _syncStatus = 'Lỗi đồng bộ';
@@ -252,10 +250,6 @@ class _ExpenseViewState extends State<ExpenseView> {
       _filteredExpenses = filtered;
     });
 
-    // Debug logging
-    print(
-      'DEBUG: Filtered to ${_filteredExpenses.length} expenses for $_filterType',
-    );
   }
 
   void _changeFilterType(String type) {
@@ -533,43 +527,67 @@ class _ExpenseViewState extends State<ExpenseView> {
     String payMethod = "TIỀN MẶT";
     String scope = "SHOP";
 
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      barrierDismissible: false,
+      isScrollControlled: true,
+      isDismissible: false,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) {
           titleC.addListener(() => setS(() {}));
           amountC.addListener(() => setS(() {}));
-          return AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-            title: Text(
-              "GHI CHÉP CHI PHÍ",
-              style: AppTextStyles.headline5.copyWith(
-                color: AppColors.error,
-                fontWeight: FontWeight.bold,
+          return Padding(
+            padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
+            child: Container(
+              decoration: const BoxDecoration(
+                color: PopupTheme.bgDark,
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(PopupTheme.radiusSheet),
+                ),
               ),
-            ),
-            content: SingleChildScrollView(
               child: Form(
                 key: formKey,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      "PHÂN LOẠI",
-                      style: AppTextStyles.overline.copyWith(
-                        color: AppColors.onSurface.withOpacity(0.6),
+                    const PopupDragHandle(),
+                    const Padding(
+                      padding: EdgeInsets.fromLTRB(20, 0, 20, 12),
+                      child: Row(
+                        children: [
+                          Icon(Icons.trending_down, color: Colors.redAccent),
+                          SizedBox(width: 8),
+                          Text(
+                            "GHI CHÉP CHI PHÍ",
+                            style: TextStyle(
+                              color: PopupTheme.textPrimary,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children:
-                          [
+                    Flexible(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "PHÂN LOẠI",
+                              style: AppTextStyles.overline.copyWith(
+                                color: PopupTheme.textSecondary,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
                                 "CỐ ĐỊNH",
                                 "PHÁT SINH",
                                 "LƯƠNG",
@@ -577,188 +595,189 @@ class _ExpenseViewState extends State<ExpenseView> {
                                 "ĐIỆN NƯỚC",
                                 "KHÁC",
                               ]
-                              .map(
-                                (c) => ChoiceChip(
-                                  label: Text(
-                                    c,
-                                    style: AppTextStyles.caption.copyWith(
-                                      fontSize: AppTextStyles.body1.fontSize,
+                                  .map(
+                                    (c) => ChoiceChip(
+                                      label: Text(
+                                        c,
+                                        style: AppTextStyles.caption.copyWith(
+                                          fontSize: AppTextStyles.body1.fontSize,
+                                        ),
+                                      ),
+                                      selected: category == c,
+                                      onSelected: (v) => setS(() => category = c),
                                     ),
-                                  ),
-                                  selected: category == c,
-                                  onSelected: (v) => setS(() => category = c),
-                                ),
-                              )
-                              .toList(),
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: titleC,
-                      decoration: const InputDecoration(
-                        labelText: "Nội dung chi *",
-                        prefixIcon: Icon(Icons.edit_note),
-                      ),
-                      textCapitalization: TextCapitalization.characters,
-                      validator: (v) => (v == null || v.trim().isEmpty)
-                          ? 'Vui lòng nhập nội dung chi'
-                          : null,
-                    ),
-                    const SizedBox(height: 12),
-                    CurrencyTextField(
-                      controller: amountC,
-                      label: "Số tiền (VNĐ) *",
-                      icon: Icons.payments,
-                      validator: (v) => MoneyUtils.validateAmount(
-                        v ?? '',
-                        min: 1,
-                        fieldName: 'Số tiền',
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: noteC,
-                      decoration: const InputDecoration(
-                        labelText: "Ghi chú thêm",
-                        prefixIcon: Icon(Icons.description),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      "THANH TOÁN BẰNG",
-                      style: AppTextStyles.overline.copyWith(
-                        color: AppColors.onSurface.withOpacity(0.6),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: ["TIỀN MẶT", "CHUYỂN KHOẢN"]
-                          .map(
-                            (m) => Expanded(
-                              child: Padding(
-                                padding: const EdgeInsets.only(right: 4),
-                                child: ChoiceChip(
-                                  label: Text(m, style: AppTextStyles.caption),
-                                  selected: payMethod == m,
-                                  onSelected: (v) => setS(() => payMethod = m),
-                                ),
+                                  )
+                                  .toList(),
+                            ),
+                            const SizedBox(height: 16),
+                            TextFormField(
+                              controller: titleC,
+                              style: const TextStyle(color: PopupTheme.textPrimary),
+                              decoration: const InputDecoration(
+                                labelText: "Nội dung chi *",
+                                prefixIcon: Icon(Icons.edit_note),
+                              ),
+                              textCapitalization: TextCapitalization.characters,
+                              validator: (v) => (v == null || v.trim().isEmpty)
+                                  ? 'Vui lòng nhập nội dung chi'
+                                  : null,
+                            ),
+                            const SizedBox(height: 12),
+                            CurrencyTextField(
+                              controller: amountC,
+                              label: "Số tiền (VNĐ) *",
+                              icon: Icons.payments,
+                              validator: (v) => MoneyUtils.validateAmount(
+                                v ?? '',
+                                min: 1,
+                                fieldName: 'Số tiền',
                               ),
                             ),
-                          )
-                          .toList(),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      "PHẠM VI CHI",
-                      style: AppTextStyles.overline.copyWith(
-                        color: AppColors.onSurface.withOpacity(0.6),
+                            const SizedBox(height: 12),
+                            TextField(
+                              controller: noteC,
+                              style: const TextStyle(color: PopupTheme.textPrimary),
+                              decoration: const InputDecoration(
+                                labelText: "Ghi chú thêm",
+                                prefixIcon: Icon(Icons.description),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              "THANH TOÁN BẰNG",
+                              style: AppTextStyles.overline.copyWith(
+                                color: PopupTheme.textSecondary,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: ["TIỀN MẶT", "CHUYỂN KHOẢN"]
+                                  .map(
+                                    (m) => Expanded(
+                                      child: Padding(
+                                        padding: const EdgeInsets.only(right: 4),
+                                        child: ChoiceChip(
+                                          label: Text(m, style: AppTextStyles.caption),
+                                          selected: payMethod == m,
+                                          onSelected: (v) => setS(() => payMethod = m),
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              "PHẠM VI CHI",
+                              style: AppTextStyles.overline.copyWith(
+                                color: PopupTheme.textSecondary,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: const [
+                                {'value': 'SHOP', 'label': 'SHOP'},
+                                {'value': 'CA_NHAN', 'label': 'CÁ NHÂN'},
+                              ].map((item) {
+                                final value = item['value']!;
+                                final label = item['label']!;
+                                return ChoiceChip(
+                                  label: Text(label, style: AppTextStyles.caption),
+                                  selected: scope == value,
+                                  onSelected: (_) => setS(() => scope = value),
+                                );
+                              }).toList(),
+                            ),
+                            const SizedBox(height: 16),
+                          ],
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children:
-                          const [
-                            {'value': 'SHOP', 'label': 'SHOP'},
-                            {'value': 'CA_NHAN', 'label': 'CÁ NHÂN'},
-                          ].map((item) {
-                            final value = item['value']!;
-                            final label = item['label']!;
-                            return ChoiceChip(
-                              label: Text(label, style: AppTextStyles.caption),
-                              selected: scope == value,
-                              onSelected: (_) => setS(() => scope = value),
-                            );
-                          }).toList(),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => Navigator.pop(ctx),
+                              child: const Text("HỦY"),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            flex: 2,
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFD32F2F),
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              onPressed: _isSaving
+                                  ? null
+                                  : () async {
+                                      if (!(formKey.currentState?.validate() ?? false)) return;
+                                      setS(() => _isSaving = true);
+
+                                      final amount = MoneyUtils.parseCurrency(amountC.text);
+                                      final user = FirebaseAuth.instance.currentUser;
+                                      final navigator = Navigator.of(ctx);
+                                      final method = payMethod == 'CHUYỂN KHOẢN'
+                                          ? PaymentMethod.transfer
+                                          : PaymentMethod.cash;
+                                      final txRef =
+                                          'expense_${DateTime.now().millisecondsSinceEpoch}_${category.trim().toUpperCase()}_${scope}_${method.code}_${amount}_${titleC.text.trim().toUpperCase()}';
+
+                                      navigator.pop();
+
+                                      final result = await PaymentIntentService.executePaymentDirect(
+                                        type: category == 'ĐIỆN NƯỚC' || category == 'INTERNET'
+                                            ? PaymentIntentType.utilityExpense
+                                            : PaymentIntentType.operatingExpense,
+                                        amount: amount,
+                                        paymentMethod: method,
+                                        description:
+                                            '${titleC.text.toUpperCase()}${noteC.text.isNotEmpty ? " - ${noteC.text}" : ""}',
+                                        executedBy: user?.displayName ?? user?.email ?? 'unknown',
+                                        referenceId: txRef,
+                                        referenceType: 'quick_expense',
+                                        notes: noteC.text.trim().isEmpty ? null : noteC.text.trim(),
+                                        idempotencyKey: txRef,
+                                        metadata: {
+                                          'category': category,
+                                          'title': titleC.text.toUpperCase(),
+                                          'note': noteC.text,
+                                          'scope': scope,
+                                        },
+                                      );
+
+                                      if (result.success) {
+                                        EventBus().emit('expenses_changed');
+                                        NotificationService.showSnackBar(
+                                          "Đã lưu chi phí!",
+                                          color: AppColors.success,
+                                        );
+                                      }
+
+                                      setState(() => _isSaving = false);
+                                      await _refresh();
+                                    },
+                              child: const Text(
+                                "LƯU CHI PHÍ",
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
               ),
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text("HỦY"),
-              ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFD32F2F),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                onPressed: _isSaving
-                    ? null
-                    : () async {
-                        if (!(formKey.currentState?.validate() ?? false))
-                          return;
-                        setS(() => _isSaving = true);
-
-                        // Không nhân 1000 - user đã nhập số đầy đủ với formatter
-                        final amount = MoneyUtils.parseCurrency(amountC.text);
-
-                        final user = FirebaseAuth.instance.currentUser;
-                        final navigator = Navigator.of(ctx);
-
-                        // Convert payment method string to enum
-                        final method = payMethod == 'CHUYỂN KHOẢN'
-                            ? PaymentMethod.transfer
-                            : PaymentMethod.cash;
-                        final txRef =
-                            'expense_${DateTime.now().millisecondsSinceEpoch}_${category.trim().toUpperCase()}_${scope}_${method.code}_${amount}_${titleC.text.trim().toUpperCase()}';
-
-                        navigator.pop(); // Close dialog first
-
-                        // Execute payment directly without navigation
-                        final result =
-                            await PaymentIntentService.executePaymentDirect(
-                              type:
-                                  category == 'ĐIỆN NƯỚC' ||
-                                      category == 'INTERNET'
-                                  ? PaymentIntentType.utilityExpense
-                                  : PaymentIntentType.operatingExpense,
-                              amount: amount,
-                              paymentMethod: method,
-                              description:
-                                  '${titleC.text.toUpperCase()}${noteC.text.isNotEmpty ? " - ${noteC.text}" : ""}',
-                              executedBy:
-                                  user?.displayName ?? user?.email ?? 'unknown',
-                              referenceId: txRef,
-                              referenceType: 'quick_expense',
-                              notes: noteC.text.trim().isEmpty
-                                  ? null
-                                  : noteC.text.trim(),
-                              idempotencyKey: txRef,
-                              metadata: {
-                                'category': category,
-                                'title': titleC.text.toUpperCase(),
-                                'note': noteC.text,
-                                'scope': scope,
-                              },
-                            );
-
-                        if (result != null && result.success) {
-                          EventBus().emit('expenses_changed');
-                          NotificationService.showSnackBar(
-                            "Đã lưu chi phí!",
-                            color: AppColors.success,
-                          );
-                        }
-
-                        setState(() {
-                          _isSaving = false;
-                        });
-                        await _refresh();
-                      },
-                child: Text(
-                  "LƯU CHI PHÍ",
-                  style: AppTextStyles.button.copyWith(
-                    color: AppColors.onSuccess,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
           );
         },
       ),
@@ -779,21 +798,7 @@ class _ExpenseViewState extends State<ExpenseView> {
         );
       }
       return Scaffold(
-        appBar: AppBar(
-          flexibleSpace: Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF0068FF), Color(0xFF0084FF)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-          ),
-          backgroundColor: Colors.transparent,
-          foregroundColor: Colors.white,
-          elevation: 0,
-          title: const Text("QUẢN LÝ CHI PHÍ"),
-        ),
+        appBar: CustomAppBar.build(title: 'QUẢN LÝ CHI PHÍ'),
         body: Center(
           child: Text(
             "Bạn không có quyền truy cập tính năng này",
@@ -1178,224 +1183,255 @@ class _ExpenseViewState extends State<ExpenseView> {
     String payMethod = "TIỀN MẶT";
     String scope = "SHOP";
 
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      barrierDismissible: false,
+      isScrollControlled: true,
+      isDismissible: false,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) {
           titleC.addListener(() => setS(() {}));
           amountC.addListener(() => setS(() {}));
-          return AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-            title: Text(
-              "GHI CHÉP THU PHÁT SINH",
-              style: AppTextStyles.headline5.copyWith(
-                color: const Color(0xFF2E7D32),
-                fontWeight: FontWeight.bold,
+          return Padding(
+            padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
+            child: Container(
+              decoration: const BoxDecoration(
+                color: PopupTheme.bgDark,
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(PopupTheme.radiusSheet),
+                ),
               ),
-            ),
-            content: SingleChildScrollView(
               child: Form(
                 key: formKey,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      "PHÂN LOẠI",
-                      style: AppTextStyles.overline.copyWith(
-                        color: AppColors.onSurface.withOpacity(0.6),
+                    const PopupDragHandle(),
+                    const Padding(
+                      padding: EdgeInsets.fromLTRB(20, 0, 20, 12),
+                      child: Row(
+                        children: [
+                          Icon(Icons.trending_up, color: Color(0xFF66BB6A)),
+                          SizedBox(width: 8),
+                          Text(
+                            "GHI CHÉP THU PHÁT SINH",
+                            style: TextStyle(
+                              color: PopupTheme.textPrimary,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children:
-                          [
+                    Flexible(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "PHÂN LOẠI",
+                              style: AppTextStyles.overline.copyWith(
+                                color: PopupTheme.textSecondary,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
                                 "PHÁT SINH",
                                 "DỊCH VỤ",
                                 "HOÀN TIỀN",
                                 "BÁN TÀI SẢN",
                                 "KHÁC",
                               ]
-                              .map(
-                                (c) => ChoiceChip(
-                                  label: Text(
-                                    c,
-                                    style: AppTextStyles.caption.copyWith(
-                                      fontSize: AppTextStyles.body1.fontSize,
+                                  .map(
+                                    (c) => ChoiceChip(
+                                      label: Text(
+                                        c,
+                                        style: AppTextStyles.caption.copyWith(
+                                          fontSize: AppTextStyles.body1.fontSize,
+                                        ),
+                                      ),
+                                      selected: category == c,
+                                      selectedColor: const Color(0xFF66BB6A),
+                                      onSelected: (v) => setS(() => category = c),
                                     ),
-                                  ),
-                                  selected: category == c,
-                                  selectedColor: const Color(0xFF66BB6A),
-                                  onSelected: (v) => setS(() => category = c),
-                                ),
-                              )
-                              .toList(),
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: titleC,
-                      decoration: const InputDecoration(
-                        labelText: "Nội dung thu *",
-                        prefixIcon: Icon(Icons.edit_note),
-                      ),
-                      textCapitalization: TextCapitalization.characters,
-                      validator: (v) => (v == null || v.trim().isEmpty)
-                          ? 'Vui lòng nhập nội dung thu'
-                          : null,
-                    ),
-                    const SizedBox(height: 12),
-                    CurrencyTextField(
-                      controller: amountC,
-                      label: "Số tiền (VNĐ) *",
-                      icon: Icons.payments,
-                      validator: (v) => MoneyUtils.validateAmount(
-                        v ?? '',
-                        min: 1,
-                        fieldName: 'Số tiền',
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: noteC,
-                      decoration: const InputDecoration(
-                        labelText: "Ghi chú thêm",
-                        prefixIcon: Icon(Icons.description),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      "THANH TOÁN BẰNG",
-                      style: AppTextStyles.overline.copyWith(
-                        color: AppColors.onSurface.withOpacity(0.6),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: ["TIỀN MẶT", "CHUYỂN KHOẢN"]
-                          .map(
-                            (m) => Expanded(
-                              child: Padding(
-                                padding: const EdgeInsets.only(right: 4),
-                                child: ChoiceChip(
-                                  label: Text(m, style: AppTextStyles.caption),
-                                  selected: payMethod == m,
-                                  onSelected: (v) => setS(() => payMethod = m),
-                                ),
+                                  )
+                                  .toList(),
+                            ),
+                            const SizedBox(height: 16),
+                            TextFormField(
+                              controller: titleC,
+                              style: const TextStyle(color: PopupTheme.textPrimary),
+                              decoration: const InputDecoration(
+                                labelText: "Nội dung thu *",
+                                prefixIcon: Icon(Icons.edit_note),
+                              ),
+                              textCapitalization: TextCapitalization.characters,
+                              validator: (v) => (v == null || v.trim().isEmpty)
+                                  ? 'Vui lòng nhập nội dung thu'
+                                  : null,
+                            ),
+                            const SizedBox(height: 12),
+                            CurrencyTextField(
+                              controller: amountC,
+                              label: "Số tiền (VNĐ) *",
+                              icon: Icons.payments,
+                              validator: (v) => MoneyUtils.validateAmount(
+                                v ?? '',
+                                min: 1,
+                                fieldName: 'Số tiền',
                               ),
                             ),
-                          )
-                          .toList(),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      "PHẠM VI",
-                      style: AppTextStyles.overline.copyWith(
-                        color: AppColors.onSurface.withOpacity(0.6),
+                            const SizedBox(height: 12),
+                            TextField(
+                              controller: noteC,
+                              style: const TextStyle(color: PopupTheme.textPrimary),
+                              decoration: const InputDecoration(
+                                labelText: "Ghi chú thêm",
+                                prefixIcon: Icon(Icons.description),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              "THANH TOÁN BẰNG",
+                              style: AppTextStyles.overline.copyWith(
+                                color: PopupTheme.textSecondary,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: ["TIỀN MẶT", "CHUYỂN KHOẢN"]
+                                  .map(
+                                    (m) => Expanded(
+                                      child: Padding(
+                                        padding: const EdgeInsets.only(right: 4),
+                                        child: ChoiceChip(
+                                          label: Text(m, style: AppTextStyles.caption),
+                                          selected: payMethod == m,
+                                          onSelected: (v) => setS(() => payMethod = m),
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              "PHẠM VI",
+                              style: AppTextStyles.overline.copyWith(
+                                color: PopupTheme.textSecondary,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: const [
+                                {'value': 'SHOP', 'label': 'SHOP'},
+                                {'value': 'CA_NHAN', 'label': 'CÁ NHÂN'},
+                              ].map((item) {
+                                final value = item['value']!;
+                                final label = item['label']!;
+                                return ChoiceChip(
+                                  label: Text(label, style: AppTextStyles.caption),
+                                  selected: scope == value,
+                                  onSelected: (_) => setS(() => scope = value),
+                                );
+                              }).toList(),
+                            ),
+                            const SizedBox(height: 16),
+                          ],
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children:
-                          const [
-                            {'value': 'SHOP', 'label': 'SHOP'},
-                            {'value': 'CA_NHAN', 'label': 'CÁ NHÂN'},
-                          ].map((item) {
-                            final value = item['value']!;
-                            final label = item['label']!;
-                            return ChoiceChip(
-                              label: Text(label, style: AppTextStyles.caption),
-                              selected: scope == value,
-                              onSelected: (_) => setS(() => scope = value),
-                            );
-                          }).toList(),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => Navigator.pop(ctx),
+                              child: const Text("HỦY"),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            flex: 2,
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF2E7D32),
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              onPressed: _isSaving
+                                  ? null
+                                  : () async {
+                                      if (!(formKey.currentState?.validate() ?? false)) return;
+                                      setS(() => _isSaving = true);
+
+                                      final amount = MoneyUtils.parseCurrency(amountC.text);
+                                      final user = FirebaseAuth.instance.currentUser;
+                                      final navigator = Navigator.of(ctx);
+                                      final method = payMethod == 'CHUYỂN KHOẢN'
+                                          ? PaymentMethod.transfer
+                                          : PaymentMethod.cash;
+                                      final txRef =
+                                          'income_${DateTime.now().millisecondsSinceEpoch}_${category.trim().toUpperCase()}_${scope}_${method.code}_${amount}_${titleC.text.trim().toUpperCase()}';
+
+                                      navigator.pop();
+
+                                      final result = await PaymentIntentService.executePaymentDirect(
+                                        type: PaymentIntentType.otherIncome,
+                                        amount: amount,
+                                        paymentMethod: method,
+                                        description:
+                                            '${titleC.text.toUpperCase()}${noteC.text.isNotEmpty ? " - ${noteC.text}" : ""}',
+                                        executedBy: user?.displayName ?? user?.email ?? 'unknown',
+                                        referenceId: txRef,
+                                        referenceType: 'quick_income',
+                                        notes: noteC.text.trim().isEmpty ? null : noteC.text.trim(),
+                                        idempotencyKey: txRef,
+                                        metadata: {
+                                          'category': category,
+                                          'title': titleC.text.toUpperCase(),
+                                          'note': noteC.text,
+                                          'scope': scope,
+                                        },
+                                      );
+
+                                      if (result.success) {
+                                        EventBus().emit('expenses_changed');
+                                        NotificationService.showSnackBar(
+                                          "Đã lưu thu phát sinh!",
+                                          color: AppColors.success,
+                                        );
+                                      }
+
+                                      setState(() => _isSaving = false);
+                                      await _refresh();
+                                    },
+                              child: const Text(
+                                "LƯU KHOẢN THU",
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
               ),
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text("HỦY"),
-              ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2E7D32),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                onPressed: _isSaving
-                    ? null
-                    : () async {
-                        if (!(formKey.currentState?.validate() ?? false))
-                          return;
-                        setS(() => _isSaving = true);
-
-                        final amount = MoneyUtils.parseCurrency(amountC.text);
-                        final user = FirebaseAuth.instance.currentUser;
-                        final navigator = Navigator.of(ctx);
-                        final method = payMethod == 'CHUYỂN KHOẢN'
-                            ? PaymentMethod.transfer
-                            : PaymentMethod.cash;
-                        final txRef =
-                            'income_${DateTime.now().millisecondsSinceEpoch}_${category.trim().toUpperCase()}_${scope}_${method.code}_${amount}_${titleC.text.trim().toUpperCase()}';
-
-                        navigator.pop(); // Close dialog first
-
-                        // Execute payment as income (direction IN)
-                        final result =
-                            await PaymentIntentService.executePaymentDirect(
-                              type: PaymentIntentType.otherIncome,
-                              amount: amount,
-                              paymentMethod: method,
-                              description:
-                                  '${titleC.text.toUpperCase()}${noteC.text.isNotEmpty ? " - ${noteC.text}" : ""}',
-                              executedBy:
-                                  user?.displayName ?? user?.email ?? 'unknown',
-                              referenceId: txRef,
-                              referenceType: 'quick_income',
-                              notes: noteC.text.trim().isEmpty
-                                  ? null
-                                  : noteC.text.trim(),
-                              idempotencyKey: txRef,
-                              metadata: {
-                                'category': category,
-                                'title': titleC.text.toUpperCase(),
-                                'note': noteC.text,
-                                'scope': scope,
-                              },
-                            );
-
-                        if (result != null && result.success) {
-                          EventBus().emit('expenses_changed');
-                          NotificationService.showSnackBar(
-                            "Đã lưu thu phát sinh!",
-                            color: AppColors.success,
-                          );
-                        }
-
-                        setState(() {
-                          _isSaving = false;
-                        });
-                        await _refresh();
-                      },
-                child: Text(
-                  "LƯU KHOẢN THU",
-                  style: AppTextStyles.button.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
           );
         },
       ),

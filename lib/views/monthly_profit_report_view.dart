@@ -7,6 +7,7 @@ import '../services/category_service.dart';
 import '../core/utils/money_utils.dart';
 import '../theme/app_colors.dart';
 import '../widgets/responsive_wrapper.dart';
+import '../widgets/custom_app_bar.dart';
 
 /// Monthly profit report — shows revenue, cost, expenses, profit per month
 class MonthlyProfitReportView extends StatefulWidget {
@@ -244,10 +245,7 @@ class _MonthlyProfitReportViewState extends State<MonthlyProfitReportView> {
   Widget build(BuildContext context) {
     if (!_hasPermission) {
       return Scaffold(
-        appBar: AppBar(
-          title: const Text('Báo cáo lợi nhuận'),
-          centerTitle: true,
-        ),
+        appBar: CustomAppBar.build(title: 'Báo cáo lợi nhuận'),
         body: const Center(
           child: Text(
             'Bạn không có quyền truy cập tính năng này',
@@ -258,11 +256,9 @@ class _MonthlyProfitReportViewState extends State<MonthlyProfitReportView> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Báo cáo lợi nhuận'),
-        centerTitle: true,
+      appBar: CustomAppBar.build(
+        title: 'Báo cáo lợi nhuận',
         actions: [
-          // Year picker
           TextButton.icon(
             onPressed: _pickYear,
             icon: const Icon(Icons.calendar_month, size: 18),

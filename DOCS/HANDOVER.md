@@ -4,19 +4,177 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 
 ---
 
-## Current Status
+## ⚡ Trạng thái hiện tại
 
-**Version:** 1.x (develop)  
-**Last Updated:** 2026-05-19  
-**Build Status:** ✓ Passing  
-**Database Version:** SQLite v98 (storage_locations)  
+**Version:** 1.x (develop) → 2.0 planning  
+**Last Updated:** 2026-05-23  
+**Build Status:** ✅ Debug build passing (`flutter build apk --debug`)  
+**Analyze Status:** ⚠️ `flutter analyze` còn `1552` issues pre-existing  
+**Database Version:** SQLite v17  
+**Branch:** master  
+**Active Initiative:** 🤖 Bổ sung luồng nhập nhanh đơn sửa/đơn bán bằng câu lệnh tự nhiên, giữ nguyên engine lưu đơn hiện tại
 
-### Overview
-Dự án HULUCA Shop Manager là ứng dụng Flutter quản lý cửa hàng sửa chữa điện thoại với Firebase backend. Ứng dụng hỗ trợ:
-- Multi-tenant với role-based access control
-- Offline-first với real-time sync
-- Tích hợp KiotViet, thanh toán, in hóa đơn
-- Thông báo FCM + local
+---
+
+## 🎯 Phase hiện tại
+
+**Phase đang thực hiện:** Chưa bắt đầu (chuẩn bị khởi động Phase 01)  
+**Tài liệu đã khởi tạo:** Toàn bộ `docs/` structure  
+**Tiến độ:** 0 / 8 phases hoàn thành
+
+---
+
+## ✅ Vừa hoàn thành (2026-05-22)
+
+1. **Nhập nhanh đơn sửa/đơn bán bằng câu lệnh tự nhiên (2026-05-23)**
+  - Thêm parser `natural_order_parser_service.dart` để nhận diện câu lệnh tạo đơn sửa và đơn bán.
+  - `create_repair_order_view`: thêm nút nhập nhanh trên AppBar, parse và tự điền model/lỗi/khách/SĐT/giá; mặc định `0đ` khi thiếu giá.
+  - `create_sale_view`: thêm nút nhập nhanh trên AppBar, parse sản phẩm/IMEI/khách/SĐT/phương thức thanh toán; tự map trả góp FE.
+  - Luồng lưu đơn, sync, transaction kho/công nợ/thanh toán vẫn dùng nguyên pipeline hiện tại (không ghi tắt bypass service).
+
+2. **Validation kỹ thuật cho thay đổi mới**
+  - Đã chạy `flutter analyze` cho 3 file thay đổi chính.
+  - Không có lỗi compile mới; còn warning/info legacy ở các file màn hình lớn.
+
+3. **Hotfix trắng màn hình đơn sửa mới (2026-05-23)**
+  - Thêm cơ chế fallback render trong `create_repair_order_view.dart`.
+  - Nếu build UI chính phát sinh exception, màn hình tự chuyển sang form dự phòng để vẫn thao tác tạo đơn.
+  - Có log debug chi tiết để truy dấu nguyên nhân runtime thay vì hiển thị màn hình trống.
+  - Root-cause fix: ràng buộc width hữu hạn cho nút `Lưu & In` ở bottom action bar để loại bỏ lỗi `BoxConstraints forces an infinite width`.
+
+---
+
+## ✅ Vừa hoàn thành (2026-05-22)
+
+1. **Audit toàn diện UX/UI ứng dụng ở cấp sản phẩm thương mại**
+  - Tạo đầy đủ thư mục `DOCS/UX_AUDIT/` với `7` tài liệu: score report, problem list, improvement plan, design-system debt, workflow optimization, loading/async UX, modernization roadmap.
+  - Audit dựa trên đọc trực tiếp các màn hình trọng yếu như `home_view`, `create_repair_order_view`, `repair_detail_view`, `inventory_view`, `debt_view`, `finance_v2_view`, nhóm settings và widgets sync/loading.
+  - Bổ sung số đo repo-level để lượng hóa UX debt: AppBar trực tiếp, spinner trực tiếp, dialog, bottom sheet.
+
+2. **Cập nhật chỉ mục tài liệu**
+  - `docs/DOCUMENTATION_INDEX.md` bổ sung nhóm tài liệu `DOCS/UX_AUDIT`.
+
+---
+
+## ✅ Vừa hoàn thành (2026-05-22)
+
+1. **Tạo hệ thống tài liệu BLUEPRINT toàn app (DNA Rebuild)**
+  - Tạo đầy đủ thư mục `DOCS/BLUEPRINT/` với các tài liệu lõi kiến trúc/nghiệp vụ/design/service/offline/rebuild.
+  - Sinh `112` tài liệu màn hình trong `DOCS/BLUEPRINT/screens/` (bao phủ toàn bộ `lib/views`).
+  - Tạo graph: dependency graph, screen relationship graph, service relationship graph.
+  - Tạo `README_FINAL.md` tổng kết độ hoàn thiện, rủi ro, khả năng rebuild.
+  - Tạo `TODO_GAPS.md` để theo dõi các điểm cần xác minh runtime/thực địa.
+
+2. **Cập nhật chỉ mục tài liệu**
+  - `docs/DOCUMENTATION_INDEX.md` bổ sung nhóm tài liệu BLUEPRINT.
+
+---
+
+## ✅ Vừa hoàn thành (2026-05-21)
+
+1. **Tối ưu DB reads Excel export** — commit `c86c152e`
+   - `loadSnapshot()`: 17 queries song song (parallel futures)
+   - `_exportDetailedReport`: 14 → 9 reads (−36%)
+   - `_exportReport`: 31 → 28 reads + parallel pre-fetch
+   - N+1 fix trong `exportImportOrders`: 51 → 2 reads (với 50 đơn)
+
+2. **Khởi tạo toàn bộ cấu trúc docs/ cho dự án Flavor Split**
+   - `PROJECT_OVERVIEW.md`, `ROADMAP_ONLINE_OFFLINE.md`, `PROGRESS_TRACKER.md`
+   - `DECISIONS.md` (ADR-001 đến ADR-005)
+   - `RISKS_AND_ISSUES.md`, `TEST_RESULTS.md`
+   - `docs/phases/PHASE_01` đến `PHASE_08`
+
+3. **Enrich activity feed** — commit `2200ad95`
+   - Bán hàng hiện tên sản phẩm + người bán
+   - Thu/trả nợ hiện tên khách/NCC
+   - Trả NCC hiện tên thực thay vì raw ID
+
+4. **Fix Finance V2 3-checkpoint reconciliation** — commit `e6584072`
+   - REPAIR_PARTNER type nhất quán ở 3 điểm kiểm tra
+   - Thu khác không còn bị thổi phồng bởi thu nợ KH
+
+---
+
+## 🔴 Lỗi còn tồn tại
+
+| Lỗi | File | Mức độ |
+|-----|------|--------|
+| `withOpacity` deprecated (pre-existing) | Nhiều file UI | Thấp |
+| Kho location chưa test đầy đủ offline | salvage_phone_view | Trung bình |
+
+---
+
+## 📋 Ưu tiên tiếp theo
+
+1. **Chuyển audit UX/UI thành execution spec**
+  - Chốt AppBar strategy, loading states, sync feedback language, card taxonomy, settings IA.
+
+2. **Ưu tiên redesign kiến trúc trải nghiệm**
+  - `home_view.dart`
+  - `debt_view.dart`
+  - `inventory_view.dart`
+  - `shop_settings_view.dart`
+
+3. **Nếu quay lại roadmap flavor split**
+  - Bắt đầu Phase 01 — Flavors Setup
+  - Tạo `FlavorConfig`, `AppFlavor`
+  - Cấu hình `android/app/build.gradle`
+  - Tạo `main_online.dart` + `main_offline.dart`
+
+---
+
+## 🔧 Lệnh build/test quan trọng
+
+```bash
+# Analyze
+flutter analyze
+
+# Run (current — single flavor)
+flutter run
+
+# Build release (current)
+flutter build apk --release
+
+# Sau khi hoàn thành Phase 01:
+flutter run --flavor online -t lib/main_online.dart
+flutter run --flavor offline -t lib/main_offline.dart
+flutter build apk --flavor online -t lib/main_online.dart --release
+flutter build apk --flavor offline -t lib/main_offline.dart --release
+```
+
+---
+
+## 📁 Tài liệu quan trọng
+
+| File | Đọc khi nào |
+|------|------------|
+| `docs/ROADMAP_ONLINE_OFFLINE.md` | Hiểu lộ trình |
+| `docs/PROGRESS_TRACKER.md` | Xem tiến độ hiện tại |
+| `docs/ARCHITECTURE.md` | Hiểu kiến trúc mục tiêu |
+| `docs/DECISIONS.md` | Hiểu lý do quyết định |
+| `docs/phases/PHASE_01_FLAVORS.md` | Bắt đầu từ Phase 01 |
+| `CLAUDE.md` | Rules và conventions |
+
+---
+
+## 📝 Ghi chú cho AI / lập trình viên tiếp theo
+
+1. **Không sửa FirestoreService trực tiếp** trong Phase 02 — chỉ thêm interface wrapper
+2. **Không xóa Firebase code** — guard bằng `FlavorConfig.isOnline`
+3. **Online flavor phải không regression** — test toàn bộ trước mỗi phase
+4. **SQLite schema không thay đổi** — cả 2 flavor dùng chung `DBHelper`
+5. **Mỗi phase hoàn thành** → cập nhật `PROGRESS_TRACKER.md` + `CHANGELOG.md` + file phase tương ứng
+
+---
+
+## 📦 Recent commits
+
+```
+c86c152e perf(excel): reduce DB reads on Excel export — eliminate duplicates & N+1
+2200ad95 feat(home): enrich "Hoạt động hôm nay" activity feed with contextual details
+e6584072 fix(finance): sync REPAIR_PARTNER type across all 3 debt-balance checkpoints
+```
+
 
 ---
 

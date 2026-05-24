@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/custom_app_bar.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_esc_pos_utils/flutter_esc_pos_utils.dart';
@@ -179,8 +180,8 @@ class _SaleInvoicePreviewViewState extends State<SaleInvoicePreviewView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('XEM TRƯỚC HÓA ĐƠN BÁN'),
+      appBar: CustomAppBar.build(
+        title: 'XEM TRƯỚC HÓA ĐƠN BÁN',
         actions: [
           IconButton(
             icon: const Icon(Icons.print),

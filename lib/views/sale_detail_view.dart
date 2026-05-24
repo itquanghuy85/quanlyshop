@@ -44,6 +44,9 @@ import 'dart:convert';
 import '../widgets/clickable_customer_header.dart';
 import '../widgets/clickable_product_list.dart';
 import '../widgets/deep_link_navigator.dart';
+import '../widgets/custom_app_bar.dart';
+import '../theme/popup_theme.dart';
+import '../widgets/app_popup.dart';
 
 class SaleDetailView extends StatefulWidget {
   final SaleOrder sale;
@@ -499,55 +502,101 @@ class _SaleDetailViewState extends State<SaleDetailView> {
     );
     final noteCtrl = TextEditingController(text: s.settlementNote ?? "");
 
-    final ok = await showDialog<bool>(
+    final ok = await showModalBottomSheet<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text("NHẬN TIỀN TỪ NGÂN HÀNG"),
-        content: Form(
-          key: formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CurrencyTextField(
-                controller: amountCtrl,
-                label: "Số tiền nhận (VNĐ)",
-                validator: (v) => MoneyUtils.validateAmount(
-                  v ?? '',
-                  min: 1,
-                  fieldName: 'Số tiền nhận',
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
+        child: Container(
+          decoration: const BoxDecoration(
+            color: PopupTheme.bgDark,
+            borderRadius: BorderRadius.vertical(
+              top: Radius.circular(PopupTheme.radiusSheet),
+            ),
+          ),
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+          child: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const PopupDragHandle(),
+                const Row(
+                  children: [
+                    Icon(Icons.account_balance, size: 18, color: PopupTheme.blue),
+                    SizedBox(width: 8),
+                    Text(
+                      "NHẬN TIỀN TỪ NGÂN HÀNG",
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: PopupTheme.textPrimary,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 8),
-              CurrencyTextField(
-                controller: feeCtrl,
-                label: "Phí NH giữ lại (VNĐ)",
-                validator: (v) => MoneyUtils.validateAmount(
-                  v ?? '',
-                  min: 0,
-                  fieldName: 'Phí NH',
+                const SizedBox(height: 16),
+                CurrencyTextField(
+                  controller: amountCtrl,
+                  label: "Số tiền nhận (VNĐ)",
+                  validator: (v) => MoneyUtils.validateAmount(
+                    v ?? '',
+                    min: 1,
+                    fieldName: 'Số tiền nhận',
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: noteCtrl,
-                decoration: const InputDecoration(labelText: "Ghi chú"),
-              ),
-            ],
+                const SizedBox(height: 10),
+                CurrencyTextField(
+                  controller: feeCtrl,
+                  label: "Phí NH giữ lại (VNĐ)",
+                  validator: (v) => MoneyUtils.validateAmount(
+                    v ?? '',
+                    min: 0,
+                    fieldName: 'Phí NH',
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: noteCtrl,
+                  decoration: InputDecoration(
+                    labelText: "Ghi chú",
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(PopupTheme.radiusField),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(ctx, false),
+                        child: const Text("HỦY"),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      flex: 2,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: PopupTheme.blue,
+                          foregroundColor: Colors.white,
+                        ),
+                        onPressed: () {
+                          if (!(formKey.currentState?.validate() ?? false)) return;
+                          Navigator.pop(ctx, true);
+                        },
+                        child: const Text("XÁC NHẬN"),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text("HỦY"),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (!(formKey.currentState?.validate() ?? false)) return;
-              Navigator.pop(ctx, true);
-            },
-            child: const Text("XÁC NHẬN"),
-          ),
-        ],
       ),
     );
 
@@ -1225,38 +1274,13 @@ class _SaleDetailViewState extends State<SaleDetailView> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _backgroundColor,
-      appBar: AppBar(
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF1B5E20), Color(0xFF2E7D32)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        automaticallyImplyLeading: true,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              "CHI TIẾT ĐƠN BÁN",
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: AppTextStyles.headline2.fontSize,
-              ),
-            ),
-            Text(
-              s.customerName,
-              style: TextStyle(
-                fontSize: AppTextStyles.body1.fontSize,
-                color: Colors.white70,
-              ),
-            ),
-          ],
+      appBar: CustomAppBar.build(
+        title: 'CHI TIẾT ĐƠN BÁN',
+        subtitle: s.customerName,
+        gradient: const LinearGradient(
+          colors: [Color(0xFF1B5E20), Color(0xFF2E7D32)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
         actions: [
           if (_checkingManager)

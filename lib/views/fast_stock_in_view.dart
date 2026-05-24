@@ -28,6 +28,7 @@ import '../widgets/currency_text_field.dart';
 import '../widgets/imei_scan_result_dialog.dart';
 import '../models/storage_location_model.dart';
 import '../widgets/storage_location_selector.dart';
+import '../widgets/custom_app_bar.dart';
 import '../widgets/image_picker_widget.dart';
 import 'quick_input_codes_view.dart';
 import 'pending_stock_list_view.dart';
@@ -1613,20 +1614,8 @@ class _FastStockInViewState extends State<FastStockInView> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF0068FF), Color(0xFF0084FF)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: const Text('Nhập Kho Nhanh'),
+      appBar: CustomAppBar.build(
+        title: 'Nhập Kho Nhanh',
         actions: [
           IconButton(
             onPressed: _selectFromLibrary,

@@ -9,6 +9,7 @@ import '../services/label_settings_service.dart';
 import '../services/notification_service.dart';
 import '../theme/app_text_styles.dart';
 import 'pty_print_designer_view.dart';
+import '../widgets/custom_app_bar.dart';
 
 /// Model cho từng element trong tem
 class LabelElement {
@@ -518,30 +519,10 @@ class _LabelDesignerViewState extends State<LabelDesignerView>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
-      appBar: AppBar(
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF0068FF), Color(0xFF0084FF)],
-            ),
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: Text(
-          'THIẾT KẾ TEM',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: AppTextStyles.headline3.fontSize,
-          ),
-        ),
-        bottom: TabBar(
+      appBar: CustomAppBar.build(
+        title: 'THIẾT KẾ TEM',
+        bottom: CustomTabBar.buildGradient(
           controller: _tabController,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          indicatorColor: Colors.white,
-          indicatorWeight: 3,
           tabs: const [
             Tab(icon: Icon(Icons.design_services, size: 18), text: 'Bố cục'),
             Tab(icon: Icon(Icons.store, size: 18), text: 'Thông tin Shop'),

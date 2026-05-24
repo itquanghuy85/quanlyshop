@@ -4,6 +4,7 @@ import '../../../expansion/safe_mode/expansion_feature_flags.dart';
 import '../../../expansion/safe_mode/expansion_module_services.dart';
 import '../../../expansion/safe_mode/crm_loyalty_repository.dart';
 import '../../../expansion/safe_mode/crm_loyalty_service.dart';
+import '../../../widgets/custom_app_bar.dart';
 
 class RedeemPointsView extends StatefulWidget {
   final String customerId;
@@ -161,7 +162,7 @@ class _RedeemPointsViewState extends State<RedeemPointsView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Đổi điểm')),
+      appBar: CustomAppBar.build(title: 'Đổi điểm'),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(

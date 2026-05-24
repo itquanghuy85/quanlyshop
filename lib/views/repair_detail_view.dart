@@ -54,6 +54,9 @@ import 'repair_invoice_template_view.dart';
 import 'repair_invoice_preview_view.dart';
 import '../widgets/storage_location_selector.dart';
 import '../models/storage_location_model.dart';
+import '../widgets/custom_app_bar.dart';
+import '../widgets/app_popup.dart';
+import '../theme/popup_theme.dart';
 
 class RepairDetailView extends StatefulWidget {
   final Repair repair;
@@ -2586,58 +2589,67 @@ class _RepairDetailViewState extends State<RepairDetailView> {
 
     if (parts.isEmpty) return;
 
-    // Show dialog to select which part to remove
-    final selectedIndex = await showDialog<int>(
+    // Show bottom sheet to select which part to remove
+    final selectedIndex = await showModalBottomSheet<int>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Row(
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: const BoxDecoration(
+          color: PopupTheme.bgDark,
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(PopupTheme.radiusSheet),
+          ),
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(Icons.delete_sweep, color: Colors.red),
-            SizedBox(width: 8),
-            Text('XÓA PHỤ TÙNG', style: TextStyle(fontSize: 17)),
+            const PopupDragHandle(),
+            const Row(
+              children: [
+                Icon(Icons.delete_sweep, color: Colors.red),
+                SizedBox(width: 8),
+                Text(
+                  'XÓA PHỤ TÙNG',
+                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Chọn phụ tùng cần xóa và trả lại kho:',
+              style: TextStyle(fontSize: 14, color: PopupTheme.textSecondary),
+            ),
+            const SizedBox(height: 12),
+            ...parts.asMap().entries.map((entry) {
+              return Card(
+                margin: const EdgeInsets.only(bottom: 6),
+                child: ListTile(
+                  dense: true,
+                  leading: const Icon(Icons.build, size: 18, color: Colors.blue),
+                  title: Text(
+                    entry.value,
+                    style: const TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.remove_circle, color: Colors.red),
+                    onPressed: () => Navigator.pop(ctx, entry.key),
+                  ),
+                ),
+              );
+            }),
+            const SizedBox(height: 4),
+            SizedBox(
+              width: double.infinity,
+              child: TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('ĐÓNG'),
+              ),
+            ),
           ],
         ),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Chọn phụ tùng cần xóa và trả lại kho:',
-                style: TextStyle(fontSize: 14),
-              ),
-              const SizedBox(height: 12),
-              ...parts.asMap().entries.map((entry) {
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 6),
-                  child: ListTile(
-                    dense: true,
-                    leading: const Icon(
-                      Icons.build,
-                      size: 18,
-                      color: Colors.blue,
-                    ),
-                    title: Text(
-                      entry.value,
-                      style: const TextStyle(fontWeight: FontWeight.w500),
-                    ),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.remove_circle, color: Colors.red),
-                      onPressed: () => Navigator.pop(ctx, entry.key),
-                    ),
-                  ),
-                );
-              }),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, null),
-            child: const Text('ĐÓNG'),
-          ),
-        ],
       ),
     );
 
@@ -3165,50 +3177,85 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       return;
     }
     final notesC = TextEditingController(text: r.notes ?? '');
-    final result = await showDialog<bool>(
+    final result = await showModalBottomSheet<bool>(
       context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
       builder: (ctx) {
-        final dialogLoc = AppLocalizations.of(ctx)!;
-        return AlertDialog(
-          title: Text(dialogLoc.techNotesTitle),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                dialogLoc.repairProcessNotes,
-                style: const TextStyle(fontSize: 13, color: Colors.grey),
+        final sheetLoc = AppLocalizations.of(ctx)!;
+        return Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
+          child: Container(
+            decoration: const BoxDecoration(
+              color: PopupTheme.bgDark,
+              borderRadius: BorderRadius.vertical(
+                top: Radius.circular(PopupTheme.radiusSheet),
               ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: notesC,
-                maxLines: 4,
-                textCapitalization: TextCapitalization.sentences,
-                decoration: InputDecoration(
-                  hintText: dialogLoc.techNotesHint,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+            ),
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const PopupDragHandle(),
+                Text(
+                  sheetLoc.techNotesTitle,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: PopupTheme.textPrimary,
                   ),
-                  filled: true,
-                  fillColor: Colors.grey.shade50,
                 ),
-              ),
-            ],
+                const SizedBox(height: 4),
+                Text(
+                  sheetLoc.repairProcessNotes,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: PopupTheme.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: notesC,
+                  maxLines: 4,
+                  autofocus: true,
+                  textCapitalization: TextCapitalization.sentences,
+                  decoration: InputDecoration(
+                    hintText: sheetLoc.techNotesHint,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(PopupTheme.radiusField),
+                    ),
+                    filled: true,
+                    fillColor: PopupTheme.surfaceDark,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(ctx, false),
+                        child: Text(sheetLoc.cancel),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      flex: 2,
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.pop(ctx, true),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orange,
+                          foregroundColor: Colors.white,
+                        ),
+                        child: Text(sheetLoc.save),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(dialogLoc.cancel),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
-                foregroundColor: Colors.white,
-              ),
-              child: Text(dialogLoc.save),
-            ),
-          ],
         );
       },
     );
@@ -3238,105 +3285,171 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     final addressC = TextEditingController(text: r.address);
     final notesC = TextEditingController(text: r.notes ?? '');
 
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showModalBottomSheet<bool>(
       context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
       builder: (ctx) {
-        final dialogLoc = AppLocalizations.of(ctx)!;
-        return AlertDialog(
-          title: Text(dialogLoc.editOrderInfoTitle),
-          content: SingleChildScrollView(
-            child: Form(
-              key: formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextFormField(
-                    controller: nameC,
-                    decoration: InputDecoration(
-                      labelText: dialogLoc.customerNameLabel,
-                    ),
-                    textCapitalization: TextCapitalization.characters,
-                  ),
-                  TextFormField(
-                    controller: phoneC,
-                    decoration: InputDecoration(
-                      labelText: r.isWalkIn
-                          ? '${dialogLoc.phoneLabel} (không bắt buộc)'
-                          : dialogLoc.phoneLabel,
-                    ),
-                    keyboardType: TextInputType.phone,
-                    validator: (v) {
-                      final text = v?.trim() ?? '';
-                      // Khách vãng lai không bắt buộc nhập SĐT
-                      if (r.isWalkIn && text.isEmpty) return null;
-                      if (text.isEmpty) return dialogLoc.phoneRequired2;
-                      final err = UserService.validatePhone(text, dialogLoc);
-                      return err;
-                    },
-                  ),
-                  TextFormField(
-                    controller: modelC,
-                    decoration: InputDecoration(
-                      labelText: dialogLoc.deviceModelLabel,
-                    ),
-                    textCapitalization: TextCapitalization.characters,
-                    validator: (v) => (v?.trim().isEmpty ?? true)
-                        ? dialogLoc.enterModelRequired
-                        : null,
-                  ),
-                  TextFormField(
-                    controller: issueC,
-                    decoration: InputDecoration(
-                      labelText: dialogLoc.deviceIssueLabel,
-                    ),
-                    textCapitalization: TextCapitalization.characters,
-                    validator: (v) => (v?.trim().isEmpty ?? true)
-                        ? dialogLoc.enterIssueRequired
-                        : null,
-                  ),
-                  TextFormField(
-                    controller: accC,
-                    decoration: InputDecoration(
-                      labelText: dialogLoc.accessoriesIncludedLabel,
-                    ),
-                    textCapitalization: TextCapitalization.characters,
-                  ),
-                  TextFormField(
-                    controller: warrantyC,
-                    decoration: InputDecoration(
-                      labelText: dialogLoc.warrantyLabel2,
-                    ),
-                    textCapitalization: TextCapitalization.characters,
-                  ),
-                  TextFormField(
-                    controller: addressC,
-                    decoration: InputDecoration(
-                      labelText: dialogLoc.addressLabel2,
-                    ),
-                    textCapitalization: TextCapitalization.characters,
-                  ),
-                  TextFormField(
-                    controller: notesC,
-                    decoration: InputDecoration(labelText: dialogLoc.note),
-                    maxLines: 2,
-                  ),
-                ],
+        final sheetLoc = AppLocalizations.of(ctx)!;
+        return Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
+          child: Container(
+            decoration: const BoxDecoration(
+              color: PopupTheme.bgDark,
+              borderRadius: BorderRadius.vertical(
+                top: Radius.circular(PopupTheme.radiusSheet),
               ),
             ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const PopupDragHandle(),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.edit_note,
+                        size: 20,
+                        color: PopupTheme.blue,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        sheetLoc.editOrderInfoTitle,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: PopupTheme.textPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Flexible(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                    child: Form(
+                      key: formKey,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          TextFormField(
+                            controller: nameC,
+                            decoration: InputDecoration(
+                              labelText: sheetLoc.customerNameLabel,
+                            ),
+                            textCapitalization: TextCapitalization.characters,
+                          ),
+                          const SizedBox(height: 10),
+                          TextFormField(
+                            controller: phoneC,
+                            decoration: InputDecoration(
+                              labelText: r.isWalkIn
+                                  ? '${sheetLoc.phoneLabel} (không bắt buộc)'
+                                  : sheetLoc.phoneLabel,
+                            ),
+                            keyboardType: TextInputType.phone,
+                            validator: (v) {
+                              final text = v?.trim() ?? '';
+                              if (r.isWalkIn && text.isEmpty) return null;
+                              if (text.isEmpty) return sheetLoc.phoneRequired2;
+                              return UserService.validatePhone(text, sheetLoc);
+                            },
+                          ),
+                          const SizedBox(height: 10),
+                          TextFormField(
+                            controller: modelC,
+                            decoration: InputDecoration(
+                              labelText: sheetLoc.deviceModelLabel,
+                            ),
+                            textCapitalization: TextCapitalization.characters,
+                            validator: (v) => (v?.trim().isEmpty ?? true)
+                                ? sheetLoc.enterModelRequired
+                                : null,
+                          ),
+                          const SizedBox(height: 10),
+                          TextFormField(
+                            controller: issueC,
+                            decoration: InputDecoration(
+                              labelText: sheetLoc.deviceIssueLabel,
+                            ),
+                            textCapitalization: TextCapitalization.characters,
+                            validator: (v) => (v?.trim().isEmpty ?? true)
+                                ? sheetLoc.enterIssueRequired
+                                : null,
+                          ),
+                          const SizedBox(height: 10),
+                          TextFormField(
+                            controller: accC,
+                            decoration: InputDecoration(
+                              labelText: sheetLoc.accessoriesIncludedLabel,
+                            ),
+                            textCapitalization: TextCapitalization.characters,
+                          ),
+                          const SizedBox(height: 10),
+                          TextFormField(
+                            controller: warrantyC,
+                            decoration: InputDecoration(
+                              labelText: sheetLoc.warrantyLabel2,
+                            ),
+                            textCapitalization: TextCapitalization.characters,
+                          ),
+                          const SizedBox(height: 10),
+                          TextFormField(
+                            controller: addressC,
+                            decoration: InputDecoration(
+                              labelText: sheetLoc.addressLabel2,
+                            ),
+                            textCapitalization: TextCapitalization.characters,
+                          ),
+                          const SizedBox(height: 10),
+                          TextFormField(
+                            controller: notesC,
+                            decoration: InputDecoration(
+                              labelText: sheetLoc.note,
+                            ),
+                            maxLines: 2,
+                          ),
+                          const SizedBox(height: 20),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(ctx, false),
+                          child: Text(sheetLoc.cancelButton),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        flex: 2,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            if (!(formKey.currentState?.validate() ?? false)) {
+                              return;
+                            }
+                            Navigator.pop(ctx, true);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: PopupTheme.blue,
+                            foregroundColor: Colors.white,
+                          ),
+                          child: Text(sheetLoc.saveButton),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(dialogLoc.cancelButton),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                if (!(formKey.currentState?.validate() ?? false)) return;
-                Navigator.pop(ctx, true);
-              },
-              child: Text(dialogLoc.saveButton),
-            ),
-          ],
         );
       },
     );
@@ -3360,7 +3473,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
   Widget build(BuildContext context) {
     if (!_hasPermission) {
       return Scaffold(
-        appBar: AppBar(title: Text(loc.repairDetailTitle)),
+        appBar: CustomAppBar.build(title: loc.repairDetailTitle),
         body: Center(
           child: Text(
             loc.noAccessPermission,
@@ -3383,47 +3496,9 @@ class _RepairDetailViewState extends State<RepairDetailView> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        toolbarHeight: kToolbarHeight,
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                const Color(0xFF2962FF),
-                const Color(0xFF2962FF).withOpacity(0.7),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        title: Tooltip(
-          message: loc.trackRepairProgress,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                loc.repairOrderDetail,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 17,
-                ),
-              ),
-              Text(
-                r.model,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: Colors.white70,
-                ),
-                overflow: TextOverflow.ellipsis,
-                maxLines: 1,
-              ),
-            ],
-          ),
-        ),
-        automaticallyImplyLeading: true,
+      appBar: CustomAppBar.build(
+        title: loc.repairOrderDetail,
+        subtitle: r.model,
         actions: [
           IconButton(
             onPressed: _shareToZalo,
@@ -4142,6 +4217,9 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         color = Colors.grey;
         icon = Icons.help_outline;
     }
+    final isLocalOnly = (r.firestoreId ?? '').trim().isEmpty;
+    final isPendingSync = !r.isSynced || isLocalOnly;
+
     return Row(
       children: [
         Icon(icon, color: color, size: 28),
@@ -4181,6 +4259,47 @@ class _RepairDetailViewState extends State<RepairDetailView> {
             ],
           ),
         ),
+        // Sync state badge
+        if (isPendingSync)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+            decoration: BoxDecoration(
+              color: Colors.orange.shade50,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.orange.shade300),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.cloud_off_rounded, size: 11, color: Colors.orange.shade700),
+                const SizedBox(width: 3),
+                Text(
+                  isLocalOnly ? 'Chỉ local' : 'Chờ sync',
+                  style: TextStyle(fontSize: 10, color: Colors.orange.shade700, fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+          )
+        else
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+            decoration: BoxDecoration(
+              color: Colors.green.shade50,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.green.shade200),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.cloud_done_rounded, size: 11, color: Colors.green.shade600),
+                const SizedBox(width: 3),
+                Text(
+                  'Đã sync',
+                  style: TextStyle(fontSize: 10, color: Colors.green.shade700, fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+          ),
       ],
     );
   }

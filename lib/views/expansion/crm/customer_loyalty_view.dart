@@ -5,6 +5,7 @@ import '../../../expansion/safe_mode/crm_loyalty_models.dart';
 import '../../../expansion/safe_mode/crm_loyalty_service.dart';
 import 'redeem_points_view.dart';
 import 'loyalty_history_view.dart';
+import '../../../widgets/custom_app_bar.dart';
 
 class CustomerLoyaltyView extends StatefulWidget {
   final String customerId;
@@ -189,7 +190,7 @@ class _CustomerLoyaltyViewState extends State<CustomerLoyaltyView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Điểm thành viên')),
+      appBar: CustomAppBar.build(title: 'Điểm thành viên'),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : !widget.flags.enableCRM

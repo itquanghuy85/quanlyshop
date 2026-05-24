@@ -7,8 +7,8 @@ import '../services/claims_service.dart';
 import '../services/firestore_service.dart';
 import '../services/super_admin_security_service.dart';
 import '../services/user_service.dart';
-import '../theme/app_text_styles.dart';
 import '../widgets/responsive_wrapper.dart';
+import '../widgets/custom_app_bar.dart';
 import '../l10n/app_localizations.dart';
 
 enum _AdminSection {
@@ -417,11 +417,8 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
       onPanDown: (_) => SuperAdminSecurityService.touchActivity(),
       child: Scaffold(
         backgroundColor: const Color(0xFFF7FAFF),
-        appBar: AppBar(
-          title: Text(
-            'SUPER ADMIN CONSOLE',
-            style: TextStyle(fontSize: AppTextStyles.headline4.fontSize),
-          ),
+        appBar: CustomAppBar.build(
+          title: 'SUPER ADMIN CONSOLE',
           actions: [
             IconButton(
               onPressed: () => setState(() {}),

@@ -16,6 +16,7 @@ import '../models/shop_settings_model.dart';
 import '../widgets/gradient_fab.dart';
 import 'smart_stock_in_view.dart';
 import 'inventory_view.dart';
+import '../widgets/custom_app_bar.dart';
 import 'package:intl/intl.dart';
 import '../utils/money_utils.dart';
 
@@ -323,17 +324,16 @@ class _PendingStockListViewState extends State<PendingStockListView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        titleSpacing: 8,
-        title: Row(
+      appBar: CustomAppBar.build(
+        title: 'XÁC NHẬN NHẬP VÀO KHO',
+        titleWidget: Row(
           children: [
-            Expanded(
+            const Expanded(
               child: Text(
                 'XÁC NHẬN NHẬP VÀO KHO',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: AppTextStyles.headline3.fontSize,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
                 ),
@@ -348,8 +348,7 @@ class _PendingStockListViewState extends State<PendingStockListView> {
               ),
               child: Text(
                 '${_filteredEntries.length}',
-                style: TextStyle(
-                  fontSize: AppTextStyles.subtitle1.fontSize,
+                style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
                 ),
@@ -357,18 +356,6 @@ class _PendingStockListViewState extends State<PendingStockListView> {
             ),
           ],
         ),
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF0068FF), Color(0xFF0084FF)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        elevation: 0,
         actions: [
           IconButton(
             onPressed: _openInventoryShortcut,
