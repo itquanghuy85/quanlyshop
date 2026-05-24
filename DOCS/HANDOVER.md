@@ -12,7 +12,7 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Analyze Status:** ⚠️ `flutter analyze` còn `1552` issues pre-existing  
 **Database Version:** SQLite v17  
 **Branch:** master  
-**Active Initiative:** 🤖 Hoàn thiện Industry Vocabulary Engine + hardening luồng AI context/token
+**Active Initiative:** 🤖 Hardening P0 luồng AI cloud (context tối thiểu, mask PII, safe logging)
 
 ---
 
@@ -21,6 +21,24 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Phase đang thực hiện:** Chưa bắt đầu (chuẩn bị khởi động Phase 01)  
 **Tài liệu đã khởi tạo:** Toàn bộ `docs/` structure  
 **Tiến độ:** 0 / 8 phases hoàn thành
+
+---
+
+## ✅ Vừa hoàn thành (2026-05-25)
+
+1. **Triển khai Hardening P0 cho AI cloud functions (2026-05-25)**
+  - `functions/index.js`:
+    - Áp dụng phân loại intent cho `chatAssistant` và chỉ gửi context tối thiểu theo intent.
+    - Mask PII trong question/history trước khi gửi lên model.
+    - Giảm lịch sử hội thoại gửi AI từ 10 xuống 6 turns.
+    - Bỏ hoàn toàn log thô prompt/answer; thay bằng telemetry an toàn (requestId, len, latency, intent).
+    - Bỏ log text/raw result ở `createRepairOrderAI` và `parseOrderAI`.
+  - Mục tiêu đạt được: giảm rủi ro lộ dữ liệu qua context/log và giảm token không cần thiết.
+
+2. **Validation kỹ thuật cho hardening P0 (2026-05-25)**
+  - `node --check functions/index.js`: pass.
+  - `flutter analyze`: chạy xong, còn `1525` warning/info legacy toàn repo.
+  - `flutter build apk --debug`: thành công.
 
 ---
 

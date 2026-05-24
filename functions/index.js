@@ -1798,7 +1798,9 @@ exports.createRepairOrderAI = onCall(
 
     // 4. Gọi DeepSeek
     const apiKey = deepseekApiKey.value();
-    console.log(`🤖 createRepairOrderAI uid=${uid} text="${text.substring(0, 60)}..."`);
+    const requestId = createSafeRequestId(uid);
+    const startedAt = Date.now();
+    console.log(`🤖 createRepairOrderAI.start rid=${requestId} uid=${uid} text_len=${text.length}`);
 
     const rawContent = await callDeepSeek(apiKey, text);
     if (!rawContent) {
@@ -1807,7 +1809,7 @@ exports.createRepairOrderAI = onCall(
 
     // 5. Parse & trả kết quả
     const result = parseAiRepairResult(rawContent);
-    console.log(`✅ createRepairOrderAI result:`, JSON.stringify(result));
+    console.log(`✅ createRepairOrderAI.done rid=${requestId} uid=${uid} intent=${result.intent} latency_ms=${Date.now() - startedAt}`);
 
     return { success: true, data: result };
   }
@@ -2015,7 +2017,9 @@ exports.parseOrderAI = onCall(
       : "";
 
     const userText = hintPrefix + text;
-    console.log(`🤖 parseOrderAI uid=${uid} hint=${hintMode} text="${text.substring(0, 80)}"`);
+    const requestId = createSafeRequestId(uid);
+    const startedAt = Date.now();
+    console.log(`🤖 parseOrderAI.start rid=${requestId} uid=${uid} hint=${hintMode || "none"} text_len=${text.length}`);
 
     // 6. Call DeepSeek (reuse existing callDeepSeek with universal prompt)
     const apiKey = deepseekApiKey.value();
@@ -2090,7 +2094,7 @@ exports.parseOrderAI = onCall(
 
     // 7. Parse & sanitise
     const result = _parseUniversalResult(rawContent, hintMode);
-    console.log(`✅ parseOrderAI: intent=${result.intent}`);
+    console.log(`✅ parseOrderAI.done rid=${requestId} uid=${uid} hint=${hintMode || "none"} intent=${result.intent} latency_ms=${Date.now() - startedAt}`);
 
     // 8. Store in server cache (fire-and-forget)
     _setCachedResult(hash, result);
@@ -2193,6 +2197,109 @@ async function callDeepSeekChat(apiKey, messages, attempt = 1) {
   }
 }
 
+function createSafeRequestId(uid) {
+  const base = `${uid}-${Date.now()}-${Math.random()}`;
+  return crypto.createHash("md5").update(base).digest("hex").slice(0, 12);
+}
+
+function normalizeForIntent(text) {
+  return String(text || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function detectChatIntent(question) {
+  const q = normalizeForIntent(question);
+
+  if (/\b(kho|ton kho|linh kien|phu kien|gia von|hang ton)\b/.test(q)) return "stock";
+  if (/\b(cong no|khach no|ncc no|no phai thu|no phai tra|doi soat no)\b/.test(q)) return "debt";
+  if (/\b(doanh thu|loi nhuan|thu chi|tai chinh|bao cao|tong hop|thang nay|nam nay)\b/.test(q)) return "finance";
+  if (/\b(don sua|sua chua|bao hanh|dang sua|cho giao|da giao may)\b/.test(q)) return "repair";
+  if (/\b(ban hang|hoa don|don ban|tra gop|doanh so)\b/.test(q)) return "sales";
+  return "general";
+}
+
+function maskPii(text) {
+  if (!text) return "";
+  return String(text)
+    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, "[EMAIL]")
+    .replace(/(\+?84|0)\d{8,10}/g, "[PHONE]")
+    .replace(/\b\d{8,}\b/g, "[NUMBER]")
+    .replace(/\bkhach\s+[^\n,.;:]+/gi, "khach [MASKED]");
+}
+
+function sanitizeHistory(history) {
+  if (!Array.isArray(history)) return [];
+  const out = [];
+  for (const turn of history.slice(-6)) {
+    if (!turn || !turn.role || !turn.content) continue;
+    const safeRole = ["user", "assistant", "system"].includes(turn.role) ? turn.role : "user";
+    out.push({ role: safeRole, content: maskPii(String(turn.content).substring(0, 280)) });
+  }
+  return out;
+}
+
+function buildStatsContextByIntent(intent, s, fmt) {
+  const compactToday = [
+    `• Doanh thu hôm nay: ${fmt(s.revenueToday)}`,
+    `• Lợi nhuận hôm nay: ${fmt(s.profitToday)}`,
+    `• Bán hàng: ${s.salesToday ?? 0} đơn`,
+    `• Sửa chữa đang chờ: ${s.repairsPending ?? 0} đơn`,
+  ];
+
+  if (intent === "stock") {
+    return [
+      "=== KHO ===",
+      `• Tồn kho: ${s.stockCount ?? 0} sản phẩm`,
+      `• Giá vốn tồn: ${fmt(s.stockCapital)}`,
+    ].join("\n");
+  }
+
+  if (intent === "debt") {
+    return [
+      "=== CÔNG NỢ ===",
+      `• Phải thu: ${fmt(s.debtReceivable)}`,
+      `• Phải trả: ${fmt(s.debtPayable)}`,
+    ].join("\n");
+  }
+
+  if (intent === "repair") {
+    return [
+      "=== SỬA CHỮA ===",
+      `• Đơn mới hôm nay: ${s.repairsToday ?? 0}`,
+      `• Đã giao hôm nay: ${s.deliveredRepairsToday ?? 0}`,
+      `• Đang chờ giao: ${s.repairsPending ?? 0}`,
+      `• Doanh thu sửa hôm nay: ${fmt(s.repairRevenueToday)}`,
+    ].join("\n");
+  }
+
+  if (intent === "sales") {
+    return [
+      "=== BÁN HÀNG ===",
+      `• Đơn bán hôm nay: ${s.salesToday ?? 0}`,
+      `• Doanh thu bán hôm nay: ${fmt(s.saleRevenueToday ?? s.revenueToday)}`,
+      `• Đơn bán tháng này: ${s.salesThisMonth ?? 0}`,
+      `• Doanh thu bán tháng này: ${fmt(s.saleRevenueThisMonth ?? 0)}`,
+    ].join("\n");
+  }
+
+  if (intent === "finance") {
+    return [
+      "=== TÀI CHÍNH ===",
+      ...compactToday,
+      "\n=== THÁNG NÀY ===",
+      `• Doanh thu tháng: ${fmt(s.revenueThisMonth)}`,
+      `• Lợi nhuận tháng: ${fmt(s.profitThisMonth)}`,
+      `• Bán hàng: ${s.salesThisMonth ?? 0} đơn (${fmt(s.saleRevenueThisMonth ?? 0)})`,
+      `• Sửa chữa: ${s.repairsThisMonth ?? 0} đơn (${fmt(s.repairRevenueThisMonth ?? 0)})`,
+      `• Công nợ phải thu: ${fmt(s.debtReceivable)} | Phải trả: ${fmt(s.debtPayable)}`,
+    ].join("\n");
+  }
+
+  return ["=== TỔNG QUAN ===", ...compactToday].join("\n");
+}
+
 exports.chatAssistant = onCall(
   {
     secrets: [deepseekApiKey],
@@ -2231,6 +2338,8 @@ exports.chatAssistant = onCall(
       throw new HttpsError("invalid-argument", "Câu hỏi không được để trống.");
     }
     const q = question.trim().substring(0, 500); // giới hạn độ dài
+    const requestId = createSafeRequestId(uid);
+    const intent = detectChatIntent(q);
 
     // 4. Build stats context string
     const fmt = (n) => {
@@ -2240,38 +2349,7 @@ exports.chatAssistant = onCall(
       return `${num.toLocaleString("vi-VN")}đ`;
     };
     const s = stats ?? {};
-
-    const todayLines = [
-      `• Bán hàng: ${s.salesToday ?? 0} đơn | Doanh thu bán: ${fmt(s.saleRevenueToday ?? s.revenueToday)}`,
-      `• Sửa chữa đã giao: ${s.deliveredRepairsToday ?? 0} đơn | Doanh thu sửa: ${fmt(s.repairRevenueToday)}`,
-      `• Tổng doanh thu hôm nay: ${fmt(s.revenueToday)} | Lợi nhuận: ${fmt(s.profitToday)}`,
-      `• Đơn sửa chữa: ${s.repairsToday ?? 0} đơn mới tạo | Đang chờ giao: ${s.repairsPending ?? 0} đơn`,
-      `• Tồn kho: ${s.stockCount ?? 0} sản phẩm | Giá vốn tồn: ${fmt(s.stockCapital)}`,
-      `• Công nợ phải thu: ${fmt(s.debtReceivable)} | Phải trả: ${fmt(s.debtPayable)}`,
-    ];
-
-    const monthLines = (s.salesThisMonth != null || s.revenueThisMonth != null) ? [
-      `• Bán hàng: ${s.salesThisMonth ?? 0} đơn (${fmt(s.saleRevenueThisMonth ?? 0)})`,
-      `• Sửa chữa đã giao tháng này: ${fmt(s.repairRevenueThisMonth ?? 0)}`,
-      `• Tổng doanh thu tháng: ${fmt(s.revenueThisMonth)} | Lợi nhuận: ${fmt(s.profitThisMonth)}`,
-      `• Đơn sửa chữa tạo tháng này: ${s.repairsThisMonth ?? 0} đơn`,
-    ] : [];
-
-    const debtorSection = Array.isArray(s.topDebtorLines) && s.topDebtorLines.length > 0
-      ? `\nTop khách nợ nhiều nhất:\n${s.topDebtorLines.map(l => `  ${l}`).join("\n")}`
-      : "";
-
-    const repairSection = Array.isArray(s.repairSummaries) && s.repairSummaries.length > 0
-      ? `\nCác đơn sửa hôm nay:\n${s.repairSummaries.slice(0, 10).map((r, i) => `  ${i + 1}. ${r}`).join("\n")}`
-      : "";
-
-    const statsContext = [
-      "=== HÔM NAY ===",
-      ...todayLines,
-      ...(monthLines.length > 0 ? ["\n=== THÁNG NÀY ===", ...monthLines] : []),
-      debtorSection,
-      repairSection,
-    ].filter(Boolean).join("\n");
+    const statsContext = buildStatsContextByIntent(intent, s, fmt);
 
     // 5. Build messages array
     const systemWithContext = `${CHAT_SYSTEM_PROMPT}
@@ -2282,20 +2360,19 @@ ${statsContext}
 
     const messages = [{ role: "system", content: systemWithContext }];
 
-    // Append conversation history (max 10 turns)
-    if (Array.isArray(history)) {
-      for (const turn of history.slice(-10)) {
-        if (turn.role && turn.content) {
-          messages.push({ role: turn.role, content: String(turn.content).substring(0, 400) });
-        }
-      }
+    const safeHistory = sanitizeHistory(history);
+
+    // Append sanitized conversation history (max 6 turns)
+    for (const turn of safeHistory) {
+      messages.push(turn);
     }
 
     // Append current question
-    messages.push({ role: "user", content: q });
+    messages.push({ role: "user", content: maskPii(q) });
 
     // 6. Call DeepSeek
-    console.log(`🤖 chatAssistant uid=${uid} q="${q.substring(0, 60)}"`);
+    const startedAt = Date.now();
+    console.log(`🤖 chatAssistant.start rid=${requestId} uid=${uid} intent=${intent} q_len=${q.length} hist=${safeHistory.length}`);
     const apiKey = deepseekApiKey.value();
     const answer = await callDeepSeekChat(apiKey, messages);
 
@@ -2303,7 +2380,7 @@ ${statsContext}
       throw new HttpsError("internal", "AI không trả lời được. Hãy thử lại.");
     }
 
-    console.log(`✅ chatAssistant: ${answer.substring(0, 80)}`);
+    console.log(`✅ chatAssistant.done rid=${requestId} uid=${uid} intent=${intent} answer_len=${answer.length} latency_ms=${Date.now() - startedAt}`);
     return { answer };
   }
 );

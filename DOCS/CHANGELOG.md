@@ -4,6 +4,25 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-05-25d] - Hardening P0 AI: Context Tối Thiểu + Mask PII + Safe Logging
+
+### Changed
+- `functions/index.js`
+	- Thêm lớp hardening P0 cho `chatAssistant`:
+		- `detectChatIntent()` để phân loại intent câu hỏi.
+		- `buildStatsContextByIntent()` để chỉ gửi context tối thiểu theo intent (kho/công nợ/tài chính/sửa/bán/tổng quan), loại bỏ context chi tiết không cần thiết.
+		- `maskPii()` + `sanitizeHistory()` để ẩn số điện thoại/email/số dài và giảm lịch sử từ 10 xuống 6 turns.
+	- Thay toàn bộ log thô prompt/answer bằng telemetry an toàn:
+		- `requestId`, `uid`, `intent`, `q_len`, `answer_len`, `latency_ms`.
+	- Bỏ log thô ở các AI callable khác:
+		- `createRepairOrderAI`: không log nội dung text/result JSON nữa.
+		- `parseOrderAI`: không log text người dùng nữa.
+
+### Validation
+- `node --check functions/index.js`: ✅ hợp lệ cú pháp JavaScript.
+- `flutter analyze`: hoàn tất với warning/info legacy toàn repo (`1525 issues`), không phát sinh compile error mới từ task này.
+- `flutter build apk --debug`: ✅ thành công, tạo `build/app/outputs/flutter-apk/app-debug.apk`.
+
 ## [2026-05-25c] - Hoàn Tất Industry Vocabulary Engine + Audit Rủi Ro AI
 
 ### Added
