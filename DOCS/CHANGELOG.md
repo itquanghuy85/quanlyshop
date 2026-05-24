@@ -4,6 +4,15 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-05-24b] — Premium Product Chip + Staff Link + Draggable AI FAB
+
+### Changed
+- `lib/widgets/clickable_product_chip.dart` — Redesign từ nền xanh phẳng sang gradient dark-navy→blue, icon box frosted-glass, badge QR serial, shadow — giao diện premium hơn
+- `lib/views/sale_detail_view.dart` — Row "Nhân viên" tappable, bấm vào mở `StaffPublicProfileView` theo `sellerUid`
+- `lib/widgets/ai_chat_overlay.dart` — FAB AI có thể kéo thả (drag) để di chuyển trên màn hình; vị trí mặc định bottom-right; khóa drag khi panel đang mở
+
+---
+
 ## [2026-05-24] — Fix NCC Detail + AI Overlay + NCC Tappable Links
 
 ### Fixed
