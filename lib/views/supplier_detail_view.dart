@@ -38,7 +38,6 @@ class _SupplierDetailViewState extends State<SupplierDetailView> with TickerProv
   List<Map<String, dynamic>> _imports = [];
   List<Map<String, dynamic>> _debts = [];
   List<Map<String, dynamic>> _payments = [];
-  Map<String, dynamic> _stats = {};
   List<Product> _products = [];
   bool _loading = true;
   String? _shopId;
@@ -58,20 +57,18 @@ class _SupplierDetailViewState extends State<SupplierDetailView> with TickerProv
     try {
       _shopId ??= await UserService.getCurrentShopId();
       // Truyền cả supplierId và supplierName để tìm được cả các record lưu với supplierId = 0
+      final isWarehouse = widget.supplier.type == 'warehouse';
       final results = await Future.wait([
         _db.getSupplierImportHistory(
           widget.supplier.id!,
           supplierName: widget.supplier.name,
         ),
         _db.getAllDebts(),
-        _service.getSupplierStatistics(
-          widget.supplier.id!.toString(),
-          supplierName: widget.supplier.name,
-        ),
         if (_shopId != null)
           _db.getProductsBySupplier(
             _shopId!,
             supplierName: widget.supplier.name,
+            isWarehouse: isWarehouse,
           )
         else
           Future.value(<Product>[]),
@@ -79,8 +76,7 @@ class _SupplierDetailViewState extends State<SupplierDetailView> with TickerProv
 
       final imports = results[0] as List<Map<String, dynamic>>;
       final allDebts = results[1] as List<Map<String, dynamic>>;
-      final stats = results[2] as Map<String, dynamic>;
-      final products = results[3] as List<Product>;
+      final products = results[2] as List<Product>;
 
       final debts = allDebts
           .where((d) =>
@@ -100,7 +96,6 @@ class _SupplierDetailViewState extends State<SupplierDetailView> with TickerProv
         _imports = imports;
         _debts = debts;
         _payments = payments;
-        _stats = stats;
         _products = products;
         _loading = false;
       });
@@ -275,30 +270,63 @@ class _SupplierDetailViewState extends State<SupplierDetailView> with TickerProv
   }
 
   Widget _buildImportTab() {
-    if (_imports.isEmpty) {
+    if (_imports.isEmpty && _debts.isEmpty) {
       return Center(child: Text('Chưa có lịch sử nhập', style: AppTextStyles.body1));
     }
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: _imports.length,
-      itemBuilder: (ctx, i) {
-        final h = _imports[i];
-        final date = DateFormat('dd/MM/yyyy').format(DateTime.fromMillisecondsSinceEpoch(h['importDate'] as int? ?? 0));
-        return Card(
+
+    final List<Widget> items = [];
+
+    // Formal import records from supplier_import_history
+    for (final h in _imports) {
+      final date = DateFormat('dd/MM/yyyy').format(DateTime.fromMillisecondsSinceEpoch(h['importDate'] as int? ?? 0));
+      items.add(Card(
+        child: ListTile(
+          leading: const Icon(Icons.inventory_2_outlined, color: Colors.blue),
+          title: Text(h['productName'] ?? 'Sản phẩm', style: AppTextStyles.body1.copyWith(fontWeight: FontWeight.bold)),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Ngày: $date', style: AppTextStyles.caption),
+              Text('Số tiền: ${MoneyUtils.formatCurrency(h['totalAmount'] as int? ?? 0)}', style: AppTextStyles.caption),
+              if (h['notes'] != null) Text('Ghi chú: ${h['notes']}', style: AppTextStyles.caption),
+            ],
+          ),
+        ),
+      ));
+    }
+
+    // When no formal imports, show debts (SHOP_OWES = supplier import events)
+    if (_imports.isEmpty) {
+      for (final d in _debts) {
+        final date = DateFormat('dd/MM/yyyy').format(DateTime.fromMillisecondsSinceEpoch(d['createdAt'] as int? ?? 0));
+        final note = (d['note'] as String? ?? '').trim();
+        final amount = d['totalAmount'] as int? ?? 0;
+        items.add(Card(
           child: ListTile(
-            title: Text(h['productName'] ?? 'Sản phẩm', style: AppTextStyles.body1.copyWith(fontWeight: FontWeight.bold)),
+            leading: const Icon(Icons.receipt_long, color: Colors.orange),
+            title: Text(note.isNotEmpty ? note : 'Nhập hàng', style: AppTextStyles.body1.copyWith(fontWeight: FontWeight.bold)),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('Ngày: $date', style: AppTextStyles.caption),
-                Text('Số tiền: ${MoneyUtils.formatCurrency(h['totalAmount'] as int? ?? 0)}', style: AppTextStyles.caption),
-                if (h['notes'] != null) Text('Ghi chú: ${h['notes']}', style: AppTextStyles.caption),
+                Text('Số tiền: ${MoneyUtils.formatCurrency(amount)}', style: AppTextStyles.caption),
               ],
             ),
+            trailing: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange.shade200),
+              ),
+              child: Text('Ghi nợ', style: AppTextStyles.caption.copyWith(color: Colors.orange.shade700)),
+            ),
           ),
-        );
-      },
-    );
+        ));
+      }
+    }
+
+    return ListView(padding: const EdgeInsets.all(16), children: items);
   }
 
   Widget _buildDebtTab() {
@@ -340,9 +368,10 @@ class _SupplierDetailViewState extends State<SupplierDetailView> with TickerProv
   }
 
   Widget _buildStatsTab() {
-    final totalImport = (_stats['totalImportValue'] as num?)?.toInt() ?? 0;
-    final totalPaid = (_stats['totalPaid'] as num?)?.toInt() ?? 0;
-    final totalImports = (_stats['totalImports'] as num?)?.toInt() ?? 0;
+    // Compute directly from loaded debts (debts = how imports are tracked in this app)
+    final totalImport = _totalDebt;
+    final totalPaid = _paidDebt;
+    final totalImports = _debts.length;
     final avg = totalImports == 0 ? 0 : (totalImport / totalImports).round();
     return Padding(
       padding: const EdgeInsets.all(16),

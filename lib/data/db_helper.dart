@@ -5585,6 +5585,21 @@ class DBHelper {
     return res;
   }
 
+  /// Find a single supplier by name (case-insensitive) in the current shop.
+  Future<Map<String, dynamic>?> getSupplierByName(String name) async {
+    final db = await database;
+    final shopId = await _getScopedShopId('getSupplierByName');
+    if (shopId == null) return null;
+    final res = await db.query(
+      'suppliers',
+      where:
+          'shopId = ? AND UPPER(name) = ? AND (deleted = 0 OR deleted IS NULL)',
+      whereArgs: [shopId, name.trim().toUpperCase()],
+      limit: 1,
+    );
+    return res.isNotEmpty ? res.first : null;
+  }
+
   /// Dọn dẹp NCC trùng lặp - giữ lại bản có firestoreId, xóa bản duplicate
   Future<int> deduplicateSuppliers() async {
     final db = await database;
@@ -10722,21 +10737,33 @@ class DBHelper {
   }
 
   /// Returns all in-stock products linked to a supplier (matched by supplier name).
+  /// For warehouse-type suppliers, also includes products with no supplier set.
   Future<List<Product>> getProductsBySupplier(
     String shopId, {
     required String supplierName,
     String? supplierId, // kept for API compat, unused (no supplierId column)
+    bool isWarehouse = false,
     int page = 0,
     int pageSize = 30,
   }) async {
     final db = await database;
     final offset = page * pageSize;
     final nameUpper = supplierName.toUpperCase();
+    final String where;
+    final List<dynamic> whereArgs;
+    if (isWarehouse) {
+      where =
+          'shopId = ? AND (deleted = 0 OR deleted IS NULL) AND status != 0 AND (UPPER(supplier) = ? OR supplier IS NULL OR supplier = \'\')';
+      whereArgs = [shopId, nameUpper];
+    } else {
+      where =
+          'shopId = ? AND (deleted = 0 OR deleted IS NULL) AND status != 0 AND UPPER(supplier) = ?';
+      whereArgs = [shopId, nameUpper];
+    }
     final rows = await db.query(
       'products',
-      where:
-          'shopId = ? AND (deleted = 0 OR deleted IS NULL) AND status != 0 AND UPPER(supplier) = ?',
-      whereArgs: [shopId, nameUpper],
+      where: where,
+      whereArgs: whereArgs,
       orderBy: 'createdAt DESC',
       limit: pageSize,
       offset: offset,

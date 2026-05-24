@@ -385,26 +385,21 @@ class _AiChatOverlayState extends State<AiChatOverlay>
           begin: const Offset(0, 1),
           end: Offset.zero,
         ).animate(_slide),
-        child: Container(
-          height: panelH,
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black26,
-                blurRadius: 20,
-                offset: Offset(0, -4),
-              ),
-            ],
-          ),
-          child: Column(
-            children: [
-              _buildPanelHeader(),
-              _buildChips(),
-              Expanded(child: _buildMessageList()),
-              _buildInput(mq),
-            ],
+        child: Material(
+          color: Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          elevation: 12,
+          shadowColor: Colors.black38,
+          child: SizedBox(
+            height: panelH,
+            child: Column(
+              children: [
+                _buildPanelHeader(),
+                _buildChips(),
+                Expanded(child: _buildMessageList()),
+                _buildInput(mq),
+              ],
+            ),
           ),
         ),
       ),

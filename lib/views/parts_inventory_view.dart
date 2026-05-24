@@ -22,7 +22,9 @@ import '../models/shop_settings_model.dart';
 import '../services/category_service.dart';
 import '../services/business_type_helper.dart';
 import '../utils/vietnamese_utils.dart';
+import '../models/supplier_model.dart';
 import '../services/supplier_service.dart';
+import 'supplier_detail_view.dart';
 import 'supplier_form_view.dart';
 import '../models/storage_location_model.dart';
 import '../widgets/storage_location_selector.dart';
@@ -1688,7 +1690,7 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                       ),
                     ],
                     const Divider(height: 20),
-                    _detailRow('Nhà cung cấp', supplierName, Icons.store),
+                    _supplierDetailRow(context, supplierName),
                     if (createdAt != null) ...[
                       const Divider(height: 20),
                       _detailRow(
@@ -1825,6 +1827,55 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
           ),
         ),
       ],
+    );
+  }
+
+  Future<void> _openSupplierByName(BuildContext context, String name) async {
+    if (name.trim().isEmpty || name == '--') return;
+    final row = await DBHelper().getSupplierByName(name);
+    if (!context.mounted) return;
+    if (row != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => SupplierDetailView(supplier: Supplier.fromMap(row)),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Không tìm thấy nhà cung cấp "$name"')),
+      );
+    }
+  }
+
+  Widget _supplierDetailRow(BuildContext context, String supplierName) {
+    final display = supplierName.trim().isEmpty ? '--' : supplierName.trim();
+    final tappable = display != '--';
+    return InkWell(
+      onTap: tappable ? () => _openSupplierByName(context, display) : null,
+      borderRadius: BorderRadius.circular(8),
+      child: Row(
+        children: [
+          Icon(Icons.store, size: 18, color: tappable ? const Color(0xFF4F46E5) : Colors.grey),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text('Nhà cung cấp', style: TextStyle(color: Colors.grey.shade600)),
+          ),
+          Text(
+            display,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: tappable ? const Color(0xFF4F46E5) : Colors.black87,
+              decoration: tappable ? TextDecoration.underline : null,
+              decorationColor: const Color(0xFF4F46E5),
+            ),
+          ),
+          if (tappable) ...[
+            const SizedBox(width: 2),
+            const Icon(Icons.chevron_right_rounded, size: 16, color: Color(0xFF4F46E5)),
+          ],
+        ],
+      ),
     );
   }
 

@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../data/db_helper.dart';
 import '../models/import_order_model.dart';
+import '../models/supplier_model.dart';
 import '../services/import_order_service.dart';
 import '../theme/app_colors.dart';
 import '../widgets/custom_app_bar.dart';
 import '../utils/money_utils.dart';
+import 'supplier_detail_view.dart';
 
 class ImportOrderDetailView extends StatefulWidget {
   final ImportOrder order;
@@ -217,7 +220,7 @@ class _ImportOrderDetailViewState extends State<ImportOrderDetailView> {
             padding: const EdgeInsets.all(14),
             child: Column(
               children: [
-                _infoRow(Icons.store, 'NCC', order.supplierName ?? 'Không rõ'),
+                _supplierInfoRow(order.supplierName ?? ''),
                 const SizedBox(height: 8),
                 _infoRow(
                   Icons.payments,
@@ -256,6 +259,55 @@ class _ImportOrderDetailViewState extends State<ImportOrderDetailView> {
           ),
         ),
       ],
+    );
+  }
+
+  Future<void> _openSupplierByName(String name) async {
+    if (name.trim().isEmpty) return;
+    final row = await DBHelper().getSupplierByName(name);
+    if (!mounted) return;
+    if (row != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => SupplierDetailView(supplier: Supplier.fromMap(row)),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Không tìm thấy nhà cung cấp "$name"')),
+      );
+    }
+  }
+
+  Widget _supplierInfoRow(String supplierName) {
+    final display = supplierName.trim().isEmpty ? 'Không rõ' : supplierName.trim();
+    final tappable = supplierName.trim().isNotEmpty;
+    return InkWell(
+      onTap: tappable ? () => _openSupplierByName(display) : null,
+      borderRadius: BorderRadius.circular(6),
+      child: Row(
+        children: [
+          Icon(Icons.store, size: 16,
+              color: tappable ? const Color(0xFF4F46E5) : Colors.grey.shade500),
+          const SizedBox(width: 8),
+          Text('NCC: ', style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
+          Flexible(
+            child: Text(
+              display,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: tappable ? const Color(0xFF4F46E5) : null,
+                decoration: tappable ? TextDecoration.underline : null,
+                decorationColor: const Color(0xFF4F46E5),
+              ),
+            ),
+          ),
+          if (tappable)
+            const Icon(Icons.chevron_right_rounded, size: 15, color: Color(0xFF4F46E5)),
+        ],
+      ),
     );
   }
 

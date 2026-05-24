@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import '../data/db_helper.dart';
+import '../models/supplier_model.dart';
 import '../theme/app_colors.dart';
 
 import '../models/product_model.dart';
@@ -9,11 +11,30 @@ import '../theme/app_text_styles.dart';
 import '../utils/money_utils.dart';
 import '../widgets/app_cached_image.dart';
 import '../widgets/custom_app_bar.dart';
+import 'supplier_detail_view.dart';
 
 class InventoryDetailView extends StatelessWidget {
   final Product product;
 
   const InventoryDetailView({super.key, required this.product});
+
+  Future<void> _openSupplier(BuildContext context, String name) async {
+    if (name.trim().isEmpty || name == '--') return;
+    final row = await DBHelper().getSupplierByName(name);
+    if (!context.mounted) return;
+    if (row != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => SupplierDetailView(supplier: Supplier.fromMap(row)),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Không tìm thấy nhà cung cấp "$name"')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -161,8 +182,7 @@ class InventoryDetailView extends StatelessWidget {
                   _row('Giá vốn', MoneyUtils.formatCurrency(product.cost),
                       valueColor: Colors.orange.shade700),
                   _divider(),
-                  _row('Nhà cung cấp',
-                      (product.supplier ?? '').trim().isEmpty ? '--' : product.supplier!),
+                  _supplierRow(context, product.supplier ?? ''),
                 ],
               ),
             ),
@@ -241,6 +261,51 @@ class InventoryDetailView extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _supplierRow(BuildContext context, String supplierName) {
+    final display = supplierName.trim().isEmpty ? '--' : supplierName.trim();
+    final tappable = display != '--';
+    return InkWell(
+      onTap: tappable ? () => _openSupplier(context, display) : null,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 110,
+              child: Text(
+                'Nhà cung cấp',
+                style: AppTextStyles.body2.copyWith(color: AppColors.textSecondary),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Text(
+                    display,
+                    style: AppTextStyles.body1.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: tappable ? const Color(0xFF4F46E5) : null,
+                      decoration: tappable ? TextDecoration.underline : null,
+                      decorationColor: const Color(0xFF4F46E5),
+                    ),
+                    textAlign: TextAlign.end,
+                  ),
+                  if (tappable) ...[
+                    const SizedBox(width: 4),
+                    const Icon(Icons.chevron_right_rounded, size: 16, color: Color(0xFF4F46E5)),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
