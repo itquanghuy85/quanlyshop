@@ -28,13 +28,19 @@ class AiCommandRouterService {
   static AiCommandResult detect(String rawText) {
     final n = _n(rawText);
 
-    // ── Stock check (before stock entry to avoid "nhập kho" → stockEntry conflict) ──
-    if (_has(n, ['kiem kho', 'ton kho', 'hang ton', 'kiem tra kho', 'xem ton kho'])) {
+    // ── Stock check ──────────────────────────────────────────────────────────────────
+    if (_has(n, [
+      'kiem kho', 'ton kho', 'hang ton', 'kiem tra kho', 'xem ton kho',
+      'con bao nhieu', 'so luong ton', 'hang con',
+    ])) {
       return AiCommandResult(intent: AiCommandIntent.stockCheck, rawText: rawText);
     }
 
-    // ── Stock entry ─────────────────────────────────────────────────────────────────
-    if (_has(n, ['nhap kho', 'nhap hang', 'nhan hang', 'them kho'])) {
+    // ── Stock entry ──────────────────────────────────────────────────────────────────
+    if (_has(n, [
+      'nhap kho', 'nhap hang', 'nhan hang', 'them kho',
+      'hang ve', 'hang moi ve', 'nhap them', 'cap nhat kho',
+    ])) {
       final payload = _strip(rawText, [
         'nhập kho', 'nhập hàng', 'nhận hàng', 'thêm kho',
       ]);
@@ -42,45 +48,76 @@ class AiCommandRouterService {
           intent: AiCommandIntent.stockEntry, rawText: rawText, payload: payload);
     }
 
-    // ── Finance ──────────────────────────────────────────────────────────────────────
-    if (_has(n, ['tai chinh tuan', 'thu chi tuan', 'doanh thu tuan', 'bao cao tuan'])) {
+    // ── Finance week ─────────────────────────────────────────────────────────────────
+    if (_has(n, [
+      'tai chinh tuan', 'thu chi tuan', 'doanh thu tuan', 'bao cao tuan',
+      'tuan nay', 'tuan truoc',
+    ])) {
       return AiCommandResult(intent: AiCommandIntent.viewFinanceWeek, rawText: rawText);
     }
-    if (_has(n, ['tai chinh thang', 'thu chi thang', 'doanh thu thang', 'bao cao thang'])) {
+
+    // ── Finance month ────────────────────────────────────────────────────────────────
+    if (_has(n, [
+      'tai chinh thang', 'thu chi thang', 'doanh thu thang', 'bao cao thang',
+      'thang nay', 'thang truoc',
+    ])) {
       return AiCommandResult(intent: AiCommandIntent.viewFinanceMonth, rawText: rawText);
     }
+
+    // ── Finance today ────────────────────────────────────────────────────────────────
     if (_has(n, [
       'tai chinh hom nay', 'thu chi hom nay', 'doanh thu hom nay',
       'tai chinh ngay', 'tai chinh', 'bao cao tai chinh', 'thu chi',
+      'hom nay thu', 'doanh so',
     ])) {
       return AiCommandResult(intent: AiCommandIntent.viewFinanceToday, rawText: rawText);
     }
 
     // ── Customer ─────────────────────────────────────────────────────────────────────
-    if (_has(n, ['tim khach', 'khach hang', 'xem khach', 'danh sach khach', 'quan ly khach'])) {
+    if (_has(n, [
+      'tim khach', 'khach hang', 'xem khach', 'danh sach khach', 'quan ly khach',
+      'tim ten', 'tim so dien thoai', 'khach cu',
+    ])) {
       return AiCommandResult(intent: AiCommandIntent.findCustomer, rawText: rawText);
     }
 
     // ── Debt ─────────────────────────────────────────────────────────────────────────
-    if (_has(n, ['cong no', 'xem no', 'quan ly no'])) {
+    if (_has(n, [
+      'cong no', 'xem no', 'quan ly no',
+      'no chua tra', 'khach no', 'thu no', 'no hang',
+    ])) {
       return AiCommandResult(intent: AiCommandIntent.viewDebt, rawText: rawText);
     }
 
     // ── Pending repairs ──────────────────────────────────────────────────────────────
-    if (_has(n, ['don dang sua', 'chua xong', 'cho sua', 'lich su sua', 'danh sach sua'])) {
+    if (_has(n, [
+      'don dang sua', 'chua xong', 'cho sua', 'lich su sua', 'danh sach sua',
+      'may chua xong', 'don cho', 'cho lay',
+    ])) {
       return AiCommandResult(intent: AiCommandIntent.viewPendingRepairs, rawText: rawText);
     }
 
-    // ── Attendance ───────────────────────────────────────────────────────────────────
-    if (_has(n, ['cham cong ra', 'check out', 'tan ca', 'ket thuc ca'])) {
+    // ── Attendance out (before "in" to avoid conflict) ───────────────────────────────
+    if (_has(n, [
+      'cham cong ra', 'check out', 'tan ca', 'ket thuc ca',
+      'ra ve', 'nghi lam', 'het ca',
+    ])) {
       return AiCommandResult(intent: AiCommandIntent.attendanceOut, rawText: rawText);
     }
-    if (_has(n, ['cham cong vao', 'cham cong', 'check in', 'bat dau ca', 'di lam'])) {
+
+    // ── Attendance in ────────────────────────────────────────────────────────────────
+    if (_has(n, [
+      'cham cong vao', 'cham cong', 'check in', 'bat dau ca', 'di lam',
+      'vao lam', 'bat ca', 'den lam',
+    ])) {
       return AiCommandResult(intent: AiCommandIntent.attendanceIn, rawText: rawText);
     }
 
     // ── Sale ─────────────────────────────────────────────────────────────────────────
-    if (_has(n, ['tao don ban', 'ban hang', 'xuat hang', 'don ban', 'ban may', 'ban dien thoai'])) {
+    if (_has(n, [
+      'tao don ban', 'ban hang', 'xuat hang', 'don ban', 'ban may', 'ban dien thoai',
+      'thanh toan', 'thu tien', 'xuat may',
+    ])) {
       final payload = _strip(rawText, [
         'tạo đơn bán', 'bán hàng', 'xuất hàng', 'đơn bán', 'bán máy', 'bán',
       ]);
@@ -89,7 +126,12 @@ class AiCommandRouterService {
     }
 
     // ── Repair (broad — checked last) ────────────────────────────────────────────────
-    if (_has(n, ['tao don sua', 'nhan may', 'sua may', 'don sua', 'khach sua', 'sua chua', 'sua iphone', 'sua samsung'])) {
+    if (_has(n, [
+      'tao don sua', 'nhan may', 'sua may', 'don sua', 'khach sua', 'sua chua',
+      'sua iphone', 'sua samsung', 'sua oppo', 'sua xiaomi', 'sua vivo',
+      'thay man hinh', 'thay pin', 'thay kinh', 'sua main',
+      'bao hanh', 'may bi hong', 'may hu',
+    ])) {
       final payload = _strip(rawText, [
         'tạo đơn sửa', 'nhận máy', 'sửa máy', 'đơn sửa', 'sửa chữa', 'sửa',
       ]);
@@ -97,9 +139,11 @@ class AiCommandRouterService {
           intent: AiCommandIntent.createRepair, rawText: rawText, payload: payload);
     }
 
-    // ── Fallback: if text starts with a phone model name, treat as repair ────────────
-    if (RegExp(r'^(iphone|samsung|oppo|xiaomi|vivo|realme|nokia|huawei)', caseSensitive: false)
-        .hasMatch(rawText.trim())) {
+    // ── Fallback: text starts with phone brand → repair ──────────────────────────────
+    if (RegExp(
+      r'^(iphone|samsung|oppo|xiaomi|vivo|realme|nokia|huawei|tecno|infinix|motorola)',
+      caseSensitive: false,
+    ).hasMatch(rawText.trim())) {
       return AiCommandResult(
           intent: AiCommandIntent.createRepair, rawText: rawText, payload: rawText);
     }

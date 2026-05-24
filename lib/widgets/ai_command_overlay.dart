@@ -4,6 +4,7 @@ import 'package:speech_to_text/speech_to_text.dart';
 
 import '../models/ai_command_result.dart';
 import '../services/ai_command_router.dart';
+import '../services/voice_correction_service.dart';
 
 // ── Command chip descriptor ────────────────────────────────────────────────────
 
@@ -73,6 +74,7 @@ class _AiCommandOverlayState extends State<AiCommandOverlay>
   _OverlayStatus _status = _OverlayStatus.idle;
   bool _speechAvailable = false;
   String _transcript = '';
+  List<String> _corrections = [];
 
   late final AnimationController _pulse;
 
@@ -125,14 +127,15 @@ class _AiCommandOverlayState extends State<AiCommandOverlay>
   }
 
   void _onSpeechResult(SpeechRecognitionResult result) {
-    // Always update transcript preview while speaking
     setState(() => _transcript = result.recognizedWords);
     if (result.finalResult && result.recognizedWords.isNotEmpty) {
       _pulse.stop();
-      // Put result in text field for review — do NOT auto-submit.
-      // User must tap ▶ to confirm (allows correction of STT errors).
-      _textCtrl.text = result.recognizedWords;
-      setState(() => _status = _OverlayStatus.done);
+      final corrected = VoiceCorrectionService.correct(result.recognizedWords);
+      _textCtrl.text = corrected.corrected;
+      setState(() {
+        _status = _OverlayStatus.done;
+        _corrections = corrected.changes;
+      });
     }
   }
 
@@ -210,12 +213,36 @@ class _AiCommandOverlayState extends State<AiCommandOverlay>
               _textCtrl.clear();
               setState(() {
                 _transcript = '';
+                _corrections = [];
                 _status = _OverlayStatus.idle;
               });
             },
             icon: const Icon(Icons.refresh_rounded, size: 16, color: Colors.white54),
             label: const Text('Nói lại', style: TextStyle(color: Colors.white54, fontSize: 13)),
           ),
+          if (_corrections.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.auto_fix_high_rounded, size: 13, color: Color(0xFFFBBF24)),
+                  const SizedBox(width: 4),
+                  Flexible(
+                    child: Text(
+                      'Đã tự sửa: ${_corrections.join(', ')}',
+                      style: const TextStyle(
+                        color: Color(0xFFFBBF24),
+                        fontSize: 11,
+                        fontStyle: FontStyle.italic,
+                      ),
+                      textAlign: TextAlign.center,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
         const SizedBox(height: 12),
         _buildTranscript(),
       ],
