@@ -4,6 +4,7 @@ import 'package:speech_to_text/speech_to_text.dart';
 import '../models/ai_universal_result.dart';
 import '../services/ai_service.dart';
 import '../services/natural_order_parser_service.dart';
+import '../services/voice_correction_service.dart';
 import '../theme/popup_theme.dart';
 import 'app_popup.dart';
 
@@ -184,7 +185,10 @@ class _AiOrderInputSheetState extends State<AiOrderInputSheet>
     await _speech.listen(
       onResult: (result) {
         if (!mounted) return;
-        setState(() => _ctrl.text = result.recognizedWords);
+        final corrected = VoiceCorrectionService.correct(result.recognizedWords);
+        setState(() => _ctrl.text = corrected.corrected.isNotEmpty
+            ? corrected.corrected
+            : result.recognizedWords);
         if (result.finalResult) _stopRecording();
       },
       listenOptions: SpeechListenOptions(

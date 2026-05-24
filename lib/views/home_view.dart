@@ -70,6 +70,7 @@ import '../widgets/unified_sync_button.dart';
 import '../widgets/notification_badge.dart';
 import '../widgets/simple_sync_indicator.dart';
 import '../widgets/shop_switcher_widget.dart';
+import '../widgets/ai_chat_overlay.dart';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/warranty_reminder_widget.dart';
 import '../services/sync_service.dart';
@@ -3053,11 +3054,16 @@ class _HomeViewState extends State<HomeView>
     // InheritedWidget dependencies, so no _dependents.isEmpty assertion.
     // It naturally disappears when sub-views are pushed (they cover HomeView).
     final ctrl = _quickActionController;
-    if (ctrl == null) return rootWidget;
+    if (ctrl == null) {
+      return Stack(
+        children: [rootWidget, const AiChatOverlay()],
+      );
+    }
     return Stack(
       children: [
         rootWidget,
         QuickActionBubble(controller: ctrl),
+        const AiChatOverlay(),
       ],
     );
   }
