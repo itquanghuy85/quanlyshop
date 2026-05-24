@@ -551,19 +551,23 @@ class VoiceCorrectionService {
     // Bước 4b: Ghép tên dòng máy với model number (dạng "Samsung a 52" → "Samsung A52")
     working = _fixSeriesNumbers(working);
 
+    // If no rules matched, preserve the original STT text (with Vietnamese diacritics)
+    // rather than returning the stripped/normalized version.
+    if (applied.isEmpty) {
+      final trimmed = raw.trim();
+      if (trimmed.isEmpty) return const VoiceCorrectionResult(corrected: '');
+      final result = trimmed[0].toUpperCase() + trimmed.substring(1);
+      return VoiceCorrectionResult(corrected: result, changes: const []);
+    }
+
     // Bước 5: Viết hoa chữ đầu câu
     if (working.isNotEmpty) {
       working = working[0].toUpperCase() + working.substring(1);
     }
 
-    // Chỉ báo thay đổi nếu text thực sự khác
-    final normalizedRaw    = VietnameseUtils.normalize(raw.toLowerCase());
-    final normalizedResult = VietnameseUtils.normalize(working.toLowerCase());
-    final hasChanges = normalizedResult != normalizedRaw;
-
     return VoiceCorrectionResult(
       corrected: working,
-      changes: hasChanges ? applied.take(3).toList() : [],
+      changes: applied.take(3).toList(),
     );
   }
 }

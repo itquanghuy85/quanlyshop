@@ -1,7 +1,33 @@
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:flutter/material.dart';
 
 import '../data/db_helper.dart';
 import '../utils/vietnamese_utils.dart';
+
+// ── AI Action ──────────────────────────────────────────────────────────────────
+
+enum AiActionType {
+  openLatestRepair,
+  openLatestSale,
+  viewDebts,
+  viewDebtPayable,
+  viewStock,
+}
+
+class AiAction {
+  final String label;
+  final IconData icon;
+  final AiActionType type;
+  const AiAction({required this.label, required this.icon, required this.type});
+}
+
+// ── Quick response ──────────────────────────────────────────────────────────────
+
+class AiQuickResponse {
+  final String text;
+  final List<AiAction> actions;
+  const AiQuickResponse(this.text, {this.actions = const []});
+}
 
 // ── Stats snapshot ─────────────────────────────────────────────────────────────
 
@@ -249,7 +275,33 @@ class AiChatService {
 
   // ── Fast local answers ────────────────────────────────────────────────────
 
-  String? quickAnswer(String question, AiChatStats stats) {
+  static const _kViewDebtsAction = AiAction(
+    label: 'Xem công nợ',
+    icon: Icons.account_balance_wallet_outlined,
+    type: AiActionType.viewDebts,
+  );
+  static const _kViewStockAction = AiAction(
+    label: 'Xem kho',
+    icon: Icons.inventory_2_outlined,
+    type: AiActionType.viewStock,
+  );
+  static const _kOpenLatestRepairAction = AiAction(
+    label: 'Mở đơn gần nhất',
+    icon: Icons.build_circle_outlined,
+    type: AiActionType.openLatestRepair,
+  );
+  static const _kOpenLatestSaleAction = AiAction(
+    label: 'Mở hóa đơn bán',
+    icon: Icons.receipt_long_outlined,
+    type: AiActionType.openLatestSale,
+  );
+  static const _kViewDebtPayableAction = AiAction(
+    label: 'Xem nợ NCC',
+    icon: Icons.store_outlined,
+    type: AiActionType.viewDebtPayable,
+  );
+
+  AiQuickResponse? quickAnswer(String question, AiChatStats stats) {
     final n = VietnameseUtils.normalize(question.toLowerCase());
 
     // Tổng hợp tài chính
@@ -273,16 +325,18 @@ class AiChatService {
       buf.writeln();
       buf.write('• Công nợ phải thu: **${fmt(stats.debtReceivable)}**');
       buf.write(' | Phải trả: **${fmt(stats.debtPayable)}**');
-      return buf.toString();
+      return AiQuickResponse(buf.toString(), actions: const [_kViewDebtsAction]);
     }
 
     // Tháng này
     if (_has(n, ['thang nay', 'doanh thu thang']) &&
         !_has(n, ['gom', 'chi tiet', 'danh sach'])) {
-      return 'Tháng này: bán hàng **${stats.salesThisMonth} đơn** (${fmt(stats.saleRevenueThisMonth)}), '
-          'sửa chữa giao **${fmt(stats.repairRevenueThisMonth)}**. '
-          'Tổng doanh thu **${fmt(stats.revenueThisMonth)}**, '
-          'lợi nhuận **${fmt(stats.profitThisMonth)}**.';
+      return AiQuickResponse(
+        'Tháng này: bán hàng **${stats.salesThisMonth} đơn** (${fmt(stats.saleRevenueThisMonth)}), '
+        'sửa chữa giao **${fmt(stats.repairRevenueThisMonth)}**. '
+        'Tổng doanh thu **${fmt(stats.revenueThisMonth)}**, '
+        'lợi nhuận **${fmt(stats.profitThisMonth)}**.',
+      );
     }
 
     // Doanh thu hôm nay
@@ -296,27 +350,61 @@ class AiChatService {
         buf.write('Sửa chữa giao: **${stats.deliveredRepairsToday} đơn** (${fmt(stats.repairRevenueToday)}). ');
       }
       buf.write('Tổng doanh thu: **${fmt(stats.revenueToday)}**, lợi nhuận: **${fmt(stats.profitToday)}**.');
-      return buf.toString();
+      return AiQuickResponse(buf.toString());
     }
 
-    // Tồn kho
-    if (_has(n, ['ton kho', 'hang con', 'kiem kho', 'so luong hang'])) {
-      return 'Tồn kho hiện tại: **${stats.stockCount} sản phẩm**, '
-          'giá vốn **${fmt(stats.stockCapital)}**.';
+    // Tồn kho hàng hoá
+    if (_has(n, ['ton kho', 'hang con', 'kiem kho', 'so luong hang']) &&
+        !_has(n, ['linh kien', 'phu kien'])) {
+      return AiQuickResponse(
+        'Tồn kho hiện tại: **${stats.stockCount} sản phẩm**, '
+        'giá vốn **${fmt(stats.stockCapital)}**.',
+        actions: const [_kViewStockAction],
+      );
+    }
+
+    // Kho linh kiện / phụ kiện
+    if (_has(n, ['linh kien', 'phu kien', 'kho linh', 'linh phu kien'])) {
+      return AiQuickResponse(
+        'Kho linh kiện & phụ kiện: **${stats.stockCount} mặt hàng** '
+        '(giá vốn **${fmt(stats.stockCapital)}**).',
+        actions: const [_kViewStockAction],
+      );
+    }
+
+    // Đơn bán gần nhất
+    if (_has(n, ['don ban gan nhat', 'hoa don ban gan', 'don ban moi nhat',
+                  'mo don ban', 'xem don ban'])) {
+      return const AiQuickResponse(
+        'Mở hóa đơn bán hàng gần nhất:',
+        actions: [_kOpenLatestSaleAction],
+      );
+    }
+
+    // Đơn sửa gần nhất
+    if (_has(n, ['don sua gan nhat', 'don sua moi nhat', 'mo don sua',
+                  'xem don sua gan nhat'])) {
+      return const AiQuickResponse(
+        'Mở đơn sửa chữa gần nhất:',
+        actions: [_kOpenLatestRepairAction],
+      );
     }
 
     // Đơn sửa danh sách chi tiết
     if (_has(n, ['gom nhung don', 'don nao', 'nhung don', 'don hom nay',
                   'danh sach don', 'co nhung don gi'])) {
       if (stats.repairSummaries.isEmpty) {
-        return 'Hôm nay chưa có đơn sửa nào.';
+        return const AiQuickResponse('Hôm nay chưa có đơn sửa nào.');
       }
       final lines = stats.repairSummaries
           .asMap()
           .entries
           .map((e) => '${e.key + 1}. ${e.value}')
           .join('\n');
-      return 'Đơn sửa hôm nay (${stats.repairsToday} đơn):\n$lines';
+      return AiQuickResponse(
+        'Đơn sửa hôm nay (${stats.repairsToday} đơn):\n$lines',
+        actions: const [_kOpenLatestRepairAction],
+      );
     }
 
     // Đơn sửa tổng quát
@@ -336,47 +424,91 @@ class AiChatService {
             .join('\n');
         if (pending.isNotEmpty) answer.write('\n$pending');
       }
-      return answer.toString();
+      return AiQuickResponse(
+        answer.toString(),
+        actions: const [_kOpenLatestRepairAction],
+      );
+    }
+
+    // Thu nợ khách
+    if (_has(n, ['thu no khach', 'thu no', 'khach no tien', 'khach chua tra'])) {
+      if (stats.debtReceivable == 0) {
+        return const AiQuickResponse('Shop hiện không có khách nào đang nợ tiền.');
+      }
+      final buf = StringBuffer(
+          'Tổng công nợ phải thu: **${fmt(stats.debtReceivable)}**.');
+      if (stats.topDebtorLines.isNotEmpty) {
+        buf.write('\n\nKhách nợ cao nhất:\n'
+            '${stats.topDebtorLines.take(3).map((l) => '• $l').join('\n')}');
+      }
+      return AiQuickResponse(
+        buf.toString(),
+        actions: const [_kViewDebtsAction],
+      );
+    }
+
+    // Trả nợ NCC / nhà cung cấp
+    if (_has(n, ['tra no ncc', 'tra no nha cung cap', 'no ncc',
+                  'cong no ncc', 'nha cung cap'])) {
+      final buf = StringBuffer(
+          'Công nợ phải trả NCC: **${fmt(stats.debtPayable)}**.');
+      if (stats.debtPayable == 0) {
+        return const AiQuickResponse('Shop hiện không có nợ nhà cung cấp nào đang chờ.');
+      }
+      buf.write('\nVào mục Nhà cung cấp để ghi thanh toán.');
+      return AiQuickResponse(
+        buf.toString(),
+        actions: const [_kViewDebtPayableAction],
+      );
     }
 
     // Ai nợ nhiều nhất
     if (_has(n, ['ai no nhieu nhat', 'no ai nhieu', 'top no',
                   'no nhieu nhat', 'ai no tien nhieu'])) {
       if (stats.topDebtorLines.isEmpty) {
-        return 'Hiện không có công nợ phải thu nào.';
+        return const AiQuickResponse('Shop hiện chưa có khách nào đang nợ tiền.');
       }
-      return 'Top khách nợ nhiều nhất:\n'
-          '${stats.topDebtorLines.map((l) => '• $l').join('\n')}';
+      return AiQuickResponse(
+        'Khách nợ cao nhất:\n'
+        '${stats.topDebtorLines.map((l) => '• $l').join('\n')}',
+        actions: const [_kViewDebtsAction],
+      );
     }
 
     // Công nợ tổng
-    if (_has(n, ['cong no', 'khach no', 'thu no', 'no chua tra'])) {
+    if (_has(n, ['cong no', 'khach no', 'no chua tra'])) {
       final answer = StringBuffer(
           'Công nợ phải thu: **${fmt(stats.debtReceivable)}**\n'
-          'Công nợ phải trả: **${fmt(stats.debtPayable)}**.');
+          'Công nợ phải trả NCC: **${fmt(stats.debtPayable)}**.');
       if (stats.topDebtorLines.isNotEmpty) {
         answer.write(
             '\n\nTop khách nợ:\n'
             '${stats.topDebtorLines.take(3).map((l) => '• $l').join('\n')}');
       }
-      return answer.toString();
+      return AiQuickResponse(
+        answer.toString(),
+        actions: [_kViewDebtsAction, if (stats.debtPayable > 0) _kViewDebtPayableAction],
+      );
     }
 
     // Lợi nhuận
     if (_has(n, ['loi nhuan', 'lai bao nhieu', 'loi bao nhieu'])) {
-      return 'Lợi nhuận hôm nay: **${fmt(stats.profitToday)}** '
-          '(bán hàng + sửa chữa đã giao).';
+      return AiQuickResponse(
+        'Lợi nhuận hôm nay: **${fmt(stats.profitToday)}** '
+        '(bán hàng + sửa chữa đã giao).',
+      );
     }
 
     // Chào hỏi
     if (_has(n, ['xin chao', 'hello', 'chao ban', 'chao ai', 'ban la ai'])) {
-      return 'Xin chào! Tôi là **AI Trợ Lý** của shop. Bạn có thể hỏi tôi:\n'
-          '• Doanh thu hôm nay (bán hàng + sửa chữa đã giao)\n'
-          '• Tổng hợp tài chính / tháng này\n'
-          '• Tồn kho hiện tại\n'
-          '• Công nợ & ai nợ nhiều nhất\n'
-          '• Đơn sửa đang chờ\n'
-          '• Bất kỳ câu hỏi nào về shop!';
+      return const AiQuickResponse(
+        'Xin chào! Em là **AI Trợ Lý** của shop.\n'
+        'Anh có thể hỏi em về:\n'
+        '• Doanh thu / lợi nhuận hôm nay, tháng này\n'
+        '• Tồn kho, kho linh kiện\n'
+        '• Công nợ phải thu / phải trả NCC\n'
+        '• Đơn sửa đang chờ, đơn bán gần nhất',
+      );
     }
 
     return null;

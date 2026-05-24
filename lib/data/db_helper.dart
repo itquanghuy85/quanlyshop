@@ -4506,6 +4506,38 @@ class DBHelper {
     return res.isNotEmpty ? Repair.fromMap(res.first) : null;
   }
 
+  Future<Repair?> getLatestRepair() async {
+    final shopId = UserService.getShopIdSync();
+    final db = await database;
+    final res = shopId != null && shopId.isNotEmpty
+        ? await db.query('repairs',
+            where: 'shopId = ? AND (deleted = 0 OR deleted IS NULL)',
+            whereArgs: [shopId],
+            orderBy: 'createdAt DESC',
+            limit: 1)
+        : await db.query('repairs',
+            where: 'deleted = 0 OR deleted IS NULL',
+            orderBy: 'createdAt DESC',
+            limit: 1);
+    return res.isNotEmpty ? Repair.fromMap(res.first) : null;
+  }
+
+  Future<SaleOrder?> getLatestSale() async {
+    final shopId = UserService.getShopIdSync();
+    final db = await database;
+    final res = shopId != null && shopId.isNotEmpty
+        ? await db.query('sales',
+            where: 'shopId = ? AND (deleted = 0 OR deleted IS NULL)',
+            whereArgs: [shopId],
+            orderBy: 'createdAt DESC',
+            limit: 1)
+        : await db.query('sales',
+            where: 'deleted = 0 OR deleted IS NULL',
+            orderBy: 'createdAt DESC',
+            limit: 1);
+    return res.isNotEmpty ? SaleOrder.fromMap(res.first) : null;
+  }
+
   Future<Repair?> getRepairByFirestoreId(String firestoreId) async {
     final res = await (await database).query(
       'repairs',

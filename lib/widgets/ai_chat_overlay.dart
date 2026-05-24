@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
+import '../data/db_helper.dart';
 import '../services/ai_chat_service.dart';
 import '../services/voice_correction_service.dart';
 import '../theme/popup_theme.dart';
+import '../views/repair_detail_view.dart';
+import '../views/sale_detail_view.dart';
 
 // ── Message model ──────────────────────────────────────────────────────────────
 
@@ -13,7 +16,8 @@ class _Msg {
   final _Role role;
   final String text;
   final bool isLoading;
-  _Msg(this.role, this.text, {this.isLoading = false});
+  final List<AiAction> actions;
+  _Msg(this.role, this.text, {this.isLoading = false, this.actions = const []});
 }
 
 // ── Quick chip presets ─────────────────────────────────────────────────────────
@@ -62,9 +66,9 @@ class _AiChatOverlayState extends State<AiChatOverlay>
   late final AnimationController _pulse;
 
   // ── Colors ────────────────────────────────────────────────────────────────
-  static const _kPurple = Color(0xFF7C3AED);
-  static const _kPurpleLight = Color(0xFFF5F3FF);
-  static const _kBubbleUser = Color(0xFF7C3AED);
+  static const _kPurple = Color(0xFF4F46E5);        // indigo — less neon than violet
+  static const _kPurpleLight = Color(0xFFEEF2FF);   // indigo-50
+  static const _kBubbleUser = Color(0xFF1E293B);    // slate-800 (dark navy)
   static const _kBubbleAI = Color(0xFFF1F5F9);
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────
@@ -184,7 +188,7 @@ class _AiChatOverlayState extends State<AiChatOverlay>
       if (!mounted) return;
       setState(() {
         _sending = false;
-        _messages.add(_Msg(_Role.assistant, quick));
+        _messages.add(_Msg(_Role.assistant, quick.text, actions: quick.actions));
       });
       _scrollToBottom();
       return;
@@ -209,10 +213,38 @@ class _AiChatOverlayState extends State<AiChatOverlay>
       _sending = false;
       _messages.removeLast(); // remove loading bubble
       _messages.add(
-        _Msg(_Role.assistant, answer ?? error ?? 'Lỗi không xác định.'),
+        _Msg(_Role.assistant, answer ?? error ?? 'Em chưa hiểu câu hỏi này. Anh có thể hỏi về doanh thu, tồn kho, đơn sửa, công nợ...'),
       );
     });
     _scrollToBottom();
+  }
+
+  // ── Action handler ────────────────────────────────────────────────────────
+
+  Future<void> _handleAction(AiAction action) async {
+    final db = DBHelper();
+    switch (action.type) {
+      case AiActionType.openLatestRepair:
+        final repair = await db.getLatestRepair();
+        if (!mounted || repair == null) return;
+        _toggle();
+        Navigator.of(context, rootNavigator: true).push(
+          MaterialPageRoute(builder: (_) => RepairDetailView(repair: repair)),
+        );
+      case AiActionType.openLatestSale:
+        final sale = await db.getLatestSale();
+        if (!mounted || sale == null) return;
+        _toggle();
+        Navigator.of(context, rootNavigator: true).push(
+          MaterialPageRoute(builder: (_) => SaleDetailView(sale: sale)),
+        );
+      case AiActionType.viewDebts:
+      case AiActionType.viewDebtPayable:
+      case AiActionType.viewStock:
+        // These tabs live in HomeView bottom nav — just close the overlay;
+        // the user can tap the tab themselves.
+        _toggle();
+    }
   }
 
   // ── Voice ─────────────────────────────────────────────────────────────────
@@ -238,7 +270,8 @@ class _AiChatOverlayState extends State<AiChatOverlay>
         final corrected = VoiceCorrectionService.correct(result.recognizedWords);
         setState(() => _ctrl.text =
             corrected.corrected.isNotEmpty ? corrected.corrected : result.recognizedWords);
-        if (result.finalResult) {
+        // Guard against double-fire of finalResult (STT library quirk)
+        if (result.finalResult && !_micAutoSent) {
           _speech.stop();
           setState(() => _recording = false);
           if (_ctrl.text.trim().isNotEmpty) {
@@ -296,15 +329,15 @@ class _AiChatOverlayState extends State<AiChatOverlay>
           height: 52,
           decoration: BoxDecoration(
             gradient: const LinearGradient(
-              colors: [Color(0xFF7C3AED), Color(0xFF9F67FF)],
+              colors: [Color(0xFF4F46E5), Color(0xFF6366F1)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: _kPurple.withValues(alpha: 0.4),
-                blurRadius: 14,
+                color: const Color(0xFF4F46E5).withValues(alpha: 0.35),
+                blurRadius: 12,
                 offset: const Offset(0, 4),
               ),
             ],
@@ -362,7 +395,7 @@ class _AiChatOverlayState extends State<AiChatOverlay>
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [Color(0xFF7C3AED), Color(0xFF9F67FF)],
+          colors: [Color(0xFF1E293B), Color(0xFF334155)],
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
         ),
@@ -490,47 +523,92 @@ class _AiChatOverlayState extends State<AiChatOverlay>
 
   Widget _buildBubble(_Msg msg) {
     final isUser = msg.role == _Role.user;
+    final hasActions = !isUser && msg.actions.isNotEmpty && !msg.isLoading;
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        mainAxisAlignment:
-            isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.end,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (!isUser) ...[
-            Container(
-              width: 28,
-              height: 28,
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFF7C3AED), Color(0xFF9F67FF)],
+          Row(
+            mainAxisAlignment:
+                isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              if (!isUser) ...[
+                Container(
+                  width: 28,
+                  height: 28,
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Color(0xFF4F46E5), Color(0xFF7C3AED)],
+                    ),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.auto_awesome_rounded,
+                      color: Colors.white, size: 14),
                 ),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.auto_awesome_rounded,
-                  color: Colors.white, size: 14),
-            ),
-            const SizedBox(width: 8),
-          ],
-          Flexible(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
-              decoration: BoxDecoration(
-                color: isUser ? _kBubbleUser : _kBubbleAI,
-                borderRadius: BorderRadius.only(
-                  topLeft: const Radius.circular(16),
-                  topRight: const Radius.circular(16),
-                  bottomLeft: Radius.circular(isUser ? 16 : 4),
-                  bottomRight: Radius.circular(isUser ? 4 : 16),
+                const SizedBox(width: 8),
+              ],
+              Flexible(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: isUser ? _kBubbleUser : _kBubbleAI,
+                    borderRadius: BorderRadius.only(
+                      topLeft: const Radius.circular(16),
+                      topRight: const Radius.circular(16),
+                      bottomLeft: Radius.circular(isUser ? 16 : 4),
+                      bottomRight: Radius.circular(isUser ? 4 : 16),
+                    ),
+                  ),
+                  child: msg.isLoading
+                      ? _buildTypingIndicator()
+                      : _buildMsgText(msg.text, isUser),
                 ),
               ),
-              child: msg.isLoading
-                  ? _buildTypingIndicator()
-                  : _buildMsgText(msg.text, isUser),
-            ),
+              if (isUser) const SizedBox(width: 8),
+            ],
           ),
-          if (isUser) const SizedBox(width: 8),
+          if (hasActions) _buildActionRow(msg.actions),
         ],
+      ),
+    );
+  }
+
+  Widget _buildActionRow(List<AiAction> actions) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 6, left: 36),
+      child: Wrap(
+        spacing: 6,
+        runSpacing: 4,
+        children: actions.map((a) {
+          return GestureDetector(
+            onTap: () => _handleAction(a),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFFCBD5E1)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(a.icon, size: 13, color: const Color(0xFF4F46E5)),
+                  const SizedBox(width: 5),
+                  Text(
+                    a.label,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF374151),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }).toList(),
       ),
     );
   }
