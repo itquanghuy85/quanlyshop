@@ -2098,3 +2098,167 @@ exports.parseOrderAI = onCall(
     return { success: true, data: result, cached: false };
   }
 );
+
+// ============================================================
+// DEEPSEEK AI — CHAT ASSISTANT (AI Trợ Lý Shop)
+// ============================================================
+// Flutter gọi qua cloud_functions SDK: FirebaseFunctions
+//   .instanceFor(region:'asia-southeast1')
+//   .httpsCallable('chatAssistant')
+//   .call({ question, stats, history })
+//
+// API key: chỉ trong Google Secret Manager (DEEPSEEK_API_KEY).
+// Rate limit: 20 câu hỏi / phút / user.
+// Timeout: 20 s client-side, 25 s server-side abort.
+// ============================================================
+
+const CHAT_SYSTEM_PROMPT = `Bạn là AI Trợ Lý của phần mềm quản lý cửa hàng sửa chữa điện thoại HULUCA.
+
+NHIỆM VỤ:
+- Trả lời các câu hỏi của chủ shop / nhân viên về số liệu kinh doanh, tình trạng kho, công nợ, đơn sửa.
+- Đưa ra lời khuyên ngắn gọn, thực tế, phù hợp với shop điện thoại Việt Nam.
+- Ngôn ngữ: tiếng Việt có dấu, thân thiện, ngắn gọn (không quá 200 chữ mỗi câu trả lời).
+
+QUY TẮC:
+1. Chỉ trả lời dựa trên dữ liệu được cung cấp trong context. KHÔNG bịa số liệu.
+2. Nếu câu hỏi không liên quan đến shop, từ chối nhẹ nhàng.
+3. Dùng **bold** để nhấn mạnh số liệu quan trọng.
+4. Không dùng markdown heading (#) — chỉ dùng gạch đầu dòng (•) nếu cần liệt kê.`;
+
+async function callDeepSeekChat(apiKey, messages, attempt = 1) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 22000);
+
+  try {
+    const res = await fetch(DEEPSEEK_BASE_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: DEEPSEEK_MODEL,
+        messages,
+        temperature: 0.5,
+        max_tokens: 400,
+      }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (res.status === 429 || res.status >= 500) {
+      if (attempt < 2) {
+        console.warn(`⚠️ DeepSeek chat ${res.status} — retry ${attempt}`);
+        await new Promise((r) => setTimeout(r, 1500));
+        return callDeepSeekChat(apiKey, messages, attempt + 1);
+      }
+      throw new HttpsError("resource-exhausted", "AI đang bận, vui lòng thử lại sau.");
+    }
+
+    if (!res.ok) {
+      const errBody = await res.text();
+      console.error("❌ DeepSeek chat error:", errBody);
+      throw new HttpsError("internal", `DeepSeek HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    return data.choices?.[0]?.message?.content?.trim() ?? null;
+  } catch (err) {
+    clearTimeout(timeoutId);
+    if (err.name === "AbortError") {
+      throw new HttpsError("deadline-exceeded", "AI phản hồi quá chậm, hãy thử lại.");
+    }
+    if (err instanceof HttpsError) throw err;
+    console.error("❌ callDeepSeekChat exception:", err);
+    throw new HttpsError("internal", "Lỗi kết nối AI");
+  }
+}
+
+exports.chatAssistant = onCall(
+  {
+    secrets: [deepseekApiKey],
+    timeoutSeconds: 25,
+    region: "asia-southeast1",
+  },
+  async (request) => {
+    // 1. Auth
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "Cần đăng nhập để dùng AI.");
+    }
+    const uid = request.auth.uid;
+
+    // 2. Rate limit — 20 câu/phút
+    const db = admin.firestore();
+    const now = Date.now();
+    const rlRef = db.doc(`_ai_rate_limit_chat/${uid}`);
+    const allowed = await db.runTransaction(async (tx) => {
+      const snap = await tx.get(rlRef);
+      const d = snap.data() ?? { count: 0, windowStart: now };
+      if (now - d.windowStart > 60_000) {
+        tx.set(rlRef, { count: 1, windowStart: now });
+        return true;
+      }
+      if (d.count >= 20) return false;
+      tx.update(rlRef, { count: admin.firestore.FieldValue.increment(1) });
+      return true;
+    });
+    if (!allowed) {
+      throw new HttpsError("resource-exhausted", "Đã gửi quá 20 câu hỏi/phút. Hãy chờ chút.");
+    }
+
+    // 3. Validate input
+    const { question, stats, history } = request.data ?? {};
+    if (!question || typeof question !== "string" || question.trim().length === 0) {
+      throw new HttpsError("invalid-argument", "Câu hỏi không được để trống.");
+    }
+    const q = question.trim().substring(0, 500); // giới hạn độ dài
+
+    // 4. Build stats context string
+    const fmt = (n) => {
+      if (!n || n === 0) return "0đ";
+      if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}tr`;
+      return `${n.toLocaleString("vi-VN")}đ`;
+    };
+    const s = stats ?? {};
+    const statsContext = [
+      `• Hôm nay bán: ${s.salesToday ?? 0} đơn, doanh thu ${fmt(s.revenueToday)}, lợi nhuận ${fmt(s.profitToday)}`,
+      `• Đơn sửa hôm nay: ${s.repairsToday ?? 0} (đang sửa chờ giao: ${s.repairsPending ?? 0})`,
+      `• Tồn kho: ${s.stockCount ?? 0} sản phẩm, giá vốn ${fmt(s.stockCapital)}`,
+      `• Công nợ phải thu: ${fmt(s.debtReceivable)}, phải trả: ${fmt(s.debtPayable)}`,
+    ].join("\n");
+
+    // 5. Build messages array
+    const systemWithContext = `${CHAT_SYSTEM_PROMPT}
+
+--- DỮ LIỆU SHOP HÔM NAY ---
+${statsContext}
+---`;
+
+    const messages = [{ role: "system", content: systemWithContext }];
+
+    // Append conversation history (max 10 turns)
+    if (Array.isArray(history)) {
+      for (const turn of history.slice(-10)) {
+        if (turn.role && turn.content) {
+          messages.push({ role: turn.role, content: String(turn.content).substring(0, 400) });
+        }
+      }
+    }
+
+    // Append current question
+    messages.push({ role: "user", content: q });
+
+    // 6. Call DeepSeek
+    console.log(`🤖 chatAssistant uid=${uid} q="${q.substring(0, 60)}"`);
+    const apiKey = deepseekApiKey.value();
+    const answer = await callDeepSeekChat(apiKey, messages);
+
+    if (!answer) {
+      throw new HttpsError("internal", "AI không trả lời được. Hãy thử lại.");
+    }
+
+    console.log(`✅ chatAssistant: ${answer.substring(0, 80)}`);
+    return { answer };
+  }
+);
