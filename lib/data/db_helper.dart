@@ -4529,11 +4529,11 @@ class DBHelper {
         ? await db.query('sales',
             where: 'shopId = ? AND (deleted = 0 OR deleted IS NULL)',
             whereArgs: [shopId],
-            orderBy: 'createdAt DESC',
+            orderBy: 'soldAt DESC',
             limit: 1)
         : await db.query('sales',
             where: 'deleted = 0 OR deleted IS NULL',
-            orderBy: 'createdAt DESC',
+            orderBy: 'soldAt DESC',
             limit: 1);
     return res.isNotEmpty ? SaleOrder.fromMap(res.first) : null;
   }

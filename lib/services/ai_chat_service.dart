@@ -62,6 +62,14 @@ class AiChatStats {
   final int profitThisMonth;
   final int repairsThisMonth;
 
+  // Yearly totals
+  final int salesThisYear;
+  final int saleRevenueThisYear;
+  final int repairRevenueThisYear;
+  final int revenueThisYear;
+  final int profitThisYear;
+  final int repairsThisYear;
+
   // Detail lists
   final List<String> repairSummaries;
   final List<String> topDebtorLines;
@@ -85,6 +93,12 @@ class AiChatStats {
     this.revenueThisMonth = 0,
     this.profitThisMonth = 0,
     this.repairsThisMonth = 0,
+    this.salesThisYear = 0,
+    this.saleRevenueThisYear = 0,
+    this.repairRevenueThisYear = 0,
+    this.revenueThisYear = 0,
+    this.profitThisYear = 0,
+    this.repairsThisYear = 0,
     this.repairSummaries = const [],
     this.topDebtorLines = const [],
   });
@@ -108,6 +122,12 @@ class AiChatStats {
         'revenueThisMonth': revenueThisMonth,
         'profitThisMonth': profitThisMonth,
         'repairsThisMonth': repairsThisMonth,
+        'salesThisYear': salesThisYear,
+        'saleRevenueThisYear': saleRevenueThisYear,
+        'repairRevenueThisYear': repairRevenueThisYear,
+        'revenueThisYear': revenueThisYear,
+        'profitThisYear': profitThisYear,
+        'repairsThisYear': repairsThisYear,
         'repairSummaries': repairSummaries,
         'topDebtorLines': topDebtorLines,
       };
@@ -143,25 +163,36 @@ class AiChatService {
         .subtract(const Duration(seconds: 1))
         .millisecondsSinceEpoch;
 
+    final yearStart = DateTime(now.year, 1, 1).millisecondsSinceEpoch;
+    final yearEnd = DateTime(now.year + 1, 1, 1)
+        .subtract(const Duration(seconds: 1))
+        .millisecondsSinceEpoch;
+
     final results = await Future.wait([
       db.getSalesByDateRange(dayStart, dayEnd),                    // [0] sales hôm nay
-      db.getRepairsByCreatedAtRange(dayStart, dayEnd),             // [1] tất cả đơn sửa hôm nay (để đếm + list)
+      db.getRepairsByCreatedAtRange(dayStart, dayEnd),             // [1] tất cả đơn sửa hôm nay
       db.getInventorySummary(),                                     // [2] tồn kho
       db.getDebtsForFinanceSnapshot(),                             // [3] công nợ
       db.getSalesByDateRange(monthStart, monthEnd),                 // [4] sales tháng
-      db.getRepairsByCreatedAtRange(monthStart, monthEnd),         // [5] đơn sửa tháng (đếm)
-      db.getDeliveredRepairsByDateRange(dayStart, dayEnd),         // [6] đơn sửa ĐÃ GIAO hôm nay (tính doanh thu)
-      db.getDeliveredRepairsByDateRange(monthStart, monthEnd),     // [7] đơn sửa ĐÃ GIAO tháng
+      db.getRepairsByCreatedAtRange(monthStart, monthEnd),         // [5] đơn sửa tháng
+      db.getDeliveredRepairsByDateRange(dayStart, dayEnd),         // [6] đã giao hôm nay
+      db.getDeliveredRepairsByDateRange(monthStart, monthEnd),     // [7] đã giao tháng
+      db.getSalesByDateRange(yearStart, yearEnd),                   // [8] sales năm
+      db.getRepairsByCreatedAtRange(yearStart, yearEnd),           // [9] đơn sửa năm
+      db.getDeliveredRepairsByDateRange(yearStart, yearEnd),       // [10] đã giao năm
     ]);
 
     final sales = results[0] as List;
-    final repairs = results[1] as List;           // tất cả đơn sửa (mọi trạng thái)
+    final repairs = results[1] as List;
     final inventory = results[2] as Map<String, int>;
     final debts = results[3] as List<Map<String, dynamic>>;
     final salesMonth = results[4] as List;
-    final repairsMonth = results[5] as List;      // tất cả đơn sửa tháng
-    final deliveredRepairs = results[6] as List;  // đơn sửa đã giao hôm nay
-    final deliveredRepairsMonth = results[7] as List; // đã giao tháng
+    final repairsMonth = results[5] as List;
+    final deliveredRepairs = results[6] as List;
+    final deliveredRepairsMonth = results[7] as List;
+    final salesYear = results[8] as List;
+    final repairsYear = results[9] as List;
+    final deliveredRepairsYear = results[10] as List;
 
     // ── Doanh thu bán hàng ──
     int saleRevenue = 0, saleProfit = 0;
@@ -197,6 +228,24 @@ class AiChatService {
       final cost = (r.totalCost as num?)?.toInt() ?? 0;
       repairRevenueMonth += price;
       repairProfitMonth += price - cost;
+    }
+
+    // ── Yearly sales ──
+    int saleRevenueYear = 0, saleProfitYear = 0;
+    for (final s in salesYear) {
+      final fp = (s.finalPrice as num?)?.toInt() ?? 0;
+      final tc = (s.totalCost as num?)?.toInt() ?? 0;
+      saleRevenueYear += fp;
+      saleProfitYear += fp - tc;
+    }
+
+    // ── Yearly repair revenue ──
+    int repairRevenueYear = 0, repairProfitYear = 0;
+    for (final r in deliveredRepairsYear) {
+      final price = (r.price as num?)?.toInt() ?? 0;
+      final cost = (r.totalCost as num?)?.toInt() ?? 0;
+      repairRevenueYear += price;
+      repairProfitYear += price - cost;
     }
 
     // ── Đơn sửa: đếm + list (mọi trạng thái) ──
@@ -269,6 +318,12 @@ class AiChatService {
       revenueThisMonth: saleRevenueMonth + repairRevenueMonth,
       profitThisMonth: profitMonth + repairProfitMonth,
       repairsThisMonth: repairsMonth.length,
+      salesThisYear: salesYear.length,
+      saleRevenueThisYear: saleRevenueYear,
+      repairRevenueThisYear: repairRevenueYear,
+      revenueThisYear: saleRevenueYear + repairRevenueYear,
+      profitThisYear: saleProfitYear + repairProfitYear,
+      repairsThisYear: repairsYear.length,
       repairSummaries: repairSummaries.take(20).toList(),
       topDebtorLines: topDebtorLines,
     );
@@ -355,48 +410,77 @@ class AiChatService {
     }
 
     // Tổng hợp tài chính
-    if (_has(n, ['tai chinh', 'tong hop', 'tom tat', 'bao cao', 'tong ket'])) {
+    if (_has(n, ['tai chinh', 'tong hop', 'tom tat', 'bao cao', 'tong ket']) &&
+        !_has(n, ['nam nay', 'nam'])) {
       final buf = StringBuffer();
-      buf.writeln('**Tóm tắt tài chính hôm nay:**');
-      if (stats.salesToday > 0) {
-        buf.writeln('• Bán hàng: **${stats.salesToday} đơn** — ${fmt(stats.saleRevenueToday)}');
-      }
-      if (stats.deliveredRepairsToday > 0) {
-        buf.writeln('• Sửa chữa đã giao: **${stats.deliveredRepairsToday} đơn** — ${fmt(stats.repairRevenueToday)}');
-      }
-      buf.writeln('• Tổng doanh thu: **${fmt(stats.revenueToday)}**');
-      buf.writeln('• Lợi nhuận: **${fmt(stats.profitToday)}**');
-      buf.writeln('• Đơn sửa đang chờ: **${stats.repairsPending} đơn**');
+      buf.writeln('**Hôm nay:**');
+      buf.writeln('• Bán hàng: **${stats.salesToday} đơn** — ${fmt(stats.saleRevenueToday)}');
+      buf.writeln('• Sửa chữa giao: **${stats.deliveredRepairsToday} đơn** — ${fmt(stats.repairRevenueToday)}');
+      buf.writeln('• Doanh thu: **${fmt(stats.revenueToday)}** | LN: **${fmt(stats.profitToday)}**');
+      buf.writeln('• Đơn sửa chờ xử lý: **${stats.repairsPending} đơn**');
       buf.writeln();
       buf.writeln('**Tháng này:**');
-      buf.writeln('• Bán hàng: ${stats.salesThisMonth} đơn (${fmt(stats.saleRevenueThisMonth)})');
-      buf.writeln('• Sửa chữa: ${stats.repairsThisMonth} đơn (${fmt(stats.repairRevenueThisMonth)})');
-      buf.writeln('• Tổng doanh thu: **${fmt(stats.revenueThisMonth)}** | Lợi nhuận: **${fmt(stats.profitThisMonth)}**');
+      buf.writeln('• Bán hàng: **${stats.salesThisMonth} đơn** (${fmt(stats.saleRevenueThisMonth)})');
+      buf.writeln('• Sửa chữa: **${stats.repairsThisMonth} đơn** (${fmt(stats.repairRevenueThisMonth)})');
+      buf.writeln('• Doanh thu: **${fmt(stats.revenueThisMonth)}** | LN: **${fmt(stats.profitThisMonth)}**');
       buf.writeln();
-      buf.write('• Công nợ phải thu: **${fmt(stats.debtReceivable)}**');
-      buf.write(' | Phải trả: **${fmt(stats.debtPayable)}**');
+      buf.writeln('**Năm nay:**');
+      buf.writeln('• Bán hàng: **${stats.salesThisYear} đơn** (${fmt(stats.saleRevenueThisYear)})');
+      buf.writeln('• Sửa chữa: **${stats.repairsThisYear} đơn** (${fmt(stats.repairRevenueThisYear)})');
+      buf.writeln('• Doanh thu: **${fmt(stats.revenueThisYear)}** | LN: **${fmt(stats.profitThisYear)}**');
+      buf.writeln();
+      buf.write('• Công nợ phải thu: **${fmt(stats.debtReceivable)}** | Phải trả: **${fmt(stats.debtPayable)}**');
       return AiQuickResponse(buf.toString(), actions: const [_kViewDebtsAction]);
     }
 
-    // Tháng này
-    if (_has(n, ['thang nay', 'doanh thu thang']) &&
-        !_has(n, ['gom', 'chi tiet', 'danh sach'])) {
+    // Năm nay
+    if (_has(n, ['nam nay', 'doanh thu nam', 'thong ke nam', 'nam ${DateTime.now().year}'])) {
+      final buf = StringBuffer('**Năm ${DateTime.now().year}:**\n');
+      buf.writeln('• Bán hàng: **${stats.salesThisYear} đơn** — ${fmt(stats.saleRevenueThisYear)}');
+      buf.writeln('• Sửa chữa đã giao: **${stats.repairsThisYear} đơn** — ${fmt(stats.repairRevenueThisYear)}');
+      buf.writeln('• Tổng doanh thu: **${fmt(stats.revenueThisYear)}**');
+      buf.write('• Lợi nhuận: **${fmt(stats.profitThisYear)}**');
+      return AiQuickResponse(buf.toString());
+    }
+
+    // Tháng này (chi tiết)
+    if (_has(n, ['thang nay', 'doanh thu thang', 'ban hang thang', 'sua chua thang']) &&
+        !_has(n, ['nam nay'])) {
+      final buf = StringBuffer('**Tháng ${DateTime.now().month}/${DateTime.now().year}:**\n');
+      buf.writeln('• Bán hàng: **${stats.salesThisMonth} đơn** — ${fmt(stats.saleRevenueThisMonth)}');
+      buf.writeln('• Sửa chữa đã giao: **${stats.repairsThisMonth} đơn** — ${fmt(stats.repairRevenueThisMonth)}');
+      buf.writeln('• Tổng doanh thu: **${fmt(stats.revenueThisMonth)}**');
+      buf.write('• Lợi nhuận: **${fmt(stats.profitThisMonth)}**');
+      return AiQuickResponse(buf.toString());
+    }
+
+    // Bán hàng hôm nay
+    if (_has(n, ['ban hang hom nay', 'don ban hom nay', 'so don ban hom nay'])) {
+      if (stats.salesToday == 0) {
+        return const AiQuickResponse('Hôm nay chưa có đơn bán nào.', actions: [_kOpenLatestSaleAction]);
+      }
       return AiQuickResponse(
-        'Tháng này: bán hàng **${stats.salesThisMonth} đơn** (${fmt(stats.saleRevenueThisMonth)}), '
-        'sửa chữa giao **${fmt(stats.repairRevenueThisMonth)}**. '
-        'Tổng doanh thu **${fmt(stats.revenueThisMonth)}**, '
-        'lợi nhuận **${fmt(stats.profitThisMonth)}**.',
+        'Hôm nay bán **${stats.salesToday} đơn**, doanh thu **${fmt(stats.saleRevenueToday)}**.',
+        actions: const [_kOpenLatestSaleAction],
+      );
+    }
+
+    // Sửa chữa hôm nay
+    if (_has(n, ['sua chua hom nay', 'don sua hom nay', 'so don sua hom nay'])) {
+      return AiQuickResponse(
+        'Hôm nay nhận **${stats.repairsToday} đơn sửa**. '
+        'Đã giao: **${stats.deliveredRepairsToday}**, đang chờ: **${stats.repairsPending}**. '
+        'Doanh thu sửa chữa: **${fmt(stats.repairRevenueToday)}**.',
+        actions: const [_kOpenLatestRepairAction],
       );
     }
 
     // Doanh thu hôm nay
     if (_has(n, ['doanh thu', 'ban duoc', 'thu duoc', 'ban hang']) &&
-        !_has(n, ['gom', 'nhung', 'nao', 'chi tiet', 'danh sach', 'thang'])) {
+        !_has(n, ['gom', 'nhung', 'nao', 'chi tiet', 'danh sach', 'thang', 'nam'])) {
       final buf = StringBuffer();
-      if (stats.saleRevenueToday > 0 || stats.salesToday > 0) {
-        buf.write('Bán hàng: **${stats.salesToday} đơn** (${fmt(stats.saleRevenueToday)}). ');
-      }
-      if (stats.repairRevenueToday > 0 || stats.deliveredRepairsToday > 0) {
+      buf.write('Bán hàng: **${stats.salesToday} đơn** (${fmt(stats.saleRevenueToday)}). ');
+      if (stats.deliveredRepairsToday > 0) {
         buf.write('Sửa chữa giao: **${stats.deliveredRepairsToday} đơn** (${fmt(stats.repairRevenueToday)}). ');
       }
       buf.write('Tổng doanh thu: **${fmt(stats.revenueToday)}**, lợi nhuận: **${fmt(stats.profitToday)}**.');
