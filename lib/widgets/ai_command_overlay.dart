@@ -75,6 +75,7 @@ class _AiCommandOverlayState extends State<AiCommandOverlay>
   bool _speechAvailable = false;
   String _transcript = '';
   List<String> _corrections = [];
+  String? _detectedLabel;
 
   late final AnimationController _pulse;
 
@@ -127,16 +128,46 @@ class _AiCommandOverlayState extends State<AiCommandOverlay>
   }
 
   void _onSpeechResult(SpeechRecognitionResult result) {
-    setState(() => _transcript = result.recognizedWords);
-    if (result.finalResult && result.recognizedWords.isNotEmpty) {
+    // Sửa live ngay khi đang nghe để người dùng thấy text đẹp hơn
+    final liveText = result.recognizedWords;
+    final liveCorrected = VoiceCorrectionService.correct(liveText);
+    setState(() => _transcript = liveCorrected.corrected.isNotEmpty
+        ? liveCorrected.corrected
+        : liveText);
+
+    if (result.finalResult && liveText.isNotEmpty) {
       _pulse.stop();
-      final corrected = VoiceCorrectionService.correct(result.recognizedWords);
+      final corrected = VoiceCorrectionService.correct(liveText);
       _textCtrl.text = corrected.corrected;
+      // Phát hiện intent để hiển thị gợi ý cho người dùng
+      final detected = AiCommandRouterService.detect(corrected.corrected);
+      final intentLabel = detected.intent != AiCommandIntent.unknown
+          ? _intentLabel(detected.intent)
+          : null;
       setState(() {
         _status = _OverlayStatus.done;
         _corrections = corrected.changes;
+        _detectedLabel = intentLabel;
       });
     }
+  }
+
+  static String? _intentLabel(AiCommandIntent intent) {
+    return switch (intent) {
+      AiCommandIntent.createRepair      => '🔧 Tạo đơn sửa',
+      AiCommandIntent.createSale        => '🛒 Tạo đơn bán',
+      AiCommandIntent.stockEntry        => '📦 Nhập kho',
+      AiCommandIntent.viewFinanceToday  => '💰 Tài chính hôm nay',
+      AiCommandIntent.viewFinanceWeek   => '💰 Tài chính tuần',
+      AiCommandIntent.viewFinanceMonth  => '💰 Tài chính tháng',
+      AiCommandIntent.findCustomer      => '👤 Tìm khách hàng',
+      AiCommandIntent.viewDebt          => '📋 Công nợ',
+      AiCommandIntent.viewPendingRepairs => '⏳ Đơn đang sửa',
+      AiCommandIntent.stockCheck        => '🔍 Kiểm kho',
+      AiCommandIntent.attendanceIn      => '✅ Chấm công vào',
+      AiCommandIntent.attendanceOut     => '🚪 Chấm công ra',
+      AiCommandIntent.unknown           => null,
+    };
   }
 
   void _submit(String text) {
@@ -207,19 +238,36 @@ class _AiCommandOverlayState extends State<AiCommandOverlay>
         const SizedBox(height: 32),
         _buildMicButton(),
         const SizedBox(height: 12),
-        if (_status == _OverlayStatus.done)
+        if (_status == _OverlayStatus.done) ...[
           TextButton.icon(
             onPressed: () {
               _textCtrl.clear();
               setState(() {
                 _transcript = '';
                 _corrections = [];
+                _detectedLabel = null;
                 _status = _OverlayStatus.idle;
               });
             },
             icon: const Icon(Icons.refresh_rounded, size: 16, color: Colors.white54),
             label: const Text('Nói lại', style: TextStyle(color: Colors.white54, fontSize: 13)),
           ),
+          // Badge lệnh nhận ra được
+          if (_detectedLabel != null)
+            Container(
+              margin: const EdgeInsets.only(bottom: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+              decoration: BoxDecoration(
+                color: const Color(0xFF16A34A).withValues(alpha: 0.25),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFF86EFAC).withValues(alpha: 0.5)),
+              ),
+              child: Text(
+                'Nhận ra: $_detectedLabel',
+                style: const TextStyle(color: Color(0xFF86EFAC), fontSize: 12, fontWeight: FontWeight.w600),
+              ),
+            ),
+          // Badge từ đã tự sửa
           if (_corrections.isNotEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -243,6 +291,7 @@ class _AiCommandOverlayState extends State<AiCommandOverlay>
                 ],
               ),
             ),
+        ],
         const SizedBox(height: 12),
         _buildTranscript(),
       ],
