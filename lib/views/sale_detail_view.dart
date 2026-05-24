@@ -47,6 +47,7 @@ import '../widgets/deep_link_navigator.dart';
 import '../widgets/custom_app_bar.dart';
 import '../theme/popup_theme.dart';
 import '../widgets/app_popup.dart';
+import 'staff_public_profile_view.dart';
 
 class SaleDetailView extends StatefulWidget {
   final SaleOrder sale;
@@ -1490,7 +1491,7 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                   tooltip: 'Mở chi tiết sản phẩm từ đơn bán',
                 ),
                 _item("Bảo hành", s.warranty.isNotEmpty ? s.warranty : "KO BH"),
-                _item("Nhân viên", s.sellerName),
+                _staffItem(s.sellerName, s.sellerUid),
                 _item("Thời gian", _fmtDate(s.soldAt)),
                 _item("Hình thức", s.paymentMethod),
                 // Hiển thị chi tiết kết hợp thanh toán
@@ -1631,6 +1632,53 @@ class _SaleDetailViewState extends State<SaleDetailView> {
       ],
     ),
   );
+
+  Widget _staffItem(String name, String? uid) {
+    final tappable = uid != null && uid.isNotEmpty;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Nhân viên', style: TextStyle(color: Colors.grey)),
+          const SizedBox(width: 12),
+          GestureDetector(
+            onTap: tappable
+                ? () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => StaffPublicProfileView(
+                          userId: uid,
+                          fallbackName: name,
+                        ),
+                      ),
+                    )
+                : null,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  name.isNotEmpty ? name : '--',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: tappable ? const Color(0xFF4F46E5) : null,
+                    decoration: tappable ? TextDecoration.underline : null,
+                    decorationColor: const Color(0xFF4F46E5),
+                  ),
+                ),
+                if (tappable) ...[
+                  const SizedBox(width: 3),
+                  const Icon(Icons.chevron_right_rounded,
+                      size: 16, color: Color(0xFF4F46E5)),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
   Widget _row(String l, String v) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 4),
     child: Row(

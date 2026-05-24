@@ -61,6 +61,9 @@ class _AiChatOverlayState extends State<AiChatOverlay>
   // Tracks last resolved topic for "gần nhất" context continuity
   String? _lastIntent; // 'repair' | 'sale' | 'debt' | 'stock' | null
 
+  // ── FAB drag position (null = default bottom-right on first build) ─────────
+  Offset? _fabOffset;
+
   // ── Voice ─────────────────────────────────────────────────────────────────
   final _speech = SpeechToText();
   bool _speechAvailable = false;
@@ -328,13 +331,35 @@ class _AiChatOverlayState extends State<AiChatOverlay>
         // Chat panel
         if (_open) _buildPanel(context),
 
-        // FAB
-        Positioned(
-          right: 16,
-          bottom: 80, // above bottom nav
-          child: _buildFab(),
-        ),
+        // Draggable FAB
+        _buildDraggableFab(context),
       ],
+    );
+  }
+
+  Widget _buildDraggableFab(BuildContext context) {
+    final mq = MediaQuery.of(context);
+    // Initialise to bottom-right on first build
+    _fabOffset ??= Offset(mq.size.width - 68, mq.size.height - 156);
+
+    return Positioned(
+      left: _fabOffset!.dx,
+      top: _fabOffset!.dy,
+      child: GestureDetector(
+        onPanUpdate: _open
+            ? null
+            : (d) {
+                final mq = MediaQuery.of(context);
+                setState(() {
+                  _fabOffset = Offset(
+                    (_fabOffset!.dx + d.delta.dx).clamp(0, mq.size.width - 56),
+                    (_fabOffset!.dy + d.delta.dy)
+                        .clamp(0, mq.size.height - 100),
+                  );
+                });
+              },
+        child: _buildFab(),
+      ),
     );
   }
 

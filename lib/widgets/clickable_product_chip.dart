@@ -1,9 +1,4 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
-
-import '../theme/app_text_styles.dart';
-import '../theme/app_spacing.dart';
-import '../theme/design_tokens.dart';
 import 'deep_link_navigator.dart';
 
 class ClickableProductChip extends StatelessWidget {
@@ -36,8 +31,9 @@ class ClickableProductChip extends StatelessWidget {
         message: tooltip,
         child: Material(
           color: Colors.transparent,
+          borderRadius: BorderRadius.circular(14),
           child: InkWell(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(14),
             onTap: () {
               DeepLinkNavigator.openProductDetail(
                 context,
@@ -50,16 +46,39 @@ class ClickableProductChip extends StatelessWidget {
               );
             },
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppColors.primary),
-                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(14),
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF1E3A5F), Color(0xFF1D4ED8)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF1D4ED8).withValues(alpha: 0.28),
+                    blurRadius: 16,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
               ),
               child: Row(
                 children: [
-                  Icon(Icons.inventory_2_outlined, size: DesignTokens.iconSm, color: AppColors.surface),
-                  AppSpacing.hSm,
+                  // Icon box with frosted glass effect
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.phone_android_rounded,
+                      color: Colors.white,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -68,25 +87,37 @@ class ClickableProductChip extends StatelessWidget {
                           displayName,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: AppTextStyles.body1.copyWith(
-                            color: AppColors.surface,
+                          style: const TextStyle(
+                            color: Colors.white,
                             fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                            letterSpacing: 0.2,
                           ),
                         ),
-                        if (code.isNotEmpty)
-                          Text(
-                            code,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: AppTextStyles.caption.copyWith(
-                              color: AppColors.surface.withAlpha(179),
-                            ),
+                        if (code.isNotEmpty) ...[
+                          const SizedBox(height: 3),
+                          Row(
+                            children: [
+                              Icon(Icons.qr_code_rounded,
+                                  size: 11,
+                                  color: Colors.white.withValues(alpha: 0.65)),
+                              const SizedBox(width: 4),
+                              Text(
+                                code,
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.75),
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
                           ),
+                        ],
                       ],
                     ),
                   ),
-                  AppSpacing.hXs,
-                  Icon(Icons.arrow_forward_ios, size: DesignTokens.iconSm - 4, color: AppColors.surface.withAlpha(204)),
+                  const SizedBox(width: 8),
+                  Icon(Icons.chevron_right_rounded,
+                      color: Colors.white.withValues(alpha: 0.8), size: 22),
                 ],
               ),
             ),
