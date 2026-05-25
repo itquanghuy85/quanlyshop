@@ -72,7 +72,6 @@ import '../widgets/simple_sync_indicator.dart';
 import '../widgets/shop_switcher_widget.dart';
 import '../widgets/ai_chat_overlay.dart';
 import '../widgets/custom_app_bar.dart';
-import '../widgets/warranty_reminder_widget.dart';
 import '../services/sync_service.dart';
 import '../services/sync_orchestrator.dart';
 import '../services/sync_health_check.dart';
@@ -7083,8 +7082,6 @@ class _HomeViewState extends State<HomeView>
                 ),
                 subtitle: 'Quản lý linh kiện, giá nhập, tồn kho',
               ),
-            const SizedBox(height: 10),
-            const WarrantyReminderWidget(),
           ],
         ),
       ),

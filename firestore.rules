@@ -1119,7 +1119,16 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // ═══════════ 9.2 SHOP_NOTIFICATIONS (broadcast) ═══════════
+    // ═══════════ 9.2 BROADCASTS (Super Admin → All Users) ═══════════
+    // Global system announcements: update notices, maintenance alerts, etc.
+    match /broadcasts/{broadcastId} {
+      // READ: Any authenticated user (cross-shop, global)
+      allow read: if isAuth();
+      // WRITE: Super Admin only
+      allow create, update, delete: if isSuperAdmin();
+    }
+
+    // ═══════════ 9.3 SHOP_NOTIFICATIONS (broadcast) ═══════════
     match /shop_notifications/{notificationId} {
       allow read: if isAuth() && docInMyShop();
       

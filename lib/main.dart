@@ -26,7 +26,6 @@ import 'services/sync_service.dart';
 import 'services/storage_service.dart'; // For retrying pending uploads
 import 'services/sync_health_check.dart'; // Kiểm tra sync health
 import 'services/sync_orchestrator.dart'; // Quản lý đồng bộ local -> cloud
-import 'services/warranty_reminder_service.dart';
 import 'services/cash_closing_notifier.dart'; // Realtime notify chốt quỹ
 import 'services/claims_service.dart'; // Custom claims management
 import 'services/payment_intent_service.dart'; // Payment intents management
@@ -363,17 +362,8 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
 
   // Track if sync orchestrator is initialized
   bool _syncOrchestratorInitialized = false;
-  bool _warrantyReminderInitialized = false;
-
   Future<void> _initWarrantyReminderOnce() async {
-    if (_warrantyReminderInitialized) return;
-    _warrantyReminderInitialized = true;
-    try {
-      await WarrantyReminderService.startWarrantyReminders();
-    } catch (e) {
-      debugPrint('WarrantyReminder init error: $e');
-      _warrantyReminderInitialized = false;
-    }
+    // Warranty reminder notifications disabled
   }
 
   @override
@@ -504,6 +494,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
         );
       }
     });
+    NotificationService.listenToBroadcasts(context);
   }
 
   /// Lấy hoặc tạo future cho user - chỉ tạo mới khi user thay đổi

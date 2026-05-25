@@ -1629,6 +1629,87 @@ exports.deleteUserData = onCall(async (request) => {
   };
 });
 
+// ══════════════════════════════════════════════════════════════════════════════
+// 📢 BROADCAST NOTIFICATION (Super Admin → Toàn bộ người dùng)
+// ══════════════════════════════════════════════════════════════════════════════
+// Gửi thông báo hệ thống tới TẤT CẢ người dùng qua:
+//   A. Firestore /broadcasts/{id} → client listener hiển thị dialog
+//   B. FCM topic 'all_users'      → push notification kể cả khi app đóng
+// ══════════════════════════════════════════════════════════════════════════════
+
+exports.sendBroadcastNotification = onCall(async (request) => {
+  const auth = request.auth;
+  if (!auth) {
+    throw new HttpsError("unauthenticated", "Vui lòng đăng nhập");
+  }
+
+  // Chỉ Super Admin mới được gửi broadcast
+  const isSuperAdmin = auth.token.isSuperAdmin === true ||
+    (auth.token.role || "").toString().toLowerCase() === "super_admin";
+  if (!isSuperAdmin) {
+    throw new HttpsError("permission-denied", "Chỉ Super Admin mới được gửi thông báo hệ thống");
+  }
+
+  const data = request.data || {};
+  const title = (data.title || "").toString().trim();
+  const body  = (data.body  || "").toString().trim();
+  const type  = (data.type  || "info").toString(); // info | warning | update_required
+  const expiresAfterDays = typeof data.expiresAfterDays === 'number' ? data.expiresAfterDays : 7;
+
+  if (!title) throw new HttpsError("invalid-argument", "Thiếu tiêu đề thông báo");
+  if (!body)  throw new HttpsError("invalid-argument", "Thiếu nội dung thông báo");
+
+  const db = admin.firestore();
+  const expiresAt = new Date(Date.now() + expiresAfterDays * 24 * 60 * 60 * 1000);
+
+  // A — Lưu vào Firestore (client listener sẽ hiển thị dialog)
+  const broadcastRef = await db.collection('broadcasts').add({
+    title,
+    body,
+    type,
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    createdBy: auth.uid,
+    expiresAt: admin.firestore.Timestamp.fromDate(expiresAt),
+  });
+
+  console.log(`📢 Broadcast created: ${broadcastRef.id} by ${auth.uid} — "${title}"`);
+
+  // B — Gửi FCM tới topic all_users (push kể cả khi app đóng)
+  try {
+    await admin.messaging().send({
+      topic: 'all_users',
+      notification: { title, body },
+      data: {
+        type,
+        broadcastId: broadcastRef.id,
+        source: 'broadcast',
+      },
+      android: {
+        priority: type === 'update_required' ? 'high' : 'normal',
+        notification: {
+          channelId: 'system',
+          priority: type === 'update_required' ? 'max' : 'default',
+        },
+      },
+      apns: {
+        headers: { 'apns-priority': type === 'update_required' ? '10' : '5' },
+        payload: {
+          aps: {
+            alert: { title, body },
+            badge: 1,
+            sound: 'default',
+          },
+        },
+      },
+    });
+    console.log(`✅ FCM topic broadcast sent to all_users for broadcastId=${broadcastRef.id}`);
+  } catch (fcmError) {
+    console.error(`⚠️  FCM topic send failed (Firestore doc still saved): ${fcmError.message}`);
+  }
+
+  return { success: true, broadcastId: broadcastRef.id };
+});
+
 // ============================================================
 // DEEPSEEK AI — REPAIR ORDER PARSER
 // ============================================================

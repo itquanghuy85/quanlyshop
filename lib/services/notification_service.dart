@@ -360,6 +360,8 @@ class NotificationService {
 
     // Subscribe to staff topic for business notifications
     await _firebaseMessaging.subscribeToTopic('staff');
+    // Subscribe to global broadcast topic (super admin announcements)
+    await _firebaseMessaging.subscribeToTopic('all_users');
 
     // On iOS, wait for APNs token before requesting FCM token
     if (Platform.isIOS) {
@@ -1652,6 +1654,134 @@ class NotificationService {
     } catch (e) {
       debugPrint('Error cleaning up dead tokens: $e');
     }
+  }
+
+  // ─── Broadcast (Super Admin → All Users) ──────────────────────────────────
+
+  static StreamSubscription? _broadcastSubscription;
+  static final DateTime _broadcastListenFrom = DateTime.now().subtract(
+    const Duration(minutes: 1),
+  );
+
+  /// Lắng nghe /broadcasts — hiển thị dialog khi có thông báo hệ thống mới
+  static void listenToBroadcasts(BuildContext context) {
+    _broadcastSubscription?.cancel();
+    _broadcastSubscription = _db
+        .collection('broadcasts')
+        .where('createdAt', isGreaterThan: Timestamp.fromDate(_broadcastListenFrom))
+        .orderBy('createdAt', descending: true)
+        .limit(5)
+        .snapshots()
+        .listen((snapshot) async {
+          final prefs = await SharedPreferences.getInstance();
+          for (final change in snapshot.docChanges) {
+            if (change.type != DocumentChangeType.added) continue;
+            final docId = change.doc.id;
+            final seenKey = 'broadcast_seen_$docId';
+            if (prefs.getBool(seenKey) == true) continue;
+
+            // Check expiry
+            final data = change.doc.data() as Map<String, dynamic>;
+            final expiresAt = (data['expiresAt'] as Timestamp?)?.toDate();
+            if (expiresAt != null && expiresAt.isBefore(DateTime.now())) continue;
+
+            await prefs.setBool(seenKey, true);
+
+            // Show dialog (must run on UI thread via mounted-safe context check)
+            if (context.mounted) {
+              _showBroadcastDialog(context, docId, data);
+            }
+          }
+        }, onError: (e) => debugPrint('Broadcast listener error: $e'));
+  }
+
+  static void _showBroadcastDialog(
+    BuildContext context,
+    String docId,
+    Map<String, dynamic> data,
+  ) {
+    final title = (data['title'] ?? 'Thông báo hệ thống').toString();
+    final body = (data['body'] ?? '').toString();
+    final type = (data['type'] ?? 'info').toString();
+
+    Color color;
+    IconData icon;
+    switch (type) {
+      case 'update_required':
+        color = Colors.red;
+        icon = Icons.system_update_rounded;
+        break;
+      case 'warning':
+        color = Colors.orange;
+        icon = Icons.warning_amber_rounded;
+        break;
+      default:
+        color = Colors.indigo;
+        icon = Icons.campaign_rounded;
+    }
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: color, size: 28),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '📢 Thông báo hệ thống',
+                    style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                  ),
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: color,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 17,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        content: Text(body, style: const TextStyle(fontSize: 15, height: 1.4)),
+        actions: [
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () => Navigator.pop(ctx),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: color,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              child: const Text('Đã hiểu'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static void stopBroadcastListener() {
+    _broadcastSubscription?.cancel();
+    _broadcastSubscription = null;
   }
 
   static void showSnackBar(

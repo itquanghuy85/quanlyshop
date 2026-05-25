@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -19,6 +20,7 @@ enum _AdminSection {
   users,
   permissions,
   audit,
+  broadcast,
   settings,
   danger,
 }
@@ -452,6 +454,7 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
       case _AdminSection.shops: return 1;
       case _AdminSection.users: return 2;
       case _AdminSection.audit: return 3;
+      case _AdminSection.broadcast:
       case _AdminSection.permissions:
       case _AdminSection.settings:
       case _AdminSection.danger: return 4;
@@ -513,6 +516,7 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
           _navItem(Icons.people, 'Users', _AdminSection.users),
           _navItem(Icons.shield, 'Permissions', _AdminSection.permissions),
           _navItem(Icons.receipt_long, 'Audit Logs', _AdminSection.audit),
+          _navItem(Icons.campaign_rounded, 'Broadcast', _AdminSection.broadcast),
           _navItem(Icons.settings, 'Settings', _AdminSection.settings),
           _navItem(Icons.warning_amber_rounded, 'Danger Zone', _AdminSection.danger, danger: true),
           const Divider(),
@@ -573,6 +577,8 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
             });
           },
         );
+      case _AdminSection.broadcast:
+        return const _BroadcastSection();
       case _AdminSection.settings:
         return const _SettingsSection();
       case _AdminSection.danger:
@@ -1548,6 +1554,255 @@ class _SettingsSectionState extends State<_SettingsSection> {
           ),
         ),
       ],
+    );
+  }
+}
+
+// ─── Broadcast ───────────────────────────────────────────────────────────────
+
+class _BroadcastSection extends StatefulWidget {
+  const _BroadcastSection();
+  @override
+  State<_BroadcastSection> createState() => _BroadcastSectionState();
+}
+
+class _BroadcastSectionState extends State<_BroadcastSection> {
+  final _titleCtrl = TextEditingController();
+  final _bodyCtrl = TextEditingController();
+  String _type = 'info';
+  bool _sending = false;
+  String? _lastResult;
+  bool _lastSuccess = false;
+
+  static const _types = [
+    ('info', '📢 Thông tin', Colors.indigo),
+    ('warning', '⚠️ Cảnh báo', Colors.orange),
+    ('update_required', '🔴 Yêu cầu cập nhật', Colors.red),
+  ];
+
+  @override
+  void dispose() {
+    _titleCtrl.dispose();
+    _bodyCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _send() async {
+    final title = _titleCtrl.text.trim();
+    final body = _bodyCtrl.text.trim();
+    if (title.isEmpty || body.isEmpty) {
+      setState(() { _lastResult = 'Vui lòng nhập tiêu đề và nội dung.'; _lastSuccess = false; });
+      return;
+    }
+    setState(() { _sending = true; _lastResult = null; });
+    try {
+      final callable = FirebaseFunctions.instanceFor(region: 'asia-southeast1')
+          .httpsCallable('sendBroadcastNotification');
+      await callable.call({'title': title, 'body': body, 'type': _type});
+      setState(() {
+        _lastResult = '✅ Đã gửi thành công tới toàn bộ người dùng!';
+        _lastSuccess = true;
+        _titleCtrl.clear();
+        _bodyCtrl.clear();
+      });
+    } catch (e) {
+      setState(() { _lastResult = '❌ Lỗi: ${e.toString()}'; _lastSuccess = false; });
+    } finally {
+      setState(() => _sending = false);
+    }
+  }
+
+  Future<void> _deleteBroadcast(String docId) async {
+    await FirebaseFirestore.instance.collection('broadcasts').doc(docId).delete();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Form panel
+          Expanded(
+            flex: 2,
+            child: Card(
+              elevation: 2,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.indigo.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(Icons.campaign_rounded, color: Colors.indigo, size: 28),
+                      ),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Text('Gửi Thông Báo Hệ Thống', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                          Text('Thông báo sẽ được gửi tới TẤT CẢ người dùng qua dialog + push notification.',
+                              style: TextStyle(fontSize: 13, color: Colors.grey)),
+                        ]),
+                      ),
+                    ]),
+                    const SizedBox(height: 24),
+                    // Type selector
+                    const Text('Loại thông báo', style: TextStyle(fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      children: _types.map((t) {
+                        final selected = _type == t.$1;
+                        return ChoiceChip(
+                          label: Text(t.$2),
+                          selected: selected,
+                          selectedColor: t.$3.withValues(alpha: 0.2),
+                          onSelected: (_) => setState(() => _type = t.$1),
+                          labelStyle: TextStyle(
+                            color: selected ? t.$3 : null,
+                            fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 20),
+                    TextField(
+                      controller: _titleCtrl,
+                      decoration: InputDecoration(
+                        labelText: 'Tiêu đề',
+                        hintText: 'VD: Yêu cầu cập nhật phiên bản mới',
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                        prefixIcon: const Icon(Icons.title_rounded),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _bodyCtrl,
+                      maxLines: 4,
+                      decoration: InputDecoration(
+                        labelText: 'Nội dung',
+                        hintText: 'Nhập nội dung thông báo chi tiết...',
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                        prefixIcon: const Icon(Icons.message_rounded),
+                        alignLabelWithHint: true,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    if (_lastResult != null)
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        margin: const EdgeInsets.only(bottom: 16),
+                        decoration: BoxDecoration(
+                          color: _lastSuccess ? Colors.green.shade50 : Colors.red.shade50,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: _lastSuccess ? Colors.green.shade200 : Colors.red.shade200),
+                        ),
+                        child: Text(_lastResult!, style: TextStyle(color: _lastSuccess ? Colors.green.shade800 : Colors.red.shade800)),
+                      ),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: _sending ? null : _send,
+                        icon: _sending
+                            ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                            : const Icon(Icons.send_rounded),
+                        label: Text(_sending ? 'Đang gửi...' : 'Gửi tới toàn bộ người dùng'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.indigo,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 20),
+          // History panel
+          Expanded(
+            flex: 1,
+            child: Card(
+              elevation: 2,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Lịch sử thông báo', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    const SizedBox(height: 8),
+                    StreamBuilder<QuerySnapshot>(
+                      stream: FirebaseFirestore.instance
+                          .collection('broadcasts')
+                          .orderBy('createdAt', descending: true)
+                          .limit(20)
+                          .snapshots(),
+                      builder: (ctx, snap) {
+                        if (!snap.hasData) return const Center(child: CircularProgressIndicator());
+                        final docs = snap.data!.docs;
+                        if (docs.isEmpty) {
+                          return const Padding(
+                            padding: EdgeInsets.all(16),
+                            child: Text('Chưa có thông báo nào.', style: TextStyle(color: Colors.grey)),
+                          );
+                        }
+                        return ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: docs.length,
+                          separatorBuilder: (_, __) => const Divider(height: 1),
+                          itemBuilder: (ctx, i) {
+                            final d = docs[i].data() as Map<String, dynamic>;
+                            final type = d['type'] ?? 'info';
+                            final color = type == 'update_required' ? Colors.red
+                                : type == 'warning' ? Colors.orange : Colors.indigo;
+                            final ts = (d['createdAt'] as Timestamp?)?.toDate();
+                            final expiresAt = (d['expiresAt'] as Timestamp?)?.toDate();
+                            final expired = expiresAt != null && expiresAt.isBefore(DateTime.now());
+                            return ListTile(
+                              dense: true,
+                              leading: Icon(Icons.campaign_rounded, color: color, size: 20),
+                              title: Text(d['title'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(fontWeight: FontWeight.w600, color: expired ? Colors.grey : null)),
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(d['body'] ?? '', maxLines: 2, overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(fontSize: 12)),
+                                  if (ts != null) Text(
+                                    '${ts.day}/${ts.month}/${ts.year} ${ts.hour}:${ts.minute.toString().padLeft(2, '0')}${expired ? ' · Hết hạn' : ''}',
+                                    style: TextStyle(fontSize: 11, color: expired ? Colors.red.shade300 : Colors.grey),
+                                  ),
+                                ],
+                              ),
+                              trailing: IconButton(
+                                icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
+                                tooltip: 'Xóa',
+                                onPressed: () => _deleteBroadcast(docs[i].id),
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
