@@ -371,6 +371,7 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
     if (confirm != true) return;
     SuperAdminSecurityService.clearSession();
     UserService.clearCache();
+    if (mounted) Navigator.of(context).popUntil((route) => route.isFirst);
     await FirebaseAuth.instance.signOut();
   }
 
@@ -479,6 +480,11 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            ListTile(
+              leading: const Icon(Icons.campaign_rounded, color: Colors.indigo),
+              title: const Text('Broadcast'),
+              onTap: () { Navigator.pop(ctx); setState(() => _section = _AdminSection.broadcast); },
+            ),
             ListTile(
               leading: const Icon(Icons.shield_outlined),
               title: const Text('Permissions'),
@@ -1164,6 +1170,16 @@ class _UsersSectionState extends State<_UsersSection> {
                     }
                     final (uid, u) = users[i];
                     final email = (u['email'] ?? '').toString();
+                    final role = (u['role'] ?? 'user').toString();
+                    final shopId = (u['shopId'] ?? 'N/A').toString();
+                    final createdAt = u['createdAt'];
+                    String joinDate = '';
+                    if (createdAt != null) {
+                      try {
+                        final dt = (createdAt as dynamic).toDate() as DateTime;
+                        joinDate = ' · ${dt.day}/${dt.month}/${dt.year}';
+                      } catch (_) {}
+                    }
                     return Card(
                       margin: EdgeInsets.zero,
                       child: ListTile(
@@ -1173,10 +1189,18 @@ class _UsersSectionState extends State<_UsersSection> {
                           child: const Icon(Icons.person_outline, size: 18, color: Colors.indigo),
                         ),
                         title: Text((u['displayName'] ?? email).toString(), style: const TextStyle(fontSize: 14)),
-                        subtitle: Text(
-                          'Role: ${u['role'] ?? 'user'} · Shop: ${u['shopId'] ?? 'N/A'}',
-                          style: const TextStyle(fontSize: 12),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(email, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                            Text(
+                              'Role: $role · Shop: $shopId$joinDate',
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                          ],
                         ),
+                        isThreeLine: true,
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
