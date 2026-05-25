@@ -305,7 +305,85 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
     );
   }
 
-  Future<void> _deleteUser(String uid, String email, {required bool withData}) async {
+  Future<void> _deleteUser(
+    String uid,
+    String email, {
+    required bool withData,
+    String? role,
+    String? shopName,
+  }) async {
+    final isOwner = role == 'owner';
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Row(children: [
+          Icon(Icons.delete_forever, color: Colors.red.shade700),
+          const SizedBox(width: 8),
+          Expanded(child: Text(withData ? 'Xóa user + dữ liệu' : 'Xóa user doc', overflow: TextOverflow.ellipsis)),
+        ]),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (isOwner)
+              Container(
+                padding: const EdgeInsets.all(10),
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.red.shade200),
+                ),
+                child: Row(children: [
+                  Icon(Icons.warning_amber_rounded, color: Colors.red.shade700, size: 20),
+                  const SizedBox(width: 8),
+                  const Expanded(child: Text('Đây là CHỦ SHOP. Cẩn thận khi xóa!',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                ]),
+              ),
+            Text.rich(TextSpan(children: [
+              const TextSpan(text: 'Tài khoản: '),
+              TextSpan(text: email, style: const TextStyle(fontWeight: FontWeight.bold)),
+            ])),
+            if (role != null) Text.rich(TextSpan(children: [
+              const TextSpan(text: 'Role: '),
+              TextSpan(text: role, style: const TextStyle(fontWeight: FontWeight.bold)),
+            ])),
+            if (shopName != null) Text.rich(TextSpan(children: [
+              const TextSpan(text: 'Shop: '),
+              TextSpan(text: shopName, style: const TextStyle(fontWeight: FontWeight.bold)),
+            ])),
+            const SizedBox(height: 12),
+            if (withData) ...[
+              const Text('Sẽ XÓA VĨNH VIỄN:', style: TextStyle(fontWeight: FontWeight.w600)),
+              const SizedBox(height: 4),
+              const Text('• Tài khoản Firebase Auth (mất đăng nhập)', style: TextStyle(fontSize: 13)),
+              const Text('• Hồ sơ user trong Firestore', style: TextStyle(fontSize: 13)),
+              const Text('• Đơn sửa, bán hàng, chi phí do user tạo', style: TextStyle(fontSize: 13)),
+              const Text('• Dữ liệu chấm công, thông báo của user', style: TextStyle(fontSize: 13)),
+              const SizedBox(height: 4),
+              Text('⚠️ Dữ liệu shop (kho, khách hàng...) KHÔNG bị xóa.',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+            ] else ...[
+              const Text('Chỉ xóa hồ sơ user trong Firestore.', style: TextStyle(fontSize: 13)),
+              const SizedBox(height: 4),
+              Text('Tài khoản Firebase Auth vẫn còn — user vẫn có thể đăng nhập nhưng mất liên kết shop.',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Hủy')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(withData ? 'Xóa hoàn toàn' : 'Xóa user doc'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
     final pinOk = await _requirePinReauth(title: 'Xác thực xóa user');
     if (!pinOk) return;
 
@@ -318,7 +396,7 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
     await SuperAdminSecurityService.logAction(
       action: withData ? 'delete_user_with_data_ui' : 'delete_user_doc_ui',
       targetUserId: uid,
-      metadata: {'email': email},
+      metadata: {'email': email, 'role': role, 'shopName': shopName},
       success: true,
     );
 
@@ -1036,7 +1114,7 @@ class _UsersSection extends StatefulWidget {
   const _UsersSection({super.key, required this.onEdit, required this.onDelete});
 
   final Future<void> Function(BuildContext, String, Map<String, dynamic>) onEdit;
-  final Future<void> Function(String uid, String email, {required bool withData}) onDelete;
+  final Future<void> Function(String uid, String email, {required bool withData, String? role, String? shopName}) onDelete;
 
   @override
   State<_UsersSection> createState() => _UsersSectionState();
@@ -1053,6 +1131,7 @@ class _UsersSectionState extends State<_UsersSection> {
   QueryDocumentSnapshot<Map<String, dynamic>>? _lastDoc;
   bool _loading = false;
   bool _hasMore = true;
+  final Map<String, String> _shopNames = {};
 
   @override
   void initState() {
@@ -1066,6 +1145,19 @@ class _UsersSectionState extends State<_UsersSection> {
     super.dispose();
   }
 
+  Future<void> _loadShopNames(List<String> shopIds) async {
+    final toFetch = shopIds.where((id) => id.isNotEmpty && !_shopNames.containsKey(id)).toSet().toList();
+    if (toFetch.isEmpty) return;
+    try {
+      for (final id in toFetch) {
+        final snap = await FirebaseFirestore.instance.collection('shops').doc(id).get();
+        final name = (snap.data()?['shopName'] ?? snap.data()?['name'] ?? '').toString();
+        _shopNames[id] = name.isNotEmpty ? name : id;
+      }
+      if (mounted) setState(() {});
+    } catch (_) {}
+  }
+
   Future<void> _loadPage({bool reset = false}) async {
     if (_loading) return;
     setState(() => _loading = true);
@@ -1077,16 +1169,19 @@ class _UsersSectionState extends State<_UsersSection> {
       if (!reset && _lastDoc != null) q = q.startAfterDocument(_lastDoc!);
 
       final snap = await q.get();
+      final newUsers = snap.docs.map((d) => Map<String, dynamic>.from(d.data())).toList();
       setState(() {
         if (reset) { _users.clear(); _uids.clear(); }
-        for (final d in snap.docs) {
-          _users.add(Map<String, dynamic>.from(d.data()));
-          _uids.add(d.id);
+        for (int i = 0; i < snap.docs.length; i++) {
+          _users.add(newUsers[i]);
+          _uids.add(snap.docs[i].id);
         }
         if (snap.docs.isNotEmpty) _lastDoc = snap.docs.last;
         _hasMore = snap.docs.length >= _pageSize;
         _loading = false;
       });
+      final shopIds = newUsers.map((u) => (u['shopId'] ?? '').toString()).toList();
+      _loadShopNames(shopIds);
     } catch (_) {
       if (mounted) setState(() => _loading = false);
     }
@@ -1171,7 +1266,11 @@ class _UsersSectionState extends State<_UsersSection> {
                     final (uid, u) = users[i];
                     final email = (u['email'] ?? '').toString();
                     final role = (u['role'] ?? 'user').toString();
-                    final shopId = (u['shopId'] ?? 'N/A').toString();
+                    final shopId = (u['shopId'] ?? '').toString();
+                    final shopName = shopId.isNotEmpty
+                        ? (_shopNames[shopId] ?? shopId)
+                        : 'Chưa có shop';
+                    final isOwner = role == 'owner';
                     final createdAt = u['createdAt'];
                     String joinDate = '';
                     if (createdAt != null) {
@@ -1182,20 +1281,42 @@ class _UsersSectionState extends State<_UsersSection> {
                     }
                     return Card(
                       margin: EdgeInsets.zero,
+                      shape: isOwner
+                          ? RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              side: BorderSide(color: Colors.indigo.shade200),
+                            )
+                          : null,
                       child: ListTile(
                         leading: CircleAvatar(
                           radius: 18,
-                          backgroundColor: Colors.indigo.shade50,
-                          child: const Icon(Icons.person_outline, size: 18, color: Colors.indigo),
+                          backgroundColor: isOwner ? Colors.indigo.shade100 : Colors.indigo.shade50,
+                          child: Icon(
+                            isOwner ? Icons.store_rounded : Icons.person_outline,
+                            size: 18,
+                            color: Colors.indigo,
+                          ),
                         ),
-                        title: Text((u['displayName'] ?? email).toString(), style: const TextStyle(fontSize: 14)),
+                        title: Row(children: [
+                          Expanded(child: Text((u['displayName'] ?? email).toString(), style: const TextStyle(fontSize: 14))),
+                          if (isOwner)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.indigo.shade50,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.indigo.shade200),
+                              ),
+                              child: const Text('OWNER', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.indigo)),
+                            ),
+                        ]),
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(email, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
                             Text(
-                              'Role: $role · Shop: $shopId$joinDate',
+                              'Role: $role · 🏪 $shopName$joinDate',
                               style: const TextStyle(fontSize: 12),
                             ),
                           ],
@@ -1212,19 +1333,21 @@ class _UsersSectionState extends State<_UsersSection> {
                             PopupMenuButton<String>(
                               icon: const Icon(Icons.more_vert, size: 20),
                               onSelected: (v) {
-                                if (v == 'del') widget.onDelete(uid, email, withData: false);
-                                if (v == 'del_all') widget.onDelete(uid, email, withData: true);
+                                if (v == 'del') widget.onDelete(uid, email, withData: false, role: role, shopName: shopName);
+                                if (v == 'del_all') widget.onDelete(uid, email, withData: true, role: role, shopName: shopName);
                               },
                               itemBuilder: (_) => [
                                 const PopupMenuItem(value: 'del', child: ListTile(
                                   dense: true,
-                                  leading: Icon(Icons.delete_outline, color: Colors.red),
+                                  leading: Icon(Icons.delete_outline, color: Colors.orange),
                                   title: Text('Xóa user doc'),
+                                  subtitle: Text('Chỉ xóa hồ sơ, Auth còn', style: TextStyle(fontSize: 11)),
                                 )),
                                 const PopupMenuItem(value: 'del_all', child: ListTile(
                                   dense: true,
                                   leading: Icon(Icons.delete_forever, color: Colors.red),
-                                  title: Text('Xóa user + dữ liệu', style: TextStyle(color: Colors.red)),
+                                  title: Text('Xóa hoàn toàn', style: TextStyle(color: Colors.red)),
+                                  subtitle: Text('Auth + dữ liệu do user tạo', style: TextStyle(fontSize: 11, color: Colors.red)),
                                 )),
                               ],
                             ),
