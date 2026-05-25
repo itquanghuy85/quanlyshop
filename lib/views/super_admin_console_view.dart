@@ -1640,193 +1640,213 @@ class _BroadcastSectionState extends State<_BroadcastSection> {
     await FirebaseFirestore.instance.collection('broadcasts').doc(docId).delete();
   }
 
+  Widget _buildFormCard() {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.indigo.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.campaign_rounded, color: Colors.indigo, size: 24),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('Gửi Thông Báo Hệ Thống', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  Text('Gửi tới TẤT CẢ người dùng qua dialog + push.',
+                      style: TextStyle(fontSize: 12, color: Colors.grey)),
+                ]),
+              ),
+            ]),
+            const SizedBox(height: 20),
+            const Text('Loại thông báo', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              children: _types.map((t) {
+                final selected = _type == t.$1;
+                return ChoiceChip(
+                  label: Text(t.$2, style: const TextStyle(fontSize: 13)),
+                  selected: selected,
+                  selectedColor: t.$3.withValues(alpha: 0.2),
+                  onSelected: (_) => setState(() => _type = t.$1),
+                  labelStyle: TextStyle(
+                    color: selected ? t.$3 : null,
+                    fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _titleCtrl,
+              decoration: InputDecoration(
+                labelText: 'Tiêu đề',
+                hintText: 'VD: Yêu cầu cập nhật phiên bản mới',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                prefixIcon: const Icon(Icons.title_rounded),
+                isDense: true,
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _bodyCtrl,
+              maxLines: 4,
+              decoration: InputDecoration(
+                labelText: 'Nội dung',
+                hintText: 'Nhập nội dung thông báo chi tiết...',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                prefixIcon: const Icon(Icons.message_rounded),
+                alignLabelWithHint: true,
+                isDense: true,
+              ),
+            ),
+            const SizedBox(height: 16),
+            if (_lastResult != null)
+              Container(
+                padding: const EdgeInsets.all(10),
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: _lastSuccess ? Colors.green.shade50 : Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: _lastSuccess ? Colors.green.shade200 : Colors.red.shade200),
+                ),
+                child: Text(_lastResult!, style: TextStyle(color: _lastSuccess ? Colors.green.shade800 : Colors.red.shade800, fontSize: 13)),
+              ),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _sending ? null : _send,
+                icon: _sending
+                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Icon(Icons.send_rounded),
+                label: Text(_sending ? 'Đang gửi...' : 'Gửi tới toàn bộ người dùng'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.indigo,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHistoryCard() {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Lịch sử thông báo', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+            const SizedBox(height: 8),
+            StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('broadcasts')
+                  .orderBy('createdAt', descending: true)
+                  .limit(20)
+                  .snapshots(),
+              builder: (ctx, snap) {
+                if (!snap.hasData) return const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator()));
+                final docs = snap.data!.docs;
+                if (docs.isEmpty) {
+                  return const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Text('Chưa có thông báo nào.', style: TextStyle(color: Colors.grey)),
+                  );
+                }
+                return ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: docs.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  itemBuilder: (ctx, i) {
+                    final d = docs[i].data() as Map<String, dynamic>;
+                    final type = d['type'] ?? 'info';
+                    final color = type == 'update_required' ? Colors.red
+                        : type == 'warning' ? Colors.orange : Colors.indigo;
+                    final ts = (d['createdAt'] as Timestamp?)?.toDate();
+                    final expiresAt = (d['expiresAt'] as Timestamp?)?.toDate();
+                    final expired = expiresAt != null && expiresAt.isBefore(DateTime.now());
+                    return ListTile(
+                      dense: true,
+                      leading: Icon(Icons.campaign_rounded, color: color, size: 20),
+                      title: Text(d['title'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontWeight: FontWeight.w600, color: expired ? Colors.grey : null)),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(d['body'] ?? '', maxLines: 2, overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(fontSize: 12)),
+                          if (ts != null) Text(
+                            '${ts.day}/${ts.month}/${ts.year} ${ts.hour}:${ts.minute.toString().padLeft(2, '0')}${expired ? ' · Hết hạn' : ''}',
+                            style: TextStyle(fontSize: 11, color: expired ? Colors.red.shade300 : Colors.grey),
+                          ),
+                        ],
+                      ),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
+                        tooltip: 'Xóa',
+                        onPressed: () => _deleteBroadcast(docs[i].id),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Form panel
-          Expanded(
-            flex: 2,
-            child: Card(
-              elevation: 2,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: Colors.indigo.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(Icons.campaign_rounded, color: Colors.indigo, size: 28),
-                      ),
-                      const SizedBox(width: 12),
-                      const Expanded(
-                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          Text('Gửi Thông Báo Hệ Thống', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                          Text('Thông báo sẽ được gửi tới TẤT CẢ người dùng qua dialog + push notification.',
-                              style: TextStyle(fontSize: 13, color: Colors.grey)),
-                        ]),
-                      ),
-                    ]),
-                    const SizedBox(height: 24),
-                    // Type selector
-                    const Text('Loại thông báo', style: TextStyle(fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      children: _types.map((t) {
-                        final selected = _type == t.$1;
-                        return ChoiceChip(
-                          label: Text(t.$2),
-                          selected: selected,
-                          selectedColor: t.$3.withValues(alpha: 0.2),
-                          onSelected: (_) => setState(() => _type = t.$1),
-                          labelStyle: TextStyle(
-                            color: selected ? t.$3 : null,
-                            fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                    const SizedBox(height: 20),
-                    TextField(
-                      controller: _titleCtrl,
-                      decoration: InputDecoration(
-                        labelText: 'Tiêu đề',
-                        hintText: 'VD: Yêu cầu cập nhật phiên bản mới',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                        prefixIcon: const Icon(Icons.title_rounded),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: _bodyCtrl,
-                      maxLines: 4,
-                      decoration: InputDecoration(
-                        labelText: 'Nội dung',
-                        hintText: 'Nhập nội dung thông báo chi tiết...',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                        prefixIcon: const Icon(Icons.message_rounded),
-                        alignLabelWithHint: true,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    if (_lastResult != null)
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        margin: const EdgeInsets.only(bottom: 16),
-                        decoration: BoxDecoration(
-                          color: _lastSuccess ? Colors.green.shade50 : Colors.red.shade50,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: _lastSuccess ? Colors.green.shade200 : Colors.red.shade200),
-                        ),
-                        child: Text(_lastResult!, style: TextStyle(color: _lastSuccess ? Colors.green.shade800 : Colors.red.shade800)),
-                      ),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: _sending ? null : _send,
-                        icon: _sending
-                            ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                            : const Icon(Icons.send_rounded),
-                        label: Text(_sending ? 'Đang gửi...' : 'Gửi tới toàn bộ người dùng'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.indigo,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth >= 700;
+        if (isWide) {
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(flex: 2, child: _buildFormCard()),
+                const SizedBox(width: 20),
+                Expanded(flex: 1, child: _buildHistoryCard()),
+              ],
             ),
+          );
+        }
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              _buildFormCard(),
+              const SizedBox(height: 16),
+              _buildHistoryCard(),
+            ],
           ),
-          const SizedBox(width: 20),
-          // History panel
-          Expanded(
-            flex: 1,
-            child: Card(
-              elevation: 2,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Lịch sử thông báo', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                    const SizedBox(height: 8),
-                    StreamBuilder<QuerySnapshot>(
-                      stream: FirebaseFirestore.instance
-                          .collection('broadcasts')
-                          .orderBy('createdAt', descending: true)
-                          .limit(20)
-                          .snapshots(),
-                      builder: (ctx, snap) {
-                        if (!snap.hasData) return const Center(child: CircularProgressIndicator());
-                        final docs = snap.data!.docs;
-                        if (docs.isEmpty) {
-                          return const Padding(
-                            padding: EdgeInsets.all(16),
-                            child: Text('Chưa có thông báo nào.', style: TextStyle(color: Colors.grey)),
-                          );
-                        }
-                        return ListView.separated(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: docs.length,
-                          separatorBuilder: (_, __) => const Divider(height: 1),
-                          itemBuilder: (ctx, i) {
-                            final d = docs[i].data() as Map<String, dynamic>;
-                            final type = d['type'] ?? 'info';
-                            final color = type == 'update_required' ? Colors.red
-                                : type == 'warning' ? Colors.orange : Colors.indigo;
-                            final ts = (d['createdAt'] as Timestamp?)?.toDate();
-                            final expiresAt = (d['expiresAt'] as Timestamp?)?.toDate();
-                            final expired = expiresAt != null && expiresAt.isBefore(DateTime.now());
-                            return ListTile(
-                              dense: true,
-                              leading: Icon(Icons.campaign_rounded, color: color, size: 20),
-                              title: Text(d['title'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(fontWeight: FontWeight.w600, color: expired ? Colors.grey : null)),
-                              subtitle: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(d['body'] ?? '', maxLines: 2, overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(fontSize: 12)),
-                                  if (ts != null) Text(
-                                    '${ts.day}/${ts.month}/${ts.year} ${ts.hour}:${ts.minute.toString().padLeft(2, '0')}${expired ? ' · Hết hạn' : ''}',
-                                    style: TextStyle(fontSize: 11, color: expired ? Colors.red.shade300 : Colors.grey),
-                                  ),
-                                ],
-                              ),
-                              trailing: IconButton(
-                                icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
-                                tooltip: 'Xóa',
-                                onPressed: () => _deleteBroadcast(docs[i].id),
-                              ),
-                            );
-                          },
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
