@@ -794,6 +794,7 @@ class _ShopsSectionState extends State<_ShopsSection> {
 
   final _searchC = TextEditingController();
   String _searchQuery = '';
+  bool _showDeleted = false;
 
   final List<Map<String, dynamic>> _shops = [];
   QueryDocumentSnapshot<Map<String, dynamic>>? _lastDoc;
@@ -842,9 +843,10 @@ class _ShopsSectionState extends State<_ShopsSection> {
   }
 
   List<Map<String, dynamic>> get _filtered {
-    if (_searchQuery.isEmpty) return _shops;
+    var list = _showDeleted ? _shops : _shops.where((s) => s['deleted'] != true).toList();
+    if (_searchQuery.isEmpty) return list;
     final q = _searchQuery.toLowerCase();
-    return _shops.where((s) {
+    return list.where((s) {
       final name = (s['name'] ?? '').toString().toLowerCase();
       final email = (s['ownerEmail'] ?? '').toString().toLowerCase();
       final id = (s['id'] ?? '').toString().toLowerCase();
@@ -889,6 +891,25 @@ class _ShopsSectionState extends State<_ShopsSection> {
               const Spacer(),
               if (_loading)
                 const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)),
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: () => setState(() => _showDeleted = !_showDeleted),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      _showDeleted ? Icons.visibility : Icons.visibility_off,
+                      size: 16,
+                      color: _showDeleted ? Colors.red : Colors.grey,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Đã xóa',
+                      style: TextStyle(fontSize: 12, color: _showDeleted ? Colors.red : Colors.grey),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
