@@ -124,6 +124,7 @@ import '../finance_v2/finance_v2_data_service.dart';
 import '../widgets/quick_action/quick_action_bubble.dart';
 import '../widgets/quick_action/quick_action_controller.dart';
 import '../widgets/ai_command_bar.dart';
+import '../services/payment_request_service.dart';
 
 class HomeView extends StatefulWidget {
   final String role;
@@ -569,6 +570,8 @@ class _HomeViewState extends State<HomeView>
   int _partnerDebtRemain = 0; // Nợ đối tác SC
   int expiringWarranties = 0;
   int unreadChatCount = 0;
+  int _pendingPaymentRequestCount = 0; // Yêu cầu duyệt chờ xử lý
+  StreamSubscription? _pendingPaymentSub;
   int _totalReminderCount = 0; // Tổng số nhắc nhở
   String _latestChatMessage = ''; // Tin nhắn mới nhất
   String _latestChatSender = ''; // Người gửi tin mới nhất
@@ -1514,6 +1517,7 @@ class _HomeViewState extends State<HomeView>
     _debtOverviewDebounceTimer?.cancel();
     _branchService.close();
     _quickActionController?.dispose();
+    _pendingPaymentSub?.cancel();
     super.dispose();
   }
 
@@ -1643,6 +1647,17 @@ class _HomeViewState extends State<HomeView>
 
       // 2. Load user info NGAY (quan trọng cho lời chào)
       await _loadUserAndShopInfo();
+
+      // Subscribe pending payment requests count (chỉ cho owner/admin)
+      if (hasFullAccess) {
+        _pendingPaymentSub?.cancel();
+        _pendingPaymentSub = PaymentRequestService.pendingCountStream().listen(
+          (n) {
+            if (mounted) setState(() => _pendingPaymentRequestCount = n);
+          },
+        );
+      }
+
       if (_enableMultiBranch) {
         await _loadCurrentBranchName();
       }
@@ -3498,6 +3513,7 @@ class _HomeViewState extends State<HomeView>
     if (!_dashboardConfigLoaded || _dashboardConfigs.isEmpty) {
       return [
         _buildTodayActivityDashboardCard(),
+        _buildPendingPaymentBanner(),
         _buildChatCard(),
         _buildHomeCommunityQuickCard(),
         _buildUnifiedShortcuts(),
@@ -3524,6 +3540,7 @@ class _HomeViewState extends State<HomeView>
       switch (config.type) {
         case DashboardCardType.greeting:
           widgets.add(_buildGreetingCard());
+          widgets.add(_buildPendingPaymentBanner());
           break;
         case DashboardCardType.actionRequired:
           final canRepair =
@@ -10346,6 +10363,83 @@ class _HomeViewState extends State<HomeView>
                 fontWeight: FontWeight.w600,
                 color: color,
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Banner nổi bật: yêu cầu duyệt chờ xử lý — chỉ hiện cho owner/admin
+  Widget _buildPendingPaymentBanner() {
+    if (!hasFullAccess || _pendingPaymentRequestCount <= 0) {
+      return const SizedBox.shrink();
+    }
+    return GestureDetector(
+      onTap: () => _pushRoute(
+        context,
+        MaterialPageRoute(builder: (_) => const PaymentRequestChatView()),
+      ),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFFFF6B00), Color(0xFFFF9100)],
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+          ),
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.orange.withValues(alpha: 0.35),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.25),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.notification_important_rounded,
+                color: Colors.white,
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '$_pendingPaymentRequestCount yêu cầu duyệt chờ xử lý',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const Text(
+                    'Nhấn để xem và duyệt ngay',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.arrow_forward_ios_rounded,
+              color: Colors.white,
+              size: 16,
             ),
           ],
         ),

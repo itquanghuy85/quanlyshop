@@ -5866,7 +5866,7 @@ class _InventoryViewState extends State<InventoryView>
                   ),
                   const SizedBox(height: 8),
 
-                  // Số lượng (khóa) + Nhập thêm + Nhà cung cấp
+                  // Số lượng (khóa) + Nhà cung cấp (khóa)
                   Row(
                     children: [
                       // SL hiện tại — KHÓA, không cho sửa trực tiếp
@@ -5894,22 +5894,6 @@ class _InventoryViewState extends State<InventoryView>
                             p.quantity.toString(),
                             style: const TextStyle(color: PopupTheme.textMuted, fontSize: 14, fontWeight: FontWeight.bold),
                           ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      // Nút nhập thêm hàng (tạo stock_entry đúng)
-                      OutlinedButton.icon(
-                        onPressed: () {
-                          Navigator.of(ctx).pop();
-                          _showQuickStockInDialog(p);
-                        },
-                        icon: const Icon(Icons.add_shopping_cart, size: 16),
-                        label: const Text('Nhập thêm', style: TextStyle(fontSize: 13)),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.teal,
-                          side: const BorderSide(color: Colors.teal),
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -5942,6 +5926,24 @@ class _InventoryViewState extends State<InventoryView>
                         ),
                       ),
                     ],
+                  ),
+                  const SizedBox(height: 8),
+                  // Nút nhập thêm hàng — dòng riêng, full width
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.of(ctx).pop();
+                        _showQuickStockInDialog(p);
+                      },
+                      icon: const Icon(Icons.add_shopping_cart, size: 16),
+                      label: const Text('Nhập thêm hàng vào kho', style: TextStyle(fontSize: 13)),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.teal,
+                        side: const BorderSide(color: Colors.teal),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                      ),
+                    ),
                   ),
                 ],
                 ),

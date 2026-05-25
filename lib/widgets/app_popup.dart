@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../theme/popup_theme.dart';
 
@@ -488,10 +489,15 @@ class PopupProductImage extends StatelessWidget {
       ),
       clipBehavior: Clip.antiAlias,
       child: hasImage
-          ? Image.network(
-              url,
+          ? CachedNetworkImage(
+              imageUrl: url,
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => _placeholder(),
+              width: size,
+              height: size,
+              memCacheWidth: (size * 2).toInt(),
+              memCacheHeight: (size * 2).toInt(),
+              placeholder: (_, __) => _placeholder(),
+              errorWidget: (_, __, ___) => _placeholder(),
             )
           : _placeholder(),
     );
