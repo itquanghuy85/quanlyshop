@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/repair_model.dart';
@@ -908,64 +909,115 @@ class FirestoreService {
     }
   }
 
-  static Future<String?> resetEntireShopData({String? shopIdOverride}) async {
+  /// Recursively delete all files in a Firebase Storage folder reference.
+  static Future<void> _deleteStorageFolder(Reference ref) async {
+    try {
+      final result = await ref.listAll();
+      for (final item in result.items) {
+        try { await item.delete(); } catch (_) {}
+      }
+      for (final prefix in result.prefixes) {
+        await _deleteStorageFolder(prefix);
+      }
+    } catch (_) {}
+  }
+
+  /// All Firestore collections that can be selectively deleted.
+  static const List<String> kAllResetCollections = [
+    'repairs',
+    'sales',
+    'products',
+    'debts',
+    'expenses',
+    'audit_logs',
+    'attendance',
+    'chats',
+    'inventory_checks',
+    'cash_closings',
+    'purchase_orders',
+    'quick_input_codes',
+    'debt_payments',
+    'payroll_settings',
+    'work_schedules',
+    'suppliers',
+    'customers',
+  ];
+
+  /// All Storage root paths (relative, without shopId suffix) that can be deleted.
+  static const List<String> kAllResetStorageRoots = [
+    'repairs',
+    'products',
+    'chat_images',
+    'payment_requests',
+    'db_backups',
+    'attendance',
+    'shop_logos',
+  ];
+
+  /// Reset shop data selectively.
+  /// [selectedCollections] — Firestore collection names to delete (subset of [kAllResetCollections]).
+  /// [selectedStorageRoots] — Storage root folders to delete under `{root}/{shopId}/` (subset of [kAllResetStorageRoots]).
+  /// Pass null to delete ALL. Pass empty list to skip that category entirely.
+  static Future<String?> resetEntireShopData({
+    String? shopIdOverride,
+    List<String>? selectedCollections,
+    List<String>? selectedStorageRoots,
+  }) async {
     try {
       final shopId = (shopIdOverride ?? await UserService.getCurrentShopId())?.trim();
       if (shopId == null || shopId.isEmpty) {
         return 'Không tìm thấy shopId. Vui lòng đăng xuất và đăng nhập lại để đồng bộ dữ liệu shop.';
       }
-      final collections = [
-        'repairs',
-        'sales',
-        'products',
-        'debts',
-        'expenses',
-        'audit_logs',
-        'attendance',
-        'chats',
-        'inventory_checks',
-        'cash_closings',
-        'purchase_orders',
-        'quick_input_codes',
-        'debt_payments',
-        'payroll_settings',
-        'work_schedules',
-        'suppliers',
-        'customers',
-      ];
 
-      for (var colName in collections) {
+      final collectionsToDelete = selectedCollections ?? kAllResetCollections;
+      final storageRootsToDelete = selectedStorageRoots ?? kAllResetStorageRoots;
+
+      // ── 1. Xóa Firestore documents ─────────────────────────────────────────
+      final permissionErrors = <String>[];
+      for (final colName in collectionsToDelete) {
         try {
-          final queries = <Query<Map<String, dynamic>>>[
-            _db.collection(colName).where('shopId', isEqualTo: shopId),
-          ];
-
-          for (var query in queries) {
-            final snapshots = await query.get();
-            if (snapshots.docs.isNotEmpty) {
-              // Delete in batches of 400 to stay under Firestore limit of 500
-              const batchSize = 400;
-              for (int i = 0; i < snapshots.docs.length; i += batchSize) {
-                final batch = _db.batch();
-                final end = (i + batchSize < snapshots.docs.length)
-                    ? i + batchSize
-                    : snapshots.docs.length;
-                for (int j = i; j < end; j++) {
-                  batch.delete(snapshots.docs[j].reference);
-                }
-                await batch.commit();
+          final snapshots = await _db
+              .collection(colName)
+              .where('shopId', isEqualTo: shopId)
+              .get();
+          if (snapshots.docs.isNotEmpty) {
+            const batchSize = 400;
+            for (int i = 0; i < snapshots.docs.length; i += batchSize) {
+              final batch = _db.batch();
+              final end = (i + batchSize < snapshots.docs.length)
+                  ? i + batchSize
+                  : snapshots.docs.length;
+              for (int j = i; j < end; j++) {
+                batch.delete(snapshots.docs[j].reference);
               }
-              debugPrint('Deleted ${snapshots.docs.length} docs from $colName');
-            } else {
-              debugPrint('No docs to delete in $colName');
+              await batch.commit();
             }
+            debugPrint('Reset: deleted ${snapshots.docs.length} docs from $colName');
           }
         } catch (e) {
-          debugPrint('Error deleting from $colName: $e');
-          return 'Lỗi khi xóa collection $colName: $e';
+          final msg = e.toString();
+          // Soft-fail permission errors — continue with other collections
+          if (msg.contains('permission-denied') || msg.contains('PERMISSION_DENIED')) {
+            permissionErrors.add(colName);
+            debugPrint('Reset: permission-denied for $colName (Firestore rules — update rules to allow super admin delete)');
+          } else {
+            debugPrint('Error deleting from $colName: $e');
+            return 'Lỗi khi xóa collection $colName: $e';
+          }
         }
       }
-      return null; // Success
+      if (permissionErrors.isNotEmpty) {
+        debugPrint('Reset: skipped ${permissionErrors.length} collections due to permission-denied: $permissionErrors');
+      }
+
+      // ── 2. Xóa Firebase Storage files ─────────────────────────────────────
+      final storage = FirebaseStorage.instance;
+      for (final root in storageRootsToDelete) {
+        await _deleteStorageFolder(storage.ref('$root/$shopId'));
+        debugPrint('Reset: storage cleaned $root/$shopId');
+      }
+
+      return null;
     } catch (e) {
       debugPrint('Reset shop data error: $e');
       return 'Lỗi tổng quát: $e';

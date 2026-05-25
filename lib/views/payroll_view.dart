@@ -16,6 +16,7 @@ import '../widgets/custom_app_bar.dart';
 import 'hr/add_custom_adjustment_dialog.dart';
 import '../widgets/responsive_wrapper.dart';
 import '../services/event_bus.dart';
+import '../services/first_time_guide_service.dart';
 import '../finance_v2/finance_v2_theme.dart';
 
 class PayrollView extends StatefulWidget {
@@ -52,6 +53,43 @@ class _PayrollViewState extends State<PayrollView> {
     _loadPrefs();
     _refreshLockState();
     _setupEventSubscription();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _showFirstTimeGuide());
+  }
+
+  Future<void> _showFirstTimeGuide() async {
+    await FirstTimeGuideService.showGuideIfNeeded(
+      context: context,
+      screenKey: FirstTimeGuideService.keyPayrollView,
+      title: 'Bảng Lương',
+      icon: Icons.payments_rounded,
+      color: Colors.teal,
+      steps: [
+        const GuideStep(
+          title: '💰 Tính lương tự động',
+          description: 'Hệ thống tự tính lương dựa trên dữ liệu chấm công, mức lương ngày và cài đặt tăng ca.',
+          icon: Icons.calculate_rounded,
+          iconColor: Colors.teal,
+        ),
+        const GuideStep(
+          title: '📅 Chọn kỳ lương',
+          description: 'Chọn nhân viên và khoảng thời gian (từ ngày → đến ngày) để xem bảng lương tương ứng.',
+          icon: Icons.date_range_rounded,
+          iconColor: Colors.blue,
+        ),
+        const GuideStep(
+          title: '✏️ Điều chỉnh thủ công',
+          description: 'Thêm khoản thưởng, phạt, khấu trừ hoặc điều chỉnh đặc biệt cho từng nhân viên.',
+          icon: Icons.edit_note_rounded,
+          iconColor: Colors.orange,
+        ),
+        const GuideStep(
+          title: '🔒 Khóa kỳ lương',
+          description: 'Sau khi đã duyệt và thanh toán, khóa kỳ lương để tránh chỉnh sửa ngoài ý muốn.',
+          icon: Icons.lock_rounded,
+          iconColor: Colors.red,
+        ),
+      ],
+    );
   }
 
   void _setupEventSubscription() {

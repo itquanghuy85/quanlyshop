@@ -843,10 +843,19 @@ class AiChatService {
         'chatAssistant',
         options: HttpsCallableOptions(timeout: const Duration(seconds: 20)),
       );
+      // Trim payload to reduce token cost:
+      // - repairSummaries: send max 5 (not 20)
+      // - topDebtorLines: send max 3
+      // - history already limited to 8 by caller
+      final trimmedStats = {
+        ...stats.toJson(),
+        'repairSummaries': (stats.repairSummaries).take(5).toList(),
+        'topDebtorLines': (stats.topDebtorLines).take(3).toList(),
+      };
       final res = await callable.call({
         'question': question,
-        'stats': stats.toJson(),
-        'history': history.take(10).toList(),
+        'stats': trimmedStats,
+        'history': history,
       });
       final data = res.data as Map<Object?, Object?>;
       final answer = data['answer'] as String?;

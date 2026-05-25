@@ -63,6 +63,10 @@ class _AiChatOverlayState extends State<AiChatOverlay>
   final _scrollCtrl = ScrollController();
   bool _sending = false;
   AiChatStats? _stats;
+  DateTime? _statsLoadedAt;          // TTL cache — reload only if >5 min old
+  DateTime? _lastCloudCallAt;        // client-side rate limit for cloud AI
+  static const _kStatsTtl = Duration(minutes: 5);
+  static const _kCloudRateLimit = Duration(seconds: 4);
   // Tracks last resolved topic for "gần nhất" context continuity
   String? _lastIntent; // 'repair' | 'sale' | 'debt' | 'stock' | null
 
@@ -98,7 +102,7 @@ class _AiChatOverlayState extends State<AiChatOverlay>
       duration: const Duration(milliseconds: 600),
     )..repeat(reverse: true);
     _initSpeech();
-    _preloadStats();
+    // Stats loaded lazily on first open — not in initState to avoid wasted SQLite reads
   }
 
   @override
@@ -123,10 +127,22 @@ class _AiChatOverlayState extends State<AiChatOverlay>
     if (mounted) setState(() => _speechAvailable = ok);
   }
 
-  Future<void> _preloadStats() async {
+  Future<void> _preloadStats({bool forceRefresh = false}) async {
+    // Skip if cache is still fresh
+    if (!forceRefresh &&
+        _stats != null &&
+        _statsLoadedAt != null &&
+        DateTime.now().difference(_statsLoadedAt!) < _kStatsTtl) {
+      return;
+    }
     try {
       final s = await AiChatService.instance.getTodayStats();
-      if (mounted) setState(() => _stats = s);
+      if (mounted) {
+        setState(() {
+          _stats = s;
+          _statsLoadedAt = DateTime.now();
+        });
+      }
     } catch (_) {}
   }
 
@@ -138,7 +154,10 @@ class _AiChatOverlayState extends State<AiChatOverlay>
     } else {
       setState(() => _open = true);
       _anim.forward();
-      if (_messages.isEmpty) _sendWelcome();
+      // Lazy-load stats on first open (or if cache expired)
+      _preloadStats().then((_) {
+        if (mounted && _open && _messages.isEmpty) _sendWelcome();
+      });
     }
   }
 
@@ -224,15 +243,30 @@ class _AiChatOverlayState extends State<AiChatOverlay>
       return;
     }
 
-    // Cloud AI answer
+    // Cloud AI — client-side rate limit
+    final now = DateTime.now();
+    if (_lastCloudCallAt != null &&
+        now.difference(_lastCloudCallAt!) < _kCloudRateLimit) {
+      final wait = _kCloudRateLimit - now.difference(_lastCloudCallAt!);
+      setState(() { _sending = false; });
+      _addAI('Vui lòng chờ ${wait.inSeconds + 1} giây trước khi hỏi tiếp.');
+      return;
+    }
+    _lastCloudCallAt = now;
+
     setState(() {
       _messages.add(_Msg(_Role.assistant, '', isLoading: true));
     });
     _scrollToBottom();
 
+    // Send only last 8 messages (4 pairs) to reduce token cost
     final history = _messages
-        .where((m) => !m.isLoading)
-        .take(20)
+        .where((m) => !m.isLoading && m.text.isNotEmpty)
+        .toList()
+        .reversed
+        .take(8)
+        .toList()
+        .reversed
         .map((m) => {'role': m.role == _Role.user ? 'user' : 'assistant', 'content': m.text})
         .toList();
 
@@ -515,10 +549,7 @@ class _AiChatOverlayState extends State<AiChatOverlay>
                 padding: const EdgeInsets.all(8),
                 constraints: const BoxConstraints(),
                 tooltip: 'Làm mới dữ liệu',
-                onPressed: () async {
-                  setState(() => _stats = null);
-                  await _preloadStats();
-                },
+                onPressed: () => _preloadStats(forceRefresh: true),
               ),
               IconButton(
                 icon: const Icon(Icons.close_rounded,

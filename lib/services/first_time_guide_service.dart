@@ -20,6 +20,14 @@ class FirstTimeGuideService {
   static const String keyFastInventoryCheck = 'fast_inventory_check';
   static const String keyPendingEntries = 'pending_entries';
   static const String keyDebtManagement = 'debt_management';
+  static const String keyOrderList = 'order_list';
+  static const String keySaleList = 'sale_list';
+  static const String keyCustomerManagement = 'customer_management';
+  static const String keyExpenseView = 'expense_view';
+  static const String keyWarrantyView = 'warranty_view';
+  static const String keyAttendanceView = 'attendance_view';
+  static const String keyPayrollView = 'payroll_view';
+  static const String keyPurchaseOrderList = 'purchase_order_list';
 
   /// Kiểm tra xem đã hiển thị hướng dẫn cho màn hình này chưa
   static Future<bool> hasShownGuide(String screenKey) async {

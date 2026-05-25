@@ -17,7 +17,7 @@ import 'views/login_view.dart';
 import 'views/repair_detail_view.dart';
 import 'views/sale_detail_view.dart';
 import 'views/splash_view.dart'; // Import màn hình Splash mới
-import 'views/shop_selector_view.dart'; // Màn hình chọn shop cho super admin
+import 'views/super_admin_console_view.dart'; // Super Admin Console
 import 'theme/app_theme.dart'; // Import theme thống nhất
 import 'services/user_service.dart';
 import 'services/notification_service.dart';
@@ -1037,11 +1037,10 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
             final role = data['role'] as String;
             final isSuperAdmin = data['isSuperAdmin'] as bool;
 
-            // Super admin: Chuyển đến màn hình chọn shop
+            // Super admin: Vào thẳng Console (không cần chọn shop trước)
             if (isSuperAdmin) {
-              return ShopSelectorView(
-                key: const ValueKey('shop_selector'),
-                setLocale: widget.setLocale,
+              return const SuperAdminConsoleView(
+                key: ValueKey('super_admin_console'),
               );
             }
 

@@ -4,6 +4,7 @@ import '../data/db_helper.dart';
 import '../theme/app_text_styles.dart';
 import '../models/purchase_order_model.dart';
 import '../services/user_service.dart';
+import '../services/first_time_guide_service.dart';
 import 'create_purchase_order_view.dart';
 import '../widgets/validated_text_field.dart';
 import '../widgets/responsive_wrapper.dart';
@@ -28,6 +29,43 @@ class _PurchaseOrderListViewState extends State<PurchaseOrderListView> {
   void initState() {
     super.initState();
     _loadData();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _showFirstTimeGuide());
+  }
+
+  Future<void> _showFirstTimeGuide() async {
+    await FirstTimeGuideService.showGuideIfNeeded(
+      context: context,
+      screenKey: FirstTimeGuideService.keyPurchaseOrderList,
+      title: 'Đơn Nhập Hàng',
+      icon: Icons.local_shipping_rounded,
+      color: Colors.brown,
+      steps: [
+        const GuideStep(
+          title: '📦 Quản lý đơn nhập',
+          description: 'Xem tất cả đơn đặt hàng từ nhà cung cấp: trạng thái, số lượng và giá trị từng đơn.',
+          icon: Icons.inventory_2_rounded,
+          iconColor: Colors.brown,
+        ),
+        const GuideStep(
+          title: '✅ Theo dõi trạng thái',
+          description: 'Đơn nhập đi qua các bước: Chờ xác nhận → Đang giao → Đã nhận hàng.',
+          icon: Icons.track_changes_rounded,
+          iconColor: Colors.blue,
+        ),
+        const GuideStep(
+          title: '🏪 Nhập kho tự động',
+          description: 'Khi xác nhận đã nhận hàng, tồn kho tự động cập nhật theo số lượng trong đơn nhập.',
+          icon: Icons.warehouse_rounded,
+          iconColor: Colors.green,
+        ),
+        const GuideStep(
+          title: '💳 Công nợ nhà cung cấp',
+          description: 'Nếu chưa thanh toán, hệ thống tự tạo khoản nợ NCC để theo dõi trong màn hình Công Nợ.',
+          icon: Icons.account_balance_rounded,
+          iconColor: Colors.orange,
+        ),
+      ],
+    );
   }
 
   Future<void> _loadData() async {

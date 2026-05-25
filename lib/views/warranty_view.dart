@@ -7,6 +7,7 @@ import '../models/repair_model.dart';
 import '../models/sale_order_model.dart';
 import '../models/shop_settings_model.dart';
 import '../services/user_service.dart';
+import '../services/first_time_guide_service.dart';
 import '../services/category_service.dart';
 import '../services/business_type_helper.dart';
 import '../widgets/responsive_wrapper.dart';
@@ -37,6 +38,43 @@ class _WarrantyViewState extends State<WarrantyView> {
     _loadShopSettings();
     _loadRole();
     _loadAllWarranty();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _showFirstTimeGuide());
+  }
+
+  Future<void> _showFirstTimeGuide() async {
+    await FirstTimeGuideService.showGuideIfNeeded(
+      context: context,
+      screenKey: FirstTimeGuideService.keyWarrantyView,
+      title: 'Quản Lý Bảo Hành',
+      icon: Icons.verified_user_rounded,
+      color: Colors.green,
+      steps: [
+        const GuideStep(
+          title: '🛡️ Theo dõi bảo hành',
+          description: 'Xem danh sách tất cả sản phẩm và đơn sửa chữa còn trong thời gian bảo hành.',
+          icon: Icons.shield_rounded,
+          iconColor: Colors.green,
+        ),
+        const GuideStep(
+          title: '⚠️ Cảnh báo sắp hết hạn',
+          description: 'Bảo hành sắp hết được tô màu vàng, đã hết hạn màu đỏ để dễ phát hiện và xử lý kịp thời.',
+          icon: Icons.warning_amber_rounded,
+          iconColor: Colors.orange,
+        ),
+        const GuideStep(
+          title: '🔄 Tự động tạo bảo hành',
+          description: 'Khi tạo đơn sửa hoặc hóa đơn bán có khai báo bảo hành, hệ thống tự thêm vào danh sách này.',
+          icon: Icons.autorenew_rounded,
+          iconColor: Colors.blue,
+        ),
+        const GuideStep(
+          title: '📋 Xử lý bảo hành',
+          description: 'Nhấn vào mục bảo hành để xem chi tiết, liên hệ khách hàng hoặc tạo đơn sửa bảo hành mới.',
+          icon: Icons.build_circle_rounded,
+          iconColor: Colors.teal,
+        ),
+      ],
+    );
   }
 
   Future<void> _loadShopSettings() async {

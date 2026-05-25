@@ -18,6 +18,7 @@ import '../services/background_upload_service.dart';
 import '../services/osm_map_service.dart';
 import '../services/firestore_write_helper.dart';
 import '../services/event_bus.dart';
+import '../services/first_time_guide_service.dart';
 import 'work_schedule_settings_view.dart'; // Import màn hình cài đặt lịch
 import 'shift_swap_view.dart';
 import '../widgets/app_cached_image.dart';
@@ -72,6 +73,43 @@ class _AttendanceViewState extends State<AttendanceView>
       if (mounted) setState(() => _clockNow = DateTime.now());
     });
     _loadInitialData();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _showFirstTimeGuide());
+  }
+
+  Future<void> _showFirstTimeGuide() async {
+    await FirstTimeGuideService.showGuideIfNeeded(
+      context: context,
+      screenKey: FirstTimeGuideService.keyAttendanceView,
+      title: 'Chấm Công',
+      icon: Icons.access_time_rounded,
+      color: Colors.indigo,
+      steps: [
+        const GuideStep(
+          title: '⏰ Chấm công vào/ra',
+          description: 'Nhấn nút chấm công để ghi nhận giờ vào và giờ ra ca làm việc. Đồng hồ hiển thị thời gian thực.',
+          icon: Icons.fingerprint_rounded,
+          iconColor: Colors.indigo,
+        ),
+        const GuideStep(
+          title: '📍 Xác minh vị trí',
+          description: 'Nếu được bật, hệ thống yêu cầu xác nhận vị trí GPS để đảm bảo chấm công tại nơi làm việc.',
+          icon: Icons.location_on_rounded,
+          iconColor: Colors.red,
+        ),
+        const GuideStep(
+          title: '📝 Đơn xin nghỉ',
+          description: 'Gửi đơn xin nghỉ phép, nghỉ bệnh hoặc đổi ca ngay trong ứng dụng. Quản lý duyệt trực tuyến.',
+          icon: Icons.event_note_rounded,
+          iconColor: Colors.orange,
+        ),
+        const GuideStep(
+          title: '📊 Lịch sử & thống kê',
+          description: 'Xem lại toàn bộ lịch chấm công, số ngày công và số giờ tăng ca trong tháng.',
+          icon: Icons.bar_chart_rounded,
+          iconColor: Colors.green,
+        ),
+      ],
+    );
   }
 
   void _setupEventSubscription() {

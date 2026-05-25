@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/services.dart';
 import '../data/db_helper.dart';
+import '../services/first_time_guide_service.dart';
 import '../models/sale_order_model.dart';
 import '../services/event_bus.dart';
 import '../services/category_service.dart';
@@ -97,6 +98,43 @@ class _SaleListViewState extends State<SaleListView> {
       debugPrint('🛒 [SaleListView] Nhận event "$event" → refresh local DB');
       _debouncedRefresh();
     });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _showFirstTimeGuide());
+  }
+
+  Future<void> _showFirstTimeGuide() async {
+    await FirstTimeGuideService.showGuideIfNeeded(
+      context: context,
+      screenKey: FirstTimeGuideService.keySaleList,
+      title: 'Lịch Sử Bán Hàng',
+      icon: Icons.receipt_long_rounded,
+      color: Colors.teal,
+      steps: [
+        const GuideStep(
+          title: '🛒 Danh sách hóa đơn',
+          description: 'Xem tất cả hóa đơn bán hàng theo ngày/tuần/tháng. Tổng doanh thu hiển thị ngay phía trên.',
+          icon: Icons.receipt_long_rounded,
+          iconColor: Colors.teal,
+        ),
+        const GuideStep(
+          title: '🔍 Tìm kiếm',
+          description: 'Tìm hóa đơn theo tên khách hàng, tên sản phẩm hoặc mã hóa đơn.',
+          icon: Icons.search_rounded,
+          iconColor: Colors.blue,
+        ),
+        const GuideStep(
+          title: '📄 Xem chi tiết & in lại',
+          description: 'Nhấn vào hóa đơn để xem chi tiết, in lại biên lai hoặc tạo phiếu đổi trả.',
+          icon: Icons.print_rounded,
+          iconColor: Colors.orange,
+        ),
+        const GuideStep(
+          title: '💳 Trạng thái thanh toán',
+          description: 'Biết ngay hóa đơn nào đã thanh toán, đang chờ thanh toán hay ghi nợ.',
+          icon: Icons.payment_rounded,
+          iconColor: Colors.green,
+        ),
+      ],
+    );
   }
 
   @override

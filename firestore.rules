@@ -550,7 +550,8 @@ service cloud.firestore {
                        docInMyShop() &&
                        shopIdLocked();
       
-      allow delete: if false;
+      // DELETE: Super admin only (for shop reset cleanup)
+      allow delete: if isSuperAdmin();
     }
 
     // ═══════════ 3.5 SALES RETURNS ═══════════
@@ -762,12 +763,13 @@ service cloud.firestore {
                        newDocInMyShop() &&
                        has(['shopId']);
       
-      allow update: if isAuth() && 
+      allow update: if isAuth() &&
                        docInMyShop() &&
                        isManager() &&
                        shopIdLocked();
-      
-      allow delete: if false;
+
+      // DELETE: Super admin only (for shop reset cleanup)
+      allow delete: if isSuperAdmin();
     }
 
     // ═══════════ 5.4 SUPPLIER_IMPORT_HISTORY ═══════════
@@ -886,11 +888,12 @@ service cloud.firestore {
                        shopIdLocked() &&
                        (isManager() || 
                         (resource.data.userId == uid() &&
-                         !changed('status') && 
-                         !changed('locked') && 
+                         !changed('status') &&
+                         !changed('locked') &&
                          !changed('approvedBy')));
-      
-      allow delete: if false;
+
+      // DELETE: Super admin only (for shop reset cleanup)
+      allow delete: if isSuperAdmin();
     }
 
           // ═══════════ 7.1b LEAVE_REQUESTS ═══════════
@@ -994,8 +997,9 @@ service cloud.firestore {
       
       // UPDATE: Shop members can update (for read receipts, etc.)
       allow update: if isAuth() && docInMyShop();
-      
-      allow delete: if false;
+
+      // DELETE: Super admin only (for shop reset cleanup)
+      allow delete: if isSuperAdmin();
     }
 
     // ═══════════ 8.2 CHAT_MESSAGES ═══════════
@@ -1146,9 +1150,9 @@ service cloud.firestore {
       
       // UPDATE: NEVER - audit logs are immutable
       allow update: if false;
-      
-      // DELETE: NEVER - audit logs are immutable
-      allow delete: if false;
+
+      // DELETE: Super admin only (for shop reset cleanup — overrides immutability)
+      allow delete: if isSuperAdmin();
     }
 
     // ═══════════ 10.2 QUICK_INPUT_CODES ═══════════
@@ -1326,11 +1330,47 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // ═══════════ 12.3 INVENTORY_CHECKS (Kiểm kê kho) ═══════════
+    match /inventory_checks/{checkId} {
+      allow read: if isAuth() && docInMyShop() && isManager();
+
+      allow create: if isAuth() &&
+                       isManager() &&
+                       newDocInMyShop() &&
+                       has(['shopId']);
+
+      allow update: if isAuth() &&
+                       docInMyShop() &&
+                       isManager() &&
+                       shopIdLocked();
+
+      // DELETE: Owner+ or super admin (for shop reset cleanup)
+      allow delete: if isAuth() && (docInMyShopForDelete() && isOwner() || isSuperAdmin());
+    }
+
+    // ═══════════ 12.4 PAYROLL_SETTINGS (Cài đặt lương) ═══════════
+    match /payroll_settings/{settingId} {
+      allow read: if isAuth() && docInMyShop() && isManager();
+
+      allow create: if isAuth() &&
+                       isManager() &&
+                       newDocInMyShop() &&
+                       has(['shopId']);
+
+      allow update: if isAuth() &&
+                       docInMyShop() &&
+                       isManager() &&
+                       shopIdLocked();
+
+      // DELETE: Owner+ or super admin (for shop reset cleanup)
+      allow delete: if isAuth() && (docInMyShopForDelete() && isOwner() || isSuperAdmin());
+    }
+
     // ┌──────────────────────────────────────────────────────────────────┐
     // │                   SECTION 13: CATCH-ALL DENY                     │
     // │         CRITICAL: Any undefined collection is DENIED             │
     // └──────────────────────────────────────────────────────────────────┘
-    
+
     match /{document=**} {
       allow read, write: if false;
     }

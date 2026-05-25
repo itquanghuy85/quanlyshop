@@ -87,6 +87,7 @@ import '../theme/app_text_styles.dart';
 import '../theme/app_button_styles.dart';
 import '../services/category_service.dart';
 import '../services/expiry_alert_service.dart';
+import '../services/first_time_guide_service.dart';
 import '../services/variant_service.dart';
 import '../services/business_type_helper.dart';
 import '../services/debt_summary_service.dart';
@@ -256,6 +257,7 @@ class _HomeViewState extends State<HomeView>
       role: widget.role,
     );
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _showFirstTimeGuide();
       _checkNotificationStatus();
       _initialSetup();
       _registerAiNavBridge();
@@ -1458,6 +1460,48 @@ class _HomeViewState extends State<HomeView>
         _debouncedLoadStats();
       }
     }
+  }
+
+  Future<void> _showFirstTimeGuide() async {
+    await FirstTimeGuideService.showGuideIfNeeded(
+      context: context,
+      screenKey: FirstTimeGuideService.keyHomeTab,
+      title: 'Trang Chủ',
+      icon: Icons.home_rounded,
+      color: Colors.indigo,
+      steps: [
+        const GuideStep(
+          title: '📊 Tổng quan thời gian thực',
+          description: 'Doanh thu, số đơn sửa, tồn kho và nợ được cập nhật tức thì ngay trên trang chủ.',
+          icon: Icons.dashboard_rounded,
+          iconColor: Colors.indigo,
+        ),
+        const GuideStep(
+          title: '⚡ Tạo đơn nhanh',
+          description: 'Nhấn nút (+) để tạo đơn sửa chữa hoặc hóa đơn bán hàng ngay lập tức.',
+          icon: Icons.add_circle_rounded,
+          iconColor: Colors.green,
+        ),
+        const GuideStep(
+          title: '📈 Biểu đồ & thống kê',
+          description: 'Theo dõi doanh số, lợi nhuận theo ngày/tuần/tháng. Nhấn vào biểu đồ để xem chi tiết.',
+          icon: Icons.bar_chart_rounded,
+          iconColor: Colors.blue,
+        ),
+        const GuideStep(
+          title: '🔔 Cảnh báo thông minh',
+          description: 'Tự động cảnh báo nợ quá hạn, bảo hành sắp hết, hàng tồn kho thấp.',
+          icon: Icons.notifications_active_rounded,
+          iconColor: Colors.orange,
+        ),
+        const GuideStep(
+          title: '🤖 AI Trợ lý',
+          description: 'Nhấn vào nút chat AI để hỏi về doanh thu, đơn hàng, khách nợ bất kỳ lúc nào.',
+          icon: Icons.smart_toy_rounded,
+          iconColor: Colors.purple,
+        ),
+      ],
+    );
   }
 
   @override

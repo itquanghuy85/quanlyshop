@@ -1,4 +1,7 @@
+import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
@@ -6,6 +9,20 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:sqflite/sqflite.dart';
 import '../services/user_service.dart';
+
+class FirestoreBackupSet {
+  final String id;
+  final String storagePath;
+  final DateTime createdAt;
+  final List<String> collections;
+
+  const FirestoreBackupSet({
+    required this.id,
+    required this.storagePath,
+    required this.createdAt,
+    required this.collections,
+  });
+}
 
 class BackupService {
   static const String _dbName = 'repair_shop_v22.db';
@@ -108,5 +125,182 @@ class BackupService {
 
     final dbPath = await _getDbPath();
     await sourceFile.copy(dbPath);
+  }
+
+  // ─── Firestore selective backup / restore ───────────────────────────────
+
+  static const Map<String, String> kCollectionLabels = {
+    'repairs': 'Đơn sửa chữa',
+    'sales': 'Đơn bán hàng',
+    'products': 'Sản phẩm / Kho',
+    'customers': 'Khách hàng',
+    'suppliers': 'Nhà cung cấp',
+    'debts': 'Công nợ',
+    'debt_payments': 'Thanh toán nợ',
+    'expenses': 'Chi phí',
+    'attendance': 'Chấm công',
+    'payroll_settings': 'Cài đặt lương',
+    'work_schedules': 'Lịch làm việc',
+    'chats': 'Tin nhắn',
+    'audit_logs': 'Nhật ký thao tác',
+    'inventory_checks': 'Kiểm kê kho',
+    'cash_closings': 'Chốt ca',
+    'purchase_orders': 'Đơn nhập hàng',
+    'quick_input_codes': 'Mã nhập nhanh',
+  };
+
+  /// Backup selected Firestore collections to Storage as JSON files.
+  /// Returns the backup set ID (e.g. "fs_1716654321000").
+  static Future<String> backupFirestoreToCloud({
+    required List<String> collections,
+    String? shopIdOverride,
+    void Function(String collection, int done, int total)? onProgress,
+  }) async {
+    final shopId = shopIdOverride ?? await UserService.getCurrentShopId();
+    if (shopId == null || shopId.isEmpty) throw Exception('Chưa đăng nhập');
+
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final setId = 'fs_$timestamp';
+    final storage = FirebaseStorage.instance;
+    final db = FirebaseFirestore.instance;
+
+    for (int i = 0; i < collections.length; i++) {
+      final colName = collections[i];
+      onProgress?.call(colName, i, collections.length);
+
+      final snap = await db
+          .collection(colName)
+          .where('shopId', isEqualTo: shopId)
+          .get();
+
+      final docs = snap.docs.map((d) {
+        final data = Map<String, dynamic>.from(d.data());
+        data['__docId__'] = d.id;
+        return data;
+      }).toList();
+
+      final bytes = Uint8List.fromList(
+        utf8.encode(jsonEncode(_encodeFirestoreTypes(docs))),
+      );
+
+      await storage
+          .ref('db_backups/$shopId/$setId/$colName.json')
+          .putData(bytes, SettableMetadata(contentType: 'application/json'));
+    }
+
+    return setId;
+  }
+
+  /// List all Firestore backup sets for this shop.
+  static Future<List<FirestoreBackupSet>> listFirestoreBackupSets({
+    String? shopIdOverride,
+  }) async {
+    final shopId = shopIdOverride ?? await UserService.getCurrentShopId();
+    if (shopId == null || shopId.isEmpty) throw Exception('Chưa đăng nhập');
+
+    final storage = FirebaseStorage.instance;
+    final rootResult = await storage.ref('db_backups/$shopId').listAll();
+
+    final sets = <FirestoreBackupSet>[];
+    for (final prefix in rootResult.prefixes) {
+      if (!prefix.name.startsWith('fs_')) continue;
+
+      final tsStr = prefix.name.substring(3);
+      final ts = int.tryParse(tsStr);
+      final createdAt =
+          ts != null ? DateTime.fromMillisecondsSinceEpoch(ts) : DateTime.now();
+
+      final setResult = await prefix.listAll();
+      final cols = setResult.items
+          .where((f) => f.name.endsWith('.json'))
+          .map((f) => f.name.replaceAll('.json', ''))
+          .toList();
+
+      sets.add(FirestoreBackupSet(
+        id: prefix.name,
+        storagePath: prefix.fullPath,
+        createdAt: createdAt,
+        collections: cols,
+      ));
+    }
+
+    sets.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return sets;
+  }
+
+  /// Restore selected collections from a Firestore backup set.
+  static Future<void> restoreFirestoreFromCloud({
+    required FirestoreBackupSet backupSet,
+    required List<String> collections,
+    String? shopIdOverride,
+  }) async {
+    final shopId = shopIdOverride ?? await UserService.getCurrentShopId();
+    if (shopId == null || shopId.isEmpty) throw Exception('Chưa đăng nhập');
+
+    final storage = FirebaseStorage.instance;
+    final db = FirebaseFirestore.instance;
+
+    for (final colName in collections) {
+      final ref = storage.ref('${backupSet.storagePath}/$colName.json');
+      final data = await ref.getData(20 * 1024 * 1024); // 20 MB max
+      if (data == null) continue;
+
+      final List<dynamic> docs = jsonDecode(utf8.decode(data));
+
+      const batchSize = 400;
+      for (int i = 0; i < docs.length; i += batchSize) {
+        final batch = db.batch();
+        final end = (i + batchSize < docs.length) ? i + batchSize : docs.length;
+        for (int j = i; j < end; j++) {
+          final raw = Map<String, dynamic>.from(docs[j] as Map);
+          final docId = raw.remove('__docId__') as String?;
+          if (docId == null || docId.isEmpty) continue;
+          if (raw['shopId'] != shopId) continue;
+          final decoded = _decodeFirestoreTypes(raw);
+          batch.set(db.collection(colName).doc(docId), decoded);
+        }
+        await batch.commit();
+      }
+    }
+  }
+
+  /// Delete a Firestore backup set from Storage.
+  static Future<void> deleteFirestoreBackupSet(FirestoreBackupSet set) async {
+    final storage = FirebaseStorage.instance;
+    final ref = storage.ref(set.storagePath);
+    final result = await ref.listAll();
+    for (final item in result.items) {
+      await item.delete();
+    }
+  }
+
+  // Convert Timestamp / special Firestore types to JSON-safe maps
+  static dynamic _encodeFirestoreTypes(dynamic value) {
+    if (value is List) return value.map(_encodeFirestoreTypes).toList();
+    if (value is Map) {
+      return value.map((k, v) => MapEntry(k.toString(), _encodeFirestoreTypes(v)));
+    }
+    if (value is Timestamp) {
+      return {'__type__': 'Timestamp', 'seconds': value.seconds, 'nanoseconds': value.nanoseconds};
+    }
+    if (value is GeoPoint) {
+      return {'__type__': 'GeoPoint', 'lat': value.latitude, 'lng': value.longitude};
+    }
+    return value;
+  }
+
+  static dynamic _decodeFirestoreTypes(dynamic value) {
+    if (value is List) return value.map(_decodeFirestoreTypes).toList();
+    if (value is Map) {
+      final m = Map<String, dynamic>.from(value);
+      if (m['__type__'] == 'Timestamp') {
+        return Timestamp(m['seconds'] as int, m['nanoseconds'] as int);
+      }
+      if (m['__type__'] == 'GeoPoint') {
+        return GeoPoint((m['lat'] as num).toDouble(), (m['lng'] as num).toDouble());
+      }
+      return m.map((k, v) => MapEntry(k, _decodeFirestoreTypes(v)));
+    }
+    return value;
   }
 }

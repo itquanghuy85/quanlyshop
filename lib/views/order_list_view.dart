@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../data/db_helper.dart';
+import '../services/first_time_guide_service.dart';
 import '../l10n/app_localizations.dart';
 import '../theme/app_text_styles.dart';
 import '../widgets/skeleton_list.dart';
@@ -124,6 +125,7 @@ class OrderListViewState extends State<OrderListView> {
     _loadShopSettings();
     _loadDeletePermission();
     unawaited(_startRealtimeRepairsListener(forceRestart: true));
+    WidgetsBinding.instance.addPostFrameCallback((_) => _showFirstTimeGuide());
 
     // Chỉ rebind listener khi đổi shop hoặc refresh dữ liệu tổng.
     _eventSubscription = EventBus().stream.listen((event) {
@@ -173,6 +175,42 @@ class OrderListViewState extends State<OrderListView> {
 
   Future<String?> _resolveDisplayImagePath(String path) async {
     return StorageService.resolveDisplayUrl(path);
+  }
+
+  Future<void> _showFirstTimeGuide() async {
+    await FirstTimeGuideService.showGuideIfNeeded(
+      context: context,
+      screenKey: FirstTimeGuideService.keyOrderList,
+      title: 'Danh Sách Đơn Sửa',
+      icon: Icons.build_rounded,
+      color: Colors.deepOrange,
+      steps: [
+        const GuideStep(
+          title: '📋 Tất cả đơn sửa chữa',
+          description: 'Xem toàn bộ đơn sửa theo thời gian thực. Danh sách tự động cập nhật khi có đơn mới.',
+          icon: Icons.list_alt_rounded,
+          iconColor: Colors.deepOrange,
+        ),
+        const GuideStep(
+          title: '🔍 Tìm kiếm nhanh',
+          description: 'Tìm đơn theo tên khách hàng, số điện thoại hoặc mã đơn sửa.',
+          icon: Icons.search_rounded,
+          iconColor: Colors.blue,
+        ),
+        const GuideStep(
+          title: '🔄 Lọc theo trạng thái',
+          description: 'Lọc đơn theo Chờ sửa → Đang sửa → Hoàn thành → Đã giao để quản lý từng bước.',
+          icon: Icons.filter_list_rounded,
+          iconColor: Colors.green,
+        ),
+        const GuideStep(
+          title: '📱 Cập nhật tiến độ',
+          description: 'Nhấn vào bất kỳ đơn nào để xem chi tiết, cập nhật trạng thái hoặc in phiếu.',
+          icon: Icons.touch_app_rounded,
+          iconColor: Colors.purple,
+        ),
+      ],
+    );
   }
 
   @override

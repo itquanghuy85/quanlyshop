@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/customer_model.dart';
 import '../services/customer_service.dart';
+import '../services/first_time_guide_service.dart';
 import '../services/sync_service.dart';
 import '../services/event_bus.dart';
 import '../services/storage_service.dart';
@@ -57,6 +58,43 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
     _scrollController.addListener(_onScroll);
     _bindCustomerRefreshEvents();
     _loadCustomers();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _showFirstTimeGuide());
+  }
+
+  Future<void> _showFirstTimeGuide() async {
+    await FirstTimeGuideService.showGuideIfNeeded(
+      context: context,
+      screenKey: FirstTimeGuideService.keyCustomerManagement,
+      title: 'Quản Lý Khách Hàng',
+      icon: Icons.people_rounded,
+      color: Colors.blueAccent,
+      steps: [
+        const GuideStep(
+          title: '👥 Danh sách khách hàng',
+          description: 'Lưu trữ thông tin đầy đủ: họ tên, số điện thoại, địa chỉ và ghi chú của từng khách.',
+          icon: Icons.contact_phone_rounded,
+          iconColor: Colors.blueAccent,
+        ),
+        const GuideStep(
+          title: '📞 Liên hệ nhanh',
+          description: 'Nhấn vào số điện thoại để gọi điện hoặc nhắn tin cho khách hàng trực tiếp.',
+          icon: Icons.call_rounded,
+          iconColor: Colors.green,
+        ),
+        const GuideStep(
+          title: '📊 Lịch sử giao dịch',
+          description: 'Xem toàn bộ đơn sửa chữa, hóa đơn mua hàng và công nợ của từng khách.',
+          icon: Icons.history_rounded,
+          iconColor: Colors.orange,
+        ),
+        const GuideStep(
+          title: '⭐ Khách hàng thân thiết',
+          description: 'Hệ thống tự nhận diện khách VIP dựa trên tần suất và giá trị giao dịch.',
+          icon: Icons.star_rounded,
+          iconColor: Colors.amber,
+        ),
+      ],
+    );
   }
 
   @override

@@ -14,6 +14,7 @@ import '../services/sync_service.dart';
 import '../services/sync_orchestrator.dart';
 import '../services/user_service.dart';
 import '../services/adjustment_service.dart';
+import '../services/first_time_guide_service.dart';
 import '../services/event_bus.dart';
 import '../services/payment_intent_service.dart';
 import '../services/firestore_write_helper.dart';
@@ -82,6 +83,43 @@ class _ExpenseViewState extends State<ExpenseView> {
         _refresh();
       }
     });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _showFirstTimeGuide());
+  }
+
+  Future<void> _showFirstTimeGuide() async {
+    await FirstTimeGuideService.showGuideIfNeeded(
+      context: context,
+      screenKey: FirstTimeGuideService.keyExpenseView,
+      title: 'Thu & Chi',
+      icon: Icons.account_balance_wallet_rounded,
+      color: Colors.deepPurple,
+      steps: [
+        const GuideStep(
+          title: '💸 Ghi nhận Thu & Chi',
+          description: 'Ghi lại các khoản thu nhập ngoài bán hàng (THU) và chi phí vận hành (CHI) của cửa hàng.',
+          icon: Icons.swap_vert_rounded,
+          iconColor: Colors.deepPurple,
+        ),
+        const GuideStep(
+          title: '📂 Phân loại chi phí',
+          description: 'Phân biệt chi phí cửa hàng (điện, nước, mặt bằng) và chi phí cá nhân để báo cáo chính xác.',
+          icon: Icons.category_rounded,
+          iconColor: Colors.blue,
+        ),
+        const GuideStep(
+          title: '📅 Lọc theo thời gian',
+          description: 'Xem thu chi theo ngày, tuần hoặc tháng để kiểm soát dòng tiền hiệu quả.',
+          icon: Icons.date_range_rounded,
+          iconColor: Colors.teal,
+        ),
+        const GuideStep(
+          title: '📊 Biểu đồ tổng hợp',
+          description: 'Theo dõi xu hướng thu chi bằng biểu đồ trực quan, phát hiện khoản chi bất thường.',
+          icon: Icons.pie_chart_rounded,
+          iconColor: Colors.orange,
+        ),
+      ],
+    );
   }
 
   @override
