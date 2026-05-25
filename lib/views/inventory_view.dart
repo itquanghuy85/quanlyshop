@@ -5197,7 +5197,6 @@ class _InventoryViewState extends State<InventoryView>
     }
     final labelInfoC = TextEditingController(text: p.labelInfo ?? '');
     final labelNoteC = TextEditingController(text: p.labelNote ?? '');
-    final qtyC = TextEditingController(text: p.quantity.toString());
     // Brand chọn riêng - giữ từ sản phẩm gốc
     String? selectedBrand = ProductConstants.mapBrand(p.brand);
 
@@ -5273,7 +5272,7 @@ class _InventoryViewState extends State<InventoryView>
                 labelNote: labelNoteC.text.trim().isNotEmpty
                     ? labelNoteC.text.trim().toUpperCase()
                     : null,
-                quantity: int.tryParse(qtyC.text) ?? 1,
+                quantity: p.quantity, // SL không thay đổi qua edit — dùng "Nhập thêm"
                 type: type,
                 supplier: supplier,
                 updatedAt: ts,
@@ -5867,16 +5866,50 @@ class _InventoryViewState extends State<InventoryView>
                   ),
                   const SizedBox(height: 8),
 
-                  // Số lượng và Nhà cung cấp
+                  // Số lượng (khóa) + Nhập thêm + Nhà cung cấp
                   Row(
                     children: [
+                      // SL hiện tại — KHÓA, không cho sửa trực tiếp
                       Expanded(
                         flex: 1,
-                        child: _input(
-                          qtyC,
-                          "SL",
-                          Icons.add_box,
-                          type: TextInputType.number,
+                        child: InputDecorator(
+                          decoration: InputDecoration(
+                            labelText: "SL tồn kho",
+                            labelStyle: const TextStyle(color: PopupTheme.textMuted, fontSize: 13),
+                            prefixIcon: const Icon(Icons.lock, size: 16, color: PopupTheme.textMuted),
+                            filled: true,
+                            fillColor: PopupTheme.cardDark,
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(PopupTheme.radiusField),
+                              borderSide: const BorderSide(color: PopupTheme.borderDark),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(PopupTheme.radiusField),
+                              borderSide: const BorderSide(color: PopupTheme.borderDark),
+                            ),
+                          ),
+                          child: Text(
+                            p.quantity.toString(),
+                            style: const TextStyle(color: PopupTheme.textMuted, fontSize: 14, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // Nút nhập thêm hàng (tạo stock_entry đúng)
+                      OutlinedButton.icon(
+                        onPressed: () {
+                          Navigator.of(ctx).pop();
+                          _showQuickStockInDialog(p);
+                        },
+                        icon: const Icon(Icons.add_shopping_cart, size: 16),
+                        label: const Text('Nhập thêm', style: TextStyle(fontSize: 13)),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.teal,
+                          side: const BorderSide(color: Colors.teal),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
                       ),
                       const SizedBox(width: 8),
