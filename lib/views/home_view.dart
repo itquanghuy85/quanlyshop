@@ -2997,42 +2997,6 @@ class _HomeViewState extends State<HomeView>
 
   @override
   Widget build(BuildContext context) {
-    if (_shopLocked && !hasFullAccess) {
-      return Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.lock_outline, size: 72, color: Colors.red.shade300),
-              const SizedBox(height: 16),
-              const Text(
-                'CỬA HÀNG BỊ KHÓA',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.red,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Liên hệ quản trị viên để được mở khóa',
-                style: TextStyle(color: Colors.grey.shade600),
-              ),
-              const SizedBox(height: 24),
-              OutlinedButton.icon(
-                onPressed: () {
-                  UserService.clearCache();
-                  FirebaseAuth.instance.signOut();
-                },
-                icon: const Icon(Icons.logout),
-                label: const Text('Đăng xuất'),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
     final loc = AppLocalizations.of(context)!;
     final shouldInterceptRootBack =
         !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
