@@ -7,12 +7,12 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 ## ⚡ Trạng thái hiện tại
 
 **Version:** 1.x (develop) → 2.0 planning  
-**Last Updated:** 2026-05-25  
+**Last Updated:** 2026-05-26  
 **Build Status:** ✅ Debug build passing (`flutter build apk --debug`)  
 **Analyze Status:** ⚠️ `flutter analyze` còn `1552` issues pre-existing  
 **Database Version:** SQLite v17  
 **Branch:** master  
-**Active Initiative:** 🤖 Hardening P0 luồng AI cloud (context tối thiểu, mask PII, safe logging)
+**Active Initiative:** 💾 Hoàn thiện sao lưu/khôi phục SQLite + Firestore và tối ưu UX thao tác trong Cài đặt
 
 ---
 
@@ -21,6 +21,31 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Phase đang thực hiện:** Chưa bắt đầu (chuẩn bị khởi động Phase 01)  
 **Tài liệu đã khởi tạo:** Toàn bộ `docs/` structure  
 **Tiến độ:** 0 / 8 phases hoàn thành
+
+---
+
+## ✅ Vừa hoàn thành (2026-05-25)
+
+1. **Hoàn thiện backup/restore offline + online (2026-05-26)**
+  - Đã bật khôi phục SQLite từ Cloud (Firebase Storage) theo từng bản backup `.db`.
+  - Firestore giữ cơ chế khôi phục chọn lọc theo từng mục (collection) và bổ sung hướng dẫn rõ hơn trong UI.
+  - Luồng xác nhận khôi phục và thông báo sau khôi phục SQLite đã đầy đủ.
+
+2. **Thiết kế lại thao tác trang Cài đặt bằng nút `...` trên AppBar (2026-05-26)**
+  - Thêm menu nhanh đi tới:
+    - Sao lưu & Khôi phục
+    - Hướng dẫn sử dụng
+    - Trung tâm trợ giúp
+  - Giảm thao tác cuộn sâu và gom các action quan trọng lên đầu.
+
+3. **Cập nhật hướng dẫn sử dụng backup/restore (2026-05-26)**
+  - Cập nhật user guide mô tả rõ 2 chế độ:
+    - Offline: SQLite file `.db`
+    - Online: Firestore backup/restore theo từng mục
+
+4. **Validation kỹ thuật cho đợt này**
+  - `flutter analyze` (4 file thay đổi chính): không có compile error mới do task.
+  - `flutter build apk --debug`: thành công.
 
 ---
 

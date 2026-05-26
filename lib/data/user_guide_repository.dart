@@ -1257,23 +1257,33 @@ class UserGuideRepository {
         ),
         GuideStep(
           order: 2,
-          title: 'Tạo bản sao lưu',
-          description: 'Nhấn "Sao lưu ngay" để tạo bản backup mới.',
+          title: 'Chọn kiểu sao lưu',
+          description:
+              'SQLite (offline) để sao lưu file .db toàn bộ máy, hoặc Firestore (online) để sao lưu cloud.',
         ),
         GuideStep(
           order: 3,
-          title: 'Chọn vị trí lưu',
-          description: 'Chọn lưu vào: Google Drive, thiết bị hoặc gửi qua email.',
+          title: 'Sao lưu online theo mục',
+          description:
+              'Ở tab Firestore, bấm "Chọn mục & Sao lưu lên Cloud" rồi chọn các nhóm dữ liệu cần sao lưu.',
         ),
         GuideStep(
           order: 4,
+          title: 'Khôi phục dữ liệu',
+          description:
+              'SQLite: chọn file .db hoặc bản cloud để khôi phục toàn bộ. Firestore: chọn từng mục để khôi phục chọn lọc.',
+        ),
+        GuideStep(
+          order: 5,
           title: 'Hoàn tất',
-          description: 'Chờ quá trình backup hoàn tất. File backup có định dạng .Shopmanager',
+          description:
+              'Sau khi khôi phục SQLite, khởi động lại ứng dụng để dữ liệu được áp dụng đầy đủ.',
         ),
       ],
       tips: [
-        'Nên backup định kỳ hàng tuần.',
-        'Lưu backup ở nhiều nơi để an toàn.',
+        'Nên sao lưu cloud mỗi ngày trước khi kết ca.',
+        'Với Firestore, chỉ chọn đúng nhóm dữ liệu cần khôi phục để tránh ghi đè không cần thiết.',
+        'Luôn giữ ít nhất 2 bản backup gần nhất để an toàn.',
       ],
     ),
 

@@ -4,6 +4,29 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-05-26] - Hoàn Thiện Sao Lưu/Khôi Phục Offline + Online, Thêm Nút ... Trên Cài Đặt
+
+### Changed
+- `lib/services/backup_service.dart`
+	- Hoàn thiện khôi phục SQLite từ Cloud bằng `restoreSqliteFromFirebase(fileName)`.
+	- Tải file `.db` từ `Firebase Storage` và ghi đè DB local để khôi phục offline từ bản online.
+- `lib/views/backup_restore_view.dart`
+	- Bật chức năng "Khôi phục" cho từng bản backup SQLite trên Cloud (không còn trạng thái "đang phát triển").
+	- Thêm xác nhận trước khi khôi phục và thông báo yêu cầu khởi động lại app sau khôi phục SQLite.
+	- Bổ sung nút `...` ở AppBar để điều hướng nhanh giữa tab SQLite/Firestore và mở hướng dẫn sử dụng.
+	- Bổ sung card "Hướng dẫn nhanh" cho tab SQLite và "Khôi phục theo từng mục" cho tab Firestore.
+- `lib/views/settings_view.dart`
+	- Thiết kế lại phần thao tác nhanh bằng nút `...` ở trên AppBar.
+	- Từ menu `...` có thể đi nhanh tới: `Sao lưu & Khôi phục`, `Hướng dẫn sử dụng`, `Trung tâm trợ giúp`.
+- `lib/data/user_guide_repository.dart`
+	- Cập nhật kịch bản hướng dẫn sao lưu/khôi phục cho cả offline (SQLite) và online (Firestore).
+	- Làm rõ luồng khôi phục chọn lọc theo từng mục trên Firestore.
+
+### Validation
+- `flutter analyze lib/services/backup_service.dart lib/views/backup_restore_view.dart lib/views/settings_view.dart lib/data/user_guide_repository.dart`
+	- Không phát sinh lỗi compile mới; còn warning/info legacy của dự án.
+- `flutter build apk --debug`: thành công (`build/app/outputs/flutter-apk/app-debug.apk`).
+
 ## [2026-05-25d] - Hardening P0 AI: Context Tối Thiểu + Mask PII + Safe Logging
 
 ### Changed

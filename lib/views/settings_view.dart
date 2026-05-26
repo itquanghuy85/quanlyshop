@@ -25,6 +25,7 @@ import '../widgets/shop_switcher_widget.dart';
 import '../widgets/custom_app_bar.dart';
 import 'help_center_view.dart';
 import 'user_guide_view.dart';
+import 'backup_restore_view.dart';
 import 'shop_selector_view.dart';
 import 'staff_permissions_view.dart';
 import 'category_management_view.dart';
@@ -246,6 +247,30 @@ class _SettingsViewState extends State<SettingsView> {
     }
   }
 
+  Future<void> _onTopMenuSelected(String value) async {
+    if (!mounted) return;
+    switch (value) {
+      case 'backup_restore':
+        await Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const BackupRestoreView()),
+        );
+        break;
+      case 'user_guide':
+        await Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const UserGuideView()),
+        );
+        break;
+      case 'help_center':
+        await Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => HelpCenterView(userRole: _role)),
+        );
+        break;
+    }
+  }
+
   String _getRoleDisplayName(String role, AppLocalizations localizations) {
     switch (role) {
       case 'owner':
@@ -393,6 +418,44 @@ class _SettingsViewState extends State<SettingsView> {
     return Scaffold(
       appBar: CustomAppBar.build(
         title: localizations.systemSettings,
+        actions: [
+          PopupMenuButton<String>(
+            tooltip: 'Tùy chọn',
+            onSelected: _onTopMenuSelected,
+            itemBuilder: (ctx) => const [
+              PopupMenuItem<String>(
+                value: 'backup_restore',
+                child: Row(
+                  children: [
+                    Icon(Icons.backup_outlined, size: 18),
+                    SizedBox(width: 8),
+                    Text('Sao lưu & Khôi phục'),
+                  ],
+                ),
+              ),
+              PopupMenuItem<String>(
+                value: 'user_guide',
+                child: Row(
+                  children: [
+                    Icon(Icons.menu_book_outlined, size: 18),
+                    SizedBox(width: 8),
+                    Text('Hướng dẫn sử dụng'),
+                  ],
+                ),
+              ),
+              PopupMenuItem<String>(
+                value: 'help_center',
+                child: Row(
+                  children: [
+                    Icon(Icons.support_agent_outlined, size: 18),
+                    SizedBox(width: 8),
+                    Text('Trung tâm trợ giúp'),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
       body: ResponsiveCenter(
         maxWidth: 800,

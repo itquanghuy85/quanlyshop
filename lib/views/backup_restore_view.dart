@@ -68,6 +68,37 @@ class _BackupRestoreViewState extends State<BackupRestoreView>
     with SingleTickerProviderStateMixin {
   late final TabController _tab;
 
+  Future<void> _showUsageGuide() async {
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Hướng dẫn sao lưu & khôi phục'),
+        content: const SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('1. SQLite (offline): dùng khi cần sao lưu/khôi phục toàn bộ file dữ liệu tại máy.'),
+              SizedBox(height: 8),
+              Text('2. Firestore (online): cho phép sao lưu/khôi phục theo từng mục (đơn sửa, đơn bán, kho, công nợ...).'),
+              SizedBox(height: 8),
+              Text('3. Khuyến nghị: sao lưu lên Cloud định kỳ mỗi ngày và trước khi cập nhật ứng dụng.'),
+              SizedBox(height: 8),
+              Text('4. Sau khi khôi phục SQLite, nên đóng và mở lại ứng dụng để đảm bảo dữ liệu nạp đúng.'),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Đã hiểu'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -85,6 +116,57 @@ class _BackupRestoreViewState extends State<BackupRestoreView>
     return Scaffold(
       appBar: CustomAppBar.build(
         title: 'Sao lưu & Khôi phục',
+        actions: [
+          PopupMenuButton<String>(
+            tooltip: 'Tùy chọn',
+            onSelected: (value) {
+              switch (value) {
+                case 'sqlite':
+                  _tab.animateTo(0);
+                  break;
+                case 'firestore':
+                  _tab.animateTo(1);
+                  break;
+                case 'guide':
+                  _showUsageGuide();
+                  break;
+              }
+            },
+            itemBuilder: (ctx) => const [
+              PopupMenuItem<String>(
+                value: 'sqlite',
+                child: Row(
+                  children: [
+                    Icon(Icons.storage_outlined, size: 18),
+                    SizedBox(width: 8),
+                    Text('Mở tab SQLite'),
+                  ],
+                ),
+              ),
+              PopupMenuItem<String>(
+                value: 'firestore',
+                child: Row(
+                  children: [
+                    Icon(Icons.cloud_outlined, size: 18),
+                    SizedBox(width: 8),
+                    Text('Mở tab Firestore'),
+                  ],
+                ),
+              ),
+              PopupMenuDivider(),
+              PopupMenuItem<String>(
+                value: 'guide',
+                child: Row(
+                  children: [
+                    Icon(Icons.help_outline, size: 18),
+                    SizedBox(width: 8),
+                    Text('Hướng dẫn sử dụng'),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
         bottom: TabBar(
           controller: _tab,
           tabs: const [
@@ -199,6 +281,58 @@ class _SqliteTabState extends State<_SqliteTab> {
     }
   }
 
+  Future<void> _restoreFromCloudBackup(String fileName) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Khôi phục SQLite từ Cloud'),
+        content: Text(
+          'Bạn sắp khôi phục từ bản sao lưu:\n$fileName\n\nDữ liệu hiện tại trên máy sẽ bị ghi đè. Tiếp tục?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Hủy'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Khôi phục'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+
+    setState(() => _loading = true);
+    try {
+      await BackupService.restoreSqliteFromFirebase(fileName: fileName);
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Khôi phục thành công'),
+          content: const Text(
+            'Đã khôi phục SQLite từ Cloud. Vui lòng khởi động lại ứng dụng để áp dụng dữ liệu mới.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Đóng'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      NotificationService.showSnackBar(
+        'Lỗi khôi phục từ Cloud: $e',
+        color: AppColors.error,
+      );
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Stack(
@@ -217,6 +351,18 @@ class _SqliteTabState extends State<_SqliteTab> {
             ),
             AppSpacing.gapMd,
             _SectionCard(
+              title: 'Hướng dẫn nhanh',
+              icon: Icons.help_outline,
+              children: const [
+                Text('• Sao lưu offline: Chia sẻ/Lưu file .db vào máy hoặc Drive.'),
+                SizedBox(height: 4),
+                Text('• Sao lưu online: Nhấn "Sao lưu lên Cloud" để lưu bản DB mới nhất.'),
+                SizedBox(height: 4),
+                Text('• Khôi phục online: Chọn một bản SQLite trên Cloud và bấm "Khôi phục".'),
+              ],
+            ),
+            AppSpacing.gapMd,
+            _SectionCard(
               title: 'Bản sao lưu SQLite trên Cloud',
               icon: Icons.cloud,
               children: [
@@ -230,7 +376,7 @@ class _SqliteTabState extends State<_SqliteTab> {
                   ..._cloudBackups.map((b) => _SqliteBackupItem(
                         name: b['name'] ?? '',
                         timestamp: b['timestamp'] ?? '',
-                        onRestore: () => NotificationService.showSnackBar('Khôi phục SQLite từ cloud đang phát triển.'),
+                        onRestore: () => _restoreFromCloudBackup(b['name'] ?? ''),
                       )),
               ],
             ),
@@ -421,6 +567,16 @@ class _FirestoreTabState extends State<_FirestoreTab> {
                   )),
                 ]),
               ),
+            ),
+            AppSpacing.gapMd,
+            _SectionCard(
+              title: 'Khôi phục theo từng mục',
+              icon: Icons.tune,
+              children: const [
+                Text('Bạn có thể chọn chính xác từng nhóm dữ liệu khi khôi phục (VD: chỉ Đơn sửa, chỉ Kho, chỉ Công nợ).'),
+                SizedBox(height: 4),
+                Text('Hệ thống chỉ ghi đè các mục bạn chọn, không ảnh hưởng các mục còn lại.'),
+              ],
             ),
             AppSpacing.gapMd,
 

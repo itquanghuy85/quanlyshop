@@ -127,6 +127,37 @@ class BackupService {
     await sourceFile.copy(dbPath);
   }
 
+  /// Khôi phục database SQLite từ Firebase Storage theo tên file backup.
+  static Future<void> restoreSqliteFromFirebase({
+    required String fileName,
+  }) async {
+    final shopId = await UserService.getCurrentShopId();
+    if (shopId == null || shopId.isEmpty) {
+      throw Exception('Chưa đăng nhập');
+    }
+    if (!fileName.toLowerCase().endsWith('.db')) {
+      throw Exception('File backup không hợp lệ: $fileName');
+    }
+
+    final ref = FirebaseStorage.instance.ref('db_backups/$shopId/$fileName');
+    final bytes = await ref.getData(200 * 1024 * 1024); // 200MB
+    if (bytes == null || bytes.isEmpty) {
+      throw Exception('Không tải được file backup từ Cloud');
+    }
+
+    final dbPath = await _getDbPath();
+    final dbFile = File(dbPath);
+
+    // Lưu một bản tạm để giảm rủi ro khi ghi trực tiếp lỗi.
+    final tempDir = await getTemporaryDirectory();
+    final tempRestorePath =
+        p.join(tempDir.path, 'restore_${DateTime.now().millisecondsSinceEpoch}.db');
+    final tempFile = File(tempRestorePath);
+    await tempFile.writeAsBytes(bytes, flush: true);
+
+    await tempFile.copy(dbFile.path);
+  }
+
   // ─── Firestore selective backup / restore ───────────────────────────────
 
   static const Map<String, String> kCollectionLabels = {
