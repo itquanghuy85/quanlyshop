@@ -43,11 +43,20 @@ class BackupService {
 
   static Future<Directory> _getLocalBackupDir() async {
     final docs = await getApplicationDocumentsDirectory();
-    final dir = Directory(p.join(docs.path, 'sqlite_backups'));
+    final dir = Directory(p.join(docs.path, 'quanlyshop', 'sqlite_backups'));
     if (!await dir.exists()) {
       await dir.create(recursive: true);
     }
     return dir;
+  }
+
+  static Future<Directory?> _getLegacyLocalBackupDir() async {
+    final docs = await getApplicationDocumentsDirectory();
+    final dir = Directory(p.join(docs.path, 'sqlite_backups'));
+    if (await dir.exists()) {
+      return dir;
+    }
+    return null;
   }
 
   /// Lấy đường dẫn file database
@@ -95,27 +104,36 @@ class BackupService {
 
   /// Danh sách các bản backup SQLite cục bộ (mới nhất trước).
   static Future<List<LocalSqliteBackup>> listLocalSqliteBackups() async {
-    final dir = await _getLocalBackupDir();
-    if (!await dir.exists()) return const [];
+    final dirs = <Directory>[
+      await _getLocalBackupDir(),
+    ];
+    final legacyDir = await _getLegacyLocalBackupDir();
+    if (legacyDir != null) {
+      dirs.add(legacyDir);
+    }
 
-    final entities = await dir.list().toList();
     final files = <LocalSqliteBackup>[];
+    final seenPaths = <String>{};
 
-    for (final e in entities) {
-      if (e is! File) continue;
-      if (!e.path.toLowerCase().endsWith('.db')) continue;
-      try {
-        final stat = await e.stat();
-        files.add(
-          LocalSqliteBackup(
-            name: p.basename(e.path),
-            path: e.path,
-            modifiedAt: stat.modified,
-            sizeBytes: stat.size,
-          ),
-        );
-      } catch (_) {
-        // Skip unreadable file.
+    for (final dir in dirs) {
+      final entities = await dir.list().toList();
+      for (final e in entities) {
+        if (e is! File) continue;
+        if (!e.path.toLowerCase().endsWith('.db')) continue;
+        if (!seenPaths.add(e.path)) continue;
+        try {
+          final stat = await e.stat();
+          files.add(
+            LocalSqliteBackup(
+              name: p.basename(e.path),
+              path: e.path,
+              modifiedAt: stat.modified,
+              sizeBytes: stat.size,
+            ),
+          );
+        } catch (_) {
+          // Skip unreadable file.
+        }
       }
     }
 

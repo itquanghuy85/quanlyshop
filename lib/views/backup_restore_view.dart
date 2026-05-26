@@ -269,13 +269,10 @@ class _SqliteTabState extends State<_SqliteTab> {
   }
 
   Future<void> _shareLocalBackup(LocalSqliteBackup backup) async {
-    setState(() => _loading = true);
     try {
       await BackupService.shareSqliteFile(backup.path);
     } catch (e) {
       NotificationService.showSnackBar('Lỗi chia sẻ file: $e', color: AppColors.error);
-    } finally {
-      if (mounted) setState(() => _loading = false);
     }
   }
 

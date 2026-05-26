@@ -73,7 +73,8 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
           final hasPinSetup = await SuperAdminSecurityService.isPinSetup();
           if (!mounted) return;
           if (hasPinSetup && !SuperAdminSecurityService.isSessionValid()) {
-            final pinOk = await _requirePinReauth(title: 'Xác thực Super Admin');
+            final loc = AppLocalizations.of(context)!;
+            final pinOk = await _requirePinReauth(title: loc.adminAuthSuperAdmin);
             if (!pinOk) {
               SuperAdminSecurityService.clearSession();
               UserService.clearCache();
@@ -100,8 +101,9 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
     });
   }
 
-  Future<bool> _requirePinReauth({String title = 'Xác thực PIN'}) async {
+  Future<bool> _requirePinReauth({String? title}) async {
     if (!mounted) return false;
+    final loc = AppLocalizations.of(context)!;
     final pinC = TextEditingController();
     String? error;
     final ok = await showDialog<bool>(
@@ -112,12 +114,12 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
           title: Row(children: [
             const Icon(Icons.lock, color: Colors.deepPurple),
             const SizedBox(width: 8),
-            Text(title),
+            Text(title ?? loc.adminAuthPin),
           ]),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Nhập PIN Super Admin để tiếp tục thao tác nguy hiểm.'),
+              Text(loc.adminEnterPinForDangerous),
               const SizedBox(height: 12),
               TextField(
                 controller: pinC,
@@ -126,7 +128,7 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
                 maxLength: 6,
                 autofocus: true,
                 decoration: InputDecoration(
-                  labelText: 'PIN (4-6 số)',
+                  labelText: loc.adminPinHint,
                   border: const OutlineInputBorder(),
                   errorText: error,
                 ),
@@ -134,14 +136,14 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Hủy')),
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(loc.cancel)),
             FilledButton(
               onPressed: () async {
                 final verified = await SuperAdminSecurityService.verifyPin(pinC.text.trim());
-                if (!verified) { setD(() => error = 'PIN không đúng'); return; }
+                if (!verified) { setD(() => error = loc.adminPinWrong); return; }
                 if (ctx.mounted) Navigator.pop(ctx, true);
               },
-              child: const Text('Xác nhận'),
+              child: Text(loc.confirm),
             ),
           ],
         ),
@@ -165,7 +167,7 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
   }) async {
     final requiresPin = flagName == 'appLocked' || flagName == 'adminFinanceLocked';
     if (requiresPin) {
-      final ok = await _requirePinReauth(title: 'Xác thực để thay đổi $label');
+      final ok = await _requirePinReauth(title: 'Xác thực để thay đổi $label'); // label is dynamic
       if (!ok) return;
     }
     await UserService.updateShopControlFlags(shopId: shopId, flagName: flagName, flagValue: newValue);
@@ -176,8 +178,9 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
       success: true,
     );
     if (!mounted) return;
+    final loc = AppLocalizations.of(context)!;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(newValue ? 'Đã khóa $label' : 'Đã mở khóa $label'),
+      content: Text(newValue ? loc.adminLockedLabel(label) : loc.adminUnlockedLabel(label)),
       backgroundColor: newValue ? Colors.orange : Colors.green,
     ));
   }
@@ -187,6 +190,8 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
     final shopName = (shop['name'] ?? '').toString();
     if (shopId.isEmpty) return;
 
+    final loc = AppLocalizations.of(context)!;
+
     final result = await showDialog<_ResetSelection>(
       context: context,
       barrierDismissible: false,
@@ -194,12 +199,12 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
     );
     if (result == null) return;
 
-    final pinOk = await _requirePinReauth(title: 'Xác thực reset shop');
+    final pinOk = await _requirePinReauth(title: loc.adminAuthPin);
     if (!pinOk) return;
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Đang xóa dữ liệu...'), duration: Duration(minutes: 2)),
+        SnackBar(content: Text(loc.adminDeletingData), duration: const Duration(minutes: 2)),
       );
     }
 
@@ -218,8 +223,11 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).clearSnackBars();
+    final resetMsg = error == null
+        ? loc.adminResetSuccess(shopName)
+        : loc.adminResetFailed(error);
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(error == null ? 'Đã xóa dữ liệu đã chọn của shop $shopName' : 'Reset thất bại: $error'),
+      content: Text(resetMsg),
       backgroundColor: error == null ? Colors.green : Colors.red,
     ));
     if (error == null) setState(() => _shopsRefreshKey++);
@@ -230,7 +238,8 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
     final shopName = (shop['name'] ?? '').toString();
     if (shopId.isEmpty) return;
 
-    final pinOk = await _requirePinReauth(title: 'Xác thực xóa shop');
+    final loc = AppLocalizations.of(context)!;
+    final pinOk = await _requirePinReauth(title: loc.adminAuthPin);
     if (!pinOk) return;
 
     await _db.collection('shops').doc(shopId).set({
@@ -2157,6 +2166,21 @@ const _kGroups = [
   ),
 ];
 
+const Set<String> _kCoreDataCollectionsToKeep = {
+  'repairs',
+  'customers',
+  'attendance',
+  'payroll_settings',
+  'work_schedules',
+};
+
+const Set<String> _kCoreDataStorageRootsToKeep = {
+  'repairs',
+  'attendance',
+  'db_backups',
+  'shop_logos',
+};
+
 class _SelectiveResetDialog extends StatefulWidget {
   const _SelectiveResetDialog({required this.shopName});
   final String shopName;
@@ -2190,6 +2214,21 @@ class _SelectiveResetDialogState extends State<_SelectiveResetDialog> {
 
   void _toggleAll(bool value) {
     setState(() { for (final key in _checked.keys) { _checked[key] = value; } });
+  }
+
+  void _applyCoreDataCleanupPreset() {
+    setState(() {
+      for (final g in _kGroups) {
+        for (final item in g.items) {
+          final key = _itemKey(item);
+          if (item.isStorage) {
+            _checked[key] = !_kCoreDataStorageRootsToKeep.contains(item.key);
+          } else {
+            _checked[key] = !_kCoreDataCollectionsToKeep.contains(item.key);
+          }
+        }
+      }
+    });
   }
 
   _ResetSelection _buildResult() {
@@ -2243,6 +2282,15 @@ class _SelectiveResetDialogState extends State<_SelectiveResetDialog> {
                 title: const Text('Chọn tất cả', style: TextStyle(fontWeight: FontWeight.bold)),
                 subtitle: Text('$selectedCount mục đã chọn'),
                 onChanged: (v) => _toggleAll(v == true),
+              ),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: _applyCoreDataCleanupPreset,
+                icon: const Icon(Icons.cleaning_services_outlined, size: 16),
+                label: const Text('Giữ sửa chữa + khách hàng + nhân sự'),
               ),
             ),
             const SizedBox(height: 8),

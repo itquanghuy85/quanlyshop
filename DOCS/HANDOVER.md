@@ -31,9 +31,12 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
   - Bổ sung danh sách backup SQLite cục bộ để người dùng nhìn thấy file đã lưu.
   - Bổ sung thao tác chia sẻ/khôi phục trực tiếp từ danh sách backup cục bộ.
   - Làm rõ flow lưu file .db -> xem danh sách -> chia sẻ/khôi phục.
+  - Đổi thư mục backup cục bộ sang `quanlyshop/sqlite_backups` để dễ nhận diện trên máy.
+  - Thêm preset trong luồng xóa chọn lọc để giữ lại dữ liệu cốt lõi: sửa chữa, khách hàng, chấm công, cài đặt lương, lịch làm việc.
 
 2. **Validation follow-up**
   - `flutter analyze` cho `backup_service.dart` và `backup_restore_view.dart`: không có compile error mới.
+  - `flutter build apk --debug`: thành công.
 
 ---
 

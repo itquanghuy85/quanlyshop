@@ -37,10 +37,18 @@ Lịch sử tất cả thay đổi từng phiên bản.
 		- Khôi phục trực tiếp từ danh sách backup cục bộ.
 - `lib/services/backup_service.dart`
 	- Thêm `listLocalSqliteBackups()` và `shareSqliteFile()` phục vụ xem/chia sẻ/khôi phục backup cục bộ.
+- `lib/services/backup_service.dart` (follow-up 2026-05-26)
+	- Đổi thư mục lưu backup cục bộ sang `Documents/quanlyshop/sqlite_backups`.
+	- Giữ tương thích với thư mục cũ `Documents/sqlite_backups` khi liệt kê file.
+- `lib/views/backup_restore_view.dart` (follow-up 2026-05-26)
+	- Nút Share không còn giữ loading overlay trong lúc mở share sheet.
+- `lib/views/super_admin_console_view.dart` (follow-up 2026-05-26)
+	- Thêm preset một chạm để chọn nhanh luồng xóa dữ liệu cũ, giữ lại `repairs`, `customers`, `attendance`, `payroll_settings`, `work_schedules`.
 
 ### Validation (follow-up)
-- `flutter analyze lib/services/backup_service.dart lib/views/backup_restore_view.dart`
+- `flutter analyze lib/services/backup_service.dart lib/views/backup_restore_view.dart lib/views/super_admin_console_view.dart`
 	- Không có lỗi compile mới; còn info tối ưu `const`.
+- `flutter build apk --debug`: thành công.
 
 ## [2026-05-25d] - Hardening P0 AI: Context Tối Thiểu + Mask PII + Safe Logging
 
