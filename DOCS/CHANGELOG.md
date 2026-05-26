@@ -49,9 +49,23 @@ Lịch sử tất cả thay đổi từng phiên bản.
 - `lib/data/user_guide_repository.dart`
 	- Cập nhật mô tả để nói rõ backup SQLite là snapshot theo shop, restore sang shop khác cần remap `shopId`.
 
+### Follow-up Runtime Fixes (2026-05-26)
+- `lib/views/backup_restore_view.dart`
+	- Luồng restore SQLite (file cục bộ / backup cloud / danh sách backup cục bộ) nay cho phép **chọn từng mục dữ liệu** trước khi khôi phục.
+	- Giữ tùy chọn remap shopId khi cần chuyển dữ liệu vào shop hiện tại.
+- `lib/services/backup_service.dart`
+	- Thêm `restoreSelectedFromLocalFile()` và `restoreSelectedSqliteFromFirebase()` để khôi phục chọn lọc theo nhóm dữ liệu.
+	- Thêm lớp tương thích schema sau restore, tự đảm bảo các cột quan trọng của `products` (đặc biệt `shopId`) tồn tại.
+- `lib/data/db_helper.dart`
+	- Bổ sung check phòng thủ `products.shopId` trong `onOpen` để tránh lỗi `DatabaseException(no such column: shopId)` sau restore từ file DB cũ.
+- `lib/widgets/clickable_product_chip.dart`
+	- Redesign item sản phẩm trong chi tiết đơn bán: tối giản, nền sáng, spacing gọn, dễ đọc khi đơn có nhiều dòng.
+
 ### Validation (follow-up)
 - `flutter analyze lib/services/backup_service.dart lib/views/backup_restore_view.dart lib/views/super_admin_console_view.dart`
 	- Không có lỗi compile mới; còn info tối ưu `const`.
+- `flutter analyze lib/services/backup_service.dart lib/views/backup_restore_view.dart lib/data/db_helper.dart lib/widgets/clickable_product_chip.dart`
+	- Không có lỗi compile mới; còn lint info của dự án.
 - `flutter build apk --debug`: thành công.
 
 ## [2026-05-25d] - Hardening P0 AI: Context Tối Thiểu + Mask PII + Safe Logging

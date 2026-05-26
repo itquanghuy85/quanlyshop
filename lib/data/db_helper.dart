@@ -3286,6 +3286,9 @@ class DBHelper {
           final hasPaymentMethod = cols.any(
             (c) => (c['name'] ?? c['name'.toString()]) == 'paymentMethod',
           );
+          final hasShopId = cols.any(
+            (c) => (c['name'] ?? c['name'.toString()]) == 'shopId',
+          );
           final hasModel = cols.any(
             (c) => (c['name'] ?? c['name'.toString()]) == 'model',
           );
@@ -3304,6 +3307,10 @@ class DBHelper {
               'ALTER TABLE products ADD COLUMN paymentMethod TEXT',
             );
             debugPrint('DB: added paymentMethod column');
+          }
+          if (!hasShopId) {
+            await db.execute('ALTER TABLE products ADD COLUMN shopId TEXT');
+            debugPrint('DB: added shopId column');
           }
           if (!hasModel) {
             await db.execute('ALTER TABLE products ADD COLUMN model TEXT');

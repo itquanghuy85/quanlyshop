@@ -41,6 +41,25 @@ class LocalSqliteBackup {
 class BackupService {
   static const String _dbName = 'repair_shop_v22.db';
 
+  static const Map<String, List<String>> _sqliteCollectionTables = {
+    'repairs': ['repairs'],
+    'sales': ['sales', 'sales_returns', 'sales_return_items'],
+    'products': ['products'],
+    'customers': ['customers'],
+    'suppliers': ['suppliers'],
+    'debts': ['debts'],
+    'debt_payments': ['debt_payments'],
+    'expenses': ['expenses'],
+    'attendance': ['attendance'],
+    'payroll_settings': ['payroll_settings', 'employee_salary_settings'],
+    'work_schedules': ['work_schedules'],
+    'audit_logs': ['audit_logs'],
+    'inventory_checks': ['inventory_checks'],
+    'cash_closings': ['cash_closings'],
+    'purchase_orders': ['purchase_orders'],
+    'quick_input_codes': ['quick_input_codes'],
+  };
+
   static Future<Directory> _getLocalBackupDir() async {
     final docs = await getApplicationDocumentsDirectory();
     final dir = Directory(p.join(docs.path, 'quanlyshop', 'sqlite_backups'));
@@ -215,6 +234,8 @@ class BackupService {
     final dbPath = await _getDbPath();
     await sourceFile.copy(dbPath);
 
+    await _ensureRestoredDbCompatibility(dbPath);
+
     if (remapShopIdToCurrentShop) {
       final currentShopId = await UserService.getCurrentShopId();
       if (currentShopId == null || currentShopId.isEmpty) {
@@ -223,6 +244,87 @@ class BackupService {
         );
       }
       await _remapRestoredShopId(dbPath, currentShopId);
+    }
+  }
+
+  /// Khôi phục chọn lọc từ file SQLite (.db) theo từng nhóm dữ liệu.
+  static Future<void> restoreSelectedFromLocalFile({
+    required String filePath,
+    required List<String> collections,
+    bool remapShopIdToCurrentShop = false,
+  }) async {
+    final sourceFile = File(filePath);
+    if (!await sourceFile.exists()) {
+      throw Exception('Không tìm thấy file: $filePath');
+    }
+    if (collections.isEmpty) {
+      throw Exception('Vui lòng chọn ít nhất 1 mục để khôi phục');
+    }
+
+    final dbPath = await _getDbPath();
+    final sourceDb = await openDatabase(
+      sourceFile.path,
+      readOnly: true,
+      singleInstance: false,
+    );
+    final targetDb = await openDatabase(
+      dbPath,
+      singleInstance: false,
+    );
+
+    final targetShopId = await UserService.getCurrentShopId();
+    if (remapShopIdToCurrentShop && (targetShopId == null || targetShopId.isEmpty)) {
+      await sourceDb.close();
+      await targetDb.close();
+      throw Exception('Không tìm thấy shop hiện tại để chuyển dữ liệu');
+    }
+
+    try {
+      await _ensureRestoredDbCompatibility(dbPath);
+
+      final srcTables = await _existingTables(sourceDb);
+      final dstTables = await _existingTables(targetDb);
+
+      for (final key in collections) {
+        final mappedTables = _sqliteCollectionTables[key] ?? const <String>[];
+        for (final table in mappedTables) {
+          if (!srcTables.contains(table) || !dstTables.contains(table)) {
+            continue;
+          }
+
+          final targetCols = await _tableColumns(targetDb, table);
+          final sourceRows = await sourceDb.query(table);
+
+          // Always replace selected scope for predictable restore result.
+          if (targetCols.contains('shopId') && targetShopId != null && targetShopId.isNotEmpty) {
+            await targetDb.delete(
+              table,
+              where: 'shopId = ? OR shopId IS NULL',
+              whereArgs: [targetShopId],
+            );
+          } else {
+            await targetDb.delete(table);
+          }
+
+          for (final row in sourceRows) {
+            final item = Map<String, dynamic>.from(row);
+            if (targetCols.contains('shopId') && remapShopIdToCurrentShop) {
+              item['shopId'] = targetShopId;
+            }
+
+            // Keep only columns existing in target table.
+            item.removeWhere((k, _) => !targetCols.contains(k));
+            await targetDb.insert(
+              table,
+              item,
+              conflictAlgorithm: ConflictAlgorithm.replace,
+            );
+          }
+        }
+      }
+    } finally {
+      await sourceDb.close();
+      await targetDb.close();
     }
   }
 
@@ -295,6 +397,84 @@ class BackupService {
     await tempFile.writeAsBytes(bytes, flush: true);
 
     await tempFile.copy(dbFile.path);
+    await _ensureRestoredDbCompatibility(dbPath);
+  }
+
+  /// Khôi phục chọn lọc SQLite từ Cloud theo từng nhóm dữ liệu.
+  static Future<void> restoreSelectedSqliteFromFirebase({
+    required String fileName,
+    required List<String> collections,
+    bool remapShopIdToCurrentShop = false,
+  }) async {
+    final shopId = await UserService.getCurrentShopId();
+    if (shopId == null || shopId.isEmpty) {
+      throw Exception('Chưa đăng nhập');
+    }
+    if (!fileName.toLowerCase().endsWith('.db')) {
+      throw Exception('File backup không hợp lệ: $fileName');
+    }
+
+    final ref = FirebaseStorage.instance.ref('db_backups/$shopId/$fileName');
+    final bytes = await ref.getData(200 * 1024 * 1024);
+    if (bytes == null || bytes.isEmpty) {
+      throw Exception('Không tải được file backup từ Cloud');
+    }
+
+    final tempDir = await getTemporaryDirectory();
+    final tempRestorePath = p.join(
+      tempDir.path,
+      'restore_selective_${DateTime.now().millisecondsSinceEpoch}.db',
+    );
+    final tempFile = File(tempRestorePath);
+    await tempFile.writeAsBytes(bytes, flush: true);
+
+    await restoreSelectedFromLocalFile(
+      filePath: tempFile.path,
+      collections: collections,
+      remapShopIdToCurrentShop: remapShopIdToCurrentShop,
+    );
+  }
+
+  static Future<void> _ensureRestoredDbCompatibility(String dbPath) async {
+    final db = await openDatabase(dbPath, singleInstance: false);
+    try {
+      await _ensureColumn(db, 'products', 'shopId', 'TEXT');
+      await _ensureColumn(db, 'products', 'deleted', 'INTEGER DEFAULT 0');
+      await _ensureColumn(db, 'products', 'status', 'INTEGER DEFAULT 1');
+      await _ensureColumn(db, 'products', 'type', 'TEXT DEFAULT "DIEN_THOAI"');
+      await _ensureColumn(db, 'products', 'quantity', 'INTEGER DEFAULT 1');
+      await _ensureColumn(db, 'products', 'isSynced', 'INTEGER DEFAULT 0');
+    } finally {
+      await db.close();
+    }
+  }
+
+  static Future<void> _ensureColumn(
+    Database db,
+    String table,
+    String column,
+    String definition,
+  ) async {
+    final tables = await _existingTables(db);
+    if (!tables.contains(table)) return;
+    final columns = await _tableColumns(db, table);
+    if (columns.contains(column)) return;
+    await db.execute('ALTER TABLE $table ADD COLUMN $column $definition');
+  }
+
+  static Future<Set<String>> _existingTables(Database db) async {
+    final rows = await db.rawQuery(
+      "SELECT name FROM sqlite_master WHERE type = 'table'",
+    );
+    return rows
+        .map((r) => (r['name'] ?? '').toString())
+        .where((n) => n.isNotEmpty && !n.startsWith('sqlite_'))
+        .toSet();
+  }
+
+  static Future<Set<String>> _tableColumns(Database db, String table) async {
+    final rows = await db.rawQuery('PRAGMA table_info($table)');
+    return rows.map((r) => (r['name'] ?? '').toString()).toSet();
   }
 
   // ─── Firestore selective backup / restore ───────────────────────────────

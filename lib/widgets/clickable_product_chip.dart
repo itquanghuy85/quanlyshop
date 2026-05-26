@@ -24,6 +24,7 @@ class ClickableProductChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final code = (imeiOrSerial ?? '').trim();
+    final theme = Theme.of(context);
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -31,9 +32,9 @@ class ClickableProductChip extends StatelessWidget {
         message: tooltip,
         child: Material(
           color: Colors.transparent,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(12),
           child: InkWell(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(12),
             onTap: () {
               DeepLinkNavigator.openProductDetail(
                 context,
@@ -46,67 +47,67 @@ class ClickableProductChip extends StatelessWidget {
               );
             },
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(14),
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF1E3A5F), Color(0xFF1D4ED8)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFE5EAF2)),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF1D4ED8).withValues(alpha: 0.28),
-                    blurRadius: 16,
-                    offset: const Offset(0, 5),
+                    color: const Color(0xFF0B1A2A).withValues(alpha: 0.06),
+                    blurRadius: 10,
+                    offset: const Offset(0, 3),
                   ),
                 ],
               ),
               child: Row(
                 children: [
-                  // Icon box with frosted glass effect
                   Container(
-                    width: 42,
-                    height: 42,
+                    width: 38,
+                    height: 38,
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(10),
+                      color: const Color(0xFFF3F6FB),
+                      borderRadius: BorderRadius.circular(9),
                     ),
                     child: const Icon(
                       Icons.phone_android_rounded,
-                      color: Colors.white,
-                      size: 22,
+                      color: Color(0xFF3F4F63),
+                      size: 20,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
                           displayName,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: const Color(0xFF162230),
                             fontWeight: FontWeight.w700,
-                            fontSize: 14,
-                            letterSpacing: 0.2,
+                            fontSize: 13,
+                            height: 1.2,
                           ),
                         ),
                         if (code.isNotEmpty) ...[
-                          const SizedBox(height: 3),
+                          const SizedBox(height: 4),
                           Row(
                             children: [
-                              Icon(Icons.qr_code_rounded,
-                                  size: 11,
-                                  color: Colors.white.withValues(alpha: 0.65)),
+                              Icon(
+                                Icons.qr_code_rounded,
+                                size: 12,
+                                color: theme.colorScheme.primary.withValues(alpha: 0.8),
+                              ),
                               const SizedBox(width: 4),
                               Text(
                                 code,
                                 style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.75),
-                                  fontSize: 12,
+                                  color: const Color(0xFF5B697A),
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
                             ],
@@ -115,9 +116,20 @@ class ClickableProductChip extends StatelessWidget {
                       ],
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  Icon(Icons.chevron_right_rounded,
-                      color: Colors.white.withValues(alpha: 0.8), size: 22),
+                  const SizedBox(width: 6),
+                  Container(
+                    width: 26,
+                    height: 26,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF4F7FC),
+                      borderRadius: BorderRadius.circular(7),
+                    ),
+                    child: const Icon(
+                      Icons.chevron_right_rounded,
+                      color: Color(0xFF6D7D91),
+                      size: 18,
+                    ),
+                  ),
                 ],
               ),
             ),

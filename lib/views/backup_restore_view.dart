@@ -321,9 +321,23 @@ class _SqliteTabState extends State<_SqliteTab> {
       );
       if (remap == null) return;
 
+      final selected = await showDialog<List<String>>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => const _CollectionPickerDialog(
+          title: 'Chọn dữ liệu cần khôi phục (SQLite)',
+          confirmLabel: 'Khôi phục',
+          confirmIcon: Icons.restore_outlined,
+          confirmColor: Colors.orange,
+          availableCollections: null,
+        ),
+      );
+      if (selected == null || selected.isEmpty) return;
+
       if (!mounted) return;
-      await BackupService.restoreFromLocalFile(
-        file.path,
+      await BackupService.restoreSelectedFromLocalFile(
+        filePath: file.path,
+        collections: selected,
         remapShopIdToCurrentShop: remap,
       );
       if (!mounted) return;
@@ -334,8 +348,8 @@ class _SqliteTabState extends State<_SqliteTab> {
           title: const Text('Khôi phục thành công'),
           content: Text(
             remap
-                ? 'Đã chuyển dữ liệu backup vào shop hiện tại. Vui lòng khởi động lại ứng dụng để áp dụng thay đổi.'
-                : 'Đã khôi phục dữ liệu. Vui lòng khởi động lại ứng dụng để áp dụng thay đổi.',
+                ? 'Đã khôi phục ${selected.length} mục và chuyển vào shop hiện tại. Vui lòng khởi động lại ứng dụng để áp dụng thay đổi.'
+                : 'Đã khôi phục ${selected.length} mục dữ liệu. Vui lòng khởi động lại ứng dụng để áp dụng thay đổi.',
           ),
           actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Đóng'))],
         ),
@@ -369,17 +383,59 @@ class _SqliteTabState extends State<_SqliteTab> {
     );
     if (ok != true) return;
 
+    final remap = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Chọn kiểu khôi phục'),
+        content: const Text(
+          'Khôi phục nguyên bản sẽ giữ nguyên shopId cũ.\n\n'
+          'Nếu muốn đưa dữ liệu vào shop hiện tại, chọn phương án chuyển shopId.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Khôi phục nguyên bản'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Chuyển vào shop hiện tại'),
+          ),
+        ],
+      ),
+    );
+    if (remap == null) return;
+
+    final selected = await showDialog<List<String>>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const _CollectionPickerDialog(
+        title: 'Chọn dữ liệu cần khôi phục (SQLite)',
+        confirmLabel: 'Khôi phục',
+        confirmIcon: Icons.restore_outlined,
+        confirmColor: Colors.orange,
+        availableCollections: null,
+      ),
+    );
+    if (selected == null || selected.isEmpty) return;
+
     setState(() => _loading = true);
     try {
-      await BackupService.restoreSqliteFromFirebase(fileName: fileName);
+      await BackupService.restoreSelectedSqliteFromFirebase(
+        fileName: fileName,
+        collections: selected,
+        remapShopIdToCurrentShop: remap,
+      );
       if (!mounted) return;
       await showDialog<void>(
         context: context,
         barrierDismissible: false,
         builder: (ctx) => AlertDialog(
           title: const Text('Khôi phục thành công'),
-          content: const Text(
-            'Đã khôi phục SQLite từ Cloud. Vui lòng khởi động lại ứng dụng để áp dụng dữ liệu mới.',
+          content: Text(
+            remap
+                ? 'Đã khôi phục ${selected.length} mục từ Cloud và chuyển vào shop hiện tại. Vui lòng khởi động lại ứng dụng.'
+                : 'Đã khôi phục ${selected.length} mục từ Cloud. Vui lòng khởi động lại ứng dụng để áp dụng dữ liệu mới.',
           ),
           actions: [
             TextButton(
@@ -554,9 +610,23 @@ class _SqliteTabState extends State<_SqliteTab> {
       );
       if (remap == null) return;
 
+      final selected = await showDialog<List<String>>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => const _CollectionPickerDialog(
+          title: 'Chọn dữ liệu cần khôi phục (SQLite)',
+          confirmLabel: 'Khôi phục',
+          confirmIcon: Icons.restore_outlined,
+          confirmColor: Colors.orange,
+          availableCollections: null,
+        ),
+      );
+      if (selected == null || selected.isEmpty) return;
+
       if (!mounted) return;
-      await BackupService.restoreFromLocalFile(
-        filePath,
+      await BackupService.restoreSelectedFromLocalFile(
+        filePath: filePath,
+        collections: selected,
         remapShopIdToCurrentShop: remap,
       );
       if (!mounted) return;
@@ -567,8 +637,8 @@ class _SqliteTabState extends State<_SqliteTab> {
           title: const Text('Khôi phục thành công'),
           content: Text(
             remap
-                ? 'Đã chuyển dữ liệu backup vào shop hiện tại. Vui lòng khởi động lại ứng dụng.'
-                : 'Đã khôi phục từ bản backup cục bộ. Vui lòng khởi động lại ứng dụng.',
+                ? 'Đã khôi phục ${selected.length} mục và chuyển vào shop hiện tại. Vui lòng khởi động lại ứng dụng.'
+                : 'Đã khôi phục ${selected.length} mục từ bản backup cục bộ. Vui lòng khởi động lại ứng dụng.',
           ),
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Đóng')),

@@ -34,6 +34,15 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
   - Đổi thư mục backup cục bộ sang `quanlyshop/sqlite_backups` để dễ nhận diện trên máy.
   - Thêm preset trong luồng xóa chọn lọc để giữ lại dữ liệu cốt lõi: sửa chữa, khách hàng, chấm công, cài đặt lương, lịch làm việc.
   - Thêm lựa chọn khi restore SQLite: giữ nguyên shop gốc hoặc chuyển dữ liệu vào shop hiện tại bằng remap `shopId`.
+  - Thêm restore SQLite chọn lọc từng mục dữ liệu cho cả file cục bộ và backup cloud.
+
+2. **Fix runtime lỗi Kho sau restore**
+  - Bổ sung đảm bảo `products.shopId` tồn tại sau restore DB cũ để chặn lỗi:
+    - `DatabaseException(no such column: shopId ...)`
+  - Thêm check phòng thủ trong `DBHelper.onOpen` cho cột `shopId` của bảng `products`.
+
+3. **Cải tiến UI chi tiết đơn bán**
+  - Redesign item sản phẩm sang phong cách sáng, gọn, sạch, chuyên nghiệp khi đơn có nhiều sản phẩm.
 
 2. **Validation follow-up**
   - `flutter analyze` cho `backup_service.dart` và `backup_restore_view.dart`: không có compile error mới.
