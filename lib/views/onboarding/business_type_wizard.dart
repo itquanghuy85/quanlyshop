@@ -36,41 +36,13 @@ class _BusinessTypeWizardState extends State<BusinessTypeWizard> {
   void _updateModulesForType(String type) {
     setState(() {
       _selectedModules.clear();
-      switch (type) {
-        case 'electronics':
-          _selectedModules['enableRepair'] = true;
-          _selectedModules['enableSerial'] = true;
-          _selectedModules['enableWarranty'] = true;
-          _selectedModules['enableExpiry'] = false;
-          _selectedModules['enableVariants'] = false;
-          _selectedModules['enableBatch'] = false;
-          break;
-        case 'food':
-          _selectedModules['enableRepair'] = false;
-          _selectedModules['enableSerial'] = false;
-          _selectedModules['enableWarranty'] = false;
-          _selectedModules['enableExpiry'] = true;
-          _selectedModules['enableVariants'] = false;
-          _selectedModules['enableBatch'] = true;
-          break;
-        case 'fashion':
-          _selectedModules['enableRepair'] = false;
-          _selectedModules['enableSerial'] = false;
-          _selectedModules['enableWarranty'] = false;
-          _selectedModules['enableExpiry'] = false;
-          _selectedModules['enableVariants'] = true;
-          _selectedModules['enableBatch'] = false;
-          break;
-        case 'general':
-          // All off, user will customize
-          _selectedModules['enableRepair'] = false;
-          _selectedModules['enableSerial'] = false;
-          _selectedModules['enableWarranty'] = false;
-          _selectedModules['enableExpiry'] = false;
-          _selectedModules['enableVariants'] = false;
-          _selectedModules['enableBatch'] = false;
-          break;
-      }
+      _selectedType = 'electronics';
+      _selectedModules['enableRepair'] = true;
+      _selectedModules['enableSerial'] = true;
+      _selectedModules['enableWarranty'] = true;
+      _selectedModules['enableExpiry'] = false;
+      _selectedModules['enableVariants'] = false;
+      _selectedModules['enableBatch'] = false;
     });
   }
 
@@ -144,28 +116,6 @@ class _BusinessTypeWizardState extends State<BusinessTypeWizard> {
           Icons.phone_android,
           Colors.blue,
         ),
-        // Food và General tạm ẩn - chỉ hỗ trợ Electronics và Fashion
-        // _buildTypeCard(
-        //   'food',
-        //   '🍎 Thực phẩm & Đồ tươi sống',
-        //   'Cửa hàng thực phẩm, nông sản...\nHỗ trợ: Hạn sử dụng, theo lô, đơn vị tính',
-        //   Icons.restaurant,
-        //   Colors.green,
-        // ),
-        _buildTypeCard(
-          'fashion',
-          '👕 Thời trang & May mặc',
-          'Shop quần áo, giày dép, túi xách...\nHỗ trợ: Size, màu sắc, biến thể',
-          Icons.checkroom,
-          Colors.blue,
-        ),
-        // _buildTypeCard(
-        //   'general',
-        //   '📦 Tổng hợp / Tùy chỉnh',
-        //   'Các loại hình khác hoặc tự tạo\nTự do bật/tắt từng tính năng',
-        //   Icons.store,
-        //   Colors.orange,
-        // ),
       ],
     );
   }
@@ -414,14 +364,8 @@ class _BusinessTypeWizardState extends State<BusinessTypeWizard> {
     switch (type) {
       case 'electronics':
         return 'Điện thoại & Điện tử';
-      case 'food':
-        return 'Thực phẩm & Đồ tươi sống';
-      case 'fashion':
-        return 'Thời trang & May mặc';
-      case 'general':
-        return 'Tổng hợp / Tùy chỉnh';
       default:
-        return type;
+        return 'Điện thoại & Điện tử';
     }
   }
 
@@ -429,14 +373,8 @@ class _BusinessTypeWizardState extends State<BusinessTypeWizard> {
     switch (type) {
       case 'electronics':
         return Icons.phone_android;
-      case 'food':
-        return Icons.restaurant;
-      case 'fashion':
-        return Icons.checkroom;
-      case 'general':
-        return Icons.store;
       default:
-        return Icons.store;
+        return Icons.phone_android;
     }
   }
 
@@ -489,7 +427,7 @@ class _BusinessTypeWizardState extends State<BusinessTypeWizard> {
         enableExpiry: _selectedModules['enableExpiry'] ?? false,
         enableBatch: _selectedModules['enableBatch'] ?? false,
         enableVariants: _selectedModules['enableVariants'] ?? false,
-        defaultUnit: _selectedType == 'food' ? 'kg' : 'cái',
+        defaultUnit: 'cái',
       );
 
       // Save to Firestore through service
@@ -526,10 +464,6 @@ class BusinessTypeQuickSelector extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           _buildOption(context, 'electronics', '📱 Điện thoại & Điện tử', Icons.phone_android, Colors.blue),
-          // Food và General tạm ẩn - chỉ hỗ trợ Electronics và Fashion
-          // _buildOption(context, 'food', '🍎 Thực phẩm', Icons.restaurant, Colors.green),
-          _buildOption(context, 'fashion', '👕 Thời trang', Icons.checkroom, Colors.blue),
-          // _buildOption(context, 'general', '📦 Tổng hợp', Icons.store, Colors.orange),
         ],
       ),
     );
@@ -642,7 +576,7 @@ class BusinessTypePresets {
     }
   }
 
-  static List<String> get availableTypes => ['electronics', 'food', 'fashion', 'general'];
+  static List<String> get availableTypes => ['electronics'];
 
   static String getTypeName(String type) {
     final preset = getPreset(type);
@@ -653,14 +587,8 @@ class BusinessTypePresets {
     switch (type) {
       case 'electronics':
         return '📱';
-      case 'food':
-        return '🍎';
-      case 'fashion':
-        return '👕';
-      case 'general':
-        return '📦';
       default:
-        return '📦';
+        return '📱';
     }
   }
 }

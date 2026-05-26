@@ -1974,7 +1974,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get compareInventory => 'Đối chiếu tồn kho';
 
   @override
-  String get pendingConfirmation => 'Xác nhận nhập kho vào kho';
+  String get pendingConfirmation => 'g chờ xác nhận nhập vào kho';
 
   @override
   String get viewPendingStockList => 'Xem danh sách hàng nhập tạm chưa xác nhận.';
@@ -3908,7 +3908,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get approvedStatus => 'Đã duyệt';
 
   @override
-  String get rejectedStatus => 'Từ chối';
+  String get rejectedStatus => '❌ Từ chối';
 
   @override
   String get pendingStatus => 'Chờ duyệt';
@@ -5232,4 +5232,1132 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get requestNote => 'Ghi chú';
+
+  @override
+  String get remaining => 'Còn nợ';
+
+  @override
+  String get incidentalUpper => 'PHÁT SINH';
+
+  @override
+  String get technician => 'Kỹ thuật';
+
+  @override
+  String get paymentCashLower => 'Tiền mặt';
+
+  @override
+  String get exportExcel => 'Xuất Excel';
+
+  @override
+  String get paid => 'Đã trả';
+
+  @override
+  String get last7days => '7 ngày';
+
+  @override
+  String get combined => 'KẾT HỢP';
+
+  @override
+  String get weekUpper => 'TUẦN';
+
+  @override
+  String get paymentTransferLower => 'Chuyển khoản';
+
+  @override
+  String get salePrice => 'Giá bán';
+
+  @override
+  String get settled => 'Đã tất toán';
+
+  @override
+  String get paymentDone => 'Đã thanh toán';
+
+  @override
+  String get retailCustomer => 'Khách lẻ';
+
+  @override
+  String get quickCode => 'Mã nhập nhanh';
+
+  @override
+  String get refundUpper => 'HOÀN TIỀN';
+
+  @override
+  String get transferShort => 'C.KHOẢN';
+
+  @override
+  String get overdue => 'Quá hạn';
+
+  @override
+  String get utilities => 'ĐIỆN NƯỚC';
+
+  @override
+  String get sold => 'Đã bán';
+
+  @override
+  String get paySupplierDebt => 'Trả nợ NCC';
+
+  @override
+  String get returnGoods => 'Trả hàng';
+
+  @override
+  String get addPhoto => 'Thêm ảnh';
+
+  @override
+  String get chooseFromGallery => 'Chọn từ thư viện';
+
+  @override
+  String get syncing => 'Đang đồng bộ...';
+
+  @override
+  String get errorOccurred => 'Có lỗi xảy ra';
+
+  @override
+  String get payable => 'Phải trả';
+
+  @override
+  String get personal => 'CÁ NHÂN';
+
+  @override
+  String get salePriceVnd => 'Giá bán (VNĐ)';
+
+  @override
+  String get deduction => 'Khấu trừ';
+
+  @override
+  String get profit => 'Lợi nhuận';
+
+  @override
+  String get costPriceVnd => 'Giá nhập (VNĐ)';
+
+  @override
+  String get deactivate => 'Ngừng HĐ';
+
+  @override
+  String get addNewSupplier => 'Thêm NCC mới';
+
+  @override
+  String get noShopName => 'Shop không tên';
+
+  @override
+  String get totalAmount => 'Tổng tiền';
+
+  @override
+  String get editLabel => 'Chỉnh sửa';
+
+  @override
+  String get rejectReason => 'Lý do từ chối';
+
+  @override
+  String get loadMore => 'Tải thêm';
+
+  @override
+  String get payDebt => 'Thanh toán nợ';
+
+  @override
+  String get system => 'Hệ thống';
+
+  @override
+  String get restore => 'Khôi phục';
+
+  @override
+  String get incidentalIncome => 'Thu phát sinh';
+
+  @override
+  String get addNew => 'Thêm mới';
+
+  @override
+  String get brand => 'Hãng';
+
+  @override
+  String get noPermission => 'Không có quyền';
+
+  @override
+  String get month => 'Tháng';
+
+  @override
+  String get sort => 'Sắp xếp';
+
+  @override
+  String get discount => 'Giảm giá';
+
+  @override
+  String get type => 'Loại';
+
+  @override
+  String get deleteData => 'Xóa dữ liệu';
+
+  @override
+  String get aiFilledRepairOrder => 'AI đã tự điền đơn sửa.';
+
+  @override
+  String get parsedRepairOrderFilled => 'Đã nhận diện và điền đơn sửa.';
+
+  @override
+  String get orderSavedUploadingImages => 'Đơn đã lưu. Đang tải ảnh lên hệ thống, vui lòng không thoát ứng dụng.';
+
+  @override
+  String get uploadingImagesToSystem => 'Đang tải ảnh lên hệ thống, vui lòng không thoát ứng dụng.';
+
+  @override
+  String get searchPartner => 'Tìm đối tác';
+
+  @override
+  String get noPartnerFound => 'Không tìm thấy đối tác phù hợp';
+
+  @override
+  String get quickInputTooltip => 'Nhập nhanh bằng câu lệnh';
+
+  @override
+  String get saveAndPrint => 'Lưu & In';
+
+  @override
+  String get hideDetails => 'Ẩn bớt';
+
+  @override
+  String get showMoreDetails => 'Thêm chi tiết (bảo mật, ngoại quan, phụ kiện, ảnh)';
+
+  @override
+  String get customerOwesDebt => 'Còn nợ';
+
+  @override
+  String get shopOwesCustomer => 'Shop nợ';
+
+  @override
+  String get customerAddressOptional => 'Địa chỉ KH (tùy chọn)';
+
+  @override
+  String get takePhoto => 'Chụp ảnh';
+
+  @override
+  String get paymentRequestTitle => 'Yêu cầu đóng tiền';
+
+  @override
+  String get searchNamePhoneBankAmount => 'Tìm tên, SĐT, NH, số tiền...';
+
+  @override
+  String get createNewRequest => 'Tạo yêu cầu mới';
+
+  @override
+  String get pendingApprovalStatus => '⏳ Chờ duyệt';
+
+  @override
+  String get paidStatus => '✅ Đã thanh toán';
+
+  @override
+  String get noPaymentRequests => 'Chưa có yêu cầu đóng tiền';
+
+  @override
+  String get tapPlusToCreateNew => 'Nhấn ⊕ trên thanh tiêu đề để tạo mới';
+
+  @override
+  String get overdueLabel => 'QUÁ HẠN';
+
+  @override
+  String get customerBankTransfer => 'KH chuyển khoản';
+
+  @override
+  String get customerCash => 'KH trả tiền mặt';
+
+  @override
+  String get ownerTransferredToBank => 'Chủ shop đã CK cho NH';
+
+  @override
+  String get paymentBankTransfer => 'Thanh toán (CK cho NH)';
+
+  @override
+  String get deleteRequest => 'Xóa yêu cầu';
+
+  @override
+  String get rejectButton => 'Từ chối';
+
+  @override
+  String get accountContractNumber => 'Số TK / Hợp đồng';
+
+  @override
+  String get bankOrLoanOrg => 'NH / Tổ chức vay';
+
+  @override
+  String get customerPaysStaff => 'KH trả cho NV';
+
+  @override
+  String get bankTransferLabelWithEmoji => '🏦 Chuyển khoản';
+
+  @override
+  String get cashLabelWithEmoji => '💵 Tiền mặt';
+
+  @override
+  String get ownerTransferBank => 'Chủ shop CK NH';
+
+  @override
+  String get transferredToBank => '🏦 Đã chuyển khoản cho ngân hàng';
+
+  @override
+  String get staffSender => 'Nhân viên gửi';
+
+  @override
+  String get createdDate => 'Ngày tạo';
+
+  @override
+  String get processedBy => 'Người xử lý';
+
+  @override
+  String get processedDate => 'Ngày xử lý';
+
+  @override
+  String get attachedImages => 'Hình ảnh đính kèm (hóa đơn, CK NH):';
+
+  @override
+  String get confirmBankTransfer => 'Xác nhận đã CK cho ngân hàng';
+
+  @override
+  String get bankTransferNoteMsg => 'Khoản CK cho ngân hàng sẽ được ghi vào sổ quỹ.\nSau khi xác nhận, hãy gửi ảnh chụp màn hình CK để lưu bằng chứng.';
+
+  @override
+  String get confirmedBankTransfer => 'Đã CK cho NH ✓';
+
+  @override
+  String get rejectRequest => 'Từ chối yêu cầu';
+
+  @override
+  String get selectProofImageHint => '💡 Chọn ảnh CK ngân hàng để gửi bằng chứng';
+
+  @override
+  String get selectRequestToSendImage => 'Chọn yêu cầu để gửi ảnh CK ngân hàng...';
+
+  @override
+  String get selectRequestForBankImage => 'Chọn yêu cầu để gửi ảnh CK ngân hàng';
+
+  @override
+  String get uploadingProofImages => 'Đang tải ảnh minh chứng lên hệ thống, vui lòng không thoát ứng dụng.';
+
+  @override
+  String get sendPaymentRequest => 'Gửi yêu cầu đóng tiền';
+
+  @override
+  String get paymentType => 'Loại thanh toán';
+
+  @override
+  String get customerInfoLabel => 'Thông tin khách hàng';
+
+  @override
+  String get searchCustomerShort => 'Tìm KH';
+
+  @override
+  String get customerPaysStaffLabel => 'Khách thanh toán cho NV';
+
+  @override
+  String get paymentDetails => 'Chi tiết thanh toán';
+
+  @override
+  String get amountVnd => 'Số tiền (đ)';
+
+  @override
+  String get accountOrContractCode => 'Số TK / Mã hợp đồng';
+
+  @override
+  String get bankOrInstallmentOrg => 'NH / Tổ chức vay góp';
+
+  @override
+  String get noteForOwner => 'Ghi chú cho chủ shop';
+
+  @override
+  String get imagesInvoiceBankTransfer => 'Hình ảnh (hóa đơn, CK ngân hàng...)';
+
+  @override
+  String get sendingLabel => 'Đang gửi...';
+
+  @override
+  String get sendRequestLabel => 'GỬI YÊU CẦU';
+
+  @override
+  String get paymentTypeName => 'Tên loại thanh toán';
+
+  @override
+  String get electricityPayment => 'Tiền điện';
+
+  @override
+  String get waterPayment => 'Tiền nước';
+
+  @override
+  String get internetPayment => 'Tiền mạng';
+
+  @override
+  String get bankLoanPayment => 'Vay NH';
+
+  @override
+  String get installmentPayment => 'Trả góp';
+
+  @override
+  String get insurancePayment => 'Bảo hiểm';
+
+  @override
+  String get selectCustomerDialogTitle => 'Chọn khách hàng';
+
+  @override
+  String get searchByNamePhoneAddress => 'Tìm theo tên, SĐT, địa chỉ...';
+
+  @override
+  String get sentPaymentRequest => '✅ Đã gửi yêu cầu đóng tiền';
+
+  @override
+  String get errorSendingRequest => '❌ Lỗi gửi yêu cầu';
+
+  @override
+  String get adminConsoleTitle => 'SUPER ADMIN CONSOLE';
+
+  @override
+  String get adminAuthSuperAdmin => 'Xác thực Super Admin';
+
+  @override
+  String get adminAuthPin => 'Xác thực PIN';
+
+  @override
+  String get adminEnterPinForDangerous => 'Nhập PIN Super Admin để tiếp tục thao tác nguy hiểm.';
+
+  @override
+  String get adminPinHint => 'PIN (4-6 số)';
+
+  @override
+  String get adminPinWrong => 'PIN không đúng';
+
+  @override
+  String get adminEditUser => 'Sửa user';
+
+  @override
+  String get adminUserPhone => 'SĐT';
+
+  @override
+  String get adminShopId => 'Shop ID';
+
+  @override
+  String get adminExitConsole => 'Thoát Console?';
+
+  @override
+  String get adminExitConsoleConfirm => 'Bạn có chắc muốn thoát khỏi Super Admin Console?';
+
+  @override
+  String get adminStayHere => 'Ở lại';
+
+  @override
+  String get adminLogoutConfirmMsg => 'Bạn có chắc muốn đăng xuất khỏi Super Admin Console?';
+
+  @override
+  String get adminNoAccess => 'Bạn không có quyền truy cập Super Admin Console.';
+
+  @override
+  String get adminReload => 'Tải lại';
+
+  @override
+  String get adminDashboard => 'Dashboard';
+
+  @override
+  String get adminShops => 'Shops';
+
+  @override
+  String get adminUsers => 'Users';
+
+  @override
+  String get adminLogs => 'Logs';
+
+  @override
+  String get adminMore => 'More';
+
+  @override
+  String get adminBroadcast => 'Broadcast';
+
+  @override
+  String get adminPermissions => 'Permissions';
+
+  @override
+  String get adminDangerZone => 'Danger Zone';
+
+  @override
+  String get adminAuditLogs => 'Audit Logs';
+
+  @override
+  String get adminTotalShops => 'Tổng shop';
+
+  @override
+  String get adminActiveShops => 'Hoạt động';
+
+  @override
+  String get adminTotalUsers => 'Tổng user';
+
+  @override
+  String get adminLockedShops => 'Shop bị khóa';
+
+  @override
+  String get adminGoToShopsToUnlock => 'Vào tab Shops để mở khóa.';
+
+  @override
+  String get adminSystemNormal => 'Hệ thống hoạt động bình thường';
+
+  @override
+  String get adminNoLockedShops => 'Không có shop nào đang bị khóa.';
+
+  @override
+  String adminShopLockedCount(int count) {
+    return '$count shop đang bị khóa app';
+  }
+
+  @override
+  String get adminSearchShops => 'Tìm shop theo tên, email, ID...';
+
+  @override
+  String get adminShowDeleted => 'Đã xóa';
+
+  @override
+  String get adminNoMatchingShops => 'Không có shop phù hợp';
+
+  @override
+  String get adminViewDetail => 'Xem chi tiết';
+
+  @override
+  String get adminEnterShop => 'Vào shop';
+
+  @override
+  String get adminUnlockApp => 'Mở khóa app';
+
+  @override
+  String get adminLockApp => 'Khóa app';
+
+  @override
+  String get adminResetData => 'Reset dữ liệu';
+
+  @override
+  String get adminFullApp => 'Toàn bộ app';
+
+  @override
+  String get adminNoUsersInShop => 'Không có user trong shop';
+
+  @override
+  String get adminNoActivity => 'Chưa có activity';
+
+  @override
+  String get adminSearchUsers => 'Tìm theo tên, email, role, shop ID...';
+
+  @override
+  String get adminNoShopAssigned => 'Chưa có shop';
+
+  @override
+  String get adminNoMatchingUsers => 'Không có user phù hợp';
+
+  @override
+  String get adminDeleteUserDoc => 'Xóa user doc';
+
+  @override
+  String get adminDeleteCompletely => 'Xóa hoàn toàn';
+
+  @override
+  String get adminAuthAndUserData => 'Auth + dữ liệu do user tạo';
+
+  @override
+  String get adminDeleteProfileOnly => 'Chỉ xóa hồ sơ, Auth còn';
+
+  @override
+  String get adminPermissionPanel => 'Permission Panel';
+
+  @override
+  String get adminPermissionPanelSubtitle => 'Chuẩn role-based baseline cho owner/manager/staff. Các khóa cấp shop sẽ override tại runtime.';
+
+  @override
+  String get adminNoAuditLogs => 'Không có audit logs phù hợp.';
+
+  @override
+  String get adminFilterShopId => 'Filter shopId';
+
+  @override
+  String get adminFilterAction => 'Filter action';
+
+  @override
+  String get adminSearchEmailUser => 'Search email/user';
+
+  @override
+  String get adminSyncClaims => 'Sync custom claims';
+
+  @override
+  String get adminSyncClaimsDesc => 'Đồng bộ claims cho toàn bộ user khi thay đổi rules/roles.';
+
+  @override
+  String get adminSyncClaimsSuccess => 'Sync claims thành công.';
+
+  @override
+  String adminSyncClaimsError(String error) {
+    return 'Sync claims lỗi: $error';
+  }
+
+  @override
+  String get adminPinSecurity => 'Bảo mật PIN';
+
+  @override
+  String get adminPinSecurityDesc => 'Bảo vệ Console bằng mã PIN khi session hết hạn';
+
+  @override
+  String get adminPinEnabled => 'Mã PIN đã bật';
+
+  @override
+  String get adminPinEnabledDesc => 'Yêu cầu PIN khi session hết hạn (30 phút idle)';
+
+  @override
+  String get adminPinNotSetup => 'Chưa thiết lập PIN';
+
+  @override
+  String get adminPinNotSetupDesc => 'Bật PIN để bảo vệ console';
+
+  @override
+  String get adminChangePin => 'Đổi PIN';
+
+  @override
+  String get adminDisablePin => 'Tắt PIN';
+
+  @override
+  String get adminSetupPin => 'Thiết lập';
+
+  @override
+  String get adminSetupPinTitle => 'Thiết lập mã PIN';
+
+  @override
+  String get adminChangePinTitle => 'Đổi mã PIN';
+
+  @override
+  String get adminNewPin => 'Mã PIN mới (4-6 số)';
+
+  @override
+  String get adminConfirmPin => 'Nhập lại PIN';
+
+  @override
+  String get adminPinTooShort => 'PIN phải từ 4-6 số';
+
+  @override
+  String get adminPinMismatch => 'Hai mã PIN không khớp';
+
+  @override
+  String get adminPinSetupSuccess => 'Đã thiết lập mã PIN thành công.';
+
+  @override
+  String get adminPinSetupError => 'Lỗi thiết lập PIN.';
+
+  @override
+  String get adminDisablePinTitle => 'Tắt mã PIN';
+
+  @override
+  String get adminCurrentPin => 'Mã PIN hiện tại';
+
+  @override
+  String get adminEnterCurrentPinToDisable => 'Nhập PIN hiện tại để xác nhận tắt:';
+
+  @override
+  String get adminCurrentPinWrong => 'Mã PIN không đúng';
+
+  @override
+  String get adminPinDisabled => 'Đã tắt mã PIN.';
+
+  @override
+  String get adminDisablePinButton => 'Tắt PIN';
+
+  @override
+  String get adminSendSystemNotification => 'Gửi Thông Báo Hệ Thống';
+
+  @override
+  String get adminSendToAllUsersDesc => 'Gửi tới TẤT CẢ người dùng qua dialog + push.';
+
+  @override
+  String get adminNotificationType => 'Loại thông báo';
+
+  @override
+  String get adminNotifTitle => 'Tiêu đề';
+
+  @override
+  String get adminNotifTitleHint => 'VD: Yêu cầu cập nhật phiên bản mới';
+
+  @override
+  String get adminNotifContent => 'Nội dung';
+
+  @override
+  String get adminNotifContentHint => 'Nhập nội dung thông báo chi tiết...';
+
+  @override
+  String get adminSendToAll => 'Gửi tới toàn bộ người dùng';
+
+  @override
+  String get adminSending => 'Đang gửi...';
+
+  @override
+  String get adminSendSuccess => '✅ Đã gửi thành công tới toàn bộ người dùng!';
+
+  @override
+  String get adminNotifTitleRequired => 'Vui lòng nhập tiêu đề và nội dung.';
+
+  @override
+  String get adminNotificationHistory => 'Lịch sử thông báo';
+
+  @override
+  String get adminNoNotificationsYet => 'Chưa có thông báo nào.';
+
+  @override
+  String get adminExpired => 'Hết hạn';
+
+  @override
+  String get adminDangerZoneSubtitle => 'Mọi thao tác tại đây đều yêu cầu xác thực PIN và được ghi audit log.';
+
+  @override
+  String get adminSelectDataToDelete => 'Chọn dữ liệu cần xóa';
+
+  @override
+  String adminSelectedCount(int count) {
+    return '$count mục đã chọn';
+  }
+
+  @override
+  String adminDeleteSelected(int count) {
+    return 'Xóa ($count mục)';
+  }
+
+  @override
+  String get adminIsOwnerWarning => 'Đây là CHỦ SHOP. Cẩn thận khi xóa!';
+
+  @override
+  String get adminDeleteUserAndData => 'Xóa user + dữ liệu';
+
+  @override
+  String get adminDeleteUserDocOnly => 'Xóa user doc';
+
+  @override
+  String get adminWillDeletePermanently => 'Sẽ XÓA VĨNH VIỄN:';
+
+  @override
+  String get adminDeleteFirebaseAuth => '• Tài khoản Firebase Auth (mất đăng nhập)';
+
+  @override
+  String get adminDeleteUserProfile => '• Hồ sơ user trong Firestore';
+
+  @override
+  String get adminDeleteUserOrders => '• Đơn sửa, bán hàng, chi phí do user tạo';
+
+  @override
+  String get adminDeleteUserAttendance => '• Dữ liệu chấm công, thông báo của user';
+
+  @override
+  String get adminShopDataNotDeleted => '⚠️ Dữ liệu shop (kho, khách hàng...) KHÔNG bị xóa.';
+
+  @override
+  String get adminOnlyDeleteProfile => 'Chỉ xóa hồ sơ user trong Firestore.';
+
+  @override
+  String get adminAuthStillExists => 'Tài khoản Firebase Auth vẫn còn — user vẫn có thể đăng nhập nhưng mất liên kết shop.';
+
+  @override
+  String get adminDeletingData => 'Đang xóa dữ liệu...';
+
+  @override
+  String adminResetSuccess(String shopName) {
+    return 'Đã xóa dữ liệu đã chọn của shop $shopName';
+  }
+
+  @override
+  String adminResetFailed(String error) {
+    return 'Reset thất bại: $error';
+  }
+
+  @override
+  String adminSoftDeleteSuccess(String shopName) {
+    return 'Đã soft-delete shop $shopName';
+  }
+
+  @override
+  String adminDeletedUserWithData(String email) {
+    return 'Đã xóa user + dữ liệu: $email';
+  }
+
+  @override
+  String adminDeletedUserDoc(String email) {
+    return 'Đã xóa user doc: $email';
+  }
+
+  @override
+  String adminLockedLabel(String label) {
+    return 'Đã khóa $label';
+  }
+
+  @override
+  String adminUnlockedLabel(String label) {
+    return 'Đã mở khóa $label';
+  }
+
+  @override
+  String get adminLockFinance => 'Khóa tài chính quản lý';
+
+  @override
+  String get adminLockInventory => 'Khóa kho cho nhân viên';
+
+  @override
+  String get adminLockSales => 'Khóa bán hàng cho nhân viên';
+
+  @override
+  String get adminLockDebt => 'Khóa công nợ cho nhân viên';
+
+  @override
+  String get permissionManagementTitle => 'QUẢN LÝ PHÂN QUYỀN';
+
+  @override
+  String get noPermissionManagementScreen => 'Bạn không có quyền truy cập\nmàn hình quản lý phân quyền';
+
+  @override
+  String get noStaffInShop => 'Chưa có nhân viên nào trong shop\nMời nhân viên qua mã QR trước';
+
+  @override
+  String get noEmailYet => 'Chưa có email';
+
+  @override
+  String get noPhoneYet => 'Chưa có SĐT';
+
+  @override
+  String get phoneWithColon => 'SĐT:';
+
+  @override
+  String get roleWithColon => 'Vai trò:';
+
+  @override
+  String get systemRoleSection => 'VAI TRÒ HỆ THỐNG';
+
+  @override
+  String get businessPermissionsSection => 'QUYỀN XEM NỘI DUNG NGHIỆP VỤ';
+
+  @override
+  String get financePermissionsSection => 'QUYỀN XEM NỘI DUNG TÀI CHÍNH';
+
+  @override
+  String get systemPermissionsSection => 'QUYỀN QUẢN LÝ HỆ THỐNG';
+
+  @override
+  String get permRowSales => 'BÁN HÀNG';
+
+  @override
+  String get permRowRepairs => 'SỬA CHỮA';
+
+  @override
+  String get permRowInventory => 'KHO HÀNG';
+
+  @override
+  String get permRowParts => 'LINH KIỆN SỬA CHỮA';
+
+  @override
+  String get permRowSuppliers => 'NHÀ CUNG CẤP';
+
+  @override
+  String get permRowCustomers => 'KHÁCH HÀNG';
+
+  @override
+  String get permRowWarranty => 'BẢO HÀNH';
+
+  @override
+  String get permRowChat => 'CHAT NỘI BỘ';
+
+  @override
+  String get permRowAttendance => 'CHẤM CÔNG';
+
+  @override
+  String get permRowPrinter => 'CẤU HÌNH MÁY IN';
+
+  @override
+  String get permRowRevenue => 'DOANH THU & LỜI LỖ';
+
+  @override
+  String get permRowExpenses => 'CHI PHÍ CỬA HÀNG';
+
+  @override
+  String get permRowDebts => 'SỔ CÔNG NỢ';
+
+  @override
+  String get permRowCostPrice => 'GIÁ VỐN SẢN PHẨM';
+
+  @override
+  String get permRowManageStaff => 'QUẢN LÝ NHÂN VIÊN';
+
+  @override
+  String get permRowSettings => 'CÀI ĐẶT HỆ THỐNG';
+
+  @override
+  String updatedPermissionMsg(String permission) {
+    return 'Đã cập nhật quyền $permission';
+  }
+
+  @override
+  String errorUpdatingPermission(String error) {
+    return 'Lỗi cập nhật quyền: $error';
+  }
+
+  @override
+  String updatedRoleMsg(String role) {
+    return 'Đã cập nhật vai trò thành $role';
+  }
+
+  @override
+  String errorUpdatingRole(String error) {
+    return 'Lỗi cập nhật vai trò: $error';
+  }
+
+  @override
+  String get notifSettingsTitle => 'Cài đặt thông báo';
+
+  @override
+  String get importantNotificationsSection => 'THÔNG BÁO QUAN TRỌNG';
+
+  @override
+  String get otherNotificationsSection => 'THÔNG BÁO KHÁC';
+
+  @override
+  String get newOrderNotif => 'Đơn hàng mới';
+
+  @override
+  String get newOrderNotifDesc => 'Thông báo khi có khách hàng tạo đơn hàng mới';
+
+  @override
+  String get paymentNotif => 'Thanh toán';
+
+  @override
+  String get paymentNotifDesc => 'Thông báo khi có thanh toán thành công';
+
+  @override
+  String get inventoryNotif => 'Kho hàng';
+
+  @override
+  String get inventoryNotifDesc => 'Cảnh báo khi sản phẩm sắp hết hàng';
+
+  @override
+  String get staffNotif => 'Nhân viên';
+
+  @override
+  String get staffNotifDesc => 'Thông báo về hoạt động của nhân viên';
+
+  @override
+  String get systemNotif => 'Hệ thống';
+
+  @override
+  String get systemNotifDesc => 'Thông báo cập nhật và bảo trì hệ thống';
+
+  @override
+  String get notifPermissionTitle => 'Quyền thông báo';
+
+  @override
+  String get notifPermissionOk => 'Quyền OK';
+
+  @override
+  String get notifPermissionNotGranted => 'Chưa cấp quyền';
+
+  @override
+  String get notifTokenOk => 'Token OK';
+
+  @override
+  String get notifTokenMissing => 'Chưa có token';
+
+  @override
+  String get notifFullyWorking => 'Đã cấp quyền thông báo. Bạn sẽ nhận được thông báo push.';
+
+  @override
+  String get notifNeedPermission => 'Cần cấp quyền thông báo để nhận thông báo push.';
+
+  @override
+  String get notifNeedPermissionIos => 'Cần cấp quyền thông báo để nhận thông báo push.\nNếu đã bật trong Cài đặt iOS, hãy nhấn \"Làm mới FCM Token\".';
+
+  @override
+  String get notifPermissionButNoToken => 'Đã cấp quyền nhưng chưa có FCM Token. Nhấn \"Làm mới FCM Token\" bên dưới.';
+
+  @override
+  String get grantPermission => 'Cấp quyền';
+
+  @override
+  String get yourRoleColon => 'Vai trò của bạn:';
+
+  @override
+  String get roleBasedNotifNote => 'Một số loại thông báo chỉ dành cho vai trò nhất định để đảm bảo bảo mật và tránh spam.';
+
+  @override
+  String get notifUnavailableForRole => 'Không khả dụng cho vai trò hiện tại';
+
+  @override
+  String get refreshFcmTokenBtn => 'LÀM MỚI FCM TOKEN';
+
+  @override
+  String get sendTestNotifBtn => 'GỬI THÔNG BÁO TEST';
+
+  @override
+  String get notifGrantPermissionTitle => 'Cấp quyền thông báo';
+
+  @override
+  String get notifGrantPermissionContent => 'Ứng dụng cần quyền thông báo để gửi thông báo quan trọng. Vui lòng bật quyền trong cài đặt hệ thống.';
+
+  @override
+  String get openSettings => 'Mở cài đặt';
+
+  @override
+  String get notifEnabled => 'Đã bật thông báo';
+
+  @override
+  String get notifDisabled => 'Đã tắt thông báo';
+
+  @override
+  String get notifPermissionGranted => 'Đã cấp quyền thông báo!';
+
+  @override
+  String get notifPermissionNeeded => 'Cần cấp quyền để nhận thông báo';
+
+  @override
+  String get testNotifContent => 'Đây là thông báo test từ hệ thống push notification. Nếu bạn thấy thông báo này, hệ thống đang hoạt động bình thường!';
+
+  @override
+  String get testNotifSent => 'Đã gửi thông báo test!';
+
+  @override
+  String notifSendError(String error) {
+    return 'Lỗi gửi thông báo: $error';
+  }
+
+  @override
+  String get refreshingFcmTokenLabel => 'Đang làm mới FCM token...';
+
+  @override
+  String get refreshTokenSuccess => '✅ Đã làm mới FCM token thành công!';
+
+  @override
+  String get refreshTokenFailed => '❌ Không thể làm mới FCM token. Thử lại sau.';
+
+  @override
+  String refreshTokenError(String error) {
+    return 'Lỗi làm mới token: $error';
+  }
+
+  @override
+  String get notifInfoTitle => 'THÔNG TIN THÔNG BÁO';
+
+  @override
+  String get notifInfoContent => '• Thông báo được gửi dựa trên vai trò của bạn\n• Admin & Owner nhận tất cả thông báo\n• Manager & Technician nhận thông báo quan trọng\n• Employee chỉ nhận thông báo cá nhân';
+
+  @override
+  String get backupRestoreTitle => 'Sao lưu & Khôi phục';
+
+  @override
+  String get sqliteTabLabel => 'SQLite (file .db)';
+
+  @override
+  String get firestoreTabLabel => 'Firestore (cloud)';
+
+  @override
+  String get backupSqliteSection => 'Sao lưu SQLite';
+
+  @override
+  String get shareOrSaveLocal => 'Chia sẻ / Lưu máy';
+
+  @override
+  String get backupToCloudLabel => 'Sao lưu lên Cloud';
+
+  @override
+  String get cloudSqliteBackupsSection => 'Bản sao lưu SQLite trên Cloud';
+
+  @override
+  String get noBackupsYet => 'Chưa có bản sao lưu nào.';
+
+  @override
+  String get restoreFromFileSection => 'Khôi phục từ file';
+
+  @override
+  String get selectDbFileDesc => 'Chọn file .db đã sao lưu trước đó để khôi phục.';
+
+  @override
+  String get selectDbFile => 'Chọn file .db';
+
+  @override
+  String get backupSqliteSuccess => 'Sao lưu SQLite lên Cloud thành công!';
+
+  @override
+  String get restoreSuccessTitle => 'Khôi phục thành công';
+
+  @override
+  String get restoreSuccessContent => 'Đã khôi phục dữ liệu. Vui lòng khởi động lại ứng dụng để áp dụng thay đổi.';
+
+  @override
+  String get firestoreInfoCard => 'Sao lưu Firestore lưu từng collection thành file JSON riêng. Bạn có thể chọn mục nào cần sao lưu hoặc khôi phục.';
+
+  @override
+  String get backupFirestoreSection => 'Sao lưu Firestore';
+
+  @override
+  String get selectAndBackupToCloud => 'Chọn mục & Sao lưu lên Cloud';
+
+  @override
+  String get firestoreBackupsSection => 'Bản sao lưu Firestore';
+
+  @override
+  String get noFirestoreBackupsYet => 'Chưa có bản sao lưu Firestore nào.';
+
+  @override
+  String get preparingBackup => 'Đang chuẩn bị...';
+
+  @override
+  String backupFirestoreSuccess(int count) {
+    return 'Sao lưu Firestore thành công ($count mục)!';
+  }
+
+  @override
+  String restoreFirestoreSuccess(int count) {
+    return 'Khôi phục thành công ($count mục)!';
+  }
+
+  @override
+  String get deleteBackupSuccess => 'Đã xóa bản sao lưu.';
+
+  @override
+  String get confirmRestoreTitle => 'Xác nhận khôi phục';
+
+  @override
+  String confirmRestoreContent(int count, String date) {
+    return 'Dữ liệu hiện tại của $count mục sẽ bị ghi đè bởi bản sao lưu ngày $date.\n\nTiếp tục?';
+  }
+
+  @override
+  String get deleteBackupTitle => 'Xóa bản sao lưu?';
+
+  @override
+  String deleteBackupContent(String date) {
+    return 'Xóa bản sao lưu ngày $date?';
+  }
+
+  @override
+  String get restoringSqliteFromCloud => 'Khôi phục SQLite từ cloud đang phát triển.';
+
+  @override
+  String get notInBackupLabel => 'Không có trong bản sao lưu này';
+
+  @override
+  String get storageRulesNeeded => 'Cần cấu hình Firebase Storage Rules';
+
+  @override
+  String get restoreBtn => 'Khôi phục';
+
+  @override
+  String get selectDataToBackup => 'Chọn dữ liệu cần sao lưu';
+
+  @override
+  String get selectDataToRestore => 'Chọn dữ liệu cần khôi phục';
+
+  @override
+  String get backupConfirmLabel => 'Sao lưu';
+
+  @override
+  String get restoreConfirmLabel => 'Khôi phục';
+
+  @override
+  String selectedCountItems(int count) {
+    return '$count mục đã chọn';
+  }
+
+  @override
+  String backupLabelWithCount(int count) {
+    return 'Sao lưu ($count)';
+  }
+
+  @override
+  String restoreLabelWithCount(int count) {
+    return 'Khôi phục ($count)';
+  }
 }

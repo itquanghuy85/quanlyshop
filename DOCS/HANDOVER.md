@@ -12,7 +12,7 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Analyze Status:** ⚠️ `flutter analyze` còn `1552` issues pre-existing  
 **Database Version:** SQLite v17  
 **Branch:** master  
-**Active Initiative:** 💾 Hoàn thiện sao lưu/khôi phục SQLite + Firestore và tối ưu UX thao tác trong Cài đặt
+**Active Initiative:** 💾 Migration restore cross-shop đầy đủ dữ liệu + ổn định Sync Center + khóa business type về điện tử
 
 ---
 
@@ -25,6 +25,22 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 ---
 
 ## ✅ Vừa hoàn thành (2026-05-25)
+
+1. **Hardening restore cross-shop đầy đủ domain (2026-05-26)**
+  - Mở rộng selective restore cho các miền dữ liệu còn thiếu khi khôi phục toàn bộ: đơn sửa, kho linh kiện, kho máy xác, kho vị trí, yêu cầu đóng tiền, đối tác sửa chữa, lịch sử đối tác, nhập kho.
+  - Khi restore sang shop mới (remap shopId), dữ liệu local được reset trạng thái sync (`isSynced=0`) và bỏ `firestoreId` để đồng bộ lại đúng shop đích.
+
+2. **Cập nhật báo cáo đồng bộ theo domain (2026-05-26)**
+  - Mở rộng phạm vi Sync Health và Domain Sync Report cho `salvage_phones`, `storage_locations`, `payment_requests`, `payment_intents`, `repair_partners`, `partner_repair_history`.
+  - Mục tiêu: giảm tình trạng báo lệch/mất coverage sau khi restore shop mới.
+
+3. **Khóa loại hình kinh doanh chỉ còn điện tử (2026-05-26)**
+  - `register_view`: chỉ còn lựa chọn điện tử.
+  - `business_type_wizard`: chỉ cho chọn điện tử; `availableTypes` còn `electronics`.
+  - `shop_switcher_widget` (tạo chi nhánh): bỏ dropdown ngành, cố định điện tử.
+
+4. **Validation của đợt cập nhật mới**
+  - Đã lên kế hoạch chạy `flutter analyze` cho các file thay đổi và `flutter build apk --debug` ngay sau patch.
 
 1. **Follow-up fix UI Sao lưu/Khôi phục (2026-05-26)**
   - Fix tương phản chữ/tab với AppBar trong `backup_restore_view` để tránh trùng màu.

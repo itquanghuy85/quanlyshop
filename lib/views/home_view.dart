@@ -594,6 +594,9 @@ class _HomeViewState extends State<HomeView>
   final BranchService _branchService = BranchService(flags: _multiBranchFlags);
   String _currentBranchName = '';
 
+  int get _totalPendingApprovalCount =>
+      _pendingPaymentRequestCount + pendingApprovalCount;
+
   // Modular Dashboard Config
   List<DashboardCardConfig> _dashboardConfigs = [];
   bool _dashboardConfigLoaded = false;
@@ -10370,16 +10373,98 @@ class _HomeViewState extends State<HomeView>
     );
   }
 
+  Future<void> _openPendingApprovalCenter() async {
+    final hasRepairApproval = pendingApprovalCount > 0;
+    final hasPaymentApproval = _pendingPaymentRequestCount > 0;
+
+    if (hasRepairApproval && hasPaymentApproval) {
+      if (!mounted) return;
+      await showModalBottomSheet<void>(
+        context: context,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        ),
+        builder: (ctx) {
+          return SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(
+                    Icons.build_circle_outlined,
+                    color: Colors.deepOrange,
+                  ),
+                  title: Text('Duyệt giao máy ($pendingApprovalCount)'),
+                  subtitle: const Text('Đơn sửa chờ duyệt giao'),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _pushRoute(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => OrderListView(
+                          role: widget.role,
+                          statusFilter: const [3],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(
+                    Icons.payments_outlined,
+                    color: Colors.indigo,
+                  ),
+                  title: Text(
+                    'Duyệt thanh toán ($_pendingPaymentRequestCount)',
+                  ),
+                  subtitle: const Text('Yêu cầu thanh toán chờ duyệt'),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _pushRoute(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const PaymentRequestChatView(),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          );
+        },
+      );
+      return;
+    }
+
+    if (hasRepairApproval) {
+      await _pushRoute(
+        context,
+        MaterialPageRoute(
+          builder: (_) => OrderListView(
+            role: widget.role,
+            statusFilter: const [3],
+          ),
+        ),
+      );
+      return;
+    }
+
+    if (hasPaymentApproval) {
+      await _pushRoute(
+        context,
+        MaterialPageRoute(builder: (_) => const PaymentRequestChatView()),
+      );
+    }
+  }
+
   /// Banner nổi bật: yêu cầu duyệt chờ xử lý — chỉ hiện cho owner/admin
   Widget _buildPendingPaymentBanner() {
-    if (!hasFullAccess || _pendingPaymentRequestCount <= 0) {
+    if (!hasFullAccess || _totalPendingApprovalCount <= 0) {
       return const SizedBox.shrink();
     }
     return GestureDetector(
-      onTap: () => _pushRoute(
-        context,
-        MaterialPageRoute(builder: (_) => const PaymentRequestChatView()),
-      ),
+      onTap: _openPendingApprovalCenter,
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -10418,15 +10503,17 @@ class _HomeViewState extends State<HomeView>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '$_pendingPaymentRequestCount yêu cầu duyệt chờ xử lý',
+                    '$_totalPendingApprovalCount yêu cầu duyệt chờ xử lý',
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
                     ),
                   ),
-                  const Text(
-                    'Nhấn để xem và duyệt ngay',
+                  Text(
+                    pendingApprovalCount > 0
+                        ? 'Giao máy: $pendingApprovalCount • Thanh toán: $_pendingPaymentRequestCount'
+                        : 'Nhấn để xem và duyệt ngay',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 12,

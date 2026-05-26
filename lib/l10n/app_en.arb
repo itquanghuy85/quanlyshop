@@ -396,7 +396,7 @@
   "deletePartner": "Delete partner",
   "scanSettings": "Scan settings",
   "confirm": "Confirm",
-  "confirmAction": "Confirm action",
+  "confirmAction": "Confirm",
   "loading": "Loading...",
   "error": "Error",
   "success": "Success",
@@ -1980,7 +1980,7 @@
   "checkInLabel": "In:",
   "checkOutLabel": "Out:",
   "approvedStatus": "Approved",
-  "rejectedStatus": "Rejected",
+  "rejectedStatus": "❌ Rejected",
   "pendingStatus": "Pending",
   "selectStaffToViewAttendance": "Select staff to view attendance",
   "displayError": "Display Error",
@@ -2592,9 +2592,6 @@
   },
   "approveAttendance": "Confirm",
   "rejectAttendance": "Reject",
-  "approvedStatus": "Approved",
-  "rejectedStatus": "Rejected",
-  "pendingStatus": "Pending",
   "bulkApprove": "Approve all",
   "forgotCheckin": "Forgot check-in",
   "forgotCheckinRequest": "Forgot check-in request",
@@ -2660,11 +2657,541 @@
     }
   },
   "selectTime": "Select time",
-  "confirmAction": "Confirm",
   "cancelAction": "Cancel",
   "submitRequest": "Submit request",
   "forgotCheckinDate": "Date forgot check-in",
   "forgotCheckinTime": "Check-in time",
   "forgotCheckoutTime": "Check-out time",
-  "requestNote": "Note"
+  "requestNote": "Note",
+  "remaining": "Outstanding",
+  "incidentalUpper": "INCIDENTAL",
+  "technician": "Technician",
+  "paymentCashLower": "Cash",
+  "exportExcel": "Export Excel",
+  "paid": "Paid",
+  "last7days": "7 days",
+  "combined": "COMBINED",
+  "weekUpper": "WEEK",
+  "paymentTransferLower": "Transfer",
+  "salePrice": "Sale price",
+  "settled": "Settled",
+  "paymentDone": "Paid",
+  "retailCustomer": "Retail customer",
+  "quickCode": "Quick code",
+  "refundUpper": "REFUND",
+  "transferShort": "Transfer",
+  "overdue": "Overdue",
+  "utilities": "UTILITIES",
+  "sold": "Sold",
+  "paySupplierDebt": "Pay supplier debt",
+  "returnGoods": "Return goods",
+  "addPhoto": "Add photo",
+  "chooseFromGallery": "Choose from gallery",
+  "syncing": "Syncing...",
+  "errorOccurred": "An error occurred",
+  "payable": "Payable",
+  "personal": "PERSONAL",
+  "salePriceVnd": "Sale price (VND)",
+  "deduction": "Deduction",
+  "profit": "Profit",
+  "costPriceVnd": "Cost price (VND)",
+  "deactivate": "Deactivate",
+  "addNewSupplier": "Add new supplier",
+  "noShopName": "Unnamed shop",
+  "totalAmount": "Total amount",
+  "editLabel": "Edit",
+  "rejectReason": "Reject reason",
+  "loadMore": "Load more",
+  "payDebt": "Pay debt",
+  "system": "System",
+  "restore": "Restore",
+  "incidentalIncome": "Incidental income",
+  "addNew": "Add new",
+  "brand": "Brand",
+  "noPermission": "No permission",
+  "month": "Month",
+  "sort": "Sort",
+  "discount": "Discount",
+  "type": "Type",
+  "deleteData": "Delete data",
+  "aiFilledRepairOrder": "AI auto-filled repair order.",
+  "parsedRepairOrderFilled": "Recognized and filled repair order.",
+  "orderSavedUploadingImages": "Order saved. Uploading images, please don't close the app.",
+  "uploadingImagesToSystem": "Uploading images, please don't close the app.",
+  "searchPartner": "Search partner",
+  "noPartnerFound": "No matching partner found",
+  "quickInputTooltip": "Quick input by command",
+  "saveAndPrint": "Save & Print",
+  "hideDetails": "Hide details",
+  "showMoreDetails": "More details (security, appearance, accessories, photos)",
+  "customerOwesDebt": "Owes",
+  "shopOwesCustomer": "Shop owes",
+  "customerAddressOptional": "Customer address (optional)",
+  "takePhoto": "Take photo",
+  "paymentRequestTitle": "Payment Request",
+  "searchNamePhoneBankAmount": "Search name, phone, bank, amount...",
+  "createNewRequest": "Create new request",
+  "pendingApprovalStatus": "⏳ Pending approval",
+  "paidStatus": "✅ Paid",
+  "noPaymentRequests": "No payment requests",
+  "tapPlusToCreateNew": "Tap ⊕ on the title bar to create new",
+  "overdueLabel": "OVERDUE",
+  "customerBankTransfer": "Customer bank transfer",
+  "customerCash": "Customer cash payment",
+  "ownerTransferredToBank": "Owner transferred to bank",
+  "paymentBankTransfer": "Payment (bank transfer)",
+  "deleteRequest": "Delete request",
+  "rejectButton": "Reject",
+  "accountContractNumber": "Account / Contract No.",
+  "bankOrLoanOrg": "Bank / Loan organization",
+  "customerPaysStaff": "Customer pays staff",
+  "bankTransferLabelWithEmoji": "🏦 Bank transfer",
+  "cashLabelWithEmoji": "💵 Cash",
+  "ownerTransferBank": "Owner transfer to bank",
+  "transferredToBank": "🏦 Transferred to bank",
+  "staffSender": "Sent by staff",
+  "createdDate": "Created date",
+  "processedBy": "Processed by",
+  "processedDate": "Processed date",
+  "attachedImages": "Attached images (invoice, bank transfer):",
+  "confirmBankTransfer": "Confirm bank transfer",
+  "bankTransferNoteMsg": "Bank transfer will be recorded in the cash book.\nAfter confirming, please send a screenshot of the transfer as proof.",
+  "confirmedBankTransfer": "Transferred to bank ✓",
+  "rejectRequest": "Reject request",
+  "selectProofImageHint": "💡 Select bank transfer screenshot to send as proof",
+  "selectRequestToSendImage": "Select request to send bank transfer image...",
+  "selectRequestForBankImage": "Select request to send bank transfer image",
+  "uploadingProofImages": "Uploading proof images, please do not exit the app.",
+  "sendPaymentRequest": "Send payment request",
+  "paymentType": "Payment type",
+  "customerInfoLabel": "Customer information",
+  "searchCustomerShort": "Find customer",
+  "customerPaysStaffLabel": "Customer pays staff",
+  "paymentDetails": "Payment details",
+  "amountVnd": "Amount (₫)",
+  "accountOrContractCode": "Account / Contract code",
+  "bankOrInstallmentOrg": "Bank / Installment organization",
+  "noteForOwner": "Note for shop owner",
+  "imagesInvoiceBankTransfer": "Images (invoice, bank transfer...)",
+  "sendingLabel": "Sending...",
+  "sendRequestLabel": "SEND REQUEST",
+  "paymentTypeName": "Payment type name",
+  "electricityPayment": "Electricity bill",
+  "waterPayment": "Water bill",
+  "internetPayment": "Internet bill",
+  "bankLoanPayment": "Bank loan",
+  "installmentPayment": "Installment",
+  "insurancePayment": "Insurance",
+  "selectCustomerDialogTitle": "Select customer",
+  "searchByNamePhoneAddress": "Search by name, phone, address...",
+  "sentPaymentRequest": "✅ Payment request sent",
+  "errorSendingRequest": "❌ Error sending request",
+  "adminConsoleTitle": "SUPER ADMIN CONSOLE",
+  "adminAuthSuperAdmin": "Authenticate Super Admin",
+  "adminAuthPin": "Authenticate PIN",
+  "adminEnterPinForDangerous": "Enter Super Admin PIN to continue dangerous operation.",
+  "adminPinHint": "PIN (4-6 digits)",
+  "adminPinWrong": "Incorrect PIN",
+  "adminEditUser": "Edit user",
+  "adminUserPhone": "Phone",
+  "adminShopId": "Shop ID",
+  "adminExitConsole": "Exit Console?",
+  "adminExitConsoleConfirm": "Are you sure you want to exit the Super Admin Console?",
+  "adminStayHere": "Stay",
+  "adminLogoutConfirmMsg": "Are you sure you want to logout from the Super Admin Console?",
+  "adminNoAccess": "You do not have access to the Super Admin Console.",
+  "adminReload": "Reload",
+  "adminDashboard": "Dashboard",
+  "adminShops": "Shops",
+  "adminUsers": "Users",
+  "adminLogs": "Logs",
+  "adminMore": "More",
+  "adminBroadcast": "Broadcast",
+  "adminPermissions": "Permissions",
+  "adminDangerZone": "Danger Zone",
+  "adminAuditLogs": "Audit Logs",
+  "adminTotalShops": "Total shops",
+  "adminActiveShops": "Active",
+  "adminTotalUsers": "Total users",
+  "adminLockedShops": "Locked shops",
+  "adminGoToShopsToUnlock": "Go to Shops tab to unlock.",
+  "adminSystemNormal": "System operating normally",
+  "adminNoLockedShops": "No shops are currently locked.",
+  "adminShopLockedCount": "{count} shops are locked",
+  "@adminShopLockedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "adminSearchShops": "Search shops by name, email, ID...",
+  "adminShowDeleted": "Deleted",
+  "adminNoMatchingShops": "No matching shops",
+  "adminViewDetail": "View detail",
+  "adminEnterShop": "Enter shop",
+  "adminUnlockApp": "Unlock app",
+  "adminLockApp": "Lock app",
+  "adminResetData": "Reset data",
+  "adminFullApp": "Entire app",
+  "adminNoUsersInShop": "No users in this shop",
+  "adminNoActivity": "No activity yet",
+  "adminSearchUsers": "Search by name, email, role, shop ID...",
+  "adminNoShopAssigned": "No shop assigned",
+  "adminNoMatchingUsers": "No matching users",
+  "adminDeleteUserDoc": "Delete user doc",
+  "adminDeleteCompletely": "Delete completely",
+  "adminAuthAndUserData": "Auth + data created by user",
+  "adminDeleteProfileOnly": "Delete profile only, Auth remains",
+  "adminPermissionPanel": "Permission Panel",
+  "adminPermissionPanelSubtitle": "Standard role-based baseline for owner/manager/staff. Shop-level locks will override at runtime.",
+  "adminNoAuditLogs": "No matching audit logs.",
+  "adminFilterShopId": "Filter shopId",
+  "adminFilterAction": "Filter action",
+  "adminSearchEmailUser": "Search email/user",
+  "adminSyncClaims": "Sync custom claims",
+  "adminSyncClaimsDesc": "Sync claims for all users when rules/roles change.",
+  "adminSyncClaimsSuccess": "Sync claims successful.",
+  "adminSyncClaimsError": "Sync claims error: {error}",
+  "@adminSyncClaimsError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "adminPinSecurity": "PIN Security",
+  "adminPinSecurityDesc": "Protect Console with PIN when session expires",
+  "adminPinEnabled": "PIN enabled",
+  "adminPinEnabledDesc": "PIN required when session expires (30 min idle)",
+  "adminPinNotSetup": "PIN not set up",
+  "adminPinNotSetupDesc": "Enable PIN to protect console",
+  "adminChangePin": "Change PIN",
+  "adminDisablePin": "Disable PIN",
+  "adminSetupPin": "Set up",
+  "adminSetupPinTitle": "Set up PIN",
+  "adminChangePinTitle": "Change PIN",
+  "adminNewPin": "New PIN (4-6 digits)",
+  "adminConfirmPin": "Confirm PIN",
+  "adminPinTooShort": "PIN must be 4-6 digits",
+  "adminPinMismatch": "PINs do not match",
+  "adminPinSetupSuccess": "PIN set up successfully.",
+  "adminPinSetupError": "Error setting up PIN.",
+  "adminDisablePinTitle": "Disable PIN",
+  "adminCurrentPin": "Current PIN",
+  "adminEnterCurrentPinToDisable": "Enter current PIN to confirm disable:",
+  "adminCurrentPinWrong": "Incorrect PIN",
+  "adminPinDisabled": "PIN disabled.",
+  "adminDisablePinButton": "Disable PIN",
+  "adminSendSystemNotification": "Send System Notification",
+  "adminSendToAllUsersDesc": "Send to ALL users via dialog + push.",
+  "adminNotificationType": "Notification type",
+  "adminNotifTitle": "Title",
+  "adminNotifTitleHint": "E.g.: New version update required",
+  "adminNotifContent": "Content",
+  "adminNotifContentHint": "Enter detailed notification content...",
+  "adminSendToAll": "Send to all users",
+  "adminSending": "Sending...",
+  "adminSendSuccess": "✅ Sent successfully to all users!",
+  "adminNotifTitleRequired": "Please enter title and content.",
+  "adminNotificationHistory": "Notification history",
+  "adminNoNotificationsYet": "No notifications yet.",
+  "adminExpired": "Expired",
+  "adminDangerZoneSubtitle": "All operations here require PIN authentication and are logged in audit log.",
+  "adminSelectDataToDelete": "Select data to delete",
+  "adminSelectedCount": "{count} items selected",
+  "@adminSelectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "adminDeleteSelected": "Delete ({count} items)",
+  "@adminDeleteSelected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "adminIsOwnerWarning": "This is the SHOP OWNER. Be careful when deleting!",
+  "adminDeleteUserAndData": "Delete user + data",
+  "adminDeleteUserDocOnly": "Delete user doc",
+  "adminWillDeletePermanently": "Will DELETE PERMANENTLY:",
+  "adminDeleteFirebaseAuth": "• Firebase Auth account (loses login access)",
+  "adminDeleteUserProfile": "• User profile in Firestore",
+  "adminDeleteUserOrders": "• Repair, sale orders, expenses created by user",
+  "adminDeleteUserAttendance": "• User attendance data and notifications",
+  "adminShopDataNotDeleted": "⚠️ Shop data (inventory, customers...) will NOT be deleted.",
+  "adminOnlyDeleteProfile": "Only deletes user profile in Firestore.",
+  "adminAuthStillExists": "Firebase Auth account remains — user can still login but loses shop link.",
+  "adminDeletingData": "Deleting data...",
+  "adminResetSuccess": "Deleted selected data of shop {shopName}",
+  "@adminResetSuccess": {
+    "placeholders": {
+      "shopName": {
+        "type": "String"
+      }
+    }
+  },
+  "adminResetFailed": "Reset failed: {error}",
+  "@adminResetFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "adminSoftDeleteSuccess": "Soft-deleted shop {shopName}",
+  "@adminSoftDeleteSuccess": {
+    "placeholders": {
+      "shopName": {
+        "type": "String"
+      }
+    }
+  },
+  "adminDeletedUserWithData": "Deleted user + data: {email}",
+  "@adminDeletedUserWithData": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "adminDeletedUserDoc": "Deleted user doc: {email}",
+  "@adminDeletedUserDoc": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "adminLockedLabel": "Locked {label}",
+  "@adminLockedLabel": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "adminUnlockedLabel": "Unlocked {label}",
+  "@adminUnlockedLabel": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "adminLockFinance": "Lock admin finance",
+  "adminLockInventory": "Lock inventory for staff",
+  "adminLockSales": "Lock sales for staff",
+  "adminLockDebt": "Lock debts for staff",
+  "permissionManagementTitle": "PERMISSION MANAGEMENT",
+  "noPermissionManagementScreen": "You do not have access\nto the permission management screen",
+  "noStaffInShop": "No staff in this shop yet\nInvite staff via QR code first",
+  "noEmailYet": "No email yet",
+  "noPhoneYet": "No phone yet",
+  "phoneWithColon": "Phone:",
+  "roleWithColon": "Role:",
+  "systemRoleSection": "SYSTEM ROLE",
+  "businessPermissionsSection": "BUSINESS CONTENT PERMISSIONS",
+  "financePermissionsSection": "FINANCIAL CONTENT PERMISSIONS",
+  "systemPermissionsSection": "SYSTEM MANAGEMENT PERMISSIONS",
+  "permRowSales": "SALES",
+  "permRowRepairs": "REPAIRS",
+  "permRowInventory": "INVENTORY",
+  "permRowParts": "REPAIR PARTS",
+  "permRowSuppliers": "SUPPLIERS",
+  "permRowCustomers": "CUSTOMERS",
+  "permRowWarranty": "WARRANTY",
+  "permRowChat": "INTERNAL CHAT",
+  "permRowAttendance": "ATTENDANCE",
+  "permRowPrinter": "PRINTER CONFIG",
+  "permRowRevenue": "REVENUE & PROFIT/LOSS",
+  "permRowExpenses": "SHOP EXPENSES",
+  "permRowDebts": "DEBT LEDGER",
+  "permRowCostPrice": "PRODUCT COST PRICE",
+  "permRowManageStaff": "MANAGE STAFF",
+  "permRowSettings": "SYSTEM SETTINGS",
+  "updatedPermissionMsg": "Updated permission: {permission}",
+  "@updatedPermissionMsg": {
+    "placeholders": {
+      "permission": {
+        "type": "String"
+      }
+    }
+  },
+  "errorUpdatingPermission": "Error updating permission: {error}",
+  "@errorUpdatingPermission": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "updatedRoleMsg": "Updated role to {role}",
+  "@updatedRoleMsg": {
+    "placeholders": {
+      "role": {
+        "type": "String"
+      }
+    }
+  },
+  "errorUpdatingRole": "Error updating role: {error}",
+  "@errorUpdatingRole": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "notifSettingsTitle": "Notification settings",
+  "importantNotificationsSection": "IMPORTANT NOTIFICATIONS",
+  "otherNotificationsSection": "OTHER NOTIFICATIONS",
+  "newOrderNotif": "New order",
+  "newOrderNotifDesc": "Notify when a customer creates a new order",
+  "paymentNotif": "Payment",
+  "paymentNotifDesc": "Notify when a payment is successful",
+  "inventoryNotif": "Inventory",
+  "inventoryNotifDesc": "Alert when a product is running low",
+  "staffNotif": "Staff",
+  "staffNotifDesc": "Notifications about staff activity",
+  "systemNotif": "System",
+  "systemNotifDesc": "System update and maintenance notifications",
+  "notifPermissionTitle": "Notification permission",
+  "notifPermissionOk": "Permission OK",
+  "notifPermissionNotGranted": "Not granted",
+  "notifTokenOk": "Token OK",
+  "notifTokenMissing": "No token",
+  "notifFullyWorking": "Notification permission granted. You will receive push notifications.",
+  "notifNeedPermission": "Notification permission required to receive push notifications.",
+  "notifNeedPermissionIos": "Notification permission required to receive push notifications.\nIf already enabled in iOS Settings, tap \"Refresh FCM Token\".",
+  "notifPermissionButNoToken": "Permission granted but no FCM Token. Tap \"Refresh FCM Token\" below.",
+  "grantPermission": "Grant permission",
+  "yourRoleColon": "Your role:",
+  "roleBasedNotifNote": "Some notification types are only available for specific roles to ensure security and avoid spam.",
+  "notifUnavailableForRole": "Not available for current role",
+  "refreshFcmTokenBtn": "REFRESH FCM TOKEN",
+  "sendTestNotifBtn": "SEND TEST NOTIFICATION",
+  "notifGrantPermissionTitle": "Grant notification permission",
+  "notifGrantPermissionContent": "The app needs notification permission to send important notifications. Please enable permission in system settings.",
+  "openSettings": "Open settings",
+  "notifEnabled": "Notifications enabled",
+  "notifDisabled": "Notifications disabled",
+  "notifPermissionGranted": "Notification permission granted!",
+  "notifPermissionNeeded": "Permission required to receive notifications",
+  "testNotifContent": "This is a test notification from the push notification system. If you see this notification, the system is working normally!",
+  "testNotifSent": "Test notification sent!",
+  "notifSendError": "Error sending notification: {error}",
+  "@notifSendError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "refreshingFcmTokenLabel": "Refreshing FCM token...",
+  "refreshTokenSuccess": "✅ FCM token refreshed successfully!",
+  "refreshTokenFailed": "❌ Unable to refresh FCM token. Try again later.",
+  "refreshTokenError": "Error refreshing token: {error}",
+  "@refreshTokenError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "notifInfoTitle": "NOTIFICATION INFO",
+  "notifInfoContent": "• Notifications are sent based on your role\n• Admin & Owner receive all notifications\n• Manager & Technician receive important notifications\n• Employee receives personal notifications only",
+  "backupRestoreTitle": "Backup & Restore",
+  "sqliteTabLabel": "SQLite (.db file)",
+  "firestoreTabLabel": "Firestore (cloud)",
+  "backupSqliteSection": "Backup SQLite",
+  "shareOrSaveLocal": "Share / Save to device",
+  "backupToCloudLabel": "Backup to Cloud",
+  "cloudSqliteBackupsSection": "SQLite Cloud Backups",
+  "noBackupsYet": "No backups yet.",
+  "restoreFromFileSection": "Restore from file",
+  "selectDbFileDesc": "Select a previously backed-up .db file to restore.",
+  "selectDbFile": "Select .db file",
+  "backupSqliteSuccess": "SQLite backup to Cloud successful!",
+  "restoreSuccessTitle": "Restore successful",
+  "restoreSuccessContent": "Data restored. Please restart the app to apply changes.",
+  "firestoreInfoCard": "Firestore backup saves each collection as a separate JSON file. You can choose which items to backup or restore.",
+  "backupFirestoreSection": "Backup Firestore",
+  "selectAndBackupToCloud": "Select items & Backup to Cloud",
+  "firestoreBackupsSection": "Firestore Backups",
+  "noFirestoreBackupsYet": "No Firestore backups yet.",
+  "preparingBackup": "Preparing...",
+  "backupFirestoreSuccess": "Firestore backup successful ({count} items)!",
+  "@backupFirestoreSuccess": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "restoreFirestoreSuccess": "Restore successful ({count} items)!",
+  "@restoreFirestoreSuccess": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "deleteBackupSuccess": "Backup deleted.",
+  "confirmRestoreTitle": "Confirm restore",
+  "confirmRestoreContent": "Current data of {count} items will be overwritten by the backup from {date}.\n\nContinue?",
+  "@confirmRestoreContent": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteBackupTitle": "Delete backup?",
+  "deleteBackupContent": "Delete backup from {date}?",
+  "@deleteBackupContent": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "restoringSqliteFromCloud": "SQLite cloud restore is under development.",
+  "notInBackupLabel": "Not in this backup",
+  "storageRulesNeeded": "Firebase Storage Rules configuration required",
+  "restoreBtn": "Restore",
+  "selectDataToBackup": "Select data to backup",
+  "selectDataToRestore": "Select data to restore",
+  "backupConfirmLabel": "Backup",
+  "restoreConfirmLabel": "Restore",
+  "selectedCountItems": "{count} items selected",
+  "@selectedCountItems": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupLabelWithCount": "Backup ({count})",
+  "@backupLabelWithCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "restoreLabelWithCount": "Restore ({count})",
+  "@restoreLabelWithCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

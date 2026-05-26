@@ -7532,7 +7532,7 @@ abstract class AppLocalizations {
   /// No description provided for @rejectedStatus.
   ///
   /// In en, this message translates to:
-  /// **'Rejected'**
+  /// **'❌ Rejected'**
   String get rejectedStatus;
 
   /// No description provided for @pendingStatus.
@@ -10012,6 +10012,2166 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Note'**
   String get requestNote;
+
+  /// No description provided for @remaining.
+  ///
+  /// In en, this message translates to:
+  /// **'Outstanding'**
+  String get remaining;
+
+  /// No description provided for @incidentalUpper.
+  ///
+  /// In en, this message translates to:
+  /// **'INCIDENTAL'**
+  String get incidentalUpper;
+
+  /// No description provided for @technician.
+  ///
+  /// In en, this message translates to:
+  /// **'Technician'**
+  String get technician;
+
+  /// No description provided for @paymentCashLower.
+  ///
+  /// In en, this message translates to:
+  /// **'Cash'**
+  String get paymentCashLower;
+
+  /// No description provided for @exportExcel.
+  ///
+  /// In en, this message translates to:
+  /// **'Export Excel'**
+  String get exportExcel;
+
+  /// No description provided for @paid.
+  ///
+  /// In en, this message translates to:
+  /// **'Paid'**
+  String get paid;
+
+  /// No description provided for @last7days.
+  ///
+  /// In en, this message translates to:
+  /// **'7 days'**
+  String get last7days;
+
+  /// No description provided for @combined.
+  ///
+  /// In en, this message translates to:
+  /// **'COMBINED'**
+  String get combined;
+
+  /// No description provided for @weekUpper.
+  ///
+  /// In en, this message translates to:
+  /// **'WEEK'**
+  String get weekUpper;
+
+  /// No description provided for @paymentTransferLower.
+  ///
+  /// In en, this message translates to:
+  /// **'Transfer'**
+  String get paymentTransferLower;
+
+  /// No description provided for @salePrice.
+  ///
+  /// In en, this message translates to:
+  /// **'Sale price'**
+  String get salePrice;
+
+  /// No description provided for @settled.
+  ///
+  /// In en, this message translates to:
+  /// **'Settled'**
+  String get settled;
+
+  /// No description provided for @paymentDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Paid'**
+  String get paymentDone;
+
+  /// No description provided for @retailCustomer.
+  ///
+  /// In en, this message translates to:
+  /// **'Retail customer'**
+  String get retailCustomer;
+
+  /// No description provided for @quickCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick code'**
+  String get quickCode;
+
+  /// No description provided for @refundUpper.
+  ///
+  /// In en, this message translates to:
+  /// **'REFUND'**
+  String get refundUpper;
+
+  /// No description provided for @transferShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Transfer'**
+  String get transferShort;
+
+  /// No description provided for @overdue.
+  ///
+  /// In en, this message translates to:
+  /// **'Overdue'**
+  String get overdue;
+
+  /// No description provided for @utilities.
+  ///
+  /// In en, this message translates to:
+  /// **'UTILITIES'**
+  String get utilities;
+
+  /// No description provided for @sold.
+  ///
+  /// In en, this message translates to:
+  /// **'Sold'**
+  String get sold;
+
+  /// No description provided for @paySupplierDebt.
+  ///
+  /// In en, this message translates to:
+  /// **'Pay supplier debt'**
+  String get paySupplierDebt;
+
+  /// No description provided for @returnGoods.
+  ///
+  /// In en, this message translates to:
+  /// **'Return goods'**
+  String get returnGoods;
+
+  /// No description provided for @addPhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Add photo'**
+  String get addPhoto;
+
+  /// No description provided for @chooseFromGallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose from gallery'**
+  String get chooseFromGallery;
+
+  /// No description provided for @syncing.
+  ///
+  /// In en, this message translates to:
+  /// **'Syncing...'**
+  String get syncing;
+
+  /// No description provided for @errorOccurred.
+  ///
+  /// In en, this message translates to:
+  /// **'An error occurred'**
+  String get errorOccurred;
+
+  /// No description provided for @payable.
+  ///
+  /// In en, this message translates to:
+  /// **'Payable'**
+  String get payable;
+
+  /// No description provided for @personal.
+  ///
+  /// In en, this message translates to:
+  /// **'PERSONAL'**
+  String get personal;
+
+  /// No description provided for @salePriceVnd.
+  ///
+  /// In en, this message translates to:
+  /// **'Sale price (VND)'**
+  String get salePriceVnd;
+
+  /// No description provided for @deduction.
+  ///
+  /// In en, this message translates to:
+  /// **'Deduction'**
+  String get deduction;
+
+  /// No description provided for @profit.
+  ///
+  /// In en, this message translates to:
+  /// **'Profit'**
+  String get profit;
+
+  /// No description provided for @costPriceVnd.
+  ///
+  /// In en, this message translates to:
+  /// **'Cost price (VND)'**
+  String get costPriceVnd;
+
+  /// No description provided for @deactivate.
+  ///
+  /// In en, this message translates to:
+  /// **'Deactivate'**
+  String get deactivate;
+
+  /// No description provided for @addNewSupplier.
+  ///
+  /// In en, this message translates to:
+  /// **'Add new supplier'**
+  String get addNewSupplier;
+
+  /// No description provided for @noShopName.
+  ///
+  /// In en, this message translates to:
+  /// **'Unnamed shop'**
+  String get noShopName;
+
+  /// No description provided for @totalAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Total amount'**
+  String get totalAmount;
+
+  /// No description provided for @editLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get editLabel;
+
+  /// No description provided for @rejectReason.
+  ///
+  /// In en, this message translates to:
+  /// **'Reject reason'**
+  String get rejectReason;
+
+  /// No description provided for @loadMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Load more'**
+  String get loadMore;
+
+  /// No description provided for @payDebt.
+  ///
+  /// In en, this message translates to:
+  /// **'Pay debt'**
+  String get payDebt;
+
+  /// No description provided for @system.
+  ///
+  /// In en, this message translates to:
+  /// **'System'**
+  String get system;
+
+  /// No description provided for @restore.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore'**
+  String get restore;
+
+  /// No description provided for @incidentalIncome.
+  ///
+  /// In en, this message translates to:
+  /// **'Incidental income'**
+  String get incidentalIncome;
+
+  /// No description provided for @addNew.
+  ///
+  /// In en, this message translates to:
+  /// **'Add new'**
+  String get addNew;
+
+  /// No description provided for @brand.
+  ///
+  /// In en, this message translates to:
+  /// **'Brand'**
+  String get brand;
+
+  /// No description provided for @noPermission.
+  ///
+  /// In en, this message translates to:
+  /// **'No permission'**
+  String get noPermission;
+
+  /// No description provided for @month.
+  ///
+  /// In en, this message translates to:
+  /// **'Month'**
+  String get month;
+
+  /// No description provided for @sort.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort'**
+  String get sort;
+
+  /// No description provided for @discount.
+  ///
+  /// In en, this message translates to:
+  /// **'Discount'**
+  String get discount;
+
+  /// No description provided for @type.
+  ///
+  /// In en, this message translates to:
+  /// **'Type'**
+  String get type;
+
+  /// No description provided for @deleteData.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete data'**
+  String get deleteData;
+
+  /// No description provided for @aiFilledRepairOrder.
+  ///
+  /// In en, this message translates to:
+  /// **'AI auto-filled repair order.'**
+  String get aiFilledRepairOrder;
+
+  /// No description provided for @parsedRepairOrderFilled.
+  ///
+  /// In en, this message translates to:
+  /// **'Recognized and filled repair order.'**
+  String get parsedRepairOrderFilled;
+
+  /// No description provided for @orderSavedUploadingImages.
+  ///
+  /// In en, this message translates to:
+  /// **'Order saved. Uploading images, please don\'t close the app.'**
+  String get orderSavedUploadingImages;
+
+  /// No description provided for @uploadingImagesToSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploading images, please don\'t close the app.'**
+  String get uploadingImagesToSystem;
+
+  /// No description provided for @searchPartner.
+  ///
+  /// In en, this message translates to:
+  /// **'Search partner'**
+  String get searchPartner;
+
+  /// No description provided for @noPartnerFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching partner found'**
+  String get noPartnerFound;
+
+  /// No description provided for @quickInputTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick input by command'**
+  String get quickInputTooltip;
+
+  /// No description provided for @saveAndPrint.
+  ///
+  /// In en, this message translates to:
+  /// **'Save & Print'**
+  String get saveAndPrint;
+
+  /// No description provided for @hideDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide details'**
+  String get hideDetails;
+
+  /// No description provided for @showMoreDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'More details (security, appearance, accessories, photos)'**
+  String get showMoreDetails;
+
+  /// No description provided for @customerOwesDebt.
+  ///
+  /// In en, this message translates to:
+  /// **'Owes'**
+  String get customerOwesDebt;
+
+  /// No description provided for @shopOwesCustomer.
+  ///
+  /// In en, this message translates to:
+  /// **'Shop owes'**
+  String get shopOwesCustomer;
+
+  /// No description provided for @customerAddressOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Customer address (optional)'**
+  String get customerAddressOptional;
+
+  /// No description provided for @takePhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Take photo'**
+  String get takePhoto;
+
+  /// No description provided for @paymentRequestTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment Request'**
+  String get paymentRequestTitle;
+
+  /// No description provided for @searchNamePhoneBankAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Search name, phone, bank, amount...'**
+  String get searchNamePhoneBankAmount;
+
+  /// No description provided for @createNewRequest.
+  ///
+  /// In en, this message translates to:
+  /// **'Create new request'**
+  String get createNewRequest;
+
+  /// No description provided for @pendingApprovalStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'⏳ Pending approval'**
+  String get pendingApprovalStatus;
+
+  /// No description provided for @paidStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'✅ Paid'**
+  String get paidStatus;
+
+  /// No description provided for @noPaymentRequests.
+  ///
+  /// In en, this message translates to:
+  /// **'No payment requests'**
+  String get noPaymentRequests;
+
+  /// No description provided for @tapPlusToCreateNew.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap ⊕ on the title bar to create new'**
+  String get tapPlusToCreateNew;
+
+  /// No description provided for @overdueLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'OVERDUE'**
+  String get overdueLabel;
+
+  /// No description provided for @customerBankTransfer.
+  ///
+  /// In en, this message translates to:
+  /// **'Customer bank transfer'**
+  String get customerBankTransfer;
+
+  /// No description provided for @customerCash.
+  ///
+  /// In en, this message translates to:
+  /// **'Customer cash payment'**
+  String get customerCash;
+
+  /// No description provided for @ownerTransferredToBank.
+  ///
+  /// In en, this message translates to:
+  /// **'Owner transferred to bank'**
+  String get ownerTransferredToBank;
+
+  /// No description provided for @paymentBankTransfer.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment (bank transfer)'**
+  String get paymentBankTransfer;
+
+  /// No description provided for @deleteRequest.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete request'**
+  String get deleteRequest;
+
+  /// No description provided for @rejectButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Reject'**
+  String get rejectButton;
+
+  /// No description provided for @accountContractNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Account / Contract No.'**
+  String get accountContractNumber;
+
+  /// No description provided for @bankOrLoanOrg.
+  ///
+  /// In en, this message translates to:
+  /// **'Bank / Loan organization'**
+  String get bankOrLoanOrg;
+
+  /// No description provided for @customerPaysStaff.
+  ///
+  /// In en, this message translates to:
+  /// **'Customer pays staff'**
+  String get customerPaysStaff;
+
+  /// No description provided for @bankTransferLabelWithEmoji.
+  ///
+  /// In en, this message translates to:
+  /// **'🏦 Bank transfer'**
+  String get bankTransferLabelWithEmoji;
+
+  /// No description provided for @cashLabelWithEmoji.
+  ///
+  /// In en, this message translates to:
+  /// **'💵 Cash'**
+  String get cashLabelWithEmoji;
+
+  /// No description provided for @ownerTransferBank.
+  ///
+  /// In en, this message translates to:
+  /// **'Owner transfer to bank'**
+  String get ownerTransferBank;
+
+  /// No description provided for @transferredToBank.
+  ///
+  /// In en, this message translates to:
+  /// **'🏦 Transferred to bank'**
+  String get transferredToBank;
+
+  /// No description provided for @staffSender.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent by staff'**
+  String get staffSender;
+
+  /// No description provided for @createdDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Created date'**
+  String get createdDate;
+
+  /// No description provided for @processedBy.
+  ///
+  /// In en, this message translates to:
+  /// **'Processed by'**
+  String get processedBy;
+
+  /// No description provided for @processedDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Processed date'**
+  String get processedDate;
+
+  /// No description provided for @attachedImages.
+  ///
+  /// In en, this message translates to:
+  /// **'Attached images (invoice, bank transfer):'**
+  String get attachedImages;
+
+  /// No description provided for @confirmBankTransfer.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm bank transfer'**
+  String get confirmBankTransfer;
+
+  /// No description provided for @bankTransferNoteMsg.
+  ///
+  /// In en, this message translates to:
+  /// **'Bank transfer will be recorded in the cash book.\nAfter confirming, please send a screenshot of the transfer as proof.'**
+  String get bankTransferNoteMsg;
+
+  /// No description provided for @confirmedBankTransfer.
+  ///
+  /// In en, this message translates to:
+  /// **'Transferred to bank ✓'**
+  String get confirmedBankTransfer;
+
+  /// No description provided for @rejectRequest.
+  ///
+  /// In en, this message translates to:
+  /// **'Reject request'**
+  String get rejectRequest;
+
+  /// No description provided for @selectProofImageHint.
+  ///
+  /// In en, this message translates to:
+  /// **'💡 Select bank transfer screenshot to send as proof'**
+  String get selectProofImageHint;
+
+  /// No description provided for @selectRequestToSendImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Select request to send bank transfer image...'**
+  String get selectRequestToSendImage;
+
+  /// No description provided for @selectRequestForBankImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Select request to send bank transfer image'**
+  String get selectRequestForBankImage;
+
+  /// No description provided for @uploadingProofImages.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploading proof images, please do not exit the app.'**
+  String get uploadingProofImages;
+
+  /// No description provided for @sendPaymentRequest.
+  ///
+  /// In en, this message translates to:
+  /// **'Send payment request'**
+  String get sendPaymentRequest;
+
+  /// No description provided for @paymentType.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment type'**
+  String get paymentType;
+
+  /// No description provided for @customerInfoLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Customer information'**
+  String get customerInfoLabel;
+
+  /// No description provided for @searchCustomerShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Find customer'**
+  String get searchCustomerShort;
+
+  /// No description provided for @customerPaysStaffLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Customer pays staff'**
+  String get customerPaysStaffLabel;
+
+  /// No description provided for @paymentDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment details'**
+  String get paymentDetails;
+
+  /// No description provided for @amountVnd.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount (₫)'**
+  String get amountVnd;
+
+  /// No description provided for @accountOrContractCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Account / Contract code'**
+  String get accountOrContractCode;
+
+  /// No description provided for @bankOrInstallmentOrg.
+  ///
+  /// In en, this message translates to:
+  /// **'Bank / Installment organization'**
+  String get bankOrInstallmentOrg;
+
+  /// No description provided for @noteForOwner.
+  ///
+  /// In en, this message translates to:
+  /// **'Note for shop owner'**
+  String get noteForOwner;
+
+  /// No description provided for @imagesInvoiceBankTransfer.
+  ///
+  /// In en, this message translates to:
+  /// **'Images (invoice, bank transfer...)'**
+  String get imagesInvoiceBankTransfer;
+
+  /// No description provided for @sendingLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Sending...'**
+  String get sendingLabel;
+
+  /// No description provided for @sendRequestLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'SEND REQUEST'**
+  String get sendRequestLabel;
+
+  /// No description provided for @paymentTypeName.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment type name'**
+  String get paymentTypeName;
+
+  /// No description provided for @electricityPayment.
+  ///
+  /// In en, this message translates to:
+  /// **'Electricity bill'**
+  String get electricityPayment;
+
+  /// No description provided for @waterPayment.
+  ///
+  /// In en, this message translates to:
+  /// **'Water bill'**
+  String get waterPayment;
+
+  /// No description provided for @internetPayment.
+  ///
+  /// In en, this message translates to:
+  /// **'Internet bill'**
+  String get internetPayment;
+
+  /// No description provided for @bankLoanPayment.
+  ///
+  /// In en, this message translates to:
+  /// **'Bank loan'**
+  String get bankLoanPayment;
+
+  /// No description provided for @installmentPayment.
+  ///
+  /// In en, this message translates to:
+  /// **'Installment'**
+  String get installmentPayment;
+
+  /// No description provided for @insurancePayment.
+  ///
+  /// In en, this message translates to:
+  /// **'Insurance'**
+  String get insurancePayment;
+
+  /// No description provided for @selectCustomerDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Select customer'**
+  String get selectCustomerDialogTitle;
+
+  /// No description provided for @searchByNamePhoneAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Search by name, phone, address...'**
+  String get searchByNamePhoneAddress;
+
+  /// No description provided for @sentPaymentRequest.
+  ///
+  /// In en, this message translates to:
+  /// **'✅ Payment request sent'**
+  String get sentPaymentRequest;
+
+  /// No description provided for @errorSendingRequest.
+  ///
+  /// In en, this message translates to:
+  /// **'❌ Error sending request'**
+  String get errorSendingRequest;
+
+  /// No description provided for @adminConsoleTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'SUPER ADMIN CONSOLE'**
+  String get adminConsoleTitle;
+
+  /// No description provided for @adminAuthSuperAdmin.
+  ///
+  /// In en, this message translates to:
+  /// **'Authenticate Super Admin'**
+  String get adminAuthSuperAdmin;
+
+  /// No description provided for @adminAuthPin.
+  ///
+  /// In en, this message translates to:
+  /// **'Authenticate PIN'**
+  String get adminAuthPin;
+
+  /// No description provided for @adminEnterPinForDangerous.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter Super Admin PIN to continue dangerous operation.'**
+  String get adminEnterPinForDangerous;
+
+  /// No description provided for @adminPinHint.
+  ///
+  /// In en, this message translates to:
+  /// **'PIN (4-6 digits)'**
+  String get adminPinHint;
+
+  /// No description provided for @adminPinWrong.
+  ///
+  /// In en, this message translates to:
+  /// **'Incorrect PIN'**
+  String get adminPinWrong;
+
+  /// No description provided for @adminEditUser.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit user'**
+  String get adminEditUser;
+
+  /// No description provided for @adminUserPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone'**
+  String get adminUserPhone;
+
+  /// No description provided for @adminShopId.
+  ///
+  /// In en, this message translates to:
+  /// **'Shop ID'**
+  String get adminShopId;
+
+  /// No description provided for @adminExitConsole.
+  ///
+  /// In en, this message translates to:
+  /// **'Exit Console?'**
+  String get adminExitConsole;
+
+  /// No description provided for @adminExitConsoleConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to exit the Super Admin Console?'**
+  String get adminExitConsoleConfirm;
+
+  /// No description provided for @adminStayHere.
+  ///
+  /// In en, this message translates to:
+  /// **'Stay'**
+  String get adminStayHere;
+
+  /// No description provided for @adminLogoutConfirmMsg.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to logout from the Super Admin Console?'**
+  String get adminLogoutConfirmMsg;
+
+  /// No description provided for @adminNoAccess.
+  ///
+  /// In en, this message translates to:
+  /// **'You do not have access to the Super Admin Console.'**
+  String get adminNoAccess;
+
+  /// No description provided for @adminReload.
+  ///
+  /// In en, this message translates to:
+  /// **'Reload'**
+  String get adminReload;
+
+  /// No description provided for @adminDashboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Dashboard'**
+  String get adminDashboard;
+
+  /// No description provided for @adminShops.
+  ///
+  /// In en, this message translates to:
+  /// **'Shops'**
+  String get adminShops;
+
+  /// No description provided for @adminUsers.
+  ///
+  /// In en, this message translates to:
+  /// **'Users'**
+  String get adminUsers;
+
+  /// No description provided for @adminLogs.
+  ///
+  /// In en, this message translates to:
+  /// **'Logs'**
+  String get adminLogs;
+
+  /// No description provided for @adminMore.
+  ///
+  /// In en, this message translates to:
+  /// **'More'**
+  String get adminMore;
+
+  /// No description provided for @adminBroadcast.
+  ///
+  /// In en, this message translates to:
+  /// **'Broadcast'**
+  String get adminBroadcast;
+
+  /// No description provided for @adminPermissions.
+  ///
+  /// In en, this message translates to:
+  /// **'Permissions'**
+  String get adminPermissions;
+
+  /// No description provided for @adminDangerZone.
+  ///
+  /// In en, this message translates to:
+  /// **'Danger Zone'**
+  String get adminDangerZone;
+
+  /// No description provided for @adminAuditLogs.
+  ///
+  /// In en, this message translates to:
+  /// **'Audit Logs'**
+  String get adminAuditLogs;
+
+  /// No description provided for @adminTotalShops.
+  ///
+  /// In en, this message translates to:
+  /// **'Total shops'**
+  String get adminTotalShops;
+
+  /// No description provided for @adminActiveShops.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get adminActiveShops;
+
+  /// No description provided for @adminTotalUsers.
+  ///
+  /// In en, this message translates to:
+  /// **'Total users'**
+  String get adminTotalUsers;
+
+  /// No description provided for @adminLockedShops.
+  ///
+  /// In en, this message translates to:
+  /// **'Locked shops'**
+  String get adminLockedShops;
+
+  /// No description provided for @adminGoToShopsToUnlock.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to Shops tab to unlock.'**
+  String get adminGoToShopsToUnlock;
+
+  /// No description provided for @adminSystemNormal.
+  ///
+  /// In en, this message translates to:
+  /// **'System operating normally'**
+  String get adminSystemNormal;
+
+  /// No description provided for @adminNoLockedShops.
+  ///
+  /// In en, this message translates to:
+  /// **'No shops are currently locked.'**
+  String get adminNoLockedShops;
+
+  /// No description provided for @adminShopLockedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} shops are locked'**
+  String adminShopLockedCount(int count);
+
+  /// No description provided for @adminSearchShops.
+  ///
+  /// In en, this message translates to:
+  /// **'Search shops by name, email, ID...'**
+  String get adminSearchShops;
+
+  /// No description provided for @adminShowDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted'**
+  String get adminShowDeleted;
+
+  /// No description provided for @adminNoMatchingShops.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching shops'**
+  String get adminNoMatchingShops;
+
+  /// No description provided for @adminViewDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'View detail'**
+  String get adminViewDetail;
+
+  /// No description provided for @adminEnterShop.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter shop'**
+  String get adminEnterShop;
+
+  /// No description provided for @adminUnlockApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock app'**
+  String get adminUnlockApp;
+
+  /// No description provided for @adminLockApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Lock app'**
+  String get adminLockApp;
+
+  /// No description provided for @adminResetData.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset data'**
+  String get adminResetData;
+
+  /// No description provided for @adminFullApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Entire app'**
+  String get adminFullApp;
+
+  /// No description provided for @adminNoUsersInShop.
+  ///
+  /// In en, this message translates to:
+  /// **'No users in this shop'**
+  String get adminNoUsersInShop;
+
+  /// No description provided for @adminNoActivity.
+  ///
+  /// In en, this message translates to:
+  /// **'No activity yet'**
+  String get adminNoActivity;
+
+  /// No description provided for @adminSearchUsers.
+  ///
+  /// In en, this message translates to:
+  /// **'Search by name, email, role, shop ID...'**
+  String get adminSearchUsers;
+
+  /// No description provided for @adminNoShopAssigned.
+  ///
+  /// In en, this message translates to:
+  /// **'No shop assigned'**
+  String get adminNoShopAssigned;
+
+  /// No description provided for @adminNoMatchingUsers.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching users'**
+  String get adminNoMatchingUsers;
+
+  /// No description provided for @adminDeleteUserDoc.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete user doc'**
+  String get adminDeleteUserDoc;
+
+  /// No description provided for @adminDeleteCompletely.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete completely'**
+  String get adminDeleteCompletely;
+
+  /// No description provided for @adminAuthAndUserData.
+  ///
+  /// In en, this message translates to:
+  /// **'Auth + data created by user'**
+  String get adminAuthAndUserData;
+
+  /// No description provided for @adminDeleteProfileOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete profile only, Auth remains'**
+  String get adminDeleteProfileOnly;
+
+  /// No description provided for @adminPermissionPanel.
+  ///
+  /// In en, this message translates to:
+  /// **'Permission Panel'**
+  String get adminPermissionPanel;
+
+  /// No description provided for @adminPermissionPanelSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Standard role-based baseline for owner/manager/staff. Shop-level locks will override at runtime.'**
+  String get adminPermissionPanelSubtitle;
+
+  /// No description provided for @adminNoAuditLogs.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching audit logs.'**
+  String get adminNoAuditLogs;
+
+  /// No description provided for @adminFilterShopId.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter shopId'**
+  String get adminFilterShopId;
+
+  /// No description provided for @adminFilterAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter action'**
+  String get adminFilterAction;
+
+  /// No description provided for @adminSearchEmailUser.
+  ///
+  /// In en, this message translates to:
+  /// **'Search email/user'**
+  String get adminSearchEmailUser;
+
+  /// No description provided for @adminSyncClaims.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync custom claims'**
+  String get adminSyncClaims;
+
+  /// No description provided for @adminSyncClaimsDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync claims for all users when rules/roles change.'**
+  String get adminSyncClaimsDesc;
+
+  /// No description provided for @adminSyncClaimsSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync claims successful.'**
+  String get adminSyncClaimsSuccess;
+
+  /// No description provided for @adminSyncClaimsError.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync claims error: {error}'**
+  String adminSyncClaimsError(String error);
+
+  /// No description provided for @adminPinSecurity.
+  ///
+  /// In en, this message translates to:
+  /// **'PIN Security'**
+  String get adminPinSecurity;
+
+  /// No description provided for @adminPinSecurityDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Protect Console with PIN when session expires'**
+  String get adminPinSecurityDesc;
+
+  /// No description provided for @adminPinEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'PIN enabled'**
+  String get adminPinEnabled;
+
+  /// No description provided for @adminPinEnabledDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'PIN required when session expires (30 min idle)'**
+  String get adminPinEnabledDesc;
+
+  /// No description provided for @adminPinNotSetup.
+  ///
+  /// In en, this message translates to:
+  /// **'PIN not set up'**
+  String get adminPinNotSetup;
+
+  /// No description provided for @adminPinNotSetupDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable PIN to protect console'**
+  String get adminPinNotSetupDesc;
+
+  /// No description provided for @adminChangePin.
+  ///
+  /// In en, this message translates to:
+  /// **'Change PIN'**
+  String get adminChangePin;
+
+  /// No description provided for @adminDisablePin.
+  ///
+  /// In en, this message translates to:
+  /// **'Disable PIN'**
+  String get adminDisablePin;
+
+  /// No description provided for @adminSetupPin.
+  ///
+  /// In en, this message translates to:
+  /// **'Set up'**
+  String get adminSetupPin;
+
+  /// No description provided for @adminSetupPinTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Set up PIN'**
+  String get adminSetupPinTitle;
+
+  /// No description provided for @adminChangePinTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Change PIN'**
+  String get adminChangePinTitle;
+
+  /// No description provided for @adminNewPin.
+  ///
+  /// In en, this message translates to:
+  /// **'New PIN (4-6 digits)'**
+  String get adminNewPin;
+
+  /// No description provided for @adminConfirmPin.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm PIN'**
+  String get adminConfirmPin;
+
+  /// No description provided for @adminPinTooShort.
+  ///
+  /// In en, this message translates to:
+  /// **'PIN must be 4-6 digits'**
+  String get adminPinTooShort;
+
+  /// No description provided for @adminPinMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'PINs do not match'**
+  String get adminPinMismatch;
+
+  /// No description provided for @adminPinSetupSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'PIN set up successfully.'**
+  String get adminPinSetupSuccess;
+
+  /// No description provided for @adminPinSetupError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error setting up PIN.'**
+  String get adminPinSetupError;
+
+  /// No description provided for @adminDisablePinTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Disable PIN'**
+  String get adminDisablePinTitle;
+
+  /// No description provided for @adminCurrentPin.
+  ///
+  /// In en, this message translates to:
+  /// **'Current PIN'**
+  String get adminCurrentPin;
+
+  /// No description provided for @adminEnterCurrentPinToDisable.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter current PIN to confirm disable:'**
+  String get adminEnterCurrentPinToDisable;
+
+  /// No description provided for @adminCurrentPinWrong.
+  ///
+  /// In en, this message translates to:
+  /// **'Incorrect PIN'**
+  String get adminCurrentPinWrong;
+
+  /// No description provided for @adminPinDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'PIN disabled.'**
+  String get adminPinDisabled;
+
+  /// No description provided for @adminDisablePinButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Disable PIN'**
+  String get adminDisablePinButton;
+
+  /// No description provided for @adminSendSystemNotification.
+  ///
+  /// In en, this message translates to:
+  /// **'Send System Notification'**
+  String get adminSendSystemNotification;
+
+  /// No description provided for @adminSendToAllUsersDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Send to ALL users via dialog + push.'**
+  String get adminSendToAllUsersDesc;
+
+  /// No description provided for @adminNotificationType.
+  ///
+  /// In en, this message translates to:
+  /// **'Notification type'**
+  String get adminNotificationType;
+
+  /// No description provided for @adminNotifTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Title'**
+  String get adminNotifTitle;
+
+  /// No description provided for @adminNotifTitleHint.
+  ///
+  /// In en, this message translates to:
+  /// **'E.g.: New version update required'**
+  String get adminNotifTitleHint;
+
+  /// No description provided for @adminNotifContent.
+  ///
+  /// In en, this message translates to:
+  /// **'Content'**
+  String get adminNotifContent;
+
+  /// No description provided for @adminNotifContentHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter detailed notification content...'**
+  String get adminNotifContentHint;
+
+  /// No description provided for @adminSendToAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Send to all users'**
+  String get adminSendToAll;
+
+  /// No description provided for @adminSending.
+  ///
+  /// In en, this message translates to:
+  /// **'Sending...'**
+  String get adminSending;
+
+  /// No description provided for @adminSendSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'✅ Sent successfully to all users!'**
+  String get adminSendSuccess;
+
+  /// No description provided for @adminNotifTitleRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter title and content.'**
+  String get adminNotifTitleRequired;
+
+  /// No description provided for @adminNotificationHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Notification history'**
+  String get adminNotificationHistory;
+
+  /// No description provided for @adminNoNotificationsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No notifications yet.'**
+  String get adminNoNotificationsYet;
+
+  /// No description provided for @adminExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Expired'**
+  String get adminExpired;
+
+  /// No description provided for @adminDangerZoneSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'All operations here require PIN authentication and are logged in audit log.'**
+  String get adminDangerZoneSubtitle;
+
+  /// No description provided for @adminSelectDataToDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Select data to delete'**
+  String get adminSelectDataToDelete;
+
+  /// No description provided for @adminSelectedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} items selected'**
+  String adminSelectedCount(int count);
+
+  /// No description provided for @adminDeleteSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete ({count} items)'**
+  String adminDeleteSelected(int count);
+
+  /// No description provided for @adminIsOwnerWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'This is the SHOP OWNER. Be careful when deleting!'**
+  String get adminIsOwnerWarning;
+
+  /// No description provided for @adminDeleteUserAndData.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete user + data'**
+  String get adminDeleteUserAndData;
+
+  /// No description provided for @adminDeleteUserDocOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete user doc'**
+  String get adminDeleteUserDocOnly;
+
+  /// No description provided for @adminWillDeletePermanently.
+  ///
+  /// In en, this message translates to:
+  /// **'Will DELETE PERMANENTLY:'**
+  String get adminWillDeletePermanently;
+
+  /// No description provided for @adminDeleteFirebaseAuth.
+  ///
+  /// In en, this message translates to:
+  /// **'• Firebase Auth account (loses login access)'**
+  String get adminDeleteFirebaseAuth;
+
+  /// No description provided for @adminDeleteUserProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'• User profile in Firestore'**
+  String get adminDeleteUserProfile;
+
+  /// No description provided for @adminDeleteUserOrders.
+  ///
+  /// In en, this message translates to:
+  /// **'• Repair, sale orders, expenses created by user'**
+  String get adminDeleteUserOrders;
+
+  /// No description provided for @adminDeleteUserAttendance.
+  ///
+  /// In en, this message translates to:
+  /// **'• User attendance data and notifications'**
+  String get adminDeleteUserAttendance;
+
+  /// No description provided for @adminShopDataNotDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'⚠️ Shop data (inventory, customers...) will NOT be deleted.'**
+  String get adminShopDataNotDeleted;
+
+  /// No description provided for @adminOnlyDeleteProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Only deletes user profile in Firestore.'**
+  String get adminOnlyDeleteProfile;
+
+  /// No description provided for @adminAuthStillExists.
+  ///
+  /// In en, this message translates to:
+  /// **'Firebase Auth account remains — user can still login but loses shop link.'**
+  String get adminAuthStillExists;
+
+  /// No description provided for @adminDeletingData.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleting data...'**
+  String get adminDeletingData;
+
+  /// No description provided for @adminResetSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted selected data of shop {shopName}'**
+  String adminResetSuccess(String shopName);
+
+  /// No description provided for @adminResetFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset failed: {error}'**
+  String adminResetFailed(String error);
+
+  /// No description provided for @adminSoftDeleteSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Soft-deleted shop {shopName}'**
+  String adminSoftDeleteSuccess(String shopName);
+
+  /// No description provided for @adminDeletedUserWithData.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted user + data: {email}'**
+  String adminDeletedUserWithData(String email);
+
+  /// No description provided for @adminDeletedUserDoc.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted user doc: {email}'**
+  String adminDeletedUserDoc(String email);
+
+  /// No description provided for @adminLockedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Locked {label}'**
+  String adminLockedLabel(String label);
+
+  /// No description provided for @adminUnlockedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlocked {label}'**
+  String adminUnlockedLabel(String label);
+
+  /// No description provided for @adminLockFinance.
+  ///
+  /// In en, this message translates to:
+  /// **'Lock admin finance'**
+  String get adminLockFinance;
+
+  /// No description provided for @adminLockInventory.
+  ///
+  /// In en, this message translates to:
+  /// **'Lock inventory for staff'**
+  String get adminLockInventory;
+
+  /// No description provided for @adminLockSales.
+  ///
+  /// In en, this message translates to:
+  /// **'Lock sales for staff'**
+  String get adminLockSales;
+
+  /// No description provided for @adminLockDebt.
+  ///
+  /// In en, this message translates to:
+  /// **'Lock debts for staff'**
+  String get adminLockDebt;
+
+  /// No description provided for @permissionManagementTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'PERMISSION MANAGEMENT'**
+  String get permissionManagementTitle;
+
+  /// No description provided for @noPermissionManagementScreen.
+  ///
+  /// In en, this message translates to:
+  /// **'You do not have access\nto the permission management screen'**
+  String get noPermissionManagementScreen;
+
+  /// No description provided for @noStaffInShop.
+  ///
+  /// In en, this message translates to:
+  /// **'No staff in this shop yet\nInvite staff via QR code first'**
+  String get noStaffInShop;
+
+  /// No description provided for @noEmailYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No email yet'**
+  String get noEmailYet;
+
+  /// No description provided for @noPhoneYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No phone yet'**
+  String get noPhoneYet;
+
+  /// No description provided for @phoneWithColon.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone:'**
+  String get phoneWithColon;
+
+  /// No description provided for @roleWithColon.
+  ///
+  /// In en, this message translates to:
+  /// **'Role:'**
+  String get roleWithColon;
+
+  /// No description provided for @systemRoleSection.
+  ///
+  /// In en, this message translates to:
+  /// **'SYSTEM ROLE'**
+  String get systemRoleSection;
+
+  /// No description provided for @businessPermissionsSection.
+  ///
+  /// In en, this message translates to:
+  /// **'BUSINESS CONTENT PERMISSIONS'**
+  String get businessPermissionsSection;
+
+  /// No description provided for @financePermissionsSection.
+  ///
+  /// In en, this message translates to:
+  /// **'FINANCIAL CONTENT PERMISSIONS'**
+  String get financePermissionsSection;
+
+  /// No description provided for @systemPermissionsSection.
+  ///
+  /// In en, this message translates to:
+  /// **'SYSTEM MANAGEMENT PERMISSIONS'**
+  String get systemPermissionsSection;
+
+  /// No description provided for @permRowSales.
+  ///
+  /// In en, this message translates to:
+  /// **'SALES'**
+  String get permRowSales;
+
+  /// No description provided for @permRowRepairs.
+  ///
+  /// In en, this message translates to:
+  /// **'REPAIRS'**
+  String get permRowRepairs;
+
+  /// No description provided for @permRowInventory.
+  ///
+  /// In en, this message translates to:
+  /// **'INVENTORY'**
+  String get permRowInventory;
+
+  /// No description provided for @permRowParts.
+  ///
+  /// In en, this message translates to:
+  /// **'REPAIR PARTS'**
+  String get permRowParts;
+
+  /// No description provided for @permRowSuppliers.
+  ///
+  /// In en, this message translates to:
+  /// **'SUPPLIERS'**
+  String get permRowSuppliers;
+
+  /// No description provided for @permRowCustomers.
+  ///
+  /// In en, this message translates to:
+  /// **'CUSTOMERS'**
+  String get permRowCustomers;
+
+  /// No description provided for @permRowWarranty.
+  ///
+  /// In en, this message translates to:
+  /// **'WARRANTY'**
+  String get permRowWarranty;
+
+  /// No description provided for @permRowChat.
+  ///
+  /// In en, this message translates to:
+  /// **'INTERNAL CHAT'**
+  String get permRowChat;
+
+  /// No description provided for @permRowAttendance.
+  ///
+  /// In en, this message translates to:
+  /// **'ATTENDANCE'**
+  String get permRowAttendance;
+
+  /// No description provided for @permRowPrinter.
+  ///
+  /// In en, this message translates to:
+  /// **'PRINTER CONFIG'**
+  String get permRowPrinter;
+
+  /// No description provided for @permRowRevenue.
+  ///
+  /// In en, this message translates to:
+  /// **'REVENUE & PROFIT/LOSS'**
+  String get permRowRevenue;
+
+  /// No description provided for @permRowExpenses.
+  ///
+  /// In en, this message translates to:
+  /// **'SHOP EXPENSES'**
+  String get permRowExpenses;
+
+  /// No description provided for @permRowDebts.
+  ///
+  /// In en, this message translates to:
+  /// **'DEBT LEDGER'**
+  String get permRowDebts;
+
+  /// No description provided for @permRowCostPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'PRODUCT COST PRICE'**
+  String get permRowCostPrice;
+
+  /// No description provided for @permRowManageStaff.
+  ///
+  /// In en, this message translates to:
+  /// **'MANAGE STAFF'**
+  String get permRowManageStaff;
+
+  /// No description provided for @permRowSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'SYSTEM SETTINGS'**
+  String get permRowSettings;
+
+  /// No description provided for @updatedPermissionMsg.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated permission: {permission}'**
+  String updatedPermissionMsg(String permission);
+
+  /// No description provided for @errorUpdatingPermission.
+  ///
+  /// In en, this message translates to:
+  /// **'Error updating permission: {error}'**
+  String errorUpdatingPermission(String error);
+
+  /// No description provided for @updatedRoleMsg.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated role to {role}'**
+  String updatedRoleMsg(String role);
+
+  /// No description provided for @errorUpdatingRole.
+  ///
+  /// In en, this message translates to:
+  /// **'Error updating role: {error}'**
+  String errorUpdatingRole(String error);
+
+  /// No description provided for @notifSettingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Notification settings'**
+  String get notifSettingsTitle;
+
+  /// No description provided for @importantNotificationsSection.
+  ///
+  /// In en, this message translates to:
+  /// **'IMPORTANT NOTIFICATIONS'**
+  String get importantNotificationsSection;
+
+  /// No description provided for @otherNotificationsSection.
+  ///
+  /// In en, this message translates to:
+  /// **'OTHER NOTIFICATIONS'**
+  String get otherNotificationsSection;
+
+  /// No description provided for @newOrderNotif.
+  ///
+  /// In en, this message translates to:
+  /// **'New order'**
+  String get newOrderNotif;
+
+  /// No description provided for @newOrderNotifDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Notify when a customer creates a new order'**
+  String get newOrderNotifDesc;
+
+  /// No description provided for @paymentNotif.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment'**
+  String get paymentNotif;
+
+  /// No description provided for @paymentNotifDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Notify when a payment is successful'**
+  String get paymentNotifDesc;
+
+  /// No description provided for @inventoryNotif.
+  ///
+  /// In en, this message translates to:
+  /// **'Inventory'**
+  String get inventoryNotif;
+
+  /// No description provided for @inventoryNotifDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Alert when a product is running low'**
+  String get inventoryNotifDesc;
+
+  /// No description provided for @staffNotif.
+  ///
+  /// In en, this message translates to:
+  /// **'Staff'**
+  String get staffNotif;
+
+  /// No description provided for @staffNotifDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications about staff activity'**
+  String get staffNotifDesc;
+
+  /// No description provided for @systemNotif.
+  ///
+  /// In en, this message translates to:
+  /// **'System'**
+  String get systemNotif;
+
+  /// No description provided for @systemNotifDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'System update and maintenance notifications'**
+  String get systemNotifDesc;
+
+  /// No description provided for @notifPermissionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Notification permission'**
+  String get notifPermissionTitle;
+
+  /// No description provided for @notifPermissionOk.
+  ///
+  /// In en, this message translates to:
+  /// **'Permission OK'**
+  String get notifPermissionOk;
+
+  /// No description provided for @notifPermissionNotGranted.
+  ///
+  /// In en, this message translates to:
+  /// **'Not granted'**
+  String get notifPermissionNotGranted;
+
+  /// No description provided for @notifTokenOk.
+  ///
+  /// In en, this message translates to:
+  /// **'Token OK'**
+  String get notifTokenOk;
+
+  /// No description provided for @notifTokenMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'No token'**
+  String get notifTokenMissing;
+
+  /// No description provided for @notifFullyWorking.
+  ///
+  /// In en, this message translates to:
+  /// **'Notification permission granted. You will receive push notifications.'**
+  String get notifFullyWorking;
+
+  /// No description provided for @notifNeedPermission.
+  ///
+  /// In en, this message translates to:
+  /// **'Notification permission required to receive push notifications.'**
+  String get notifNeedPermission;
+
+  /// No description provided for @notifNeedPermissionIos.
+  ///
+  /// In en, this message translates to:
+  /// **'Notification permission required to receive push notifications.\nIf already enabled in iOS Settings, tap \"Refresh FCM Token\".'**
+  String get notifNeedPermissionIos;
+
+  /// No description provided for @notifPermissionButNoToken.
+  ///
+  /// In en, this message translates to:
+  /// **'Permission granted but no FCM Token. Tap \"Refresh FCM Token\" below.'**
+  String get notifPermissionButNoToken;
+
+  /// No description provided for @grantPermission.
+  ///
+  /// In en, this message translates to:
+  /// **'Grant permission'**
+  String get grantPermission;
+
+  /// No description provided for @yourRoleColon.
+  ///
+  /// In en, this message translates to:
+  /// **'Your role:'**
+  String get yourRoleColon;
+
+  /// No description provided for @roleBasedNotifNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Some notification types are only available for specific roles to ensure security and avoid spam.'**
+  String get roleBasedNotifNote;
+
+  /// No description provided for @notifUnavailableForRole.
+  ///
+  /// In en, this message translates to:
+  /// **'Not available for current role'**
+  String get notifUnavailableForRole;
+
+  /// No description provided for @refreshFcmTokenBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'REFRESH FCM TOKEN'**
+  String get refreshFcmTokenBtn;
+
+  /// No description provided for @sendTestNotifBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'SEND TEST NOTIFICATION'**
+  String get sendTestNotifBtn;
+
+  /// No description provided for @notifGrantPermissionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Grant notification permission'**
+  String get notifGrantPermissionTitle;
+
+  /// No description provided for @notifGrantPermissionContent.
+  ///
+  /// In en, this message translates to:
+  /// **'The app needs notification permission to send important notifications. Please enable permission in system settings.'**
+  String get notifGrantPermissionContent;
+
+  /// No description provided for @openSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open settings'**
+  String get openSettings;
+
+  /// No description provided for @notifEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications enabled'**
+  String get notifEnabled;
+
+  /// No description provided for @notifDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications disabled'**
+  String get notifDisabled;
+
+  /// No description provided for @notifPermissionGranted.
+  ///
+  /// In en, this message translates to:
+  /// **'Notification permission granted!'**
+  String get notifPermissionGranted;
+
+  /// No description provided for @notifPermissionNeeded.
+  ///
+  /// In en, this message translates to:
+  /// **'Permission required to receive notifications'**
+  String get notifPermissionNeeded;
+
+  /// No description provided for @testNotifContent.
+  ///
+  /// In en, this message translates to:
+  /// **'This is a test notification from the push notification system. If you see this notification, the system is working normally!'**
+  String get testNotifContent;
+
+  /// No description provided for @testNotifSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Test notification sent!'**
+  String get testNotifSent;
+
+  /// No description provided for @notifSendError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error sending notification: {error}'**
+  String notifSendError(String error);
+
+  /// No description provided for @refreshingFcmTokenLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Refreshing FCM token...'**
+  String get refreshingFcmTokenLabel;
+
+  /// No description provided for @refreshTokenSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'✅ FCM token refreshed successfully!'**
+  String get refreshTokenSuccess;
+
+  /// No description provided for @refreshTokenFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'❌ Unable to refresh FCM token. Try again later.'**
+  String get refreshTokenFailed;
+
+  /// No description provided for @refreshTokenError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error refreshing token: {error}'**
+  String refreshTokenError(String error);
+
+  /// No description provided for @notifInfoTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'NOTIFICATION INFO'**
+  String get notifInfoTitle;
+
+  /// No description provided for @notifInfoContent.
+  ///
+  /// In en, this message translates to:
+  /// **'• Notifications are sent based on your role\n• Admin & Owner receive all notifications\n• Manager & Technician receive important notifications\n• Employee receives personal notifications only'**
+  String get notifInfoContent;
+
+  /// No description provided for @backupRestoreTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup & Restore'**
+  String get backupRestoreTitle;
+
+  /// No description provided for @sqliteTabLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'SQLite (.db file)'**
+  String get sqliteTabLabel;
+
+  /// No description provided for @firestoreTabLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Firestore (cloud)'**
+  String get firestoreTabLabel;
+
+  /// No description provided for @backupSqliteSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup SQLite'**
+  String get backupSqliteSection;
+
+  /// No description provided for @shareOrSaveLocal.
+  ///
+  /// In en, this message translates to:
+  /// **'Share / Save to device'**
+  String get shareOrSaveLocal;
+
+  /// No description provided for @backupToCloudLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup to Cloud'**
+  String get backupToCloudLabel;
+
+  /// No description provided for @cloudSqliteBackupsSection.
+  ///
+  /// In en, this message translates to:
+  /// **'SQLite Cloud Backups'**
+  String get cloudSqliteBackupsSection;
+
+  /// No description provided for @noBackupsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No backups yet.'**
+  String get noBackupsYet;
+
+  /// No description provided for @restoreFromFileSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore from file'**
+  String get restoreFromFileSection;
+
+  /// No description provided for @selectDbFileDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a previously backed-up .db file to restore.'**
+  String get selectDbFileDesc;
+
+  /// No description provided for @selectDbFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Select .db file'**
+  String get selectDbFile;
+
+  /// No description provided for @backupSqliteSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'SQLite backup to Cloud successful!'**
+  String get backupSqliteSuccess;
+
+  /// No description provided for @restoreSuccessTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore successful'**
+  String get restoreSuccessTitle;
+
+  /// No description provided for @restoreSuccessContent.
+  ///
+  /// In en, this message translates to:
+  /// **'Data restored. Please restart the app to apply changes.'**
+  String get restoreSuccessContent;
+
+  /// No description provided for @firestoreInfoCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Firestore backup saves each collection as a separate JSON file. You can choose which items to backup or restore.'**
+  String get firestoreInfoCard;
+
+  /// No description provided for @backupFirestoreSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup Firestore'**
+  String get backupFirestoreSection;
+
+  /// No description provided for @selectAndBackupToCloud.
+  ///
+  /// In en, this message translates to:
+  /// **'Select items & Backup to Cloud'**
+  String get selectAndBackupToCloud;
+
+  /// No description provided for @firestoreBackupsSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Firestore Backups'**
+  String get firestoreBackupsSection;
+
+  /// No description provided for @noFirestoreBackupsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No Firestore backups yet.'**
+  String get noFirestoreBackupsYet;
+
+  /// No description provided for @preparingBackup.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing...'**
+  String get preparingBackup;
+
+  /// No description provided for @backupFirestoreSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Firestore backup successful ({count} items)!'**
+  String backupFirestoreSuccess(int count);
+
+  /// No description provided for @restoreFirestoreSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore successful ({count} items)!'**
+  String restoreFirestoreSuccess(int count);
+
+  /// No description provided for @deleteBackupSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup deleted.'**
+  String get deleteBackupSuccess;
+
+  /// No description provided for @confirmRestoreTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm restore'**
+  String get confirmRestoreTitle;
+
+  /// No description provided for @confirmRestoreContent.
+  ///
+  /// In en, this message translates to:
+  /// **'Current data of {count} items will be overwritten by the backup from {date}.\n\nContinue?'**
+  String confirmRestoreContent(int count, String date);
+
+  /// No description provided for @deleteBackupTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete backup?'**
+  String get deleteBackupTitle;
+
+  /// No description provided for @deleteBackupContent.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete backup from {date}?'**
+  String deleteBackupContent(String date);
+
+  /// No description provided for @restoringSqliteFromCloud.
+  ///
+  /// In en, this message translates to:
+  /// **'SQLite cloud restore is under development.'**
+  String get restoringSqliteFromCloud;
+
+  /// No description provided for @notInBackupLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Not in this backup'**
+  String get notInBackupLabel;
+
+  /// No description provided for @storageRulesNeeded.
+  ///
+  /// In en, this message translates to:
+  /// **'Firebase Storage Rules configuration required'**
+  String get storageRulesNeeded;
+
+  /// No description provided for @restoreBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore'**
+  String get restoreBtn;
+
+  /// No description provided for @selectDataToBackup.
+  ///
+  /// In en, this message translates to:
+  /// **'Select data to backup'**
+  String get selectDataToBackup;
+
+  /// No description provided for @selectDataToRestore.
+  ///
+  /// In en, this message translates to:
+  /// **'Select data to restore'**
+  String get selectDataToRestore;
+
+  /// No description provided for @backupConfirmLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup'**
+  String get backupConfirmLabel;
+
+  /// No description provided for @restoreConfirmLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore'**
+  String get restoreConfirmLabel;
+
+  /// No description provided for @selectedCountItems.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} items selected'**
+  String selectedCountItems(int count);
+
+  /// No description provided for @backupLabelWithCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup ({count})'**
+  String backupLabelWithCount(int count);
+
+  /// No description provided for @restoreLabelWithCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore ({count})'**
+  String restoreLabelWithCount(int count);
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

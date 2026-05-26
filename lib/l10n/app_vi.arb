@@ -396,7 +396,7 @@
   "deletePartner": "Xóa đối tác",
   "scanSettings": "Cài đặt scan",
   "confirm": "Xác nhận",
-  "confirmAction": "Xác nhận hành động",
+  "confirmAction": "Xác nhận",
   "loading": "Đang tải...",
   "error": "Lỗi",
   "success": "Thành công",
@@ -1980,7 +1980,7 @@
   "checkInLabel": "Vào:",
   "checkOutLabel": "Ra:",
   "approvedStatus": "Đã duyệt",
-  "rejectedStatus": "Từ chối",
+  "rejectedStatus": "❌ Từ chối",
   "pendingStatus": "Chờ duyệt",
   "selectStaffToViewAttendance": "Chọn nhân viên để xem chấm công",
   "displayError": "Lỗi hiển thị",
@@ -2403,9 +2403,6 @@
   },
   "approveAttendance": "Xác nhận",
   "rejectAttendance": "Từ chối",
-  "approvedStatus": "Đã duyệt",
-  "rejectedStatus": "Từ chối",
-  "pendingStatus": "Chờ duyệt",
   "bulkApprove": "Duyệt tất cả",
   "forgotCheckin": "Quên chấm công",
   "forgotCheckinRequest": "Yêu cầu bổ sung chấm công",
@@ -2471,11 +2468,541 @@
     }
   },
   "selectTime": "Chọn giờ",
-  "confirmAction": "Xác nhận",
   "cancelAction": "Hủy",
   "submitRequest": "Gửi yêu cầu",
   "forgotCheckinDate": "Ngày quên chấm công",
   "forgotCheckinTime": "Giờ vào",
   "forgotCheckoutTime": "Giờ ra",
-  "requestNote": "Ghi chú"
+  "requestNote": "Ghi chú",
+  "remaining": "Còn nợ",
+  "incidentalUpper": "PHÁT SINH",
+  "technician": "Kỹ thuật",
+  "paymentCashLower": "Tiền mặt",
+  "exportExcel": "Xuất Excel",
+  "paid": "Đã trả",
+  "last7days": "7 ngày",
+  "combined": "KẾT HỢP",
+  "weekUpper": "TUẦN",
+  "paymentTransferLower": "Chuyển khoản",
+  "salePrice": "Giá bán",
+  "settled": "Đã tất toán",
+  "paymentDone": "Đã thanh toán",
+  "retailCustomer": "Khách lẻ",
+  "quickCode": "Mã nhập nhanh",
+  "refundUpper": "HOÀN TIỀN",
+  "transferShort": "C.KHOẢN",
+  "overdue": "Quá hạn",
+  "utilities": "ĐIỆN NƯỚC",
+  "sold": "Đã bán",
+  "paySupplierDebt": "Trả nợ NCC",
+  "returnGoods": "Trả hàng",
+  "addPhoto": "Thêm ảnh",
+  "chooseFromGallery": "Chọn từ thư viện",
+  "syncing": "Đang đồng bộ...",
+  "errorOccurred": "Có lỗi xảy ra",
+  "payable": "Phải trả",
+  "personal": "CÁ NHÂN",
+  "salePriceVnd": "Giá bán (VNĐ)",
+  "deduction": "Khấu trừ",
+  "profit": "Lợi nhuận",
+  "costPriceVnd": "Giá nhập (VNĐ)",
+  "deactivate": "Ngừng HĐ",
+  "addNewSupplier": "Thêm NCC mới",
+  "noShopName": "Shop không tên",
+  "totalAmount": "Tổng tiền",
+  "editLabel": "Chỉnh sửa",
+  "rejectReason": "Lý do từ chối",
+  "loadMore": "Tải thêm",
+  "payDebt": "Thanh toán nợ",
+  "system": "Hệ thống",
+  "restore": "Khôi phục",
+  "incidentalIncome": "Thu phát sinh",
+  "addNew": "Thêm mới",
+  "brand": "Hãng",
+  "noPermission": "Không có quyền",
+  "month": "Tháng",
+  "sort": "Sắp xếp",
+  "discount": "Giảm giá",
+  "type": "Loại",
+  "deleteData": "Xóa dữ liệu",
+  "aiFilledRepairOrder": "AI đã tự điền đơn sửa.",
+  "parsedRepairOrderFilled": "Đã nhận diện và điền đơn sửa.",
+  "orderSavedUploadingImages": "Đơn đã lưu. Đang tải ảnh lên hệ thống, vui lòng không thoát ứng dụng.",
+  "uploadingImagesToSystem": "Đang tải ảnh lên hệ thống, vui lòng không thoát ứng dụng.",
+  "searchPartner": "Tìm đối tác",
+  "noPartnerFound": "Không tìm thấy đối tác phù hợp",
+  "quickInputTooltip": "Nhập nhanh bằng câu lệnh",
+  "saveAndPrint": "Lưu & In",
+  "hideDetails": "Ẩn bớt",
+  "showMoreDetails": "Thêm chi tiết (bảo mật, ngoại quan, phụ kiện, ảnh)",
+  "customerOwesDebt": "Còn nợ",
+  "shopOwesCustomer": "Shop nợ",
+  "customerAddressOptional": "Địa chỉ KH (tùy chọn)",
+  "takePhoto": "Chụp ảnh",
+  "paymentRequestTitle": "Yêu cầu đóng tiền",
+  "searchNamePhoneBankAmount": "Tìm tên, SĐT, NH, số tiền...",
+  "createNewRequest": "Tạo yêu cầu mới",
+  "pendingApprovalStatus": "⏳ Chờ duyệt",
+  "paidStatus": "✅ Đã thanh toán",
+  "noPaymentRequests": "Chưa có yêu cầu đóng tiền",
+  "tapPlusToCreateNew": "Nhấn ⊕ trên thanh tiêu đề để tạo mới",
+  "overdueLabel": "QUÁ HẠN",
+  "customerBankTransfer": "KH chuyển khoản",
+  "customerCash": "KH trả tiền mặt",
+  "ownerTransferredToBank": "Chủ shop đã CK cho NH",
+  "paymentBankTransfer": "Thanh toán (CK cho NH)",
+  "deleteRequest": "Xóa yêu cầu",
+  "rejectButton": "Từ chối",
+  "accountContractNumber": "Số TK / Hợp đồng",
+  "bankOrLoanOrg": "NH / Tổ chức vay",
+  "customerPaysStaff": "KH trả cho NV",
+  "bankTransferLabelWithEmoji": "🏦 Chuyển khoản",
+  "cashLabelWithEmoji": "💵 Tiền mặt",
+  "ownerTransferBank": "Chủ shop CK NH",
+  "transferredToBank": "🏦 Đã chuyển khoản cho ngân hàng",
+  "staffSender": "Nhân viên gửi",
+  "createdDate": "Ngày tạo",
+  "processedBy": "Người xử lý",
+  "processedDate": "Ngày xử lý",
+  "attachedImages": "Hình ảnh đính kèm (hóa đơn, CK NH):",
+  "confirmBankTransfer": "Xác nhận đã CK cho ngân hàng",
+  "bankTransferNoteMsg": "Khoản CK cho ngân hàng sẽ được ghi vào sổ quỹ.\nSau khi xác nhận, hãy gửi ảnh chụp màn hình CK để lưu bằng chứng.",
+  "confirmedBankTransfer": "Đã CK cho NH ✓",
+  "rejectRequest": "Từ chối yêu cầu",
+  "selectProofImageHint": "💡 Chọn ảnh CK ngân hàng để gửi bằng chứng",
+  "selectRequestToSendImage": "Chọn yêu cầu để gửi ảnh CK ngân hàng...",
+  "selectRequestForBankImage": "Chọn yêu cầu để gửi ảnh CK ngân hàng",
+  "uploadingProofImages": "Đang tải ảnh minh chứng lên hệ thống, vui lòng không thoát ứng dụng.",
+  "sendPaymentRequest": "Gửi yêu cầu đóng tiền",
+  "paymentType": "Loại thanh toán",
+  "customerInfoLabel": "Thông tin khách hàng",
+  "searchCustomerShort": "Tìm KH",
+  "customerPaysStaffLabel": "Khách thanh toán cho NV",
+  "paymentDetails": "Chi tiết thanh toán",
+  "amountVnd": "Số tiền (đ)",
+  "accountOrContractCode": "Số TK / Mã hợp đồng",
+  "bankOrInstallmentOrg": "NH / Tổ chức vay góp",
+  "noteForOwner": "Ghi chú cho chủ shop",
+  "imagesInvoiceBankTransfer": "Hình ảnh (hóa đơn, CK ngân hàng...)",
+  "sendingLabel": "Đang gửi...",
+  "sendRequestLabel": "GỬI YÊU CẦU",
+  "paymentTypeName": "Tên loại thanh toán",
+  "electricityPayment": "Tiền điện",
+  "waterPayment": "Tiền nước",
+  "internetPayment": "Tiền mạng",
+  "bankLoanPayment": "Vay NH",
+  "installmentPayment": "Trả góp",
+  "insurancePayment": "Bảo hiểm",
+  "selectCustomerDialogTitle": "Chọn khách hàng",
+  "searchByNamePhoneAddress": "Tìm theo tên, SĐT, địa chỉ...",
+  "sentPaymentRequest": "✅ Đã gửi yêu cầu đóng tiền",
+  "errorSendingRequest": "❌ Lỗi gửi yêu cầu",
+  "adminConsoleTitle": "SUPER ADMIN CONSOLE",
+  "adminAuthSuperAdmin": "Xác thực Super Admin",
+  "adminAuthPin": "Xác thực PIN",
+  "adminEnterPinForDangerous": "Nhập PIN Super Admin để tiếp tục thao tác nguy hiểm.",
+  "adminPinHint": "PIN (4-6 số)",
+  "adminPinWrong": "PIN không đúng",
+  "adminEditUser": "Sửa user",
+  "adminUserPhone": "SĐT",
+  "adminShopId": "Shop ID",
+  "adminExitConsole": "Thoát Console?",
+  "adminExitConsoleConfirm": "Bạn có chắc muốn thoát khỏi Super Admin Console?",
+  "adminStayHere": "Ở lại",
+  "adminLogoutConfirmMsg": "Bạn có chắc muốn đăng xuất khỏi Super Admin Console?",
+  "adminNoAccess": "Bạn không có quyền truy cập Super Admin Console.",
+  "adminReload": "Tải lại",
+  "adminDashboard": "Dashboard",
+  "adminShops": "Shops",
+  "adminUsers": "Users",
+  "adminLogs": "Logs",
+  "adminMore": "More",
+  "adminBroadcast": "Broadcast",
+  "adminPermissions": "Permissions",
+  "adminDangerZone": "Danger Zone",
+  "adminAuditLogs": "Audit Logs",
+  "adminTotalShops": "Tổng shop",
+  "adminActiveShops": "Hoạt động",
+  "adminTotalUsers": "Tổng user",
+  "adminLockedShops": "Shop bị khóa",
+  "adminGoToShopsToUnlock": "Vào tab Shops để mở khóa.",
+  "adminSystemNormal": "Hệ thống hoạt động bình thường",
+  "adminNoLockedShops": "Không có shop nào đang bị khóa.",
+  "adminShopLockedCount": "{count} shop đang bị khóa app",
+  "@adminShopLockedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "adminSearchShops": "Tìm shop theo tên, email, ID...",
+  "adminShowDeleted": "Đã xóa",
+  "adminNoMatchingShops": "Không có shop phù hợp",
+  "adminViewDetail": "Xem chi tiết",
+  "adminEnterShop": "Vào shop",
+  "adminUnlockApp": "Mở khóa app",
+  "adminLockApp": "Khóa app",
+  "adminResetData": "Reset dữ liệu",
+  "adminFullApp": "Toàn bộ app",
+  "adminNoUsersInShop": "Không có user trong shop",
+  "adminNoActivity": "Chưa có activity",
+  "adminSearchUsers": "Tìm theo tên, email, role, shop ID...",
+  "adminNoShopAssigned": "Chưa có shop",
+  "adminNoMatchingUsers": "Không có user phù hợp",
+  "adminDeleteUserDoc": "Xóa user doc",
+  "adminDeleteCompletely": "Xóa hoàn toàn",
+  "adminAuthAndUserData": "Auth + dữ liệu do user tạo",
+  "adminDeleteProfileOnly": "Chỉ xóa hồ sơ, Auth còn",
+  "adminPermissionPanel": "Permission Panel",
+  "adminPermissionPanelSubtitle": "Chuẩn role-based baseline cho owner/manager/staff. Các khóa cấp shop sẽ override tại runtime.",
+  "adminNoAuditLogs": "Không có audit logs phù hợp.",
+  "adminFilterShopId": "Filter shopId",
+  "adminFilterAction": "Filter action",
+  "adminSearchEmailUser": "Search email/user",
+  "adminSyncClaims": "Sync custom claims",
+  "adminSyncClaimsDesc": "Đồng bộ claims cho toàn bộ user khi thay đổi rules/roles.",
+  "adminSyncClaimsSuccess": "Sync claims thành công.",
+  "adminSyncClaimsError": "Sync claims lỗi: {error}",
+  "@adminSyncClaimsError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "adminPinSecurity": "Bảo mật PIN",
+  "adminPinSecurityDesc": "Bảo vệ Console bằng mã PIN khi session hết hạn",
+  "adminPinEnabled": "Mã PIN đã bật",
+  "adminPinEnabledDesc": "Yêu cầu PIN khi session hết hạn (30 phút idle)",
+  "adminPinNotSetup": "Chưa thiết lập PIN",
+  "adminPinNotSetupDesc": "Bật PIN để bảo vệ console",
+  "adminChangePin": "Đổi PIN",
+  "adminDisablePin": "Tắt PIN",
+  "adminSetupPin": "Thiết lập",
+  "adminSetupPinTitle": "Thiết lập mã PIN",
+  "adminChangePinTitle": "Đổi mã PIN",
+  "adminNewPin": "Mã PIN mới (4-6 số)",
+  "adminConfirmPin": "Nhập lại PIN",
+  "adminPinTooShort": "PIN phải từ 4-6 số",
+  "adminPinMismatch": "Hai mã PIN không khớp",
+  "adminPinSetupSuccess": "Đã thiết lập mã PIN thành công.",
+  "adminPinSetupError": "Lỗi thiết lập PIN.",
+  "adminDisablePinTitle": "Tắt mã PIN",
+  "adminCurrentPin": "Mã PIN hiện tại",
+  "adminEnterCurrentPinToDisable": "Nhập PIN hiện tại để xác nhận tắt:",
+  "adminCurrentPinWrong": "Mã PIN không đúng",
+  "adminPinDisabled": "Đã tắt mã PIN.",
+  "adminDisablePinButton": "Tắt PIN",
+  "adminSendSystemNotification": "Gửi Thông Báo Hệ Thống",
+  "adminSendToAllUsersDesc": "Gửi tới TẤT CẢ người dùng qua dialog + push.",
+  "adminNotificationType": "Loại thông báo",
+  "adminNotifTitle": "Tiêu đề",
+  "adminNotifTitleHint": "VD: Yêu cầu cập nhật phiên bản mới",
+  "adminNotifContent": "Nội dung",
+  "adminNotifContentHint": "Nhập nội dung thông báo chi tiết...",
+  "adminSendToAll": "Gửi tới toàn bộ người dùng",
+  "adminSending": "Đang gửi...",
+  "adminSendSuccess": "✅ Đã gửi thành công tới toàn bộ người dùng!",
+  "adminNotifTitleRequired": "Vui lòng nhập tiêu đề và nội dung.",
+  "adminNotificationHistory": "Lịch sử thông báo",
+  "adminNoNotificationsYet": "Chưa có thông báo nào.",
+  "adminExpired": "Hết hạn",
+  "adminDangerZoneSubtitle": "Mọi thao tác tại đây đều yêu cầu xác thực PIN và được ghi audit log.",
+  "adminSelectDataToDelete": "Chọn dữ liệu cần xóa",
+  "adminSelectedCount": "{count} mục đã chọn",
+  "@adminSelectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "adminDeleteSelected": "Xóa ({count} mục)",
+  "@adminDeleteSelected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "adminIsOwnerWarning": "Đây là CHỦ SHOP. Cẩn thận khi xóa!",
+  "adminDeleteUserAndData": "Xóa user + dữ liệu",
+  "adminDeleteUserDocOnly": "Xóa user doc",
+  "adminWillDeletePermanently": "Sẽ XÓA VĨNH VIỄN:",
+  "adminDeleteFirebaseAuth": "• Tài khoản Firebase Auth (mất đăng nhập)",
+  "adminDeleteUserProfile": "• Hồ sơ user trong Firestore",
+  "adminDeleteUserOrders": "• Đơn sửa, bán hàng, chi phí do user tạo",
+  "adminDeleteUserAttendance": "• Dữ liệu chấm công, thông báo của user",
+  "adminShopDataNotDeleted": "⚠️ Dữ liệu shop (kho, khách hàng...) KHÔNG bị xóa.",
+  "adminOnlyDeleteProfile": "Chỉ xóa hồ sơ user trong Firestore.",
+  "adminAuthStillExists": "Tài khoản Firebase Auth vẫn còn — user vẫn có thể đăng nhập nhưng mất liên kết shop.",
+  "adminDeletingData": "Đang xóa dữ liệu...",
+  "adminResetSuccess": "Đã xóa dữ liệu đã chọn của shop {shopName}",
+  "@adminResetSuccess": {
+    "placeholders": {
+      "shopName": {
+        "type": "String"
+      }
+    }
+  },
+  "adminResetFailed": "Reset thất bại: {error}",
+  "@adminResetFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "adminSoftDeleteSuccess": "Đã soft-delete shop {shopName}",
+  "@adminSoftDeleteSuccess": {
+    "placeholders": {
+      "shopName": {
+        "type": "String"
+      }
+    }
+  },
+  "adminDeletedUserWithData": "Đã xóa user + dữ liệu: {email}",
+  "@adminDeletedUserWithData": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "adminDeletedUserDoc": "Đã xóa user doc: {email}",
+  "@adminDeletedUserDoc": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "adminLockedLabel": "Đã khóa {label}",
+  "@adminLockedLabel": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "adminUnlockedLabel": "Đã mở khóa {label}",
+  "@adminUnlockedLabel": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "adminLockFinance": "Khóa tài chính quản lý",
+  "adminLockInventory": "Khóa kho cho nhân viên",
+  "adminLockSales": "Khóa bán hàng cho nhân viên",
+  "adminLockDebt": "Khóa công nợ cho nhân viên",
+  "permissionManagementTitle": "QUẢN LÝ PHÂN QUYỀN",
+  "noPermissionManagementScreen": "Bạn không có quyền truy cập\nmàn hình quản lý phân quyền",
+  "noStaffInShop": "Chưa có nhân viên nào trong shop\nMời nhân viên qua mã QR trước",
+  "noEmailYet": "Chưa có email",
+  "noPhoneYet": "Chưa có SĐT",
+  "phoneWithColon": "SĐT:",
+  "roleWithColon": "Vai trò:",
+  "systemRoleSection": "VAI TRÒ HỆ THỐNG",
+  "businessPermissionsSection": "QUYỀN XEM NỘI DUNG NGHIỆP VỤ",
+  "financePermissionsSection": "QUYỀN XEM NỘI DUNG TÀI CHÍNH",
+  "systemPermissionsSection": "QUYỀN QUẢN LÝ HỆ THỐNG",
+  "permRowSales": "BÁN HÀNG",
+  "permRowRepairs": "SỬA CHỮA",
+  "permRowInventory": "KHO HÀNG",
+  "permRowParts": "LINH KIỆN SỬA CHỮA",
+  "permRowSuppliers": "NHÀ CUNG CẤP",
+  "permRowCustomers": "KHÁCH HÀNG",
+  "permRowWarranty": "BẢO HÀNH",
+  "permRowChat": "CHAT NỘI BỘ",
+  "permRowAttendance": "CHẤM CÔNG",
+  "permRowPrinter": "CẤU HÌNH MÁY IN",
+  "permRowRevenue": "DOANH THU & LỜI LỖ",
+  "permRowExpenses": "CHI PHÍ CỬA HÀNG",
+  "permRowDebts": "SỔ CÔNG NỢ",
+  "permRowCostPrice": "GIÁ VỐN SẢN PHẨM",
+  "permRowManageStaff": "QUẢN LÝ NHÂN VIÊN",
+  "permRowSettings": "CÀI ĐẶT HỆ THỐNG",
+  "updatedPermissionMsg": "Đã cập nhật quyền {permission}",
+  "@updatedPermissionMsg": {
+    "placeholders": {
+      "permission": {
+        "type": "String"
+      }
+    }
+  },
+  "errorUpdatingPermission": "Lỗi cập nhật quyền: {error}",
+  "@errorUpdatingPermission": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "updatedRoleMsg": "Đã cập nhật vai trò thành {role}",
+  "@updatedRoleMsg": {
+    "placeholders": {
+      "role": {
+        "type": "String"
+      }
+    }
+  },
+  "errorUpdatingRole": "Lỗi cập nhật vai trò: {error}",
+  "@errorUpdatingRole": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "notifSettingsTitle": "Cài đặt thông báo",
+  "importantNotificationsSection": "THÔNG BÁO QUAN TRỌNG",
+  "otherNotificationsSection": "THÔNG BÁO KHÁC",
+  "newOrderNotif": "Đơn hàng mới",
+  "newOrderNotifDesc": "Thông báo khi có khách hàng tạo đơn hàng mới",
+  "paymentNotif": "Thanh toán",
+  "paymentNotifDesc": "Thông báo khi có thanh toán thành công",
+  "inventoryNotif": "Kho hàng",
+  "inventoryNotifDesc": "Cảnh báo khi sản phẩm sắp hết hàng",
+  "staffNotif": "Nhân viên",
+  "staffNotifDesc": "Thông báo về hoạt động của nhân viên",
+  "systemNotif": "Hệ thống",
+  "systemNotifDesc": "Thông báo cập nhật và bảo trì hệ thống",
+  "notifPermissionTitle": "Quyền thông báo",
+  "notifPermissionOk": "Quyền OK",
+  "notifPermissionNotGranted": "Chưa cấp quyền",
+  "notifTokenOk": "Token OK",
+  "notifTokenMissing": "Chưa có token",
+  "notifFullyWorking": "Đã cấp quyền thông báo. Bạn sẽ nhận được thông báo push.",
+  "notifNeedPermission": "Cần cấp quyền thông báo để nhận thông báo push.",
+  "notifNeedPermissionIos": "Cần cấp quyền thông báo để nhận thông báo push.\nNếu đã bật trong Cài đặt iOS, hãy nhấn \"Làm mới FCM Token\".",
+  "notifPermissionButNoToken": "Đã cấp quyền nhưng chưa có FCM Token. Nhấn \"Làm mới FCM Token\" bên dưới.",
+  "grantPermission": "Cấp quyền",
+  "yourRoleColon": "Vai trò của bạn:",
+  "roleBasedNotifNote": "Một số loại thông báo chỉ dành cho vai trò nhất định để đảm bảo bảo mật và tránh spam.",
+  "notifUnavailableForRole": "Không khả dụng cho vai trò hiện tại",
+  "refreshFcmTokenBtn": "LÀM MỚI FCM TOKEN",
+  "sendTestNotifBtn": "GỬI THÔNG BÁO TEST",
+  "notifGrantPermissionTitle": "Cấp quyền thông báo",
+  "notifGrantPermissionContent": "Ứng dụng cần quyền thông báo để gửi thông báo quan trọng. Vui lòng bật quyền trong cài đặt hệ thống.",
+  "openSettings": "Mở cài đặt",
+  "notifEnabled": "Đã bật thông báo",
+  "notifDisabled": "Đã tắt thông báo",
+  "notifPermissionGranted": "Đã cấp quyền thông báo!",
+  "notifPermissionNeeded": "Cần cấp quyền để nhận thông báo",
+  "testNotifContent": "Đây là thông báo test từ hệ thống push notification. Nếu bạn thấy thông báo này, hệ thống đang hoạt động bình thường!",
+  "testNotifSent": "Đã gửi thông báo test!",
+  "notifSendError": "Lỗi gửi thông báo: {error}",
+  "@notifSendError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "refreshingFcmTokenLabel": "Đang làm mới FCM token...",
+  "refreshTokenSuccess": "✅ Đã làm mới FCM token thành công!",
+  "refreshTokenFailed": "❌ Không thể làm mới FCM token. Thử lại sau.",
+  "refreshTokenError": "Lỗi làm mới token: {error}",
+  "@refreshTokenError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "notifInfoTitle": "THÔNG TIN THÔNG BÁO",
+  "notifInfoContent": "• Thông báo được gửi dựa trên vai trò của bạn\n• Admin & Owner nhận tất cả thông báo\n• Manager & Technician nhận thông báo quan trọng\n• Employee chỉ nhận thông báo cá nhân",
+  "backupRestoreTitle": "Sao lưu & Khôi phục",
+  "sqliteTabLabel": "SQLite (file .db)",
+  "firestoreTabLabel": "Firestore (cloud)",
+  "backupSqliteSection": "Sao lưu SQLite",
+  "shareOrSaveLocal": "Chia sẻ / Lưu máy",
+  "backupToCloudLabel": "Sao lưu lên Cloud",
+  "cloudSqliteBackupsSection": "Bản sao lưu SQLite trên Cloud",
+  "noBackupsYet": "Chưa có bản sao lưu nào.",
+  "restoreFromFileSection": "Khôi phục từ file",
+  "selectDbFileDesc": "Chọn file .db đã sao lưu trước đó để khôi phục.",
+  "selectDbFile": "Chọn file .db",
+  "backupSqliteSuccess": "Sao lưu SQLite lên Cloud thành công!",
+  "restoreSuccessTitle": "Khôi phục thành công",
+  "restoreSuccessContent": "Đã khôi phục dữ liệu. Vui lòng khởi động lại ứng dụng để áp dụng thay đổi.",
+  "firestoreInfoCard": "Sao lưu Firestore lưu từng collection thành file JSON riêng. Bạn có thể chọn mục nào cần sao lưu hoặc khôi phục.",
+  "backupFirestoreSection": "Sao lưu Firestore",
+  "selectAndBackupToCloud": "Chọn mục & Sao lưu lên Cloud",
+  "firestoreBackupsSection": "Bản sao lưu Firestore",
+  "noFirestoreBackupsYet": "Chưa có bản sao lưu Firestore nào.",
+  "preparingBackup": "Đang chuẩn bị...",
+  "backupFirestoreSuccess": "Sao lưu Firestore thành công ({count} mục)!",
+  "@backupFirestoreSuccess": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "restoreFirestoreSuccess": "Khôi phục thành công ({count} mục)!",
+  "@restoreFirestoreSuccess": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "deleteBackupSuccess": "Đã xóa bản sao lưu.",
+  "confirmRestoreTitle": "Xác nhận khôi phục",
+  "confirmRestoreContent": "Dữ liệu hiện tại của {count} mục sẽ bị ghi đè bởi bản sao lưu ngày {date}.\n\nTiếp tục?",
+  "@confirmRestoreContent": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteBackupTitle": "Xóa bản sao lưu?",
+  "deleteBackupContent": "Xóa bản sao lưu ngày {date}?",
+  "@deleteBackupContent": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "restoringSqliteFromCloud": "Khôi phục SQLite từ cloud đang phát triển.",
+  "notInBackupLabel": "Không có trong bản sao lưu này",
+  "storageRulesNeeded": "Cần cấu hình Firebase Storage Rules",
+  "restoreBtn": "Khôi phục",
+  "selectDataToBackup": "Chọn dữ liệu cần sao lưu",
+  "selectDataToRestore": "Chọn dữ liệu cần khôi phục",
+  "backupConfirmLabel": "Sao lưu",
+  "restoreConfirmLabel": "Khôi phục",
+  "selectedCountItems": "{count} mục đã chọn",
+  "@selectedCountItems": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupLabelWithCount": "Sao lưu ({count})",
+  "@backupLabelWithCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "restoreLabelWithCount": "Khôi phục ({count})",
+  "@restoreLabelWithCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

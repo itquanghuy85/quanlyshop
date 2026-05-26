@@ -1,0 +1,3901 @@
+{
+  "TIỀN MẶT": {
+    "key": "cash",
+    "en": "CASH",
+    "vi": "TIỀN MẶT",
+    "isNew": false,
+    "freq": 80
+  },
+  "CÔNG NỢ": {
+    "key": "debt",
+    "en": "DEBT",
+    "vi": "CÔNG NỢ",
+    "isNew": false,
+    "freq": 74
+  },
+  "HỦY": {
+    "key": "cancelAction",
+    "en": "Cancel",
+    "vi": "HỦY",
+    "isNew": false,
+    "freq": 73
+  },
+  "Hủy": {
+    "key": "cancelAction",
+    "en": "Cancel",
+    "vi": "Hủy",
+    "isNew": false,
+    "freq": 72
+  },
+  "CHUYỂN KHOẢN": {
+    "key": "bankTransfer",
+    "en": "BANK TRANSFER",
+    "vi": "CHUYỂN KHOẢN",
+    "isNew": false,
+    "freq": 56
+  },
+  "Ghi chú": {
+    "key": "requestNote",
+    "en": "Note",
+    "vi": "Ghi chú",
+    "isNew": false,
+    "freq": 40
+  },
+  "Nhân viên": {
+    "key": "staffTab",
+    "en": "Staff",
+    "vi": "Nhân viên",
+    "isNew": false,
+    "freq": 30
+  },
+  "Tất cả": {
+    "key": "all",
+    "en": "All",
+    "vi": "Tất cả",
+    "isNew": false,
+    "freq": 30
+  },
+  "Xóa": {
+    "key": "clear",
+    "en": "Clear",
+    "vi": "Xóa",
+    "isNew": false,
+    "freq": 27
+  },
+  "Số điện thoại": {
+    "key": "phoneNumberLabel",
+    "en": "Phone number",
+    "vi": "Số điện thoại",
+    "isNew": false,
+    "freq": 22
+  },
+  "XÁC NHẬN": {
+    "key": "approveAttendance",
+    "en": "Confirm",
+    "vi": "XÁC NHẬN",
+    "isNew": false,
+    "freq": 18
+  },
+  "Còn nợ": {
+    "key": "remaining",
+    "en": "Outstanding",
+    "vi": "Còn nợ",
+    "isNew": true,
+    "freq": 18
+  },
+  "Địa chỉ": {
+    "key": "addressLabel2",
+    "en": "Address",
+    "vi": "Địa chỉ",
+    "isNew": false,
+    "freq": 18
+  },
+  "Lưu": {
+    "key": "save",
+    "en": "Save",
+    "vi": "Lưu",
+    "isNew": false,
+    "freq": 17
+  },
+  "XÓA": {
+    "key": "deleteButton",
+    "en": "DELETE",
+    "vi": "XÓA",
+    "isNew": false,
+    "freq": 15
+  },
+  "Sửa chữa": {
+    "key": "repairsTab",
+    "en": "Repairs",
+    "vi": "Sửa chữa",
+    "isNew": false,
+    "freq": 15
+  },
+  "PHỤ KIỆN": {
+    "key": "accessoriesCategory",
+    "en": "Accessories",
+    "vi": "PHỤ KIỆN",
+    "isNew": false,
+    "freq": 15
+  },
+  "Công nợ": {
+    "key": "viewDebts",
+    "en": "Debts",
+    "vi": "Công nợ",
+    "isNew": false,
+    "freq": 14
+  },
+  "Chi phí": {
+    "key": "costField",
+    "en": "Cost",
+    "vi": "Chi phí",
+    "isNew": false,
+    "freq": 13
+  },
+  "Nhà cung cấp": {
+    "key": "supplierField",
+    "en": "Supplier",
+    "vi": "Nhà cung cấp",
+    "isNew": false,
+    "freq": 13
+  },
+  "Làm mới": {
+    "key": "refresh",
+    "en": "Refresh",
+    "vi": "Làm mới",
+    "isNew": false,
+    "freq": 13
+  },
+  "Chủ shop": {
+    "key": "owner",
+    "en": "Shop owner",
+    "vi": "Chủ shop",
+    "isNew": false,
+    "freq": 13
+  },
+  "Quản lý": {
+    "key": "roleManager",
+    "en": "Manager",
+    "vi": "Quản lý",
+    "isNew": false,
+    "freq": 13
+  },
+  "KHÁC": {
+    "key": "otherInfoLabel",
+    "en": "Other",
+    "vi": "KHÁC",
+    "isNew": false,
+    "freq": 13
+  },
+  "PHÁT SINH": {
+    "key": "incidentalUpper",
+    "en": "INCIDENTAL",
+    "vi": "PHÁT SINH",
+    "isNew": true,
+    "freq": 13
+  },
+  "Bạn không có quyền truy cập tính năng này": {
+    "key": "noAccessPermission",
+    "en": "You do not have permission to access this feature",
+    "vi": "Bạn không có quyền truy cập tính năng này",
+    "isNew": false,
+    "freq": 12
+  },
+  "Khách hàng": {
+    "key": "customerLabel",
+    "en": "Customer",
+    "vi": "Khách hàng",
+    "isNew": false,
+    "freq": 12
+  },
+  "TRẢ GÓP (NH)": {
+    "key": "installment",
+    "en": "INSTALLMENT (BANK)",
+    "vi": "TRẢ GÓP (NH)",
+    "isNew": false,
+    "freq": 12
+  },
+  "Thử lại": {
+    "key": "tryAgain",
+    "en": "Try again",
+    "vi": "Thử lại",
+    "isNew": false,
+    "freq": 12
+  },
+  "Kỹ thuật": {
+    "key": "technician",
+    "en": "Technician",
+    "vi": "Kỹ thuật",
+    "isNew": true,
+    "freq": 12
+  },
+  "Thanh toán": {
+    "key": "payment",
+    "en": "Payment",
+    "vi": "Thanh toán",
+    "isNew": false,
+    "freq": 12
+  },
+  "Màu sắc": {
+    "key": "colorField",
+    "en": "Color",
+    "vi": "Màu sắc",
+    "isNew": false,
+    "freq": 12
+  },
+  "Xác nhận xóa": {
+    "key": "confirmDeleteTitle",
+    "en": "Confirm delete",
+    "vi": "Xác nhận xóa",
+    "isNew": false,
+    "freq": 12
+  },
+  "Tải lại": {
+    "key": "reload",
+    "en": "Reload",
+    "vi": "Tải lại",
+    "isNew": false,
+    "freq": 11
+  },
+  "Tiền mặt": {
+    "key": "paymentCashLower",
+    "en": "Cash",
+    "vi": "Tiền mặt",
+    "isNew": true,
+    "freq": 11
+  },
+  "LƯU": {
+    "key": "saveButton",
+    "en": "SAVE",
+    "vi": "LƯU",
+    "isNew": false,
+    "freq": 11
+  },
+  "Khác": {
+    "key": "otherInfoLabel",
+    "en": "Other",
+    "vi": "Khác",
+    "isNew": false,
+    "freq": 11
+  },
+  "ĐÓNG": {
+    "key": "closeButton",
+    "en": "CLOSE",
+    "vi": "ĐÓNG",
+    "isNew": false,
+    "freq": 11
+  },
+  "Sửa": {
+    "key": "editAction",
+    "en": "Edit",
+    "vi": "Sửa",
+    "isNew": false,
+    "freq": 10
+  },
+  "Xuất Excel": {
+    "key": "exportExcel",
+    "en": "Export Excel",
+    "vi": "Xuất Excel",
+    "isNew": true,
+    "freq": 10
+  },
+  "Số tiền": {
+    "key": "amount",
+    "en": "Amount",
+    "vi": "Số tiền",
+    "isNew": false,
+    "freq": 10
+  },
+  "TẤT CẢ": {
+    "key": "all",
+    "en": "All",
+    "vi": "TẤT CẢ",
+    "isNew": false,
+    "freq": 10
+  },
+  "Giá vốn": {
+    "key": "partsCost",
+    "en": "Parts cost",
+    "vi": "Giá vốn",
+    "isNew": false,
+    "freq": 9
+  },
+  "Tình trạng": {
+    "key": "conditionField",
+    "en": "Condition",
+    "vi": "Tình trạng",
+    "isNew": false,
+    "freq": 9
+  },
+  "Thêm": {
+    "key": "addBtn",
+    "en": "Add",
+    "vi": "Thêm",
+    "isNew": false,
+    "freq": 9
+  },
+  "Xác nhận": {
+    "key": "approveAttendance",
+    "en": "Confirm",
+    "vi": "Xác nhận",
+    "isNew": false,
+    "freq": 9
+  },
+  "Dung lượng": {
+    "key": "capacityField",
+    "en": "Capacity",
+    "vi": "Dung lượng",
+    "isNew": false,
+    "freq": 9
+  },
+  "giờ": {
+    "key": "time",
+    "en": "Time",
+    "vi": "giờ",
+    "isNew": false,
+    "freq": 9
+  },
+  "Đơn sửa chữa": {
+    "key": "repairOrdersDataItem",
+    "en": "Repair orders",
+    "vi": "Đơn sửa chữa",
+    "isNew": false,
+    "freq": 8
+  },
+  "Nhập hàng": {
+    "key": "stockIn",
+    "en": "Stock in",
+    "vi": "Nhập hàng",
+    "isNew": true,
+    "freq": 8
+  },
+  "Đã trả": {
+    "key": "paid",
+    "en": "Paid",
+    "vi": "Đã trả",
+    "isNew": true,
+    "freq": 8
+  },
+  "NGÀY": {
+    "key": "dateLabel",
+    "en": "Date",
+    "vi": "NGÀY",
+    "isNew": false,
+    "freq": 8
+  },
+  "Đang sửa": {
+    "key": "repairing",
+    "en": "Repairing",
+    "vi": "Đang sửa",
+    "isNew": false,
+    "freq": 7
+  },
+  "Sản phẩm": {
+    "key": "productNameLabelShort",
+    "en": "Product",
+    "vi": "Sản phẩm",
+    "isNew": false,
+    "freq": 7
+  },
+  "Đơn bán hàng": {
+    "key": "saleOrdersDataItem",
+    "en": "Sale orders",
+    "vi": "Đơn bán hàng",
+    "isNew": false,
+    "freq": 7
+  },
+  "Không xác định": {
+    "key": "unknown",
+    "en": "Unknown",
+    "vi": "Không xác định",
+    "isNew": false,
+    "freq": 7
+  },
+  "Hôm nay": {
+    "key": "todayLabel",
+    "en": "Today",
+    "vi": "Hôm nay",
+    "isNew": false,
+    "freq": 7
+  },
+  "7 ngày": {
+    "key": "last7days",
+    "en": "7 days",
+    "vi": "7 ngày",
+    "isNew": true,
+    "freq": 7
+  },
+  "Tháng này": {
+    "key": "thisMonth",
+    "en": "This month",
+    "vi": "Tháng này",
+    "isNew": false,
+    "freq": 7
+  },
+  "KẾT HỢP": {
+    "key": "combined",
+    "en": "COMBINED",
+    "vi": "KẾT HỢP",
+    "isNew": true,
+    "freq": 7
+  },
+  "Bán hàng": {
+    "key": "salesTab",
+    "en": "Sales",
+    "vi": "Bán hàng",
+    "isNew": false,
+    "freq": 7
+  },
+  "SĐT": {
+    "key": "phoneLabel",
+    "en": "Phone",
+    "vi": "SĐT",
+    "isNew": false,
+    "freq": 7
+  },
+  "Số lượng": {
+    "key": "quantity",
+    "en": "Quantity",
+    "vi": "Số lượng",
+    "isNew": false,
+    "freq": 7
+  },
+  "TUẦN": {
+    "key": "weekUpper",
+    "en": "WEEK",
+    "vi": "TUẦN",
+    "isNew": true,
+    "freq": 7
+  },
+  "Phụ kiện": {
+    "key": "accessoriesCategory",
+    "en": "Accessories",
+    "vi": "Phụ kiện",
+    "isNew": false,
+    "freq": 7
+  },
+  "Chưa chọn": {
+    "key": "notSelected",
+    "en": "Not selected",
+    "vi": "Chưa chọn",
+    "isNew": false,
+    "freq": 7
+  },
+  "Bảo hành": {
+    "key": "warrantyField",
+    "en": "Warranty",
+    "vi": "Bảo hành",
+    "isNew": false,
+    "freq": 7
+  },
+  "Chuyển khoản": {
+    "key": "paymentTransferLower",
+    "en": "Transfer",
+    "vi": "Chuyển khoản",
+    "isNew": true,
+    "freq": 7
+  },
+  "Giá bán": {
+    "key": "salePrice",
+    "en": "Sale price",
+    "vi": "Giá bán",
+    "isNew": true,
+    "freq": 7
+  },
+  "Đã tất toán": {
+    "key": "settled",
+    "en": "Settled",
+    "vi": "Đã tất toán",
+    "isNew": true,
+    "freq": 7
+  },
+  "Đăng xuất": {
+    "key": "logout",
+    "en": "Logout",
+    "vi": "Đăng xuất",
+    "isNew": true,
+    "freq": 7
+  },
+  "Đã thanh toán": {
+    "key": "paymentDone",
+    "en": "Paid",
+    "vi": "Đã thanh toán",
+    "isNew": true,
+    "freq": 6
+  },
+  "Khách lẻ": {
+    "key": "retailCustomer",
+    "en": "Retail customer",
+    "vi": "Khách lẻ",
+    "isNew": true,
+    "freq": 6
+  },
+  "CẬP NHẬT": {
+    "key": "update",
+    "en": "Update",
+    "vi": "CẬP NHẬT",
+    "isNew": false,
+    "freq": 6
+  },
+  "Mã nhập nhanh": {
+    "key": "quickCode",
+    "en": "Quick code",
+    "vi": "Mã nhập nhanh",
+    "isNew": true,
+    "freq": 6
+  },
+  "HOÀN TIỀN": {
+    "key": "refundUpper",
+    "en": "REFUND",
+    "vi": "HOÀN TIỀN",
+    "isNew": true,
+    "freq": 6
+  },
+  "Phương thức thanh toán": {
+    "key": "paymentMethod",
+    "en": "Payment method",
+    "vi": "Phương thức thanh toán",
+    "isNew": true,
+    "freq": 6
+  },
+  "C.KHOẢN": {
+    "key": "transferShort",
+    "en": "Transfer",
+    "vi": "C.KHOẢN",
+    "isNew": true,
+    "freq": 6
+  },
+  "Quá hạn": {
+    "key": "overdue",
+    "en": "Overdue",
+    "vi": "Quá hạn",
+    "isNew": true,
+    "freq": 6
+  },
+  "ĐIỆN NƯỚC": {
+    "key": "utilities",
+    "en": "UTILITIES",
+    "vi": "ĐIỆN NƯỚC",
+    "isNew": true,
+    "freq": 6
+  },
+  "Điện thoại": {
+    "key": "phonesCategory",
+    "en": "Phones",
+    "vi": "Điện thoại",
+    "isNew": false,
+    "freq": 6
+  },
+  "Vui lòng đăng nhập lại": {
+    "key": "pleaseLoginAgain",
+    "en": "Please login again",
+    "vi": "Vui lòng đăng nhập lại",
+    "isNew": false,
+    "freq": 6
+  },
+  "Đã bán": {
+    "key": "sold",
+    "en": "Sold",
+    "vi": "Đã bán",
+    "isNew": true,
+    "freq": 6
+  },
+  "CHỦ SHOP": {
+    "key": "ownerRole",
+    "en": "SHOP OWNER",
+    "vi": "CHỦ SHOP",
+    "isNew": false,
+    "freq": 6
+  },
+  "QUẢN LÝ": {
+    "key": "roleManager",
+    "en": "Manager",
+    "vi": "QUẢN LÝ",
+    "isNew": false,
+    "freq": 6
+  },
+  "NHÂN VIÊN": {
+    "key": "staffTab",
+    "en": "Staff",
+    "vi": "NHÂN VIÊN",
+    "isNew": false,
+    "freq": 6
+  },
+  "KỸ THUẬT": {
+    "key": "technicianRole",
+    "en": "TECHNICIAN",
+    "vi": "KỸ THUẬT",
+    "isNew": false,
+    "freq": 6
+  },
+  "Hoạt động": {
+    "key": "active",
+    "en": "Active",
+    "vi": "Hoạt động",
+    "isNew": true,
+    "freq": 6
+  },
+  "Đã nhận": {
+    "key": "received",
+    "en": "Received",
+    "vi": "Đã nhận",
+    "isNew": true,
+    "freq": 5
+  },
+  "Chọn nhân viên": {
+    "key": "selectStaffHint",
+    "en": "Select staff",
+    "vi": "Chọn nhân viên",
+    "isNew": false,
+    "freq": 5
+  },
+  "Chờ duyệt": {
+    "key": "pendingStatus",
+    "en": "Pending",
+    "vi": "Chờ duyệt",
+    "isNew": false,
+    "freq": 5
+  },
+  "Từ chối": {
+    "key": "rejectLeave",
+    "en": "Reject",
+    "vi": "Từ chối",
+    "isNew": false,
+    "freq": 5
+  },
+  "Đơn bán": {
+    "key": "salesOrder",
+    "en": "Sales",
+    "vi": "Đơn bán",
+    "isNew": false,
+    "freq": 5
+  },
+  "Chấm công": {
+    "key": "attendance",
+    "en": "Attendance",
+    "vi": "Chấm công",
+    "isNew": true,
+    "freq": 5
+  },
+  "Tùy chọn": {
+    "key": "optional",
+    "en": "Optional",
+    "vi": "Tùy chọn",
+    "isNew": false,
+    "freq": 5
+  },
+  "Trả nợ NCC": {
+    "key": "paySupplierDebt",
+    "en": "Pay supplier debt",
+    "vi": "Trả nợ NCC",
+    "isNew": true,
+    "freq": 5
+  },
+  "Trả hàng": {
+    "key": "returnGoods",
+    "en": "Return goods",
+    "vi": "Trả hàng",
+    "isNew": true,
+    "freq": 5
+  },
+  "Thêm ảnh": {
+    "key": "addPhoto",
+    "en": "Add photo",
+    "vi": "Thêm ảnh",
+    "isNew": true,
+    "freq": 5
+  },
+  "Chọn từ thư viện": {
+    "key": "chooseFromGallery",
+    "en": "Choose from gallery",
+    "vi": "Chọn từ thư viện",
+    "isNew": true,
+    "freq": 5
+  },
+  "Lỗi đồng bộ": {
+    "key": "syncErrorTitle",
+    "en": "Sync error",
+    "vi": "Lỗi đồng bộ",
+    "isNew": false,
+    "freq": 5
+  },
+  "NHẬP KHO": {
+    "key": "stockIn",
+    "en": "Stock in",
+    "vi": "NHẬP KHO",
+    "isNew": false,
+    "freq": 5
+  },
+  "12 THÁNG": {
+    "key": "twelveMonths",
+    "en": "12 MONTHS",
+    "vi": "12 THÁNG",
+    "isNew": false,
+    "freq": 5
+  },
+  "THANH TOÁN": {
+    "key": "payment",
+    "en": "Payment",
+    "vi": "THANH TOÁN",
+    "isNew": false,
+    "freq": 5
+  },
+  "Đang đồng bộ...": {
+    "key": "syncing",
+    "en": "Syncing...",
+    "vi": "Đang đồng bộ...",
+    "isNew": true,
+    "freq": 5
+  },
+  "Tổng nợ": {
+    "key": "totalDebt",
+    "en": "Total debt",
+    "vi": "Tổng nợ",
+    "isNew": true,
+    "freq": 5
+  },
+  "Có lỗi xảy ra": {
+    "key": "errorOccurred",
+    "en": "An error occurred",
+    "vi": "Có lỗi xảy ra",
+    "isNew": true,
+    "freq": 5
+  },
+  "Phải trả": {
+    "key": "payable",
+    "en": "Payable",
+    "vi": "Phải trả",
+    "isNew": true,
+    "freq": 5
+  },
+  "CÁ NHÂN": {
+    "key": "personal",
+    "en": "PERSONAL",
+    "vi": "CÁ NHÂN",
+    "isNew": true,
+    "freq": 5
+  },
+  "DỊCH VỤ": {
+    "key": "services",
+    "en": "SERVICES",
+    "vi": "DỊCH VỤ",
+    "isNew": false,
+    "freq": 5
+  },
+  "XÁC NHẬN XÓA": {
+    "key": "confirmDeleteTitle",
+    "en": "Confirm delete",
+    "vi": "XÁC NHẬN XÓA",
+    "isNew": false,
+    "freq": 5
+  },
+  "Bật/tắt đèn flash": {
+    "key": "toggleFlash",
+    "en": "Toggle flash",
+    "vi": "Bật/tắt đèn flash",
+    "isNew": true,
+    "freq": 5
+  },
+  "Giá bán (VNĐ)": {
+    "key": "salePriceVnd",
+    "en": "Sale price (VND)",
+    "vi": "Giá bán (VNĐ)",
+    "isNew": true,
+    "freq": 5
+  },
+  "Khấu trừ": {
+    "key": "deduction",
+    "en": "Deduction",
+    "vi": "Khấu trừ",
+    "isNew": true,
+    "freq": 5
+  },
+  "Lợi nhuận": {
+    "key": "profit",
+    "en": "Profit",
+    "vi": "Lợi nhuận",
+    "isNew": true,
+    "freq": 5
+  },
+  "Giá nhập (VNĐ)": {
+    "key": "costPriceVnd",
+    "en": "Cost price (VND)",
+    "vi": "Giá nhập (VNĐ)",
+    "isNew": true,
+    "freq": 5
+  },
+  "Đang lưu...": {
+    "key": "savingLabel",
+    "en": "Saving...",
+    "vi": "Đang lưu...",
+    "isNew": false,
+    "freq": 5
+  },
+  "Ngừng HĐ": {
+    "key": "deactivate",
+    "en": "Deactivate",
+    "vi": "Ngừng HĐ",
+    "isNew": true,
+    "freq": 5
+  },
+  "Vui lòng nhập tên đối tác": {
+    "key": "pleaseEnterPartnerName",
+    "en": "Please enter partner name",
+    "vi": "Vui lòng nhập tên đối tác",
+    "isNew": false,
+    "freq": 5
+  },
+  "Thêm NCC mới": {
+    "key": "addNewSupplier",
+    "en": "Add new supplier",
+    "vi": "Thêm NCC mới",
+    "isNew": true,
+    "freq": 5
+  },
+  "Shop không tên": {
+    "key": "noShopName",
+    "en": "Unnamed shop",
+    "vi": "Shop không tên",
+    "isNew": true,
+    "freq": 5
+  },
+  "Người dùng": {
+    "key": "userLabel",
+    "en": "User",
+    "vi": "Người dùng",
+    "isNew": false,
+    "freq": 5
+  },
+  "Tổng tiền": {
+    "key": "totalAmount",
+    "en": "Total amount",
+    "vi": "Tổng tiền",
+    "isNew": true,
+    "freq": 4
+  },
+  "Chỉnh sửa": {
+    "key": "editLabel",
+    "en": "Edit",
+    "vi": "Chỉnh sửa",
+    "isNew": true,
+    "freq": 4
+  },
+  "Đã giao": {
+    "key": "delivered",
+    "en": "Delivered",
+    "vi": "Đã giao",
+    "isNew": false,
+    "freq": 4
+  },
+  "Xem chi tiết": {
+    "key": "viewDetails",
+    "en": "View details",
+    "vi": "Xem chi tiết",
+    "isNew": false,
+    "freq": 4
+  },
+  "Lý do từ chối": {
+    "key": "rejectReason",
+    "en": "Reject reason",
+    "vi": "Lý do từ chối",
+    "isNew": true,
+    "freq": 4
+  },
+  "Trạng thái": {
+    "key": "status",
+    "en": "Status",
+    "vi": "Trạng thái",
+    "isNew": false,
+    "freq": 4
+  },
+  "HÔM NAY": {
+    "key": "todayLabel",
+    "en": "Today",
+    "vi": "HÔM NAY",
+    "isNew": false,
+    "freq": 4
+  },
+  "Tải thêm": {
+    "key": "loadMore",
+    "en": "Load more",
+    "vi": "Tải thêm",
+    "isNew": true,
+    "freq": 4
+  },
+  "Mô tả": {
+    "key": "description",
+    "en": "Description",
+    "vi": "Mô tả",
+    "isNew": false,
+    "freq": 4
+  },
+  "NHẬP": {
+    "key": "import",
+    "en": "Import",
+    "vi": "NHẬP",
+    "isNew": false,
+    "freq": 4
+  },
+  "SỬA": {
+    "key": "editAction",
+    "en": "Edit",
+    "vi": "SỬA",
+    "isNew": false,
+    "freq": 4
+  },
+  "BÁN": {
+    "key": "sales",
+    "en": "sales",
+    "vi": "BÁN",
+    "isNew": false,
+    "freq": 4
+  },
+  "Tài chính": {
+    "key": "financeTab",
+    "en": "Finance",
+    "vi": "Tài chính",
+    "isNew": false,
+    "freq": 4
+  },
+  "Thanh toán nợ": {
+    "key": "payDebt",
+    "en": "Pay debt",
+    "vi": "Thanh toán nợ",
+    "isNew": true,
+    "freq": 4
+  },
+  "Cài đặt lương": {
+    "key": "salarySettingsLabel",
+    "en": "Salary Settings",
+    "vi": "Cài đặt lương",
+    "isNew": false,
+    "freq": 4
+  },
+  "Hệ thống": {
+    "key": "system",
+    "en": "System",
+    "vi": "Hệ thống",
+    "isNew": true,
+    "freq": 4
+  },
+  "Khôi phục": {
+    "key": "restore",
+    "en": "Restore",
+    "vi": "Khôi phục",
+    "isNew": true,
+    "freq": 4
+  },
+  "Đang xử lý...": {
+    "key": "processingLabel",
+    "en": "Processing...",
+    "vi": "Đang xử lý...",
+    "isNew": false,
+    "freq": 4
+  },
+  "Chọn tất cả": {
+    "key": "selectAll",
+    "en": "Select all",
+    "vi": "Chọn tất cả",
+    "isNew": false,
+    "freq": 4
+  },
+  "Xem tất cả": {
+    "key": "viewAll",
+    "en": "View all",
+    "vi": "Xem tất cả",
+    "isNew": false,
+    "freq": 4
+  },
+  "Chi tiết": {
+    "key": "productDetailLabelPlain",
+    "en": "Detail",
+    "vi": "Chi tiết",
+    "isNew": false,
+    "freq": 4
+  },
+  "Thu phát sinh": {
+    "key": "incidentalIncome",
+    "en": "Incidental income",
+    "vi": "Thu phát sinh",
+    "isNew": true,
+    "freq": 4
+  },
+  "Mới": {
+    "key": "newLabel",
+    "en": "New",
+    "vi": "Mới",
+    "isNew": true,
+    "freq": 4
+  },
+  "KHÁCH VÃNG LAI": {
+    "key": "walkInCustomerDefault",
+    "en": "WALK-IN CUSTOMER",
+    "vi": "KHÁCH VÃNG LAI",
+    "isNew": false,
+    "freq": 4
+  },
+  "1 THÁNG": {
+    "key": "oneMonth",
+    "en": "1 MONTH",
+    "vi": "1 THÁNG",
+    "isNew": false,
+    "freq": 4
+  },
+  "3 THÁNG": {
+    "key": "threeMonths",
+    "en": "3 MONTHS",
+    "vi": "3 THÁNG",
+    "isNew": false,
+    "freq": 4
+  },
+  "6 THÁNG": {
+    "key": "sixMonths",
+    "en": "6 MONTHS",
+    "vi": "6 THÁNG",
+    "isNew": false,
+    "freq": 4
+  },
+  "Không tìm thấy kết quả": {
+    "key": "noResultsFound",
+    "en": "No results found",
+    "vi": "Không tìm thấy kết quả",
+    "isNew": false,
+    "freq": 4
+  },
+  "Vui lòng nhập tên nhà cung cấp": {
+    "key": "pleaseEnterSupplierName",
+    "en": "Please enter supplier name",
+    "vi": "Vui lòng nhập tên nhà cung cấp",
+    "isNew": false,
+    "freq": 4
+  },
+  "Nhập kho": {
+    "key": "stockIn",
+    "en": "Stock in",
+    "vi": "Nhập kho",
+    "isNew": false,
+    "freq": 4
+  },
+  "LƯƠNG": {
+    "key": "payroll",
+    "en": "PAYROLL",
+    "vi": "LƯƠNG",
+    "isNew": false,
+    "freq": 4
+  },
+  "Số điện thoại liên hệ": {
+    "key": "shopPhoneLabel",
+    "en": "Contact phone",
+    "vi": "Số điện thoại liên hệ",
+    "isNew": false,
+    "freq": 4
+  },
+  "Mật khẩu": {
+    "key": "passwordHint",
+    "en": "Password",
+    "vi": "Mật khẩu",
+    "isNew": false,
+    "freq": 4
+  },
+  "Mật khẩu không đúng!": {
+    "key": "incorrectPassword",
+    "en": "Incorrect password!",
+    "vi": "Mật khẩu không đúng!",
+    "isNew": false,
+    "freq": 4
+  },
+  "Giá CPK": {
+    "key": "priceCpkLabel",
+    "en": "CPK Price",
+    "vi": "Giá CPK",
+    "isNew": false,
+    "freq": 4
+  },
+  "NHÀ CUNG CẤP": {
+    "key": "supplierField",
+    "en": "Supplier",
+    "vi": "NHÀ CUNG CẤP",
+    "isNew": false,
+    "freq": 4
+  },
+  "QUẢN LÝ NHÂN VIÊN": {
+    "key": "employeeManagement",
+    "en": "EMPLOYEE MANAGEMENT",
+    "vi": "QUẢN LÝ NHÂN VIÊN",
+    "isNew": false,
+    "freq": 4
+  },
+  "DUYỆT": {
+    "key": "tabApproval",
+    "en": "Approval",
+    "vi": "DUYỆT",
+    "isNew": false,
+    "freq": 3
+  },
+  "Đã duyệt": {
+    "key": "approvedStatus",
+    "en": "Approved",
+    "vi": "Đã duyệt",
+    "isNew": false,
+    "freq": 3
+  },
+  "GỬI YÊU CẦU": {
+    "key": "submitRequest",
+    "en": "Submit request",
+    "vi": "GỬI YÊU CẦU",
+    "isNew": false,
+    "freq": 3
+  },
+  "Vị trí": {
+    "key": "locationLabel",
+    "en": "Location",
+    "vi": "Vị trí",
+    "isNew": false,
+    "freq": 3
+  },
+  "CHẤM CÔNG": {
+    "key": "attendance",
+    "en": "ATTENDANCE",
+    "vi": "CHẤM CÔNG",
+    "isNew": false,
+    "freq": 3
+  },
+  "THỐNG KÊ": {
+    "key": "stats",
+    "en": "Stats",
+    "vi": "THỐNG KÊ",
+    "isNew": false,
+    "freq": 3
+  },
+  "THÊM": {
+    "key": "addBtn",
+    "en": "Add",
+    "vi": "THÊM",
+    "isNew": false,
+    "freq": 3
+  },
+  "Đóng": {
+    "key": "close2",
+    "en": "Close",
+    "vi": "Đóng",
+    "isNew": false,
+    "freq": 3
+  },
+  "Lịch sử": {
+    "key": "history",
+    "en": "History",
+    "vi": "Lịch sử",
+    "isNew": false,
+    "freq": 3
+  },
+  "Đối tác sửa chữa": {
+    "key": "repairPartner",
+    "en": "Repair partner",
+    "vi": "Đối tác sửa chữa",
+    "isNew": false,
+    "freq": 3
+  },
+  "KHÁCH HÀNG": {
+    "key": "customerLabel",
+    "en": "Customer",
+    "vi": "KHÁCH HÀNG",
+    "isNew": false,
+    "freq": 3
+  },
+  "Tên khách hàng *": {
+    "key": "customerNameRequired",
+    "en": "Customer name *",
+    "vi": "Tên khách hàng *",
+    "isNew": false,
+    "freq": 3
+  },
+  "Họ và tên": {
+    "key": "fullName",
+    "en": "Full Name",
+    "vi": "Họ và tên",
+    "isNew": false,
+    "freq": 3
+  },
+  "TẠO": {
+    "key": "create",
+    "en": "Create",
+    "vi": "TẠO",
+    "isNew": false,
+    "freq": 3
+  },
+  "Tổng": {
+    "key": "total",
+    "en": "Total",
+    "vi": "Tổng",
+    "isNew": true,
+    "freq": 3
+  },
+  "Lỗi: Không thể xóa nhà cung cấp": {
+    "key": "supplierDeleteError",
+    "en": "Error: Cannot delete supplier",
+    "vi": "Lỗi: Không thể xóa nhà cung cấp",
+    "isNew": false,
+    "freq": 3
+  },
+  "Mở": {
+    "key": "open",
+    "en": "Open",
+    "vi": "Mở",
+    "isNew": false,
+    "freq": 3
+  },
+  "BẢO HÀNH": {
+    "key": "warrantyField",
+    "en": "Warranty",
+    "vi": "BẢO HÀNH",
+    "isNew": false,
+    "freq": 3
+  },
+  "Bỏ chọn": {
+    "key": "clearSelection",
+    "en": "Clear selection",
+    "vi": "Bỏ chọn",
+    "isNew": false,
+    "freq": 3
+  },
+  "NHẬP THÊM": {
+    "key": "addMore",
+    "en": "Add more",
+    "vi": "NHẬP THÊM",
+    "isNew": false,
+    "freq": 3
+  },
+  "Đặt lại": {
+    "key": "resetButton",
+    "en": "Reset",
+    "vi": "Đặt lại",
+    "isNew": false,
+    "freq": 3
+  },
+  "Tắt": {
+    "key": "offOption",
+    "en": "Off",
+    "vi": "Tắt",
+    "isNew": false,
+    "freq": 3
+  },
+  "Tên Shop": {
+    "key": "shopNameField",
+    "en": "Shop Name",
+    "vi": "Tên Shop",
+    "isNew": false,
+    "freq": 3
+  },
+  "Công thức": {
+    "key": "formulaLabel",
+    "en": "Formula",
+    "vi": "Công thức",
+    "isNew": false,
+    "freq": 3
+  },
+  "Ngày nhập": {
+    "key": "importDateField",
+    "en": "Import date",
+    "vi": "Ngày nhập",
+    "isNew": false,
+    "freq": 3
+  },
+  "LƯU THAY ĐỔI": {
+    "key": "saveChanges",
+    "en": "SAVE CHANGES",
+    "vi": "LƯU THAY ĐỔI",
+    "isNew": false,
+    "freq": 3
+  },
+  "ĐỐI TÁC SỬA CHỮA": {
+    "key": "repairPartner",
+    "en": "Repair partner",
+    "vi": "ĐỐI TÁC SỬA CHỮA",
+    "isNew": false,
+    "freq": 3
+  },
+  "Xóa đối tác": {
+    "key": "deletePartner",
+    "en": "Delete partner",
+    "vi": "Xóa đối tác",
+    "isNew": false,
+    "freq": 3
+  },
+  "Lỗi: Không thể xóa đối tác": {
+    "key": "partnerDeleteError",
+    "en": "Error: Cannot delete partner",
+    "vi": "Lỗi: Không thể xóa đối tác",
+    "isNew": false,
+    "freq": 3
+  },
+  "Tên": {
+    "key": "name",
+    "en": "Name",
+    "vi": "Tên",
+    "isNew": false,
+    "freq": 3
+  },
+  "TẮT": {
+    "key": "offOption",
+    "en": "Off",
+    "vi": "TẮT",
+    "isNew": false,
+    "freq": 3
+  },
+  "Chưa đồng bộ": {
+    "key": "notSynced",
+    "en": "Not synced",
+    "vi": "Chưa đồng bộ",
+    "isNew": false,
+    "freq": 3
+  },
+  "12 tháng": {
+    "key": "twelveMonths",
+    "en": "12 MONTHS",
+    "vi": "12 tháng",
+    "isNew": false,
+    "freq": 3
+  },
+  "Nhận": {
+    "key": "receive",
+    "en": "Receive",
+    "vi": "Nhận",
+    "isNew": false,
+    "freq": 3
+  },
+  "Đã hủy": {
+    "key": "cancelled",
+    "en": "Cancelled",
+    "vi": "Đã hủy",
+    "isNew": false,
+    "freq": 3
+  },
+  "ĐÃ DUYỆT": {
+    "key": "approvedStatus",
+    "en": "Approved",
+    "vi": "ĐÃ DUYỆT",
+    "isNew": false,
+    "freq": 2
+  },
+  "TỔNG QUAN": {
+    "key": "tabOverview",
+    "en": "Overview",
+    "vi": "TỔNG QUAN",
+    "isNew": false,
+    "freq": 2
+  },
+  "Ngày công": {
+    "key": "workDaysCount",
+    "en": "Work days",
+    "vi": "Ngày công",
+    "isNew": false,
+    "freq": 2
+  },
+  "Duyệt tất cả": {
+    "key": "bulkApprove",
+    "en": "Approve all",
+    "vi": "Duyệt tất cả",
+    "isNew": false,
+    "freq": 2
+  },
+  "Đi muộn": {
+    "key": "lateArrival",
+    "en": "Late",
+    "vi": "Đi muộn",
+    "isNew": false,
+    "freq": 2
+  },
+  "Giờ vào": {
+    "key": "forgotCheckinTime",
+    "en": "Check-in time",
+    "vi": "Giờ vào",
+    "isNew": false,
+    "freq": 2
+  },
+  "Giờ ra": {
+    "key": "forgotCheckoutTime",
+    "en": "Check-out time",
+    "vi": "Giờ ra",
+    "isNew": false,
+    "freq": 2
+  },
+  "Vai trò": {
+    "key": "roleLabel",
+    "en": "Role",
+    "vi": "Vai trò",
+    "isNew": false,
+    "freq": 2
+  },
+  "Bộ lọc": {
+    "key": "filter",
+    "en": "Filter",
+    "vi": "Bộ lọc",
+    "isNew": false,
+    "freq": 2
+  },
+  "Tổng quan": {
+    "key": "tabOverview",
+    "en": "Overview",
+    "vi": "Tổng quan",
+    "isNew": false,
+    "freq": 2
+  },
+  "🛒 Bán hàng": {
+    "key": "salesFeature",
+    "en": "🛒 Sales",
+    "vi": "🛒 Bán hàng",
+    "isNew": false,
+    "freq": 2
+  },
+  "🔧 Sửa chữa": {
+    "key": "repairFeature",
+    "en": "🔧 Repair",
+    "vi": "🔧 Sửa chữa",
+    "isNew": false,
+    "freq": 2
+  },
+  "LINH KIỆN": {
+    "key": "parts",
+    "en": "Parts",
+    "vi": "LINH KIỆN",
+    "isNew": false,
+    "freq": 2
+  },
+  "ĐỐI TÁC": {
+    "key": "partnersCount",
+    "en": "partners",
+    "vi": "ĐỐI TÁC",
+    "isNew": false,
+    "freq": 2
+  },
+  "Nhập": {
+    "key": "import",
+    "en": "Import",
+    "vi": "Nhập",
+    "isNew": false,
+    "freq": 2
+  },
+  "ĐANG LƯU...": {
+    "key": "savingLabel",
+    "en": "Saving...",
+    "vi": "ĐANG LƯU...",
+    "isNew": false,
+    "freq": 2
+  },
+  "Bắt buộc": {
+    "key": "required",
+    "en": "Required",
+    "vi": "Bắt buộc",
+    "isNew": false,
+    "freq": 2
+  },
+  "Cũ": {
+    "key": "old",
+    "en": "Old",
+    "vi": "Cũ",
+    "isNew": false,
+    "freq": 2
+  },
+  "Quay lại": {
+    "key": "back",
+    "en": "Back",
+    "vi": "Quay lại",
+    "isNew": true,
+    "freq": 2
+  },
+  "TẠO ĐƠN BÁN HÀNG": {
+    "key": "createSaleOrder",
+    "en": "CREATE SALE ORDER",
+    "vi": "TẠO ĐƠN BÁN HÀNG",
+    "isNew": false,
+    "freq": 2
+  },
+  "Không tìm thấy khách hàng": {
+    "key": "customerNotFound",
+    "en": "Customer not found",
+    "vi": "Không tìm thấy khách hàng",
+    "isNew": false,
+    "freq": 2
+  },
+  "Nhập tên khách hàng": {
+    "key": "enterCustomerName",
+    "en": "Enter customer name",
+    "vi": "Nhập tên khách hàng",
+    "isNew": false,
+    "freq": 2
+  },
+  "Vui lòng nhập tên khách hàng": {
+    "key": "pleaseEnterCustomerName",
+    "en": "Please enter customer name",
+    "vi": "Vui lòng nhập tên khách hàng",
+    "isNew": false,
+    "freq": 2
+  },
+  "Số điện thoại *": {
+    "key": "phoneNumberRequired",
+    "en": "Phone number *",
+    "vi": "Số điện thoại *",
+    "isNew": false,
+    "freq": 2
+  },
+  "Giá": {
+    "key": "price",
+    "en": "Price",
+    "vi": "Giá",
+    "isNew": false,
+    "freq": 2
+  },
+  "QUẢN LÝ CHI PHÍ": {
+    "key": "expenseManagement",
+    "en": "Expense Management",
+    "vi": "QUẢN LÝ CHI PHÍ",
+    "isNew": false,
+    "freq": 2
+  },
+  "TUẦN NÀY": {
+    "key": "thisWeek",
+    "en": "This week",
+    "vi": "TUẦN NÀY",
+    "isNew": false,
+    "freq": 2
+  },
+  "THÁNG NÀY": {
+    "key": "thisMonth",
+    "en": "This month",
+    "vi": "THÁNG NÀY",
+    "isNew": false,
+    "freq": 2
+  },
+  "Không có trong kho": {
+    "key": "notInStockError",
+    "en": "Not in stock",
+    "vi": "Không có trong kho",
+    "isNew": false,
+    "freq": 2
+  },
+  "Nhập thủ công": {
+    "key": "manualEntry",
+    "en": "Manual entry",
+    "vi": "Nhập thủ công",
+    "isNew": false,
+    "freq": 2
+  },
+  "NHẬP TIẾP": {
+    "key": "continueAdding",
+    "en": "CONTINUE ADDING",
+    "vi": "NHẬP TIẾP",
+    "isNew": false,
+    "freq": 2
+  },
+  "Loại hàng": {
+    "key": "productType",
+    "en": "Product type",
+    "vi": "Loại hàng",
+    "isNew": false,
+    "freq": 2
+  },
+  "Đã thêm nhà cung cấp thành công": {
+    "key": "supplierAddedSuccess",
+    "en": "Supplier added successfully",
+    "vi": "Đã thêm nhà cung cấp thành công",
+    "isNew": false,
+    "freq": 2
+  },
+  "Đã xóa nhà cung cấp thành công": {
+    "key": "supplierDeletedSuccess",
+    "en": "Supplier deleted successfully",
+    "vi": "Đã xóa nhà cung cấp thành công",
+    "isNew": false,
+    "freq": 2
+  },
+  "Cảnh báo": {
+    "key": "warning",
+    "en": "Warning",
+    "vi": "Cảnh báo",
+    "isNew": false,
+    "freq": 2
+  },
+  "LIÊN HỆ CHỦ SHOP": {
+    "key": "contactShopOwner",
+    "en": "CONTACT SHOP OWNER",
+    "vi": "LIÊN HỆ CHỦ SHOP",
+    "isNew": false,
+    "freq": 2
+  },
+  "Đơn sửa": {
+    "key": "repairOrderTitle",
+    "en": "Repairs",
+    "vi": "Đơn sửa",
+    "isNew": false,
+    "freq": 2
+  },
+  "ĐÃ HIỂU": {
+    "key": "understood",
+    "en": "UNDERSTOOD",
+    "vi": "ĐÃ HIỂU",
+    "isNew": false,
+    "freq": 2
+  },
+  "Thông báo": {
+    "key": "notifications",
+    "en": "Notifications",
+    "vi": "Thông báo",
+    "isNew": false,
+    "freq": 2
+  },
+  "Thêm mới": {
+    "key": "addNew",
+    "en": "Add new",
+    "vi": "Thêm mới",
+    "isNew": true,
+    "freq": 2
+  },
+  "Đã xóa": {
+    "key": "deleted",
+    "en": "Deleted",
+    "vi": "Đã xóa",
+    "isNew": false,
+    "freq": 2
+  },
+  "Chưa có nhân viên nào": {
+    "key": "noStaffFoundMsg",
+    "en": "No staff found",
+    "vi": "Chưa có nhân viên nào",
+    "isNew": false,
+    "freq": 2
+  },
+  "Mặc định": {
+    "key": "defaultSettings",
+    "en": "Default",
+    "vi": "Mặc định",
+    "isNew": false,
+    "freq": 2
+  },
+  "Bắt đầu": {
+    "key": "startTimeLabel",
+    "en": "Start",
+    "vi": "Bắt đầu",
+    "isNew": false,
+    "freq": 2
+  },
+  "Hoàn thành": {
+    "key": "completed",
+    "en": "Completed",
+    "vi": "Hoàn thành",
+    "isNew": false,
+    "freq": 2
+  },
+  "HẾT HÀNG": {
+    "key": "outOfStock",
+    "en": "OUT OF STOCK",
+    "vi": "HẾT HÀNG",
+    "isNew": false,
+    "freq": 2
+  },
+  "Tìm kiếm": {
+    "key": "search",
+    "en": "Search",
+    "vi": "Tìm kiếm",
+    "isNew": false,
+    "freq": 2
+  },
+  "Cập nhật": {
+    "key": "update",
+    "en": "Update",
+    "vi": "Cập nhật",
+    "isNew": false,
+    "freq": 2
+  },
+  "Thông tin tem": {
+    "key": "labelInfoTitle",
+    "en": "Label Info",
+    "vi": "Thông tin tem",
+    "isNew": false,
+    "freq": 2
+  },
+  "Khoảng cách:": {
+    "key": "spacingLabel",
+    "en": "Spacing:",
+    "vi": "Khoảng cách:",
+    "isNew": false,
+    "freq": 2
+  },
+  "Địa chỉ (tùy chọn)": {
+    "key": "addressOptional",
+    "en": "Address (optional)",
+    "vi": "Địa chỉ (tùy chọn)",
+    "isNew": false,
+    "freq": 2
+  },
+  "Dòng 1": {
+    "key": "line1Label",
+    "en": "Line 1",
+    "vi": "Dòng 1",
+    "isNew": false,
+    "freq": 2
+  },
+  "Dòng 2": {
+    "key": "line2Label",
+    "en": "Line 2",
+    "vi": "Dòng 2",
+    "isNew": false,
+    "freq": 2
+  },
+  "Dòng 3": {
+    "key": "line3Label",
+    "en": "Line 3",
+    "vi": "Dòng 3",
+    "isNew": false,
+    "freq": 2
+  },
+  "price + 500000 hoặc price * 1.05": {
+    "key": "formulaExample",
+    "en": "price + 500000 or price * 1.05",
+    "vi": "price + 500000 hoặc price * 1.05",
+    "isNew": false,
+    "freq": 2
+  },
+  "Tên sản phẩm": {
+    "key": "productNameField",
+    "en": "Product name",
+    "vi": "Tên sản phẩm",
+    "isNew": false,
+    "freq": 2
+  },
+  "Mã sản phẩm": {
+    "key": "productCodeField",
+    "en": "Product code",
+    "vi": "Mã sản phẩm",
+    "isNew": false,
+    "freq": 2
+  },
+  "Kho hàng": {
+    "key": "inventory",
+    "en": "Inventory",
+    "vi": "Kho hàng",
+    "isNew": false,
+    "freq": 2
+  },
+  "Linh kiện": {
+    "key": "parts",
+    "en": "Parts",
+    "vi": "Linh kiện",
+    "isNew": false,
+    "freq": 2
+  },
+  "BỘ LỌC": {
+    "key": "filter",
+    "en": "Filter",
+    "vi": "BỘ LỌC",
+    "isNew": false,
+    "freq": 2
+  },
+  "Nhập thêm": {
+    "key": "addMore",
+    "en": "Add more",
+    "vi": "Nhập thêm",
+    "isNew": false,
+    "freq": 2
+  },
+  "Không": {
+    "key": "noPhoto",
+    "en": "No",
+    "vi": "Không",
+    "isNew": false,
+    "freq": 2
+  },
+  "Thống kê": {
+    "key": "stats",
+    "en": "Stats",
+    "vi": "Thống kê",
+    "isNew": false,
+    "freq": 2
+  },
+  "Cài đặt": {
+    "key": "settingsTab",
+    "en": "Settings",
+    "vi": "Cài đặt",
+    "isNew": false,
+    "freq": 2
+  },
+  "BẬT": {
+    "key": "enable",
+    "en": "Enable",
+    "vi": "BẬT",
+    "isNew": false,
+    "freq": 2
+  },
+  "MỚI": {
+    "key": "newLabel",
+    "en": "NEW",
+    "vi": "MỚI",
+    "isNew": false,
+    "freq": 2
+  },
+  "1 tháng": {
+    "key": "oneMonth",
+    "en": "1 MONTH",
+    "vi": "1 tháng",
+    "isNew": false,
+    "freq": 2
+  },
+  "3 tháng": {
+    "key": "threeMonths",
+    "en": "3 MONTHS",
+    "vi": "3 tháng",
+    "isNew": false,
+    "freq": 2
+  },
+  "Không tìm thấy": {
+    "key": "notFound",
+    "en": "Not found",
+    "vi": "Không tìm thấy",
+    "isNew": false,
+    "freq": 2
+  },
+  "Đã cập nhật đối tác": {
+    "key": "partnerUpdatedSuccess",
+    "en": "Partner updated",
+    "vi": "Đã cập nhật đối tác",
+    "isNew": false,
+    "freq": 2
+  },
+  "CHỜ DUYỆT": {
+    "key": "pendingStatus",
+    "en": "Pending",
+    "vi": "CHỜ DUYỆT",
+    "isNew": false,
+    "freq": 2
+  },
+  "TỪ CHỐI": {
+    "key": "rejectLeave",
+    "en": "Reject",
+    "vi": "TỪ CHỐI",
+    "isNew": false,
+    "freq": 2
+  },
+  "Hãng": {
+    "key": "brand",
+    "en": "Brand",
+    "vi": "Hãng",
+    "isNew": true,
+    "freq": 2
+  },
+  "Ngày làm việc trong tuần:": {
+    "key": "workDaysInWeek",
+    "en": "Work days in week:",
+    "vi": "Ngày làm việc trong tuần:",
+    "isNew": false,
+    "freq": 2
+  },
+  "BÁN HÀNG": {
+    "key": "salesTab",
+    "en": "Sales",
+    "vi": "BÁN HÀNG",
+    "isNew": false,
+    "freq": 2
+  },
+  "SỬA CHỮA": {
+    "key": "repairs",
+    "en": "REPAIRS",
+    "vi": "SỬA CHỮA",
+    "isNew": false,
+    "freq": 2
+  },
+  "CÀI ĐẶT HỆ THỐNG": {
+    "key": "systemSettings",
+    "en": "SYSTEM SETTINGS",
+    "vi": "CÀI ĐẶT HỆ THỐNG",
+    "isNew": false,
+    "freq": 2
+  },
+  "Không có dữ liệu": {
+    "key": "noData",
+    "en": "No data",
+    "vi": "Không có dữ liệu",
+    "isNew": false,
+    "freq": 2
+  },
+  "ngày": {
+    "key": "dateLabel",
+    "en": "Date",
+    "vi": "ngày",
+    "isNew": false,
+    "freq": 2
+  },
+  "QUẢN LÝ PHÂN QUYỀN": {
+    "key": "permissionManagement",
+    "en": "PERMISSION MANAGEMENT",
+    "vi": "QUẢN LÝ PHÂN QUYỀN",
+    "isNew": false,
+    "freq": 2
+  },
+  "Lương cơ bản (VNĐ)": {
+    "key": "baseSalaryVnd",
+    "en": "Base salary (VND)",
+    "vi": "Lương cơ bản (VNĐ)",
+    "isNew": false,
+    "freq": 2
+  },
+  "Sao chép": {
+    "key": "copy",
+    "en": "Copy",
+    "vi": "Sao chép",
+    "isNew": false,
+    "freq": 1
+  },
+  "Đã sao chép": {
+    "key": "copied",
+    "en": "Copied",
+    "vi": "Đã sao chép",
+    "isNew": false,
+    "freq": 1
+  },
+  "Chưa có đơn sửa chữa": {
+    "key": "noRepairOrders",
+    "en": "No repair orders",
+    "vi": "Chưa có đơn sửa chữa",
+    "isNew": false,
+    "freq": 1
+  },
+  "Chưa có đơn bán hàng": {
+    "key": "noSaleOrders",
+    "en": "No sale orders",
+    "vi": "Chưa có đơn bán hàng",
+    "isNew": false,
+    "freq": 1
+  },
+  "XIN NGHỈ": {
+    "key": "tabLeave",
+    "en": "Leave",
+    "vi": "XIN NGHỈ",
+    "isNew": false,
+    "freq": 1
+  },
+  "Duyệt": {
+    "key": "tabApproval",
+    "en": "Approval",
+    "vi": "Duyệt",
+    "isNew": false,
+    "freq": 1
+  },
+  "Giờ công": {
+    "key": "workHoursCount",
+    "en": "Work hours",
+    "vi": "Giờ công",
+    "isNew": false,
+    "freq": 1
+  },
+  "Quên chấm công": {
+    "key": "forgotCheckin",
+    "en": "Forgot check-in",
+    "vi": "Quên chấm công",
+    "isNew": false,
+    "freq": 1
+  },
+  "Sửa tăng ca": {
+    "key": "editOvertime",
+    "en": "Edit overtime",
+    "vi": "Sửa tăng ca",
+    "isNew": false,
+    "freq": 1
+  },
+  "Đã từ chối chấm công": {
+    "key": "attendanceRejected",
+    "en": "Attendance rejected",
+    "vi": "Đã từ chối chấm công",
+    "isNew": false,
+    "freq": 1
+  },
+  "Đã tạo đơn xin nghỉ": {
+    "key": "leaveRequestCreated",
+    "en": "Leave request created",
+    "vi": "Đã tạo đơn xin nghỉ",
+    "isNew": false,
+    "freq": 1
+  },
+  "Đã duyệt đơn xin nghỉ": {
+    "key": "leaveRequestApproved",
+    "en": "Leave request approved",
+    "vi": "Đã duyệt đơn xin nghỉ",
+    "isNew": false,
+    "freq": 1
+  },
+  "Đã từ chối đơn xin nghỉ": {
+    "key": "leaveRequestRejected",
+    "en": "Leave request rejected",
+    "vi": "Đã từ chối đơn xin nghỉ",
+    "isNew": false,
+    "freq": 1
+  },
+  "LÝ DO": {
+    "key": "leaveReason",
+    "en": "Reason",
+    "vi": "LÝ DO",
+    "isNew": false,
+    "freq": 1
+  },
+  "Đã gửi yêu cầu bổ sung chấm công": {
+    "key": "forgotCheckinCreated",
+    "en": "Forgot check-in request sent",
+    "vi": "Đã gửi yêu cầu bổ sung chấm công",
+    "isNew": false,
+    "freq": 1
+  },
+  "Chưa check-in": {
+    "key": "notCheckedIn",
+    "en": "Not checked in",
+    "vi": "Chưa check-in",
+    "isNew": false,
+    "freq": 1
+  },
+  "Về sớm": {
+    "key": "earlyLeave",
+    "en": "Early leave",
+    "vi": "Về sớm",
+    "isNew": false,
+    "freq": 1
+  },
+  "công nợ": {
+    "key": "debt",
+    "en": "DEBT",
+    "vi": "công nợ",
+    "isNew": false,
+    "freq": 1
+  },
+  "nhà cung cấp": {
+    "key": "supplierField",
+    "en": "Supplier",
+    "vi": "nhà cung cấp",
+    "isNew": false,
+    "freq": 1
+  },
+  "khách hàng": {
+    "key": "customerLabel",
+    "en": "Customer",
+    "vi": "khách hàng",
+    "isNew": false,
+    "freq": 1
+  },
+  "linh kiện": {
+    "key": "parts",
+    "en": "Parts",
+    "vi": "linh kiện",
+    "isNew": false,
+    "freq": 1
+  },
+  "nhập kho": {
+    "key": "stockIn",
+    "en": "Stock in",
+    "vi": "nhập kho",
+    "isNew": false,
+    "freq": 1
+  },
+  "thêm": {
+    "key": "addBtn",
+    "en": "Add",
+    "vi": "thêm",
+    "isNew": false,
+    "freq": 1
+  },
+  "thông tin": {
+    "key": "information",
+    "en": "Information",
+    "vi": "thông tin",
+    "isNew": false,
+    "freq": 1
+  },
+  "cập nhật": {
+    "key": "update",
+    "en": "Update",
+    "vi": "cập nhật",
+    "isNew": false,
+    "freq": 1
+  },
+  "xóa": {
+    "key": "deleteButton",
+    "en": "DELETE",
+    "vi": "xóa",
+    "isNew": false,
+    "freq": 1
+  },
+  "tạo": {
+    "key": "create",
+    "en": "Create",
+    "vi": "tạo",
+    "isNew": false,
+    "freq": 1
+  },
+  "thanh toán": {
+    "key": "payment",
+    "en": "Payment",
+    "vi": "thanh toán",
+    "isNew": false,
+    "freq": 1
+  },
+  "đã duyệt": {
+    "key": "approvedStatus",
+    "en": "Approved",
+    "vi": "đã duyệt",
+    "isNew": false,
+    "freq": 1
+  },
+  "bán hàng": {
+    "key": "salesTab",
+    "en": "Sales",
+    "vi": "bán hàng",
+    "isNew": false,
+    "freq": 1
+  },
+  "sửa chữa": {
+    "key": "repairs",
+    "en": "REPAIRS",
+    "vi": "sửa chữa",
+    "isNew": false,
+    "freq": 1
+  },
+  "Chưa có ghi chép hoạt động nào": {
+    "key": "noActivityLogs",
+    "en": "No activity logs yet",
+    "vi": "Chưa có ghi chép hoạt động nào",
+    "isNew": false,
+    "freq": 1
+  },
+  "Đơn hàng": {
+    "key": "orders",
+    "en": "Orders",
+    "vi": "Đơn hàng",
+    "isNew": false,
+    "freq": 1
+  },
+  "MÀU SẮC": {
+    "key": "colorField",
+    "en": "Color",
+    "vi": "MÀU SẮC",
+    "isNew": false,
+    "freq": 1
+  },
+  "DUNG LƯỢNG": {
+    "key": "capacityField",
+    "en": "Capacity",
+    "vi": "DUNG LƯỢNG",
+    "isNew": false,
+    "freq": 1
+  },
+  "TÊN NHÀ CUNG CẤP": {
+    "key": "supplierName",
+    "en": "Supplier name",
+    "vi": "TÊN NHÀ CUNG CẤP",
+    "isNew": false,
+    "freq": 1
+  },
+  "ĐỊA CHỈ": {
+    "key": "addressLabel2",
+    "en": "Address",
+    "vi": "ĐỊA CHỈ",
+    "isNew": false,
+    "freq": 1
+  },
+  "❌ Ngày hôm nay đã chốt quỹ! Không thể tạo phiếu sửa mới.": {
+    "key": "todayClosedNoRepair",
+    "en": "❌ Today is closed! Cannot create new repair order.",
+    "vi": "❌ Ngày hôm nay đã chốt quỹ! Không thể tạo phiếu sửa mới.",
+    "isNew": false,
+    "freq": 1
+  },
+  "TẠO ĐƠN BÁN": {
+    "key": "createSale",
+    "en": "Create sale",
+    "vi": "TẠO ĐƠN BÁN",
+    "isNew": false,
+    "freq": 1
+  },
+  "Quản lý NCC & Đối tác": {
+    "key": "supplierAndPartnerManagement",
+    "en": "Supplier & Partner Management",
+    "vi": "Quản lý NCC & Đối tác",
+    "isNew": false,
+    "freq": 1
+  },
+  "Khách vãng lai (không lưu danh bạ)": {
+    "key": "walkInCustomer",
+    "en": "Walk-in customer (not saved to contacts)",
+    "vi": "Khách vãng lai (không lưu danh bạ)",
+    "isNew": false,
+    "freq": 1
+  },
+  "Nhập SĐT để lưu khách vào danh bạ": {
+    "key": "saveToContactsDesc",
+    "en": "Enter phone to save customer to contacts",
+    "vi": "Nhập SĐT để lưu khách vào danh bạ",
+    "isNew": false,
+    "freq": 1
+  },
+  "Tìm kiếm khách hàng...": {
+    "key": "searchCustomers",
+    "en": "Search customers...",
+    "vi": "Tìm kiếm khách hàng...",
+    "isNew": false,
+    "freq": 1
+  },
+  "QUAY LẠI": {
+    "key": "back",
+    "en": "Back",
+    "vi": "QUAY LẠI",
+    "isNew": false,
+    "freq": 1
+  },
+  "Khách vãng lai không lưu danh bạ": {
+    "key": "walkInCustomerNoSave",
+    "en": "Walk-in customer - not saved to contacts",
+    "vi": "Khách vãng lai không lưu danh bạ",
+    "isNew": false,
+    "freq": 1
+  },
+  "Vui lòng nhập đủ tên và số điện thoại": {
+    "key": "pleaseEnterNameAndPhone",
+    "en": "Please enter both name and phone number",
+    "vi": "Vui lòng nhập đủ tên và số điện thoại",
+    "isNew": false,
+    "freq": 1
+  },
+  "TÊN": {
+    "key": "name",
+    "en": "Name",
+    "vi": "TÊN",
+    "isNew": false,
+    "freq": 1
+  },
+  "SĐT (không bắt buộc)": {
+    "key": "phoneOptional",
+    "en": "Phone (optional)",
+    "vi": "SĐT (không bắt buộc)",
+    "isNew": false,
+    "freq": 1
+  },
+  "SỐ TIỀN": {
+    "key": "amount",
+    "en": "Amount",
+    "vi": "SỐ TIỀN",
+    "isNew": false,
+    "freq": 1
+  },
+  "Chưa có lịch sử giao dịch": {
+    "key": "noTransactionHistory",
+    "en": "No transaction history",
+    "vi": "Chưa có lịch sử giao dịch",
+    "isNew": false,
+    "freq": 1
+  },
+  "Thử tìm với từ khóa khác": {
+    "key": "tryDifferentKeywords",
+    "en": "Try searching with different keywords",
+    "vi": "Thử tìm với từ khóa khác",
+    "isNew": false,
+    "freq": 1
+  },
+  "Thêm khách hàng": {
+    "key": "addCustomerTitle",
+    "en": "Add customer",
+    "vi": "Thêm khách hàng",
+    "isNew": false,
+    "freq": 1
+  },
+  "Nhập số điện thoại": {
+    "key": "enterPhoneNumber",
+    "en": "Enter phone number",
+    "vi": "Nhập số điện thoại",
+    "isNew": false,
+    "freq": 1
+  },
+  "Vui lòng nhập số điện thoại": {
+    "key": "pleaseEnterPhoneNumber",
+    "en": "Please enter phone number",
+    "vi": "Vui lòng nhập số điện thoại",
+    "isNew": false,
+    "freq": 1
+  },
+  "Nhập email (tùy chọn)": {
+    "key": "enterEmailOptional",
+    "en": "Enter email (optional)",
+    "vi": "Nhập email (tùy chọn)",
+    "isNew": false,
+    "freq": 1
+  },
+  "Nhập địa chỉ (tùy chọn)": {
+    "key": "enterAddressOptional",
+    "en": "Enter address (optional)",
+    "vi": "Nhập địa chỉ (tùy chọn)",
+    "isNew": false,
+    "freq": 1
+  },
+  "Nhập ghi chú (tùy chọn)": {
+    "key": "enterNotesOptional",
+    "en": "Enter notes (optional)",
+    "vi": "Nhập ghi chú (tùy chọn)",
+    "isNew": false,
+    "freq": 1
+  },
+  "Chưa có lịch sử": {
+    "key": "noHistoryYet",
+    "en": "No history yet",
+    "vi": "Chưa có lịch sử",
+    "isNew": false,
+    "freq": 1
+  },
+  "Tự động": {
+    "key": "labelModeAutoTitle",
+    "en": "Auto Mode",
+    "vi": "Tự động",
+    "isNew": false,
+    "freq": 1
+  },
+  "Tên khách hàng": {
+    "key": "customerName",
+    "en": "Customer name",
+    "vi": "Tên khách hàng",
+    "isNew": true,
+    "freq": 1
+  },
+  "Tên nhà cung cấp": {
+    "key": "supplierName",
+    "en": "Supplier name",
+    "vi": "Tên nhà cung cấp",
+    "isNew": false,
+    "freq": 1
+  },
+  "chi phí": {
+    "key": "costField",
+    "en": "Cost",
+    "vi": "chi phí",
+    "isNew": false,
+    "freq": 1
+  },
+  "CHI PHÍ": {
+    "key": "costField",
+    "en": "Cost",
+    "vi": "CHI PHÍ",
+    "isNew": false,
+    "freq": 1
+  },
+  "📷 Quét IMEI/Barcode": {
+    "key": "scanImeiBarcode",
+    "en": "📷 Scan IMEI/Barcode",
+    "vi": "📷 Quét IMEI/Barcode",
+    "isNew": false,
+    "freq": 1
+  },
+  "✅ Đã kiểm vs ❌ Thiếu": {
+    "key": "checkedVsMissing",
+    "en": "✅ Checked vs ❌ Missing",
+    "vi": "✅ Đã kiểm vs ❌ Thiếu",
+    "isNew": false,
+    "freq": 1
+  },
+  "📊 Báo cáo kiểm kê": {
+    "key": "inventoryReport",
+    "en": "📊 Inventory Report",
+    "vi": "📊 Báo cáo kiểm kê",
+    "isNew": false,
+    "freq": 1
+  },
+  "Kiểm tra tất cả phụ kiện": {
+    "key": "checkAllAccessories",
+    "en": "Check all accessories",
+    "vi": "Kiểm tra tất cả phụ kiện",
+    "isNew": false,
+    "freq": 1
+  },
+  "Đặc biệt": {
+    "key": "specialCategory",
+    "en": "Special",
+    "vi": "Đặc biệt",
+    "isNew": false,
+    "freq": 1
+  },
+  "Phụ kiện không xác định": {
+    "key": "unknownAccessory",
+    "en": "Unknown accessory",
+    "vi": "Phụ kiện không xác định",
+    "isNew": false,
+    "freq": 1
+  },
+  "CÀI ĐẶT QUÉT QR": {
+    "key": "qrScanSettings",
+    "en": "QR SCAN SETTINGS",
+    "vi": "CÀI ĐẶT QUÉT QR",
+    "isNew": false,
+    "freq": 1
+  },
+  "trước đó": {
+    "key": "previous",
+    "en": "Previous",
+    "vi": "trước đó",
+    "isNew": false,
+    "freq": 1
+  },
+  "BỎ QUA": {
+    "key": "skip",
+    "en": "SKIP",
+    "vi": "BỎ QUA",
+    "isNew": false,
+    "freq": 1
+  },
+  "Cài đặt scan": {
+    "key": "scanSettings",
+    "en": "Scan settings",
+    "vi": "Cài đặt scan",
+    "isNew": false,
+    "freq": 1
+  },
+  "📱 Đã kiểm": {
+    "key": "phonesChecked",
+    "en": "📱 Checked",
+    "vi": "📱 Đã kiểm",
+    "isNew": false,
+    "freq": 1
+  },
+  "📱 Thiếu": {
+    "key": "phonesMissing",
+    "en": "📱 Missing",
+    "vi": "📱 Thiếu",
+    "isNew": false,
+    "freq": 1
+  },
+  "📱 Thừa": {
+    "key": "phonesExtra",
+    "en": "📱 Extra",
+    "vi": "📱 Thừa",
+    "isNew": false,
+    "freq": 1
+  },
+  "🔧 Đã kiểm": {
+    "key": "accessoriesChecked",
+    "en": "🔧 Checked",
+    "vi": "🔧 Đã kiểm",
+    "isNew": false,
+    "freq": 1
+  },
+  "🔧 Thiếu": {
+    "key": "accessoriesMissing",
+    "en": "🔧 Missing",
+    "vi": "🔧 Thiếu",
+    "isNew": false,
+    "freq": 1
+  },
+  "🔧 Thừa": {
+    "key": "accessoriesExtra",
+    "en": "🔧 Extra",
+    "vi": "🔧 Thừa",
+    "isNew": false,
+    "freq": 1
+  },
+  "Hoàn thành!": {
+    "key": "completedExclamation",
+    "en": "Completed!",
+    "vi": "Hoàn thành!",
+    "isNew": false,
+    "freq": 1
+  },
+  "Bắt đầu quét": {
+    "key": "startScan",
+    "en": "Start scan",
+    "vi": "Bắt đầu quét",
+    "isNew": false,
+    "freq": 1
+  },
+  "Xác nhận nhập Kho Tạm": {
+    "key": "confirmStagingStock",
+    "en": "Confirm add to staging stock",
+    "vi": "Xác nhận nhập Kho Tạm",
+    "isNew": false,
+    "freq": 1
+  },
+  "Nhập Kho Tạm": {
+    "key": "addToStagingStock",
+    "en": "Add to Staging Stock",
+    "vi": "Nhập Kho Tạm",
+    "isNew": false,
+    "freq": 1
+  },
+  "Đã tạo phiếu nhập": {
+    "key": "purchaseOrderCreated",
+    "en": "Purchase order created",
+    "vi": "Đã tạo phiếu nhập",
+    "isNew": false,
+    "freq": 1
+  },
+  "NHẬP KHO TẠM": {
+    "key": "addToStagingStock",
+    "en": "Add to Staging Stock",
+    "vi": "NHẬP KHO TẠM",
+    "isNew": false,
+    "freq": 1
+  },
+  "NHẬT KÝ TÀI CHÍNH": {
+    "key": "financialActivityLog",
+    "en": "Financial Activity Log",
+    "vi": "NHẬT KÝ TÀI CHÍNH",
+    "isNew": false,
+    "freq": 1
+  },
+  "TÌM KIẾM TOÀN APP": {
+    "key": "searchWholeApp",
+    "en": "Search whole app",
+    "vi": "TÌM KIẾM TOÀN APP",
+    "isNew": false,
+    "freq": 1
+  },
+  "Thu ngân": {
+    "key": "roleCashier",
+    "en": "Cashier",
+    "vi": "Thu ngân",
+    "isNew": false,
+    "freq": 1
+  },
+  "Gợi ý": {
+    "key": "suggestionsLabel",
+    "en": "Suggestions",
+    "vi": "Gợi ý",
+    "isNew": false,
+    "freq": 1
+  },
+  "Góp ý / Hỗ trợ": {
+    "key": "feedbackSupport",
+    "en": "Feedback / Support",
+    "vi": "Góp ý / Hỗ trợ",
+    "isNew": false,
+    "freq": 1
+  },
+  "Chủ đề khác": {
+    "key": "otherTopics",
+    "en": "Other topics",
+    "vi": "Chủ đề khác",
+    "isNew": false,
+    "freq": 1
+  },
+  "Hướng dẫn nhanh": {
+    "key": "quickGuide",
+    "en": "Quick Guide",
+    "vi": "Hướng dẫn nhanh",
+    "isNew": false,
+    "freq": 1
+  },
+  "Các bước thực hiện": {
+    "key": "stepsToPerform",
+    "en": "Steps to perform",
+    "vi": "Các bước thực hiện",
+    "isNew": false,
+    "freq": 1
+  },
+  "Liên quan": {
+    "key": "relatedLabel",
+    "en": "Related",
+    "vi": "Liên quan",
+    "isNew": false,
+    "freq": 1
+  },
+  "Đã đánh dấu hướng dẫn này là đã xem.": {
+    "key": "markedAsViewed",
+    "en": "Marked this guide as viewed.",
+    "vi": "Đã đánh dấu hướng dẫn này là đã xem.",
+    "isNew": false,
+    "freq": 1
+  },
+  "Tôi đã hiểu hướng dẫn này": {
+    "key": "understoodGuide",
+    "en": "I understood this guide",
+    "vi": "Tôi đã hiểu hướng dẫn này",
+    "isNew": false,
+    "freq": 1
+  },
+  "Video hướng dẫn": {
+    "key": "videoGuideLabel",
+    "en": "Video Guide",
+    "vi": "Video hướng dẫn",
+    "isNew": false,
+    "freq": 1
+  },
+  "Liên hệ hỗ trợ": {
+    "key": "contactSupportLabel",
+    "en": "Contact Support",
+    "vi": "Liên hệ hỗ trợ",
+    "isNew": false,
+    "freq": 1
+  },
+  "Nổi bật": {
+    "key": "featuredLabel",
+    "en": "Featured",
+    "vi": "Nổi bật",
+    "isNew": false,
+    "freq": 1
+  },
+  "Cần thêm trợ giúp?": {
+    "key": "needMoreHelpLabel",
+    "en": "Need more help?",
+    "vi": "Cần thêm trợ giúp?",
+    "isNew": false,
+    "freq": 1
+  },
+  "Đã sao chép email support@huluca.com": {
+    "key": "emailCopied",
+    "en": "Copied email support@huluca.com",
+    "vi": "Đã sao chép email support@huluca.com",
+    "isNew": false,
+    "freq": 1
+  },
+  "HỖ TRỢ KỸ THUẬT": {
+    "key": "technicalSupport",
+    "en": "TECHNICAL SUPPORT",
+    "vi": "HỖ TRỢ KỸ THUẬT",
+    "isNew": false,
+    "freq": 1
+  },
+  "Chủ cửa hàng": {
+    "key": "roleOwner",
+    "en": "Shop Owner",
+    "vi": "Chủ cửa hàng",
+    "isNew": false,
+    "freq": 1
+  },
+  "ADMIN KHÓA": {
+    "key": "adminLocked",
+    "en": "ADMIN LOCKED",
+    "vi": "ADMIN KHÓA",
+    "isNew": false,
+    "freq": 1
+  },
+  "CHỦ SHOP PHÂN QUYỀN": {
+    "key": "ownerPermissionLocked",
+    "en": "OWNER PERMISSION LOCKED",
+    "vi": "CHỦ SHOP PHÂN QUYỀN",
+    "isNew": false,
+    "freq": 1
+  },
+  "Chức năng bị khóa": {
+    "key": "featureLocked",
+    "en": "Feature locked",
+    "vi": "Chức năng bị khóa",
+    "isNew": false,
+    "freq": 1
+  },
+  "Hỗ trợ 24/7 • Phản hồi trong vòng 30 phút": {
+    "key": "supportAvailability",
+    "en": "24/7 Support • Response within 30 minutes",
+    "vi": "Hỗ trợ 24/7 • Phản hồi trong vòng 30 phút",
+    "isNew": false,
+    "freq": 1
+  },
+  "Yêu cầu cấp quyền": {
+    "key": "requestPermission",
+    "en": "Request permission",
+    "vi": "Yêu cầu cấp quyền",
+    "isNew": false,
+    "freq": 1
+  },
+  "Liên hệ Chủ shop hoặc Quản lý của bạn": {
+    "key": "contactShopOwnerOrManager",
+    "en": "Contact Shop Owner or Manager",
+    "vi": "Liên hệ Chủ shop hoặc Quản lý của bạn",
+    "isNew": false,
+    "freq": 1
+  },
+  "Yêu cầu cấp quyền truy cập tính năng này": {
+    "key": "requestFeatureAccess",
+    "en": "Request access to this feature",
+    "vi": "Yêu cầu cấp quyền truy cập tính năng này",
+    "isNew": false,
+    "freq": 1
+  },
+  "Sau khi được cấp quyền, đăng nhập lại để áp dụng": {
+    "key": "loginAgainAfterPermission",
+    "en": "After permission granted, login again to apply",
+    "vi": "Sau khi được cấp quyền, đăng nhập lại để áp dụng",
+    "isNew": false,
+    "freq": 1
+  },
+  "Báo cáo": {
+    "key": "report",
+    "en": "Report",
+    "vi": "Báo cáo",
+    "isNew": true,
+    "freq": 1
+  },
+  "Cài đặt tem nhãn": {
+    "key": "labelSettings",
+    "en": "Product Label Settings",
+    "vi": "Cài đặt tem nhãn",
+    "isNew": false,
+    "freq": 1
+  },
+  "Nhân sự & Chấm công": {
+    "key": "staffAndAttendance",
+    "en": "Staff & Attendance",
+    "vi": "Nhân sự & Chấm công",
+    "isNew": false,
+    "freq": 1
+  },
+  "CỬA HÀNG BỊ KHÓA": {
+    "key": "shopLocked",
+    "en": "Shop locked",
+    "vi": "CỬA HÀNG BỊ KHÓA",
+    "isNew": false,
+    "freq": 1
+  },
+  "Liên hệ Admin để mở khóa": {
+    "key": "contactAdminToUnlock",
+    "en": "Contact Admin to unlock",
+    "vi": "Liên hệ Admin để mở khóa",
+    "isNew": false,
+    "freq": 1
+  },
+  "Chưa có tin nhắn nào": {
+    "key": "noMessages",
+    "en": "No messages yet",
+    "vi": "Chưa có tin nhắn nào",
+    "isNew": false,
+    "freq": 1
+  },
+  "Tra cứu bảo hành nhanh": {
+    "key": "quickWarrantyLookup",
+    "en": "Quick warranty lookup",
+    "vi": "Tra cứu bảo hành nhanh",
+    "isNew": false,
+    "freq": 1
+  },
+  "Super Admin có thể chọn shop để xem dữ liệu": {
+    "key": "viewShopAsAdmin",
+    "en": "Super Admin can select shop to view data",
+    "vi": "Super Admin có thể chọn shop để xem dữ liệu",
+    "isNew": false,
+    "freq": 1
+  },
+  "Không có shop nào": {
+    "key": "noShops",
+    "en": "No shops available",
+    "vi": "Không có shop nào",
+    "isNew": false,
+    "freq": 1
+  },
+  "Chọn shop": {
+    "key": "selectShopLabel",
+    "en": "Select shop",
+    "vi": "Chọn shop",
+    "isNew": false,
+    "freq": 1
+  },
+  "TỔNG CỘNG": {
+    "key": "total",
+    "en": "Total",
+    "vi": "TỔNG CỘNG",
+    "isNew": false,
+    "freq": 1
+  },
+  "GIÁ": {
+    "key": "price",
+    "en": "Price",
+    "vi": "GIÁ",
+    "isNew": false,
+    "freq": 1
+  },
+  "⚠️ Lưu ý quan trọng": {
+    "key": "importantNotes",
+    "en": "⚠️ Important notes",
+    "vi": "⚠️ Lưu ý quan trọng",
+    "isNew": false,
+    "freq": 1
+  },
+  "Nhập mật khẩu tài khoản để xóa:": {
+    "key": "enterPasswordToDelete",
+    "en": "Enter account password to delete:",
+    "vi": "Nhập mật khẩu tài khoản để xóa:",
+    "isNew": false,
+    "freq": 1
+  },
+  "QUẢN LÝ KHO": {
+    "key": "manageInventory",
+    "en": "MANAGE INVENTORY",
+    "vi": "QUẢN LÝ KHO",
+    "isNew": false,
+    "freq": 1
+  },
+  "Không có": {
+    "key": "notAvailable",
+    "en": "N/A",
+    "vi": "Không có",
+    "isNew": false,
+    "freq": 1
+  },
+  "Không có quyền": {
+    "key": "noPermission",
+    "en": "No permission",
+    "vi": "Không có quyền",
+    "isNew": true,
+    "freq": 1
+  },
+  "Lỗi": {
+    "key": "error",
+    "en": "Error",
+    "vi": "Lỗi",
+    "isNew": false,
+    "freq": 1
+  },
+  "lỗi": {
+    "key": "error",
+    "en": "Error",
+    "vi": "lỗi",
+    "isNew": false,
+    "freq": 1
+  },
+  "thất bại": {
+    "key": "failed",
+    "en": "Failed",
+    "vi": "thất bại",
+    "isNew": false,
+    "freq": 1
+  },
+  "Giá KPK": {
+    "key": "priceKpkLabel",
+    "en": "KPK Price",
+    "vi": "Giá KPK",
+    "isNew": false,
+    "freq": 1
+  },
+  "✅ Đã lưu thiết kế tem!": {
+    "key": "labelDesignSaved",
+    "en": "✅ Label design saved!",
+    "vi": "✅ Đã lưu thiết kế tem!",
+    "isNew": false,
+    "freq": 1
+  },
+  "Đặt lại mặc định?": {
+    "key": "resetToDefaultQuestion",
+    "en": "Reset to default?",
+    "vi": "Đặt lại mặc định?",
+    "isNew": false,
+    "freq": 1
+  },
+  "THIẾT KẾ TEM": {
+    "key": "labelDesign",
+    "en": "LABEL DESIGN",
+    "vi": "THIẾT KẾ TEM",
+    "isNew": false,
+    "freq": 1
+  },
+  "Bố cục": {
+    "key": "layoutTab",
+    "en": "Layout",
+    "vi": "Bố cục",
+    "isNew": false,
+    "freq": 1
+  },
+  "Loại giấy:": {
+    "key": "paperTypeLabel",
+    "en": "Paper type:",
+    "vi": "Loại giấy:",
+    "isNew": false,
+    "freq": 1
+  },
+  "Cuộn (mm)": {
+    "key": "rollMmLabel",
+    "en": "Roll (mm)",
+    "vi": "Cuộn (mm)",
+    "isNew": false,
+    "freq": 1
+  },
+  "Rộng (cm)": {
+    "key": "widthCmLabel",
+    "en": "Width (cm)",
+    "vi": "Rộng (cm)",
+    "isNew": false,
+    "freq": 1
+  },
+  "Loại mã:": {
+    "key": "codeTypeLabel",
+    "en": "Code type:",
+    "vi": "Loại mã:",
+    "isNew": false,
+    "freq": 1
+  },
+  "MẪU TEM": {
+    "key": "templateTab",
+    "en": "Templates",
+    "vi": "MẪU TEM",
+    "isNew": false,
+    "freq": 1
+  },
+  "Hiển thị": {
+    "key": "displayOption",
+    "en": "Display",
+    "vi": "Hiển thị",
+    "isNew": false,
+    "freq": 1
+  },
+  "Đậm": {
+    "key": "boldOption",
+    "en": "Bold",
+    "vi": "Đậm",
+    "isNew": false,
+    "freq": 1
+  },
+  "Kiểu chữ:": {
+    "key": "fontStyleLabel",
+    "en": "Font style:",
+    "vi": "Kiểu chữ:",
+    "isNew": false,
+    "freq": 1
+  },
+  "VD: Cam kết giá tốt nhất": {
+    "key": "sloganExample",
+    "en": "Ex: Best price guaranteed",
+    "vi": "VD: Cam kết giá tốt nhất",
+    "isNew": false,
+    "freq": 1
+  },
+  "Mẫu Tem": {
+    "key": "templateTab",
+    "en": "Templates",
+    "vi": "Mẫu Tem",
+    "isNew": false,
+    "freq": 1
+  },
+  "Thông tin hiển thị trên tem": {
+    "key": "labelDisplayInfo",
+    "en": "Information displayed on label",
+    "vi": "Thông tin hiển thị trên tem",
+    "isNew": false,
+    "freq": 1
+  },
+  "VD: Cam kết giá tốt nhất thị trường": {
+    "key": "sloganHint",
+    "en": "E.g.: Best prices guaranteed",
+    "vi": "VD: Cam kết giá tốt nhất thị trường",
+    "isNew": false,
+    "freq": 1
+  },
+  "Cài đặt giá CPK": {
+    "key": "cpkPriceSettings",
+    "en": "CPK Price Settings",
+    "vi": "Cài đặt giá CPK",
+    "isNew": false,
+    "freq": 1
+  },
+  "Nội dung cố định trên tem": {
+    "key": "fixedLabelContent",
+    "en": "Fixed content on label",
+    "vi": "Nội dung cố định trên tem",
+    "isNew": false,
+    "freq": 1
+  },
+  "VD: Cam kết chính hãng 100%": {
+    "key": "line1Example",
+    "en": "Ex: 100% Authentic guaranteed",
+    "vi": "VD: Cam kết chính hãng 100%",
+    "isNew": false,
+    "freq": 1
+  },
+  "VD: Hỗ trợ trả góp 0%": {
+    "key": "line3Example",
+    "en": "Ex: 0% installment support",
+    "vi": "VD: Hỗ trợ trả góp 0%",
+    "isNew": false,
+    "freq": 1
+  },
+  "LƯU CÀI ĐẶT": {
+    "key": "saveSettingsButton",
+    "en": "SAVE SETTINGS",
+    "vi": "LƯU CÀI ĐẶT",
+    "isNew": false,
+    "freq": 1
+  },
+  "Xóa mẫu tem?": {
+    "key": "deleteTemplate",
+    "en": "Delete template?",
+    "vi": "Xóa mẫu tem?",
+    "isNew": false,
+    "freq": 1
+  },
+  "Kích thước tem": {
+    "key": "labelSizeLabel",
+    "en": "Label size",
+    "vi": "Kích thước tem",
+    "isNew": false,
+    "freq": 1
+  },
+  "Thông tin sản phẩm": {
+    "key": "productInfoTitle",
+    "en": "Product Information",
+    "vi": "Thông tin sản phẩm",
+    "isNew": false,
+    "freq": 1
+  },
+  "Mã QR": {
+    "key": "qrCodeLabel",
+    "en": "QR Code",
+    "vi": "Mã QR",
+    "isNew": false,
+    "freq": 1
+  },
+  "Thông tin giá": {
+    "key": "priceInfoLabel",
+    "en": "Price Info",
+    "vi": "Thông tin giá",
+    "isNew": false,
+    "freq": 1
+  },
+  "LƯU MẪU TEM": {
+    "key": "saveTemplate",
+    "en": "SAVE TEMPLATE",
+    "vi": "LƯU MẪU TEM",
+    "isNew": false,
+    "freq": 1
+  },
+  "HOẶC": {
+    "key": "or",
+    "en": "Or",
+    "vi": "HOẶC",
+    "isNew": false,
+    "freq": 1
+  },
+  "Tháng": {
+    "key": "month",
+    "en": "Month",
+    "vi": "Tháng",
+    "isNew": true,
+    "freq": 1
+  },
+  "NGƯỜI DÙNG": {
+    "key": "userLabel",
+    "en": "User",
+    "vi": "NGƯỜI DÙNG",
+    "isNew": false,
+    "freq": 1
+  },
+  "ĐÃ LƯU HỒ SƠ CÁ NHÂN": {
+    "key": "profileSaved",
+    "en": "PROFILE SAVED",
+    "vi": "ĐÃ LƯU HỒ SƠ CÁ NHÂN",
+    "isNew": false,
+    "freq": 1
+  },
+  "Chưa có thông báo nào": {
+    "key": "noNotifications",
+    "en": "No notifications yet",
+    "vi": "Chưa có thông báo nào",
+    "isNew": false,
+    "freq": 1
+  },
+  "Đang làm mới FCM token...": {
+    "key": "refreshingFcmToken",
+    "en": "Refreshing FCM token...",
+    "vi": "Đang làm mới FCM token...",
+    "isNew": false,
+    "freq": 1
+  },
+  "Tìm kiếm toàn app": {
+    "key": "searchWholeApp",
+    "en": "Search whole app",
+    "vi": "Tìm kiếm toàn app",
+    "isNew": false,
+    "freq": 1
+  },
+  "Lọc theo thời gian": {
+    "key": "filterByTime",
+    "en": "Filter by time",
+    "vi": "Lọc theo thời gian",
+    "isNew": false,
+    "freq": 1
+  },
+  "đơn": {
+    "key": "ordersCount",
+    "en": "orders",
+    "vi": "đơn",
+    "isNew": false,
+    "freq": 1
+  },
+  "XÁC NHẬN XÓA ĐƠN": {
+    "key": "confirmDeleteOrder",
+    "en": "CONFIRM DELETE ORDER",
+    "vi": "XÁC NHẬN XÓA ĐƠN",
+    "isNew": false,
+    "freq": 1
+  },
+  "DANH SÁCH": {
+    "key": "salesOrderList",
+    "en": "List",
+    "vi": "DANH SÁCH",
+    "isNew": false,
+    "freq": 1
+  },
+  "Chưa có dữ liệu thanh toán": {
+    "key": "noPaymentData",
+    "en": "No payment data",
+    "vi": "Chưa có dữ liệu thanh toán",
+    "isNew": false,
+    "freq": 1
+  },
+  "Lỗi: Không thể thêm nhà cung cấp": {
+    "key": "supplierAddError",
+    "en": "Error: Cannot add supplier",
+    "vi": "Lỗi: Không thể thêm nhà cung cấp",
+    "isNew": false,
+    "freq": 1
+  },
+  "xóa đối tác": {
+    "key": "deletePartner",
+    "en": "Delete partner",
+    "vi": "xóa đối tác",
+    "isNew": false,
+    "freq": 1
+  },
+  "xóa nhà cung cấp": {
+    "key": "deleteSupplier",
+    "en": "DELETE SUPPLIER",
+    "vi": "xóa nhà cung cấp",
+    "isNew": false,
+    "freq": 1
+  },
+  "Đã xóa đối tác thành công": {
+    "key": "partnerDeletedSuccess",
+    "en": "Partner deleted successfully",
+    "vi": "Đã xóa đối tác thành công",
+    "isNew": false,
+    "freq": 1
+  },
+  "Sắp xếp": {
+    "key": "sort",
+    "en": "Sort",
+    "vi": "Sắp xếp",
+    "isNew": true,
+    "freq": 1
+  },
+  "Xóa đã chọn": {
+    "key": "deleteSelected",
+    "en": "Delete selected",
+    "vi": "Xóa đã chọn",
+    "isNew": false,
+    "freq": 1
+  },
+  "Tuần này": {
+    "key": "thisWeek",
+    "en": "This week",
+    "vi": "Tuần này",
+    "isNew": false,
+    "freq": 1
+  },
+  "Đã copy CSV vào clipboard": {
+    "key": "csvCopied",
+    "en": "CSV copied to clipboard",
+    "vi": "Đã copy CSV vào clipboard",
+    "isNew": false,
+    "freq": 1
+  },
+  "Xác nhận nhập kho?": {
+    "key": "confirmStockIn",
+    "en": "Confirm stock in?",
+    "vi": "Xác nhận nhập kho?",
+    "isNew": false,
+    "freq": 1
+  },
+  "NHẬP MỚI": {
+    "key": "stockInNew",
+    "en": "STOCK IN NEW",
+    "vi": "NHẬP MỚI",
+    "isNew": false,
+    "freq": 1
+  },
+  "Cảm ơn quý khách!": {
+    "key": "thankYou",
+    "en": "Thank you!",
+    "vi": "Cảm ơn quý khách!",
+    "isNew": false,
+    "freq": 1
+  },
+  "Màu": {
+    "key": "color",
+    "en": "Color",
+    "vi": "Màu",
+    "isNew": false,
+    "freq": 1
+  },
+  "Đang in...": {
+    "key": "printingLabel",
+    "en": "Printing...",
+    "vi": "Đang in...",
+    "isNew": false,
+    "freq": 1
+  },
+  "ĐÃ HỦY": {
+    "key": "cancelled",
+    "en": "Cancelled",
+    "vi": "ĐÃ HỦY",
+    "isNew": false,
+    "freq": 1
+  },
+  "THÊM MÃ": {
+    "key": "addCode",
+    "en": "ADD CODE",
+    "vi": "THÊM MÃ",
+    "isNew": false,
+    "freq": 1
+  },
+  "Đồng bộ dữ liệu": {
+    "key": "syncData",
+    "en": "Sync data",
+    "vi": "Đồng bộ dữ liệu",
+    "isNew": false,
+    "freq": 1
+  },
+  "CHƯA ĐỒNG BỘ": {
+    "key": "notSynced",
+    "en": "Not synced",
+    "vi": "CHƯA ĐỒNG BỘ",
+    "isNew": false,
+    "freq": 1
+  },
+  "Bật": {
+    "key": "enable",
+    "en": "Enable",
+    "vi": "Bật",
+    "isNew": false,
+    "freq": 1
+  },
+  "YÊU CẦU DUYỆT GIAO": {
+    "key": "actionRequestDeliveryApproval",
+    "en": "REQUEST DELIVERY APPROVAL",
+    "vi": "YÊU CẦU DUYỆT GIAO",
+    "isNew": false,
+    "freq": 1
+  },
+  "SỬA ĐƠN SỬA": {
+    "key": "editRepairAction",
+    "en": "EDIT REPAIR",
+    "vi": "SỬA ĐƠN SỬA",
+    "isNew": false,
+    "freq": 1
+  },
+  "CHỈNH SỬA THÔNG TIN ĐƠN SỬA": {
+    "key": "editOrderInfoTitle",
+    "en": "Edit order information",
+    "vi": "CHỈNH SỬA THÔNG TIN ĐƠN SỬA",
+    "isNew": false,
+    "freq": 1
+  },
+  "6 tháng": {
+    "key": "sixMonths",
+    "en": "6 MONTHS",
+    "vi": "6 tháng",
+    "isNew": false,
+    "freq": 1
+  },
+  "📋 YÊU CẦU DUYỆT GIAO MÁY": {
+    "key": "notifRequestDeliveryApproval",
+    "en": "📋 DELIVERY APPROVAL REQUEST",
+    "vi": "📋 YÊU CẦU DUYỆT GIAO MÁY",
+    "isNew": false,
+    "freq": 1
+  },
+  "Nhà cung cấp phụ tùng": {
+    "key": "defaultPartsSupplier",
+    "en": "Parts supplier",
+    "vi": "Nhà cung cấp phụ tùng",
+    "isNew": false,
+    "freq": 1
+  },
+  "Chỉnh sửa thông tin": {
+    "key": "editInfoTooltip",
+    "en": "Edit information",
+    "vi": "Chỉnh sửa thông tin",
+    "isNew": false,
+    "freq": 1
+  },
+  "nhận": {
+    "key": "receive",
+    "en": "Receive",
+    "vi": "nhận",
+    "isNew": false,
+    "freq": 1
+  },
+  "sửa": {
+    "key": "editAction",
+    "en": "Edit",
+    "vi": "sửa",
+    "isNew": false,
+    "freq": 1
+  },
+  "DUYỆT GIAO MÁY": {
+    "key": "approveDelivery",
+    "en": "APPROVE DELIVERY",
+    "vi": "DUYỆT GIAO MÁY",
+    "isNew": false,
+    "freq": 1
+  },
+  "Tiếp nhận": {
+    "key": "received",
+    "en": "Received",
+    "vi": "Tiếp nhận",
+    "isNew": false,
+    "freq": 1
+  },
+  "Sửa xong": {
+    "key": "repairDone",
+    "en": "Repair done",
+    "vi": "Sửa xong",
+    "isNew": false,
+    "freq": 1
+  },
+  "Đang hoạt động": {
+    "key": "isActive",
+    "en": "Active",
+    "vi": "Đang hoạt động",
+    "isNew": false,
+    "freq": 1
+  },
+  "ĐÃ XÓA ĐỐI TÁC": {
+    "key": "partnerDeleted",
+    "en": "PARTNER DELETED",
+    "vi": "ĐÃ XÓA ĐỐI TÁC",
+    "isNew": false,
+    "freq": 1
+  },
+  "Đã thêm đối tác thành công": {
+    "key": "partnerAddedSuccess",
+    "en": "Partner added successfully",
+    "vi": "Đã thêm đối tác thành công",
+    "isNew": false,
+    "freq": 1
+  },
+  "XÓA ĐỐI TÁC": {
+    "key": "deletePartner",
+    "en": "Delete partner",
+    "vi": "XÓA ĐỐI TÁC",
+    "isNew": false,
+    "freq": 1
+  },
+  "Đang tải danh sách...": {
+    "key": "loadingList",
+    "en": "Loading list...",
+    "vi": "Đang tải danh sách...",
+    "isNew": false,
+    "freq": 1
+  },
+  "CHI TIẾT": {
+    "key": "productDetailLabelPlain",
+    "en": "Detail",
+    "vi": "CHI TIẾT",
+    "isNew": false,
+    "freq": 1
+  },
+  "Đã lưu và in phiếu tiếp nhận thành công!": {
+    "key": "receiptSavedAndPrinted",
+    "en": "Receipt saved and printed successfully!",
+    "vi": "Đã lưu và in phiếu tiếp nhận thành công!",
+    "isNew": false,
+    "freq": 1
+  },
+  "ĐANG XỬ LÝ...": {
+    "key": "processingLabel",
+    "en": "Processing...",
+    "vi": "ĐANG XỬ LÝ...",
+    "isNew": false,
+    "freq": 1
+  },
+  "In thất bại! Vui lòng kiểm tra cài đặt máy in.": {
+    "key": "printFailed",
+    "en": "Print failed! Please check printer settings.",
+    "vi": "In thất bại! Vui lòng kiểm tra cài đặt máy in.",
+    "isNew": false,
+    "freq": 1
+  },
+  "CHI TIẾT ĐƠN BÁN": {
+    "key": "saleDetail",
+    "en": "SALE DETAILS",
+    "vi": "CHI TIẾT ĐƠN BÁN",
+    "isNew": false,
+    "freq": 1
+  },
+  "Tên khách": {
+    "key": "customerNameLabel",
+    "en": "Customer name",
+    "vi": "Tên khách",
+    "isNew": false,
+    "freq": 1
+  },
+  "XÓA ĐƠN BÁN": {
+    "key": "deleteSaleOrder",
+    "en": "DELETE SALE ORDER",
+    "vi": "XÓA ĐƠN BÁN",
+    "isNew": false,
+    "freq": 1
+  },
+  "Giảm giá": {
+    "key": "discount",
+    "en": "Discount",
+    "vi": "Giảm giá",
+    "isNew": true,
+    "freq": 1
+  },
+  "THỜI GIAN": {
+    "key": "timeFilter",
+    "en": "TIME",
+    "vi": "THỜI GIAN",
+    "isNew": false,
+    "freq": 1
+  },
+  "ÁP DỤNG": {
+    "key": "apply",
+    "en": "APPLY",
+    "vi": "ÁP DỤNG",
+    "isNew": false,
+    "freq": 1
+  },
+  "DOANH SỐ HÔM NAY": {
+    "key": "todaySales",
+    "en": "TODAY'S SALES",
+    "vi": "DOANH SỐ HÔM NAY",
+    "isNew": false,
+    "freq": 1
+  },
+  "QUẢN LÝ ĐƠN BÁN": {
+    "key": "saleListTitle",
+    "en": "SALES MANAGEMENT",
+    "vi": "QUẢN LÝ ĐƠN BÁN",
+    "isNew": false,
+    "freq": 1
+  },
+  "Tạo đơn bán": {
+    "key": "createSale",
+    "en": "Create sale",
+    "vi": "Tạo đơn bán",
+    "isNew": false,
+    "freq": 1
+  },
+  "Quản lý cửa hàng": {
+    "key": "appTitle",
+    "en": "Shop Manager",
+    "vi": "Quản lý cửa hàng",
+    "isNew": false,
+    "freq": 1
+  },
+  "KHÔNG": {
+    "key": "noPhoto",
+    "en": "No",
+    "vi": "KHÔNG",
+    "isNew": false,
+    "freq": 1
+  },
+  "QUẢN LÝ SHOP": {
+    "key": "defaultShopName",
+    "en": "QUAN LY SHOP",
+    "vi": "QUẢN LÝ SHOP",
+    "isNew": false,
+    "freq": 1
+  },
+  "Sản phẩm trong kho": {
+    "key": "productsInStock",
+    "en": "Products in stock",
+    "vi": "Sản phẩm trong kho",
+    "isNew": false,
+    "freq": 1
+  },
+  "Công nợ & Chi phí": {
+    "key": "debtsAndExpensesDataItem",
+    "en": "Debts & Expenses",
+    "vi": "Công nợ & Chi phí",
+    "isNew": false,
+    "freq": 1
+  },
+  "Khách hàng & NCC": {
+    "key": "customersAndSuppliersDataItem",
+    "en": "Customers & Suppliers",
+    "vi": "Khách hàng & NCC",
+    "isNew": false,
+    "freq": 1
+  },
+  "Chỉ tải dữ liệu của shop này, không ảnh hưởng shop khác.": {
+    "key": "onlyDownloadThisShopData",
+    "en": "Only download this shop's data, won't affect others.",
+    "vi": "Chỉ tải dữ liệu của shop này, không ảnh hưởng shop khác.",
+    "isNew": false,
+    "freq": 1
+  },
+  "Đang tải dữ liệu shop...": {
+    "key": "loadingShopData",
+    "en": "Loading shop data...",
+    "vi": "Đang tải dữ liệu shop...",
+    "isNew": false,
+    "freq": 1
+  },
+  "Vui lòng đợi trong giây lát": {
+    "key": "pleaseWait",
+    "en": "Please wait",
+    "vi": "Vui lòng đợi trong giây lát",
+    "isNew": false,
+    "freq": 1
+  },
+  "TẢI DỮ LIỆU SHOP": {
+    "key": "downloadShopDataTitle",
+    "en": "DOWNLOAD SHOP DATA",
+    "vi": "TẢI DỮ LIỆU SHOP",
+    "isNew": false,
+    "freq": 1
+  },
+  "Quá trình có thể mất vài phút tùy lượng dữ liệu.": {
+    "key": "processMayTakeFewMinutes",
+    "en": "Process may take a few minutes depending on data size.",
+    "vi": "Quá trình có thể mất vài phút tùy lượng dữ liệu.",
+    "isNew": false,
+    "freq": 1
+  },
+  "BẮT ĐẦU TẢI": {
+    "key": "startDownload",
+    "en": "START DOWNLOAD",
+    "vi": "BẮT ĐẦU TẢI",
+    "isNew": false,
+    "freq": 1
+  },
+  "NHẬP KHO MỚI": {
+    "key": "newStockIn",
+    "en": "New stock in",
+    "vi": "NHẬP KHO MỚI",
+    "isNew": false,
+    "freq": 1
+  },
+  "Email đăng nhập": {
+    "key": "loginEmail",
+    "en": "Login Email",
+    "vi": "Email đăng nhập",
+    "isNew": false,
+    "freq": 1
+  },
+  "ĐANG SỬA": {
+    "key": "repairingButton",
+    "en": "REPAIRING",
+    "vi": "ĐANG SỬA",
+    "isNew": false,
+    "freq": 1
+  },
+  "ĐÃ XONG": {
+    "key": "repairDoneButton",
+    "en": "DONE",
+    "vi": "ĐÃ XONG",
+    "isNew": false,
+    "freq": 1
+  },
+  "ĐÃ GIAO": {
+    "key": "statusDeliveredUpper",
+    "en": "DELIVERED",
+    "vi": "ĐÃ GIAO",
+    "isNew": false,
+    "freq": 1
+  },
+  "CÔNG THỨC": {
+    "key": "formulaLabel",
+    "en": "Formula",
+    "vi": "CÔNG THỨC",
+    "isNew": false,
+    "freq": 1
+  },
+  "🛒 BÁN HÀNG": {
+    "key": "salesFeature",
+    "en": "🛒 Sales",
+    "vi": "🛒 BÁN HÀNG",
+    "isNew": false,
+    "freq": 1
+  },
+  "🔧 SỬA CHỮA": {
+    "key": "repairFeature",
+    "en": "🔧 Repair",
+    "vi": "🔧 SỬA CHỮA",
+    "isNew": false,
+    "freq": 1
+  },
+  "In phiếu lương": {
+    "key": "printSalarySlip",
+    "en": "Print salary slip",
+    "vi": "In phiếu lương",
+    "isNew": false,
+    "freq": 1
+  },
+  "Máy in": {
+    "key": "printer",
+    "en": "Printer",
+    "vi": "Máy in",
+    "isNew": false,
+    "freq": 1
+  },
+  "Quản lý nhân viên": {
+    "key": "manageStaff",
+    "en": "Manage staff",
+    "vi": "Quản lý nhân viên",
+    "isNew": false,
+    "freq": 1
+  },
+  "KHO HÀNG": {
+    "key": "inventory",
+    "en": "Inventory",
+    "vi": "KHO HÀNG",
+    "isNew": false,
+    "freq": 1
+  },
+  "CHỦ SHOP có toàn quyền truy cập mọi chức năng trong hệ thống": {
+    "key": "ownerFullAccess",
+    "en": "SHOP OWNER has full access to all features in the system",
+    "vi": "CHỦ SHOP có toàn quyền truy cập mọi chức năng trong hệ thống",
+    "isNew": false,
+    "freq": 1
+  },
+  "QUẢN LÝ có toàn quyền truy cập mọi chức năng trong hệ thống": {
+    "key": "managerFullAccess",
+    "en": "MANAGER has full access to all features in the system",
+    "vi": "QUẢN LÝ có toàn quyền truy cập mọi chức năng trong hệ thống",
+    "isNew": false,
+    "freq": 1
+  },
+  "Chấm công cá nhân": {
+    "key": "personalAttendance",
+    "en": "Personal attendance",
+    "vi": "Chấm công cá nhân",
+    "isNew": false,
+    "freq": 1
+  },
+  "Kỹ thuật viên": {
+    "key": "roleTechnician",
+    "en": "Technician",
+    "vi": "Kỹ thuật viên",
+    "isNew": false,
+    "freq": 1
+  },
+  "Giá trị tồn": {
+    "key": "inventoryValue",
+    "en": "Stock value",
+    "vi": "Giá trị tồn",
+    "isNew": false,
+    "freq": 1
+  },
+  "Loại": {
+    "key": "type",
+    "en": "Type",
+    "vi": "Loại",
+    "isNew": true,
+    "freq": 1
+  },
+  "Đang xử lý": {
+    "key": "inProgress",
+    "en": "In progress",
+    "vi": "Đang xử lý",
+    "isNew": false,
+    "freq": 1
+  },
+  "cài đặt": {
+    "key": "settingsTab",
+    "en": "Settings",
+    "vi": "cài đặt",
+    "isNew": false,
+    "freq": 1
+  },
+  "Xóa dữ liệu": {
+    "key": "deleteData",
+    "en": "Delete data",
+    "vi": "Xóa dữ liệu",
+    "isNew": true,
+    "freq": 1
+  },
+  "TẠO MỚI": {
+    "key": "createNew",
+    "en": "Create new",
+    "vi": "TẠO MỚI",
+    "isNew": false,
+    "freq": 1
+  },
+  "Lịch làm việc từng nhân viên": {
+    "key": "staffWorkSchedule",
+    "en": "Individual staff schedules",
+    "vi": "Lịch làm việc từng nhân viên",
+    "isNew": false,
+    "freq": 1
+  },
+  "Tra cứu chấm công": {
+    "key": "attendanceLookupLabel",
+    "en": "Attendance Lookup",
+    "vi": "Tra cứu chấm công",
+    "isNew": false,
+    "freq": 1
+  },
+  "Chọn nhân viên để xem chấm công": {
+    "key": "selectStaffToViewAttendance",
+    "en": "Select staff to view attendance",
+    "vi": "Chọn nhân viên để xem chấm công",
+    "isNew": false,
+    "freq": 1
+  },
+  "Lỗi hiển thị": {
+    "key": "displayError",
+    "en": "Display Error",
+    "vi": "Lỗi hiển thị",
+    "isNew": false,
+    "freq": 1
+  },
+  "Chưa cài đặt lịch": {
+    "key": "scheduleNotSet",
+    "en": "Schedule not set",
+    "vi": "Chưa cài đặt lịch",
+    "isNew": false,
+    "freq": 1
+  },
+  "Kết thúc": {
+    "key": "endTimeLabel",
+    "en": "End",
+    "vi": "Kết thúc",
+    "isNew": false,
+    "freq": 1
+  },
+  "Nghỉ trưa": {
+    "key": "lunchBreakLabel",
+    "en": "Lunch break",
+    "vi": "Nghỉ trưa",
+    "isNew": false,
+    "freq": 1
+  },
+  "OT tối đa": {
+    "key": "maxOvertimeLabel",
+    "en": "Max OT",
+    "vi": "OT tối đa",
+    "isNew": false,
+    "freq": 1
+  },
+  "Cài đặt giờ làm việc": {
+    "key": "workTimeSettings",
+    "en": "Work Time Settings",
+    "vi": "Cài đặt giờ làm việc",
+    "isNew": false,
+    "freq": 1
+  },
+  "Giờ bắt đầu": {
+    "key": "startTimeFieldLabel",
+    "en": "Start time",
+    "vi": "Giờ bắt đầu",
+    "isNew": false,
+    "freq": 1
+  },
+  "Giờ kết thúc": {
+    "key": "endTimeFieldLabel",
+    "en": "End time",
+    "vi": "Giờ kết thúc",
+    "isNew": false,
+    "freq": 1
+  },
+  "Giờ nghỉ trưa (tiếng)": {
+    "key": "lunchBreakHours",
+    "en": "Lunch break (hours)",
+    "vi": "Giờ nghỉ trưa (tiếng)",
+    "isNew": false,
+    "freq": 1
+  },
+  "Giờ tăng ca tối đa/ngày": {
+    "key": "maxOvertimePerDay",
+    "en": "Max overtime per day",
+    "vi": "Giờ tăng ca tối đa/ngày",
+    "isNew": false,
+    "freq": 1
+  },
+  "Chọn giờ": {
+    "key": "selectTime",
+    "en": "Select time",
+    "vi": "Chọn giờ",
+    "isNew": false,
+    "freq": 1
+  },
+  "Cài đặt ngày làm việc": {
+    "key": "workDaysSettings",
+    "en": "Work Days Settings",
+    "vi": "Cài đặt ngày làm việc",
+    "isNew": false,
+    "freq": 1
+  },
+  "Ngày nghỉ lễ:": {
+    "key": "holidaysLabel",
+    "en": "Holidays:",
+    "vi": "Ngày nghỉ lễ:",
+    "isNew": false,
+    "freq": 1
+  },
+  "Thêm ngày nghỉ": {
+    "key": "addHolidayBtn",
+    "en": "Add holiday",
+    "vi": "Thêm ngày nghỉ",
+    "isNew": false,
+    "freq": 1
+  },
+  "Danh sách ngày nghỉ:": {
+    "key": "holidayListLabel",
+    "en": "Holiday list:",
+    "vi": "Danh sách ngày nghỉ:",
+    "isNew": false,
+    "freq": 1
+  },
+  "Cài đặt tăng ca": {
+    "key": "overtimeSettingsLabel",
+    "en": "Overtime Settings",
+    "vi": "Cài đặt tăng ca",
+    "isNew": false,
+    "freq": 1
+  },
+  "Tăng ca ngày thường (% lương/giờ)": {
+    "key": "weekdayOvertimeRate",
+    "en": "Weekday overtime (% of salary/hour)",
+    "vi": "Tăng ca ngày thường (% lương/giờ)",
+    "isNew": false,
+    "freq": 1
+  },
+  "Tăng ca cuối tuần (% lương/giờ)": {
+    "key": "weekendOvertimeRate",
+    "en": "Weekend overtime (% of salary/hour)",
+    "vi": "Tăng ca cuối tuần (% lương/giờ)",
+    "isNew": false,
+    "freq": 1
+  },
+  "Tăng ca ngày lễ (% lương/giờ)": {
+    "key": "holidayOvertimeRate",
+    "en": "Holiday overtime (% of salary/hour)",
+    "vi": "Tăng ca ngày lễ (% lương/giờ)",
+    "isNew": false,
+    "freq": 1
+  },
+  "Cài đặt lương nhân viên": {
+    "key": "staffSalarySettingsLabel",
+    "en": "Staff Salary Settings",
+    "vi": "Cài đặt lương nhân viên",
+    "isNew": false,
+    "freq": 1
+  },
+  "Thêm/Cập nhật lương": {
+    "key": "addUpdateSalary",
+    "en": "Add/Update Salary",
+    "vi": "Thêm/Cập nhật lương",
+    "isNew": false,
+    "freq": 1
+  },
+  "Lưu lương": {
+    "key": "saveSalary",
+    "en": "Save salary",
+    "vi": "Lưu lương",
+    "isNew": false,
+    "freq": 1
+  },
+  "Danh sách lương hiện tại:": {
+    "key": "currentSalaryList",
+    "en": "Current salary list:",
+    "vi": "Danh sách lương hiện tại:",
+    "isNew": false,
+    "freq": 1
+  },
+  "Quản lý chấm công nhân viên": {
+    "key": "manageStaffAttendance",
+    "en": "Manage Staff Attendance",
+    "vi": "Quản lý chấm công nhân viên",
+    "isNew": false,
+    "freq": 1
+  },
+  "Chọn ngày": {
+    "key": "selectDateLabel",
+    "en": "Select date",
+    "vi": "Chọn ngày",
+    "isNew": false,
+    "freq": 1
+  },
+  "Thông tin chấm công": {
+    "key": "attendanceInfoLabel",
+    "en": "Attendance Info",
+    "vi": "Thông tin chấm công",
+    "isNew": false,
+    "freq": 1
+  },
+  "Vui lòng chọn nhân viên để xem thông tin chấm công": {
+    "key": "selectStaffForAttendance",
+    "en": "Please select staff to view attendance info",
+    "vi": "Vui lòng chọn nhân viên để xem thông tin chấm công",
+    "isNew": false,
+    "freq": 1
+  }
+}

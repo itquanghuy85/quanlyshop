@@ -153,16 +153,22 @@ class SyncHealthCheck {
 
     const collections = [
       'repairs',
+      'repair_parts',
+      'repair_partners',
+      'partner_repair_history',
       'sales',
+      'salvage_phones',
       'products',
+      'storage_locations',
       'expenses',
       'debts',
+      'debt_payments',
+      'payment_intents',
+      'payment_requests',
       'attendance',
       'customers',
       'suppliers',
       'quick_input_codes',
-      'repair_parts',
-      'debt_payments',
     ];
 
     final allowedCollections =
@@ -548,16 +554,22 @@ class SyncHealthCheck {
     // Danh sách các collection cần sync
     final collections = [
       'repairs',
+      'repair_parts',
+      'repair_partners',
+      'partner_repair_history',
       'sales',
+      'salvage_phones',
       'products',
+      'storage_locations',
       'expenses',
       'debts',
+      'debt_payments',
+      'payment_intents',
+      'payment_requests',
       'attendance',
       'customers',
       'suppliers',
       'quick_input_codes',
-      'repair_parts', // Kho linh kiện
-      'debt_payments', // Lịch sử thanh toán công nợ
     ];
 
     for (var collection in collections) {
@@ -665,16 +677,22 @@ class SyncHealthCheck {
     // Cập nhật isSynced = 1 cho tất cả records có firestoreId
     final tables = [
       'repairs',
+      'repair_parts',
+      'repair_partners',
+      'partner_repair_history',
       'sales',
+      'salvage_phones',
       'products',
+      'storage_locations',
       'expenses',
       'debts',
+      'debt_payments',
+      'payment_intents',
+      'payment_requests',
       'attendance',
       'customers',
       'suppliers',
       'quick_input_codes',
-      'repair_parts',
-      'debt_payments',
     ];
 
     for (var table in tables) {
@@ -785,11 +803,62 @@ class SyncHealthCheck {
             .where((p) => p['firestoreId'] != null)
             .map((p) => p['firestoreId'] as String)
             .toSet();
+      case 'repair_partners':
+        final partners = await dbInstance.query(
+          'repair_partners',
+          where: '(deleted = 0 OR deleted IS NULL)',
+        );
+        return partners
+            .where((p) => p['firestoreId'] != null)
+            .map((p) => p['firestoreId'] as String)
+            .toSet();
+      case 'partner_repair_history':
+        final histories = await dbInstance.query('partner_repair_history');
+        return histories
+            .where((h) => h['firestoreId'] != null)
+            .map((h) => h['firestoreId'] as String)
+            .toSet();
+      case 'salvage_phones':
+        final salvage = await dbInstance.query(
+          'salvage_phones',
+          where: '(deleted = 0 OR deleted IS NULL)',
+        );
+        return salvage
+            .where((s) => s['firestoreId'] != null)
+            .map((s) => s['firestoreId'] as String)
+            .toSet();
+      case 'storage_locations':
+        final locations = await dbInstance.query(
+          'storage_locations',
+          where: '(deleted = 0 OR deleted IS NULL)',
+        );
+        return locations
+            .where((l) => l['firestoreId'] != null)
+            .map((l) => l['firestoreId'] as String)
+            .toSet();
       case 'debt_payments':
         final payments = await dbInstance.query('debt_payments');
         return payments
             .where((p) => p['firestoreId'] != null)
             .map((p) => p['firestoreId'] as String)
+            .toSet();
+      case 'payment_intents':
+        final intents = await dbInstance.query(
+          'payment_intents',
+          where: '(deleted = 0 OR deleted IS NULL)',
+        );
+        return intents
+            .where((i) => i['firestoreId'] != null)
+            .map((i) => i['firestoreId'] as String)
+            .toSet();
+      case 'payment_requests':
+        final requests = await dbInstance.query(
+          'payment_requests',
+          where: '(deleted = 0 OR deleted IS NULL)',
+        );
+        return requests
+            .where((r) => r['firestoreId'] != null)
+            .map((r) => r['firestoreId'] as String)
             .toSet();
       default:
         return {};
@@ -834,8 +903,26 @@ class SyncHealthCheck {
       case 'repair_parts':
         await db.upsertRepairPart(data);
         break;
+      case 'repair_partners':
+        await db.upsertRepairPartner(data);
+        break;
+      case 'partner_repair_history':
+        await db.upsertPartnerRepairHistory(data);
+        break;
+      case 'salvage_phones':
+        await db.upsertSalvagePhone(data);
+        break;
+      case 'storage_locations':
+        await db.upsertStorageLocationFromMap(data);
+        break;
       case 'debt_payments':
         await db.upsertDebtPayment(data);
+        break;
+      case 'payment_intents':
+        await db.upsertPaymentIntent(data);
+        break;
+      case 'payment_requests':
+        await db.upsertPaymentRequest(data);
         break;
     }
   }

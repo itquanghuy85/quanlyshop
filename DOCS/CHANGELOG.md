@@ -6,6 +6,28 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ## [2026-05-26] - Hoàn Thiện Sao Lưu/Khôi Phục Offline + Online, Thêm Nút ... Trên Cài Đặt
 
+### Follow-up Migration & Sync Hardening (2026-05-26)
+- `lib/services/backup_service.dart`
+	- Mở rộng mapping restore SQLite cho các domain còn thiếu khi chuyển shop: `repair_parts`, `salvage_phones`, `storage_locations`, `payment_requests`, `payment_intents`, `repair_partners`, `partner_repair_history`, `import_orders`.
+	- Khi chọn chế độ chuyển dữ liệu vào shop hiện tại: tự động remap `shopId`, reset `isSynced=0`, và xóa `firestoreId` để dữ liệu được upload lại đúng shop mới.
+	- Bổ sung nhãn collection cho các module kho/đối tác/thanh toán mới.
+- `lib/views/backup_restore_view.dart`
+	- Mở rộng danh sách chọn khôi phục theo nhóm để bao phủ đủ: đơn sửa, kho máy xác, kho linh kiện, kho vị trí, yêu cầu đóng tiền, chi đối tác/NCC, lịch sử nhập.
+- `lib/services/sync_health_check.dart`
+	- Mở rộng phạm vi kiểm tra sync + auto-fix cho `salvage_phones`, `storage_locations`, `payment_requests`, `payment_intents`, `repair_partners`, `partner_repair_history`.
+- `lib/services/sync_domain_report_service.dart`
+	- Cập nhật domain report để phản ánh đúng các bảng/domain mới trong phần cài đặt đồng bộ.
+- `lib/views/register_view.dart`
+	- UI đăng ký chỉ còn loại hình kinh doanh điện tử.
+- `lib/views/onboarding/business_type_wizard.dart`
+	- Wizard onboarding và quick selector chỉ còn điện tử; `availableTypes` giới hạn còn `electronics`.
+- `lib/widgets/shop_switcher_widget.dart`
+	- Luồng tạo chi nhánh mới bỏ dropdown ngành, cố định tạo shop theo ngành điện tử.
+
+### Validation (follow-up migration)
+- `flutter analyze lib/services/backup_service.dart lib/views/backup_restore_view.dart lib/services/sync_health_check.dart lib/services/sync_domain_report_service.dart lib/views/register_view.dart lib/views/onboarding/business_type_wizard.dart lib/widgets/shop_switcher_widget.dart`
+- `flutter build apk --debug`
+
 ### Changed
 - `lib/services/backup_service.dart`
 	- Hoàn thiện khôi phục SQLite từ Cloud bằng `restoreSqliteFromFirebase(fileName)`.

@@ -3908,7 +3908,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get approvedStatus => 'Approved';
 
   @override
-  String get rejectedStatus => 'Rejected';
+  String get rejectedStatus => '❌ Rejected';
 
   @override
   String get pendingStatus => 'Pending';
@@ -5232,4 +5232,1132 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get requestNote => 'Note';
+
+  @override
+  String get remaining => 'Outstanding';
+
+  @override
+  String get incidentalUpper => 'INCIDENTAL';
+
+  @override
+  String get technician => 'Technician';
+
+  @override
+  String get paymentCashLower => 'Cash';
+
+  @override
+  String get exportExcel => 'Export Excel';
+
+  @override
+  String get paid => 'Paid';
+
+  @override
+  String get last7days => '7 days';
+
+  @override
+  String get combined => 'COMBINED';
+
+  @override
+  String get weekUpper => 'WEEK';
+
+  @override
+  String get paymentTransferLower => 'Transfer';
+
+  @override
+  String get salePrice => 'Sale price';
+
+  @override
+  String get settled => 'Settled';
+
+  @override
+  String get paymentDone => 'Paid';
+
+  @override
+  String get retailCustomer => 'Retail customer';
+
+  @override
+  String get quickCode => 'Quick code';
+
+  @override
+  String get refundUpper => 'REFUND';
+
+  @override
+  String get transferShort => 'Transfer';
+
+  @override
+  String get overdue => 'Overdue';
+
+  @override
+  String get utilities => 'UTILITIES';
+
+  @override
+  String get sold => 'Sold';
+
+  @override
+  String get paySupplierDebt => 'Pay supplier debt';
+
+  @override
+  String get returnGoods => 'Return goods';
+
+  @override
+  String get addPhoto => 'Add photo';
+
+  @override
+  String get chooseFromGallery => 'Choose from gallery';
+
+  @override
+  String get syncing => 'Syncing...';
+
+  @override
+  String get errorOccurred => 'An error occurred';
+
+  @override
+  String get payable => 'Payable';
+
+  @override
+  String get personal => 'PERSONAL';
+
+  @override
+  String get salePriceVnd => 'Sale price (VND)';
+
+  @override
+  String get deduction => 'Deduction';
+
+  @override
+  String get profit => 'Profit';
+
+  @override
+  String get costPriceVnd => 'Cost price (VND)';
+
+  @override
+  String get deactivate => 'Deactivate';
+
+  @override
+  String get addNewSupplier => 'Add new supplier';
+
+  @override
+  String get noShopName => 'Unnamed shop';
+
+  @override
+  String get totalAmount => 'Total amount';
+
+  @override
+  String get editLabel => 'Edit';
+
+  @override
+  String get rejectReason => 'Reject reason';
+
+  @override
+  String get loadMore => 'Load more';
+
+  @override
+  String get payDebt => 'Pay debt';
+
+  @override
+  String get system => 'System';
+
+  @override
+  String get restore => 'Restore';
+
+  @override
+  String get incidentalIncome => 'Incidental income';
+
+  @override
+  String get addNew => 'Add new';
+
+  @override
+  String get brand => 'Brand';
+
+  @override
+  String get noPermission => 'No permission';
+
+  @override
+  String get month => 'Month';
+
+  @override
+  String get sort => 'Sort';
+
+  @override
+  String get discount => 'Discount';
+
+  @override
+  String get type => 'Type';
+
+  @override
+  String get deleteData => 'Delete data';
+
+  @override
+  String get aiFilledRepairOrder => 'AI auto-filled repair order.';
+
+  @override
+  String get parsedRepairOrderFilled => 'Recognized and filled repair order.';
+
+  @override
+  String get orderSavedUploadingImages => 'Order saved. Uploading images, please don\'t close the app.';
+
+  @override
+  String get uploadingImagesToSystem => 'Uploading images, please don\'t close the app.';
+
+  @override
+  String get searchPartner => 'Search partner';
+
+  @override
+  String get noPartnerFound => 'No matching partner found';
+
+  @override
+  String get quickInputTooltip => 'Quick input by command';
+
+  @override
+  String get saveAndPrint => 'Save & Print';
+
+  @override
+  String get hideDetails => 'Hide details';
+
+  @override
+  String get showMoreDetails => 'More details (security, appearance, accessories, photos)';
+
+  @override
+  String get customerOwesDebt => 'Owes';
+
+  @override
+  String get shopOwesCustomer => 'Shop owes';
+
+  @override
+  String get customerAddressOptional => 'Customer address (optional)';
+
+  @override
+  String get takePhoto => 'Take photo';
+
+  @override
+  String get paymentRequestTitle => 'Payment Request';
+
+  @override
+  String get searchNamePhoneBankAmount => 'Search name, phone, bank, amount...';
+
+  @override
+  String get createNewRequest => 'Create new request';
+
+  @override
+  String get pendingApprovalStatus => '⏳ Pending approval';
+
+  @override
+  String get paidStatus => '✅ Paid';
+
+  @override
+  String get noPaymentRequests => 'No payment requests';
+
+  @override
+  String get tapPlusToCreateNew => 'Tap ⊕ on the title bar to create new';
+
+  @override
+  String get overdueLabel => 'OVERDUE';
+
+  @override
+  String get customerBankTransfer => 'Customer bank transfer';
+
+  @override
+  String get customerCash => 'Customer cash payment';
+
+  @override
+  String get ownerTransferredToBank => 'Owner transferred to bank';
+
+  @override
+  String get paymentBankTransfer => 'Payment (bank transfer)';
+
+  @override
+  String get deleteRequest => 'Delete request';
+
+  @override
+  String get rejectButton => 'Reject';
+
+  @override
+  String get accountContractNumber => 'Account / Contract No.';
+
+  @override
+  String get bankOrLoanOrg => 'Bank / Loan organization';
+
+  @override
+  String get customerPaysStaff => 'Customer pays staff';
+
+  @override
+  String get bankTransferLabelWithEmoji => '🏦 Bank transfer';
+
+  @override
+  String get cashLabelWithEmoji => '💵 Cash';
+
+  @override
+  String get ownerTransferBank => 'Owner transfer to bank';
+
+  @override
+  String get transferredToBank => '🏦 Transferred to bank';
+
+  @override
+  String get staffSender => 'Sent by staff';
+
+  @override
+  String get createdDate => 'Created date';
+
+  @override
+  String get processedBy => 'Processed by';
+
+  @override
+  String get processedDate => 'Processed date';
+
+  @override
+  String get attachedImages => 'Attached images (invoice, bank transfer):';
+
+  @override
+  String get confirmBankTransfer => 'Confirm bank transfer';
+
+  @override
+  String get bankTransferNoteMsg => 'Bank transfer will be recorded in the cash book.\nAfter confirming, please send a screenshot of the transfer as proof.';
+
+  @override
+  String get confirmedBankTransfer => 'Transferred to bank ✓';
+
+  @override
+  String get rejectRequest => 'Reject request';
+
+  @override
+  String get selectProofImageHint => '💡 Select bank transfer screenshot to send as proof';
+
+  @override
+  String get selectRequestToSendImage => 'Select request to send bank transfer image...';
+
+  @override
+  String get selectRequestForBankImage => 'Select request to send bank transfer image';
+
+  @override
+  String get uploadingProofImages => 'Uploading proof images, please do not exit the app.';
+
+  @override
+  String get sendPaymentRequest => 'Send payment request';
+
+  @override
+  String get paymentType => 'Payment type';
+
+  @override
+  String get customerInfoLabel => 'Customer information';
+
+  @override
+  String get searchCustomerShort => 'Find customer';
+
+  @override
+  String get customerPaysStaffLabel => 'Customer pays staff';
+
+  @override
+  String get paymentDetails => 'Payment details';
+
+  @override
+  String get amountVnd => 'Amount (₫)';
+
+  @override
+  String get accountOrContractCode => 'Account / Contract code';
+
+  @override
+  String get bankOrInstallmentOrg => 'Bank / Installment organization';
+
+  @override
+  String get noteForOwner => 'Note for shop owner';
+
+  @override
+  String get imagesInvoiceBankTransfer => 'Images (invoice, bank transfer...)';
+
+  @override
+  String get sendingLabel => 'Sending...';
+
+  @override
+  String get sendRequestLabel => 'SEND REQUEST';
+
+  @override
+  String get paymentTypeName => 'Payment type name';
+
+  @override
+  String get electricityPayment => 'Electricity bill';
+
+  @override
+  String get waterPayment => 'Water bill';
+
+  @override
+  String get internetPayment => 'Internet bill';
+
+  @override
+  String get bankLoanPayment => 'Bank loan';
+
+  @override
+  String get installmentPayment => 'Installment';
+
+  @override
+  String get insurancePayment => 'Insurance';
+
+  @override
+  String get selectCustomerDialogTitle => 'Select customer';
+
+  @override
+  String get searchByNamePhoneAddress => 'Search by name, phone, address...';
+
+  @override
+  String get sentPaymentRequest => '✅ Payment request sent';
+
+  @override
+  String get errorSendingRequest => '❌ Error sending request';
+
+  @override
+  String get adminConsoleTitle => 'SUPER ADMIN CONSOLE';
+
+  @override
+  String get adminAuthSuperAdmin => 'Authenticate Super Admin';
+
+  @override
+  String get adminAuthPin => 'Authenticate PIN';
+
+  @override
+  String get adminEnterPinForDangerous => 'Enter Super Admin PIN to continue dangerous operation.';
+
+  @override
+  String get adminPinHint => 'PIN (4-6 digits)';
+
+  @override
+  String get adminPinWrong => 'Incorrect PIN';
+
+  @override
+  String get adminEditUser => 'Edit user';
+
+  @override
+  String get adminUserPhone => 'Phone';
+
+  @override
+  String get adminShopId => 'Shop ID';
+
+  @override
+  String get adminExitConsole => 'Exit Console?';
+
+  @override
+  String get adminExitConsoleConfirm => 'Are you sure you want to exit the Super Admin Console?';
+
+  @override
+  String get adminStayHere => 'Stay';
+
+  @override
+  String get adminLogoutConfirmMsg => 'Are you sure you want to logout from the Super Admin Console?';
+
+  @override
+  String get adminNoAccess => 'You do not have access to the Super Admin Console.';
+
+  @override
+  String get adminReload => 'Reload';
+
+  @override
+  String get adminDashboard => 'Dashboard';
+
+  @override
+  String get adminShops => 'Shops';
+
+  @override
+  String get adminUsers => 'Users';
+
+  @override
+  String get adminLogs => 'Logs';
+
+  @override
+  String get adminMore => 'More';
+
+  @override
+  String get adminBroadcast => 'Broadcast';
+
+  @override
+  String get adminPermissions => 'Permissions';
+
+  @override
+  String get adminDangerZone => 'Danger Zone';
+
+  @override
+  String get adminAuditLogs => 'Audit Logs';
+
+  @override
+  String get adminTotalShops => 'Total shops';
+
+  @override
+  String get adminActiveShops => 'Active';
+
+  @override
+  String get adminTotalUsers => 'Total users';
+
+  @override
+  String get adminLockedShops => 'Locked shops';
+
+  @override
+  String get adminGoToShopsToUnlock => 'Go to Shops tab to unlock.';
+
+  @override
+  String get adminSystemNormal => 'System operating normally';
+
+  @override
+  String get adminNoLockedShops => 'No shops are currently locked.';
+
+  @override
+  String adminShopLockedCount(int count) {
+    return '$count shops are locked';
+  }
+
+  @override
+  String get adminSearchShops => 'Search shops by name, email, ID...';
+
+  @override
+  String get adminShowDeleted => 'Deleted';
+
+  @override
+  String get adminNoMatchingShops => 'No matching shops';
+
+  @override
+  String get adminViewDetail => 'View detail';
+
+  @override
+  String get adminEnterShop => 'Enter shop';
+
+  @override
+  String get adminUnlockApp => 'Unlock app';
+
+  @override
+  String get adminLockApp => 'Lock app';
+
+  @override
+  String get adminResetData => 'Reset data';
+
+  @override
+  String get adminFullApp => 'Entire app';
+
+  @override
+  String get adminNoUsersInShop => 'No users in this shop';
+
+  @override
+  String get adminNoActivity => 'No activity yet';
+
+  @override
+  String get adminSearchUsers => 'Search by name, email, role, shop ID...';
+
+  @override
+  String get adminNoShopAssigned => 'No shop assigned';
+
+  @override
+  String get adminNoMatchingUsers => 'No matching users';
+
+  @override
+  String get adminDeleteUserDoc => 'Delete user doc';
+
+  @override
+  String get adminDeleteCompletely => 'Delete completely';
+
+  @override
+  String get adminAuthAndUserData => 'Auth + data created by user';
+
+  @override
+  String get adminDeleteProfileOnly => 'Delete profile only, Auth remains';
+
+  @override
+  String get adminPermissionPanel => 'Permission Panel';
+
+  @override
+  String get adminPermissionPanelSubtitle => 'Standard role-based baseline for owner/manager/staff. Shop-level locks will override at runtime.';
+
+  @override
+  String get adminNoAuditLogs => 'No matching audit logs.';
+
+  @override
+  String get adminFilterShopId => 'Filter shopId';
+
+  @override
+  String get adminFilterAction => 'Filter action';
+
+  @override
+  String get adminSearchEmailUser => 'Search email/user';
+
+  @override
+  String get adminSyncClaims => 'Sync custom claims';
+
+  @override
+  String get adminSyncClaimsDesc => 'Sync claims for all users when rules/roles change.';
+
+  @override
+  String get adminSyncClaimsSuccess => 'Sync claims successful.';
+
+  @override
+  String adminSyncClaimsError(String error) {
+    return 'Sync claims error: $error';
+  }
+
+  @override
+  String get adminPinSecurity => 'PIN Security';
+
+  @override
+  String get adminPinSecurityDesc => 'Protect Console with PIN when session expires';
+
+  @override
+  String get adminPinEnabled => 'PIN enabled';
+
+  @override
+  String get adminPinEnabledDesc => 'PIN required when session expires (30 min idle)';
+
+  @override
+  String get adminPinNotSetup => 'PIN not set up';
+
+  @override
+  String get adminPinNotSetupDesc => 'Enable PIN to protect console';
+
+  @override
+  String get adminChangePin => 'Change PIN';
+
+  @override
+  String get adminDisablePin => 'Disable PIN';
+
+  @override
+  String get adminSetupPin => 'Set up';
+
+  @override
+  String get adminSetupPinTitle => 'Set up PIN';
+
+  @override
+  String get adminChangePinTitle => 'Change PIN';
+
+  @override
+  String get adminNewPin => 'New PIN (4-6 digits)';
+
+  @override
+  String get adminConfirmPin => 'Confirm PIN';
+
+  @override
+  String get adminPinTooShort => 'PIN must be 4-6 digits';
+
+  @override
+  String get adminPinMismatch => 'PINs do not match';
+
+  @override
+  String get adminPinSetupSuccess => 'PIN set up successfully.';
+
+  @override
+  String get adminPinSetupError => 'Error setting up PIN.';
+
+  @override
+  String get adminDisablePinTitle => 'Disable PIN';
+
+  @override
+  String get adminCurrentPin => 'Current PIN';
+
+  @override
+  String get adminEnterCurrentPinToDisable => 'Enter current PIN to confirm disable:';
+
+  @override
+  String get adminCurrentPinWrong => 'Incorrect PIN';
+
+  @override
+  String get adminPinDisabled => 'PIN disabled.';
+
+  @override
+  String get adminDisablePinButton => 'Disable PIN';
+
+  @override
+  String get adminSendSystemNotification => 'Send System Notification';
+
+  @override
+  String get adminSendToAllUsersDesc => 'Send to ALL users via dialog + push.';
+
+  @override
+  String get adminNotificationType => 'Notification type';
+
+  @override
+  String get adminNotifTitle => 'Title';
+
+  @override
+  String get adminNotifTitleHint => 'E.g.: New version update required';
+
+  @override
+  String get adminNotifContent => 'Content';
+
+  @override
+  String get adminNotifContentHint => 'Enter detailed notification content...';
+
+  @override
+  String get adminSendToAll => 'Send to all users';
+
+  @override
+  String get adminSending => 'Sending...';
+
+  @override
+  String get adminSendSuccess => '✅ Sent successfully to all users!';
+
+  @override
+  String get adminNotifTitleRequired => 'Please enter title and content.';
+
+  @override
+  String get adminNotificationHistory => 'Notification history';
+
+  @override
+  String get adminNoNotificationsYet => 'No notifications yet.';
+
+  @override
+  String get adminExpired => 'Expired';
+
+  @override
+  String get adminDangerZoneSubtitle => 'All operations here require PIN authentication and are logged in audit log.';
+
+  @override
+  String get adminSelectDataToDelete => 'Select data to delete';
+
+  @override
+  String adminSelectedCount(int count) {
+    return '$count items selected';
+  }
+
+  @override
+  String adminDeleteSelected(int count) {
+    return 'Delete ($count items)';
+  }
+
+  @override
+  String get adminIsOwnerWarning => 'This is the SHOP OWNER. Be careful when deleting!';
+
+  @override
+  String get adminDeleteUserAndData => 'Delete user + data';
+
+  @override
+  String get adminDeleteUserDocOnly => 'Delete user doc';
+
+  @override
+  String get adminWillDeletePermanently => 'Will DELETE PERMANENTLY:';
+
+  @override
+  String get adminDeleteFirebaseAuth => '• Firebase Auth account (loses login access)';
+
+  @override
+  String get adminDeleteUserProfile => '• User profile in Firestore';
+
+  @override
+  String get adminDeleteUserOrders => '• Repair, sale orders, expenses created by user';
+
+  @override
+  String get adminDeleteUserAttendance => '• User attendance data and notifications';
+
+  @override
+  String get adminShopDataNotDeleted => '⚠️ Shop data (inventory, customers...) will NOT be deleted.';
+
+  @override
+  String get adminOnlyDeleteProfile => 'Only deletes user profile in Firestore.';
+
+  @override
+  String get adminAuthStillExists => 'Firebase Auth account remains — user can still login but loses shop link.';
+
+  @override
+  String get adminDeletingData => 'Deleting data...';
+
+  @override
+  String adminResetSuccess(String shopName) {
+    return 'Deleted selected data of shop $shopName';
+  }
+
+  @override
+  String adminResetFailed(String error) {
+    return 'Reset failed: $error';
+  }
+
+  @override
+  String adminSoftDeleteSuccess(String shopName) {
+    return 'Soft-deleted shop $shopName';
+  }
+
+  @override
+  String adminDeletedUserWithData(String email) {
+    return 'Deleted user + data: $email';
+  }
+
+  @override
+  String adminDeletedUserDoc(String email) {
+    return 'Deleted user doc: $email';
+  }
+
+  @override
+  String adminLockedLabel(String label) {
+    return 'Locked $label';
+  }
+
+  @override
+  String adminUnlockedLabel(String label) {
+    return 'Unlocked $label';
+  }
+
+  @override
+  String get adminLockFinance => 'Lock admin finance';
+
+  @override
+  String get adminLockInventory => 'Lock inventory for staff';
+
+  @override
+  String get adminLockSales => 'Lock sales for staff';
+
+  @override
+  String get adminLockDebt => 'Lock debts for staff';
+
+  @override
+  String get permissionManagementTitle => 'PERMISSION MANAGEMENT';
+
+  @override
+  String get noPermissionManagementScreen => 'You do not have access\nto the permission management screen';
+
+  @override
+  String get noStaffInShop => 'No staff in this shop yet\nInvite staff via QR code first';
+
+  @override
+  String get noEmailYet => 'No email yet';
+
+  @override
+  String get noPhoneYet => 'No phone yet';
+
+  @override
+  String get phoneWithColon => 'Phone:';
+
+  @override
+  String get roleWithColon => 'Role:';
+
+  @override
+  String get systemRoleSection => 'SYSTEM ROLE';
+
+  @override
+  String get businessPermissionsSection => 'BUSINESS CONTENT PERMISSIONS';
+
+  @override
+  String get financePermissionsSection => 'FINANCIAL CONTENT PERMISSIONS';
+
+  @override
+  String get systemPermissionsSection => 'SYSTEM MANAGEMENT PERMISSIONS';
+
+  @override
+  String get permRowSales => 'SALES';
+
+  @override
+  String get permRowRepairs => 'REPAIRS';
+
+  @override
+  String get permRowInventory => 'INVENTORY';
+
+  @override
+  String get permRowParts => 'REPAIR PARTS';
+
+  @override
+  String get permRowSuppliers => 'SUPPLIERS';
+
+  @override
+  String get permRowCustomers => 'CUSTOMERS';
+
+  @override
+  String get permRowWarranty => 'WARRANTY';
+
+  @override
+  String get permRowChat => 'INTERNAL CHAT';
+
+  @override
+  String get permRowAttendance => 'ATTENDANCE';
+
+  @override
+  String get permRowPrinter => 'PRINTER CONFIG';
+
+  @override
+  String get permRowRevenue => 'REVENUE & PROFIT/LOSS';
+
+  @override
+  String get permRowExpenses => 'SHOP EXPENSES';
+
+  @override
+  String get permRowDebts => 'DEBT LEDGER';
+
+  @override
+  String get permRowCostPrice => 'PRODUCT COST PRICE';
+
+  @override
+  String get permRowManageStaff => 'MANAGE STAFF';
+
+  @override
+  String get permRowSettings => 'SYSTEM SETTINGS';
+
+  @override
+  String updatedPermissionMsg(String permission) {
+    return 'Updated permission: $permission';
+  }
+
+  @override
+  String errorUpdatingPermission(String error) {
+    return 'Error updating permission: $error';
+  }
+
+  @override
+  String updatedRoleMsg(String role) {
+    return 'Updated role to $role';
+  }
+
+  @override
+  String errorUpdatingRole(String error) {
+    return 'Error updating role: $error';
+  }
+
+  @override
+  String get notifSettingsTitle => 'Notification settings';
+
+  @override
+  String get importantNotificationsSection => 'IMPORTANT NOTIFICATIONS';
+
+  @override
+  String get otherNotificationsSection => 'OTHER NOTIFICATIONS';
+
+  @override
+  String get newOrderNotif => 'New order';
+
+  @override
+  String get newOrderNotifDesc => 'Notify when a customer creates a new order';
+
+  @override
+  String get paymentNotif => 'Payment';
+
+  @override
+  String get paymentNotifDesc => 'Notify when a payment is successful';
+
+  @override
+  String get inventoryNotif => 'Inventory';
+
+  @override
+  String get inventoryNotifDesc => 'Alert when a product is running low';
+
+  @override
+  String get staffNotif => 'Staff';
+
+  @override
+  String get staffNotifDesc => 'Notifications about staff activity';
+
+  @override
+  String get systemNotif => 'System';
+
+  @override
+  String get systemNotifDesc => 'System update and maintenance notifications';
+
+  @override
+  String get notifPermissionTitle => 'Notification permission';
+
+  @override
+  String get notifPermissionOk => 'Permission OK';
+
+  @override
+  String get notifPermissionNotGranted => 'Not granted';
+
+  @override
+  String get notifTokenOk => 'Token OK';
+
+  @override
+  String get notifTokenMissing => 'No token';
+
+  @override
+  String get notifFullyWorking => 'Notification permission granted. You will receive push notifications.';
+
+  @override
+  String get notifNeedPermission => 'Notification permission required to receive push notifications.';
+
+  @override
+  String get notifNeedPermissionIos => 'Notification permission required to receive push notifications.\nIf already enabled in iOS Settings, tap \"Refresh FCM Token\".';
+
+  @override
+  String get notifPermissionButNoToken => 'Permission granted but no FCM Token. Tap \"Refresh FCM Token\" below.';
+
+  @override
+  String get grantPermission => 'Grant permission';
+
+  @override
+  String get yourRoleColon => 'Your role:';
+
+  @override
+  String get roleBasedNotifNote => 'Some notification types are only available for specific roles to ensure security and avoid spam.';
+
+  @override
+  String get notifUnavailableForRole => 'Not available for current role';
+
+  @override
+  String get refreshFcmTokenBtn => 'REFRESH FCM TOKEN';
+
+  @override
+  String get sendTestNotifBtn => 'SEND TEST NOTIFICATION';
+
+  @override
+  String get notifGrantPermissionTitle => 'Grant notification permission';
+
+  @override
+  String get notifGrantPermissionContent => 'The app needs notification permission to send important notifications. Please enable permission in system settings.';
+
+  @override
+  String get openSettings => 'Open settings';
+
+  @override
+  String get notifEnabled => 'Notifications enabled';
+
+  @override
+  String get notifDisabled => 'Notifications disabled';
+
+  @override
+  String get notifPermissionGranted => 'Notification permission granted!';
+
+  @override
+  String get notifPermissionNeeded => 'Permission required to receive notifications';
+
+  @override
+  String get testNotifContent => 'This is a test notification from the push notification system. If you see this notification, the system is working normally!';
+
+  @override
+  String get testNotifSent => 'Test notification sent!';
+
+  @override
+  String notifSendError(String error) {
+    return 'Error sending notification: $error';
+  }
+
+  @override
+  String get refreshingFcmTokenLabel => 'Refreshing FCM token...';
+
+  @override
+  String get refreshTokenSuccess => '✅ FCM token refreshed successfully!';
+
+  @override
+  String get refreshTokenFailed => '❌ Unable to refresh FCM token. Try again later.';
+
+  @override
+  String refreshTokenError(String error) {
+    return 'Error refreshing token: $error';
+  }
+
+  @override
+  String get notifInfoTitle => 'NOTIFICATION INFO';
+
+  @override
+  String get notifInfoContent => '• Notifications are sent based on your role\n• Admin & Owner receive all notifications\n• Manager & Technician receive important notifications\n• Employee receives personal notifications only';
+
+  @override
+  String get backupRestoreTitle => 'Backup & Restore';
+
+  @override
+  String get sqliteTabLabel => 'SQLite (.db file)';
+
+  @override
+  String get firestoreTabLabel => 'Firestore (cloud)';
+
+  @override
+  String get backupSqliteSection => 'Backup SQLite';
+
+  @override
+  String get shareOrSaveLocal => 'Share / Save to device';
+
+  @override
+  String get backupToCloudLabel => 'Backup to Cloud';
+
+  @override
+  String get cloudSqliteBackupsSection => 'SQLite Cloud Backups';
+
+  @override
+  String get noBackupsYet => 'No backups yet.';
+
+  @override
+  String get restoreFromFileSection => 'Restore from file';
+
+  @override
+  String get selectDbFileDesc => 'Select a previously backed-up .db file to restore.';
+
+  @override
+  String get selectDbFile => 'Select .db file';
+
+  @override
+  String get backupSqliteSuccess => 'SQLite backup to Cloud successful!';
+
+  @override
+  String get restoreSuccessTitle => 'Restore successful';
+
+  @override
+  String get restoreSuccessContent => 'Data restored. Please restart the app to apply changes.';
+
+  @override
+  String get firestoreInfoCard => 'Firestore backup saves each collection as a separate JSON file. You can choose which items to backup or restore.';
+
+  @override
+  String get backupFirestoreSection => 'Backup Firestore';
+
+  @override
+  String get selectAndBackupToCloud => 'Select items & Backup to Cloud';
+
+  @override
+  String get firestoreBackupsSection => 'Firestore Backups';
+
+  @override
+  String get noFirestoreBackupsYet => 'No Firestore backups yet.';
+
+  @override
+  String get preparingBackup => 'Preparing...';
+
+  @override
+  String backupFirestoreSuccess(int count) {
+    return 'Firestore backup successful ($count items)!';
+  }
+
+  @override
+  String restoreFirestoreSuccess(int count) {
+    return 'Restore successful ($count items)!';
+  }
+
+  @override
+  String get deleteBackupSuccess => 'Backup deleted.';
+
+  @override
+  String get confirmRestoreTitle => 'Confirm restore';
+
+  @override
+  String confirmRestoreContent(int count, String date) {
+    return 'Current data of $count items will be overwritten by the backup from $date.\n\nContinue?';
+  }
+
+  @override
+  String get deleteBackupTitle => 'Delete backup?';
+
+  @override
+  String deleteBackupContent(String date) {
+    return 'Delete backup from $date?';
+  }
+
+  @override
+  String get restoringSqliteFromCloud => 'SQLite cloud restore is under development.';
+
+  @override
+  String get notInBackupLabel => 'Not in this backup';
+
+  @override
+  String get storageRulesNeeded => 'Firebase Storage Rules configuration required';
+
+  @override
+  String get restoreBtn => 'Restore';
+
+  @override
+  String get selectDataToBackup => 'Select data to backup';
+
+  @override
+  String get selectDataToRestore => 'Select data to restore';
+
+  @override
+  String get backupConfirmLabel => 'Backup';
+
+  @override
+  String get restoreConfirmLabel => 'Restore';
+
+  @override
+  String selectedCountItems(int count) {
+    return '$count items selected';
+  }
+
+  @override
+  String backupLabelWithCount(int count) {
+    return 'Backup ($count)';
+  }
+
+  @override
+  String restoreLabelWithCount(int count) {
+    return 'Restore ($count)';
+  }
 }

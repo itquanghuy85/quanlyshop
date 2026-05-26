@@ -12,20 +12,31 @@ import '../widgets/custom_app_bar.dart';
 const _kGroups = [
   _ColGroup('Vận hành', Icons.build_outlined, Color(0xFF1565C0), [
     _ColItem('repairs', 'Đơn sửa chữa'),
+    _ColItem('repair_parts', 'Kho linh kiện sửa chữa'),
+    _ColItem('repair_partners', 'Đối tác sửa chữa'),
+    _ColItem('partner_repair_history', 'Lịch sử gửi đối tác'),
     _ColItem('sales', 'Đơn bán hàng'),
     _ColItem('inventory_checks', 'Kiểm kê kho'),
     _ColItem('cash_closings', 'Chốt ca'),
   ]),
   _ColGroup('Kho & Sản phẩm', Icons.inventory_2_outlined, Color(0xFF00695C), [
     _ColItem('products', 'Sản phẩm / Kho'),
+    _ColItem('salvage_phones', 'Kho máy xác'),
+    _ColItem('storage_locations', 'Kho vị trí'),
     _ColItem('suppliers', 'Nhà cung cấp'),
     _ColItem('purchase_orders', 'Đơn nhập hàng'),
+    _ColItem('import_orders', 'Phiếu nhập kho'),
+    _ColItem('supplier_import_history', 'Lịch sử nhập NCC'),
     _ColItem('quick_input_codes', 'Mã nhập nhanh'),
   ]),
   _ColGroup('Tài chính', Icons.account_balance_wallet_outlined, Color(0xFF2E7D32), [
     _ColItem('debts', 'Công nợ'),
     _ColItem('debt_payments', 'Thanh toán nợ'),
     _ColItem('expenses', 'Chi phí'),
+    _ColItem('payment_intents', 'Yêu cầu thanh toán'),
+    _ColItem('payment_requests', 'Yêu cầu đóng tiền'),
+    _ColItem('supplier_payments', 'Chi NCC'),
+    _ColItem('repair_partner_payments', 'Chi đối tác sửa chữa'),
   ]),
   _ColGroup('Nhân sự', Icons.people_outline, Color(0xFF6A1B9A), [
     _ColItem('attendance', 'Chấm công'),

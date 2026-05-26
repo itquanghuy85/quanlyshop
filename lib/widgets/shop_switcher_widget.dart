@@ -388,7 +388,6 @@ class _ShopSwitcherWidgetState extends State<ShopSwitcherWidget> {
     final nameController = TextEditingController();
     final addressController = TextEditingController();
     final loc = AppLocalizations.of(context);
-    String selectedBusinessType = 'electronics';
 
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
@@ -424,29 +423,21 @@ class _ShopSwitcherWidgetState extends State<ShopSwitcherWidget> {
                 ),
               ),
               const SizedBox(height: 12),
-              // Business type dropdown
-              DropdownButtonFormField<String>(
-                value: selectedBusinessType,
-                decoration: InputDecoration(
-                  labelText: 'Ngành kinh doanh',
-                  prefixIcon: const Icon(Icons.business_center),
-                  border: const OutlineInputBorder(),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade400),
+                  borderRadius: BorderRadius.circular(4),
+                  color: Colors.grey.shade50,
                 ),
-                items: const [
-                  DropdownMenuItem(
-                    value: 'electronics',
-                    child: Text('📱 Điện thoại & Điện tử'),
-                  ),
-                  DropdownMenuItem(
-                    value: 'fashion',
-                    child: Text('👗 Thời trang & May mặc'),
-                  ),
-                ],
-                onChanged: (value) {
-                  if (value != null) {
-                    setDialogState(() => selectedBusinessType = value);
-                  }
-                },
+                child: const Row(
+                  children: [
+                    Icon(Icons.business_center, color: Colors.grey),
+                    SizedBox(width: 8),
+                    Text('Ngành kinh doanh: 📱 Điện thoại & Điện tử'),
+                  ],
+                ),
               ),
             ],
           ),
@@ -459,7 +450,7 @@ class _ShopSwitcherWidgetState extends State<ShopSwitcherWidget> {
               onPressed: () => Navigator.pop(ctx, {
                 'name': nameController.text.trim(),
                 'address': addressController.text.trim(),
-                'businessType': selectedBusinessType,
+                'businessType': 'electronics',
               }),
               style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
               child: Text(loc?.create ?? 'Create'),

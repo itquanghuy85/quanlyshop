@@ -15,6 +15,7 @@ import '../widgets/custom_app_bar.dart';
 import '../widgets/currency_text_field.dart';
 import '../widgets/app_cached_image.dart';
 import '../utils/vietnamese_utils.dart';
+import '../l10n/app_localizations.dart';
 
 /// Danh sách ngân hàng / tổ chức tài chính cho vay góp, trả góp
 const List<String> kLoanBanks = [
@@ -201,6 +202,7 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
     final displayed = _filteredRequests;
     return Scaffold(
       backgroundColor: const Color(0xFFECE5DD), // WhatsApp-like bg
@@ -224,7 +226,7 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
                 style: const TextStyle(color: Colors.black87, fontSize: 16),
                 cursorColor: const Color(0xFF075E54),
                 decoration: InputDecoration(
-                  hintText: 'Tìm tên, SĐT, NH, số tiền...',
+                  hintText: loc.searchNamePhoneBankAmount,
                   hintStyle: TextStyle(color: Colors.grey.shade500),
                   border: InputBorder.none,
                 ),
@@ -242,19 +244,19 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
               ],
             )
           : CustomAppBar.build(
-              title: 'Yêu cầu đóng tiền',
+              title: loc.paymentRequestTitle,
               actions: [
                 // Search button
                 IconButton(
                   onPressed: () => setState(() => _isSearching = true),
                   icon: const Icon(Icons.search),
-                  tooltip: 'Tìm kiếm',
+                  tooltip: loc.search,
                 ),
                 // Create button (moved from FAB to avoid overlap with image bar)
                 IconButton(
                   onPressed: _showCreateRequestSheet,
                   icon: const Icon(Icons.add_circle, size: 28),
-                  tooltip: 'Tạo yêu cầu mới',
+                  tooltip: loc.createNewRequest,
                 ),
                 // Filter button
                 PopupMenuButton<PaymentRequestStatus?>(
@@ -271,18 +273,18 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
                     _subscribeToRequests();
                   },
                   itemBuilder: (_) => [
-                    const PopupMenuItem(value: null, child: Text('Tất cả')),
-                    const PopupMenuItem(
+                    PopupMenuItem(value: null, child: Text(loc.all)),
+                    PopupMenuItem(
                       value: PaymentRequestStatus.pending,
-                      child: Text('⏳ Chờ duyệt'),
+                      child: Text(loc.pendingApprovalStatus),
                     ),
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: PaymentRequestStatus.completed,
-                      child: Text('✅ Đã thanh toán'),
+                      child: Text(loc.paidStatus),
                     ),
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: PaymentRequestStatus.rejected,
-                      child: Text('❌ Từ chối'),
+                      child: Text(loc.rejectedStatus),
                     ),
                   ],
                 ),
@@ -327,7 +329,7 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
                               ? 'Không tìm thấy "$_searchQuery"'
                               : _statusFilter != null
                               ? 'Không có yêu cầu ${_statusFilter!.name}'
-                              : 'Chưa có yêu cầu đóng tiền',
+                              : loc.noPaymentRequests,
                           style: TextStyle(
                             fontSize: 15,
                             color: Colors.grey.shade500,
@@ -336,7 +338,7 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
                         if (_searchQuery.isEmpty) ...[
                           const SizedBox(height: 8),
                           Text(
-                            'Nhấn ⊕ trên thanh tiêu đề để tạo mới',
+                            loc.tapPlusToCreateNew,
                             style: TextStyle(
                               fontSize: 13,
                               color: Colors.grey.shade400,
@@ -427,11 +429,12 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
   }
 
   Widget _buildDateFilterChips() {
-    const chips = [
-      ('today', 'Hôm nay'),
-      ('week', 'Tuần này'),
-      ('month', 'Tháng này'),
-      ('all', 'Tất cả'),
+    final loc = AppLocalizations.of(context)!;
+    final chips = [
+      ('today', loc.today),
+      ('week', loc.thisWeek),
+      ('month', loc.thisMonth),
+      ('all', loc.all),
     ];
     // Count overdue items
     final now = DateTime.now();

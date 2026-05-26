@@ -1,0 +1,14782 @@
+[
+  [
+    "TIỀN MẶT",
+    80
+  ],
+  [
+    "CÔNG NỢ",
+    74
+  ],
+  [
+    "HỦY",
+    73
+  ],
+  [
+    "Hủy",
+    71
+  ],
+  [
+    "CHUYỂN KHOẢN",
+    56
+  ],
+  [
+    "Ghi chú",
+    40
+  ],
+  [
+    "Lỗi: $e",
+    37
+  ],
+  [
+    "Nhân viên",
+    30
+  ],
+  [
+    "Tất cả",
+    28
+  ],
+  [
+    "Xóa",
+    27
+  ],
+  [
+    "Số điện thoại",
+    22
+  ],
+  [
+    "XÁC NHẬN",
+    18
+  ],
+  [
+    "Địa chỉ",
+    18
+  ],
+  [
+    "Lưu",
+    17
+  ],
+  [
+    "Còn nợ",
+    17
+  ],
+  [
+    "XÓA",
+    15
+  ],
+  [
+    "Sửa chữa",
+    15
+  ],
+  [
+    "PHỤ KIỆN",
+    15
+  ],
+  [
+    "Công nợ",
+    14
+  ],
+  [
+    "Chi phí",
+    13
+  ],
+  [
+    "Nhà cung cấp",
+    13
+  ],
+  [
+    "Làm mới",
+    13
+  ],
+  [
+    "Chủ shop",
+    13
+  ],
+  [
+    "Quản lý",
+    13
+  ],
+  [
+    "KHÁC",
+    13
+  ],
+  [
+    "PHÁT SINH",
+    13
+  ],
+  [
+    "Bạn không có quyền truy cập tính năng này",
+    12
+  ],
+  [
+    "Khách hàng",
+    12
+  ],
+  [
+    "TRẢ GÓP (NH)",
+    12
+  ],
+  [
+    "Thử lại",
+    12
+  ],
+  [
+    "Kỹ thuật",
+    12
+  ],
+  [
+    "Thanh toán",
+    12
+  ],
+  [
+    "Màu sắc",
+    12
+  ],
+  [
+    "Xác nhận xóa",
+    12
+  ],
+  [
+    "Tải lại",
+    11
+  ],
+  [
+    "Tiền mặt",
+    11
+  ],
+  [
+    "❌ Lỗi: $e",
+    11
+  ],
+  [
+    "LƯU",
+    11
+  ],
+  [
+    "Khác",
+    11
+  ],
+  [
+    "ĐÓNG",
+    11
+  ],
+  [
+    "Sửa",
+    10
+  ],
+  [
+    "Xuất Excel",
+    10
+  ],
+  [
+    "Số tiền",
+    10
+  ],
+  [
+    "TẤT CẢ",
+    10
+  ],
+  [
+    "Giá vốn",
+    9
+  ],
+  [
+    "Tình trạng",
+    9
+  ],
+  [
+    "Thêm",
+    9
+  ],
+  [
+    "Dung lượng",
+    9
+  ],
+  [
+    "giờ",
+    9
+  ],
+  [
+    "Đơn sửa chữa",
+    8
+  ],
+  [
+    "Nhập hàng",
+    8
+  ],
+  [
+    "Đã trả",
+    8
+  ],
+  [
+    "Xác nhận",
+    8
+  ],
+  [
+    "NGÀY",
+    8
+  ],
+  [
+    "Đang sửa",
+    7
+  ],
+  [
+    "Sản phẩm",
+    7
+  ],
+  [
+    "Đơn bán hàng",
+    7
+  ],
+  [
+    "Không xác định",
+    7
+  ],
+  [
+    "7 ngày",
+    7
+  ],
+  [
+    "KẾT HỢP",
+    7
+  ],
+  [
+    "Bán hàng",
+    7
+  ],
+  [
+    "SĐT",
+    7
+  ],
+  [
+    "Số lượng",
+    7
+  ],
+  [
+    "TUẦN",
+    7
+  ],
+  [
+    "Phụ kiện",
+    7
+  ],
+  [
+    "Chưa chọn",
+    7
+  ],
+  [
+    "Bảo hành",
+    7
+  ],
+  [
+    "Chuyển khoản",
+    7
+  ],
+  [
+    "Giá bán",
+    7
+  ],
+  [
+    "Đã tất toán",
+    7
+  ],
+  [
+    "Đăng xuất",
+    7
+  ],
+  [
+    "Đã thanh toán",
+    6
+  ],
+  [
+    "Khách lẻ",
+    6
+  ],
+  [
+    "CẬP NHẬT",
+    6
+  ],
+  [
+    "Mã nhập nhanh",
+    6
+  ],
+  [
+    "Hôm nay",
+    6
+  ],
+  [
+    "Tháng này",
+    6
+  ],
+  [
+    "HOÀN TIỀN",
+    6
+  ],
+  [
+    "Phương thức thanh toán",
+    6
+  ],
+  [
+    "C.KHOẢN",
+    6
+  ],
+  [
+    "Quá hạn",
+    6
+  ],
+  [
+    "ĐIỆN NƯỚC",
+    6
+  ],
+  [
+    "Điện thoại",
+    6
+  ],
+  [
+    "Vui lòng đăng nhập lại",
+    6
+  ],
+  [
+    "Đã bán",
+    6
+  ],
+  [
+    "CHỦ SHOP",
+    6
+  ],
+  [
+    "QUẢN LÝ",
+    6
+  ],
+  [
+    "NHÂN VIÊN",
+    6
+  ],
+  [
+    "KỸ THUẬT",
+    6
+  ],
+  [
+    "Hoạt động",
+    6
+  ],
+  [
+    "Xuống dòng",
+    6
+  ],
+  [
+    "Đã nhận",
+    5
+  ],
+  [
+    "Cộng đồng shop",
+    5
+  ],
+  [
+    "Chọn nhân viên",
+    5
+  ],
+  [
+    "Chờ duyệt",
+    5
+  ],
+  [
+    "Từ chối",
+    5
+  ],
+  [
+    "Đơn bán",
+    5
+  ],
+  [
+    "Chấm công",
+    5
+  ],
+  [
+    "Tùy chọn",
+    5
+  ],
+  [
+    "Trả nợ NCC",
+    5
+  ],
+  [
+    "Trả hàng",
+    5
+  ],
+  [
+    "Lỗi đồng bộ",
+    5
+  ],
+  [
+    "NHẬP KHO",
+    5
+  ],
+  [
+    "12 THÁNG",
+    5
+  ],
+  [
+    "THANH TOÁN",
+    5
+  ],
+  [
+    "Đang đồng bộ...",
+    5
+  ],
+  [
+    "Tổng nợ",
+    5
+  ],
+  [
+    "Có lỗi xảy ra",
+    5
+  ],
+  [
+    "Phải trả",
+    5
+  ],
+  [
+    "ĐƠN NHẬP HÀNG",
+    5
+  ],
+  [
+    "CÁ NHÂN",
+    5
+  ],
+  [
+    "DỊCH VỤ",
+    5
+  ],
+  [
+    "XÁC NHẬN XÓA",
+    5
+  ],
+  [
+    "Bật/tắt đèn flash",
+    5
+  ],
+  [
+    "Giá bán (VNĐ)",
+    5
+  ],
+  [
+    "Khấu trừ",
+    5
+  ],
+  [
+    "Lợi nhuận",
+    5
+  ],
+  [
+    "Giá nhập (VNĐ)",
+    5
+  ],
+  [
+    "Đang lưu...",
+    5
+  ],
+  [
+    "Ngừng HĐ",
+    5
+  ],
+  [
+    "Vui lòng nhập tên đối tác",
+    5
+  ],
+  [
+    "Thêm NCC mới",
+    5
+  ],
+  [
+    "Shop không tên",
+    5
+  ],
+  [
+    "Người dùng",
+    5
+  ],
+  [
+    "Tổng tiền",
+    4
+  ],
+  [
+    "Chỉnh sửa",
+    4
+  ],
+  [
+    "Đã giao",
+    4
+  ],
+  [
+    "Xem chi tiết",
+    4
+  ],
+  [
+    "Lý do từ chối",
+    4
+  ],
+  [
+    "Trạng thái",
+    4
+  ],
+  [
+    "HÔM NAY",
+    4
+  ],
+  [
+    "Tải thêm",
+    4
+  ],
+  [
+    "Mô tả",
+    4
+  ],
+  [
+    "NHẬP",
+    4
+  ],
+  [
+    "SỬA",
+    4
+  ],
+  [
+    "BÁN",
+    4
+  ],
+  [
+    "Tài chính",
+    4
+  ],
+  [
+    "Thanh toán nợ",
+    4
+  ],
+  [
+    "Cài đặt lương",
+    4
+  ],
+  [
+    "Hệ thống",
+    4
+  ],
+  [
+    "Khôi phục",
+    4
+  ],
+  [
+    "Đang xử lý...",
+    4
+  ],
+  [
+    "Chọn tất cả",
+    4
+  ],
+  [
+    "Xem tất cả",
+    4
+  ],
+  [
+    "Chi tiết",
+    4
+  ],
+  [
+    "Thu phát sinh",
+    4
+  ],
+  [
+    "Mới",
+    4
+  ],
+  [
+    "KHÁCH VÃNG LAI",
+    4
+  ],
+  [
+    "1 THÁNG",
+    4
+  ],
+  [
+    "3 THÁNG",
+    4
+  ],
+  [
+    "6 THÁNG",
+    4
+  ],
+  [
+    "Đã đồng bộ",
+    4
+  ],
+  [
+    "Phải thu",
+    4
+  ],
+  [
+    "Không tìm thấy kết quả",
+    4
+  ],
+  [
+    "Vui lòng nhập tên nhà cung cấp",
+    4
+  ],
+  [
+    "THÁNG",
+    4
+  ],
+  [
+    "Nhập kho",
+    4
+  ],
+  [
+    "CỐ ĐỊNH",
+    4
+  ],
+  [
+    "LƯƠNG",
+    4
+  ],
+  [
+    "MẶT BẰNG",
+    4
+  ],
+  [
+    "NHẬP HÀNG",
+    4
+  ],
+  [
+    "Phí NH",
+    4
+  ],
+  [
+    "Tổng chi",
+    4
+  ],
+  [
+    "PHÂN LOẠI",
+    4
+  ],
+  [
+    "Số tiền (VNĐ) *",
+    4
+  ],
+  [
+    "Lỗi tải dữ liệu: $e",
+    4
+  ],
+  [
+    "Hết hàng",
+    4
+  ],
+  [
+    "Số điện thoại liên hệ",
+    4
+  ],
+  [
+    "Mật khẩu",
+    4
+  ],
+  [
+    "Chọn từ thư viện",
+    4
+  ],
+  [
+    "Mật khẩu không đúng!",
+    4
+  ],
+  [
+    "Cần quyền quản lý nhân viên",
+    4
+  ],
+  [
+    "Lưu cài đặt",
+    4
+  ],
+  [
+    "Loại tính",
+    4
+  ],
+  [
+    "Tiền cố định/đơn",
+    4
+  ],
+  [
+    "Không rõ",
+    4
+  ],
+  [
+    "Thương hiệu",
+    4
+  ],
+  [
+    "Tên sản phẩm *",
+    4
+  ],
+  [
+    "Kết nối KiotViet",
+    4
+  ],
+  [
+    "Giá CPK",
+    4
+  ],
+  [
+    "cái",
+    4
+  ],
+  [
+    "Giao dịch gần đây",
+    4
+  ],
+  [
+    "Theo tên",
+    4
+  ],
+  [
+    "Tìm kiếm nhà cung cấp",
+    4
+  ],
+  [
+    "Tìm kiếm đối tác sửa chữa",
+    4
+  ],
+  [
+    "NHÀ CUNG CẤP",
+    4
+  ],
+  [
+    "Chưa có mã nhập nhanh nào",
+    4
+  ],
+  [
+    "--------------------------------\\nCảm ơn quý khách!",
+    4
+  ],
+  [
+    "TRẢ GÓP",
+    4
+  ],
+  [
+    "Mã PIN không đúng",
+    4
+  ],
+  [
+    "QUẢN LÝ NHÂN VIÊN",
+    4
+  ],
+  [
+    "Bán",
+    3
+  ],
+  [
+    "DUYỆT",
+    3
+  ],
+  [
+    "Đã duyệt",
+    3
+  ],
+  [
+    "GỬI YÊU CẦU",
+    3
+  ],
+  [
+    "Đúng giờ",
+    3
+  ],
+  [
+    "Vị trí",
+    3
+  ],
+  [
+    "CHẤM CÔNG",
+    3
+  ],
+  [
+    "THỐNG KÊ",
+    3
+  ],
+  [
+    "NHẬT KÝ HỆ THỐNG",
+    3
+  ],
+  [
+    "THÊM",
+    3
+  ],
+  [
+    "Nhật ký hệ thống",
+    3
+  ],
+  [
+    "Lịch làm việc",
+    3
+  ],
+  [
+    "Đóng",
+    3
+  ],
+  [
+    "Tổng đơn",
+    3
+  ],
+  [
+    "Lịch sử",
+    3
+  ],
+  [
+    "Xóa bộ lọc",
+    3
+  ],
+  [
+    "Ngân hàng",
+    3
+  ],
+  [
+    "Đối tác sửa chữa",
+    3
+  ],
+  [
+    "💵 Tiền mặt",
+    3
+  ],
+  [
+    "Tất toán NH",
+    3
+  ],
+  [
+    "Thu nợ KH",
+    3
+  ],
+  [
+    "Biến thể",
+    3
+  ],
+  [
+    "Thêm ảnh",
+    3
+  ],
+  [
+    "KHÁCH HÀNG",
+    3
+  ],
+  [
+    "Chọn ảnh đại diện",
+    3
+  ],
+  [
+    "Tên khách hàng *",
+    3
+  ],
+  [
+    ").format(amount)}đ",
+    3
+  ],
+  [
+    "Mua bán",
+    3
+  ],
+  [
+    "Họ và tên",
+    3
+  ],
+  [
+    "Lịch sử giao dịch",
+    3
+  ],
+  [
+    "Còn lại",
+    3
+  ],
+  [
+    "nợ",
+    3
+  ],
+  [
+    "Thu nợ",
+    3
+  ],
+  [
+    "❌ Ngày hôm nay đã chốt quỹ! Không thể tạo công nợ mới.",
+    3
+  ],
+  [
+    "Số tiền nợ",
+    3
+  ],
+  [
+    "THANH TOÁN BẰNG",
+    3
+  ],
+  [
+    "Số tiền nợ (VNĐ)",
+    3
+  ],
+  [
+    "TẠO",
+    3
+  ],
+  [
+    "Thêm chi nhánh",
+    3
+  ],
+  [
+    "Huỷ",
+    3
+  ],
+  [
+    "Đổi điểm",
+    3
+  ],
+  [
+    "Tổng",
+    3
+  ],
+  [
+    "BÁN TÀI SẢN",
+    3
+  ],
+  [
+    "Ghi chú thêm",
+    3
+  ],
+  [
+    "Sắp hết",
+    3
+  ],
+  [
+    "❌ Lỗi xử lý QR: $e",
+    3
+  ],
+  [
+    "Lỗi tải nhà cung cấp: $e",
+    3
+  ],
+  [
+    "Tên nhà cung cấp *",
+    3
+  ],
+  [
+    "Xóa nhà cung cấp",
+    3
+  ],
+  [
+    "Thông tin in trên tem",
+    3
+  ],
+  [
+    "Ghi chú thêm về sản phẩm...",
+    3
+  ],
+  [
+    "Lỗi: Không thể xóa nhà cung cấp",
+    3
+  ],
+  [
+    "Cửa hàng",
+    3
+  ],
+  [
+    "Mở",
+    3
+  ],
+  [
+    "Vị trí lưu kho",
+    3
+  ],
+  [
+    "Liên kết tài khoản",
+    3
+  ],
+  [
+    "CHAT NỘI BỘ",
+    3
+  ],
+  [
+    "BẢO HÀNH",
+    3
+  ],
+  [
+    "Thưởng",
+    3
+  ],
+  [
+    "Vui lòng nhập tên",
+    3
+  ],
+  [
+    "Loại lương",
+    3
+  ],
+  [
+    "Theo tháng",
+    3
+  ],
+  [
+    "Theo ngày",
+    3
+  ],
+  [
+    "Theo giờ",
+    3
+  ],
+  [
+    "Hệ số OT (%)",
+    3
+  ],
+  [
+    "Chưa có tên",
+    3
+  ],
+  [
+    "Bỏ chọn",
+    3
+  ],
+  [
+    "Không tìm thấy nhà cung cấp \"$name\"",
+    3
+  ],
+  [
+    "Đã kiểm",
+    3
+  ],
+  [
+    "Thiếu",
+    3
+  ],
+  [
+    "Kích thước",
+    3
+  ],
+  [
+    "Chờ xác nhận",
+    3
+  ],
+  [
+    "Vị trí kho",
+    3
+  ],
+  [
+    "NHẬP THÊM",
+    3
+  ],
+  [
+    "Số lượng nhập thêm",
+    3
+  ],
+  [
+    "Đặt lại",
+    3
+  ],
+  [
+    "Thông tin Shop",
+    3
+  ],
+  [
+    "Tắt",
+    3
+  ],
+  [
+    "Tên Shop",
+    3
+  ],
+  [
+    "Công thức",
+    3
+  ],
+  [
+    "Ngày nhập",
+    3
+  ],
+  [
+    "Tổng thu",
+    3
+  ],
+  [
+    "LƯU THAY ĐỔI",
+    3
+  ],
+  [
+    "Điện thoại & Điện tử",
+    3
+  ],
+  [
+    "Áp dụng",
+    3
+  ],
+  [
+    "ĐỐI TÁC SỬA CHỮA",
+    3
+  ],
+  [
+    "Tên đối tác *",
+    3
+  ],
+  [
+    "Xóa đối tác",
+    3
+  ],
+  [
+    "Lỗi: Không thể xóa đối tác",
+    3
+  ],
+  [
+    "Hình thức thanh toán:",
+    3
+  ],
+  [
+    "Chọn nhà cung cấp để ghi nhận công nợ.",
+    3
+  ],
+  [
+    "Lỗi khi xóa: $e",
+    3
+  ],
+  [
+    "Dòng máy tương thích",
+    3
+  ],
+  [
+    "Chụp ảnh",
+    3
+  ],
+  [
+    "Tên",
+    3
+  ],
+  [
+    "Lỗi đồng bộ: $e",
+    3
+  ],
+  [
+    "Đã tắt mã nhập nhanh",
+    3
+  ],
+  [
+    "Đã bật mã nhập nhanh",
+    3
+  ],
+  [
+    "Lỗi cập nhật trạng thái: $e",
+    3
+  ],
+  [
+    "Đã xóa mã nhập nhanh",
+    3
+  ],
+  [
+    "Lỗi xóa mã nhập nhanh: $e",
+    3
+  ],
+  [
+    "Đồng bộ lên Cloud",
+    3
+  ],
+  [
+    "TẮT",
+    3
+  ],
+  [
+    "Chưa đồng bộ",
+    3
+  ],
+  [
+    "12 tháng",
+    3
+  ],
+  [
+    "Đổi PT",
+    3
+  ],
+  [
+    "Xóa PT",
+    3
+  ],
+  [
+    "Nhận",
+    3
+  ],
+  [
+    "Sửa đổi",
+    3
+  ],
+  [
+    "Sửa thông tin",
+    3
+  ],
+  [
+    "Ghi chú (tùy chọn)",
+    3
+  ],
+  [
+    "VD: TIỆM SỬA ABC",
+    3
+  ],
+  [
+    "Tổng vốn",
+    3
+  ],
+  [
+    "Đã hủy",
+    3
+  ],
+  [
+    "Tắt PIN",
+    3
+  ],
+  [
+    "Không tìm thấy thông tin shop",
+    3
+  ],
+  [
+    "SĐT: $phone",
+    3
+  ],
+  [
+    "Tồn kho",
+    3
+  ],
+  [
+    "Xóa user doc",
+    3
+  ],
+  [
+    "ĐÃ DUYỆT",
+    2
+  ],
+  [
+    "Không đọc được ảnh đã chọn",
+    2
+  ],
+  [
+    "Ảnh rộng, sẽ crop ngang ở giữa.",
+    2
+  ],
+  [
+    "Ảnh cao, kéo thanh để chọn vùng crop.",
+    2
+  ],
+  [
+    "Dùng ảnh này",
+    2
+  ],
+  [
+    "Chat nội bộ",
+    2
+  ],
+  [
+    "Gửi link in web",
+    2
+  ],
+  [
+    "TỔNG QUAN",
+    2
+  ],
+  [
+    "Muộn",
+    2
+  ],
+  [
+    "Ngày công",
+    2
+  ],
+  [
+    "Duyệt tất cả",
+    2
+  ],
+  [
+    "TẠO YÊU CẦU",
+    2
+  ],
+  [
+    "Vui lòng bật quyền vị trí trong cài đặt",
+    2
+  ],
+  [
+    "Đi muộn",
+    2
+  ],
+  [
+    "Giờ vào",
+    2
+  ],
+  [
+    "Giờ ra",
+    2
+  ],
+  [
+    "Người thực hiện",
+    2
+  ],
+  [
+    "Vai trò",
+    2
+  ],
+  [
+    "THU NỢ",
+    2
+  ],
+  [
+    "TRẢ NỢ",
+    2
+  ],
+  [
+    "Thu nợ khách hàng",
+    2
+  ],
+  [
+    "Xóa linh kiện",
+    2
+  ],
+  [
+    "tồn kho",
+    2
+  ],
+  [
+    "Chốt sổ",
+    2
+  ],
+  [
+    "Vận hành",
+    2
+  ],
+  [
+    "Kiểm kê kho",
+    2
+  ],
+  [
+    "Chốt ca",
+    2
+  ],
+  [
+    "Kho & Sản phẩm",
+    2
+  ],
+  [
+    "Sản phẩm / Kho",
+    2
+  ],
+  [
+    "Đơn nhập hàng",
+    2
+  ],
+  [
+    "Nhân sự",
+    2
+  ],
+  [
+    "Quan hệ khách hàng",
+    2
+  ],
+  [
+    "Tin nhắn chat",
+    2
+  ],
+  [
+    "Nhật ký thao tác",
+    2
+  ],
+  [
+    "Sao lưu & Khôi phục",
+    2
+  ],
+  [
+    "Lỗi khôi phục: $e",
+    2
+  ],
+  [
+    "Chờ nhận",
+    2
+  ],
+  [
+    "SỔ QUỸ",
+    2
+  ],
+  [
+    "Bộ lọc",
+    2
+  ],
+  [
+    "Tổng quan",
+    2
+  ],
+  [
+    "🛒 Bán hàng",
+    2
+  ],
+  [
+    "🔧 Sửa chữa",
+    2
+  ],
+  [
+    "💳 Thu nợ",
+    2
+  ],
+  [
+    "💰 Thu phát sinh",
+    2
+  ],
+  [
+    "📦 Nhập hàng",
+    2
+  ],
+  [
+    "🏭 Trả NCC",
+    2
+  ],
+  [
+    "🔩 Vốn LK SC",
+    2
+  ],
+  [
+    "Phương thức",
+    2
+  ],
+  [
+    "Chưa có giao dịch nào",
+    2
+  ],
+  [
+    "Thanh toán công nợ",
+    2
+  ],
+  [
+    "LINH KIỆN",
+    2
+  ],
+  [
+    "ĐỐI TÁC",
+    2
+  ],
+  [
+    "Thanh toán đối tác",
+    2
+  ],
+  [
+    "Nhập",
+    2
+  ],
+  [
+    "💰 LỢI NHUẬN RÒNG",
+    2
+  ],
+  [
+    "Giá vốn bán",
+    2
+  ],
+  [
+    "Giá vốn SC",
+    2
+  ],
+  [
+    "💵 TIỀN MẶT",
+    2
+  ],
+  [
+    "ĐANG LƯU...",
+    2
+  ],
+  [
+    "Quản lý danh mục",
+    2
+  ],
+  [
+    "Thêm danh mục",
+    2
+  ],
+  [
+    "Tính năng",
+    2
+  ],
+  [
+    "Quản trị",
+    2
+  ],
+  [
+    "Số lượng *",
+    2
+  ],
+  [
+    "Bắt buộc",
+    2
+  ],
+  [
+    "Cũ",
+    2
+  ],
+  [
+    "Hỏng",
+    2
+  ],
+  [
+    "Số lượng: ",
+    2
+  ],
+  [
+    "Không thể chụp ảnh: $e",
+    2
+  ],
+  [
+    "Không thể chọn ảnh: $e",
+    2
+  ],
+  [
+    "_selectCustomer: bắt đầu chọn khách hàng",
+    2
+  ],
+  [
+    "_selectCustomer: lỗi lấy customers: $e",
+    2
+  ],
+  [
+    "_selectCustomer: lỗi fallback: $e",
+    2
+  ],
+  [
+    "Xác nhận trả hàng",
+    2
+  ],
+  [
+    "Quay lại",
+    2
+  ],
+  [
+    "Sản phẩm trả:",
+    2
+  ],
+  [
+    "SỈ",
+    2
+  ],
+  [
+    "\\s*\\(TẶNG\\)\\s*$",
+    2
+  ],
+  [
+    "\\s*\\(GIẢM\\s+[\\d,.]+\\)\\s*$",
+    2
+  ],
+  [
+    "🔍 Tìm sản phẩm theo tên: \"$productName\" (từ: \"$nameEntry\")",
+    2
+  ],
+  [
+    "⚠️ Không tìm thấy sản phẩm theo tên: $productName",
+    2
+  ],
+  [
+    "TẠO ĐƠN BÁN HÀNG",
+    2
+  ],
+  [
+    "Chọn khách hàng",
+    2
+  ],
+  [
+    "Không tìm thấy khách hàng",
+    2
+  ],
+  [
+    "THÀNH TIỀN:",
+    2
+  ],
+  [
+    "TRẢ TRƯỚC:",
+    2
+  ],
+  [
+    "T.MẶT",
+    2
+  ],
+  [
+    "Hồ sơ khách hàng",
+    2
+  ],
+  [
+    "Nhập tên khách hàng",
+    2
+  ],
+  [
+    "Vui lòng nhập tên khách hàng",
+    2
+  ],
+  [
+    "Số điện thoại *",
+    2
+  ],
+  [
+    "$totalSales đơn",
+    2
+  ],
+  [
+    "Xóa khách hàng",
+    2
+  ],
+  [
+    "Thông tin khách hàng",
+    2
+  ],
+  [
+    "Số tiền thanh toán",
+    2
+  ],
+  [
+    "QUẢN LÝ CÔNG NỢ",
+    2
+  ],
+  [
+    "Đồng bộ với Firebase",
+    2
+  ],
+  [
+    "Chưa có khoản nợ nào",
+    2
+  ],
+  [
+    "Trả nợ",
+    2
+  ],
+  [
+    "THANH TOÁN NỢ",
+    2
+  ],
+  [
+    "NỢ PHẢI THU",
+    2
+  ],
+  [
+    "NỢ PHẢI TRẢ",
+    2
+  ],
+  [
+    "TẠO NỢ",
+    2
+  ],
+  [
+    "Lỗi tạo nợ: $e",
+    2
+  ],
+  [
+    "Vô hiệu hoá",
+    2
+  ],
+  [
+    "Quản lý chi nhánh",
+    2
+  ],
+  [
+    "Module Multi-Branch chưa được bật.",
+    2
+  ],
+  [
+    "Chưa có chi nhánh nào.",
+    2
+  ],
+  [
+    "Vừa xong",
+    2
+  ],
+  [
+    "Giá",
+    2
+  ],
+  [
+    "❌ Ngày hôm nay đã chốt quỹ! Không thể thêm chi phí mới.",
+    2
+  ],
+  [
+    "QUẢN LÝ CHI PHÍ",
+    2
+  ],
+  [
+    "THU PHÁT SINH",
+    2
+  ],
+  [
+    "Phát sinh",
+    2
+  ],
+  [
+    "TUẦN NÀY",
+    2
+  ],
+  [
+    "THÁNG NÀY",
+    2
+  ],
+  [
+    "Nội dung chi *",
+    2
+  ],
+  [
+    "LƯU CHI PHÍ",
+    2
+  ],
+  [
+    "Nội dung thu *",
+    2
+  ],
+  [
+    "⚠️ Sắp hết",
+    2
+  ],
+  [
+    "Chọn sản phẩm",
+    2
+  ],
+  [
+    "Giá bán riêng (để trống = theo SP gốc)",
+    2
+  ],
+  [
+    "Số lượng tồn",
+    2
+  ],
+  [
+    "Đồ uống",
+    2
+  ],
+  [
+    "Giày dép",
+    2
+  ],
+  [
+    "Không có trong kho",
+    2
+  ],
+  [
+    "Chưa có dữ liệu kiểm kho để lưu",
+    2
+  ],
+  [
+    "Lỗi lưu kiểm kho: $e",
+    2
+  ],
+  [
+    "LƯU TẠM",
+    2
+  ],
+  [
+    "Lịch sử kiểm kho",
+    2
+  ],
+  [
+    "NHẬP KHO SIÊU TỐC",
+    2
+  ],
+  [
+    "✅ Đã chọn: $selected",
+    2
+  ],
+  [
+    "⚠️ Không tìm thấy IMEI, dùng 5 số cuối: $last5",
+    2
+  ],
+  [
+    "❌ Không tìm thấy số IMEI trong QR",
+    2
+  ],
+  [
+    "QUÉT QR/BARCODE IMEI",
+    2
+  ],
+  [
+    "Hỗ trợ QR nhiều dòng (Apple, Samsung...).\\n",
+    2
+  ],
+  [
+    "Tự động trích xuất IMEI và cho phép chọn nếu có nhiều số.",
+    2
+  ],
+  [
+    "Sẵn sàng!",
+    2
+  ],
+  [
+    "Đổi camera",
+    2
+  ],
+  [
+    "Nhập thủ công",
+    2
+  ],
+  [
+    "Camera chưa được khởi động",
+    2
+  ],
+  [
+    "DỪNG SCAN",
+    2
+  ],
+  [
+    "BẮT ĐẦU SCAN",
+    2
+  ],
+  [
+    "Nhập nhanh từ Fast Stock In",
+    2
+  ],
+  [
+    "NHẬP TIẾP",
+    2
+  ],
+  [
+    "Thêm nhà cung cấp",
+    2
+  ],
+  [
+    "Chọn mã nhập nhanh để điền tự động",
+    2
+  ],
+  [
+    "Chọn mã nhập nhanh",
+    2
+  ],
+  [
+    "Quản lý mã nhập",
+    2
+  ],
+  [
+    "Loại hàng",
+    2
+  ],
+  [
+    "Ghi chú sản phẩm",
+    2
+  ],
+  [
+    "Đã thêm nhà cung cấp thành công",
+    2
+  ],
+  [
+    "Đã xóa nhà cung cấp thành công",
+    2
+  ],
+  [
+    "Số lượng phải lớn hơn 0!",
+    2
+  ],
+  [
+    "Hàng Chờ Xác Nhận Nhập Vào Kho",
+    2
+  ],
+  [
+    "Không tìm thấy kết quả cho \"$_searchQuery\"",
+    2
+  ],
+  [
+    "Tiêu đề",
+    2
+  ],
+  [
+    "Cảnh báo",
+    2
+  ],
+  [
+    "Quản lý hạn sử dụng",
+    2
+  ],
+  [
+    "Cài đặt cảnh báo",
+    2
+  ],
+  [
+    "$tempDays ngày",
+    2
+  ],
+  [
+    "Đã xử lý",
+    2
+  ],
+  [
+    "Size/Màu",
+    2
+  ],
+  [
+    "LIÊN HỆ CHỦ SHOP",
+    2
+  ],
+  [
+    "Quản Lý Shop",
+    2
+  ],
+  [
+    "Đã cập nhật ảnh đại diện thành công",
+    2
+  ],
+  [
+    "Lỗi cập nhật ảnh đại diện: $e",
+    2
+  ],
+  [
+    "Nhập nội dung",
+    2
+  ],
+  [
+    "Đơn sửa",
+    2
+  ],
+  [
+    "Thêm chi",
+    2
+  ],
+  [
+    "Thêm thu",
+    2
+  ],
+  [
+    "ĐÃ HIỂU",
+    2
+  ],
+  [
+    "Lịch sử nhập",
+    2
+  ],
+  [
+    "Hồ sơ của tôi",
+    2
+  ],
+  [
+    "Danh bạ nội bộ",
+    2
+  ],
+  [
+    "Tính năng đang bị khóa theo phân quyền",
+    2
+  ],
+  [
+    "Thông báo",
+    2
+  ],
+  [
+    "Đã liên kết",
+    2
+  ],
+  [
+    "Liên kết",
+    2
+  ],
+  [
+    "✅ Đã liên kết $provider thành công!",
+    2
+  ],
+  [
+    "Lỗi liên kết $provider",
+    2
+  ],
+  [
+    "Hủy liên kết",
+    2
+  ],
+  [
+    "Đã hủy liên kết $provider",
+    2
+  ],
+  [
+    "THU NHẬP",
+    2
+  ],
+  [
+    "Nhắc nhở",
+    2
+  ],
+  [
+    "Vui lòng chọn nhân viên",
+    2
+  ],
+  [
+    "Bảo hiểm",
+    2
+  ],
+  [
+    "Thưởng/Trừ",
+    2
+  ],
+  [
+    "Số lần được miễn (không trừ)",
+    2
+  ],
+  [
+    "lần/tháng",
+    2
+  ],
+  [
+    "Thêm mới",
+    2
+  ],
+  [
+    "✅ Đã thêm khoản thưởng/trừ",
+    2
+  ],
+  [
+    "Đã xóa",
+    2
+  ],
+  [
+    "Lương/ngày (đ)",
+    2
+  ],
+  [
+    "Lương/giờ (đ)",
+    2
+  ],
+  [
+    "Lương cơ bản/tháng (đ)",
+    2
+  ],
+  [
+    "% Doanh số",
+    2
+  ],
+  [
+    "Theo bậc giá trị đơn",
+    2
+  ],
+  [
+    "% Hoa hồng doanh số",
+    2
+  ],
+  [
+    "Tiền/đơn bán (đ)",
+    2
+  ],
+  [
+    "🔧 HOA HỒNG SỬA CHỮA",
+    2
+  ],
+  [
+    "% Lợi nhuận",
+    2
+  ],
+  [
+    "Tiền/đơn sửa (đ)",
+    2
+  ],
+  [
+    "🎁 PHỤ CẤP",
+    2
+  ],
+  [
+    "Phụ cấp xăng xe/tháng (đ)",
+    2
+  ],
+  [
+    "Phụ cấp ăn trưa/tháng (đ)",
+    2
+  ],
+  [
+    "Phụ cấp điện thoại/tháng (đ)",
+    2
+  ],
+  [
+    "⏰ GIỜ LÀM & OT",
+    2
+  ],
+  [
+    "Giờ chuẩn/ngày",
+    2
+  ],
+  [
+    "Chưa có nhân viên nào",
+    2
+  ],
+  [
+    "Mặc định",
+    2
+  ],
+  [
+    "Lương cơ bản",
+    2
+  ],
+  [
+    "📊 Hoa hồng theo bậc giá trị đơn hàng:",
+    2
+  ],
+  [
+    "• Bậc 1: Đơn dưới mức 1 → Hoa hồng 1\\n",
+    2
+  ],
+  [
+    "• Bậc 2: Đơn từ mức 1 đến mức 2 → Hoa hồng 2\\n",
+    2
+  ],
+  [
+    "• Bậc 3: Đơn trên mức 2 → Hoa hồng 3",
+    2
+  ],
+  [
+    "Mức 1: Đơn dưới (đ)",
+    2
+  ],
+  [
+    "Hoa hồng 1 (đ)",
+    2
+  ],
+  [
+    "Mức 2: Đơn đến (đ)",
+    2
+  ],
+  [
+    "Hoa hồng 2 (đ)",
+    2
+  ],
+  [
+    "Bậc 3: Đơn trên mức 2",
+    2
+  ],
+  [
+    "Hoa hồng 3 (đ)",
+    2
+  ],
+  [
+    "Chọn hết",
+    2
+  ],
+  [
+    "Người nhập",
+    2
+  ],
+  [
+    "Bắt đầu",
+    2
+  ],
+  [
+    "Hoàn thành",
+    2
+  ],
+  [
+    "🔍 Tìm kiếm",
+    2
+  ],
+  [
+    "HẾT HÀNG",
+    2
+  ],
+  [
+    "SL tồn kho",
+    2
+  ],
+  [
+    "Giá nhập",
+    2
+  ],
+  [
+    "Vui lòng nhập số lượng hợp lệ",
+    2
+  ],
+  [
+    "Nhà cung cấp (không đổi)",
+    2
+  ],
+  [
+    "Vui lòng nhập mật khẩu",
+    2
+  ],
+  [
+    "Mật khẩu không đúng",
+    2
+  ],
+  [
+    "Không tìm thấy sản phẩm",
+    2
+  ],
+  [
+    "Chờ giá",
+    2
+  ],
+  [
+    "Chọn ngày hết hạn",
+    2
+  ],
+  [
+    "Ngày hết hạn",
+    2
+  ],
+  [
+    "ẢNH & VỊ TRÍ LƯU KHO",
+    2
+  ],
+  [
+    "Hãng *",
+    2
+  ],
+  [
+    "Không ghi",
+    2
+  ],
+  [
+    "Vui lòng chọn Nhà cung cấp!",
+    2
+  ],
+  [
+    "Giá vốn (k)",
+    2
+  ],
+  [
+    "Giá bán (k)",
+    2
+  ],
+  [
+    "HẠN SỬ DỤNG",
+    2
+  ],
+  [
+    "Số lô hàng",
+    2
+  ],
+  [
+    "CHỈNH SỬA",
+    2
+  ],
+  [
+    "Nguyễn Văn A",
+    2
+  ],
+  [
+    "Mã cửa hàng KiotViet",
+    2
+  ],
+  [
+    "Cập nhật",
+    2
+  ],
+  [
+    "Tên SP",
+    2
+  ],
+  [
+    "Thông tin tem",
+    2
+  ],
+  [
+    "Khoảng cách:",
+    2
+  ],
+  [
+    "Địa chỉ (tùy chọn)",
+    2
+  ],
+  [
+    "Công thức tính giá CPK",
+    2
+  ],
+  [
+    "Dòng 1",
+    2
+  ],
+  [
+    "Dòng 2",
+    2
+  ],
+  [
+    "Dòng 3",
+    2
+  ],
+  [
+    "price + 500000 hoặc price * 1.05",
+    2
+  ],
+  [
+    "Tên sản phẩm",
+    2
+  ],
+  [
+    "Mã sản phẩm",
+    2
+  ],
+  [
+    "Báo cáo lợi nhuận",
+    2
+  ],
+  [
+    "Tháng 1",
+    2
+  ],
+  [
+    "Tháng 2",
+    2
+  ],
+  [
+    "Tháng 3",
+    2
+  ],
+  [
+    "Tháng 4",
+    2
+  ],
+  [
+    "Tháng 5",
+    2
+  ],
+  [
+    "Tháng 6",
+    2
+  ],
+  [
+    "Tháng 7",
+    2
+  ],
+  [
+    "Tháng 8",
+    2
+  ],
+  [
+    "Tháng 9",
+    2
+  ],
+  [
+    "Tháng 10",
+    2
+  ],
+  [
+    "Tháng 11",
+    2
+  ],
+  [
+    "Tháng 12",
+    2
+  ],
+  [
+    "Kho hàng",
+    2
+  ],
+  [
+    "Chọn loại hình kinh doanh",
+    2
+  ],
+  [
+    "📱 Điện thoại & Điện tử",
+    2
+  ],
+  [
+    "Thực phẩm & Đồ tươi sống",
+    2
+  ],
+  [
+    "Thời trang & May mặc",
+    2
+  ],
+  [
+    "Hạn sử dụng",
+    2
+  ],
+  [
+    "👕 Thời trang",
+    2
+  ],
+  [
+    "Linh kiện",
+    2
+  ],
+  [
+    "BỘ LỌC",
+    2
+  ],
+  [
+    "❌ Không thể xóa đơn ĐÃ GIAO. Chỉ xóa đơn chưa giao.",
+    2
+  ],
+  [
+    "🔧 [PartsInventoryView] Nhận event \"$event\" → refresh local DB",
+    2
+  ],
+  [
+    "🔧 [PartsInventoryView] Bắt đầu tải linh kiện từ local DB...",
+    2
+  ],
+  [
+    "🔧 [PartsInventoryView] Đã sửa $fixed linh kiện stuck-deleted, đọc lại...",
+    2
+  ],
+  [
+    "🔧 [PartsInventoryView] Local DB trống — chờ SyncService đồng bộ từ cloud",
+    2
+  ],
+  [
+    "🔧 [PartsInventoryView] Lỗi tải linh kiện: $e",
+    2
+  ],
+  [
+    "Tồn kho hiện tại: $currentQty",
+    2
+  ],
+  [
+    "Vui lòng nhập giá vốn hợp lệ (> 0) để ghi nhận tài chính.",
+    2
+  ],
+  [
+    ").format(totalCost)}đ) - $paymentMethod",
+    2
+  ],
+  [
+    ").format(totalCost)}đ",
+    2
+  ],
+  [
+    "Nhập thêm",
+    2
+  ],
+  [
+    "Chưa có nhà cung cấp.",
+    2
+  ],
+  [
+    "THÊM NCC MỚI",
+    2
+  ],
+  [
+    "Nhập số lượng hợp lệ",
+    2
+  ],
+  [
+    ").format(cost * qty)}đ ($paymentMethod)",
+    2
+  ],
+  [
+    "Số lượng nhập",
+    2
+  ],
+  [
+    "🏦 Chuyển khoản",
+    2
+  ],
+  [
+    "Đang gửi...",
+    2
+  ],
+  [
+    "BẢNG LƯƠNG",
+    2
+  ],
+  [
+    "Không",
+    2
+  ],
+  [
+    "Thống kê",
+    2
+  ],
+  [
+    "XÁC NHẬN NHẬP VÀO KHO",
+    2
+  ],
+  [
+    "ĐEN",
+    2
+  ],
+  [
+    "Xem trước",
+    2
+  ],
+  [
+    "Nội dung",
+    2
+  ],
+  [
+    "Cài đặt",
+    2
+  ],
+  [
+    "ĐÃ NHẬN",
+    2
+  ],
+  [
+    "Lỗi khởi tạo dữ liệu: $e",
+    2
+  ],
+  [
+    "Lỗi tải mã nhập nhanh: $e",
+    2
+  ],
+  [
+    "Đã thêm mã nhập nhanh",
+    2
+  ],
+  [
+    "Đã cập nhật mã nhập nhanh",
+    2
+  ],
+  [
+    "Lỗi lưu mã nhập nhanh: $e",
+    2
+  ],
+  [
+    "Tìm kiếm mã nhập nhanh...",
+    2
+  ],
+  [
+    "Thêm mã",
+    2
+  ],
+  [
+    "Tất cả mã đã được đồng bộ!",
+    2
+  ],
+  [
+    "BẬT",
+    2
+  ],
+  [
+    "Đã đồng bộ thành công mã nhập nhanh!",
+    2
+  ],
+  [
+    "Loại sản phẩm",
+    2
+  ],
+  [
+    "MỚI",
+    2
+  ],
+  [
+    "Tạo mã mới",
+    2
+  ],
+  [
+    "Loại hình kinh doanh",
+    2
+  ],
+  [
+    "⚠️ Thiếu thông tin khách hàng",
+    2
+  ],
+  [
+    "Cập nhật ngay",
+    2
+  ],
+  [
+    "1 tháng",
+    2
+  ],
+  [
+    "3 tháng",
+    2
+  ],
+  [
+    "LINH KIỆN SỬA CHỮA",
+    2
+  ],
+  [
+    "Không thể trừ kho",
+    2
+  ],
+  [
+    "Không tìm thấy",
+    2
+  ],
+  [
+    "Mẫu đang tắt, bản xem trước dùng template mặc định.",
+    2
+  ],
+  [
+    "123 Đường ABC, Q1, TP.HCM",
+    2
+  ],
+  [
+    "BH theo phiếu. Máy còn nguyên tem BH.",
+    2
+  ],
+  [
+    "Đổi trả trong 7 ngày. SP còn nguyên tem.",
+    2
+  ],
+  [
+    "Áp dụng mẫu này khi in",
+    2
+  ],
+  [
+    "NỘI DUNG",
+    2
+  ],
+  [
+    "Xem trước (dữ liệu mẫu):",
+    2
+  ],
+  [
+    "Các khoản nợ",
+    2
+  ],
+  [
+    "Thanh toán đã ghi nhận",
+    2
+  ],
+  [
+    "Ngày tạo: $date",
+    2
+  ],
+  [
+    "Trung bình/đơn",
+    2
+  ],
+  [
+    "Không có công nợ cần thanh toán",
+    2
+  ],
+  [
+    "Không thể tải ảnh đại diện lên máy chủ",
+    2
+  ],
+  [
+    "Đã cập nhật đối tác",
+    2
+  ],
+  [
+    "ĐT",
+    2
+  ],
+  [
+    "Tên đối tác",
+    2
+  ],
+  [
+    "Chuyên sửa màn hình, main... (tùy chọn)",
+    2
+  ],
+  [
+    "(chưa nhập)",
+    2
+  ],
+  [
+    "THƯỜNG",
+    2
+  ],
+  [
+    "⚠️ Hành động này không thể hoàn tác!",
+    2
+  ],
+  [
+    "NHẬN TIỀN TỪ NGÂN HÀNG",
+    2
+  ],
+  [
+    "Hình thức",
+    2
+  ],
+  [
+    "Tất toán",
+    2
+  ],
+  [
+    "🛒 [SaleListView] Nhận event \"$event\" → refresh local DB",
+    2
+  ],
+  [
+    "Xuất đơn bán",
+    2
+  ],
+  [
+    "ĐÃ THU",
+    2
+  ],
+  [
+    "CÒN NỢ",
+    2
+  ],
+  [
+    "Đang lưu kho",
+    2
+  ],
+  [
+    "Đã dùng linh kiện",
+    2
+  ],
+  [
+    "MUA MÁY XÁC",
+    2
+  ],
+  [
+    "Mã PIN đã bật",
+    2
+  ],
+  [
+    "Đổi PIN",
+    2
+  ],
+  [
+    "Thiết lập",
+    2
+  ],
+  [
+    "Nhật ký truy cập",
+    2
+  ],
+  [
+    "Đổi mã PIN",
+    2
+  ],
+  [
+    "Thiết lập mã PIN",
+    2
+  ],
+  [
+    "Mã PIN mới (4-6 số)",
+    2
+  ],
+  [
+    "PIN phải từ 4-6 số",
+    2
+  ],
+  [
+    "Tắt mã PIN",
+    2
+  ],
+  [
+    "Mã PIN hiện tại",
+    2
+  ],
+  [
+    "Email/Mật khẩu",
+    2
+  ],
+  [
+    "CHỜ DUYỆT",
+    2
+  ],
+  [
+    "TỪ CHỐI",
+    2
+  ],
+  [
+    "HUỶ YÊU CẦU",
+    2
+  ],
+  [
+    "Lưu thay đổi",
+    2
+  ],
+  [
+    "Xóa vị trí",
+    2
+  ],
+  [
+    "Không thể mở chỉ đường OSM",
+    2
+  ],
+  [
+    "Dữ liệu chưa gán shop",
+    2
+  ],
+  [
+    "Hãng",
+    2
+  ],
+  [
+    "Tên NCC *",
+    2
+  ],
+  [
+    "Hàng chờ xác nhận nhập vào kho",
+    2
+  ],
+  [
+    "Ngày làm việc trong tuần:",
+    2
+  ],
+  [
+    "Chưa có email",
+    2
+  ],
+  [
+    "Chưa có SĐT",
+    2
+  ],
+  [
+    "BÁN HÀNG",
+    2
+  ],
+  [
+    "SỬA CHỮA",
+    2
+  ],
+  [
+    "CẤU HÌNH MÁY IN",
+    2
+  ],
+  [
+    "QUYỀN QUẢN LÝ HỆ THỐNG",
+    2
+  ],
+  [
+    "CÀI ĐẶT HỆ THỐNG",
+    2
+  ],
+  [
+    "Không có dữ liệu",
+    2
+  ],
+  [
+    "Đang tạo PDF...",
+    2
+  ],
+  [
+    "ngày",
+    2
+  ],
+  [
+    "QUẢN LÝ PHÂN QUYỀN",
+    2
+  ],
+  [
+    "Hồ sơ nhân viên",
+    2
+  ],
+  [
+    "Chưa có dữ liệu chấm công",
+    2
+  ],
+  [
+    "Thêm vị trí",
+    2
+  ],
+  [
+    "Kích hoạt",
+    2
+  ],
+  [
+    "Giá trị",
+    2
+  ],
+  [
+    "Xóa hoàn toàn",
+    2
+  ],
+  [
+    "Ngày: $date",
+    2
+  ],
+  [
+    "Thanh toán nhanh",
+    2
+  ],
+  [
+    "Số tiền (VNĐ)",
+    2
+  ],
+  [
+    "Lương cơ bản (VNĐ)",
+    2
+  ],
+  [
+    ").format(entry.value)} đ",
+    2
+  ],
+  [
+    "Liên Hệ",
+    1
+  ],
+  [
+    "LỊCH SỬ ĐIỀU CHỈNH",
+    1
+  ],
+  [
+    ").format(value)}đ",
+    1
+  ],
+  [
+    "Tổng giá vốn",
+    1
+  ],
+  [
+    "Hình thức TT",
+    1
+  ],
+  [
+    "ĐIỀU CHỈNH GIÁ NHẬP",
+    1
+  ],
+  [
+    "ĐIỀU CHỈNH THANH TOÁN",
+    1
+  ],
+  [
+    "ĐIỀU CHỈNH CÔNG NỢ",
+    1
+  ],
+  [
+    "TRẢ HÀNG - HOÀN KHO",
+    1
+  ],
+  [
+    "TRẢ HÀNG - HOÀN TIỀN",
+    1
+  ],
+  [
+    "BÚT TOÁN ĐIỀU CHỈNH",
+    1
+  ],
+  [
+    "Chưa có bút toán điều chỉnh nào",
+    1
+  ],
+  [
+    "Lý do: $reason",
+    1
+  ],
+  [
+    "Người thực hiện: $createdBy",
+    1
+  ],
+  [
+    "Chi tiết thay đổi:",
+    1
+  ],
+  [
+    "Xám sáng",
+    1
+  ],
+  [
+    "Xanh trời nhạt",
+    1
+  ],
+  [
+    "Kem ấm",
+    1
+  ],
+  [
+    "Xanh ngọc nhạt",
+    1
+  ],
+  [
+    "Gradient trời",
+    1
+  ],
+  [
+    "Gradient đào",
+    1
+  ],
+  [
+    "Gradient ngọc",
+    1
+  ],
+  [
+    "Đã cập nhật ảnh nền chat, đang đồng bộ nền...",
+    1
+  ],
+  [
+    "Đã đồng bộ nền chat",
+    1
+  ],
+  [
+    "Crop nền chat (16:9)",
+    1
+  ],
+  [
+    "Đã xoá ảnh nền chat",
+    1
+  ],
+  [
+    "Chọn nền chat",
+    1
+  ],
+  [
+    "Chọn và crop ảnh nền",
+    1
+  ],
+  [
+    "Xóa ảnh",
+    1
+  ],
+  [
+    "Không thể gửi tin nhắn",
+    1
+  ],
+  [
+    "Không thể gửi hình ảnh",
+    1
+  ],
+  [
+    "Chọn biểu cảm",
+    1
+  ],
+  [
+    "Trả lời",
+    1
+  ],
+  [
+    "Thêm biểu cảm",
+    1
+  ],
+  [
+    "Sao chép",
+    1
+  ],
+  [
+    "Đã sao chép",
+    1
+  ],
+  [
+    "Bỏ ghim",
+    1
+  ],
+  [
+    "Ghim tin nhắn",
+    1
+  ],
+  [
+    "Chỉnh sửa tin nhắn",
+    1
+  ],
+  [
+    "Nội dung tin nhắn...",
+    1
+  ],
+  [
+    "Xóa tin nhắn?",
+    1
+  ],
+  [
+    "Tin nhắn sẽ bị xóa và không thể khôi phục.",
+    1
+  ],
+  [
+    "Gim đơn hàng vào chat",
+    1
+  ],
+  [
+    "Chưa có đơn sửa chữa",
+    1
+  ],
+  [
+    "Chưa có đơn bán hàng",
+    1
+  ],
+  [
+    ").format(repair.price)}đ",
+    1
+  ],
+  [
+    "Chưa báo giá",
+    1
+  ],
+  [
+    "Tìm tin nhắn...",
+    1
+  ],
+  [
+    "Đã đánh dấu tất cả đã đọc",
+    1
+  ],
+  [
+    "Đánh dấu đã đọc",
+    1
+  ],
+  [
+    "Nền chat",
+    1
+  ],
+  [
+    "📷 Hình ảnh",
+    1
+  ],
+  [
+    "Tin nhắn đã ghim",
+    1
+  ],
+  [
+    "Chưa có tin nhắn",
+    1
+  ],
+  [
+    "Hãy gửi tin nhắn đầu tiên!",
+    1
+  ],
+  [
+    "🔴 KHẨN",
+    1
+  ],
+  [
+    "🟠 QUAN TRỌNG",
+    1
+  ],
+  [
+    "(đã sửa)",
+    1
+  ],
+  [
+    "Không mở được link",
+    1
+  ],
+  [
+    "Link không hợp lệ",
+    1
+  ],
+  [
+    "IP máy chạy bridge",
+    1
+  ],
+  [
+    "Vui lòng nhập IP bridge",
+    1
+  ],
+  [
+    "🖨️ Link in web cho điện thoại:\\n$link\\n\\nChỉ cần bấm link -> mở đơn -> bấm IN.",
+    1
+  ],
+  [
+    "Đã gửi link in vào chat",
+    1
+  ],
+  [
+    "Gửi link",
+    1
+  ],
+  [
+    "Không thể mở đơn hàng",
+    1
+  ],
+  [
+    ")} đang nhập...",
+    1
+  ],
+  [
+    "Gửi hình ảnh",
+    1
+  ],
+  [
+    "Gim đơn hàng",
+    1
+  ],
+  [
+    "Nhập tin nhắn...",
+    1
+  ],
+  [
+    "Chức năng tải xuống sẽ được phát triển",
+    1
+  ],
+  [
+    "Quản lý đổi ca",
+    1
+  ],
+  [
+    "XIN NGHỈ",
+    1
+  ],
+  [
+    "DS chi tiết",
+    1
+  ],
+  [
+    "Công",
+    1
+  ],
+  [
+    "Duyệt",
+    1
+  ],
+  [
+    "Chờ",
+    1
+  ],
+  [
+    "Sớm",
+    1
+  ],
+  [
+    "Thiếu ra",
+    1
+  ],
+  [
+    "Giờ công",
+    1
+  ],
+  [
+    "Danh sách chi tiết nhân viên",
+    1
+  ],
+  [
+    "$totalRecords bản ghi trong kỳ, mở để xem theo từng nhân viên",
+    1
+  ],
+  [
+    "Mở danh sách",
+    1
+  ],
+  [
+    "Chờ duyệt $pendingDays",
+    1
+  ],
+  [
+    "Về sớm $earlyLeaveDays",
+    1
+  ],
+  [
+    "Thiếu giờ ra $incompleteDays",
+    1
+  ],
+  [
+    "Lỗi tab duyệt: $e",
+    1
+  ],
+  [
+    "Quên chấm công",
+    1
+  ],
+  [
+    "Sửa tăng ca",
+    1
+  ],
+  [
+    "Đã duyệt chấm công",
+    1
+  ],
+  [
+    "Lỗi duyệt chấm công",
+    1
+  ],
+  [
+    "Đã từ chối chấm công",
+    1
+  ],
+  [
+    "Chọn nhân viên và giờ vào",
+    1
+  ],
+  [
+    "Đã tạo yêu cầu bổ sung chấm công",
+    1
+  ],
+  [
+    "Chọn nhân viên và giờ tăng ca",
+    1
+  ],
+  [
+    "Không tìm thấy bản ghi chấm công ngày này",
+    1
+  ],
+  [
+    "Tăng ca: $note",
+    1
+  ],
+  [
+    "Đã ghi nhận tăng ca $otMinutes phút",
+    1
+  ],
+  [
+    "GHI NHẬN OT",
+    1
+  ],
+  [
+    "Lỗi tab nghỉ: $e",
+    1
+  ],
+  [
+    "Đã tạo đơn xin nghỉ",
+    1
+  ],
+  [
+    "Đã duyệt đơn xin nghỉ",
+    1
+  ],
+  [
+    "Đã từ chối đơn xin nghỉ",
+    1
+  ],
+  [
+    "Tăng ca",
+    1
+  ],
+  [
+    "Giờ TC",
+    1
+  ],
+  [
+    "Xem vị trí",
+    1
+  ],
+  [
+    "Đã sửa giờ chấm công",
+    1
+  ],
+  [
+    "Không có dữ liệu chi tiết để hiển thị",
+    1
+  ],
+  [
+    "Không có dữ liệu chấm công tháng để xuất",
+    1
+  ],
+  [
+    "Đã duyệt ✓",
+    1
+  ],
+  [
+    "Từ chối ✗",
+    1
+  ],
+  [
+    "LÝ DO",
+    1
+  ],
+  [
+    "Nhập lý do",
+    1
+  ],
+  [
+    "Chấm Công",
+    1
+  ],
+  [
+    "⏰ Chấm công vào/ra",
+    1
+  ],
+  [
+    "📍 Xác minh vị trí",
+    1
+  ],
+  [
+    "📝 Đơn xin nghỉ",
+    1
+  ],
+  [
+    "📊 Lịch sử & thống kê",
+    1
+  ],
+  [
+    "Xem lại toàn bộ lịch chấm công, số ngày công và số giờ tăng ca trong tháng.",
+    1
+  ],
+  [
+    "⚠️ Quản trị viên đã bật yêu cầu vị trí nhưng chưa cấu hình tọa độ shop. ",
+    1
+  ],
+  [
+    "Vui lòng vào Cài đặt → Vị trí để thiết lập trước khi chấm công.",
+    1
+  ],
+  [
+    "Nhân viên chấm công vào",
+    1
+  ],
+  [
+    "Nhân viên chấm công ra",
+    1
+  ],
+  [
+    "Cần quyền truy cập vị trí để chấm công",
+    1
+  ],
+  [
+    "Đang kiểm tra vị trí...",
+    1
+  ],
+  [
+    "Lỗi kiểm tra vị trí: $e",
+    1
+  ],
+  [
+    "Đổi ca",
+    1
+  ],
+  [
+    "Xuất Excel chấm công",
+    1
+  ],
+  [
+    "Xuất chấm công",
+    1
+  ],
+  [
+    "Tải thêm lịch sử",
+    1
+  ],
+  [
+    "YÊU CẦU CÁ NHÂN",
+    1
+  ],
+  [
+    "Gửi yêu cầu quên chấm công hoặc xin nghỉ mà không cần vào màn quản lý.",
+    1
+  ],
+  [
+    "ĐƠN CỦA TÔI",
+    1
+  ],
+  [
+    "Chọn giờ vào",
+    1
+  ],
+  [
+    "Đã gửi yêu cầu bổ sung chấm công",
+    1
+  ],
+  [
+    "Đã gửi đơn xin nghỉ",
+    1
+  ],
+  [
+    "CHI TIẾT CHẤM CÔNG",
+    1
+  ],
+  [
+    "Chưa check-in",
+    1
+  ],
+  [
+    "Chưa check-out",
+    1
+  ],
+  [
+    "Đi tới shop",
+    1
+  ],
+  [
+    "ẢNH CHẤM CÔNG",
+    1
+  ],
+  [
+    "Bắt buộc chụp ảnh để chấm công!",
+    1
+  ],
+  [
+    "Chấm công vào thành công!",
+    1
+  ],
+  [
+    "Chấm công ra thành công!",
+    1
+  ],
+  [
+    "Ảnh chấm công đang tải lên hệ thống, vui lòng không thoát ứng dụng.",
+    1
+  ],
+  [
+    "Check-in/out và xem lịch sử chấm công cá nhân",
+    1
+  ],
+  [
+    "LỊCH SỪ",
+    1
+  ],
+  [
+    "Cấu hình lịch làm việc",
+    1
+  ],
+  [
+    "Thiết lập giờ vào/ra cho thợ",
+    1
+  ],
+  [
+    "TRẠNG THÁI HÔM NAY",
+    1
+  ],
+  [
+    "Số giờ làm",
+    1
+  ],
+  [
+    "Chưa có dữ liệu lịch sử",
+    1
+  ],
+  [
+    "Tổng ngày công",
+    1
+  ],
+  [
+    "Về sớm",
+    1
+  ],
+  [
+    "Tỷ lệ đúng giờ",
+    1
+  ],
+  [
+    "TB giờ/ngày",
+    1
+  ],
+  [
+    "Tổng giờ làm việc",
+    1
+  ],
+  [
+    "Loại đối tượng",
+    1
+  ],
+  [
+    "ID đối tượng",
+    1
+  ],
+  [
+    "Trả nợ nhà cung cấp",
+    1
+  ],
+  [
+    "Nhập kho linh kiện",
+    1
+  ],
+  [
+    "Cập nhật thông tin linh kiện",
+    1
+  ],
+  [
+    "Bổ sung tồn kho linh kiện",
+    1
+  ],
+  [
+    "Tạo yêu cầu đóng tiền",
+    1
+  ],
+  [
+    "Duyệt yêu cầu đóng tiền",
+    1
+  ],
+  [
+    "Từ chối yêu cầu đóng tiền",
+    1
+  ],
+  [
+    "công nợ",
+    1
+  ],
+  [
+    "đã thu",
+    1
+  ],
+  [
+    "trả",
+    1
+  ],
+  [
+    "đã trả",
+    1
+  ],
+  [
+    "nhà cung cấp",
+    1
+  ],
+  [
+    "khách hàng",
+    1
+  ],
+  [
+    "linh kiện",
+    1
+  ],
+  [
+    "nhập kho",
+    1
+  ],
+  [
+    "thêm",
+    1
+  ],
+  [
+    "thông tin",
+    1
+  ],
+  [
+    "cập nhật",
+    1
+  ],
+  [
+    "xóa",
+    1
+  ],
+  [
+    "tạo",
+    1
+  ],
+  [
+    "thanh toán",
+    1
+  ],
+  [
+    "yêu cầu",
+    1
+  ],
+  [
+    "đã duyệt",
+    1
+  ],
+  [
+    "đã từ chối",
+    1
+  ],
+  [
+    "bán hàng",
+    1
+  ],
+  [
+    "sửa chữa",
+    1
+  ],
+  [
+    "Chưa có ghi chép hoạt động nào",
+    1
+  ],
+  [
+    "Không thể tải backup: $e",
+    1
+  ],
+  [
+    "Lỗi xuất file: $e",
+    1
+  ],
+  [
+    "Sao lưu SQLite lên Cloud thành công!",
+    1
+  ],
+  [
+    "Lỗi sao lưu: $e",
+    1
+  ],
+  [
+    "Khôi phục thành công",
+    1
+  ],
+  [
+    "Đã khôi phục dữ liệu. Vui lòng khởi động lại ứng dụng để áp dụng thay đổi.",
+    1
+  ],
+  [
+    "Sao lưu SQLite",
+    1
+  ],
+  [
+    "Chia sẻ / Lưu máy",
+    1
+  ],
+  [
+    "Sao lưu lên Cloud",
+    1
+  ],
+  [
+    "Bản sao lưu SQLite trên Cloud",
+    1
+  ],
+  [
+    "Chưa có bản sao lưu nào.",
+    1
+  ],
+  [
+    "Khôi phục SQLite từ cloud đang phát triển.",
+    1
+  ],
+  [
+    "Khôi phục từ file",
+    1
+  ],
+  [
+    "Chọn file .db đã sao lưu trước đó để khôi phục.",
+    1
+  ],
+  [
+    "Chọn file .db",
+    1
+  ],
+  [
+    "Chọn dữ liệu cần sao lưu",
+    1
+  ],
+  [
+    "Sao lưu",
+    1
+  ],
+  [
+    "Đang chuẩn bị...",
+    1
+  ],
+  [
+    "Lỗi sao lưu Firestore: $e",
+    1
+  ],
+  [
+    "Chọn dữ liệu cần khôi phục",
+    1
+  ],
+  [
+    "Xác nhận khôi phục",
+    1
+  ],
+  [
+    ").format(set.createdAt)}.\\n\\nTiếp tục?",
+    1
+  ],
+  [
+    "Đang khôi phục...",
+    1
+  ],
+  [
+    "Xóa bản sao lưu?",
+    1
+  ],
+  [
+    "Đã xóa bản sao lưu.",
+    1
+  ],
+  [
+    "Lỗi xóa: $e",
+    1
+  ],
+  [
+    "Sao lưu Firestore",
+    1
+  ],
+  [
+    "Chọn mục & Sao lưu lên Cloud",
+    1
+  ],
+  [
+    "Bản sao lưu Firestore",
+    1
+  ],
+  [
+    "Chưa có bản sao lưu Firestore nào.",
+    1
+  ],
+  [
+    "$_selectedCount mục đã chọn",
+    1
+  ],
+  [
+    "Không có trong bản sao lưu này",
+    1
+  ],
+  [
+    "Cần cấu hình Firebase Storage Rules",
+    1
+  ],
+  [
+    "TRẢ GÓP NGÂN HÀNG",
+    1
+  ],
+  [
+    "THỐNG KÊ TRẢ GÓP NH",
+    1
+  ],
+  [
+    "Ngân hàng: ",
+    1
+  ],
+  [
+    "Chọn ngân hàng",
+    1
+  ],
+  [
+    "Tất cả ngân hàng",
+    1
+  ],
+  [
+    "]} chờ TT",
+    1
+  ],
+  [
+    "Tổng tiền NH",
+    1
+  ],
+  [
+    "Đã nhận từ NH",
+    1
+  ],
+  [
+    "Chờ NH chuyển",
+    1
+  ],
+  [
+    "Phí NH đã trừ",
+    1
+  ],
+  [
+    "Không có đơn trả góp\\ntrong khoảng thời gian này",
+    1
+  ],
+  [
+    "]} đơn",
+    1
+  ],
+  [
+    "Không có đơn trả góp\\ncho ngân hàng \"$_selectedBank\"",
+    1
+  ],
+  [
+    "Đã TT",
+    1
+  ],
+  [
+    "Chờ TT",
+    1
+  ],
+  [
+    "💰 [CashClosingView] Nhận event \"$event\" → debounce reload local DB",
+    1
+  ],
+  [
+    "LỊCH SỬ TÀI CHÍNH",
+    1
+  ],
+  [
+    "Tìm theo tên, mô tả, ghi chú...",
+    1
+  ],
+  [
+    "Xuất Excel sổ quỹ",
+    1
+  ],
+  [
+    "Lỗi xuất Excel sổ quỹ: $e",
+    1
+  ],
+  [
+    "Số dư đầu kỳ được nhập thủ công",
+    1
+  ],
+  [
+    "TỔNG THU",
+    1
+  ],
+  [
+    "🏦 Tất toán",
+    1
+  ],
+  [
+    "Chưa có giao dịch thu",
+    1
+  ],
+  [
+    "TỔNG CHI",
+    1
+  ],
+  [
+    "💸 Chi phí",
+    1
+  ],
+  [
+    "🔧 Đối tác",
+    1
+  ],
+  [
+    "Chưa có giao dịch chi",
+    1
+  ],
+  [
+    "SỐ TIỀN THU",
+    1
+  ],
+  [
+    "SỐ TIỀN CHI",
+    1
+  ],
+  [
+    "Người liên quan",
+    1
+  ],
+  [
+    "🏦 Tất toán NH",
+    1
+  ],
+  [
+    "📝 Chi phí",
+    1
+  ],
+  [
+    "↩️ Trả hàng",
+    1
+  ],
+  [
+    "🤝 Trả đối tác SC",
+    1
+  ],
+  [
+    "💸 Trả nợ",
+    1
+  ],
+  [
+    "Lọc theo loại giao dịch",
+    1
+  ],
+  [
+    "TẤT CẢ GIAO DỊCH",
+    1
+  ],
+  [
+    "CHỐT QUỸ",
+    1
+  ],
+  [
+    "Đơn hàng",
+    1
+  ],
+  [
+    "Trả góp - Đặt cọc",
+    1
+  ],
+  [
+    "Tất toán ngân hàng",
+    1
+  ],
+  [
+    "Trả góp - Nhận tiền từ NH",
+    1
+  ],
+  [
+    "Thu nợ khách",
+    1
+  ],
+  [
+    "TRẢ HÀNG",
+    1
+  ],
+  [
+    "Hàng nhập",
+    1
+  ],
+  [
+    "Thanh toán công nợ NCC",
+    1
+  ],
+  [
+    "Trả đối tác SC",
+    1
+  ],
+  [
+    "KH vãng lai",
+    1
+  ],
+  [
+    "Chi phí vốn linh kiện SC",
+    1
+  ],
+  [
+    "Hoàn tiền trả hàng",
+    1
+  ],
+  [
+    "SỐ DƯ DỰ KIẾN CUỐI NGÀY",
+    1
+  ],
+  [
+    "Tổng dự kiến",
+    1
+  ],
+  [
+    "TỔNG QUỸ HIỆN TẠI",
+    1
+  ],
+  [
+    "🏦 Ngân hàng",
+    1
+  ],
+  [
+    "SỐ DƯ ĐẦU NGÀY",
+    1
+  ],
+  [
+    "Tổng đầu ngày",
+    1
+  ],
+  [
+    "Chưa có số dư đầu kỳ. Bấm \\",
+    1
+  ],
+  [
+    " để thiết lập.",
+    1
+  ],
+  [
+    "NHẬP SỐ DƯ ĐẦU KỲ",
+    1
+  ],
+  [
+    "💵 Tiền mặt đầu kỳ",
+    1
+  ],
+  [
+    "🏦 Số dư ngân hàng đầu kỳ",
+    1
+  ],
+  [
+    "LƯU SỐ DƯ ĐẦU KỲ",
+    1
+  ],
+  [
+    "✅ Đã lưu số dư đầu kỳ",
+    1
+  ],
+  [
+    "BIẾN ĐỘNG TRONG NGÀY",
+    1
+  ],
+  [
+    "📥 CHI TIẾT THU",
+    1
+  ],
+  [
+    "📤 CHI TIẾT CHI",
+    1
+  ],
+  [
+    "TT đối tác SC",
+    1
+  ],
+  [
+    "Vốn LK SC",
+    1
+  ],
+  [
+    "= Doanh thu - Chi phí - Giá vốn",
+    1
+  ],
+  [
+    "✅ ĐÃ CHỐT QUỸ",
+    1
+  ],
+  [
+    "⏳ CHƯA CHỐT QUỸ",
+    1
+  ],
+  [
+    "CHỐT QUỸ NGAY",
+    1
+  ],
+  [
+    "Chưa có lịch sử chốt quỹ",
+    1
+  ],
+  [
+    "LỊCH SỬ CHỐT QUỸ",
+    1
+  ],
+  [
+    "📊 XU HƯỚNG QUỸ 7 NGÀY",
+    1
+  ],
+  [
+    "XÁC NHẬN CHỐT QUỸ",
+    1
+  ],
+  [
+    "🏦 NGÂN HÀNG",
+    1
+  ],
+  [
+    "Ghi chú chênh lệch (bắt buộc)",
+    1
+  ],
+  [
+    "Giải thích lý do chênh lệch...",
+    1
+  ],
+  [
+    "XÁC NHẬN CHỐT",
+    1
+  ],
+  [
+    "Dự kiến: ",
+    1
+  ],
+  [
+    "Thực tế",
+    1
+  ],
+  [
+    "Chênh lệch: ",
+    1
+  ],
+  [
+    "❌ Chỉ được chốt quỹ cho ngày hôm nay",
+    1
+  ],
+  [
+    "⚠️ Ngày hôm nay đã chốt quỹ, không thể chốt lại",
+    1
+  ],
+  [
+    "⚠️ Vui lòng nhập ghi chú khi có chênh lệch",
+    1
+  ],
+  [
+    "✅ ĐÃ CHỐT QUỸ THÀNH CÔNG",
+    1
+  ],
+  [
+    "Lỗi tải danh mục: $e",
+    1
+  ],
+  [
+    "Chưa có danh mục nào",
+    1
+  ],
+  [
+    "Thêm danh mục để phân loại sản phẩm",
+    1
+  ],
+  [
+    "Không có tính năng đặc biệt",
+    1
+  ],
+  [
+    "SỬA DANH MỤC",
+    1
+  ],
+  [
+    "THÊM DANH MỤC",
+    1
+  ],
+  [
+    "Nhấn để chọn icon",
+    1
+  ],
+  [
+    "Tên danh mục *",
+    1
+  ],
+  [
+    "Mô tả / Đơn vị tính",
+    1
+  ],
+  [
+    "Ví dụ: cái, kg, hộp...",
+    1
+  ],
+  [
+    "Cho sản phẩm cần theo dõi serial",
+    1
+  ],
+  [
+    "Theo dõi hạn sử dụng",
+    1
+  ],
+  [
+    "Cho thực phẩm",
+    1
+  ],
+  [
+    "Có biến thể (size/màu)",
+    1
+  ],
+  [
+    "Cho thời trang",
+    1
+  ],
+  [
+    "Cho sản phẩm có thời hạn bảo hành",
+    1
+  ],
+  [
+    "Vui lòng nhập tên danh mục",
+    1
+  ],
+  [
+    "Chọn icon",
+    1
+  ],
+  [
+    "Xóa danh mục",
+    1
+  ],
+  [
+    "Đăng bài thành công",
+    1
+  ],
+  [
+    "Bình luận của $postAuthor",
+    1
+  ],
+  [
+    "Chưa có bình luận nào",
+    1
+  ],
+  [
+    "Viết bình luận...",
+    1
+  ],
+  [
+    "Không tìm thấy thông tin shop cho tài khoản hiện tại.",
+    1
+  ],
+  [
+    "Vui lòng bấm Thử lại. Nếu vẫn lỗi, hãy đăng xuất và đăng nhập lại.",
+    1
+  ],
+  [
+    "Cộng đồng • $_shopName",
+    1
+  ],
+  [
+    "Bỏ ảnh",
+    1
+  ],
+  [
+    "Đăng",
+    1
+  ],
+  [
+    "Chưa sẵn sàng kết nối bảng tin cộng đồng.",
+    1
+  ],
+  [
+    "Kết nối lại",
+    1
+  ],
+  [
+    "Không thể tải cộng đồng lúc này.",
+    1
+  ],
+  [
+    "Tải lại cộng đồng",
+    1
+  ],
+  [
+    "Đang đồng bộ bảng tin... ($waited giây)",
+    1
+  ],
+  [
+    "Chưa có bài viết nào. Hãy là người đầu tiên chia sẻ!",
+    1
+  ],
+  [
+    "Thích ($likeCount)",
+    1
+  ],
+  [
+    "Bình luận ($commentCount)",
+    1
+  ],
+  [
+    "Bỏ qua 1 bài viết lỗi dữ liệu. Hãy kiểm tra lại dữ liệu Firestore.",
+    1
+  ],
+  [
+    "Dữ liệu cộng đồng đang được tối ưu lần đầu. Vui lòng thử lại sau vài giây.",
+    1
+  ],
+  [
+    "Mất kết nối mạng hoặc dịch vụ tạm gián đoạn. Vui lòng thử lại.",
+    1
+  ],
+  [
+    "Không tải được bảng tin do lỗi Firestore tạm thời. Vui lòng thử lại.",
+    1
+  ],
+  [
+    "Bạn chưa có quyền xem bình luận của bài viết này.",
+    1
+  ],
+  [
+    "Không tải được bình luận do lỗi Firestore tạm thời. Vui lòng thử lại.",
+    1
+  ],
+  [
+    "Không tải được bình luận: $raw",
+    1
+  ],
+  [
+    "TẠO ĐƠN NHẬP HÀNG",
+    1
+  ],
+  [
+    "Lỗi load data: $e",
+    1
+  ],
+  [
+    "Lỗi tạo đơn nhập: $e",
+    1
+  ],
+  [
+    "Lỗi tạo đơn nhập hàng!",
+    1
+  ],
+  [
+    "ĐƠN GIÁ NHẬP",
+    1
+  ],
+  [
+    "ĐƠN GIÁ BÁN",
+    1
+  ],
+  [
+    "MÀU SẮC",
+    1
+  ],
+  [
+    "DUNG LƯỢNG",
+    1
+  ],
+  [
+    "THÔNG TIN NHÀ CUNG CẤP",
+    1
+  ],
+  [
+    "TÊN NHÀ CUNG CẤP",
+    1
+  ],
+  [
+    "SỐ DIEN_THOAI",
+    1
+  ],
+  [
+    "ĐỊA CHỈ",
+    1
+  ],
+  [
+    "LƯU ĐƠN NHẬP",
+    1
+  ],
+  [
+    "Tạo Đơn Sửa Chữa",
+    1
+  ],
+  [
+    "📞 Nhập SĐT khách hàng",
+    1
+  ],
+  [
+    "📱 Thông tin máy",
+    1
+  ],
+  [
+    "Chọn hãng nhanh hoặc nhập model. Mô tả lỗi chi tiết để thợ hiểu rõ vấn đề.",
+    1
+  ],
+  [
+    "📝 Tình trạng máy",
+    1
+  ],
+  [
+    "🔧 Dịch vụ & Đối tác",
+    1
+  ],
+  [
+    "💰 Giá dự kiến",
+    1
+  ],
+  [
+    "Nhập giá báo khách. Có thể điều chỉnh sau khi sửa xong nếu phát sinh thêm.",
+    1
+  ],
+  [
+    "📸 Chụp ảnh máy",
+    1
+  ],
+  [
+    "Chụp ảnh trước khi sửa để làm bằng chứng. Tối đa 5 ảnh, lưu trên cloud.",
+    1
+  ],
+  [
+    "Không thể lưu đơn sửa vào local database",
+    1
+  ],
+  [
+    "🔧 ĐƠN MỚI: $summary",
+    1
+  ],
+  [
+    "HÀ NỘI",
+    1
+  ],
+  [
+    "Khách cũ · $_customerTotalRepairs đơn",
+    1
+  ],
+  [
+    "Đơn bán này không có snapshot giá gốc từng sản phẩm. Không thể trả hàng an toàn.",
+    1
+  ],
+  [
+    "Vui lòng chọn sản phẩm cần trả",
+    1
+  ],
+  [
+    "Phương thức: $_refundMethod",
+    1
+  ],
+  [
+    "Tất cả sản phẩm đã được trả hàng",
+    1
+  ],
+  [
+    "Đơn hàng này không còn mặt hàng nào để trả.",
+    1
+  ],
+  [
+    "Thông tin đơn gốc",
+    1
+  ],
+  [
+    "Ngày bán",
+    1
+  ],
+  [
+    "Chọn sản phẩm trả",
+    1
+  ],
+  [
+    "Không có sản phẩm nào",
+    1
+  ],
+  [
+    "Số lượng trả: ",
+    1
+  ],
+  [
+    "Phương thức hoàn tiền",
+    1
+  ],
+  [
+    "⚠️ Giảm trực tiếp số nợ khách hàng, không chi tiền mặt",
+    1
+  ],
+  [
+    "Ghi chú / Lý do trả hàng",
+    1
+  ],
+  [
+    "Lỗi kỹ thuật, không ưng ý, sai sản phẩm...",
+    1
+  ],
+  [
+    "Tổng hoàn lại:",
+    1
+  ],
+  [
+    "Chọn sản phẩm để trả",
+    1
+  ],
+  [
+    "Tạo Đơn Bán Hàng",
+    1
+  ],
+  [
+    "👤 Thông tin khách hàng",
+    1
+  ],
+  [
+    "Nhập SĐT để tự động điền tên khách cũ. Hoặc chọn từ danh bạ khách hàng.",
+    1
+  ],
+  [
+    "💰 Giá bán & Giảm giá",
+    1
+  ],
+  [
+    "Hệ thống tự tính tổng. Có thể nhập giảm giá trực tiếp hoặc điều chỉnh giá.",
+    1
+  ],
+  [
+    "🏦 Thanh toán trả góp",
+    1
+  ],
+  [
+    "Bật trả góp để nhập tiền đặt cọc, số tiền vay và ngân hàng hỗ trợ.",
+    1
+  ],
+  [
+    "📝 Công nợ khách hàng",
+    1
+  ],
+  [
+    "Chọn \"CÔNG NỢ\" nếu khách chưa thanh toán đủ. Theo dõi trong mục Tài chính.",
+    1
+  ],
+  [
+    "Đang tải dữ liệu kho, vui lòng thử lại sau vài giây.",
+    1
+  ],
+  [
+    "AI đã tự điền đơn bán.",
+    1
+  ],
+  [
+    "Đã nhận diện và điền đơn bán.",
+    1
+  ],
+  [
+    "Shop nợ",
+    1
+  ],
+  [
+    "Khách cũ · $_customerTotalOrders giao dịch",
+    1
+  ],
+  [
+    "Biến thể này đã có trong giỏ hàng!",
+    1
+  ],
+  [
+    "❌ Ngày hôm nay đã chốt quỹ! Không thể tạo đơn bán mới.",
+    1
+  ],
+  [
+    "Sản phẩm chưa đồng bộ",
+    1
+  ],
+  [
+    "Bán offline",
+    1
+  ],
+  [
+    "Màn hình đã đóng",
+    1
+  ],
+  [
+    "Không thể đồng bộ với server.\\n\\n",
+    1
+  ],
+  [
+    "Bạn có muốn tiếp tục bán hàng offline? Dữ liệu sẽ được đồng bộ sau.",
+    1
+  ],
+  [
+    "Tiếp tục bán",
+    1
+  ],
+  [
+    "TẠO ĐƠN BÁN",
+    1
+  ],
+  [
+    "SỬA ĐƠN BÁN HÀNG",
+    1
+  ],
+  [
+    "Nhập nhanh bằng câu lệnh",
+    1
+  ],
+  [
+    "Quản lý NCC & Đối tác",
+    1
+  ],
+  [
+    "Khách vãng lai (không lưu danh bạ)",
+    1
+  ],
+  [
+    "Tên/SĐT chỉ lưu trên đơn, SĐT không bắt buộc",
+    1
+  ],
+  [
+    "Nhập SĐT để lưu khách vào danh bạ",
+    1
+  ],
+  [
+    "Thêm nhanh KH",
+    1
+  ],
+  [
+    "Địa chỉ KH (tùy chọn)",
+    1
+  ],
+  [
+    "Xuất hóa đơn VAT",
+    1
+  ],
+  [
+    "Sản phẩm gần đây",
+    1
+  ],
+  [
+    "TẶNG",
+    1
+  ],
+  [
+    "Chọn giá linh hoạt",
+    1
+  ],
+  [
+    "Tặng / Giảm giá",
+    1
+  ],
+  [
+    "KHO HÀNG TRỐNG",
+    1
+  ],
+  [
+    "Shop của bạn chưa có hàng trong kho. Để bán hàng, vui lòng:",
+    1
+  ],
+  [
+    "Tìm kiếm khách hàng...",
+    1
+  ],
+  [
+    "Chưa có khách hàng nào",
+    1
+  ],
+  [
+    "Tặng miễn phí (0đ)",
+    1
+  ],
+  [
+    "Không tính tiền sản phẩm này",
+    1
+  ],
+  [
+    "Giảm giá sản phẩm",
+    1
+  ],
+  [
+    "Bỏ ưu đãi",
+    1
+  ],
+  [
+    "Giá bán mới",
+    1
+  ],
+  [
+    "QUAY LẠI",
+    1
+  ],
+  [
+    "Giá không hợp lệ",
+    1
+  ],
+  [
+    "Khách vãng lai không lưu danh bạ",
+    1
+  ],
+  [
+    "Vui lòng nhập đủ tên và số điện thoại",
+    1
+  ],
+  [
+    "Đã thêm khách hàng: $name",
+    1
+  ],
+  [
+    "Lỗi thêm khách hàng: $e",
+    1
+  ],
+  [
+    "NHẬP ĐỦ THÔNG TIN KHÁCH",
+    1
+  ],
+  [
+    "Nhập tên hoặc SĐT cho khách vãng lai",
+    1
+  ],
+  [
+    "TỔNG TIỀN PHẢI LỚN HƠN 0",
+    1
+  ],
+  [
+    "TỔNG GIÁ VỐN KHÔNG ĐƯỢC ÂM",
+    1
+  ],
+  [
+    "$name x$qty (Tặng)$tierSuffix",
+    1
+  ],
+  [
+    "🛒 ĐÃ BÁN: $summary",
+    1
+  ],
+  [
+    "Chọn KH",
+    1
+  ],
+  [
+    "TÊN (tùy chọn)",
+    1
+  ],
+  [
+    "TÊN",
+    1
+  ],
+  [
+    "SĐT (không bắt buộc)",
+    1
+  ],
+  [
+    "HOÀN TẤT ĐƠN HÀNG",
+    1
+  ],
+  [
+    "TỔNG:",
+    1
+  ],
+  [
+    "Giảm:",
+    1
+  ],
+  [
+    "KHÁCH TRẢ",
+    1
+  ],
+  [
+    "SỐ TIỀN",
+    1
+  ],
+  [
+    "TIỀN MẶT + CHUYỂN KHOẢN",
+    1
+  ],
+  [
+    "🏦 CHUYỂN KHOẢN",
+    1
+  ],
+  [
+    "CHI TIẾT TRẢ GÓP",
+    1
+  ],
+  [
+    "T.MẮT",
+    1
+  ],
+  [
+    "TÊN NH/TCTT",
+    1
+  ],
+  [
+    "2 ngân hàng",
+    1
+  ],
+  [
+    "TÊN NH 2",
+    1
+  ],
+  [
+    "TỔNG TIỀN:",
+    1
+  ],
+  [
+    " Đ",
+    1
+  ],
+  [
+    "GIẢM GIÁ:",
+    1
+  ],
+  [
+    "KHÁCH TRẢ TRƯỚC",
+    1
+  ],
+  [
+    "SỐ TIỀN THU THỰC TẾ",
+    1
+  ],
+  [
+    "NGÂN HÀNG 1 CHO VAY",
+    1
+  ],
+  [
+    "NGÂN HÀNG CHO VAY",
+    1
+  ],
+  [
+    "TÊN CÔNG TY TÀI CHÍNH",
+    1
+  ],
+  [
+    "Trả góp 2 ngân hàng",
+    1
+  ],
+  [
+    "NGÂN HÀNG THỨ 2",
+    1
+  ],
+  [
+    "NGÂN HÀNG 2 CHO VAY",
+    1
+  ],
+  [
+    "TÊN CÔNG TY TÀI CHÍNH 2",
+    1
+  ],
+  [
+    "CHỌN THỜI GIAN BẢO HÀNH",
+    1
+  ],
+  [
+    "GHI CHÚ ĐƠN HÀNG",
+    1
+  ],
+  [
+    "Nhập ghi chú (nếu có)...",
+    1
+  ],
+  [
+    "Mua máy mới",
+    1
+  ],
+  [
+    "Chưa có lịch sử giao dịch",
+    1
+  ],
+  [
+    "Quản Lý Khách Hàng",
+    1
+  ],
+  [
+    "👥 Danh sách khách hàng",
+    1
+  ],
+  [
+    "📞 Liên hệ nhanh",
+    1
+  ],
+  [
+    "Nhấn vào số điện thoại để gọi điện hoặc nhắn tin cho khách hàng trực tiếp.",
+    1
+  ],
+  [
+    "📊 Lịch sử giao dịch",
+    1
+  ],
+  [
+    "Xem toàn bộ đơn sửa chữa, hóa đơn mua hàng và công nợ của từng khách.",
+    1
+  ],
+  [
+    "⭐ Khách hàng thân thiết",
+    1
+  ],
+  [
+    "Hệ thống tự nhận diện khách VIP dựa trên tần suất và giá trị giao dịch.",
+    1
+  ],
+  [
+    "Xuất Excel khách hàng",
+    1
+  ],
+  [
+    "Xuất khách hàng",
+    1
+  ],
+  [
+    "Thử tìm với từ khóa khác",
+    1
+  ],
+  [
+    "Thêm khách hàng",
+    1
+  ],
+  [
+    "Chỉnh sửa khách hàng",
+    1
+  ],
+  [
+    "Nhập số điện thoại",
+    1
+  ],
+  [
+    "Vui lòng nhập số điện thoại",
+    1
+  ],
+  [
+    "Nhập email (tùy chọn)",
+    1
+  ],
+  [
+    "Nhập địa chỉ (tùy chọn)",
+    1
+  ],
+  [
+    "Nhập ghi chú (tùy chọn)",
+    1
+  ],
+  [
+    "Mua hàng",
+    1
+  ],
+  [
+    ").format(totalSpent)}đ",
+    1
+  ],
+  [
+    ").format(totalRepairCost)}đ",
+    1
+  ],
+  [
+    "$totalRepairs lần",
+    1
+  ],
+  [
+    "Đóng tiền",
+    1
+  ],
+  [
+    ").format(totalPaymentAmount)}đ",
+    1
+  ],
+  [
+    "$totalPayments lần",
+    1
+  ],
+  [
+    "Chưa có lịch sử",
+    1
+  ],
+  [
+    "Các đơn sửa và mua hàng sẽ hiển thị tại đây",
+    1
+  ],
+  [
+    "Không tải được lịch sử: $e",
+    1
+  ],
+  [
+    "Đã chọn ảnh khách hàng. Nhấn Lưu để tải lên.",
+    1
+  ],
+  [
+    "Tên và số điện thoại là bắt buộc",
+    1
+  ],
+  [
+    "Đang tải ảnh khách hàng lên hệ thống...",
+    1
+  ],
+  [
+    "Tải ảnh khách hàng thất bại, vui lòng thử lại",
+    1
+  ],
+  [
+    "Lưu khách hàng thất bại",
+    1
+  ],
+  [
+    "Đã lưu hồ sơ khách hàng",
+    1
+  ],
+  [
+    "Lỗi lưu khách hàng: $e",
+    1
+  ],
+  [
+    "Xóa khách hàng thất bại",
+    1
+  ],
+  [
+    "Đã xóa khách hàng",
+    1
+  ],
+  [
+    "Không tìm thấy đơn bán",
+    1
+  ],
+  [
+    "Không tìm thấy đơn sửa",
+    1
+  ],
+  [
+    "Tác vụ nhanh",
+    1
+  ],
+  [
+    "Lưu hồ sơ",
+    1
+  ],
+  [
+    "Thêm ảnh khách hàng",
+    1
+  ],
+  [
+    "Xem ảnh lớn",
+    1
+  ],
+  [
+    "Đổi ảnh",
+    1
+  ],
+  [
+    "Đã mua",
+    1
+  ],
+  [
+    "Số lần sửa",
+    1
+  ],
+  [
+    "Tổng sửa",
+    1
+  ],
+  [
+    "Bộ lọc lịch sử:",
+    1
+  ],
+  [
+    "Chưa có lịch sử phù hợp",
+    1
+  ],
+  [
+    "✅ Đã lưu bố cục Dashboard!",
+    1
+  ],
+  [
+    "Khôi phục mặc định?",
+    1
+  ],
+  [
+    "Bố cục Dashboard sẽ trở về mặc định theo vai trò của bạn.",
+    1
+  ],
+  [
+    "KHÔI PHỤC",
+    1
+  ],
+  [
+    "Tùy chỉnh Dashboard",
+    1
+  ],
+  [
+    "Khôi phục mặc định",
+    1
+  ],
+  [
+    "Thẻ Dashboard",
+    1
+  ],
+  [
+    "Lối tắt nhanh",
+    1
+  ],
+  [
+    "Kéo thả để sắp xếp • Bật/tắt để ẩn hiện",
+    1
+  ],
+  [
+    "$visibleCards thẻ · $visibleShortcuts lối tắt",
+    1
+  ],
+  [
+    "$hiddenCards · $hiddenShortcuts ẩn",
+    1
+  ],
+  [
+    "Yêu cầu module sửa chữa",
+    1
+  ],
+  [
+    "Yêu cầu module bảo hành",
+    1
+  ],
+  [
+    "Quản Lý Công Nợ",
+    1
+  ],
+  [
+    "📊 3 loại công nợ",
+    1
+  ],
+  [
+    "📊 2 loại công nợ",
+    1
+  ],
+  [
+    "KHÁCH NỢ (khách chưa TT), NỢ NCC (nợ nhà cung cấp).",
+    1
+  ],
+  [
+    "💰 Ghi nhận thanh toán",
+    1
+  ],
+  [
+    "Nhấn vào khoản nợ để xem chi tiết và ghi nhận thanh toán từng phần hoặc toàn bộ.",
+    1
+  ],
+  [
+    "📅 Theo dõi hạn nợ",
+    1
+  ],
+  [
+    "Nợ quá hạn sẽ được highlight đỏ. Báo cáo tổng hợp giúp theo dõi dòng tiền.",
+    1
+  ],
+  [
+    "🔄 Tự động tạo nợ",
+    1
+  ],
+  [
+    "Khi bán hàng/nhập kho chọn \"CÔNG NỢ\", hệ thống tự tạo khoản nợ tương ứng.",
+    1
+  ],
+  [
+    "❌ Ngày hôm nay đã chốt quỹ! Không thể thu tiền trả nợ.",
+    1
+  ],
+  [
+    "Số tiền thu",
+    1
+  ],
+  [
+    "$activeDebtsCount khoản nợ còn",
+    1
+  ],
+  [
+    "Xuất Excel công nợ",
+    1
+  ],
+  [
+    "Xuất công nợ",
+    1
+  ],
+  [
+    "Tạo nợ khách hàng",
+    1
+  ],
+  [
+    "Tạo nợ nhà cung cấp",
+    1
+  ],
+  [
+    "Tạo công nợ khác",
+    1
+  ],
+  [
+    "Tìm kiếm tên, SĐT...",
+    1
+  ],
+  [
+    "$kpiOverdue khoản",
+    1
+  ],
+  [
+    "Cần xử lý",
+    1
+  ],
+  [
+    "$kpiUrgent khoản",
+    1
+  ],
+  [
+    "Thử tìm tên hoặc số điện thoại khác",
+    1
+  ],
+  [
+    "Bật \"Đã trả\" để xem lịch sử",
+    1
+  ],
+  [
+    "$veryUrgentCount quá hạn >60 ngày",
+    1
+  ],
+  [
+    "$urgentCount cần chú ý >30 ngày",
+    1
+  ],
+  [
+    "Không có công nợ đối tác",
+    1
+  ],
+  [
+    "Quản lý đối tác tại: Cài đặt › Quản lý đối tác",
+    1
+  ],
+  [
+    "Đối tác $index",
+    1
+  ],
+  [
+    "Đối tác không còn trong hệ thống",
+    1
+  ],
+  [
+    "$totalRepairs đơn",
+    1
+  ],
+  [
+    "Thủ công",
+    1
+  ],
+  [
+    "Tự động",
+    1
+  ],
+  [
+    "Tổng phí",
+    1
+  ],
+  [
+    "Đối tác \"$partnerName\" không còn trong hệ thống nhưng khoản nợ vẫn được giữ lại.",
+    1
+  ],
+  [
+    "Không tìm thấy đối tác \"$partnerName\". Khoản nợ vẫn còn trong danh sách.",
+    1
+  ],
+  [
+    "✓ Đã trả hết",
+    1
+  ],
+  [
+    "Quá hạn $daysSince ngày",
+    1
+  ],
+  [
+    "$daysSince ngày",
+    1
+  ],
+  [
+    "Vui lòng nhập tên người nợ",
+    1
+  ],
+  [
+    "LỊCH SỬ THANH TOÁN",
+    1
+  ],
+  [
+    "Chưa có lịch sử trả nợ",
+    1
+  ],
+  [
+    "THU NỢ KHÁCH",
+    1
+  ],
+  [
+    "SỐ TIỀN THU (VNĐ)",
+    1
+  ],
+  [
+    "SỐ TIỀN THANH TOÁN (VNĐ)",
+    1
+  ],
+  [
+    "KHÁCH",
+    1
+  ],
+  [
+    "Không có công nợ nào",
+    1
+  ],
+  [
+    "TỔNG NỢ CÒN LẠI",
+    1
+  ],
+  [
+    "TỔNG NỢ ĐỐI TÁC SỬA CHỮA",
+    1
+  ],
+  [
+    "TẠO CÔNG NỢ KHÁC",
+    1
+  ],
+  [
+    "Tên người nợ",
+    1
+  ],
+  [
+    "Hình thức nợ:",
+    1
+  ],
+  [
+    "(Khách nợ shop)",
+    1
+  ],
+  [
+    "(Shop nợ người khác)",
+    1
+  ],
+  [
+    "Đã tạo công nợ mới",
+    1
+  ],
+  [
+    "TẠO NỢ PHẢI THU",
+    1
+  ],
+  [
+    "Tên khách hàng",
+    1
+  ],
+  [
+    "Đã tạo nợ khách hàng!",
+    1
+  ],
+  [
+    "TẠO NỢ PHẢI TRẢ",
+    1
+  ],
+  [
+    "Tên nhà cung cấp",
+    1
+  ],
+  [
+    "Đã tạo nợ nhà cung cấp!",
+    1
+  ],
+  [
+    "Tên chi nhánh *",
+    1
+  ],
+  [
+    "Địa chỉ (tuỳ chọn)",
+    1
+  ],
+  [
+    "Vô hiệu hoá chi nhánh",
+    1
+  ],
+  [
+    "Thêm chi nhánh đầu tiên",
+    1
+  ],
+  [
+    "Chuyển chi nhánh",
+    1
+  ],
+  [
+    "Chọn chi nhánh",
+    1
+  ],
+  [
+    "Chọn chi nhánh làm việc",
+    1
+  ],
+  [
+    "Dữ liệu sẽ được lọc theo chi nhánh bạn chọn.",
+    1
+  ],
+  [
+    "Backfill từ tổng chi tiêu hiện có",
+    1
+  ],
+  [
+    "Điểm thành viên",
+    1
+  ],
+  [
+    "Module CRM chưa được kích hoạt\\n(enableCRM = false)",
+    1
+  ],
+  [
+    "điểm tích lũy",
+    1
+  ],
+  [
+    "Đã đạt hạng cao nhất: Kim cương",
+    1
+  ],
+  [
+    "Cần thêm $remaining điểm để lên hạng tiếp",
+    1
+  ],
+  [
+    "$_currentPoints điểm",
+    1
+  ],
+  [
+    "$next điểm",
+    1
+  ],
+  [
+    "Cần tối thiểu 500 điểm để đổi (hiện có $_currentPoints điểm)",
+    1
+  ],
+  [
+    "Đã tích",
+    1
+  ],
+  [
+    "+$earned điểm",
+    1
+  ],
+  [
+    "Đã đổi",
+    1
+  ],
+  [
+    "-$redeemed điểm",
+    1
+  ],
+  [
+    "Giao dịch",
+    1
+  ],
+  [
+    "Tích điểm",
+    1
+  ],
+  [
+    "Xác nhận đổi điểm",
+    1
+  ],
+  [
+    "Điểm đổi: $_selectedPoints điểm",
+    1
+  ],
+  [
+    "Xác nhận đổi",
+    1
+  ],
+  [
+    "Module CRM đang tắt.",
+    1
+  ],
+  [
+    "Có lỗi xảy ra. Vui lòng thử lại.",
+    1
+  ],
+  [
+    "Điểm hiện có",
+    1
+  ],
+  [
+    "500 điểm → giảm 50.000₫",
+    1
+  ],
+  [
+    "Chọn số điểm muốn đổi",
+    1
+  ],
+  [
+    "điểm",
+    1
+  ],
+  [
+    "Tối đa có thể đổi: $_maxRedeemablePoints điểm",
+    1
+  ],
+  [
+    "Chiết khấu nhận được",
+    1
+  ],
+  [
+    "$_stepsCount lần × 50.000₫",
+    1
+  ],
+  [
+    "Xác nhận đổi $_selectedPoints điểm",
+    1
+  ],
+  [
+    "Không đủ điểm",
+    1
+  ],
+  [
+    "Giá thường",
+    1
+  ],
+  [
+    "Giá gốc",
+    1
+  ],
+  [
+    "Giá gốc chưa nhập",
+    1
+  ],
+  [
+    "Giá VIP",
+    1
+  ],
+  [
+    "Giá khách VIP",
+    1
+  ],
+  [
+    "Chưa có rule VIP",
+    1
+  ],
+  [
+    "Giá sỉ",
+    1
+  ],
+  [
+    "Giá khách sỉ",
+    1
+  ],
+  [
+    "Chưa có rule sỉ",
+    1
+  ],
+  [
+    "Module Pricing chưa bật.",
+    1
+  ],
+  [
+    "Phù hợp",
+    1
+  ],
+  [
+    "Chưa có rule giá nào cho sản phẩm này.",
+    1
+  ],
+  [
+    "Dùng giá gốc",
+    1
+  ],
+  [
+    "Tùy chỉnh % giảm mặc định (khi chưa có rule)",
+    1
+  ],
+  [
+    "Sỉ %",
+    1
+  ],
+  [
+    "Module Pricing chưa được bật.",
+    1
+  ],
+  [
+    "Lỗi không xác định",
+    1
+  ],
+  [
+    "Module VAT đang tắt (enableVAT=false).",
+    1
+  ],
+  [
+    "Vui lòng nhập đầy đủ thông tin hàng hóa hợp lệ.",
+    1
+  ],
+  [
+    "Xuất hóa đơn thành công.",
+    1
+  ],
+  [
+    "Lưu hóa đơn thành công.",
+    1
+  ],
+  [
+    "Dữ liệu không hợp lệ.",
+    1
+  ],
+  [
+    "Không thể lưu hóa đơn VAT. Vui lòng thử lại.",
+    1
+  ],
+  [
+    "Lỗi hiển thị phần \"$sectionName\": $e",
+    1
+  ],
+  [
+    "Tạo hóa đơn VAT",
+    1
+  ],
+  [
+    "Nhập thông tin để tạo hóa đơn VAT.",
+    1
+  ],
+  [
+    "Thông tin người mua",
+    1
+  ],
+  [
+    "Tên công ty",
+    1
+  ],
+  [
+    "Vui lòng nhập tên công ty.",
+    1
+  ],
+  [
+    "Mã số thuế",
+    1
+  ],
+  [
+    "Vui lòng nhập mã số thuế.",
+    1
+  ],
+  [
+    "Mã số thuế không hợp lệ.",
+    1
+  ],
+  [
+    "Vui lòng nhập địa chỉ.",
+    1
+  ],
+  [
+    "Vui lòng nhập email.",
+    1
+  ],
+  [
+    "Email không hợp lệ.",
+    1
+  ],
+  [
+    "Danh sách hàng",
+    1
+  ],
+  [
+    "Thêm hàng",
+    1
+  ],
+  [
+    "Nhập tên hàng.",
+    1
+  ],
+  [
+    "Giá > 0",
+    1
+  ],
+  [
+    "Thuế suất",
+    1
+  ],
+  [
+    "Tạm tính",
+    1
+  ],
+  [
+    "Thuế",
+    1
+  ],
+  [
+    "Xuất hóa đơn",
+    1
+  ],
+  [
+    "Hóa đơn đã lưu",
+    1
+  ],
+  [
+    "Chưa có hóa đơn VAT.",
+    1
+  ],
+  [
+    "💸 Ghi nhận Thu & Chi",
+    1
+  ],
+  [
+    "📂 Phân loại chi phí",
+    1
+  ],
+  [
+    "📅 Lọc theo thời gian",
+    1
+  ],
+  [
+    "Xem thu chi theo ngày, tuần hoặc tháng để kiểm soát dòng tiền hiệu quả.",
+    1
+  ],
+  [
+    "📊 Biểu đồ tổng hợp",
+    1
+  ],
+  [
+    "thu phát sinh",
+    1
+  ],
+  [
+    "chi phí",
+    1
+  ],
+  [
+    ").format(expenseDate)} đã chốt quỹ! Không thể xóa $label.",
+    1
+  ],
+  [
+    "Vui lòng nhập nội dung chi",
+    1
+  ],
+  [
+    "Chi phí mới",
+    1
+  ],
+  [
+    "Xuất Excel thu chi",
+    1
+  ],
+  [
+    "Xuất thu chi",
+    1
+  ],
+  [
+    "CHI PHÍ",
+    1
+  ],
+  [
+    "Dịch vụ",
+    1
+  ],
+  [
+    "Hoàn tiền",
+    1
+  ],
+  [
+    "Tổng thu phát sinh",
+    1
+  ],
+  [
+    "❌ Ngày hôm nay đã chốt quỹ! Không thể thêm thu phát sinh mới.",
+    1
+  ],
+  [
+    "Vui lòng nhập nội dung thu",
+    1
+  ],
+  [
+    "Cố định",
+    1
+  ],
+  [
+    "Không tên",
+    1
+  ],
+  [
+    "Không thể xóa chi phí từ đơn nhập hàng!",
+    1
+  ],
+  [
+    "XÁC NHẬN XÓA KHOẢN THU",
+    1
+  ],
+  [
+    "XÁC NHẬN XÓA CHI PHÍ",
+    1
+  ],
+  [
+    "Nhập mật khẩu tài khoản để xóa",
+    1
+  ],
+  [
+    "XÓA THU PHÁT SINH",
+    1
+  ],
+  [
+    "XÓA CHI PHÍ",
+    1
+  ],
+  [
+    "Đã xóa khoản thu thành công",
+    1
+  ],
+  [
+    "Đã xóa chi phí thành công",
+    1
+  ],
+  [
+    "Mật khẩu không đúng! Không thể xóa.",
+    1
+  ],
+  [
+    "GHI CHÉP CHI PHÍ",
+    1
+  ],
+  [
+    "PHẠM VI CHI",
+    1
+  ],
+  [
+    "Đã lưu chi phí!",
+    1
+  ],
+  [
+    "GHI CHÉP THU PHÁT SINH",
+    1
+  ],
+  [
+    "PHẠM VI",
+    1
+  ],
+  [
+    "Đã lưu thu phát sinh!",
+    1
+  ],
+  [
+    "LƯU KHOẢN THU",
+    1
+  ],
+  [
+    "Quản lý phân loại",
+    1
+  ],
+  [
+    "📊 Tổng quan",
+    1
+  ],
+  [
+    "⛔ Hết hàng",
+    1
+  ],
+  [
+    "Thêm phân loại",
+    1
+  ],
+  [
+    "Thao tác nhanh",
+    1
+  ],
+  [
+    "Ma trận tồn kho",
+    1
+  ],
+  [
+    "Tổng phân loại",
+    1
+  ],
+  [
+    "Thêm phân loại mới",
+    1
+  ],
+  [
+    "Nhập hàng theo phân loại",
+    1
+  ],
+  [
+    "In barcode phân loại",
+    1
+  ],
+  [
+    "Chưa có phân loại nào",
+    1
+  ],
+  [
+    "Không có phân loại nào hết hàng! 🎉",
+    1
+  ],
+  [
+    "Không có phân loại nào sắp hết! 🎉",
+    1
+  ],
+  [
+    "Đã thêm phân loại thành công!",
+    1
+  ],
+  [
+    "Đã nhập hàng theo phân loại thành công!",
+    1
+  ],
+  [
+    "Chưa có phân loại nào để in barcode!",
+    1
+  ],
+  [
+    "Chưa có phân loại nào để xuất!",
+    1
+  ],
+  [
+    "Sản phẩm,Size,Màu,Số lượng,Giá bán,SKU,Barcode",
+    1
+  ],
+  [
+    "Tìm...",
+    1
+  ],
+  [
+    "Vui lòng chọn size hoặc màu",
+    1
+  ],
+  [
+    "Lỗi khi thêm phân loại!",
+    1
+  ],
+  [
+    "Mã SKU (tùy chọn)",
+    1
+  ],
+  [
+    "Lỗi khi cập nhật!",
+    1
+  ],
+  [
+    "Xóa phân loại?",
+    1
+  ],
+  [
+    "Đã xóa phân loại!",
+    1
+  ],
+  [
+    "Ngưỡng cảnh báo tồn kho",
+    1
+  ],
+  [
+    "Đã cập nhật $successCount phân loại!",
+    1
+  ],
+  [
+    "Chưa có phân loại.\\nHãy thêm phân loại trước khi nhập hàng.",
+    1
+  ],
+  [
+    "Chọn phân loại để in barcode",
+    1
+  ],
+  [
+    "Kiểm Kho Nhanh",
+    1
+  ],
+  [
+    "📋 Danh sách cần kiểm",
+    1
+  ],
+  [
+    "Hệ thống hiển thị tất cả sản phẩm trong kho. Quét để đánh dấu đã kiểm.",
+    1
+  ],
+  [
+    "📷 Quét IMEI/Barcode",
+    1
+  ],
+  [
+    "Nhấn \"Bắt đầu quét\" và đưa camera vào mã. Hệ thống tự nhận diện và check.",
+    1
+  ],
+  [
+    "✅ Đã kiểm vs ❌ Thiếu",
+    1
+  ],
+  [
+    "📊 Báo cáo kiểm kê",
+    1
+  ],
+  [
+    "Lỗi tải dữ liệu kho: $e",
+    1
+  ],
+  [
+    "Thực phẩm",
+    1
+  ],
+  [
+    "Kiểm tra tất cả thực phẩm trong kho",
+    1
+  ],
+  [
+    "Kiểm tra đồ uống",
+    1
+  ],
+  [
+    "Nguyên liệu",
+    1
+  ],
+  [
+    "Nguyên liệu cần kiểm tra",
+    1
+  ],
+  [
+    "Quần áo",
+    1
+  ],
+  [
+    "Kiểm tra tất cả quần áo trong kho",
+    1
+  ],
+  [
+    "Kiểm tra giày dép",
+    1
+  ],
+  [
+    "Phụ kiện thời trang",
+    1
+  ],
+  [
+    "Kiểm tra tất cả điện thoại trong kho",
+    1
+  ],
+  [
+    "Kiểm tra tất cả phụ kiện",
+    1
+  ],
+  [
+    "Đặc biệt",
+    1
+  ],
+  [
+    "⚠️ Đã scan mã này gần đây! Đợi 3 giây trước khi scan lại",
+    1
+  ],
+  [
+    "🚨 Thừa: $extraImeiSuffix",
+    1
+  ],
+  [
+    "Thừa: $extraImeiSuffix",
+    1
+  ],
+  [
+    "❌ QR phụ kiện thiếu code",
+    1
+  ],
+  [
+    "Phụ kiện không xác định",
+    1
+  ],
+  [
+    "✅ $accessoryName (đã quét: $currentCount)",
+    1
+  ],
+  [
+    "CÀI ĐẶT QUÉT QR",
+    1
+  ],
+  [
+    "Âm thanh phản hồi",
+    1
+  ],
+  [
+    "Phát âm thanh khi scan",
+    1
+  ],
+  [
+    "Rung phản hồi",
+    1
+  ],
+  [
+    "Rung thiết bị khi scan",
+    1
+  ],
+  [
+    "Ví dụ: 353456789012345",
+    1
+  ],
+  [
+    "Đã scan gần đây:",
+    1
+  ],
+  [
+    "CHECK VÀO LIST",
+    1
+  ],
+  [
+    "Lỗi lưu tạm: $e",
+    1
+  ],
+  [
+    "Lỗi khôi phục bản nháp kiểm kho: $e",
+    1
+  ],
+  [
+    "trước đó",
+    1
+  ],
+  [
+    "Khôi phục kiểm kho",
+    1
+  ],
+  [
+    "Bạn có phiên kiểm kho chưa hoàn tất:",
+    1
+  ],
+  [
+    "📊 Đã quét: $totalScanned mục",
+    1
+  ],
+  [
+    "🕐 Lưu: $timeAgo",
+    1
+  ],
+  [
+    "Bạn muốn tiếp tục hay bắt đầu mới?",
+    1
+  ],
+  [
+    "BẮT ĐẦU MỚI",
+    1
+  ],
+  [
+    "TIẾP TỤC",
+    1
+  ],
+  [
+    "✅ Đã khôi phục phiên kiểm kho ($totalScanned mục)",
+    1
+  ],
+  [
+    "Lỗi kiểm tra bản nháp: $e",
+    1
+  ],
+  [
+    "vừa xong",
+    1
+  ],
+  [
+    "Đang kiểm kho",
+    1
+  ],
+  [
+    "Bạn đã quét $_totalScanned mục. Muốn lưu tạm để tiếp tục sau?",
+    1
+  ],
+  [
+    "BỎ QUA",
+    1
+  ],
+  [
+    "Ở LẠI",
+    1
+  ],
+  [
+    "CHECK THỦ CÔNG",
+    1
+  ],
+  [
+    "Đánh dấu đã kiểm cho:",
+    1
+  ],
+  [
+    "Dùng khi QR bị mờ/rách và đã xác nhận bằng mắt",
+    1
+  ],
+  [
+    "XÁC NHẬN ĐÃ KIỂM",
+    1
+  ],
+  [
+    "KIỂM KHO NHANH",
+    1
+  ],
+  [
+    "Chọn Zone",
+    1
+  ],
+  [
+    "Ẩn checklist",
+    1
+  ],
+  [
+    "Hiện checklist",
+    1
+  ],
+  [
+    "Lưu tạm ($_totalScanned mục)",
+    1
+  ],
+  [
+    "Lưu kết quả kiểm kho",
+    1
+  ],
+  [
+    "Cài đặt scan",
+    1
+  ],
+  [
+    "Dừng scan",
+    1
+  ],
+  [
+    "Bắt đầu scan",
+    1
+  ],
+  [
+    "Nhấn nút scan để bắt đầu kiểm kho",
+    1
+  ],
+  [
+    "Đã scan: $_totalScanned",
+    1
+  ],
+  [
+    "Giữ yên QR trước camera",
+    1
+  ],
+  [
+    "📱 Đã kiểm",
+    1
+  ],
+  [
+    "📱 Thiếu",
+    1
+  ],
+  [
+    "📱 Thừa",
+    1
+  ],
+  [
+    "🔧 Đã kiểm",
+    1
+  ],
+  [
+    "🔧 Thiếu",
+    1
+  ],
+  [
+    "🔧 Thừa",
+    1
+  ],
+  [
+    "Chọn khu vực kiểm tra",
+    1
+  ],
+  [
+    "Hoàn thành!",
+    1
+  ],
+  [
+    "Bắt đầu quét",
+    1
+  ],
+  [
+    "Nhập Nhanh (Siêu Tốc)",
+    1
+  ],
+  [
+    "📷 Quét mã liên tục",
+    1
+  ],
+  [
+    "📝 Nhập theo lô",
+    1
+  ],
+  [
+    "Chế độ batch cho phép quét nhiều mã rồi xác nhận 1 lần. Tiết kiệm thời gian.",
+    1
+  ],
+  [
+    "🏢 Chọn NCC trước",
+    1
+  ],
+  [
+    "⚡ Xác nhận ngay",
+    1
+  ],
+  [
+    "Quét QR lấy 5 số cuối IMEI",
+    1
+  ],
+  [
+    "Nhập đơn",
+    1
+  ],
+  [
+    "Chuẩn bị...\\n$_countdownSeconds",
+    1
+  ],
+  [
+    "Hướng camera vào mã QR",
+    1
+  ],
+  [
+    "Đưa mã QR/Barcode vào khung",
+    1
+  ],
+  [
+    "Nhập Mới",
+    1
+  ],
+  [
+    "Đã scan: $code",
+    1
+  ],
+  [
+    "Lỗi khi nhập batch: $e",
+    1
+  ],
+  [
+    "Lưu batch",
+    1
+  ],
+  [
+    "Tắt chế độ batch",
+    1
+  ],
+  [
+    "Bật chế độ batch",
+    1
+  ],
+  [
+    "LƯU TẤT CẢ",
+    1
+  ],
+  [
+    "Chuyển sang tab 'Nhập đơn' và bật chế độ batch",
+    1
+  ],
+  [
+    "Lỗi tải dữ liệu, thử lại.",
+    1
+  ],
+  [
+    "Thêm nhà cung cấp mới",
+    1
+  ],
+  [
+    "VD: KHO HÀ NỘI",
+    1
+  ],
+  [
+    "Địa chỉ email (tùy chọn)",
+    1
+  ],
+  [
+    "Địa chỉ kho hàng",
+    1
+  ],
+  [
+    "Thông tin bổ sung (tùy chọn)",
+    1
+  ],
+  [
+    "Xác nhận xóa nhà cung cấp",
+    1
+  ],
+  [
+    "Chỉ chủ shop/quản lý được phép xóa.\\nNhập mật khẩu tài khoản để xác nhận:",
+    1
+  ],
+  [
+    "Xác nhận nhập Kho Tạm",
+    1
+  ],
+  [
+    "• Sẽ KHÔNG tạo công nợ NCC",
+    1
+  ],
+  [
+    "• Sẽ KHÔNG tính vào chốt quỹ",
+    1
+  ],
+  [
+    "Khi xác nhận giá vốn sau, hệ thống sẽ:",
+    1
+  ],
+  [
+    "• Chuyển sang kho chính",
+    1
+  ],
+  [
+    "• Tạo công nợ/chi phí tương ứng",
+    1
+  ],
+  [
+    "Nhập Kho Tạm",
+    1
+  ],
+  [
+    "Kho tạm - Chờ xác nhận giá",
+    1
+  ],
+  [
+    "Nhập nhanh",
+    1
+  ],
+  [
+    "NCC không xác định",
+    1
+  ],
+  [
+    "FastStockIn: Created debt for CÔNG NỢ: $totalCost",
+    1
+  ],
+  [
+    "Nhập từ Nhập Kho Nhanh",
+    1
+  ],
+  [
+    "Đã tạo phiếu nhập",
+    1
+  ],
+  [
+    "Số lượng: $quantity",
+    1
+  ],
+  [
+    "Phiếu đã được lưu vào \"Hàng Chờ Xác Nhận Nhập Vào Kho\".\\n",
+    1
+  ],
+  [
+    "Bạn cần XÁC NHẬN phiếu để hàng vào kho chính.",
+    1
+  ],
+  [
+    "XEM HÀNG CHỜ",
+    1
+  ],
+  [
+    "Chọn nhà cung cấp",
+    1
+  ],
+  [
+    "Nhập model",
+    1
+  ],
+  [
+    "Không có mã nhập nhanh nào đang hoạt động",
+    1
+  ],
+  [
+    "Nhập Kho Nhanh",
+    1
+  ],
+  [
+    "Nhập 5 số cuối IMEI (bắt buộc)",
+    1
+  ],
+  [
+    "Quét QR/Barcode IMEI",
+    1
+  ],
+  [
+    "Giá nhập (VNĐ) *",
+    1
+  ],
+  [
+    "LƯU VÀO HÀNG CHỜ XÁC NHẬN NHẬP KHO",
+    1
+  ],
+  [
+    "Xem hàng chờ xác nhận nhập kho",
+    1
+  ],
+  [
+    "Lỗi hiển thị, thử lại sau.",
+    1
+  ],
+  [
+    "Lỗi thêm nhà cung cấp",
+    1
+  ],
+  [
+    "Lỗi thêm nhà cung cấp: $e",
+    1
+  ],
+  [
+    "Không tìm thấy nhà cung cấp",
+    1
+  ],
+  [
+    "Lỗi xóa nhà cung cấp: $e",
+    1
+  ],
+  [
+    "Vui lòng chọn đầy đủ thông tin!",
+    1
+  ],
+  [
+    "Giá nhập không thể âm!",
+    1
+  ],
+  [
+    "Vui lòng nhập giá bán hợp lệ!",
+    1
+  ],
+  [
+    "NHẬP KHO TẠM",
+    1
+  ],
+  [
+    "NHẬP KHO NHANH",
+    1
+  ],
+  [
+    "Đã nhập vào KHO TẠM! Vui lòng xác nhận giá sau.",
+    1
+  ],
+  [
+    "Nhập kho nhanh thành công!",
+    1
+  ],
+  [
+    "Vui lòng chọn đầy đủ thông tin cơ bản!",
+    1
+  ],
+  [
+    "Vui lòng nhập model!",
+    1
+  ],
+  [
+    "Không tìm thấy thông tin shop!",
+    1
+  ],
+  [
+    "TẠO PHIẾU NHẬP",
+    1
+  ],
+  [
+    "Tạo phiếu nhập: $productName - SL: $quantity",
+    1
+  ],
+  [
+    "Đã lưu vào Hàng Chờ Xác Nhận Nhập Vào Kho!",
+    1
+  ],
+  [
+    "Lỗi tạo phiếu nhập!",
+    1
+  ],
+  [
+    "💰 [FinancialActivityLogView] Nhận event \"$event\" → tải lại hoạt động tài chính",
+    1
+  ],
+  [
+    "NHẬT KÝ TÀI CHÍNH",
+    1
+  ],
+  [
+    "Xuất Excel nhật ký hệ thống",
+    1
+  ],
+  [
+    "Không có dữ liệu để xuất",
+    1
+  ],
+  [
+    "Tìm theo loại, tiêu đề, người tạo, mô tả...",
+    1
+  ],
+  [
+    "Chưa có giao dịch tài chính nào",
+    1
+  ],
+  [
+    "Loại giao dịch",
+    1
+  ],
+  [
+    "Chiều",
+    1
+  ],
+  [
+    "PT thanh toán",
+    1
+  ],
+  [
+    "Khách hàng / NCC",
+    1
+  ],
+  [
+    "Loại tham chiếu",
+    1
+  ],
+  [
+    "ID tham chiếu",
+    1
+  ],
+  [
+    "THỐNG KÊ DỮ LIỆU READ/WRITE",
+    1
+  ],
+  [
+    "Không thể tải thống kê Firebase",
+    1
+  ],
+  [
+    "Theo collection (24h gần nhất)",
+    1
+  ],
+  [
+    "Cập nhật: $updatedAt",
+    1
+  ],
+  [
+    "TEST KẾT NỐI FIRESTORE",
+    1
+  ],
+  [
+    "Kiểm tra lại",
+    1
+  ],
+  [
+    "Copy báo cáo",
+    1
+  ],
+  [
+    "Không thể chạy test Firestore\\n$_error",
+    1
+  ],
+  [
+    "Lỗi phát hiện",
+    1
+  ],
+  [
+    "Khuyến nghị xử lý",
+    1
+  ],
+  [
+    "KẾT NỐI FIRESTORE ỔN ĐỊNH",
+    1
+  ],
+  [
+    "FIRESTORE CẦN KIỂM TRA",
+    1
+  ],
+  [
+    "Checklist kết nối",
+    1
+  ],
+  [
+    "Có internet",
+    1
+  ],
+  [
+    "Đăng nhập Firebase Auth",
+    1
+  ],
+  [
+    "Kết nối được Firestore server",
+    1
+  ],
+  [
+    "Đọc được users/{uid}",
+    1
+  ],
+  [
+    "Đọc được dữ liệu theo shop",
+    1
+  ],
+  [
+    "Có ngữ cảnh shop",
+    1
+  ],
+  [
+    "Đã copy báo cáo kết nối Firestore",
+    1
+  ],
+  [
+    "⛔ Hết hạn",
+    1
+  ],
+  [
+    "✅ Còn hạn",
+    1
+  ],
+  [
+    "📦 Theo lô",
+    1
+  ],
+  [
+    "cần xử lý",
+    1
+  ],
+  [
+    "Chưa có lô hàng nào",
+    1
+  ],
+  [
+    "Sắp hết hạn",
+    1
+  ],
+  [
+    "Còn hạn",
+    1
+  ],
+  [
+    "Cảnh báo trước khi hết hạn:",
+    1
+  ],
+  [
+    "Sửa SP",
+    1
+  ],
+  [
+    "Lỗi tìm kiếm: $e",
+    1
+  ],
+  [
+    "TÌM KIẾM TOÀN APP",
+    1
+  ],
+  [
+    "Thu ngân",
+    1
+  ],
+  [
+    "Trung tâm hướng dẫn",
+    1
+  ],
+  [
+    "Tìm kiếm theo từ khóa, tính năng... ",
+    1
+  ],
+  [
+    "Gợi ý",
+    1
+  ],
+  [
+    "Góp ý tính năng mới? Liên hệ support@huluca.com",
+    1
+  ],
+  [
+    "Góp ý / Hỗ trợ",
+    1
+  ],
+  [
+    "Không tìm thấy hướng dẫn nào khớp từ khóa.",
+    1
+  ],
+  [
+    "Chủ đề khác",
+    1
+  ],
+  [
+    "Hướng dẫn nhanh",
+    1
+  ],
+  [
+    "Mọi nội dung được biên soạn theo quy trình chuẩn của Shopmanager.",
+    1
+  ],
+  [
+    "Chuẩn bị trước",
+    1
+  ],
+  [
+    "Các bước thực hiện",
+    1
+  ],
+  [
+    "Mẹo & ghi chú",
+    1
+  ],
+  [
+    "Xem video minh họa",
+    1
+  ],
+  [
+    "Tài liệu đính kèm",
+    1
+  ],
+  [
+    "Mở tài liệu: $resource",
+    1
+  ],
+  [
+    "Liên quan",
+    1
+  ],
+  [
+    "Khó khăn? Liên hệ team hỗ trợ: support@huluca.com",
+    1
+  ],
+  [
+    "Đã đánh dấu hướng dẫn này là đã xem.",
+    1
+  ],
+  [
+    "Tôi đã hiểu hướng dẫn này",
+    1
+  ],
+  [
+    "Video hướng dẫn",
+    1
+  ],
+  [
+    "Các video hướng dẫn đang được cập nhật.",
+    1
+  ],
+  [
+    "Liên hệ hỗ trợ",
+    1
+  ],
+  [
+    "Gửi email đến support@huluca.com để được trợ giúp nhanh.",
+    1
+  ],
+  [
+    "Đề xuất cải tiến",
+    1
+  ],
+  [
+    "Góp ý của bạn sẽ giúp tài liệu đầy đủ hơn!",
+    1
+  ],
+  [
+    "Đã lọc các hướng dẫn phù hợp với vai trò của bạn.",
+    1
+  ],
+  [
+    "Nổi bật",
+    1
+  ],
+  [
+    "Cần thêm trợ giúp?",
+    1
+  ],
+  [
+    "Đội ngũ Huluca sẵn sàng hỗ trợ qua email, Zalo hoặc hướng dẫn trực tiếp.",
+    1
+  ],
+  [
+    "Đã sao chép email support@huluca.com",
+    1
+  ],
+  [
+    "Liên hệ Zalo CSKH: 0901 234 567",
+    1
+  ],
+  [
+    "Đặt lịch training online trong tuần này.",
+    1
+  ],
+  [
+    "Đặt lịch training",
+    1
+  ],
+  [
+    "HỖ TRỢ KỸ THUẬT",
+    1
+  ],
+  [
+    "Chủ cửa hàng",
+    1
+  ],
+  [
+    "ADMIN KHÓA",
+    1
+  ],
+  [
+    "CHỦ SHOP PHÂN QUYỀN",
+    1
+  ],
+  [
+    "Chức năng bị khóa",
+    1
+  ],
+  [
+    "Hỗ trợ 24/7 • Phản hồi trong vòng 30 phút",
+    1
+  ],
+  [
+    "Yêu cầu cấp quyền",
+    1
+  ],
+  [
+    "Liên hệ Chủ shop hoặc Quản lý của bạn",
+    1
+  ],
+  [
+    "Yêu cầu cấp quyền truy cập tính năng này",
+    1
+  ],
+  [
+    "Sau khi được cấp quyền, đăng nhập lại để áp dụng",
+    1
+  ],
+  [
+    "Không thể thực hiện cuộc gọi: $phoneNumber",
+    1
+  ],
+  [
+    "Không thể mở Zalo. Vui lòng liên hệ: $phoneNumber",
+    1
+  ],
+  [
+    "Chức năng",
+    1
+  ],
+  [
+    "Trang Chủ",
+    1
+  ],
+  [
+    "📊 Tổng quan thời gian thực",
+    1
+  ],
+  [
+    "Doanh thu, số đơn sửa, tồn kho và nợ được cập nhật tức thì ngay trên trang chủ.",
+    1
+  ],
+  [
+    "⚡ Tạo đơn nhanh",
+    1
+  ],
+  [
+    "Nhấn nút (+) để tạo đơn sửa chữa hoặc hóa đơn bán hàng ngay lập tức.",
+    1
+  ],
+  [
+    "📈 Biểu đồ & thống kê",
+    1
+  ],
+  [
+    "🔔 Cảnh báo thông minh",
+    1
+  ],
+  [
+    "Tự động cảnh báo nợ quá hạn, bảo hành sắp hết, hàng tồn kho thấp.",
+    1
+  ],
+  [
+    "🤖 AI Trợ lý",
+    1
+  ],
+  [
+    "Nhấn vào nút chat AI để hỏi về doanh thu, đơn hàng, khách nợ bất kỳ lúc nào.",
+    1
+  ],
+  [
+    "Chi nhánh hiện tại: $branchName",
+    1
+  ],
+  [
+    "HomeView: Skip cloud download vì realtime sync đang active/initializing",
+    1
+  ],
+  [
+    "HomeView: Cần cloud download, gọi 1 lần duy nhất...",
+    1
+  ],
+  [
+    "Không có quyền tải ảnh đại diện. Vui lòng kiểm tra quyền Storage/Firebase.",
+    1
+  ],
+  [
+    "Không tải được ảnh đại diện. Vui lòng kiểm tra mạng và thử lại.",
+    1
+  ],
+  [
+    "Chỉ chủ shop mới có quyền mở cài đặt shop",
+    1
+  ],
+  [
+    "🌐 HomeView: DB vẫn trống sau sync, thử bootstrap lần cuối...",
+    1
+  ],
+  [
+    "Dữ liệu chưa đồng bộ!",
+    1
+  ],
+  [
+    "Có $totalUnsynced bản ghi chưa được đồng bộ lên server:\\n\\n$details\\n\\n",
+    1
+  ],
+  [
+    "Nếu đăng xuất ngay, dữ liệu này sẽ BỊ MẤT.\\n\\n",
+    1
+  ],
+  [
+    "Hãy kiểm tra kết nối mạng và thử đồng bộ trước.",
+    1
+  ],
+  [
+    "✅ Đã đồng bộ xong!",
+    1
+  ],
+  [
+    "⚠️ Còn $remainCount bản ghi chưa sync. Kiểm tra mạng.",
+    1
+  ],
+  [
+    "❌ Lỗi sync: $e",
+    1
+  ],
+  [
+    "Thử đồng bộ",
+    1
+  ],
+  [
+    "Vẫn đăng xuất",
+    1
+  ],
+  [
+    "Tùy chỉnh giao diện Home",
+    1
+  ],
+  [
+    "$unreadChatCount mới",
+    1
+  ],
+  [
+    "CỘNG ĐỒNG",
+    1
+  ],
+  [
+    "Bảng tin nội bộ",
+    1
+  ],
+  [
+    "Đã ẩn thẻ này trên dashboard. Bật lại công tắc để hiển thị.",
+    1
+  ],
+  [
+    "Đang chuẩn bị dữ liệu cộng đồng...",
+    1
+  ],
+  [
+    "Chưa có bài viết mới trong cộng đồng.",
+    1
+  ],
+  [
+    "(Bài viết có ảnh)",
+    1
+  ],
+  [
+    "Bạn chưa có quyền xem bảng tin cộng đồng của shop.",
+    1
+  ],
+  [
+    "Bảng tin đang tối ưu lần đầu, vui lòng thử lại sau vài giây.",
+    1
+  ],
+  [
+    "Mất kết nối mạng. Vui lòng thử lại.",
+    1
+  ],
+  [
+    "Không tải được bảng tin lúc này.",
+    1
+  ],
+  [
+    "❌ Ngày hôm nay đã chốt quỹ! Không thể thêm thu phát sinh.",
+    1
+  ],
+  [
+    "Chờ XN",
+    1
+  ],
+  [
+    "DS sửa",
+    1
+  ],
+  [
+    "Kiểm kho",
+    1
+  ],
+  [
+    "Báo cáo",
+    1
+  ],
+  [
+    "LS nhập kho",
+    1
+  ],
+  [
+    "THAO TÁC NHANH",
+    1
+  ],
+  [
+    "TÙY CHỈNH ($visibleCount đang hiện)",
+    1
+  ],
+  [
+    "Nhấn để ẩn/hiện • Sắp xếp thứ tự trong Cài đặt",
+    1
+  ],
+  [
+    "Sắp xếp thứ tự & cài đặt nâng cao",
+    1
+  ],
+  [
+    "Chờ nhập",
+    1
+  ],
+  [
+    "Phiếu đang chờ",
+    1
+  ],
+  [
+    "Xem phiếu nhập kho",
+    1
+  ],
+  [
+    "Ghi nhanh khoản chi",
+    1
+  ],
+  [
+    "Ghi nhanh khoản thu",
+    1
+  ],
+  [
+    "Danh sách phiếu trả hàng",
+    1
+  ],
+  [
+    "Kho máy xác",
+    1
+  ],
+  [
+    "Mua bán máy xác, linh kiện",
+    1
+  ],
+  [
+    "Yêu cầu đóng tiền",
+    1
+  ],
+  [
+    "Kho phụ tùng / linh kiện",
+    1
+  ],
+  [
+    "Quản lý linh kiện, giá nhập, tồn kho",
+    1
+  ],
+  [
+    "Lịch sử nhập kho",
+    1
+  ],
+  [
+    "Xem phiếu nhập kho đã xác nhận",
+    1
+  ],
+  [
+    "Quản lý vị trí lưu kho",
+    1
+  ],
+  [
+    "Bạn cần quyền chấm công để dùng tính năng này",
+    1
+  ],
+  [
+    "Bạn không có quyền truy cập \"$featureName\". Vui lòng liên hệ chủ shop.",
+    1
+  ],
+  [
+    "Không thể mở \"$featureName\" lúc này. Vui lòng thử lại.",
+    1
+  ],
+  [
+    "CÔNG NỢ TỔNG HỢP",
+    1
+  ],
+  [
+    "👤 Khách nợ",
+    1
+  ],
+  [
+    "🏭 Nợ NCC",
+    1
+  ],
+  [
+    "🤝 Đối tác",
+    1
+  ],
+  [
+    "Tuỳ chỉnh dashboard",
+    1
+  ],
+  [
+    "Chọn thẻ hiển thị và thứ tự trang chủ",
+    1
+  ],
+  [
+    "Cài đặt tem nhãn",
+    1
+  ],
+  [
+    "Thiết kế và tuỳ chỉnh mẫu tem in",
+    1
+  ],
+  [
+    "Cấu hình bảng lương, phụ cấp và khấu trừ",
+    1
+  ],
+  [
+    "Quản lý ca làm, giờ mở/đóng cửa",
+    1
+  ],
+  [
+    "Hướng dẫn sử dụng từng tính năng",
+    1
+  ],
+  [
+    "Nhật ký kiểm toán",
+    1
+  ],
+  [
+    "Lịch sử thao tác và thay đổi dữ liệu",
+    1
+  ],
+  [
+    "Kiểm tra kết nối",
+    1
+  ],
+  [
+    "Kiểm tra Firestore và độ trễ mạng",
+    1
+  ],
+  [
+    "Thống kê đọc/ghi",
+    1
+  ],
+  [
+    "Phân tích số lần đọc/ghi Firebase",
+    1
+  ],
+  [
+    "Tìm cài đặt...",
+    1
+  ],
+  [
+    "Không tìm thấy cài đặt nào",
+    1
+  ],
+  [
+    "Giao diện & Ngôn ngữ",
+    1
+  ],
+  [
+    "Thiết bị & In ấn",
+    1
+  ],
+  [
+    "Nhân sự & Chấm công",
+    1
+  ],
+  [
+    "Hướng dẫn",
+    1
+  ],
+  [
+    "Dữ liệu & Hệ thống",
+    1
+  ],
+  [
+    "Cửa hàng của bạn",
+    1
+  ],
+  [
+    "Bạn có chắc muốn hủy liên kết $provider?",
+    1
+  ],
+  [
+    "Thu khác",
+    1
+  ],
+  [
+    "TT đối tác",
+    1
+  ],
+  [
+    "Chi phí HĐ",
+    1
+  ],
+  [
+    "CHI TIÊU",
+    1
+  ],
+  [
+    "BIẾN ĐỘNG",
+    1
+  ],
+  [
+    "Sắp hết HSD",
+    1
+  ],
+  [
+    "Hết size/màu",
+    1
+  ],
+  [
+    "TRUY CẬP NHANH TÀI CHÍNH",
+    1
+  ],
+  [
+    "Sổ quỹ",
+    1
+  ],
+  [
+    "Duyệt giao máy ($pendingApprovalCount)",
+    1
+  ],
+  [
+    "Đơn sửa chờ duyệt giao",
+    1
+  ],
+  [
+    "Duyệt thanh toán ($_pendingPaymentRequestCount)",
+    1
+  ],
+  [
+    "Yêu cầu thanh toán chờ duyệt",
+    1
+  ],
+  [
+    "$_totalPendingApprovalCount yêu cầu duyệt chờ xử lý",
+    1
+  ],
+  [
+    "Giao máy: $pendingApprovalCount • Thanh toán: $_pendingPaymentRequestCount",
+    1
+  ],
+  [
+    "Nhấn để xem và duyệt ngay",
+    1
+  ],
+  [
+    "CỬA HÀNG BỊ KHÓA",
+    1
+  ],
+  [
+    "Liên hệ Admin để mở khóa",
+    1
+  ],
+  [
+    "shop hiện tại",
+    1
+  ],
+  [
+    "Chưa có tin nhắn nào",
+    1
+  ],
+  [
+    "GHI CHI PHÍ NHANH",
+    1
+  ],
+  [
+    "✅ Đã lưu chi phí!",
+    1
+  ],
+  [
+    "GHI THU PHÁT SINH",
+    1
+  ],
+  [
+    "✅ Đã lưu thu phát sinh!",
+    1
+  ],
+  [
+    "LƯU THU",
+    1
+  ],
+  [
+    "Tra cứu bảo hành nhanh",
+    1
+  ],
+  [
+    "Thưởng sinh nhật",
+    1
+  ],
+  [
+    "Thưởng năng suất",
+    1
+  ],
+  [
+    "Thưởng tháng 13",
+    1
+  ],
+  [
+    "Thưởng lễ/tết",
+    1
+  ],
+  [
+    "Thưởng dự án",
+    1
+  ],
+  [
+    "Thưởng đột xuất",
+    1
+  ],
+  [
+    "Hỗ trợ đặc biệt",
+    1
+  ],
+  [
+    "Tạm ứng lương",
+    1
+  ],
+  [
+    "Phạt vi phạm",
+    1
+  ],
+  [
+    "Trừ đồ thất lạc",
+    1
+  ],
+  [
+    "Trừ hư hỏng thiết bị",
+    1
+  ],
+  [
+    "Khấu trừ khác",
+    1
+  ],
+  [
+    "✅ Đã thêm khoản thưởng",
+    1
+  ],
+  [
+    "✅ Đã thêm khoản khấu trừ",
+    1
+  ],
+  [
+    "❌ Lỗi khi lưu",
+    1
+  ],
+  [
+    "Thêm khoản thưởng/trừ",
+    1
+  ],
+  [
+    "Chọn nhân viên *",
+    1
+  ],
+  [
+    "Tên khoản *",
+    1
+  ],
+  [
+    "VD: Thưởng sinh nhật",
+    1
+  ],
+  [
+    "Số tiền *",
+    1
+  ],
+  [
+    "Vui lòng nhập số tiền",
+    1
+  ],
+  [
+    "Số tiền phải lớn hơn 0",
+    1
+  ],
+  [
+    "Lý do/mô tả...",
+    1
+  ],
+  [
+    "Thêm thưởng",
+    1
+  ],
+  [
+    "Thêm khấu trừ",
+    1
+  ],
+  [
+    "✅ Đã lưu cài đặt thành công",
+    1
+  ],
+  [
+    "❌ Lỗi khi lưu cài đặt",
+    1
+  ],
+  [
+    "Cài đặt Khấu trừ & Thuế",
+    1
+  ],
+  [
+    "Thuế TNCN",
+    1
+  ],
+  [
+    "Trừ đi muộn",
+    1
+  ],
+  [
+    "Số tiền trừ mỗi lần đi muộn",
+    1
+  ],
+  [
+    "Ví dụ: Miễn 2 lần → Đi muộn 5 lần → Trừ 3 lần",
+    1
+  ],
+  [
+    "Trừ về sớm",
+    1
+  ],
+  [
+    "Số tiền trừ mỗi lần về sớm",
+    1
+  ],
+  [
+    "Trừ nghỉ quá phép",
+    1
+  ],
+  [
+    "Số ngày nghỉ phép cho phép",
+    1
+  ],
+  [
+    "ngày/tháng",
+    1
+  ],
+  [
+    "Số tiền trừ mỗi ngày nghỉ quá phép",
+    1
+  ],
+  [
+    "Ví dụ: Phép 2 ngày → Nghỉ 5 ngày → Trừ 3 ngày",
+    1
+  ],
+  [
+    "Tỷ lệ đóng BH người lao động theo luật:",
+    1
+  ],
+  [
+    "• BHXH: 8% lương đóng BH\\n",
+    1
+  ],
+  [
+    "• BHYT: 1.5% lương đóng BH\\n",
+    1
+  ],
+  [
+    "• BHTN: 1% lương đóng BH\\n",
+    1
+  ],
+  [
+    "• Tổng: 10.5% lương đóng BH",
+    1
+  ],
+  [
+    "Mức lương đóng BH",
+    1
+  ],
+  [
+    "Mức lương đóng BH (để 0 = dùng lương cơ bản)",
+    1
+  ],
+  [
+    "Nếu để 0, hệ thống sẽ dùng lương cơ bản làm mức đóng BH",
+    1
+  ],
+  [
+    "BHXH (Bảo hiểm xã hội)",
+    1
+  ],
+  [
+    "Tỷ lệ BHXH",
+    1
+  ],
+  [
+    "BHYT (Bảo hiểm y tế)",
+    1
+  ],
+  [
+    "Tỷ lệ BHYT",
+    1
+  ],
+  [
+    "BHTN (Bảo hiểm thất nghiệp)",
+    1
+  ],
+  [
+    "Tỷ lệ BHTN",
+    1
+  ],
+  [
+    "Tổng % BH người lao động đóng:",
+    1
+  ],
+  [
+    "Biểu thuế TNCN lũy tiến:",
+    1
+  ],
+  [
+    "• Đến 5 triệu: 5%\\n",
+    1
+  ],
+  [
+    "• 5-10 triệu: 10%\\n",
+    1
+  ],
+  [
+    "• 10-18 triệu: 15%\\n",
+    1
+  ],
+  [
+    "• 18-32 triệu: 20%\\n",
+    1
+  ],
+  [
+    "• 32-52 triệu: 25%\\n",
+    1
+  ],
+  [
+    "• 52-80 triệu: 30%\\n",
+    1
+  ],
+  [
+    "• Trên 80 triệu: 35%",
+    1
+  ],
+  [
+    "Tính thuế TNCN",
+    1
+  ],
+  [
+    "Giảm trừ bản thân (11 triệu theo luật)",
+    1
+  ],
+  [
+    "Giảm trừ người phụ thuộc (4.4 triệu/người)",
+    1
+  ],
+  [
+    "Công thức tính:",
+    1
+  ],
+  [
+    "Thu nhập chịu thuế = GROSS - BH - Giảm trừ bản thân - Giảm trừ người phụ thuộc",
+    1
+  ],
+  [
+    "Thuế TNCN = Áp dụng biểu thuế lũy tiến",
+    1
+  ],
+  [
+    "📊 Ví dụ tính thuế:",
+    1
+  ],
+  [
+    "Thu nhập GROSS",
+    1
+  ],
+  [
+    "- Giảm trừ bản thân",
+    1
+  ],
+  [
+    "- Giảm trừ 1 người phụ thuộc",
+    1
+  ],
+  [
+    "= Thu nhập chịu thuế",
+    1
+  ],
+  [
+    "Thuế TNCN phải đóng",
+    1
+  ],
+  [
+    "Chưa có khoản thưởng/trừ nào\\ntháng $_adjMonth/$_adjYear",
+    1
+  ],
+  [
+    "❌ Lỗi khi xóa",
+    1
+  ],
+  [
+    "Đã chuyển shop",
+    1
+  ],
+  [
+    "✅ Đã lưu cài đặt mặc định",
+    1
+  ],
+  [
+    "Chọn shop để xem dữ liệu",
+    1
+  ],
+  [
+    "Tải lại danh sách shop",
+    1
+  ],
+  [
+    "Super Admin có thể chọn shop để xem dữ liệu",
+    1
+  ],
+  [
+    "Không có shop nào",
+    1
+  ],
+  [
+    "Chọn shop",
+    1
+  ],
+  [
+    "-- Chọn shop --",
+    1
+  ],
+  [
+    "💰 BASE SALARY / LƯƠNG CƠ BẢN",
+    1
+  ],
+  [
+    "🛒 SALES COMMISSION / HOA HỒNG BÁN HÀNG",
+    1
+  ],
+  [
+    "% Hoa hồng lợi nhuận sửa",
+    1
+  ],
+  [
+    "LƯU CÀI ĐẶT MẶC ĐỊNH",
+    1
+  ],
+  [
+    "⚠️ Chỉ chủ shop hoặc admin mới có thể thay đổi",
+    1
+  ],
+  [
+    "💰 LƯƠNG CƠ BẢN",
+    1
+  ],
+  [
+    "🛒 HOA HỒNG BÁN HÀNG",
+    1
+  ],
+  [
+    "% Hoa hồng lợi nhuận",
+    1
+  ],
+  [
+    "Phụ cấp khác/tháng (đ)",
+    1
+  ],
+  [
+    "🎯 THƯỞNG DOANH SỐ",
+    1
+  ],
+  [
+    "Mục tiêu doanh số/tháng (đ)",
+    1
+  ],
+  [
+    "% Thưởng khi đạt mục tiêu",
+    1
+  ],
+  [
+    "DỰ TÍNH LƯƠNG (ví dụ)",
+    1
+  ],
+  [
+    "$exampleSaleOrders đơn bán, $exampleRepairOrders đơn sửa",
+    1
+  ],
+  [
+    "Hoa hồng bán hàng",
+    1
+  ],
+  [
+    "Hoa hồng sửa chữa",
+    1
+  ],
+  [
+    "Thưởng doanh số",
+    1
+  ],
+  [
+    "Tổng phụ cấp",
+    1
+  ],
+  [
+    "TỔNG DỰ TÍNH",
+    1
+  ],
+  [
+    "Thiết kế tem",
+    1
+  ],
+  [
+    "Tùy chỉnh tem",
+    1
+  ],
+  [
+    "Loại mã",
+    1
+  ],
+  [
+    "Cỡ QR",
+    1
+  ],
+  [
+    "Rất nhỏ",
+    1
+  ],
+  [
+    "Nhỏ",
+    1
+  ],
+  [
+    "Vừa",
+    1
+  ],
+  [
+    "Lớn",
+    1
+  ],
+  [
+    "Đệm: $_paddingLines",
+    1
+  ],
+  [
+    "Ưu tiên tương thích Bluetooth",
+    1
+  ],
+  [
+    "In QR dạng ảnh để tăng khả năng in trên Bluetooth",
+    1
+  ],
+  [
+    "In tất cả",
+    1
+  ],
+  [
+    "In đã chọn ($selectedCount)",
+    1
+  ],
+  [
+    "Lỗi xuất Excel: $e",
+    1
+  ],
+  [
+    "LỊCH SỬ NHẬP KHO",
+    1
+  ],
+  [
+    "$debtCount nợ",
+    1
+  ],
+  [
+    "Chưa có phiếu nhập kho",
+    1
+  ],
+  [
+    "Phiếu nhập sẽ được tạo tự động khi xác nhận nhập kho",
+    1
+  ],
+  [
+    "+$remainItems mục",
+    1
+  ],
+  [
+    "TỔNG CỘNG",
+    1
+  ],
+  [
+    "ĐÃ THANH TOÁN",
+    1
+  ],
+  [
+    "Không có dữ liệu chi tiết",
+    1
+  ],
+  [
+    "Nhấn để bắt đầu",
+    1
+  ],
+  [
+    "Xuất Excel tất cả",
+    1
+  ],
+  [
+    "Lọc loại",
+    1
+  ],
+  [
+    "Chưa có lịch sử kiểm kho",
+    1
+  ],
+  [
+    "Lưu kết quả kiểm kho để xem tại đây",
+    1
+  ],
+  [
+    "Chưa xong",
+    1
+  ],
+  [
+    "Chi tiết kiểm kho - $typeVi",
+    1
+  ],
+  [
+    "Tổng: $total",
+    1
+  ],
+  [
+    "Đã kiểm: $checked",
+    1
+  ],
+  [
+    "Thiếu: $missing",
+    1
+  ],
+  [
+    "Không có mục nào",
+    1
+  ],
+  [
+    "Chi tiết sản phẩm",
+    1
+  ],
+  [
+    "Còn hàng",
+    1
+  ],
+  [
+    "Chưa cập nhật vị trí",
+    1
+  ],
+  [
+    "Chưa có ảnh sản phẩm",
+    1
+  ],
+  [
+    "Không tải được ảnh",
+    1
+  ],
+  [
+    "📦 Tồn kho hiện tại",
+    1
+  ],
+  [
+    "🛒 Bán hàng nhanh",
+    1
+  ],
+  [
+    "✏️ Chỉnh sửa giá",
+    1
+  ],
+  [
+    "📦 [InventoryView] Nhận event \"$event\" → refresh local DB",
+    1
+  ],
+  [
+    "Tìm",
+    1
+  ],
+  [
+    "GIÁ",
+    1
+  ],
+  [
+    "TIỀN",
+    1
+  ],
+  [
+    "GIÁ NHẬP",
+    1
+  ],
+  [
+    "GIÁ BÁN",
+    1
+  ],
+  [
+    "⚠️ [InventoryView] Lỗi đọc local DB: $e",
+    1
+  ],
+  [
+    "KHO TẠM",
+    1
+  ],
+  [
+    "CÒN HÀNG",
+    1
+  ],
+  [
+    "KHO TẠM – Chờ xác nhận giá",
+    1
+  ],
+  [
+    "Lỗ",
+    1
+  ],
+  [
+    "Chưa xác nhận",
+    1
+  ],
+  [
+    "Cập nhật cuối",
+    1
+  ],
+  [
+    "LỊCH SỬ SỬA CHỮA",
+    1
+  ],
+  [
+    "XÁC NHẬN GIÁ – CHUYỂN KHO CHÍNH",
+    1
+  ],
+  [
+    "Đang in tem...",
+    1
+  ],
+  [
+    "In tem thành công",
+    1
+  ],
+  [
+    "Lỗi khi in tem",
+    1
+  ],
+  [
+    "Vui lòng nhập giá nhập hợp lệ",
+    1
+  ],
+  [
+    "Đang nhập kho...",
+    1
+  ],
+  [
+    "Lỗi tạo phiếu nhập kho",
+    1
+  ],
+  [
+    "Lỗi xác nhận phiếu nhập kho",
+    1
+  ],
+  [
+    "Vui lòng nhập model",
+    1
+  ],
+  [
+    "Dung lượng (VD: 256GB)",
+    1
+  ],
+  [
+    "Giá nhập (không đổi)",
+    1
+  ],
+  [
+    "Số lượng phải là số không âm",
+    1
+  ],
+  [
+    "Số lượng không hợp lệ",
+    1
+  ],
+  [
+    "⚠️ Lưu ý quan trọng",
+    1
+  ],
+  [
+    "❌ Các đơn hàng bán đã tạo: GIÁ KHÔNG ĐƯỢC CẬP NHẬT",
+    1
+  ],
+  [
+    "❌ Công nợ khách hàng: SỐ TIỀN KHÔNG THAY ĐỔI",
+    1
+  ],
+  [
+    "❌ Báo cáo lợi nhuận: TÍNH SAI",
+    1
+  ],
+  [
+    "❌ Đơn hàng nhập: GIÁ KHÔNG ẢNH HƯỞNG",
+    1
+  ],
+  [
+    "✅ Bảng giá nhà cung cấp: ĐƯỢC CẬP NHẬT TỰ ĐỘNG",
+    1
+  ],
+  [
+    "Để cập nhật chính xác, bạn cần sửa lại từng đơn hàng đã tạo.",
+    1
+  ],
+  [
+    "Ẩn khỏi kho",
+    1
+  ],
+  [
+    "⚠️ LƯU Ý QUAN TRỌNG:",
+    1
+  ],
+  [
+    "• Đây là XÓA MỀM – chỉ ẩn khỏi danh sách kho\\n",
+    1
+  ],
+  [
+    "• KHÔNG ảnh hưởng doanh thu, công nợ, lịch sử nhập\\n",
+    1
+  ],
+  [
+    "• Mọi số liệu tài chính khác GIỮ NGUYÊN",
+    1
+  ],
+  [
+    "Lý do xóa (tùy chọn)",
+    1
+  ],
+  [
+    "VD: Nhập sai, trả hàng NCC...",
+    1
+  ],
+  [
+    "Mật khẩu tài khoản *",
+    1
+  ],
+  [
+    "ẨN KHỎI KHO",
+    1
+  ],
+  [
+    "Kho hàng đang trống",
+    1
+  ],
+  [
+    "Thử bỏ bộ lọc hoặc tìm từ khóa khác",
+    1
+  ],
+  [
+    "Bật \"Hết hàng\" để xem sản phẩm đã hết",
+    1
+  ],
+  [
+    "🛠️ Dịch vụ",
+    1
+  ],
+  [
+    "Nhập mật khẩu tài khoản để xóa:",
+    1
+  ],
+  [
+    "Mật khẩu tài khoản",
+    1
+  ],
+  [
+    "Lỗi tải kiểm kho: $e",
+    1
+  ],
+  [
+    "Lỗi tải danh sách: $e",
+    1
+  ],
+  [
+    "Đã lưu kiểm kho thành công!",
+    1
+  ],
+  [
+    "QUẢN LÝ KHO TỔNG",
+    1
+  ],
+  [
+    "QUẢN LÝ KHO",
+    1
+  ],
+  [
+    "Thêm linh kiện",
+    1
+  ],
+  [
+    "Nhập kho nhanh (AI)",
+    1
+  ],
+  [
+    "Tìm kiếm",
+    1
+  ],
+  [
+    "Tìm kiếm: \"$_searchQuery\"",
+    1
+  ],
+  [
+    "Xuất kho linh kiện",
+    1
+  ],
+  [
+    "Xuất kho hàng",
+    1
+  ],
+  [
+    "HIỂN THỊ / TỔNG",
+    1
+  ],
+  [
+    "TỔNG KHO",
+    1
+  ],
+  [
+    "Chưa có vị trí nào được tạo.",
+    1
+  ],
+  [
+    "Lọc theo vị trí",
+    1
+  ],
+  [
+    "Kho tạm",
+    1
+  ],
+  [
+    "còn",
+    1
+  ],
+  [
+    "Nhập: $ngayNhap",
+    1
+  ],
+  [
+    "Nhập từ Inventory View",
+    1
+  ],
+  [
+    "Xác nhận giá từ Kho Tạm",
+    1
+  ],
+  [
+    "Xác nhận giá - Chuyển Kho Chính",
+    1
+  ],
+  [
+    "GIÁ VỐN (*)",
+    1
+  ],
+  [
+    "GIÁ BÁN (tùy chọn)",
+    1
+  ],
+  [
+    "NHÀ CUNG CẤP (*)",
+    1
+  ],
+  [
+    "Cảnh báo thay đổi giá vốn",
+    1
+  ],
+  [
+    "Không có",
+    1
+  ],
+  [
+    "Nhập thêm hàng vào kho",
+    1
+  ],
+  [
+    "XÓA NGAY",
+    1
+  ],
+  [
+    "XÓA KHO",
+    1
+  ],
+  [
+    "Bạn không có quyền truy cập\\nmàn hình quản lý kho",
+    1
+  ],
+  [
+    "Chưa kiểm",
+    1
+  ],
+  [
+    "Chưa có dữ liệu kiểm kho",
+    1
+  ],
+  [
+    "LƯU KIỂM KHO",
+    1
+  ],
+  [
+    "VỐN TỒN KHO",
+    1
+  ],
+  [
+    "Không có quyền",
+    1
+  ],
+  [
+    "Đã tạo mã hàng: $generatedSKU",
+    1
+  ],
+  [
+    "Lỗi tạo mã hàng: $e",
+    1
+  ],
+  [
+    "Vui lòng tạo mã hàng trước!",
+    1
+  ],
+  [
+    "ĐÃ THÊM MÁY",
+    1
+  ],
+  [
+    "NHẬP KHO THÀNH CÔNG",
+    1
+  ],
+  [
+    "Tên máy *",
+    1
+  ],
+  [
+    "Size - Màu sắc",
+    1
+  ],
+  [
+    "Chi tiết (Dung lượng - Màu...)",
+    1
+  ],
+  [
+    "Số IMEI / Serial",
+    1
+  ],
+  [
+    "Nhà cung cấp *",
+    1
+  ],
+  [
+    "MÃ HÀNG",
+    1
+  ],
+  [
+    "Nhóm *",
+    1
+  ],
+  [
+    "PIN - Pin sạc",
+    1
+  ],
+  [
+    "MH - Màn hình",
+    1
+  ],
+  [
+    "Thông tin (vd: 256GB)",
+    1
+  ],
+  [
+    "Mã hàng được tạo",
+    1
+  ],
+  [
+    "TẠO MÃ",
+    1
+  ],
+  [
+    "HOÀN TẤT",
+    1
+  ],
+  [
+    "Vui lòng nhập giá vốn hợp lệ!",
+    1
+  ],
+  [
+    "Vui lòng chọn nhà cung cấp!",
+    1
+  ],
+  [
+    "XÁC NHẬN GIÁ KHO TẠM",
+    1
+  ],
+  [
+    "Đã xác nhận giá và chuyển sang Kho Chính!",
+    1
+  ],
+  [
+    "CẬP NHẬT THÀNH CÔNG",
+    1
+  ],
+  [
+    "Loại hàng (không đổi)",
+    1
+  ],
+  [
+    "Giá vốn (đã nhập kho - không đổi)",
+    1
+  ],
+  [
+    "Sửa màn hình iPhone 12",
+    1
+  ],
+  [
+    "Không thể tải cấu hình kết nối KiotViet. Vui lòng thử lại.",
+    1
+  ],
+  [
+    "Vui lòng nhập đủ Client ID và Client Secret",
+    1
+  ],
+  [
+    "Đã lưu thông tin xác thực",
+    1
+  ],
+  [
+    "Đã lưu Client ID & Secret",
+    1
+  ],
+  [
+    "Lỗi khi lưu: $e",
+    1
+  ],
+  [
+    "Đã xóa thông tin xác thực",
+    1
+  ],
+  [
+    "Không lấy được token",
+    1
+  ],
+  [
+    "Không thể xác thực với KiotViet. Hãy kiểm tra mã cửa hàng hoặc thử lại sau.",
+    1
+  ],
+  [
+    "Kết nối KiotViet bị quá thời gian chờ. Vui lòng kiểm tra mạng và thử lại.",
+    1
+  ],
+  [
+    "Kết nối KiotViet thất bại. Vui lòng thử lại.",
+    1
+  ],
+  [
+    "Đã xảy ra lỗi hiển thị",
+    1
+  ],
+  [
+    "Đang tải cấu hình KiotViet",
+    1
+  ],
+  [
+    "Ứng dụng đang kiểm tra cấu hình bảo mật, retailer đã lưu và token hiện có.",
+    1
+  ],
+  [
+    "Không thể mở trang KiotViet",
+    1
+  ],
+  [
+    "Kết nối cửa hàng KiotViet",
+    1
+  ],
+  [
+    "Nhập tên cửa hàng KiotViet của bạn để kết nối và đồng bộ dữ liệu.",
+    1
+  ],
+  [
+    "Thông tin xác thực API",
+    1
+  ],
+  [
+    "Nhập Client ID",
+    1
+  ],
+  [
+    "Nhập Client Secret",
+    1
+  ],
+  [
+    "Lưu thông tin xác thực",
+    1
+  ],
+  [
+    "Ví dụ: huymobile",
+    1
+  ],
+  [
+    "Ứng dụng sẽ chuẩn hóa thành: $_normalizedPreview",
+    1
+  ],
+  [
+    "Đang kết nối...",
+    1
+  ],
+  [
+    "Xóa mã đã lưu",
+    1
+  ],
+  [
+    "Sẵn sàng kết nối",
+    1
+  ],
+  [
+    "Thiếu cấu hình bảo mật nội bộ",
+    1
+  ],
+  [
+    "Kết nối chưa thành công",
+    1
+  ],
+  [
+    "Đang xác thực và đồng bộ",
+    1
+  ],
+  [
+    "Kết nối thành công",
+    1
+  ],
+  [
+    "Lỗi",
+    1
+  ],
+  [
+    "Token và retailer đã được lưu nội bộ để dùng cho lần đồng bộ tiếp theo.",
+    1
+  ],
+  [
+    "Đã có phiên KiotViet khả dụng",
+    1
+  ],
+  [
+    "Chưa có phiên xác thực đang hoạt động",
+    1
+  ],
+  [
+    "Nhật ký kết nối",
+    1
+  ],
+  [
+    "lỗi",
+    1
+  ],
+  [
+    "thất bại",
+    1
+  ],
+  [
+    "Giá KPK",
+    1
+  ],
+  [
+    "✅ Đã lưu thiết kế tem!",
+    1
+  ],
+  [
+    "Đặt lại mặc định?",
+    1
+  ],
+  [
+    "Bố cục tem sẽ trở về cài đặt gốc.",
+    1
+  ],
+  [
+    "THIẾT KẾ TEM",
+    1
+  ],
+  [
+    "Bố cục",
+    1
+  ],
+  [
+    "Loại giấy:",
+    1
+  ],
+  [
+    "Cuộn (mm)",
+    1
+  ],
+  [
+    "Tem dán (cm)",
+    1
+  ],
+  [
+    "Khổ giấy cuộn (mm):",
+    1
+  ],
+  [
+    "Tự nhập khổ giấy (mm)",
+    1
+  ],
+  [
+    "Tem dán (cm):",
+    1
+  ],
+  [
+    "Rộng (cm)",
+    1
+  ],
+  [
+    "Dài (cm)",
+    1
+  ],
+  [
+    "Loại mã:",
+    1
+  ],
+  [
+    "👆 Nhấn vào phần tử trên mẫu để chỉnh sửa\\n",
+    1
+  ],
+  [
+    "🖐️ Nhấn giữ và kéo thả để hoán đổi vị trí\\n",
+    1
+  ],
+  [
+    "🔀 Gộp/tách dòng ở bảng điều khiển bên dưới",
+    1
+  ],
+  [
+    "Phóng to mẫu:",
+    1
+  ],
+  [
+    "MẪU TEM",
+    1
+  ],
+  [
+    "Nhấn để chọn",
+    1
+  ],
+  [
+    "Hiển thị",
+    1
+  ],
+  [
+    "Kích thước QR/Barcode:",
+    1
+  ],
+  [
+    "Cỡ chữ:",
+    1
+  ],
+  [
+    "Đậm",
+    1
+  ],
+  [
+    "Kiểu chữ:",
+    1
+  ],
+  [
+    "Tiền tố (ký tự đầu)",
+    1
+  ],
+  [
+    "VD: KPK: hoặc Giá: ",
+    1
+  ],
+  [
+    "Nhập ký tự hiện trước nội dung",
+    1
+  ],
+  [
+    "Gộp/Tách dòng",
+    1
+  ],
+  [
+    "IMEI + QR cùng dòng",
+    1
+  ],
+  [
+    "IMEI riêng, QR riêng",
+    1
+  ],
+  [
+    "KPK + CPK cùng dòng",
+    1
+  ],
+  [
+    "KPK, CPK riêng dòng",
+    1
+  ],
+  [
+    "Không khoảng cách",
+    1
+  ],
+  [
+    "Thoáng hơn",
+    1
+  ],
+  [
+    "Ẩn/Hiện từng phần:",
+    1
+  ],
+  [
+    "Thông tin Shop trên tem",
+    1
+  ],
+  [
+    "VD: Cam kết giá tốt nhất",
+    1
+  ],
+  [
+    "• \"price + 500000\" = Giá bán + 500k\\n",
+    1
+  ],
+  [
+    "• \"price * 1.05\" = Giá bán + 5%",
+    1
+  ],
+  [
+    "Dòng cố định trên tem",
+    1
+  ],
+  [
+    "Các dòng này luôn hiện trên tem",
+    1
+  ],
+  [
+    "VD: Cam kết chính hãng",
+    1
+  ],
+  [
+    "VD: Đổi trả 7 ngày",
+    1
+  ],
+  [
+    "VD: Trả góp 0%",
+    1
+  ],
+  [
+    "✅ Đã lưu cài đặt tem!",
+    1
+  ],
+  [
+    "Cài đặt Tem sản phẩm",
+    1
+  ],
+  [
+    "Mẫu Tem",
+    1
+  ],
+  [
+    "Thông tin hiển thị trên tem",
+    1
+  ],
+  [
+    "VD: Cam kết giá tốt nhất thị trường",
+    1
+  ],
+  [
+    "Cài đặt giá CPK",
+    1
+  ],
+  [
+    "📌 Công thức tính giá CPK (Có Phụ Kiện):",
+    1
+  ],
+  [
+    "VD: \"price + 500000\" = Giá bán + 500k\\n",
+    1
+  ],
+  [
+    "VD: \"price * 1.05\" = Giá bán + 5%",
+    1
+  ],
+  [
+    "Nội dung cố định trên tem",
+    1
+  ],
+  [
+    "Các dòng text này sẽ hiển thị mặc định trên mọi tem (nếu được bật)",
+    1
+  ],
+  [
+    "VD: Cam kết chính hãng 100%",
+    1
+  ],
+  [
+    "VD: Đổi trả trong 7 ngày",
+    1
+  ],
+  [
+    "VD: Hỗ trợ trả góp 0%",
+    1
+  ],
+  [
+    "LƯU CÀI ĐẶT",
+    1
+  ],
+  [
+    "Xóa mẫu tem?",
+    1
+  ],
+  [
+    "Chỉnh sửa mẫu tem",
+    1
+  ],
+  [
+    "Tên mẫu tem",
+    1
+  ],
+  [
+    "Kích thước tem",
+    1
+  ],
+  [
+    "💡 VD: \"price + 500000\" = Giá + 500k | \"price * 1.05\" = Giá + 5%",
+    1
+  ],
+  [
+    "Thông tin sản phẩm",
+    1
+  ],
+  [
+    "Mã QR",
+    1
+  ],
+  [
+    "Thông tin giá",
+    1
+  ],
+  [
+    "Giá KPK (không PK)",
+    1
+  ],
+  [
+    "Giá CPK (có PK)",
+    1
+  ],
+  [
+    "Giá gốc (gạch)",
+    1
+  ],
+  [
+    "% Giảm giá",
+    1
+  ],
+  [
+    "LƯU MẪU TEM",
+    1
+  ],
+  [
+    "Vui lòng nhập tên mẫu tem",
+    1
+  ],
+  [
+    "Lỗi kết nối. Vui lòng thử lại.",
+    1
+  ],
+  [
+    "Phương thức Email/Password chưa bật trên Firebase Auth.",
+    1
+  ],
+  [
+    "Lỗi đăng nhập Google",
+    1
+  ],
+  [
+    "Lỗi đăng nhập Google. Vui lòng thử lại.",
+    1
+  ],
+  [
+    "Lỗi đăng nhập Apple",
+    1
+  ],
+  [
+    "Lỗi đăng nhập Apple. Vui lòng thử lại.",
+    1
+  ],
+  [
+    "HOẶC",
+    1
+  ],
+  [
+    "Đăng nhập bằng Google",
+    1
+  ],
+  [
+    "Đăng nhập bằng Apple",
+    1
+  ],
+  [
+    "Chọn năm",
+    1
+  ],
+  [
+    "TỔNG KẾT NĂM $_selectedYear",
+    1
+  ],
+  [
+    "BIẾN ĐỘNG THEO THÁNG",
+    1
+  ],
+  [
+    "Tháng",
+    1
+  ],
+  [
+    "TỔNG",
+    1
+  ],
+  [
+    "📦 GIÁ VỐN",
+    1
+  ],
+  [
+    "Quỹ ròng",
+    1
+  ],
+  [
+    "NGƯỜI DÙNG",
+    1
+  ],
+  [
+    "ĐÃ LƯU HỒ SƠ CÁ NHÂN",
+    1
+  ],
+  [
+    "HỒ SƠ CÁ NHÂN",
+    1
+  ],
+  [
+    "Chưa có thông báo nào",
+    1
+  ],
+  [
+    "Đã bật thông báo",
+    1
+  ],
+  [
+    "Đã tắt thông báo",
+    1
+  ],
+  [
+    "Cài đặt thông báo",
+    1
+  ],
+  [
+    "THÔNG BÁO QUAN TRỌNG",
+    1
+  ],
+  [
+    "Đơn hàng mới",
+    1
+  ],
+  [
+    "Thông báo khi có khách hàng tạo đơn hàng mới",
+    1
+  ],
+  [
+    "Thông báo khi có thanh toán thành công",
+    1
+  ],
+  [
+    "THÔNG BÁO KHÁC",
+    1
+  ],
+  [
+    "Cảnh báo khi sản phẩm sắp hết hàng",
+    1
+  ],
+  [
+    "Thông báo về hoạt động của nhân viên",
+    1
+  ],
+  [
+    "Thông báo cập nhật và bảo trì hệ thống",
+    1
+  ],
+  [
+    "Quyền thông báo",
+    1
+  ],
+  [
+    "Quyền OK",
+    1
+  ],
+  [
+    "Chưa cấp quyền",
+    1
+  ],
+  [
+    "Chưa có token",
+    1
+  ],
+  [
+    "Đã cấp quyền thông báo. Bạn sẽ nhận được thông báo push.",
+    1
+  ],
+  [
+    "Đã cấp quyền nhưng chưa có FCM Token. Nhấn \"Làm mới FCM Token\" bên dưới.",
+    1
+  ],
+  [
+    "Cấp quyền",
+    1
+  ],
+  [
+    "Vai trò của bạn: $roleDisplayName",
+    1
+  ],
+  [
+    "Không khả dụng cho vai trò hiện tại",
+    1
+  ],
+  [
+    "LÀM MỚI FCM TOKEN",
+    1
+  ],
+  [
+    "GỬI THÔNG BÁO TEST",
+    1
+  ],
+  [
+    "Đã cấp quyền thông báo!",
+    1
+  ],
+  [
+    "Cần cấp quyền để nhận thông báo",
+    1
+  ],
+  [
+    "Cấp quyền thông báo",
+    1
+  ],
+  [
+    "Ứng dụng cần quyền thông báo để gửi thông báo quan trọng. ",
+    1
+  ],
+  [
+    "Vui lòng bật quyền trong cài đặt hệ thống.",
+    1
+  ],
+  [
+    "Mở cài đặt",
+    1
+  ],
+  [
+    "Đã gửi thông báo test!",
+    1
+  ],
+  [
+    "Lỗi gửi thông báo: $e",
+    1
+  ],
+  [
+    "Đang làm mới FCM token...",
+    1
+  ],
+  [
+    "✅ Đã làm mới FCM token thành công!",
+    1
+  ],
+  [
+    "❌ Không thể làm mới FCM token. Thử lại sau.",
+    1
+  ],
+  [
+    "Lỗi làm mới token: $e",
+    1
+  ],
+  [
+    "THÔNG TIN THÔNG BÁO",
+    1
+  ],
+  [
+    "• Thông báo được gửi dựa trên vai trò của bạn\\n",
+    1
+  ],
+  [
+    "• Admin & Owner nhận tất cả thông báo\\n",
+    1
+  ],
+  [
+    "• Manager & Technician nhận thông báo quan trọng\\n",
+    1
+  ],
+  [
+    "• Employee chỉ nhận thông báo cá nhân",
+    1
+  ],
+  [
+    "\\nNếu đã bật trong Cài đặt iOS, hãy nhấn \\",
+    1
+  ],
+  [
+    "Làm mới FCM Token",
+    1
+  ],
+  [
+    "Thiết lập cửa hàng",
+    1
+  ],
+  [
+    "Hoàn tất",
+    1
+  ],
+  [
+    "Tiếp tục",
+    1
+  ],
+  [
+    "Chọn ngành",
+    1
+  ],
+  [
+    "Tùy chỉnh tính năng",
+    1
+  ],
+  [
+    "Kiểm tra và hoàn tất",
+    1
+  ],
+  [
+    "Shop điện thoại, laptop, phụ kiện...\\nHỗ trợ: Quản lý IMEI, sửa chữa, bảo hành",
+    1
+  ],
+  [
+    "👕 Thời trang & May mặc",
+    1
+  ],
+  [
+    "Shop quần áo, giày dép, túi xách...\\nHỗ trợ: Size, màu sắc, biến thể",
+    1
+  ],
+  [
+    "Bạn có thể bật/tắt các tính năng theo nhu cầu",
+    1
+  ],
+  [
+    "Module sửa chữa",
+    1
+  ],
+  [
+    "Nhận máy, quản lý tiến độ sửa, bàn giao",
+    1
+  ],
+  [
+    "Quản lý IMEI/Serial",
+    1
+  ],
+  [
+    "Theo dõi số IMEI hoặc Serial sản phẩm",
+    1
+  ],
+  [
+    "Quản lý bảo hành",
+    1
+  ],
+  [
+    "Theo dõi tình trạng bảo hành sản phẩm",
+    1
+  ],
+  [
+    "Cảnh báo sản phẩm sắp hết hạn",
+    1
+  ],
+  [
+    "Quản lý theo lô",
+    1
+  ],
+  [
+    "Nhập hàng theo lô, theo dõi từng lô",
+    1
+  ],
+  [
+    "Biến thể (size/màu)",
+    1
+  ],
+  [
+    "Quản lý sản phẩm theo size, màu sắc",
+    1
+  ],
+  [
+    "Loại hình",
+    1
+  ],
+  [
+    "Tính năng đã bật:",
+    1
+  ],
+  [
+    "Chưa bật tính năng nào",
+    1
+  ],
+  [
+    "Bạn có thể thay đổi cài đặt bất cứ lúc nào trong phần Cài đặt cửa hàng",
+    1
+  ],
+  [
+    "Tổng hợp / Tùy chỉnh",
+    1
+  ],
+  [
+    "Theo lô",
+    1
+  ],
+  [
+    "Máy tính bảng",
+    1
+  ],
+  [
+    "Rau củ",
+    1
+  ],
+  [
+    "Trái cây",
+    1
+  ],
+  [
+    "Thịt cá",
+    1
+  ],
+  [
+    "Đồ khô",
+    1
+  ],
+  [
+    "gói",
+    1
+  ],
+  [
+    "Đồ hộp",
+    1
+  ],
+  [
+    "hộp",
+    1
+  ],
+  [
+    "Đông lạnh",
+    1
+  ],
+  [
+    "Áo",
+    1
+  ],
+  [
+    "Quần",
+    1
+  ],
+  [
+    "Váy/Đầm",
+    1
+  ],
+  [
+    "Túi xách",
+    1
+  ],
+  [
+    "Tổng hợp",
+    1
+  ],
+  [
+    "Hàng hóa",
+    1
+  ],
+  [
+    "Danh Sách Đơn Sửa",
+    1
+  ],
+  [
+    "📋 Tất cả đơn sửa chữa",
+    1
+  ],
+  [
+    "🔍 Tìm kiếm nhanh",
+    1
+  ],
+  [
+    "Tìm đơn theo tên khách hàng, số điện thoại hoặc mã đơn sửa.",
+    1
+  ],
+  [
+    "🔄 Lọc theo trạng thái",
+    1
+  ],
+  [
+    "Lọc đơn theo Chờ sửa → Đang sửa → Hoàn thành → Đã giao để quản lý từng bước.",
+    1
+  ],
+  [
+    "📱 Cập nhật tiến độ",
+    1
+  ],
+  [
+    "Nhấn vào bất kỳ đơn nào để xem chi tiết, cập nhật trạng thái hoặc in phiếu.",
+    1
+  ],
+  [
+    "❌ [OrderListView] Realtime listener lỗi: $error",
+    1
+  ],
+  [
+    "⚠️ [OrderListView] Parse repair $docId lỗi: $e",
+    1
+  ],
+  [
+    "⚠️ [OrderListView] Merge pending local repairs lỗi: $e",
+    1
+  ],
+  [
+    "0đ",
+    1
+  ],
+  [
+    "✅ Đã xóa đơn và hoàn trả phụ tùng về kho",
+    1
+  ],
+  [
+    "✅ Đã xóa đơn thành công",
+    1
+  ],
+  [
+    "❌ Mật khẩu sai",
+    1
+  ],
+  [
+    "Tìm kiếm toàn app",
+    1
+  ],
+  [
+    "Lọc theo thời gian",
+    1
+  ],
+  [
+    "Xuất Excel đơn sửa",
+    1
+  ],
+  [
+    "Xuất đơn sửa",
+    1
+  ],
+  [
+    "đơn",
+    1
+  ],
+  [
+    "Không có đơn theo bộ lọc này",
+    1
+  ],
+  [
+    "Thử bỏ lọc để xem tất cả đơn",
+    1
+  ],
+  [
+    "Bỏ lọc",
+    1
+  ],
+  [
+    "Chỉ quản lý/chủ shop mới có quyền xóa đơn",
+    1
+  ],
+  [
+    "👨‍🔧 Chưa có KTV",
+    1
+  ],
+  [
+    "XÁC NHẬN XÓA ĐƠN",
+    1
+  ],
+  [
+    "Nhập mật khẩu quản lý để xác nhận",
+    1
+  ],
+  [
+    "Tìm khách, model, lỗi, SĐT...",
+    1
+  ],
+  [
+    "Nhập tên, SĐT hoặc từ khóa...",
+    1
+  ],
+  [
+    "Quản lý đối tác & NCC",
+    1
+  ],
+  [
+    "Lọc: $_activeFilterLabel",
+    1
+  ],
+  [
+    "DANH SÁCH",
+    1
+  ],
+  [
+    "LỊCH SỬ NHẬP",
+    1
+  ],
+  [
+    "D/SÁCH",
+    1
+  ],
+  [
+    "L/ SỬ NHẬP",
+    1
+  ],
+  [
+    "GIÁ S/PHẨM",
+    1
+  ],
+  [
+    "T/TOÁN",
+    1
+  ],
+  [
+    "T KÊ",
+    1
+  ],
+  [
+    "Không có đối tác phù hợp bộ lọc",
+    1
+  ],
+  [
+    "Không có SĐT",
+    1
+  ],
+  [
+    "Không có nhà cung cấp phù hợp bộ lọc",
+    1
+  ],
+  [
+    "Chưa có lịch sử công việc",
+    1
+  ],
+  [
+    "Lịch sử công việc gửi đối tác sẽ hiển thị từ các đơn sửa chữa",
+    1
+  ],
+  [
+    "📋 CHI TIẾT CÔNG NỢ THEO NCC:",
+    1
+  ],
+  [
+    "]} khoản)",
+    1
+  ],
+  [
+    "📊 THỐNG KÊ THANH TOÁN:",
+    1
+  ],
+  [
+    "Chưa có dữ liệu thanh toán",
+    1
+  ],
+  [
+    "Thêm đối tác sửa chữa",
+    1
+  ],
+  [
+    "Lỗi: Không thể thêm nhà cung cấp",
+    1
+  ],
+  [
+    "Xác nhận $action",
+    1
+  ],
+  [
+    "Chỉ chủ shop được phép thực hiện.\\nNhập mật khẩu tài khoản để xác nhận:",
+    1
+  ],
+  [
+    "chỉnh sửa đối tác",
+    1
+  ],
+  [
+    "xóa đối tác",
+    1
+  ],
+  [
+    "chỉnh sửa nhà cung cấp",
+    1
+  ],
+  [
+    "xóa nhà cung cấp",
+    1
+  ],
+  [
+    "Chỉnh sửa đối tác sửa chữa",
+    1
+  ],
+  [
+    "Chỉnh sửa nhà cung cấp",
+    1
+  ],
+  [
+    "Đã xóa đối tác thành công",
+    1
+  ],
+  [
+    "Loại LK",
+    1
+  ],
+  [
+    "Tổng SL",
+    1
+  ],
+  [
+    "Hết",
+    1
+  ],
+  [
+    "Sắp xếp",
+    1
+  ],
+  [
+    "Tên A-Z",
+    1
+  ],
+  [
+    "SẮP HẾT",
+    1
+  ],
+  [
+    "Thử từ khóa khác",
+    1
+  ],
+  [
+    "Vui lòng chọn nhà cung cấp cho linh kiện này trước khi ghi công nợ.",
+    1
+  ],
+  [
+    "Thiếu nhà cung cấp, không thể ghi công nợ.",
+    1
+  ],
+  [
+    "Nhập thêm linh kiện",
+    1
+  ],
+  [
+    "✅ Đã nhập thêm $addQty $partName (tổng: $newQty)",
+    1
+  ],
+  [
+    "Giá vốn/sp",
+    1
+  ],
+  [
+    ").format(cost)}đ",
+    1
+  ],
+  [
+    "Giá bán/sp",
+    1
+  ],
+  [
+    ").format(price)}đ",
+    1
+  ],
+  [
+    "Tổng vốn tồn",
+    1
+  ],
+  [
+    "Chỉ sửa thông tin & giá bán. Muốn nhập thêm số lượng → dùng nút NHẬP THÊM.",
+    1
+  ],
+  [
+    "] ?? 0)}đ",
+    1
+  ],
+  [
+    "✅ Đã cập nhật $partName",
+    1
+  ],
+  [
+    "Vui lòng chọn nhà cung cấp khi nhập công nợ.",
+    1
+  ],
+  [
+    "✅ Đã nhập $partName x$qty",
+    1
+  ],
+  [
+    "VỊ TRÍ LƯU KHO",
+    1
+  ],
+  [
+    "NHẬP THÊM: $partName",
+    1
+  ],
+  [
+    "Nhập số lượng hợp lệ (> 0)",
+    1
+  ],
+  [
+    "Giá vốn / đơn vị",
+    1
+  ],
+  [
+    "Vui lòng chọn nhà cung cấp khi ghi công nợ.",
+    1
+  ],
+  [
+    "Đã nhập thêm $addQty $partName (tổng: $newQty)",
+    1
+  ],
+  [
+    "Bỏ chọn tất cả",
+    1
+  ],
+  [
+    "Xóa đã chọn",
+    1
+  ],
+  [
+    "Chọn nhiều",
+    1
+  ],
+  [
+    "Nhập LK",
+    1
+  ],
+  [
+    "-- Chọn NCC --",
+    1
+  ],
+  [
+    "Tìm NCC (có dấu hoặc không dấu)...",
+    1
+  ],
+  [
+    "Không tìm thấy NCC",
+    1
+  ],
+  [
+    "Giá vốn (không sửa)",
+    1
+  ],
+  [
+    "Không tìm thấy \"$_searchQuery\"",
+    1
+  ],
+  [
+    "⚠ $overdueCount quá hạn",
+    1
+  ],
+  [
+    "QUÁ HẠN",
+    1
+  ],
+  [
+    "KH chuyển khoản",
+    1
+  ],
+  [
+    "KH trả tiền mặt",
+    1
+  ],
+  [
+    "Chủ shop đã CK cho NH",
+    1
+  ],
+  [
+    "Xác nhận đã CK cho ngân hàng",
+    1
+  ],
+  [
+    "Khoản CK cho ngân hàng sẽ được ghi vào sổ quỹ.\\n",
+    1
+  ],
+  [
+    "Sau khi xác nhận, hãy gửi ảnh chụp màn hình CK để lưu bằng chứng.",
+    1
+  ],
+  [
+    "Đã CK cho NH ✓",
+    1
+  ],
+  [
+    "💡 Chọn ảnh CK ngân hàng để gửi bằng chứng",
+    1
+  ],
+  [
+    "Từ chối yêu cầu",
+    1
+  ],
+  [
+    "Thanh toán (CK cho NH)",
+    1
+  ],
+  [
+    "Xóa yêu cầu",
+    1
+  ],
+  [
+    "Số TK / Hợp đồng",
+    1
+  ],
+  [
+    "NH / Tổ chức vay",
+    1
+  ],
+  [
+    "KH trả cho NV",
+    1
+  ],
+  [
+    "Chủ shop CK NH",
+    1
+  ],
+  [
+    "🏦 Đã chuyển khoản cho ngân hàng",
+    1
+  ],
+  [
+    "Nhân viên gửi",
+    1
+  ],
+  [
+    "Ngày tạo",
+    1
+  ],
+  [
+    "Người xử lý",
+    1
+  ],
+  [
+    "Ngày xử lý",
+    1
+  ],
+  [
+    "Hình ảnh đính kèm (hóa đơn, CK NH):",
+    1
+  ],
+  [
+    "Chọn yêu cầu để gửi ảnh CK ngân hàng...",
+    1
+  ],
+  [
+    "Chọn yêu cầu để gửi ảnh CK ngân hàng",
+    1
+  ],
+  [
+    "Đang tải ảnh minh chứng lên hệ thống, vui lòng không thoát ứng dụng.",
+    1
+  ],
+  [
+    "Gửi yêu cầu đóng tiền",
+    1
+  ],
+  [
+    "Loại thanh toán",
+    1
+  ],
+  [
+    "Tên loại thanh toán",
+    1
+  ],
+  [
+    "Tìm KH",
+    1
+  ],
+  [
+    "Khách thanh toán cho NV",
+    1
+  ],
+  [
+    "Chi tiết thanh toán",
+    1
+  ],
+  [
+    "Số tiền (đ)",
+    1
+  ],
+  [
+    "Số TK / Mã hợp đồng",
+    1
+  ],
+  [
+    "NH / Tổ chức vay góp",
+    1
+  ],
+  [
+    "Ghi chú cho chủ shop",
+    1
+  ],
+  [
+    "Hình ảnh (hóa đơn, CK ngân hàng...)",
+    1
+  ],
+  [
+    "✅ Đã gửi yêu cầu đóng tiền",
+    1
+  ],
+  [
+    "❌ Lỗi gửi yêu cầu",
+    1
+  ],
+  [
+    "Tiền điện",
+    1
+  ],
+  [
+    "Tiền nước",
+    1
+  ],
+  [
+    "Tiền mạng",
+    1
+  ],
+  [
+    "Trả góp",
+    1
+  ],
+  [
+    "Tìm theo tên, SĐT, địa chỉ...",
+    1
+  ],
+  [
+    "Bảng Lương",
+    1
+  ],
+  [
+    "💰 Tính lương tự động",
+    1
+  ],
+  [
+    "📅 Chọn kỳ lương",
+    1
+  ],
+  [
+    "✏️ Điều chỉnh thủ công",
+    1
+  ],
+  [
+    "Thêm khoản thưởng, phạt, khấu trừ hoặc điều chỉnh đặc biệt cho từng nhân viên.",
+    1
+  ],
+  [
+    "🔒 Khóa kỳ lương",
+    1
+  ],
+  [
+    "Sau khi đã duyệt và thanh toán, khóa kỳ lương để tránh chỉnh sửa ngoài ý muốn.",
+    1
+  ],
+  [
+    "Vui lòng chọn nhân viên trước",
+    1
+  ],
+  [
+    "Chỉ quản lý mới chỉnh công thức",
+    1
+  ],
+  [
+    "Tháng đã khóa, không sửa công thức",
+    1
+  ],
+  [
+    "Cài công thức: $staff",
+    1
+  ],
+  [
+    "Lương ngày (đ)",
+    1
+  ],
+  [
+    "Đã khóa tháng",
+    1
+  ],
+  [
+    "Đã mở khóa tháng",
+    1
+  ],
+  [
+    "Đã copy CSV vào clipboard",
+    1
+  ],
+  [
+    "Hoặc gõ tên",
+    1
+  ],
+  [
+    "TỒNG HỢP",
+    1
+  ],
+  [
+    "ĐÃ KHÓA",
+    1
+  ],
+  [
+    "CHƯA KHÓA",
+    1
+  ],
+  [
+    "Khóa",
+    1
+  ],
+  [
+    "].round())} đ",
+    1
+  ],
+  [
+    "✅ Thu tiền thành công!",
+    1
+  ],
+  [
+    "✅ Thanh toán thành công!",
+    1
+  ],
+  [
+    "Thu tiền mặt?",
+    1
+  ],
+  [
+    "Chi tiền mặt?",
+    1
+  ],
+  [
+    "Hủy thanh toán?",
+    1
+  ],
+  [
+    "Hủy thanh toán",
+    1
+  ],
+  [
+    "Hủy thủ công",
+    1
+  ],
+  [
+    "Đã hủy thanh toán",
+    1
+  ],
+  [
+    "Thanh Toán",
+    1
+  ],
+  [
+    "Không có khoản thu chờ xử lý",
+    1
+  ],
+  [
+    "Không có khoản chi chờ xử lý",
+    1
+  ],
+  [
+    "Chưa có lịch sử thanh toán",
+    1
+  ],
+  [
+    "Thống Kê Thanh Toán",
+    1
+  ],
+  [
+    "Chờ thu",
+    1
+  ],
+  [
+    "Chờ chi",
+    1
+  ],
+  [
+    "Chênh lệch chờ",
+    1
+  ],
+  [
+    "XÁC NHẬN THU",
+    1
+  ],
+  [
+    "XÁC NHẬN CHI",
+    1
+  ],
+  [
+    "📋 Phiếu nhập tạm",
+    1
+  ],
+  [
+    "✏️ Chỉnh sửa",
+    1
+  ],
+  [
+    "Nhấn vào phiếu để bổ sung thông tin còn thiếu như: Giá vốn, NCC, Phương thức TT.",
+    1
+  ],
+  [
+    "✅ Xác nhận",
+    1
+  ],
+  [
+    "Khi đủ thông tin (màu xanh), nhấn nút ✓ để xác nhận. Hàng sẽ vào kho ngay.",
+    1
+  ],
+  [
+    "⚠️ Cảnh báo quá hạn",
+    1
+  ],
+  [
+    "Phiếu >3 ngày sẽ có cảnh báo vàng, >7 ngày sẽ đỏ. Hãy xử lý sớm!",
+    1
+  ],
+  [
+    "Chưa đủ thông tin để xác nhận",
+    1
+  ],
+  [
+    "Xác nhận nhập kho?",
+    1
+  ],
+  [
+    "Sau khi xác nhận, hàng sẽ được thêm vào kho và ghi sổ kế toán.",
+    1
+  ],
+  [
+    "Đã xác nhận nhập kho. Mở kho để kiểm tra hàng mới?",
+    1
+  ],
+  [
+    "MỞ KHO",
+    1
+  ],
+  [
+    "Hủy phiếu nhập?",
+    1
+  ],
+  [
+    "Hủy phiếu",
+    1
+  ],
+  [
+    "Mở kho hàng",
+    1
+  ],
+  [
+    "Nhập mới",
+    1
+  ],
+  [
+    "Lọc: ",
+    1
+  ],
+  [
+    "📱 ĐT",
+    1
+  ],
+  [
+    "Không có hàng chờ xác nhận nhập vào kho",
+    1
+  ],
+  [
+    "Nhấn \"NHẬP MỚI\" để tạo phiếu nhập",
+    1
+  ],
+  [
+    "Phiếu nhập bị lỗi",
+    1
+  ],
+  [
+    "Xóa phiếu lỗi?",
+    1
+  ],
+  [
+    "Phiếu này không có sản phẩm và cần được xóa.",
+    1
+  ],
+  [
+    "NHẬP MỚI",
+    1
+  ],
+  [
+    "Cảm ơn quý khách!",
+    1
+  ],
+  [
+    "Đã áp dụng preset PT-50DC (khổ 50mm).",
+    1
+  ],
+  [
+    "✅ In thử WiFi thành công!",
+    1
+  ],
+  [
+    "❌ Timeout: Không kết nối được $ip",
+    1
+  ],
+  [
+    "Không tìm thấy máy in nào trong mạng",
+    1
+  ],
+  [
+    "Lỗi quét mạng: $e",
+    1
+  ],
+  [
+    "Máy in tìm thấy",
+    1
+  ],
+  [
+    "Quét lại",
+    1
+  ],
+  [
+    "✅ In thử Bluetooth thành công!",
+    1
+  ],
+  [
+    "❌ Kết nối OK nhưng gửi dữ liệu thất bại!",
+    1
+  ],
+  [
+    "Thiết kế tem 1:1, kéo thả và in bitmap",
+    1
+  ],
+  [
+    "MẪU IN HÓA ĐƠN",
+    1
+  ],
+  [
+    "Mẫu phiếu sửa",
+    1
+  ],
+  [
+    "Chỉnh sửa mẫu in phiếu sửa chữa",
+    1
+  ],
+  [
+    "Mẫu hóa đơn bán",
+    1
+  ],
+  [
+    "Chỉnh sửa mẫu in hóa đơn bán hàng",
+    1
+  ],
+  [
+    "In tem QR/Barcode IMEI hàng loạt",
+    1
+  ],
+  [
+    "Chọn IMEI và in hàng loạt qua Bluetooth/WiFi",
+    1
+  ],
+  [
+    "Mạng: $_localIp",
+    1
+  ],
+  [
+    "Đã cấu hình",
+    1
+  ],
+  [
+    "Đang quét...",
+    1
+  ],
+  [
+    "QUÉT TÌM MÁY IN",
+    1
+  ],
+  [
+    "Chính sách bảo hành",
+    1
+  ],
+  [
+    "VD: Bảo hành theo phiếu. Máy còn nguyên tem BH.",
+    1
+  ],
+  [
+    "Dùng {warrantyPolicy} trong mẫu hóa đơn",
+    1
+  ],
+  [
+    "Chính sách đổi trả",
+    1
+  ],
+  [
+    "VD: Đổi trả trong 7 ngày. SP còn nguyên tem mác.",
+    1
+  ],
+  [
+    "Dùng {returnPolicy} trong mẫu hóa đơn",
+    1
+  ],
+  [
+    "Bảo hành 6T",
+    1
+  ],
+  [
+    "Đã lưu cài đặt",
+    1
+  ],
+  [
+    "Chọn sản phẩm từ kho",
+    1
+  ],
+  [
+    "Thiết kế",
+    1
+  ],
+  [
+    "Cài đặt nhanh",
+    1
+  ],
+  [
+    "Lưới căn chỉnh",
+    1
+  ],
+  [
+    "Vùng giấy thừa",
+    1
+  ],
+  [
+    "Kích thước:",
+    1
+  ],
+  [
+    "Bật/tắt phần tử",
+    1
+  ],
+  [
+    "Chi tiết (GB/Màu/TT)",
+    1
+  ],
+  [
+    "Kích thước giấy",
+    1
+  ],
+  [
+    "Rộng (mm)",
+    1
+  ],
+  [
+    "Mẫu có sẵn",
+    1
+  ],
+  [
+    "Lề (mm)",
+    1
+  ],
+  [
+    "Hiện giá CPK trên tem",
+    1
+  ],
+  [
+    "Nhập giá CPK thủ công",
+    1
+  ],
+  [
+    "Cắt giấy tự động",
+    1
+  ],
+  [
+    "Máy in sẽ cắt sau mỗi tem",
+    1
+  ],
+  [
+    "Không cắt giấy",
+    1
+  ],
+  [
+    "Đẩy giấy sau in:",
+    1
+  ],
+  [
+    "$_feedLines dòng",
+    1
+  ],
+  [
+    "Phần tử",
+    1
+  ],
+  [
+    "Di chuyển vị trí",
+    1
+  ],
+  [
+    "Lên",
+    1
+  ],
+  [
+    "Trái",
+    1
+  ],
+  [
+    "Phải",
+    1
+  ],
+  [
+    "Xuống",
+    1
+  ],
+  [
+    "Căn lề:",
+    1
+  ],
+  [
+    "Căn trái",
+    1
+  ],
+  [
+    "Căn phải",
+    1
+  ],
+  [
+    "Căn trên",
+    1
+  ],
+  [
+    "Căn dưới",
+    1
+  ],
+  [
+    "Nhập nội dung hoặc chọn token",
+    1
+  ],
+  [
+    "Tiền tố (prefix) trước giá",
+    1
+  ],
+  [
+    "VD: Giá KM: ",
+    1
+  ],
+  [
+    "Màu",
+    1
+  ],
+  [
+    "In đậm (Bold)",
+    1
+  ],
+  [
+    "Sản phẩm đã chọn",
+    1
+  ],
+  [
+    "Đang in...",
+    1
+  ],
+  [
+    "Tìm tên / IMEI / model / màu",
+    1
+  ],
+  [
+    "Vui lòng chọn sản phẩm từ kho",
+    1
+  ],
+  [
+    "Chọn ngay",
+    1
+  ],
+  [
+    "Bitmap trống",
+    1
+  ],
+  [
+    "Không thể gửi dữ liệu đến máy in",
+    1
+  ],
+  [
+    "In thành công $success tem",
+    1
+  ],
+  [
+    "Thành công: $success, Thất bại: $failed",
+    1
+  ],
+  [
+    "Kiểm tra kết nối máy in",
+    1
+  ],
+  [
+    "Đơn Nhập Hàng",
+    1
+  ],
+  [
+    "📦 Quản lý đơn nhập",
+    1
+  ],
+  [
+    "✅ Theo dõi trạng thái",
+    1
+  ],
+  [
+    "Đơn nhập đi qua các bước: Chờ xác nhận → Đang giao → Đã nhận hàng.",
+    1
+  ],
+  [
+    "🏪 Nhập kho tự động",
+    1
+  ],
+  [
+    "💳 Công nợ nhà cung cấp",
+    1
+  ],
+  [
+    "CHỜ NHẬN",
+    1
+  ],
+  [
+    "ĐÃ HỦY",
+    1
+  ],
+  [
+    "Bạn không có quyền xem đơn nhập hàng",
+    1
+  ],
+  [
+    "Tạo đơn nhập",
+    1
+  ],
+  [
+    "TÌM KIẾM THEO MÃ ĐƠN, NHÀ CUNG CẤP...",
+    1
+  ],
+  [
+    "Chưa có đơn nhập hàng nào",
+    1
+  ],
+  [
+    "Không tìm thấy đơn nhập hàng",
+    1
+  ],
+  [
+    "QR không hợp lệ",
+    1
+  ],
+  [
+    "Lỗi xử lý QR: $e",
+    1
+  ],
+  [
+    "Quét QR Code",
+    1
+  ],
+  [
+    "Đã đồng bộ thành công!",
+    1
+  ],
+  [
+    "Bạn có chắc muốn xóa mã nhập nhanh:",
+    1
+  ],
+  [
+    "}đ\\n",
+    1
+  ],
+  [
+    "}đ",
+    1
+  ],
+  [
+    "Đã sao chép thông tin",
+    1
+  ],
+  [
+    "MÃ NHẬP NHANH",
+    1
+  ],
+  [
+    "Đang bật ($_activeCount)",
+    1
+  ],
+  [
+    "Đang tắt ($_inactiveCount)",
+    1
+  ],
+  [
+    "Chưa đồng bộ ($_unsyncedCount)",
+    1
+  ],
+  [
+    "Không có mã nào đang bật",
+    1
+  ],
+  [
+    "Không có mã nào đang tắt",
+    1
+  ],
+  [
+    "Không tìm thấy mã phù hợp",
+    1
+  ],
+  [
+    "Tạo mã để nhập kho nhanh hơn",
+    1
+  ],
+  [
+    "TẠO MÃ ĐẦU TIÊN",
+    1
+  ],
+  [
+    "Đầy đủ",
+    1
+  ],
+  [
+    "TRẮNG",
+    1
+  ],
+  [
+    "ĐỎ",
+    1
+  ],
+  [
+    "VÀNG",
+    1
+  ],
+  [
+    "TÍM",
+    1
+  ],
+  [
+    "HỒNG",
+    1
+  ],
+  [
+    "BẠC",
+    1
+  ],
+  [
+    "XANH LÁ",
+    1
+  ],
+  [
+    "XANH DƯƠNG",
+    1
+  ],
+  [
+    "TITAN TỰ NHIÊN",
+    1
+  ],
+  [
+    "TITAN ĐEN",
+    1
+  ],
+  [
+    "TITAN TRẮNG",
+    1
+  ],
+  [
+    "TITAN XÁM",
+    1
+  ],
+  [
+    "SỬA MÃ NHẬP NHANH",
+    1
+  ],
+  [
+    "THÊM MÃ NHẬP NHANH",
+    1
+  ],
+  [
+    "LOẠI SẢN PHẨM",
+    1
+  ],
+  [
+    "Tên mã nhập nhanh *",
+    1
+  ],
+  [
+    "Mô tả / Loại phụ kiện",
+    1
+  ],
+  [
+    "VD: Ốp lưng silicon iPhone 15",
+    1
+  ],
+  [
+    "Màu sắc (nếu có)",
+    1
+  ],
+  [
+    "GIÁ TIỀN",
+    1
+  ],
+  [
+    "THÔNG TIN KHÁC",
+    1
+  ],
+  [
+    "Tải lại danh sách NCC",
+    1
+  ],
+  [
+    "-- Chọn nhà cung cấp --",
+    1
+  ],
+  [
+    "Thông tin bổ sung...",
+    1
+  ],
+  [
+    "THÊM MÃ",
+    1
+  ],
+  [
+    "Lỗi tải thư viện mã nhập nhanh: $e",
+    1
+  ],
+  [
+    "Lỗi mở dialog: $e",
+    1
+  ],
+  [
+    "THƯ VIỆN MÃ NHẬP NHANH",
+    1
+  ],
+  [
+    "Đồng bộ dữ liệu",
+    1
+  ],
+  [
+    "CHƯA ĐỒNG BỘ",
+    1
+  ],
+  [
+    "Loại phụ kiện",
+    1
+  ],
+  [
+    "Vốn",
+    1
+  ],
+  [
+    "Thêm mã nhập nhanh",
+    1
+  ],
+  [
+    "Sửa mã nhập nhanh",
+    1
+  ],
+  [
+    "Phụ kiện/Linh kiện",
+    1
+  ],
+  [
+    "Vui lòng chọn loại",
+    1
+  ],
+  [
+    "Tên mã nhập nhanh",
+    1
+  ],
+  [
+    "MỚI - Mới 100%",
+    1
+  ],
+  [
+    "Mô tả/Loại phụ kiện",
+    1
+  ],
+  [
+    "Tạo mã nhập nhanh để tăng tốc độ nhập kho",
+    1
+  ],
+  [
+    "Không có mã nào phù hợp với bộ lọc",
+    1
+  ],
+  [
+    "Không có mã nhập nhanh nào chưa đồng bộ",
+    1
+  ],
+  [
+    "Thử thay đổi bộ lọc để xem các mã khác",
+    1
+  ],
+  [
+    "Lỗi nhập kho: $e",
+    1
+  ],
+  [
+    "Tính năng tạo mã mới đang được phát triển",
+    1
+  ],
+  [
+    "Không tìm thấy mã nhập nhanh phù hợp",
+    1
+  ],
+  [
+    ").format(code.price)}đ",
+    1
+  ],
+  [
+    "Bật",
+    1
+  ],
+  [
+    "Tắt mã",
+    1
+  ],
+  [
+    "Bật mã",
+    1
+  ],
+  [
+    "Quản lý Mã Nhập Nhanh",
+    1
+  ],
+  [
+    "📋 [RecentActivityView] Nhận event \"$event\" → debounce reload",
+    1
+  ],
+  [
+    "HOẠT ĐỘNG GẦN ĐÂY",
+    1
+  ],
+  [
+    "Nguồn:",
+    1
+  ],
+  [
+    "3 ngày",
+    1
+  ],
+  [
+    "Không tải được hoạt động gần đây\\n$_error",
+    1
+  ],
+  [
+    "Không có hoạt động nào trong khoảng thời gian đã chọn",
+    1
+  ],
+  [
+    "Cập nhật: $generatedAt",
+    1
+  ],
+  [
+    "Hướng dẫn tham gia cửa hàng",
+    1
+  ],
+  [
+    "Nhân viên không tự đăng ký tài khoản.\\n",
+    1
+  ],
+  [
+    "Chủ shop sẽ tạo tài khoản cho bạn:\\n\\n",
+    1
+  ],
+  [
+    "1. Chủ shop đăng nhập ứng dụng\\n",
+    1
+  ],
+  [
+    "2. Vào tab Cài đặt → Quản lý nhân viên\\n",
+    1
+  ],
+  [
+    "3. Nhấn nút \\\"Tạo tài khoản nhân viên\\\"\\n",
+    1
+  ],
+  [
+    "4. Nhập thông tin và tạo tài khoản\\n",
+    1
+  ],
+  [
+    "5. Bạn đăng nhập bằng email & mật khẩu được cấp",
+    1
+  ],
+  [
+    "Nhập email đăng nhập của bạn",
+    1
+  ],
+  [
+    "👔 Quản lý",
+    1
+  ],
+  [
+    "Toàn quyền quản lý cửa hàng",
+    1
+  ],
+  [
+    "🧑‍💼 Nhân viên",
+    1
+  ],
+  [
+    "Bán hàng, nhận đơn sửa",
+    1
+  ],
+  [
+    "🔧 Kỹ thuật",
+    1
+  ],
+  [
+    "Sửa chữa thiết bị",
+    1
+  ],
+  [
+    "Vai trò trong cửa hàng",
+    1
+  ],
+  [
+    "📱 Điện tử",
+    1
+  ],
+  [
+    "Điện thoại, laptop, phụ kiện",
+    1
+  ],
+  [
+    "Quần áo, giày dép, túi xách",
+    1
+  ],
+  [
+    "Tạo tài khoản nhân viên\\",
+    1
+  ],
+  [
+    "Cần xử lý ngay",
+    1
+  ],
+  [
+    "Quan trọng",
+    1
+  ],
+  [
+    "Công việc chờ",
+    1
+  ],
+  [
+    "Không có việc cần xử lý",
+    1
+  ],
+  [
+    "Tất cả đã được xử lý xong!",
+    1
+  ],
+  [
+    "$totalCount việc cần xử lý",
+    1
+  ],
+  [
+    "$urgentCount việc cần xử lý ngay",
+    1
+  ],
+  [
+    "Không có việc khẩn cấp",
+    1
+  ],
+  [
+    "❌ [RepairDetailView] Realtime doc listener lỗi: $error",
+    1
+  ],
+  [
+    "⚠️ [RepairDetailView] enqueue heal partial repair snapshot lỗi: $e",
+    1
+  ],
+  [
+    "⚠️ [RepairDetailView] _applyRepairDocSnapshot lỗi: $e",
+    1
+  ],
+  [
+    "KHÁCH LẺ",
+    1
+  ],
+  [
+    "VÃNG LAI",
+    1
+  ],
+  [
+    "YÊU CẦU DUYỆT GIAO",
+    1
+  ],
+  [
+    "⚠️ [RepairDetailView] _findDeliveryRequestedAt lỗi: $e",
+    1
+  ],
+  [
+    "⚠️ [RepairDetailView] _loadLastModifierInfo lỗi: $e",
+    1
+  ],
+  [
+    "SỬA ĐƠN SỬA",
+    1
+  ],
+  [
+    "CHỈNH SỬA THÔNG TIN ĐƠN SỬA",
+    1
+  ],
+  [
+    "Giá yêu cầu",
+    1
+  ],
+  [
+    "⚠️ [RepairDetailView] _loadPartners lỗi: $e",
+    1
+  ],
+  [
+    "Nhân viên không có quyền sửa đơn sửa.",
+    1
+  ],
+  [
+    "Nhân viên không có quyền sửa tài chính đơn sửa.",
+    1
+  ],
+  [
+    "Bạn không có quyền sửa giá thu khách.",
+    1
+  ],
+  [
+    "Chọn vị trí cất máy",
+    1
+  ],
+  [
+    "Tuỳ chọn: chọn vị trí lưu kho để dễ tìm máy sau khi sửa xong.",
+    1
+  ],
+  [
+    "Bỏ qua",
+    1
+  ],
+  [
+    "⚠️ [RepairDetailView] Push status realtime lỗi: $e",
+    1
+  ],
+  [
+    "Vui lòng cập nhật thông tin khách hàng (Tên, SĐT) trước khi giao máy.",
+    1
+  ],
+  [
+    "6 tháng",
+    1
+  ],
+  [
+    "⚠️ [RepairDetailView] Push pending approval realtime lỗi: $e",
+    1
+  ],
+  [
+    "📋 YÊU CẦU DUYỆT GIAO MÁY",
+    1
+  ],
+  [
+    "Vui lòng cập nhật thông tin khách hàng (Tên, SĐT) trước khi duyệt giao máy.",
+    1
+  ],
+  [
+    "⚠️ [RepairDetailView] Push approved delivery realtime lỗi: $e",
+    1
+  ],
+  [
+    "✅ ĐÃ DUYỆT GIAO MÁY • $deliveredClock",
+    1
+  ],
+  [
+    "⚠️ [RepairDetailView] Push reject realtime lỗi: $e",
+    1
+  ],
+  [
+    "Nhà cung cấp phụ tùng",
+    1
+  ],
+  [
+    "] as int? ?? 0)}đ/cái)",
+    1
+  ],
+  [
+    "Đơn sửa chữa chưa có phụ tùng nào.",
+    1
+  ],
+  [
+    "XÓA PHỤ TÙNG",
+    1
+  ],
+  [
+    "Chọn phụ tùng cần xóa và trả lại kho:",
+    1
+  ],
+  [
+    "Xóa \"$removedPart\" khỏi đơn sửa và trả lại $partQty vào kho?",
+    1
+  ],
+  [
+    "Đơn sửa chữa chưa có phụ tùng nào để đổi.",
+    1
+  ],
+  [
+    "ĐỔI PHỤ TÙNG",
+    1
+  ],
+  [
+    "Chọn phụ tùng cần đổi:",
+    1
+  ],
+  [
+    "✅ Đổi PT - Đã trả kho: $partName x$partQty",
+    1
+  ],
+  [
+    "⚠️ Đổi PT - Không tìm thấy \"$partName\" trong kho để trả",
+    1
+  ],
+  [
+    "Đã xóa \"$removedPart\" — chọn phụ tùng thay thế.",
+    1
+  ],
+  [
+    "Bạn không có quyền xem/chỉnh sửa tài chính",
+    1
+  ],
+  [
+    "Đã giao máy — không thể sửa giá",
+    1
+  ],
+  [
+    "GHI VÀO SỔ QUỸ?",
+    1
+  ],
+  [
+    "Ghi chi phí này vào sổ quỹ để cập nhật biến động quỹ tiền mặt / ngân hàng?",
+    1
+  ],
+  [
+    "LỖI THIẾT BỊ",
+    1
+  ],
+  [
+    "Vị trí cất máy",
+    1
+  ],
+  [
+    "CẬP NHẬT VỊ TRÍ",
+    1
+  ],
+  [
+    "Đã xóa vị trí lưu kho",
+    1
+  ],
+  [
+    "Đã cập nhật vị trí: $newCode",
+    1
+  ],
+  [
+    "Mở hồ sơ khách hàng từ phiếu sửa",
+    1
+  ],
+  [
+    "Chỉnh sửa thông tin",
+    1
+  ],
+  [
+    "Đã thêm ảnh, đang tải nền lên hệ thống",
+    1
+  ],
+  [
+    "Lỗi thêm ảnh: $e",
+    1
+  ],
+  [
+    "Chỉ local",
+    1
+  ],
+  [
+    "Chờ sync",
+    1
+  ],
+  [
+    "Đã sync",
+    1
+  ],
+  [
+    "nhận",
+    1
+  ],
+  [
+    "sửa",
+    1
+  ],
+  [
+    "Chưa có đối tác sửa chữa để chọn.",
+    1
+  ],
+  [
+    "ℹ️ Partner debt đã tồn tại, bỏ qua tạo trùng: $debtFId",
+    1
+  ],
+  [
+    "Gọi điện",
+    1
+  ],
+  [
+    "Không thể gọi điện: $phone",
+    1
+  ],
+  [
+    "Y/C DUYỆT",
+    1
+  ],
+  [
+    "NHẬP LK MỚI",
+    1
+  ],
+  [
+    "DUYỆT GIAO MÁY",
+    1
+  ],
+  [
+    "TỪ CHỐI GIAO",
+    1
+  ],
+  [
+    " và trả lại kho",
+    1
+  ],
+  [
+    "Tiếp nhận",
+    1
+  ],
+  [
+    "Sửa xong",
+    1
+  ],
+  [
+    "XEM TRƯỚC PHIẾU SỬA",
+    1
+  ],
+  [
+    "Đã lưu mẫu phiếu sửa",
+    1
+  ],
+  [
+    "Vỡ màn hình",
+    1
+  ],
+  [
+    "Sạc, ốp",
+    1
+  ],
+  [
+    "MẪU PHIẾU SỬA",
+    1
+  ],
+  [
+    "🔧 [RepairPartnerDetailView] Nhận event \"$event\" → debounce reload",
+    1
+  ],
+  [
+    "Xóa đối tác sửa chữa",
+    1
+  ],
+  [
+    "ĐƠN GỬI SỬA",
+    1
+  ],
+  [
+    "Chưa có đơn gửi sửa nào",
+    1
+  ],
+  [
+    "Ngày gửi: $date",
+    1
+  ],
+  [
+    "Đã trả nợ",
+    1
+  ],
+  [
+    "Thanh toán trực tiếp",
+    1
+  ],
+  [
+    "Chưa có thanh toán trực tiếp",
+    1
+  ],
+  [
+    "Trả ngay",
+    1
+  ],
+  [
+    "Chưa có thanh toán công nợ",
+    1
+  ],
+  [
+    "Tổng đơn gửi sửa",
+    1
+  ],
+  [
+    "$totalOrders đơn",
+    1
+  ],
+  [
+    "Tổng chi phí",
+    1
+  ],
+  [
+    "Lần gửi sửa cuối",
+    1
+  ],
+  [
+    "Lỗi cập nhật đối tác",
+    1
+  ],
+  [
+    "Đã thêm đối tác mới",
+    1
+  ],
+  [
+    "Lỗi thêm đối tác",
+    1
+  ],
+  [
+    "SỬA ĐỐI TÁC",
+    1
+  ],
+  [
+    "THÊM ĐỐI TÁC MỚI",
+    1
+  ],
+  [
+    "Chuyên sửa màn hình, main board...",
+    1
+  ],
+  [
+    "Đang hoạt động",
+    1
+  ],
+  [
+    "Đối tác đang hợp tác",
+    1
+  ],
+  [
+    "Tạm ngừng hợp tác",
+    1
+  ],
+  [
+    "THÊM ĐỐI TÁC",
+    1
+  ],
+  [
+    "ĐÃ XÓA ĐỐI TÁC",
+    1
+  ],
+  [
+    "Đã thêm đối tác thành công",
+    1
+  ],
+  [
+    "Thêm ĐT",
+    1
+  ],
+  [
+    "XÓA ĐỐI TÁC",
+    1
+  ],
+  [
+    "Bạn chắc chắn muốn xóa đối tác \\",
+    1
+  ],
+  [
+    " khỏi danh sách? Các đơn sửa cũ vẫn giữ nguyên thông tin đối tác dạng chữ.",
+    1
+  ],
+  [
+    "THÊM ĐỐI TÁC SỬA CHỮA",
+    1
+  ],
+  [
+    "SỬA THÔNG TIN ĐỐI TÁC",
+    1
+  ],
+  [
+    "Tìm kiếm đối tác...",
+    1
+  ],
+  [
+    "Đang tải danh sách...",
+    1
+  ],
+  [
+    "Chưa có đối tác nào",
+    1
+  ],
+  [
+    "Không tìm thấy đối tác",
+    1
+  ],
+  [
+    "Thêm đối tác sửa chữa để quản lý công nợ & lịch sử gửi sửa",
+    1
+  ],
+  [
+    "Thử tìm kiếm với từ khóa khác",
+    1
+  ],
+  [
+    "THÊM ĐỐI TÁC ĐẦU TIÊN",
+    1
+  ],
+  [
+    "$totalOrders đơn gửi sửa",
+    1
+  ],
+  [
+    "HOẠT ĐỘNG",
+    1
+  ],
+  [
+    "TẠM DỪNG",
+    1
+  ],
+  [
+    "TỔNG CHI PHÍ GỬI SỬA:",
+    1
+  ],
+  [
+    "CHI TIẾT",
+    1
+  ],
+  [
+    "Đã lưu và in phiếu tiếp nhận thành công!",
+    1
+  ],
+  [
+    "PHIẾU TIẾP NHẬN SỬA CHỮA",
+    1
+  ],
+  [
+    "MÃ PHIẾU TIẾP NHẬN",
+    1
+  ],
+  [
+    "THÔNG TIN KHÁCH HÀNG",
+    1
+  ],
+  [
+    "THÔNG TIN THIẾT BỊ",
+    1
+  ],
+  [
+    "Model thiết bị *",
+    1
+  ],
+  [
+    "Tình trạng hỏng *",
+    1
+  ],
+  [
+    "Phụ kiện đi kèm",
+    1
+  ],
+  [
+    "Ví dụ: Sạc, tai nghe, ốp lưng...",
+    1
+  ],
+  [
+    "Giá dự kiến (VNĐ)",
+    1
+  ],
+  [
+    "Để trống nếu chưa xác định",
+    1
+  ],
+  [
+    "Giá dự kiến",
+    1
+  ],
+  [
+    "ĐANG XỬ LÝ...",
+    1
+  ],
+  [
+    "LƯU & IN PHIẾU",
+    1
+  ],
+  [
+    "XEM TRƯỚC PHIẾU",
+    1
+  ],
+  [
+    "XEM TRƯỚC PHIẾU TIẾP NHẬN",
+    1
+  ],
+  [
+    "Mã phiếu:",
+    1
+  ],
+  [
+    "Khách hàng:",
+    1
+  ],
+  [
+    "SĐT:",
+    1
+  ],
+  [
+    "Địa chỉ:",
+    1
+  ],
+  [
+    "Tình trạng:",
+    1
+  ],
+  [
+    "Phụ kiện:",
+    1
+  ],
+  [
+    "Giá dự kiến:",
+    1
+  ],
+  [
+    "Ngày nhận:",
+    1
+  ],
+  [
+    "Danh sách trả hàng",
+    1
+  ],
+  [
+    "Tìm khách hàng, SĐT...",
+    1
+  ],
+  [
+    "Không tìm thấy phiếu trả hàng phù hợp",
+    1
+  ],
+  [
+    "Chưa có phiếu trả hàng nào",
+    1
+  ],
+  [
+    "Chi tiết phiếu trả hàng",
+    1
+  ],
+  [
+    "Ngày trả",
+    1
+  ],
+  [
+    "Phương thức hoàn",
+    1
+  ],
+  [
+    "NV xử lý",
+    1
+  ],
+  [
+    "✅ Đã duyệt",
+    1
+  ],
+  [
+    "TỔNG HOÀN:",
+    1
+  ],
+  [
+    "àáâãèéêìíòóôõùúýỳỹỷỵửữừứựửữừứựàáâãèéêìíòóôõùúýỳỹỷỵửữừứựửữừứự",
+    1
+  ],
+  [
+    "Đã in hóa đơn thành công!",
+    1
+  ],
+  [
+    "In thất bại! Vui lòng kiểm tra cài đặt máy in.",
+    1
+  ],
+  [
+    "Lỗi khi in: $e",
+    1
+  ],
+  [
+    "[SỈ]",
+    1
+  ],
+  [
+    "VIP + SỈ",
+    1
+  ],
+  [
+    "Số tiền nhận",
+    1
+  ],
+  [
+    "NGÂN HÀNG",
+    1
+  ],
+  [
+    "Nhập tên khách",
+    1
+  ],
+  [
+    "Đã cập nhật thông tin đơn hàng",
+    1
+  ],
+  [
+    ").format(finalPrice)}đ",
+    1
+  ],
+  [
+    "Hệ thống sẽ tự động:",
+    1
+  ],
+  [
+    "Khôi phục số lượng kho",
+    1
+  ],
+  [
+    "Xóa công nợ liên quan",
+    1
+  ],
+  [
+    "Xóa bản ghi thanh toán",
+    1
+  ],
+  [
+    "Cập nhật lại chi tiêu KH",
+    1
+  ],
+  [
+    "HỦY ĐƠN BÁN",
+    1
+  ],
+  [
+    "❌ Lỗi xóa đơn bán: $e",
+    1
+  ],
+  [
+    "Lỗi xóa đơn bán: $e",
+    1
+  ],
+  [
+    "CHI TIẾT ĐƠN BÁN",
+    1
+  ],
+  [
+    "Sửa thông tin đơn",
+    1
+  ],
+  [
+    "Đã trả hết",
+    1
+  ],
+  [
+    "Trả hàng thành công!",
+    1
+  ],
+  [
+    "Mẫu in",
+    1
+  ],
+  [
+    "Mở chi tiết sản phẩm từ đơn bán",
+    1
+  ],
+  [
+    "CẦN ĐĂNG NHẬP TÀI KHOẢN QUẢN LÝ",
+    1
+  ],
+  [
+    "Chỉ tài khoản quản lý mới được sửa/xóa",
+    1
+  ],
+  [
+    "XÁC THỰC QUẢN LÝ",
+    1
+  ],
+  [
+    "Mật khẩu quản lý",
+    1
+  ],
+  [
+    "ĐÃ MỞ KHÓA CHỈNH SỬA",
+    1
+  ],
+  [
+    "Sai mật khẩu quản lý",
+    1
+  ],
+  [
+    "Số tiền nhận (VNĐ)",
+    1
+  ],
+  [
+    "Phí NH giữ lại (VNĐ)",
+    1
+  ],
+  [
+    "ĐÃ GHI NHẬN TIỀN NGÂN HÀNG CHUYỂN",
+    1
+  ],
+  [
+    "SỬA ĐƠN BÁN",
+    1
+  ],
+  [
+    "Tên khách",
+    1
+  ],
+  [
+    "XÓA ĐƠN BÁN",
+    1
+  ],
+  [
+    "XÓA ĐƠN",
+    1
+  ],
+  [
+    "GIAO DỊCH",
+    1
+  ],
+  [
+    "Thời gian",
+    1
+  ],
+  [
+    "Giảm giá",
+    1
+  ],
+  [
+    "TRẢ GÓP - NGÂN HÀNG",
+    1
+  ],
+  [
+    "NH 1 giải ngân",
+    1
+  ],
+  [
+    "Số tiền NH 1",
+    1
+  ],
+  [
+    "NH 2 giải ngân",
+    1
+  ],
+  [
+    "Số tiền NH 2",
+    1
+  ],
+  [
+    "Tổng vay NH",
+    1
+  ],
+  [
+    "Ngày dự kiến",
+    1
+  ],
+  [
+    "Mã hồ sơ",
+    1
+  ],
+  [
+    "Chưa nhận",
+    1
+  ],
+  [
+    "Trao đổi về $summary",
+    1
+  ],
+  [
+    "ĐÃ GIM ĐƠN BÁN VÀO CHAT NỘI BỘ",
+    1
+  ],
+  [
+    "KHÔNG CÓ SỐ DIEN_THOAI KHÁCH",
+    1
+  ],
+  [
+    "ĐÃ MỞ ỨNG DỤNG NHẮN TIN (nội dung đã copy sẵn).",
+    1
+  ],
+  [
+    "KHÔNG MỞ ĐƯỢC ỨNG DỤNG NHẮN TIN, anh/chị dán nội dung vào Zalo/SMS giúp em.",
+    1
+  ],
+  [
+    "LỖI KHI GỬI TIN NHẮN, nhưng nội dung đã được copy sẵn.",
+    1
+  ],
+  [
+    "XEM TRƯỚC HÓA ĐƠN BÁN",
+    1
+  ],
+  [
+    "Đã lưu mẫu hóa đơn bán",
+    1
+  ],
+  [
+    "Nguyễn Văn B",
+    1
+  ],
+  [
+    "MẪU HÓA ĐƠN BÁN",
+    1
+  ],
+  [
+    "Lịch Sử Bán Hàng",
+    1
+  ],
+  [
+    "🛒 Danh sách hóa đơn",
+    1
+  ],
+  [
+    "Tìm hóa đơn theo tên khách hàng, tên sản phẩm hoặc mã hóa đơn.",
+    1
+  ],
+  [
+    "📄 Xem chi tiết & in lại",
+    1
+  ],
+  [
+    "Nhấn vào hóa đơn để xem chi tiết, in lại biên lai hoặc tạo phiếu đổi trả.",
+    1
+  ],
+  [
+    "💳 Trạng thái thanh toán",
+    1
+  ],
+  [
+    "Biết ngay hóa đơn nào đã thanh toán, đang chờ thanh toán hay ghi nợ.",
+    1
+  ],
+  [
+    "THỜI GIAN",
+    1
+  ],
+  [
+    "TRẠNG THÁI THANH TOÁN",
+    1
+  ],
+  [
+    "TG chờ NH",
+    1
+  ],
+  [
+    "TG đã nhận NH",
+    1
+  ],
+  [
+    "ÁP DỤNG",
+    1
+  ],
+  [
+    "DOANH SỐ HÔM NAY",
+    1
+  ],
+  [
+    "QUẢN LÝ ĐƠN BÁN",
+    1
+  ],
+  [
+    "Tạo đơn bán",
+    1
+  ],
+  [
+    "Lọc ($_activeFilterCount)",
+    1
+  ],
+  [
+    "Không có đơn hàng nào",
+    1
+  ],
+  [
+    "Thử xóa bộ lọc để xem tất cả",
+    1
+  ],
+  [
+    "Tải thêm đơn bán",
+    1
+  ],
+  [
+    "TRẢ",
+    1
+  ],
+  [
+    "CHỜ NH",
+    1
+  ],
+  [
+    "💰 Đã thu",
+    1
+  ],
+  [
+    "⚠️ Còn nợ",
+    1
+  ],
+  [
+    "🏷 Bán",
+    1
+  ],
+  [
+    "📦 Vốn",
+    1
+  ],
+  [
+    "📈 Lãi",
+    1
+  ],
+  [
+    "📉 Lỗ",
+    1
+  ],
+  [
+    "↩ Trả hết",
+    1
+  ],
+  [
+    "↩ Trả 1 phần",
+    1
+  ],
+  [
+    "🏦 Trả góp",
+    1
+  ],
+  [
+    "Chưa nhận tiền NH",
+    1
+  ],
+  [
+    "Đang lọc: tải toàn bộ dữ liệu",
+    1
+  ],
+  [
+    "Tải cuộn $_pageSize đơn/lần",
+    1
+  ],
+  [
+    "Còn dữ liệu để tải thêm",
+    1
+  ],
+  [
+    "Đã tải hết dữ liệu hiện có",
+    1
+  ],
+  [
+    "$modeLabel • Đang hiển thị $shownCount đơn",
+    1
+  ],
+  [
+    "Trả góp chờ NH",
+    1
+  ],
+  [
+    "Trả góp đã nhận NH",
+    1
+  ],
+  [
+    "Đơn này đã trả hết hàng",
+    1
+  ],
+  [
+    "$value đ",
+    1
+  ],
+  [
+    "Thêm máy",
+    1
+  ],
+  [
+    "KHO MÁY XÁC",
+    1
+  ],
+  [
+    "$_totalCount máy · $_storedCount đang lưu",
+    1
+  ],
+  [
+    "Tổng máy",
+    1
+  ],
+  [
+    "Đang lưu",
+    1
+  ],
+  [
+    "Tìm theo tên máy, khách hàng, SĐT, ghi chú...",
+    1
+  ],
+  [
+    "Lưu kho",
+    1
+  ],
+  [
+    "Đã dùng",
+    1
+  ],
+  [
+    "Không tìm thấy máy xác phù hợp",
+    1
+  ],
+  [
+    "Chưa có máy xác nào",
+    1
+  ],
+  [
+    "Nhấn + để thêm máy xác mới",
+    1
+  ],
+  [
+    "Giá mua",
+    1
+  ],
+  [
+    "Khách bán",
+    1
+  ],
+  [
+    "Đổi TT",
+    1
+  ],
+  [
+    "SỬA MÁY XÁC",
+    1
+  ],
+  [
+    "THÊM MÁY XÁC",
+    1
+  ],
+  [
+    "Tên thiết bị *",
+    1
+  ],
+  [
+    "Giá mua (VNĐ) *",
+    1
+  ],
+  [
+    "Tên khách bán",
+    1
+  ],
+  [
+    "SĐT khách",
+    1
+  ],
+  [
+    "VD: MÀN BỂ, MẤT VÂN TAY...",
+    1
+  ],
+  [
+    "Vui lòng nhập tên thiết bị",
+    1
+  ],
+  [
+    "Vui lòng nhập giá mua hợp lệ",
+    1
+  ],
+  [
+    "Đang tải ảnh lên hệ thống, vui lòng không thoát ứng dụng.",
+    1
+  ],
+  [
+    "Upload ảnh thất bại. Vui lòng kiểm tra mạng và quyền truy cập ảnh/camera.",
+    1
+  ],
+  [
+    "Upload ảnh thất bại: $reason",
+    1
+  ],
+  [
+    "Không có ảnh nào được tải lên thành công.",
+    1
+  ],
+  [
+    "Đã cập nhật máy xác",
+    1
+  ],
+  [
+    "Đã thêm máy xác mới",
+    1
+  ],
+  [
+    "Thêm hình ảnh (tùy chọn)",
+    1
+  ],
+  [
+    "Hình ảnh ($totalImages/3)",
+    1
+  ],
+  [
+    "Thư viện",
+    1
+  ],
+  [
+    "Đổi trạng thái",
+    1
+  ],
+  [
+    "Mua máy xác: $deviceName",
+    1
+  ],
+  [
+    "Mua từ $customerName",
+    1
+  ],
+  [
+    "Mua máy xác",
+    1
+  ],
+  [
+    "Không tải được ảnh lên. Vui lòng kiểm tra kết nối mạng và thử lại.",
+    1
+  ],
+  [
+    "Không có quyền tải ảnh lên (lỗi 403). Vui lòng liên hệ quản trị viên.",
+    1
+  ],
+  [
+    "Quản lý cửa hàng",
+    1
+  ],
+  [
+    "Thêm, sửa, xóa danh mục sản phẩm",
+    1
+  ],
+  [
+    "Bảo mật Super Admin",
+    1
+  ],
+  [
+    "Mã PIN bảo vệ khi đăng nhập & nhật ký truy cập",
+    1
+  ],
+  [
+    "Mã PIN chưa thiết lập",
+    1
+  ],
+  [
+    "Mỗi lần đăng nhập sẽ yêu cầu nhập PIN",
+    1
+  ],
+  [
+    "Bật PIN để bảo vệ tài khoản super admin",
+    1
+  ],
+  [
+    "Xem lịch sử đăng nhập & thao tác",
+    1
+  ],
+  [
+    "Nhập lại mã PIN",
+    1
+  ],
+  [
+    "Mã PIN không khớp",
+    1
+  ],
+  [
+    "✅ Đã thiết lập mã PIN thành công!",
+    1
+  ],
+  [
+    "Lỗi thiết lập PIN",
+    1
+  ],
+  [
+    "Nhập mã PIN hiện tại để xác nhận tắt:",
+    1
+  ],
+  [
+    "Đã tắt mã PIN",
+    1
+  ],
+  [
+    "TẮT PIN",
+    1
+  ],
+  [
+    "Chưa có nhật ký",
+    1
+  ],
+  [
+    "Đăng nhập Super Admin",
+    1
+  ],
+  [
+    "Xác thực PIN thành công",
+    1
+  ],
+  [
+    "⚠ Nhập PIN sai",
+    1
+  ],
+  [
+    "Liên kết để đăng nhập nhanh hơn",
+    1
+  ],
+  [
+    "Bạn có chắc muốn hủy liên kết $provider? ",
+    1
+  ],
+  [
+    "Bạn sẽ không thể đăng nhập bằng $provider nữa.",
+    1
+  ],
+  [
+    "Lỗi hủy liên kết: $e",
+    1
+  ],
+  [
+    "Ca sáng (08:00-12:00)",
+    1
+  ],
+  [
+    "Ca chiều (13:00-17:00)",
+    1
+  ],
+  [
+    "Ca tối (18:00-22:00)",
+    1
+  ],
+  [
+    "Ca linh hoạt",
+    1
+  ],
+  [
+    "Không tải được quyền đổi ca: $e",
+    1
+  ],
+  [
+    "YÊU CẦU CỦA TÔI",
+    1
+  ],
+  [
+    "ĐỔI CA",
+    1
+  ],
+  [
+    "Tạo và duyệt yêu cầu đổi ca theo shop",
+    1
+  ],
+  [
+    "Tạo yêu cầu mới",
+    1
+  ],
+  [
+    "YÊU CẦU ĐỔI CA",
+    1
+  ],
+  [
+    "Bạn chưa tạo yêu cầu đổi ca nào",
+    1
+  ],
+  [
+    "Không có yêu cầu nào đang chờ duyệt",
+    1
+  ],
+  [
+    "HUỶ",
+    1
+  ],
+  [
+    "TẠO YÊU CẦU ĐỔI CA",
+    1
+  ],
+  [
+    "Ngày cần đổi ca",
+    1
+  ],
+  [
+    "Ca hiện tại",
+    1
+  ],
+  [
+    "Ca muốn đổi",
+    1
+  ],
+  [
+    "Đổi với nhân viên (tuỳ chọn)",
+    1
+  ],
+  [
+    "Không chỉ định",
+    1
+  ],
+  [
+    "Lý do đổi ca (không bắt buộc)",
+    1
+  ],
+  [
+    "Ca hiện tại và ca muốn đổi không được trùng nhau",
+    1
+  ],
+  [
+    "✅ Đã gửi yêu cầu đổi ca",
+    1
+  ],
+  [
+    "❌ Không thể gửi yêu cầu: $e",
+    1
+  ],
+  [
+    "ĐANG GỬI",
+    1
+  ],
+  [
+    "✅ Đã duyệt yêu cầu đổi ca",
+    1
+  ],
+  [
+    "❌ Duyệt thất bại: $e",
+    1
+  ],
+  [
+    "TỪ CHỐI YÊU CẦU",
+    1
+  ],
+  [
+    "Nhập lý do để nhân viên biết và xử lý lại",
+    1
+  ],
+  [
+    "✅ Đã từ chối yêu cầu đổi ca",
+    1
+  ],
+  [
+    "❌ Từ chối thất bại: $e",
+    1
+  ],
+  [
+    "Bạn có chắc muốn huỷ yêu cầu đổi ca này không?",
+    1
+  ],
+  [
+    "KHÔNG",
+    1
+  ],
+  [
+    "✅ Đã huỷ yêu cầu",
+    1
+  ],
+  [
+    "❌ Không thể huỷ yêu cầu: $e",
+    1
+  ],
+  [
+    "ĐÃ HUỶ",
+    1
+  ],
+  [
+    "Xác thực Super Admin",
+    1
+  ],
+  [
+    "Nhập mã PIN bảo mật để tiếp tục:",
+    1
+  ],
+  [
+    "Mã PIN (4-6 số)",
+    1
+  ],
+  [
+    "✅ Super admin đã chọn shop (local): $shopId ($shopName)",
+    1
+  ],
+  [
+    "✅ Đã update shopId trong Firestore user doc",
+    1
+  ],
+  [
+    "✅ Đã refresh claims",
+    1
+  ],
+  [
+    "✅ Đã refresh token",
+    1
+  ],
+  [
+    "⚠️ Lỗi refresh claims (có thể tiếp tục): $e",
+    1
+  ],
+  [
+    "✅ Đã xóa local data cũ",
+    1
+  ],
+  [
+    "✅ Đã download data từ cloud",
+    1
+  ],
+  [
+    "✅ Đã khởi động real-time sync",
+    1
+  ],
+  [
+    "❌ Lỗi khi chọn shop: $e",
+    1
+  ],
+  [
+    "Lỗi khi chọn shop: $e",
+    1
+  ],
+  [
+    "QUẢN LÝ SHOP",
+    1
+  ],
+  [
+    "Đang tải danh sách shop...",
+    1
+  ],
+  [
+    "Không tìm thấy shop",
+    1
+  ],
+  [
+    "Tìm theo tên, email, loại hình...",
+    1
+  ],
+  [
+    "Không tìm thấy shop phù hợp",
+    1
+  ],
+  [
+    "Điện tử",
+    1
+  ],
+  [
+    "Thời trang",
+    1
+  ],
+  [
+    "Ẩm thực",
+    1
+  ],
+  [
+    "Dược phẩm",
+    1
+  ],
+  [
+    "Tạp hoá",
+    1
+  ],
+  [
+    "Đã xoá",
+    1
+  ],
+  [
+    "Callable updateShopProfileSecure không trả về success=true",
+    1
+  ],
+  [
+    "Đã cập nhật loại hình kinh doanh",
+    1
+  ],
+  [
+    "Vui lòng chọn ảnh bìa trước",
+    1
+  ],
+  [
+    "Chỉnh vùng hiển thị ảnh bìa",
+    1
+  ],
+  [
+    "Kéo ảnh để chọn vùng hiển thị đẹp nhất",
+    1
+  ],
+  [
+    "Đã căn ảnh. Nhấn Lưu thay đổi để áp dụng.",
+    1
+  ],
+  [
+    "Crop ảnh bìa shop (16:9)",
+    1
+  ],
+  [
+    "Phóng to vùng crop",
+    1
+  ],
+  [
+    "Không thể crop ảnh bìa: $e",
+    1
+  ],
+  [
+    "Đang tải logo và ảnh bìa lên hệ thống...",
+    1
+  ],
+  [
+    "Không có quyền tải ảnh lên (lỗi 403). Kiểm tra cấu hình Firebase.",
+    1
+  ],
+  [
+    "Một phần ảnh tải lên thất bại. Vui lòng kiểm tra mạng và thử lại.",
+    1
+  ],
+  [
+    "Đang tải logo lên hệ thống, vui lòng không thoát ứng dụng.",
+    1
+  ],
+  [
+    "Tải logo thất bại. Vui lòng kiểm tra kết nối mạng và thử lại.",
+    1
+  ],
+  [
+    "Đang tải ảnh bìa shop lên hệ thống...",
+    1
+  ],
+  [
+    "Không có quyền tải ảnh bìa lên (lỗi 403). Kiểm tra cấu hình Firebase.",
+    1
+  ],
+  [
+    "Tải ảnh bìa thất bại. Vui lòng kiểm tra mạng và thử lại.",
+    1
+  ],
+  [
+    "Cập nhật cấu hình nhạy cảm của cửa hàng",
+    1
+  ],
+  [
+    "Cài đặt shop",
+    1
+  ],
+  [
+    "Thêm ảnh bìa shop",
+    1
+  ],
+  [
+    "Chọn ảnh trước, cân chỉnh sau rồi bấm Lưu",
+    1
+  ],
+  [
+    "Xem ảnh bìa",
+    1
+  ],
+  [
+    "Căn giữa ảnh bìa",
+    1
+  ],
+  [
+    "Đã căn giữa. Nhấn Lưu thay đổi để áp dụng.",
+    1
+  ],
+  [
+    "Chỉnh vùng hiển thị",
+    1
+  ],
+  [
+    "Đổi ảnh bìa",
+    1
+  ],
+  [
+    "Số lô",
+    1
+  ],
+  [
+    "Vị trí chấm công đã cài",
+    1
+  ],
+  [
+    "Chưa cài vị trí chấm công",
+    1
+  ],
+  [
+    "Mở bản đồ OSM",
+    1
+  ],
+  [
+    "Chỉ đường miễn phí tới shop",
+    1
+  ],
+  [
+    "Cập nhật vị trí",
+    1
+  ],
+  [
+    "Cài vị trí",
+    1
+  ],
+  [
+    "Bắt buộc vị trí khi chấm công",
+    1
+  ],
+  [
+    "Nhân viên phải ở trong phạm vi 100m mới được chấm công",
+    1
+  ],
+  [
+    "Cài đặt lương & hoa hồng",
+    1
+  ],
+  [
+    "Lịch sử điều chỉnh tài chính",
+    1
+  ],
+  [
+    "Tải dữ liệu shop từ cloud",
+    1
+  ],
+  [
+    "Thiết kế Tem sản phẩm",
+    1
+  ],
+  [
+    "Lưu dữ liệu ra máy hoặc lên Cloud",
+    1
+  ],
+  [
+    "Đồng bộ sản phẩm & khách hàng từ KiotViet",
+    1
+  ],
+  [
+    "Cài đặt nâng cao",
+    1
+  ],
+  [
+    "Khôi phục dữ liệu cũ",
+    1
+  ],
+  [
+    "Migrate từ shop/tài khoản khác",
+    1
+  ],
+  [
+    "Chưa cập nhật",
+    1
+  ],
+  [
+    "Thành viên",
+    1
+  ],
+  [
+    "Tải dữ liệu của shop ",
+    1
+  ],
+  [
+    " từ đám mây về máy này.",
+    1
+  ],
+  [
+    "Sản phẩm trong kho",
+    1
+  ],
+  [
+    "Công nợ & Chi phí",
+    1
+  ],
+  [
+    "Khách hàng & NCC",
+    1
+  ],
+  [
+    "Chỉ tải dữ liệu của shop này, không ảnh hưởng shop khác.",
+    1
+  ],
+  [
+    "Đang tải dữ liệu shop...",
+    1
+  ],
+  [
+    "Vui lòng đợi trong giây lát",
+    1
+  ],
+  [
+    "Cần quyền truy cập vị trí",
+    1
+  ],
+  [
+    "Đang lấy vị trí...",
+    1
+  ],
+  [
+    "✅ Đã cập nhật vị trí! Nhấn Lưu để hoàn tất.",
+    1
+  ],
+  [
+    "Lỗi lấy vị trí: $e",
+    1
+  ],
+  [
+    "Đã xóa vị trí. Nhấn Lưu để hoàn tất.",
+    1
+  ],
+  [
+    "Không thể mở bản đồ OSM",
+    1
+  ],
+  [
+    "Đã mở bản đồ shop (không lấy được vị trí hiện tại)",
+    1
+  ],
+  [
+    "Vui lòng đăng nhập",
+    1
+  ],
+  [
+    "Đang chờ quyền truy cập. Vui lòng thử lại sau vài giây.",
+    1
+  ],
+  [
+    "Vui lòng nhập tên cửa hàng",
+    1
+  ],
+  [
+    "✅ Đã cập nhật thông tin shop!",
+    1
+  ],
+  [
+    "✅ Đã lưu thông tin cửa hàng (chế độ bảo mật)!",
+    1
+  ],
+  [
+    "✅ Đã lưu thông tin cửa hàng (chế độ tương thích)!",
+    1
+  ],
+  [
+    "✅ Đã lưu thông tin cửa hàng!",
+    1
+  ],
+  [
+    "❌ Lỗi cập nhật: $e",
+    1
+  ],
+  [
+    "Tên cửa hàng *",
+    1
+  ],
+  [
+    "Mô tả cửa hàng",
+    1
+  ],
+  [
+    "THÀNH VIÊN",
+    1
+  ],
+  [
+    "Đang quét dữ liệu trên cloud...",
+    1
+  ],
+  [
+    "KHÔNG CÓ DỮ LIỆU CŨ",
+    1
+  ],
+  [
+    "Không tìm thấy dữ liệu nào từ tài khoản/shop khác trên cloud.\\n\\n",
+    1
+  ],
+  [
+    "Nếu bạn chắc chắn có dữ liệu cũ, hãy kiểm tra:\\n",
+    1
+  ],
+  [
+    "• Đăng nhập đúng email\\n",
+    1
+  ],
+  [
+    "• Kết nối internet ổn định",
+    1
+  ],
+  [
+    "TÌM THẤY DỮ LIỆU CŨ",
+    1
+  ],
+  [
+    "Dữ liệu từ các nguồn khác:",
+    1
+  ],
+  [
+    "$totalCount bản ghi",
+    1
+  ],
+  [
+    "MIGRATE VỀ SHOP NÀY",
+    1
+  ],
+  [
+    "❌ Không xác định được shop hiện tại",
+    1
+  ],
+  [
+    "XÁC NHẬN MIGRATE",
+    1
+  ],
+  [
+    "Bạn sắp migrate $totalCount bản ghi từ:",
+    1
+  ],
+  [
+    "Sang shop hiện tại:",
+    1
+  ],
+  [
+    "Đang migrate dữ liệu...",
+    1
+  ],
+  [
+    "MIGRATE THÀNH CÔNG",
+    1
+  ],
+  [
+    "Đã migrate $totalMigrated bản ghi:",
+    1
+  ],
+  [
+    "Vui lòng khởi động lại app để dữ liệu được cập nhật đầy đủ.",
+    1
+  ],
+  [
+    "❌ Lỗi migrate: $e",
+    1
+  ],
+  [
+    "Chưa có thành viên nào trong shop",
+    1
+  ],
+  [
+    "TẢI DỮ LIỆU SHOP",
+    1
+  ],
+  [
+    "Quá trình có thể mất vài phút tùy lượng dữ liệu.",
+    1
+  ],
+  [
+    "BẮT ĐẦU TẢI",
+    1
+  ],
+  [
+    "✅ Đã tải xong dữ liệu shop!",
+    1
+  ],
+  [
+    "Nhập Kho Thông Minh",
+    1
+  ],
+  [
+    "📱 Chọn loại sản phẩm",
+    1
+  ],
+  [
+    "🏢 Tạo nhà cung cấp trước",
+    1
+  ],
+  [
+    "Bạn cần tạo NCC trong mục \"Quản lý NCC\" trước khi nhập kho để theo dõi công nợ.",
+    1
+  ],
+  [
+    "💾 LƯU TẠM",
+    1
+  ],
+  [
+    "✅ LƯU VÀO HÀNG CHỜ",
+    1
+  ],
+  [
+    "📷 Quét mã $serialLabel",
+    1
+  ],
+  [
+    "Chưa có mã nhập nhanh nào. Hãy tạo mã mới.",
+    1
+  ],
+  [
+    "Phương thức TT",
+    1
+  ],
+  [
+    "Vui lòng nhập tên sản phẩm",
+    1
+  ],
+  [
+    "Vui lòng điền đầy đủ thông tin",
+    1
+  ],
+  [
+    "Đã cập nhật phiếu trong hàng chờ xác nhận.",
+    1
+  ],
+  [
+    "Lưu thành công",
+    1
+  ],
+  [
+    "Để sau",
+    1
+  ],
+  [
+    "Mở danh sách chờ",
+    1
+  ],
+  [
+    "CHỈNH SỬA PHIẾU NHẬP",
+    1
+  ],
+  [
+    "NHẬP KHO MỚI",
+    1
+  ],
+  [
+    "Mở hàng chờ xác nhận",
+    1
+  ],
+  [
+    "VD: BH 6T, Hàng mới",
+    1
+  ],
+  [
+    "Có IMEI → SL phải = 1",
+    1
+  ],
+  [
+    "(có IMEI)",
+    1
+  ],
+  [
+    "📦 Nhập lô",
+    1
+  ],
+  [
+    "VD: BÁNH MÌ SANDWICH",
+    1
+  ],
+  [
+    "VD: GIÀY SNEAKER NIKE",
+    1
+  ],
+  [
+    "VD: ÁO THUN NAM SIZE L",
+    1
+  ],
+  [
+    "VD: CÁP SẠC LIGHTNING",
+    1
+  ],
+  [
+    "VD: MÀN HÌNH IPHONE 15",
+    1
+  ],
+  [
+    "Size giày *",
+    1
+  ],
+  [
+    "Màu sắc *",
+    1
+  ],
+  [
+    "Mã SKU",
+    1
+  ],
+  [
+    "Cái",
+    1
+  ],
+  [
+    "Đơn vị",
+    1
+  ],
+  [
+    "Nhập đơn vị tùy chỉnh *",
+    1
+  ],
+  [
+    "VD: Lần, Viên, Miếng...",
+    1
+  ],
+  [
+    "Thông tin kế toán",
+    1
+  ],
+  [
+    "(Để trống nếu chưa biết)",
+    1
+  ],
+  [
+    "Giá vốn (VNĐ)",
+    1
+  ],
+  [
+    "LƯU VÀO HÀNG CHỜ",
+    1
+  ],
+  [
+    "Nhập tên NCC",
+    1
+  ],
+  [
+    "Quản lý NCC",
+    1
+  ],
+  [
+    "Đang khởi tạo hệ thống...",
+    1
+  ],
+  [
+    "Đang nạp cấu hình cửa hàng...",
+    1
+  ],
+  [
+    "Đang kết nối đám mây...",
+    1
+  ],
+  [
+    "Quản lý cửa hàng chuyên nghiệp",
+    1
+  ],
+  [
+    "DANH BẠ NỘI BỘ",
+    1
+  ],
+  [
+    "Tìm theo tên, SĐT, email, vai trò",
+    1
+  ],
+  [
+    "Chưa có dữ liệu nhân sự",
+    1
+  ],
+  [
+    "Bạn",
+    1
+  ],
+  [
+    "Đã tạo mã mời mới!",
+    1
+  ],
+  [
+    "Lỗi tạo mã mời: $e",
+    1
+  ],
+  [
+    "MÃ MỜI THAM GIA SHOP",
+    1
+  ],
+  [
+    "Quét mã QR hoặc nhập mã bên dưới để tham gia shop:",
+    1
+  ],
+  [
+    "Đã sao chép mã mời vào clipboard",
+    1
+  ],
+  [
+    "Mã có hiệu lực trong 7 ngày",
+    1
+  ],
+  [
+    "Chưa có mã mời nào được tạo",
+    1
+  ],
+  [
+    "ĐANG TẠO...",
+    1
+  ],
+  [
+    "TẠO MÃ MỚI",
+    1
+  ],
+  [
+    "Nhập email và họ tên",
+    1
+  ],
+  [
+    "Nhập email, mật khẩu >= 6 ký tự và họ tên",
+    1
+  ],
+  [
+    "Nhập shopId khi tạo từ tài khoản super admin",
+    1
+  ],
+  [
+    "\\nMật khẩu tạm thời: $password\\nKhuyến nghị đổi mật khẩu sau khi đăng nhập!",
+    1
+  ],
+  [
+    "TẠO TÀI KHOẢN NHÂN VIÊN",
+    1
+  ],
+  [
+    "THÔNG TIN ĐĂNG NHẬP",
+    1
+  ],
+  [
+    "Email đăng nhập",
+    1
+  ],
+  [
+    "Tự động tạo mật khẩu mạnh",
+    1
+  ],
+  [
+    "Bỏ chọn để tự nhập mật khẩu",
+    1
+  ],
+  [
+    "Mật khẩu (≥6 ký tự)",
+    1
+  ],
+  [
+    "THÔNG TIN CÁ NHÂN",
+    1
+  ],
+  [
+    "Họ tên nhân viên",
+    1
+  ],
+  [
+    "PHÂN QUYỀN",
+    1
+  ],
+  [
+    "TẠO TÀI KHOẢN",
+    1
+  ],
+  [
+    "Nhập ít nhất một email",
+    1
+  ],
+  [
+    "Không tìm thấy email hợp lệ",
+    1
+  ],
+  [
+    "Đã mời $successCount nhân viên thành công",
+    1
+  ],
+  [
+    "MỜI NHÂN VIÊN HÀNG LOẠT",
+    1
+  ],
+  [
+    "Danh sách email",
+    1
+  ],
+  [
+    "Quyền mặc định",
+    1
+  ],
+  [
+    "GỬI LỜI MỜI",
+    1
+  ],
+  [
+    "File CSV không hợp lệ. Cần ít nhất 2 cột: Email, Họ tên",
+    1
+  ],
+  [
+    "Chưa chọn file hoặc file trống",
+    1
+  ],
+  [
+    "Đã import $successCount nhân viên thành công",
+    1
+  ],
+  [
+    "IMPORT NHÂN VIÊN TỪ CSV",
+    1
+  ],
+  [
+    "Chọn file CSV",
+    1
+  ],
+  [
+    "Thêm NV",
+    1
+  ],
+  [
+    "Giờ bắt đầu (HH:mm)",
+    1
+  ],
+  [
+    "Giờ kết thúc (HH:mm)",
+    1
+  ],
+  [
+    "Giờ nghỉ (giờ)",
+    1
+  ],
+  [
+    "OT tối đa (giờ/ngày)",
+    1
+  ],
+  [
+    "Nhân viên chưa có ảnh đại diện",
+    1
+  ],
+  [
+    "Không có quyền tải ảnh đại diện lên. Vui lòng kiểm tra quyền Storage/Firebase.",
+    1
+  ],
+  [
+    "Lỗi khi upload ảnh - kiểm tra kết nối mạng và thử lại.",
+    1
+  ],
+  [
+    "Lỗi khi cập nhật: ",
+    1
+  ],
+  [
+    "Bạn không có quyền thực hiện thao tác này. ",
+    1
+  ],
+  [
+    "Hãy kiểm tra nhân viên đã được gán đúng shop và quyền đổi vai trò.",
+    1
+  ],
+  [
+    "Không thể xóa chủ shop khỏi cửa hàng",
+    1
+  ],
+  [
+    "Không thể tự xóa mình khỏi cửa hàng",
+    1
+  ],
+  [
+    "Xóa nhân viên khỏi shop",
+    1
+  ],
+  [
+    "Nhân viên sẽ mất quyền truy cập dữ liệu cửa hàng.",
+    1
+  ],
+  [
+    "XÓA KHỎI SHOP",
+    1
+  ],
+  [
+    "ĐANG LƯU ẢNH...",
+    1
+  ],
+  [
+    "ĐỔI ẢNH ĐẠI DIỆN",
+    1
+  ],
+  [
+    "Mẹo: Nhân viên bị khóa tab Nhân viên vẫn có thể tự đổi ảnh trong Cài đặt.",
+    1
+  ],
+  [
+    "ĐANG LƯU CẬP NHẬT... VUI LÒNG CHỜ",
+    1
+  ],
+  [
+    "Chưa gán",
+    1
+  ],
+  [
+    "Xuất máy đã sửa",
+    1
+  ],
+  [
+    "Xuất sửa",
+    1
+  ],
+  [
+    "Xuất bán",
+    1
+  ],
+  [
+    "Xóa khỏi shop",
+    1
+  ],
+  [
+    "ĐANG SỬA",
+    1
+  ],
+  [
+    "ĐÃ XONG",
+    1
+  ],
+  [
+    "ĐÃ GIAO",
+    1
+  ],
+  [
+    "Bạn không có quyền truy cập\\nmàn hình quản lý nhân viên",
+    1
+  ],
+  [
+    "Chưa có thông tin shop\\nVui lòng đăng xuất và đăng nhập lại",
+    1
+  ],
+  [
+    "Chưa có dữ liệu nhân viên\\nMỗi tài khoản sẽ tự xuất hiện sau khi đăng nhập",
+    1
+  ],
+  [
+    "Vai trò: Admin",
+    1
+  ],
+  [
+    "Shop: Đang tải...",
+    1
+  ],
+  [
+    "Shop: Chưa gán",
+    1
+  ],
+  [
+    "Đã cập nhật lịch làm việc",
+    1
+  ],
+  [
+    "ĐÃ CẬP NHẬT HỒ SƠ NHÂN VIÊN!",
+    1
+  ],
+  [
+    "Không xác định được cửa hàng hiện tại",
+    1
+  ],
+  [
+    "ĐÃ GÁN NHÂN VIÊN VÀO CỬA HÀNG CỦA BẠN",
+    1
+  ],
+  [
+    "Lỗi khi gán cửa hàng: $e",
+    1
+  ],
+  [
+    "Họ và tên nhân viên",
+    1
+  ],
+  [
+    "Địa chỉ thường trú",
+    1
+  ],
+  [
+    "Quyền hệ thống:",
+    1
+  ],
+  [
+    "GÁN VÀO SHOP CỦA TÔI",
+    1
+  ],
+  [
+    "PHÂN QUYỀN NỘI DUNG CHO NHÂN VIÊN",
+    1
+  ],
+  [
+    "Tài khoản CHỦ SHOP/QUẢN LÝ luôn được xem đầy đủ mọi nội dung trong hệ thống.",
+    1
+  ],
+  [
+    "MÀN HÌNH NGHIỆP VỤ",
+    1
+  ],
+  [
+    "Xem và tạo đơn bán máy / phụ kiện",
+    1
+  ],
+  [
+    "Xem danh sách đơn sửa, tạo đơn mới",
+    1
+  ],
+  [
+    "Xem hàng tồn kho và phụ kiện",
+    1
+  ],
+  [
+    "KHO LINH KIỆN SỬA CHỮA",
+    1
+  ],
+  [
+    "Quản lý linh kiện dùng cho sửa chữa",
+    1
+  ],
+  [
+    "Xem sổ nhà phân phối, lịch sử nhập hàng",
+    1
+  ],
+  [
+    "Xem danh sách khách và lịch sử mua/sửa",
+    1
+  ],
+  [
+    "Truy cập sổ bảo hành của cửa hàng",
+    1
+  ],
+  [
+    "Cho phép sử dụng phòng chat trong cửa hàng",
+    1
+  ],
+  [
+    "Cho phép chấm công và xem báo cáo chấm công",
+    1
+  ],
+  [
+    "Kết nối và in hóa đơn qua Bluetooth",
+    1
+  ],
+  [
+    "MÀN HÌNH TÀI CHÍNH NHẠY CẢM",
+    1
+  ],
+  [
+    "Cho phép xem màn DOANH THU",
+    1
+  ],
+  [
+    "Bao gồm báo cáo lời/lỗ, doanh số bán và sửa",
+    1
+  ],
+  [
+    "Cho phép xem màn CHI PHÍ",
+    1
+  ],
+  [
+    "Xem và quản lý các khoản chi ra của cửa hàng",
+    1
+  ],
+  [
+    "Cho phép xem SỔ CÔNG NỢ",
+    1
+  ],
+  [
+    "Bao gồm khách nợ shop và shop nợ nhà cung cấp",
+    1
+  ],
+  [
+    "Xem danh sách và phân quyền nhân viên",
+    1
+  ],
+  [
+    "Truy cập màn hình cài đặt cửa hàng",
+    1
+  ],
+  [
+    "ĐÃ SỬA",
+    1
+  ],
+  [
+    "ĐÃ BÁN",
+    1
+  ],
+  [
+    "LỊCH LÀM VIỆC",
+    1
+  ],
+  [
+    "Chưa có lịch làm việc\\nNhấn nút 'Chỉnh sửa' để thiết lập",
+    1
+  ],
+  [
+    "Lịch làm việc hiện tại",
+    1
+  ],
+  [
+    "Không có dữ liệu để in",
+    1
+  ],
+  [
+    "BẢNG LƯƠNG NHÂN VIÊN",
+    1
+  ],
+  [
+    "In lương",
+    1
+  ],
+  [
+    "Chọn tháng",
+    1
+  ],
+  [
+    "In bảng lương tổng hợp",
+    1
+  ],
+  [
+    "Chia sẻ PDF tổng hợp",
+    1
+  ],
+  [
+    "💰 TỔNG LƯƠNG",
+    1
+  ],
+  [
+    "📊 DOANH SỐ",
+    1
+  ],
+  [
+    "📈 LỢI NHUẬN",
+    1
+  ],
+  [
+    "Không có dữ liệu nhân viên",
+    1
+  ],
+  [
+    "Hãy thêm nhân viên vào shop trước",
+    1
+  ],
+  [
+    "THỰC NHẬN",
+    1
+  ],
+  [
+    "📋 BẢNG TÍNH LƯƠNG CHI TIẾT",
+    1
+  ],
+  [
+    "KHOẢN MỤC",
+    1
+  ],
+  [
+    "CÔNG THỨC",
+    1
+  ],
+  [
+    "THÀNH TIỀN",
+    1
+  ],
+  [
+    "💰 Lương cơ bản",
+    1
+  ],
+  [
+    "🛒 HH bán hàng",
+    1
+  ],
+  [
+    "🔧 HH sửa chữa",
+    1
+  ],
+  [
+    "⏰ Tiền OT",
+    1
+  ],
+  [
+    "🎯 Thưởng target",
+    1
+  ],
+  [
+    "🎁 Phụ cấp",
+    1
+  ],
+  [
+    "📊 TỔNG GROSS",
+    1
+  ],
+  [
+    "KHẤU TRỪ",
+    1
+  ],
+  [
+    "⚠️ Trừ đi muộn",
+    1
+  ],
+  [
+    "⚠️ Trừ về sớm",
+    1
+  ],
+  [
+    "❌ Nghỉ quá phép",
+    1
+  ],
+  [
+    "8% lương đóng BH",
+    1
+  ],
+  [
+    "1.5% lương đóng BH",
+    1
+  ],
+  [
+    "1% lương đóng BH",
+    1
+  ],
+  [
+    "💸 Thuế TNCN",
+    1
+  ],
+  [
+    "➖ TỔNG KHẤU TRỪ",
+    1
+  ],
+  [
+    "💵 THỰC NHẬN (NET)",
+    1
+  ],
+  [
+    "📅 THÔNG TIN CHẤM CÔNG",
+    1
+  ],
+  [
+    "Giờ làm",
+    1
+  ],
+  [
+    "Giờ OT",
+    1
+  ],
+  [
+    "Nghỉ",
+    1
+  ],
+  [
+    "📊 DOANH SỐ CHI TIẾT",
+    1
+  ],
+  [
+    "🛒 BÁN HÀNG",
+    1
+  ],
+  [
+    "🔧 SỬA CHỮA",
+    1
+  ],
+  [
+    "⚙️ CÀI ĐẶT LƯƠNG ÁP DỤNG",
+    1
+  ],
+  [
+    "HH bán hàng",
+    1
+  ],
+  [
+    "HH sửa chữa",
+    1
+  ],
+  [
+    "Hệ số OT",
+    1
+  ],
+  [
+    "Thưởng target",
+    1
+  ],
+  [
+    "📝 GHI CHÚ TÍNH TOÁN",
+    1
+  ],
+  [
+    "In phiếu lương",
+    1
+  ],
+  [
+    "Chia sẻ PDF",
+    1
+  ],
+  [
+    "Chọn cách in",
+    1
+  ],
+  [
+    "In qua máy in thường",
+    1
+  ],
+  [
+    "Máy in hóa đơn nhiệt",
+    1
+  ],
+  [
+    "Máy in bill nhỏ",
+    1
+  ],
+  [
+    "Đang in phiếu lương...",
+    1
+  ],
+  [
+    "Không thể in PDF. Vui lòng kiểm tra quyền truy cập hoặc thử lại.",
+    1
+  ],
+  [
+    "Không thể kết nối máy in. Kiểm tra IP trong Cài đặt máy in.",
+    1
+  ],
+  [
+    "$count đơn",
+    1
+  ],
+  [
+    "Cố định/tháng",
+    1
+  ],
+  [
+    "Xăng",
+    1
+  ],
+  [
+    "Ăn",
+    1
+  ],
+  [
+    "Tổng các khoản",
+    1
+  ],
+  [
+    "tháng",
+    1
+  ],
+  [
+    "Máy in",
+    1
+  ],
+  [
+    "Quản lý nhân viên",
+    1
+  ],
+  [
+    "Cài đặt hệ thống",
+    1
+  ],
+  [
+    "CẬP NHẬT QUYỀN",
+    1
+  ],
+  [
+    "Lỗi cập nhật quyền: $e",
+    1
+  ],
+  [
+    "Lỗi cập nhật vai trò: $e",
+    1
+  ],
+  [
+    "Bạn không có quyền truy cập\\nmàn hình quản lý phân quyền",
+    1
+  ],
+  [
+    "Chưa có nhân viên nào trong shop\\nMời nhân viên qua mã QR trước",
+    1
+  ],
+  [
+    "Vai trò: ",
+    1
+  ],
+  [
+    "VAI TRÒ HỆ THỐNG",
+    1
+  ],
+  [
+    "QUYỀN XEM NỘI DUNG NGHIỆP VỤ",
+    1
+  ],
+  [
+    "KHO HÀNG",
+    1
+  ],
+  [
+    "QUYỀN XEM NỘI DUNG TÀI CHÍNH",
+    1
+  ],
+  [
+    "DOANH THU & LỜI LỖ",
+    1
+  ],
+  [
+    "CHI PHÍ CỬA HÀNG",
+    1
+  ],
+  [
+    "SỔ CÔNG NỢ",
+    1
+  ],
+  [
+    "GIÁ VỐN SẢN PHẨM",
+    1
+  ],
+  [
+    "CHỦ SHOP có toàn quyền truy cập mọi chức năng trong hệ thống",
+    1
+  ],
+  [
+    "QUẢN LÝ có toàn quyền truy cập mọi chức năng trong hệ thống",
+    1
+  ],
+  [
+    "Bán hàng tháng này",
+    1
+  ],
+  [
+    "Chưa có đơn bán",
+    1
+  ],
+  [
+    "Sửa chữa tháng này",
+    1
+  ],
+  [
+    "Chưa có đơn sửa",
+    1
+  ],
+  [
+    "Chấm công tháng này",
+    1
+  ],
+  [
+    "Đi trễ",
+    1
+  ],
+  [
+    "Chưa cài lịch",
+    1
+  ],
+  [
+    "Không kết nối được máy chủ hồ sơ. Vui lòng thử lại sau.",
+    1
+  ],
+  [
+    "Lỗi tải hồ sơ nhân viên: $error",
+    1
+  ],
+  [
+    "Không thể tải ảnh đại diện",
+    1
+  ],
+  [
+    "Đã cập nhật ảnh đại diện",
+    1
+  ],
+  [
+    "Chụp ảnh mới",
+    1
+  ],
+  [
+    "Chỉnh ảnh hiện tại",
+    1
+  ],
+  [
+    "Đã chọn vùng ảnh bìa. Nhấn Lưu hồ sơ để tải lên.",
+    1
+  ],
+  [
+    "Không thể chọn ảnh bìa: $e",
+    1
+  ],
+  [
+    "Không có ảnh gốc để chỉnh. Hãy chọn ảnh mới.",
+    1
+  ],
+  [
+    "Đã cập nhật vùng crop ảnh bìa.",
+    1
+  ],
+  [
+    "Đang tải ảnh bìa và ảnh gốc lên hệ thống...",
+    1
+  ],
+  [
+    "Tải ảnh bìa thất bại, vui lòng thử lại",
+    1
+  ],
+  [
+    "Đã lưu hồ sơ nhân viên",
+    1
+  ],
+  [
+    "Lỗi lưu hồ sơ: $e",
+    1
+  ],
+  [
+    "Không đọc được ảnh đã chọn.",
+    1
+  ],
+  [
+    "Chỉnh ảnh bìa",
+    1
+  ],
+  [
+    "Dùng 2 ngón để pinch zoom ảnh, sau đó kéo khung trắng để chọn vùng bìa.",
+    1
+  ],
+  [
+    "Không thể crop ảnh bìa.",
+    1
+  ],
+  [
+    "Áp dụng vùng ảnh bìa",
+    1
+  ],
+  [
+    "Đơn bán tháng",
+    1
+  ],
+  [
+    "Đơn sửa tháng",
+    1
+  ],
+  [
+    "Công tháng",
+    1
+  ],
+  [
+    "Thông tin cá nhân",
+    1
+  ],
+  [
+    "LƯU HỒ SƠ",
+    1
+  ],
+  [
+    "Chấm công cá nhân",
+    1
+  ],
+  [
+    "Đi muộn: $_lateCount",
+    1
+  ],
+  [
+    "Vào: $checkIn • Ra: $checkOut",
+    1
+  ],
+  [
+    "Đơn bán tháng này",
+    1
+  ],
+  [
+    "Chưa có đơn bán trong tháng",
+    1
+  ],
+  [
+    "Đơn sửa tháng này",
+    1
+  ],
+  [
+    "Chưa có đơn sửa trong tháng",
+    1
+  ],
+  [
+    "Kỹ thuật viên",
+    1
+  ],
+  [
+    "Tất cả đơn bán tháng này",
+    1
+  ],
+  [
+    "Tất cả đơn sửa tháng này",
+    1
+  ],
+  [
+    "Lỗi tải dữ liệu vị trí: $e",
+    1
+  ],
+  [
+    "Kho · Tầng · Kệ",
+    1
+  ],
+  [
+    "Giá trị tồn",
+    1
+  ],
+  [
+    "Tìm mã, tên, kho, tầng, kệ...",
+    1
+  ],
+  [
+    "Chưa có vị trí nào.\\nNhấn nút + (góc phải bên dưới) để thêm.",
+    1
+  ],
+  [
+    "Xem sản phẩm",
+    1
+  ],
+  [
+    "Vô hiệu hóa",
+    1
+  ],
+  [
+    "Loại",
+    1
+  ],
+  [
+    "Trống",
+    1
+  ],
+  [
+    "Có hàng",
+    1
+  ],
+  [
+    "$cnt loại",
+    1
+  ],
+  [
+    "Tìm tên, IMEI, mã hàng...",
+    1
+  ],
+  [
+    "Không có sản phẩm nào ở vị trí này",
+    1
+  ],
+  [
+    "Chờ sửa",
+    1
+  ],
+  [
+    "Xong - chờ giao",
+    1
+  ],
+  [
+    "Đang xử lý",
+    1
+  ],
+  [
+    "Máy sửa",
+    1
+  ],
+  [
+    "Chỉnh sửa vị trí",
+    1
+  ],
+  [
+    "Thêm vị trí lưu kho",
+    1
+  ],
+  [
+    "Mã vị trí",
+    1
+  ],
+  [
+    "Tên vị trí",
+    1
+  ],
+  [
+    "VD: Kệ A tầng 1",
+    1
+  ],
+  [
+    "Tầng",
+    1
+  ],
+  [
+    "Tầng 1",
+    1
+  ],
+  [
+    "Kệ",
+    1
+  ],
+  [
+    "Kệ 1",
+    1
+  ],
+  [
+    "Ô 01",
+    1
+  ],
+  [
+    "Xác thực để thay đổi $label",
+    1
+  ],
+  [
+    "Đã soft-delete shop $shopName",
+    1
+  ],
+  [
+    "Sửa user",
+    1
+  ],
+  [
+    "Xóa user + dữ liệu",
+    1
+  ],
+  [
+    "Đây là CHỦ SHOP. Cẩn thận khi xóa!",
+    1
+  ],
+  [
+    "Tài khoản: ",
+    1
+  ],
+  [
+    "Sẽ XÓA VĨNH VIỄN:",
+    1
+  ],
+  [
+    "• Tài khoản Firebase Auth (mất đăng nhập)",
+    1
+  ],
+  [
+    "• Hồ sơ user trong Firestore",
+    1
+  ],
+  [
+    "• Đơn sửa, bán hàng, chi phí do user tạo",
+    1
+  ],
+  [
+    "• Dữ liệu chấm công, thông báo của user",
+    1
+  ],
+  [
+    "⚠️ Dữ liệu shop (kho, khách hàng...) KHÔNG bị xóa.",
+    1
+  ],
+  [
+    "Chỉ xóa hồ sơ user trong Firestore.",
+    1
+  ],
+  [
+    "Xác thực xóa user",
+    1
+  ],
+  [
+    "Đã xóa user + dữ liệu: $email",
+    1
+  ],
+  [
+    "Đã xóa user doc: $email",
+    1
+  ],
+  [
+    "Thoát Console?",
+    1
+  ],
+  [
+    "Bạn có chắc muốn thoát khỏi Super Admin Console?",
+    1
+  ],
+  [
+    "Ở lại",
+    1
+  ],
+  [
+    "Thoát",
+    1
+  ],
+  [
+    "Bạn có chắc muốn đăng xuất khỏi Super Admin Console?",
+    1
+  ],
+  [
+    "Bạn không có quyền truy cập Super Admin Console.",
+    1
+  ],
+  [
+    "Tổng shop",
+    1
+  ],
+  [
+    "Tổng user",
+    1
+  ],
+  [
+    "Shop bị khóa",
+    1
+  ],
+  [
+    "]} shop đang bị khóa app",
+    1
+  ],
+  [
+    "Vào tab Shops để mở khóa.",
+    1
+  ],
+  [
+    "Hệ thống hoạt động bình thường",
+    1
+  ],
+  [
+    "Không có shop nào đang bị khóa.",
+    1
+  ],
+  [
+    "Tìm shop theo tên, email, ID...",
+    1
+  ],
+  [
+    "Không có shop phù hợp",
+    1
+  ],
+  [
+    "Toàn bộ app",
+    1
+  ],
+  [
+    "Vào shop",
+    1
+  ],
+  [
+    "Mở khóa app",
+    1
+  ],
+  [
+    "Khóa app",
+    1
+  ],
+  [
+    "Reset dữ liệu",
+    1
+  ],
+  [
+    "Khóa tài chính quản lý",
+    1
+  ],
+  [
+    "Khóa kho cho nhân viên",
+    1
+  ],
+  [
+    "Khóa bán hàng cho nhân viên",
+    1
+  ],
+  [
+    "Khóa công nợ cho nhân viên",
+    1
+  ],
+  [
+    "Không có user trong shop",
+    1
+  ],
+  [
+    "Chưa có activity",
+    1
+  ],
+  [
+    "Tìm theo tên, email, role, shop ID...",
+    1
+  ],
+  [
+    "Không có user phù hợp",
+    1
+  ],
+  [
+    "Chưa có shop",
+    1
+  ],
+  [
+    "Chỉ xóa hồ sơ, Auth còn",
+    1
+  ],
+  [
+    "Auth + dữ liệu do user tạo",
+    1
+  ],
+  [
+    "Sửa đơn",
+    1
+  ],
+  [
+    "Xem tài chính",
+    1
+  ],
+  [
+    "Đổi lock flags",
+    1
+  ],
+  [
+    "Không có audit logs phù hợp.",
+    1
+  ],
+  [
+    "Nhập lại PIN",
+    1
+  ],
+  [
+    "Hai mã PIN không khớp",
+    1
+  ],
+  [
+    "Đã thiết lập mã PIN thành công.",
+    1
+  ],
+  [
+    "Lỗi thiết lập PIN.",
+    1
+  ],
+  [
+    "Nhập PIN hiện tại để xác nhận tắt:",
+    1
+  ],
+  [
+    "Đã tắt mã PIN.",
+    1
+  ],
+  [
+    "Bảo mật PIN",
+    1
+  ],
+  [
+    "Bảo vệ Console bằng mã PIN khi session hết hạn",
+    1
+  ],
+  [
+    "Chưa thiết lập PIN",
+    1
+  ],
+  [
+    "Yêu cầu PIN khi session hết hạn (30 phút idle)",
+    1
+  ],
+  [
+    "Bật PIN để bảo vệ console",
+    1
+  ],
+  [
+    "Đồng bộ claims cho toàn bộ user khi thay đổi rules/roles.",
+    1
+  ],
+  [
+    "Sync claims thành công.",
+    1
+  ],
+  [
+    "📢 Thông tin",
+    1
+  ],
+  [
+    "⚠️ Cảnh báo",
+    1
+  ],
+  [
+    "🔴 Yêu cầu cập nhật",
+    1
+  ],
+  [
+    "Vui lòng nhập tiêu đề và nội dung.",
+    1
+  ],
+  [
+    "✅ Đã gửi thành công tới toàn bộ người dùng!",
+    1
+  ],
+  [
+    "Gửi Thông Báo Hệ Thống",
+    1
+  ],
+  [
+    "Gửi tới TẤT CẢ người dùng qua dialog + push.",
+    1
+  ],
+  [
+    "Loại thông báo",
+    1
+  ],
+  [
+    "VD: Yêu cầu cập nhật phiên bản mới",
+    1
+  ],
+  [
+    "Nhập nội dung thông báo chi tiết...",
+    1
+  ],
+  [
+    "Gửi tới toàn bộ người dùng",
+    1
+  ],
+  [
+    "Lịch sử thông báo",
+    1
+  ],
+  [
+    "Chưa có thông báo nào.",
+    1
+  ],
+  [
+    "Mọi thao tác tại đây đều yêu cầu xác thực PIN và được ghi audit log.",
+    1
+  ],
+  [
+    "File & Ảnh (Storage)",
+    1
+  ],
+  [
+    "Ảnh đơn sửa chữa",
+    1
+  ],
+  [
+    "Ảnh sản phẩm",
+    1
+  ],
+  [
+    "Ảnh chấm công",
+    1
+  ],
+  [
+    "Ảnh tin nhắn",
+    1
+  ],
+  [
+    "Ảnh thanh toán",
+    1
+  ],
+  [
+    "Chọn dữ liệu cần xóa",
+    1
+  ],
+  [
+    "$selectedCount mục đã chọn",
+    1
+  ],
+  [
+    "Xóa ($selectedCount mục)",
+    1
+  ],
+  [
+    "✅ Đồng bộ hoàn tất!\\n",
+    1
+  ],
+  [
+    "Tổng: $total | Thành công: $success | Bỏ qua: $skipped | Lỗi: $failed",
+    1
+  ],
+  [
+    "Chưa có shop nào được tạo",
+    1
+  ],
+  [
+    "Dữ liệu từ cache — kéo xuống để tải lại",
+    1
+  ],
+  [
+    "Shop chưa đặt tên",
+    1
+  ],
+  [
+    "Không rõ email chủ shop",
+    1
+  ],
+  [
+    "Không rõ UID chủ shop",
+    1
+  ],
+  [
+    "Chưa rõ ngày tạo",
+    1
+  ],
+  [
+    "🔐 ĐIỀU KHIỂN SUPER ADMIN",
+    1
+  ],
+  [
+    "🚫 KHÓA TOÀN BỘ APP",
+    1
+  ],
+  [
+    "Mọi tài khoản của shop không truy cập được app.",
+    1
+  ],
+  [
+    "toàn bộ app",
+    1
+  ],
+  [
+    "💰 KHÓA TÀI CHÍNH CHO QUẢN LÝ",
+    1
+  ],
+  [
+    "Quản lý không xem được doanh thu, chi phí, công nợ.",
+    1
+  ],
+  [
+    "tài chính quản lý",
+    1
+  ],
+  [
+    "👷 KHÓA CHỨC NĂNG CHO NHÂN VIÊN",
+    1
+  ],
+  [
+    "🛒 KHÓA XEM BÁN HÀNG",
+    1
+  ],
+  [
+    "Nhân viên không xem được danh sách bán hàng.",
+    1
+  ],
+  [
+    "bán hàng nhân viên",
+    1
+  ],
+  [
+    "📦 KHÓA XEM KHO",
+    1
+  ],
+  [
+    "Nhân viên không xem được kho hàng.",
+    1
+  ],
+  [
+    "kho nhân viên",
+    1
+  ],
+  [
+    "📋 KHÓA XEM CÔNG NỢ",
+    1
+  ],
+  [
+    "Nhân viên không xem được sổ công nợ.",
+    1
+  ],
+  [
+    "công nợ nhân viên",
+    1
+  ],
+  [
+    "⚙️ KHÓA CÀI ĐẶT",
+    1
+  ],
+  [
+    "Nhân viên & Quản lý không vào được trang Cài đặt.",
+    1
+  ],
+  [
+    "cài đặt",
+    1
+  ],
+  [
+    "👥 THÀNH VIÊN TRONG SHOP",
+    1
+  ],
+  [
+    "Tải thành viên",
+    1
+  ],
+  [
+    "Không có thành viên",
+    1
+  ],
+  [
+    "Không có email",
+    1
+  ],
+  [
+    "Tổng số Shop",
+    1
+  ],
+  [
+    "ĐÃ KHÓA $featureName cho shop $shopId",
+    1
+  ],
+  [
+    "ĐÃ MỞ KHÓA $featureName cho shop $shopId",
+    1
+  ],
+  [
+    "Giới thiệu ứng dụng",
+    1
+  ],
+  [
+    "Đồng bộ Custom Claims",
+    1
+  ],
+  [
+    "ĐỒNG BỘ TẤT CẢ CLAIMS",
+    1
+  ],
+  [
+    "Chưa có user nào",
+    1
+  ],
+  [
+    "Không rõ email",
+    1
+  ],
+  [
+    "Không rõ tên",
+    1
+  ],
+  [
+    "Không rõ số điện thoại",
+    1
+  ],
+  [
+    "Không rõ địa chỉ",
+    1
+  ],
+  [
+    "Không có shop",
+    1
+  ],
+  [
+    "Tên: $displayName",
+    1
+  ],
+  [
+    "Địa chỉ: $address",
+    1
+  ],
+  [
+    "Chỉnh sửa thông tin user",
+    1
+  ],
+  [
+    "Đã cập nhật thông tin user",
+    1
+  ],
+  [
+    "Xóa user",
+    1
+  ],
+  [
+    "Bạn có chắc muốn xóa user $email?\\n\\n",
+    1
+  ],
+  [
+    "• Chỉ xóa doc: Chỉ xóa Firestore user document\\n\\n",
+    1
+  ],
+  [
+    "Hành động này không thể hoàn tác.",
+    1
+  ],
+  [
+    "Đã xóa Firestore doc của $email",
+    1
+  ],
+  [
+    "Chỉ xóa doc",
+    1
+  ],
+  [
+    "Đã xóa $email và dữ liệu: $deleted",
+    1
+  ],
+  [
+    "Lỗi xóa dữ liệu: $e",
+    1
+  ],
+  [
+    "Xóa dữ liệu",
+    1
+  ],
+  [
+    "Lỗi tải chi tiết: $e",
+    1
+  ],
+  [
+    "Nhập mật khẩu tài khoản để xác nhận:",
+    1
+  ],
+  [
+    "Xóa NCC",
+    1
+  ],
+  [
+    "Chưa có lịch sử nhập",
+    1
+  ],
+  [
+    "Ghi nợ",
+    1
+  ],
+  [
+    "Chưa có thanh toán",
+    1
+  ],
+  [
+    "Tổng nhập",
+    1
+  ],
+  [
+    "Số lần giao dịch",
+    1
+  ],
+  [
+    "$totalImports lần",
+    1
+  ],
+  [
+    "Chưa có sản phẩm trong kho\\ntừ nhà cung cấp này",
+    1
+  ],
+  [
+    "Thanh toán NCC",
+    1
+  ],
+  [
+    "Tên NCC bắt buộc",
+    1
+  ],
+  [
+    "Đã tạo NCC",
+    1
+  ],
+  [
+    "Đã cập nhật NCC",
+    1
+  ],
+  [
+    "Lỗi lưu NCC: $e",
+    1
+  ],
+  [
+    "SỬA NCC",
+    1
+  ],
+  [
+    "THÊM NCC",
+    1
+  ],
+  [
+    "Ưu tiên (favorite)",
+    1
+  ],
+  [
+    "TẠO MỚI",
+    1
+  ],
+  [
+    "🏢 [SupplierListView] Nhận event \"$event\" → debounce reload",
+    1
+  ],
+  [
+    "Quản Lý Đối Tác",
+    1
+  ],
+  [
+    "🏢 Nhà cung cấp (NCC)",
+    1
+  ],
+  [
+    "🔧 Đối tác sửa chữa",
+    1
+  ],
+  [
+    "Quản lý thợ/tiệm ngoài gửi sửa. Theo dõi đơn gửi đi và công nợ phải trả.",
+    1
+  ],
+  [
+    "💰 Công nợ NCC",
+    1
+  ],
+  [
+    "➕ Thêm mới",
+    1
+  ],
+  [
+    "Nhấn nút + góc phải để thêm NCC hoặc Đối tác mới. Điền đầy đủ thông tin liên hệ.",
+    1
+  ],
+  [
+    "Lỗi tải danh sách NCC: $e",
+    1
+  ],
+  [
+    "Lỗi tải danh sách đối tác: $e",
+    1
+  ],
+  [
+    "Nhập tên, SĐT hoặc ghi chú...",
+    1
+  ],
+  [
+    "Quản lý đối tác",
+    1
+  ],
+  [
+    "Lọc: $_activeTopFilterLabel",
+    1
+  ],
+  [
+    "Tạo đơn bán hàng",
+    1
+  ],
+  [
+    "Quản lý kho",
+    1
+  ],
+  [
+    "Thêm NCC",
+    1
+  ],
+  [
+    "Thêm đối tác",
+    1
+  ],
+  [
+    "Không tìm thấy NCC phù hợp",
+    1
+  ],
+  [
+    "Không tìm thấy đối tác phù hợp",
+    1
+  ],
+  [
+    "Tổng NCC",
+    1
+  ],
+  [
+    "Tổng công nợ",
+    1
+  ],
+  [
+    "NCC còn nợ",
+    1
+  ],
+  [
+    "Đã trả trong tháng",
+    1
+  ],
+  [
+    "Chưa có GD",
+    1
+  ],
+  [
+    "NCC này đã tất toán.",
+    1
+  ],
+  [
+    "Tổng đối tác",
+    1
+  ],
+  [
+    "Còn nợ đối tác",
+    1
+  ],
+  [
+    "ĐT còn nợ",
+    1
+  ],
+  [
+    "Đối tác này đã tất toán.",
+    1
+  ],
+  [
+    "Đã ghi nhận thanh toán",
+    1
+  ],
+  [
+    "📌 Được xem nhiều nhất",
+    1
+  ],
+  [
+    "🆕 Mới cập nhật",
+    1
+  ],
+  [
+    "📚 Tất cả chủ đề",
+    1
+  ],
+  [
+    "Chủ đề",
+    1
+  ],
+  [
+    "Bài hướng dẫn",
+    1
+  ],
+  [
+    "$sectionCount bài",
+    1
+  ],
+  [
+    "Quản Lý Bảo Hành",
+    1
+  ],
+  [
+    "🛡️ Theo dõi bảo hành",
+    1
+  ],
+  [
+    "Xem danh sách tất cả sản phẩm và đơn sửa chữa còn trong thời gian bảo hành.",
+    1
+  ],
+  [
+    "⚠️ Cảnh báo sắp hết hạn",
+    1
+  ],
+  [
+    "🔄 Tự động tạo bảo hành",
+    1
+  ],
+  [
+    "📋 Xử lý bảo hành",
+    1
+  ],
+  [
+    "SIÊU TRUNG TÂM BẢO HÀNH",
+    1
+  ],
+  [
+    "Xuất Excel bảo hành",
+    1
+  ],
+  [
+    "Xuất bảo hành",
+    1
+  ],
+  [
+    "Mọi đơn hàng đã hết hạn hoặc chưa được giao.",
+    1
+  ],
+  [
+    "Vui lòng thêm nhân viên trong phần\\n\"Quản lý nhân sự\" trước",
+    1
+  ],
+  [
+    "Lịch làm việc từng nhân viên",
+    1
+  ],
+  [
+    "Tra cứu chấm công",
+    1
+  ],
+  [
+    "Chọn nhân viên để xem chấm công",
+    1
+  ],
+  [
+    "Lỗi hiển thị",
+    1
+  ],
+  [
+    "Chưa cài đặt lịch",
+    1
+  ],
+  [
+    "Kết thúc",
+    1
+  ],
+  [
+    "Nghỉ trưa",
+    1
+  ],
+  [
+    "OT tối đa",
+    1
+  ],
+  [
+    "Ngày làm việc:",
+    1
+  ],
+  [
+    "Cài đặt giờ làm việc",
+    1
+  ],
+  [
+    "Giờ bắt đầu",
+    1
+  ],
+  [
+    "Giờ kết thúc",
+    1
+  ],
+  [
+    "Giờ nghỉ trưa (tiếng)",
+    1
+  ],
+  [
+    "Giờ tăng ca tối đa/ngày",
+    1
+  ],
+  [
+    "Chọn giờ",
+    1
+  ],
+  [
+    "Cài đặt ngày làm việc",
+    1
+  ],
+  [
+    "Ngày nghỉ lễ:",
+    1
+  ],
+  [
+    "Thêm ngày nghỉ",
+    1
+  ],
+  [
+    "Danh sách ngày nghỉ:",
+    1
+  ],
+  [
+    "Cài đặt tăng ca",
+    1
+  ],
+  [
+    "Tăng ca ngày thường (% lương/giờ)",
+    1
+  ],
+  [
+    "Tăng ca cuối tuần (% lương/giờ)",
+    1
+  ],
+  [
+    "Tăng ca ngày lễ (% lương/giờ)",
+    1
+  ],
+  [
+    "Cài đặt lương nhân viên",
+    1
+  ],
+  [
+    "Thêm/Cập nhật lương",
+    1
+  ],
+  [
+    "Lưu lương",
+    1
+  ],
+  [
+    "Danh sách lương hiện tại:",
+    1
+  ],
+  [
+    "Quản lý chấm công nhân viên",
+    1
+  ],
+  [
+    "Chọn ngày",
+    1
+  ],
+  [
+    "Thông tin chấm công",
+    1
+  ],
+  [
+    "Vui lòng chọn nhân viên để xem thông tin chấm công",
+    1
+  ],
+  [
+    "Quản lý nhân sự",
+    1
+  ]
+]

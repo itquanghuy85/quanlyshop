@@ -43,13 +43,23 @@ class BackupService {
 
   static const Map<String, List<String>> _sqliteCollectionTables = {
     'repairs': ['repairs'],
+    'repair_parts': ['repair_parts'],
+    'repair_partners': ['repair_partners'],
+    'partner_repair_history': ['partner_repair_history'],
     'sales': ['sales', 'sales_returns', 'sales_return_items'],
     'products': ['products'],
+    'salvage_phones': ['salvage_phones'],
+    'storage_locations': ['storage_locations'],
     'customers': ['customers'],
     'suppliers': ['suppliers'],
+    'supplier_import_history': ['supplier_import_history'],
     'debts': ['debts'],
     'debt_payments': ['debt_payments'],
     'expenses': ['expenses'],
+    'payment_intents': ['payment_intents'],
+    'payment_requests': ['payment_requests'],
+    'supplier_payments': ['supplier_payments'],
+    'repair_partner_payments': ['repair_partner_payments'],
     'attendance': ['attendance'],
     'payroll_settings': ['payroll_settings', 'employee_salary_settings'],
     'work_schedules': ['work_schedules'],
@@ -57,6 +67,7 @@ class BackupService {
     'inventory_checks': ['inventory_checks'],
     'cash_closings': ['cash_closings'],
     'purchase_orders': ['purchase_orders'],
+    'import_orders': ['import_orders', 'import_order_items'],
     'quick_input_codes': ['quick_input_codes'],
   };
 
@@ -311,6 +322,12 @@ class BackupService {
             if (targetCols.contains('shopId') && remapShopIdToCurrentShop) {
               item['shopId'] = targetShopId;
             }
+            if (remapShopIdToCurrentShop && targetCols.contains('isSynced')) {
+              item['isSynced'] = 0;
+            }
+            if (remapShopIdToCurrentShop && targetCols.contains('firestoreId')) {
+              item['firestoreId'] = null;
+            }
 
             // Keep only columns existing in target table.
             item.removeWhere((k, _) => !targetCols.contains(k));
@@ -354,14 +371,35 @@ class BackupService {
         final hasShopId = columns.any(
           (col) => (col['name'] ?? '').toString() == 'shopId',
         );
-        if (!hasShopId) continue;
-
-        await db.update(
-          tableName,
-          {'shopId': currentShopId},
-          where: 'shopId IS NULL OR shopId != ?',
-          whereArgs: [currentShopId],
+        final hasIsSynced = columns.any(
+          (col) => (col['name'] ?? '').toString() == 'isSynced',
         );
+        final hasFirestoreId = columns.any(
+          (col) => (col['name'] ?? '').toString() == 'firestoreId',
+        );
+
+        if (!hasShopId && !hasIsSynced && !hasFirestoreId) continue;
+
+        if (hasShopId) {
+          await db.update(
+            tableName,
+            {'shopId': currentShopId},
+            where: 'shopId IS NULL OR shopId != ?',
+            whereArgs: [currentShopId],
+          );
+        }
+
+        // Migrate-to-new-shop mode: force local rows to be re-uploaded to cloud.
+        if (hasIsSynced) {
+          await db.update(tableName, {'isSynced': 0});
+        }
+        if (hasFirestoreId) {
+          await db.update(
+            tableName,
+            {'firestoreId': null},
+            where: 'firestoreId IS NOT NULL AND firestoreId != ""',
+          );
+        }
       }
     } finally {
       await db.close();
@@ -481,13 +519,23 @@ class BackupService {
 
   static const Map<String, String> kCollectionLabels = {
     'repairs': 'Đơn sửa chữa',
+    'repair_parts': 'Kho linh kiện sửa chữa',
+    'repair_partners': 'Đối tác sửa chữa',
+    'partner_repair_history': 'Lịch sử gửi đối tác',
     'sales': 'Đơn bán hàng',
     'products': 'Sản phẩm / Kho',
+    'salvage_phones': 'Kho máy xác',
+    'storage_locations': 'Kho vị trí',
     'customers': 'Khách hàng',
     'suppliers': 'Nhà cung cấp',
+    'supplier_import_history': 'Lịch sử nhập NCC',
     'debts': 'Công nợ',
     'debt_payments': 'Thanh toán nợ',
     'expenses': 'Chi phí',
+    'payment_intents': 'Yêu cầu thanh toán',
+    'payment_requests': 'Yêu cầu đóng tiền',
+    'supplier_payments': 'Chi NCC',
+    'repair_partner_payments': 'Chi đối tác sửa chữa',
     'attendance': 'Chấm công',
     'payroll_settings': 'Cài đặt lương',
     'work_schedules': 'Lịch làm việc',
@@ -496,6 +544,7 @@ class BackupService {
     'inventory_checks': 'Kiểm kê kho',
     'cash_closings': 'Chốt ca',
     'purchase_orders': 'Đơn nhập hàng',
+    'import_orders': 'Phiếu nhập kho',
     'quick_input_codes': 'Mã nhập nhanh',
   };
 

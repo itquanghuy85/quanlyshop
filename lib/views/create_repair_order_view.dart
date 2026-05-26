@@ -225,7 +225,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
     });
 
     NotificationService.showSnackBar(
-      result.fromAi ? 'AI đã tự điền đơn sửa.' : 'Đã nhận diện và điền đơn sửa.',
+      result.fromAi ? loc.aiFilledRepairOrder : loc.parsedRepairOrderFilled,
       color: Colors.green,
     );
   }
@@ -446,7 +446,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
     debugPrint('🔧 _saveOrderProcess: canEdit = $canEdit');
     if (!canEdit && mounted) {
       NotificationService.showSnackBar(
-        '❌ Ngày hôm nay đã chốt quỹ! Không thể tạo phiếu sửa mới.',
+        loc.todayClosedNoRepair,
         color: Colors.red,
       );
       return null;
@@ -847,7 +847,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
       // Upload images in background after navigation
       if (imagesToUpload.isNotEmpty && r.id != null && r.firestoreId != null) {
         NotificationService.showSnackBar(
-          'Đơn đã lưu. Đang tải ảnh lên hệ thống, vui lòng không thoát ứng dụng.',
+          loc.orderSavedUploadingImages,
           color: Colors.blue,
           duration: const Duration(seconds: 7),
         );
@@ -890,7 +890,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
       // Upload images in background after navigation
       if (imagesToUpload.isNotEmpty && r.id != null && r.firestoreId != null) {
         NotificationService.showSnackBar(
-          'Đang tải ảnh lên hệ thống, vui lòng không thoát ứng dụng.',
+          loc.uploadingImagesToSystem,
           color: Colors.blue,
           duration: const Duration(seconds: 7),
         );
@@ -1063,7 +1063,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
                               controller: partnerSearchCtrl,
                               style: const TextStyle(color: PopupTheme.textPrimary),
                               decoration: InputDecoration(
-                                labelText: 'Tìm đối tác',
+                                labelText: loc.searchPartner,
                                 prefixIcon: const Icon(Icons.search),
                                 suffixIcon: query.isEmpty
                                     ? null
@@ -1082,7 +1082,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
                               decoration: InputDecoration(
                                 labelText: loc.partnerOptional,
                                 helperText: filteredPartners.isEmpty
-                                    ? 'Không tìm thấy đối tác phù hợp'
+                                    ? loc.noPartnerFound
                                     : '${filteredPartners.length} đối tác',
                               ),
                               value: selectedPartner,
@@ -1197,7 +1197,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
         actions: [
           IconButton(
             onPressed: _showNaturalRepairInputDialog,
-            tooltip: 'Nhập nhanh bằng câu lệnh',
+            tooltip: loc.quickInputTooltip,
             icon: const Icon(Icons.auto_awesome),
           ),
         ],
@@ -1235,7 +1235,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
                         child: OutlinedButton.icon(
                           onPressed: _saveAndPrint,
                           icon: const Icon(Icons.print_rounded, size: 18),
-                          label: const Text('Lưu & In'),
+                          label: Text(loc.saveAndPrint),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: AppBarAccents.repairs,
                             side: const BorderSide(color: AppBarAccents.repairs),
@@ -1293,8 +1293,8 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
                   ),
                   label: Text(
                     _showAdvancedFields
-                        ? 'Ẩn bớt'
-                        : 'Thêm chi tiết (bảo mật, ngoại quan, phụ kiện, ảnh)',
+                        ? loc.hideDetails
+                        : loc.showMoreDetails,
                     style: AppTextStyles.caption
                         .copyWith(color: Colors.blueGrey),
                   ),
@@ -1397,7 +1397,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
     final repair = _lastRepair;
     final hasDebt = _customerActiveDebt != 0;
     final debtColor = _customerActiveDebt > 0 ? Colors.red.shade700 : Colors.green.shade700;
-    final debtLabel = _customerActiveDebt > 0 ? 'Còn nợ' : 'Shop nợ';
+    final debtLabel = _customerActiveDebt > 0 ? loc.customerOwesDebt : loc.shopOwesCustomer;
 
     String? lastDate;
     if (repair != null) {
@@ -1484,7 +1484,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
                     IconButton(
                       onPressed: _showAddImageOptions,
                       icon: const Icon(Icons.camera_alt, size: 18),
-                      tooltip: 'Thêm ảnh',
+                      tooltip: loc.addPhoto,
                       constraints: const BoxConstraints(),
                       padding: const EdgeInsets.only(right: 8),
                       color: Colors.blue,
@@ -1578,7 +1578,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
             if (_customerTotalRepairs > 0) const SizedBox(height: 8),
             // Advanced: address + storage location (hidden in quick mode)
             if (_showAdvancedFields) ...[
-              _compactInput(addressCtrl, 'Địa chỉ KH (tùy chọn)', Icons.location_on, caps: true),
+              _compactInput(addressCtrl, loc.customerAddressOptional, Icons.location_on, caps: true),
               const SizedBox(height: 8),
               StorageLocationSelector(
                 selectedLocationId: _selectedLocation?.firestoreId,
@@ -1920,7 +1920,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
           OutlinedButton.icon(
             onPressed: _showAddImageOptions,
             icon: const Icon(Icons.add_a_photo),
-            label: const Text('Thêm ảnh'),
+            label: Text(loc.addPhoto),
             style: OutlinedButton.styleFrom(
               minimumSize: const Size(0, DesignTokens.buttonHeight),
               side: BorderSide(color: Colors.blue.shade300),
@@ -1946,12 +1946,12 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
           children: [
             ListTile(
               leading: const Icon(Icons.camera_alt),
-              title: const Text('Chụp ảnh'),
+              title: Text(loc.takePhoto),
               onTap: () => Navigator.pop(ctx, 'camera'),
             ),
             ListTile(
               leading: const Icon(Icons.photo_library),
-              title: const Text('Chọn từ thư viện'),
+              title: Text(loc.chooseFromGallery),
               onTap: () => Navigator.pop(ctx, 'gallery'),
             ),
           ],
