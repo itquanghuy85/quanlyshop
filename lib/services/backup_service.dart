@@ -24,8 +24,31 @@ class FirestoreBackupSet {
   });
 }
 
+class LocalSqliteBackup {
+  final String name;
+  final String path;
+  final DateTime modifiedAt;
+  final int sizeBytes;
+
+  const LocalSqliteBackup({
+    required this.name,
+    required this.path,
+    required this.modifiedAt,
+    required this.sizeBytes,
+  });
+}
+
 class BackupService {
   static const String _dbName = 'repair_shop_v22.db';
+
+  static Future<Directory> _getLocalBackupDir() async {
+    final docs = await getApplicationDocumentsDirectory();
+    final dir = Directory(p.join(docs.path, 'sqlite_backups'));
+    if (!await dir.exists()) {
+      await dir.create(recursive: true);
+    }
+    return dir;
+  }
 
   /// Lấy đường dẫn file database
   static Future<String> _getDbPath() async {
@@ -35,24 +58,69 @@ class BackupService {
 
   /// Xuất file DB ra thư mục temp rồi share
   static Future<void> exportToLocal(BuildContext? context) async {
+    final savedPath = await saveSqliteToLocal();
+    await shareSqliteFile(savedPath);
+  }
+
+  /// Lưu một bản sao SQLite vào thư mục backup cục bộ của ứng dụng.
+  static Future<String> saveSqliteToLocal() async {
     final dbPath = await _getDbPath();
     final dbFile = File(dbPath);
     if (!await dbFile.exists()) {
       throw Exception('Không tìm thấy file database');
     }
 
-    final tempDir = await getTemporaryDirectory();
+    final backupDir = await _getLocalBackupDir();
     final timestamp = DateTime.now().millisecondsSinceEpoch;
-    final tempPath = p.join(tempDir.path, 'quanlyshop_backup_$timestamp.db');
+    final fileName = 'quanlyshop_backup_$timestamp.db';
+    final targetPath = p.join(backupDir.path, fileName);
 
-    await dbFile.copy(tempPath);
+    await dbFile.copy(targetPath);
+    return targetPath;
+  }
 
+  /// Chia sẻ một file backup SQLite cụ thể.
+  static Future<void> shareSqliteFile(String filePath) async {
+    final f = File(filePath);
+    if (!await f.exists()) {
+      throw Exception('Không tìm thấy file backup để chia sẻ');
+    }
     await SharePlus.instance.share(
       ShareParams(
-        files: [XFile(tempPath)],
+        files: [XFile(filePath)],
         subject: 'QuanLyShop Backup',
       ),
     );
+  }
+
+  /// Danh sách các bản backup SQLite cục bộ (mới nhất trước).
+  static Future<List<LocalSqliteBackup>> listLocalSqliteBackups() async {
+    final dir = await _getLocalBackupDir();
+    if (!await dir.exists()) return const [];
+
+    final entities = await dir.list().toList();
+    final files = <LocalSqliteBackup>[];
+
+    for (final e in entities) {
+      if (e is! File) continue;
+      if (!e.path.toLowerCase().endsWith('.db')) continue;
+      try {
+        final stat = await e.stat();
+        files.add(
+          LocalSqliteBackup(
+            name: p.basename(e.path),
+            path: e.path,
+            modifiedAt: stat.modified,
+            sizeBytes: stat.size,
+          ),
+        );
+      } catch (_) {
+        // Skip unreadable file.
+      }
+    }
+
+    files.sort((a, b) => b.modifiedAt.compareTo(a.modifiedAt));
+    return files;
   }
 
   /// Upload file DB lên Firebase Storage, trả về download URL

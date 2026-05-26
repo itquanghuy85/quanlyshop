@@ -26,6 +26,19 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 
 ## ✅ Vừa hoàn thành (2026-05-25)
 
+1. **Follow-up fix UI Sao lưu/Khôi phục (2026-05-26)**
+  - Fix tương phản chữ/tab với AppBar trong `backup_restore_view` để tránh trùng màu.
+  - Bổ sung danh sách backup SQLite cục bộ để người dùng nhìn thấy file đã lưu.
+  - Bổ sung thao tác chia sẻ/khôi phục trực tiếp từ danh sách backup cục bộ.
+  - Làm rõ flow lưu file .db -> xem danh sách -> chia sẻ/khôi phục.
+
+2. **Validation follow-up**
+  - `flutter analyze` cho `backup_service.dart` và `backup_restore_view.dart`: không có compile error mới.
+
+---
+
+## ✅ Vừa hoàn thành (2026-05-25)
+
 1. **Hoàn thiện backup/restore offline + online (2026-05-26)**
   - Đã bật khôi phục SQLite từ Cloud (Firebase Storage) theo từng bản backup `.db`.
   - Firestore giữ cơ chế khôi phục chọn lọc theo từng mục (collection) và bổ sung hướng dẫn rõ hơn trong UI.

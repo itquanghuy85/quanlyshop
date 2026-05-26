@@ -169,6 +169,11 @@ class _BackupRestoreViewState extends State<BackupRestoreView>
         ],
         bottom: TabBar(
           controller: _tab,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
+          indicatorColor: Colors.white,
+          indicatorWeight: 3,
+          dividerColor: Colors.white24,
           tabs: const [
             Tab(icon: Icon(Icons.storage_outlined, size: 18), text: 'SQLite (file .db)'),
             Tab(icon: Icon(Icons.cloud_outlined, size: 18), text: 'Firestore (cloud)'),
@@ -198,13 +203,16 @@ class _SqliteTab extends StatefulWidget {
 class _SqliteTabState extends State<_SqliteTab> {
   bool _loading = false;
   List<Map<String, String>> _cloudBackups = [];
+  List<LocalSqliteBackup> _localBackups = [];
   bool _backupsLoaded = false;
   bool _storageUnauthorized = false;
+  String? _lastSavedPath;
 
   @override
   void initState() {
     super.initState();
     _loadCloudBackups();
+    _loadLocalBackups();
   }
 
   Future<void> _loadCloudBackups() async {
@@ -235,9 +243,37 @@ class _SqliteTabState extends State<_SqliteTab> {
   Future<void> _exportToLocal() async {
     setState(() => _loading = true);
     try {
-      await BackupService.exportToLocal(context);
+      final path = await BackupService.saveSqliteToLocal();
+      _lastSavedPath = path;
+      await _loadLocalBackups();
+      NotificationService.showSnackBar(
+        'Đã lưu bản sao SQLite vào máy. Bạn có thể chia sẻ từ danh sách backup cục bộ.',
+        color: AppColors.success,
+      );
     } catch (e) {
       NotificationService.showSnackBar('Lỗi xuất file: $e', color: AppColors.error);
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _loadLocalBackups() async {
+    try {
+      final local = await BackupService.listLocalSqliteBackups();
+      if (mounted) {
+        setState(() => _localBackups = local);
+      }
+    } catch (_) {
+      // Ignore local listing errors.
+    }
+  }
+
+  Future<void> _shareLocalBackup(LocalSqliteBackup backup) async {
+    setState(() => _loading = true);
+    try {
+      await BackupService.shareSqliteFile(backup.path);
+    } catch (e) {
+      NotificationService.showSnackBar('Lỗi chia sẻ file: $e', color: AppColors.error);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -344,9 +380,51 @@ class _SqliteTabState extends State<_SqliteTab> {
               title: 'Sao lưu SQLite',
               icon: Icons.backup,
               children: [
-                _ActionButton(label: 'Chia sẻ / Lưu máy', icon: Icons.share, onTap: _loading ? null : _exportToLocal),
+                _ActionButton(label: 'Lưu file .db vào máy', icon: Icons.save_alt, onTap: _loading ? null : _exportToLocal),
+                AppSpacing.gapSm,
+                if (_localBackups.isNotEmpty)
+                  _ActionButton(
+                    label: 'Chia sẻ bản sao mới nhất',
+                    icon: Icons.share,
+                    onTap: _loading ? null : () => _shareLocalBackup(_localBackups.first),
+                  ),
+                if (_lastSavedPath != null) ...[
+                  AppSpacing.gapSm,
+                  Text(
+                    'Đã lưu: ${_lastSavedPath!.split('\\').last}',
+                    style: TextStyle(
+                      fontSize: AppTextStyles.subtitle1Size,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
                 AppSpacing.gapSm,
                 _ActionButton(label: 'Sao lưu lên Cloud', icon: Icons.cloud_upload, onTap: _loading ? null : _backupToCloud, color: const Color(0xFF0A56C2)),
+              ],
+            ),
+            AppSpacing.gapMd,
+            _SectionCard(
+              title: 'Bản sao lưu SQLite trong máy',
+              icon: Icons.folder_outlined,
+              trailing: IconButton(
+                icon: const Icon(Icons.refresh, size: 18),
+                onPressed: _loading ? null : _loadLocalBackups,
+                tooltip: 'Tải lại',
+              ),
+              children: [
+                if (_localBackups.isEmpty)
+                  Text(
+                    'Chưa có bản sao lưu cục bộ nào. Hãy bấm "Lưu file .db vào máy" ở trên.',
+                    style: TextStyle(fontSize: AppTextStyles.subtitle1Size, color: AppColors.textSecondary),
+                  )
+                else
+                  ..._localBackups.map(
+                    (b) => _LocalSqliteBackupItem(
+                      backup: b,
+                      onRestoreFromPath: () => _restoreFromLocalPath(b.path),
+                      onShare: () => _shareLocalBackup(b),
+                    ),
+                  ),
               ],
             ),
             AppSpacing.gapMd,
@@ -354,11 +432,13 @@ class _SqliteTabState extends State<_SqliteTab> {
               title: 'Hướng dẫn nhanh',
               icon: Icons.help_outline,
               children: const [
-                Text('• Sao lưu offline: Chia sẻ/Lưu file .db vào máy hoặc Drive.'),
+                Text('• Sao lưu offline: bấm "Lưu file .db vào máy" để tạo bản backup cục bộ.'),
                 SizedBox(height: 4),
-                Text('• Sao lưu online: Nhấn "Sao lưu lên Cloud" để lưu bản DB mới nhất.'),
+                Text('• Chia sẻ backup: dùng nút "Chia sẻ" trong danh sách backup cục bộ.'),
                 SizedBox(height: 4),
-                Text('• Khôi phục online: Chọn một bản SQLite trên Cloud và bấm "Khôi phục".'),
+                Text('• Khôi phục offline: chọn từ danh sách backup cục bộ hoặc file .db.'),
+                SizedBox(height: 4),
+                Text('• Khôi phục online: chọn một bản SQLite trên Cloud và bấm "Khôi phục".'),
               ],
             ),
             AppSpacing.gapMd,
@@ -397,6 +477,48 @@ class _SqliteTabState extends State<_SqliteTab> {
           const ColoredBox(color: Colors.black26, child: Center(child: CircularProgressIndicator())),
       ],
     );
+  }
+
+  Future<void> _restoreFromLocalPath(String filePath) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Khôi phục SQLite cục bộ'),
+        content: const Text('Dữ liệu hiện tại sẽ bị ghi đè bởi bản backup này. Tiếp tục?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Hủy'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Khôi phục'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+
+    setState(() => _loading = true);
+    try {
+      await BackupService.restoreFromLocalFile(filePath);
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Khôi phục thành công'),
+          content: const Text('Đã khôi phục từ bản backup cục bộ. Vui lòng khởi động lại ứng dụng.'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Đóng')),
+          ],
+        ),
+      );
+    } catch (e) {
+      NotificationService.showSnackBar('Lỗi khôi phục cục bộ: $e', color: AppColors.error);
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 }
 
@@ -1034,6 +1156,72 @@ class _SqliteBackupItem extends StatelessWidget {
         title: Text(name, style: const TextStyle(fontSize: AppTextStyles.h4, fontWeight: FontWeight.w500), maxLines: 1, overflow: TextOverflow.ellipsis),
         subtitle: Text(timestamp, style: TextStyle(fontSize: AppTextStyles.subtitle1Size, color: AppColors.textSecondary)),
         trailing: TextButton(onPressed: onRestore, child: const Text('Khôi phục')),
+      ),
+    );
+  }
+}
+
+class _LocalSqliteBackupItem extends StatelessWidget {
+  final LocalSqliteBackup backup;
+  final VoidCallback onRestoreFromPath;
+  final VoidCallback onShare;
+
+  const _LocalSqliteBackupItem({
+    required this.backup,
+    required this.onRestoreFromPath,
+    required this.onShare,
+  });
+
+  String _formatSize(int size) {
+    if (size < 1024) return '${size}B';
+    final kb = size / 1024;
+    if (kb < 1024) return '${kb.toStringAsFixed(1)}KB';
+    final mb = kb / 1024;
+    return '${mb.toStringAsFixed(1)}MB';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+      decoration: BoxDecoration(
+        color: AppColors.textHint,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.divider),
+      ),
+      child: ListTile(
+        leading: const Icon(Icons.storage, color: Colors.deepOrange),
+        title: Text(
+          backup.name,
+          style: const TextStyle(
+            fontSize: AppTextStyles.h4,
+            fontWeight: FontWeight.w500,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        subtitle: Text(
+          '${DateFormat('dd/MM/yyyy HH:mm').format(backup.modifiedAt)} • ${_formatSize(backup.sizeBytes)}',
+          style: TextStyle(
+            fontSize: AppTextStyles.subtitle1Size,
+            color: AppColors.textSecondary,
+          ),
+        ),
+        trailing: Wrap(
+          spacing: 4,
+          children: [
+            IconButton(
+              onPressed: onShare,
+              tooltip: 'Chia sẻ',
+              icon: const Icon(Icons.share_outlined, size: 20),
+            ),
+            IconButton(
+              onPressed: onRestoreFromPath,
+              tooltip: 'Khôi phục',
+              icon: const Icon(Icons.restore_outlined, size: 20),
+            ),
+          ],
+        ),
       ),
     );
   }

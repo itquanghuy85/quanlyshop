@@ -27,6 +27,21 @@ Lịch sử tất cả thay đổi từng phiên bản.
 	- Không phát sinh lỗi compile mới; còn warning/info legacy của dự án.
 - `flutter build apk --debug`: thành công (`build/app/outputs/flutter-apk/app-debug.apk`).
 
+### Follow-up UX Fixes (2026-05-26)
+- `lib/views/backup_restore_view.dart`
+	- Tăng tương phản `TabBar` trên AppBar (label/unselected/indicator màu trắng) để tránh trùng màu khó đọc.
+	- Bổ sung khu vực "Bản sao lưu SQLite trong máy" để xem được các file `.db` đã lưu.
+	- Thêm thao tác rõ ràng:
+		- "Lưu file .db vào máy"
+		- "Chia sẻ bản sao mới nhất"
+		- Khôi phục trực tiếp từ danh sách backup cục bộ.
+- `lib/services/backup_service.dart`
+	- Thêm `listLocalSqliteBackups()` và `shareSqliteFile()` phục vụ xem/chia sẻ/khôi phục backup cục bộ.
+
+### Validation (follow-up)
+- `flutter analyze lib/services/backup_service.dart lib/views/backup_restore_view.dart`
+	- Không có lỗi compile mới; còn info tối ưu `const`.
+
 ## [2026-05-25d] - Hardening P0 AI: Context Tối Thiểu + Mask PII + Safe Logging
 
 ### Changed
