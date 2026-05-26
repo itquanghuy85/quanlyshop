@@ -1259,7 +1259,7 @@ class UserGuideRepository {
           order: 2,
           title: 'Chọn kiểu sao lưu',
           description:
-              'SQLite (offline) để sao lưu file .db toàn bộ máy, hoặc Firestore (online) để sao lưu cloud.',
+            'SQLite (offline) để sao lưu file .db toàn bộ máy theo shop hiện tại, hoặc Firestore (online) để sao lưu cloud.',
         ),
         GuideStep(
           order: 3,
@@ -1271,7 +1271,7 @@ class UserGuideRepository {
           order: 4,
           title: 'Khôi phục dữ liệu',
           description:
-              'SQLite: chọn file .db hoặc bản cloud để khôi phục toàn bộ. Firestore: chọn từng mục để khôi phục chọn lọc.',
+            'SQLite: có 2 kiểu. Khôi phục nguyên bản dùng cho cùng shop; nếu muốn đưa dữ liệu sang shop hiện tại thì chọn chế độ chuyển shopId. Firestore: chọn từng mục để khôi phục chọn lọc.',
         ),
         GuideStep(
           order: 5,
@@ -1282,6 +1282,7 @@ class UserGuideRepository {
       ],
       tips: [
         'Nên sao lưu cloud mỗi ngày trước khi kết ca.',
+        'Backup SQLite là bản sao toàn bộ dữ liệu của shop đang đăng nhập; không đổi shopId thì khôi phục sang shop khác sẽ không hiển thị đúng.',
         'Với Firestore, chỉ chọn đúng nhóm dữ liệu cần khôi phục để tránh ghi đè không cần thiết.',
         'Luôn giữ ít nhất 2 bản backup gần nhất để an toàn.',
       ],

@@ -85,7 +85,9 @@ class _BackupRestoreViewState extends State<BackupRestoreView>
               SizedBox(height: 8),
               Text('3. Khuyến nghị: sao lưu lên Cloud định kỳ mỗi ngày và trước khi cập nhật ứng dụng.'),
               SizedBox(height: 8),
-              Text('4. Sau khi khôi phục SQLite, nên đóng và mở lại ứng dụng để đảm bảo dữ liệu nạp đúng.'),
+              Text('4. Restore SQLite có 2 kiểu: khôi phục nguyên bản cho cùng shop, hoặc chuyển dữ liệu sang shop hiện tại bằng cách đổi shopId.'),
+              SizedBox(height: 8),
+              Text('5. Nếu khôi phục vào shop khác mà không đổi shopId thì dữ liệu vẫn thuộc shop cũ nên app sẽ không hiển thị đúng.'),
             ],
           ),
         ),
@@ -293,20 +295,51 @@ class _SqliteTabState extends State<_SqliteTab> {
     const typeGroup = XTypeGroup(label: 'Database', extensions: ['db']);
     final file = await openFile(acceptedTypeGroups: [typeGroup]);
     if (file == null) return;
+    if (!mounted) return;
     setState(() => _loading = true);
     try {
-      await BackupService.restoreFromLocalFile(file.path);
-      if (mounted) {
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (ctx) => AlertDialog(
-            title: const Text('Khôi phục thành công'),
-            content: const Text('Đã khôi phục dữ liệu. Vui lòng khởi động lại ứng dụng để áp dụng thay đổi.'),
-            actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Đóng'))],
+      final remap = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Chọn kiểu khôi phục'),
+          content: const Text(
+            'Khôi phục nguyên bản: giữ dữ liệu thuộc shop đã backup.\n\n'
+            'Chuyển vào shop hiện tại: đổi shopId để dữ liệu hiện ra trong shop đang đăng nhập.',
           ),
-        );
-      }
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Khôi phục nguyên bản'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Chuyển vào shop hiện tại'),
+            ),
+          ],
+        ),
+      );
+      if (remap == null) return;
+
+      if (!mounted) return;
+      await BackupService.restoreFromLocalFile(
+        file.path,
+        remapShopIdToCurrentShop: remap,
+      );
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Khôi phục thành công'),
+          content: Text(
+            remap
+                ? 'Đã chuyển dữ liệu backup vào shop hiện tại. Vui lòng khởi động lại ứng dụng để áp dụng thay đổi.'
+                : 'Đã khôi phục dữ liệu. Vui lòng khởi động lại ứng dụng để áp dụng thay đổi.',
+          ),
+          actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Đóng'))],
+        ),
+      );
     } catch (e) {
       NotificationService.showSnackBar('Lỗi khôi phục: $e', color: AppColors.error);
     } finally {
@@ -498,14 +531,45 @@ class _SqliteTabState extends State<_SqliteTab> {
 
     setState(() => _loading = true);
     try {
-      await BackupService.restoreFromLocalFile(filePath);
+      final remap = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Chọn kiểu khôi phục'),
+          content: const Text(
+            'Khôi phục nguyên bản sẽ giữ nguyên shopId cũ.\n\n'
+            'Nếu muốn đưa dữ liệu vào shop hiện tại, chọn phương án chuyển shopId.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Khôi phục nguyên bản'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Chuyển vào shop hiện tại'),
+            ),
+          ],
+        ),
+      );
+      if (remap == null) return;
+
+      if (!mounted) return;
+      await BackupService.restoreFromLocalFile(
+        filePath,
+        remapShopIdToCurrentShop: remap,
+      );
       if (!mounted) return;
       await showDialog<void>(
         context: context,
         barrierDismissible: false,
         builder: (ctx) => AlertDialog(
           title: const Text('Khôi phục thành công'),
-          content: const Text('Đã khôi phục từ bản backup cục bộ. Vui lòng khởi động lại ứng dụng.'),
+          content: Text(
+            remap
+                ? 'Đã chuyển dữ liệu backup vào shop hiện tại. Vui lòng khởi động lại ứng dụng.'
+                : 'Đã khôi phục từ bản backup cục bộ. Vui lòng khởi động lại ứng dụng.',
+          ),
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Đóng')),
           ],

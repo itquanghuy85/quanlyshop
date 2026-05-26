@@ -203,7 +203,10 @@ class BackupService {
   }
 
   /// Khôi phục database từ file local
-  static Future<void> restoreFromLocalFile(String filePath) async {
+  static Future<void> restoreFromLocalFile(
+    String filePath, {
+    bool remapShopIdToCurrentShop = false,
+  }) async {
     final sourceFile = File(filePath);
     if (!await sourceFile.exists()) {
       throw Exception('Không tìm thấy file: $filePath');
@@ -211,6 +214,56 @@ class BackupService {
 
     final dbPath = await _getDbPath();
     await sourceFile.copy(dbPath);
+
+    if (remapShopIdToCurrentShop) {
+      final currentShopId = await UserService.getCurrentShopId();
+      if (currentShopId == null || currentShopId.isEmpty) {
+        throw Exception(
+          'Không tìm thấy shopId hiện tại để chuyển dữ liệu vào shop mới',
+        );
+      }
+      await _remapRestoredShopId(dbPath, currentShopId);
+    }
+  }
+
+  static Future<void> _remapRestoredShopId(
+    String dbPath,
+    String currentShopId,
+  ) async {
+    final db = await openDatabase(
+      dbPath,
+      version: 1,
+      singleInstance: false,
+    );
+
+    try {
+      final tables = await db.rawQuery('''
+        SELECT name
+        FROM sqlite_master
+        WHERE type = 'table'
+          AND name NOT LIKE 'sqlite_%'
+      ''');
+
+      for (final row in tables) {
+        final tableName = row['name']?.toString();
+        if (tableName == null || tableName.isEmpty) continue;
+
+        final columns = await db.rawQuery('PRAGMA table_info($tableName)');
+        final hasShopId = columns.any(
+          (col) => (col['name'] ?? '').toString() == 'shopId',
+        );
+        if (!hasShopId) continue;
+
+        await db.update(
+          tableName,
+          {'shopId': currentShopId},
+          where: 'shopId IS NULL OR shopId != ?',
+          whereArgs: [currentShopId],
+        );
+      }
+    } finally {
+      await db.close();
+    }
   }
 
   /// Khôi phục database SQLite từ Firebase Storage theo tên file backup.

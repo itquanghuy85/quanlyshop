@@ -35,15 +35,19 @@ Lịch sử tất cả thay đổi từng phiên bản.
 		- "Lưu file .db vào máy"
 		- "Chia sẻ bản sao mới nhất"
 		- Khôi phục trực tiếp từ danh sách backup cục bộ.
+	- Thêm lựa chọn khi khôi phục SQLite: "Khôi phục nguyên bản" hoặc "Chuyển vào shop hiện tại".
 - `lib/services/backup_service.dart`
 	- Thêm `listLocalSqliteBackups()` và `shareSqliteFile()` phục vụ xem/chia sẻ/khôi phục backup cục bộ.
 - `lib/services/backup_service.dart` (follow-up 2026-05-26)
 	- Đổi thư mục lưu backup cục bộ sang `Documents/quanlyshop/sqlite_backups`.
 	- Giữ tương thích với thư mục cũ `Documents/sqlite_backups` khi liệt kê file.
+	- Thêm remap `shopId` cho restore SQLite sang shop hiện tại khi người dùng chọn chế độ chuyển shop.
 - `lib/views/backup_restore_view.dart` (follow-up 2026-05-26)
 	- Nút Share không còn giữ loading overlay trong lúc mở share sheet.
 - `lib/views/super_admin_console_view.dart` (follow-up 2026-05-26)
 	- Thêm preset một chạm để chọn nhanh luồng xóa dữ liệu cũ, giữ lại `repairs`, `customers`, `attendance`, `payroll_settings`, `work_schedules`.
+- `lib/data/user_guide_repository.dart`
+	- Cập nhật mô tả để nói rõ backup SQLite là snapshot theo shop, restore sang shop khác cần remap `shopId`.
 
 ### Validation (follow-up)
 - `flutter analyze lib/services/backup_service.dart lib/views/backup_restore_view.dart lib/views/super_admin_console_view.dart`
