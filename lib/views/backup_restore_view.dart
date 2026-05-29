@@ -614,6 +614,47 @@ class _SqliteTabState extends State<_SqliteTab> {
     }
   }
 
+  List<Widget> _deletePresetGroup(
+    String label,
+    Color color,
+    List<(String, IconData, List<String>)> items,
+  ) {
+    return [
+      Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: Row(children: [
+          Container(
+            width: 3,
+            height: 14,
+            decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2)),
+          ),
+          const SizedBox(width: 6),
+          Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: color)),
+        ]),
+      ),
+      Wrap(
+        spacing: 6,
+        runSpacing: 6,
+        children: items.map((item) {
+          final (lbl, icon, cols) = item;
+          return OutlinedButton.icon(
+            onPressed: _loading ? null : () => _deleteSelectedData(cols, lbl),
+            icon: Icon(icon, size: 14),
+            label: Text(lbl, style: const TextStyle(fontSize: 12)),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: color,
+              side: BorderSide(color: color.withValues(alpha: 0.5)),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+          );
+        }).toList(),
+      ),
+      const SizedBox(height: 10),
+    ];
+  }
+
   String _friendlyCloudError(String action, Object error) {
     final raw = error.toString().toLowerCase();
     if (raw.contains('permission-denied') || raw.contains('unauthorized')) {
@@ -739,23 +780,30 @@ class _SqliteTabState extends State<_SqliteTab> {
                   'Xóa vĩnh viễn dữ liệu cục bộ khỏi thiết bị này. Nên sao lưu trước khi xóa.',
                   style: TextStyle(fontSize: AppTextStyles.subtitle1Size, color: AppColors.textSecondary),
                 ),
-                AppSpacing.gapSm,
+                const SizedBox(height: 12),
+                ..._deletePresetGroup('Vận hành', const Color(0xFF1565C0), [
+                  ('Đơn sửa chữa', Icons.build_outlined, ['repairs']),
+                  ('Đơn bán hàng', Icons.point_of_sale_outlined, ['sales']),
+                  ('Kiểm kê & Chốt ca', Icons.assignment_outlined, ['inventory_checks', 'cash_closings']),
+                ]),
+                ..._deletePresetGroup('Kho & Sản phẩm', const Color(0xFF00695C), [
+                  ('Phụ kiện / Sản phẩm', Icons.inventory_2_outlined, ['products']),
+                  ('Linh kiện sửa chữa', Icons.build_circle_outlined, ['repair_parts']),
+                  ('Kho máy xác', Icons.phone_android_outlined, ['salvage_phones']),
+                  ('NCC & Nhập hàng', Icons.local_shipping_outlined, ['suppliers', 'purchase_orders', 'import_orders', 'supplier_import_history']),
+                ]),
+                ..._deletePresetGroup('Tài chính', const Color(0xFF2E7D32), [
+                  ('Công nợ', Icons.account_balance_outlined, ['debts', 'debt_payments']),
+                  ('Chi phí', Icons.receipt_long_outlined, ['expenses']),
+                  ('Thanh toán', Icons.payment_outlined, ['payment_intents', 'payment_requests', 'supplier_payments', 'repair_partner_payments']),
+                ]),
+                ..._deletePresetGroup('Khác', const Color(0xFF546E7A), [
+                  ('Khách hàng', Icons.person_outline, ['customers']),
+                  ('Nhân sự', Icons.people_outline, ['attendance', 'payroll_settings', 'work_schedules']),
+                  ('Nhật ký hệ thống', Icons.history_outlined, ['audit_logs']),
+                ]),
                 _ActionButton(
-                  label: 'Xóa Kho phụ kiện / Sản phẩm',
-                  icon: Icons.inventory_2_outlined,
-                  onTap: _loading ? null : () => _deleteSelectedData(['products'], 'Kho phụ kiện / Sản phẩm'),
-                  color: Colors.deepOrange,
-                ),
-                AppSpacing.gapSm,
-                _ActionButton(
-                  label: 'Xóa Linh kiện sửa chữa',
-                  icon: Icons.build_outlined,
-                  onTap: _loading ? null : () => _deleteSelectedData(['repair_parts'], 'Linh kiện sửa chữa'),
-                  color: Colors.deepOrange,
-                ),
-                AppSpacing.gapSm,
-                _ActionButton(
-                  label: 'Xóa tùy chọn (chọn nhiều mục)...',
+                  label: 'Chọn tùy ý nhiều mục...',
                   icon: Icons.checklist_outlined,
                   onTap: _loading ? null : _deleteCustomData,
                   color: Colors.red,
