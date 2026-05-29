@@ -166,36 +166,52 @@ class _AiChatOverlayState extends State<AiChatOverlay>
   }
 
   Future<void> _initSpeech() async {
-    final ok = await _speech.initialize(
-      onError: (_) => setState(() => _recording = false),
-      onStatus: (s) {
-        if ((s == 'done' || s == 'notListening') && _recording) {
-          setState(() => _recording = false);
-        }
-      },
-    );
-    if (mounted) setState(() => _speechAvailable = ok);
+    try {
+      final ok = await _speech.initialize(
+        onError: (_) { if (mounted) setState(() => _recording = false); },
+        onStatus: (s) {
+          if ((s == 'done' || s == 'notListening') && _recording) {
+            if (mounted) setState(() => _recording = false);
+          }
+        },
+      );
+      if (mounted) setState(() => _speechAvailable = ok);
+    } catch (_) {
+      if (mounted) setState(() => _speechAvailable = false);
+    }
   }
 
   // Re-request speech permission if not yet granted, then start listening.
   Future<void> _requestAndStartMic() async {
-    final ok = await _speech.initialize(
-      onError: (_) => setState(() => _recording = false),
-      onStatus: (s) {
-        if ((s == 'done' || s == 'notListening') && _recording) {
-          setState(() => _recording = false);
-        }
-      },
-    );
+    bool ok = false;
+    bool deviceUnsupported = false;
+    try {
+      ok = await _speech.initialize(
+        onError: (_) { if (mounted) setState(() => _recording = false); },
+        onStatus: (s) {
+          if ((s == 'done' || s == 'notListening') && _recording) {
+            if (mounted) setState(() => _recording = false);
+          }
+        },
+      );
+    } catch (e) {
+      ok = false;
+      deviceUnsupported = e.toString().contains('recognizerNotAvailable') ||
+          e.toString().contains('not available');
+    }
     if (!mounted) return;
     setState(() => _speechAvailable = ok);
     if (ok) {
       _toggleMic();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Vui lòng cấp quyền Microphone trong Cài đặt điện thoại'),
-          duration: Duration(seconds: 3),
+        SnackBar(
+          content: Text(
+            deviceUnsupported
+                ? 'Thiết bị này không hỗ trợ nhận dạng giọng nói'
+                : 'Vui lòng cấp quyền Microphone trong Cài đặt điện thoại',
+          ),
+          duration: const Duration(seconds: 3),
         ),
       );
     }
