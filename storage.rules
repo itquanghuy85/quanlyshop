@@ -15,6 +15,13 @@ service firebase.storage {
     function myShopId() {
       return request.auth.token.shopId;
     }
+    function canAccessBackupShop(shopId) {
+      return isAuth() && (
+        isSuperAdmin() ||
+        myShopId() == shopId ||
+        myShopId() == null
+      );
+    }
     // Max 10 MB per upload
     function withinSizeLimit() {
       return request.resource.size <= 10 * 1024 * 1024;
@@ -66,6 +73,17 @@ service firebase.storage {
     match /products/{fileName} {
       allow read:   if isAuth();
       allow write:  if isAuth() && withinSizeLimit() && isImage();
+    }
+
+    // ── SQLite / Firestore backup files in Storage ──
+    // Path examples:
+    // - db_backups/{shopId}/backup_123.db
+    // - db_backups/{shopId}/fs_123/repairs.json
+    match /db_backups/{shopId}/{allPaths=**} {
+      allow read: if canAccessBackupShop(shopId);
+      allow create, update: if canAccessBackupShop(shopId)
+                            && request.resource.size <= 250 * 1024 * 1024;
+      allow delete: if canAccessBackupShop(shopId);
     }
 
     // ── Deny everything else ──

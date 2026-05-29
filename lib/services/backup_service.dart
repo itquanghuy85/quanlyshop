@@ -212,14 +212,12 @@ class BackupService {
     for (final item in result.items) {
       try {
         final metadata = await item.getMetadata();
-        final url = await item.getDownloadURL();
         final timeCreated = metadata.timeCreated;
         final timestamp = timeCreated != null
             ? timeCreated.toLocal().toString().substring(0, 19)
             : '';
         backups.add({
           'name': item.name,
-          'url': url,
           'timestamp': timestamp,
         });
       } catch (_) {
@@ -230,6 +228,62 @@ class BackupService {
     // Sắp xếp mới nhất lên đầu
     backups.sort((a, b) => b['timestamp']!.compareTo(a['timestamp']!));
     return backups;
+  }
+
+  /// Xóa số liệu chọn lọc trong SQLite hiện tại. Trả về tổng số hàng đã xóa.
+  static Future<int> deleteSelectedData(List<String> collections) async {
+    if (collections.isEmpty) return 0;
+    final dbPath = await _getDbPath();
+    int rowsDeleted = 0;
+    final db = await openDatabase(dbPath, singleInstance: false);
+    try {
+      await db.transaction((txn) async {
+        for (final key in collections) {
+          final tables = _sqliteCollectionTables[key] ?? const <String>[];
+          for (final table in tables) {
+            try {
+              final n = await txn.rawDelete('DELETE FROM $table');
+              rowsDeleted += n;
+            } catch (_) {}
+          }
+        }
+      });
+    } finally {
+      await db.close();
+    }
+    return rowsDeleted;
+  }
+
+  /// Xóa file backup SQLite cục bộ cũ hơn [keepDays] ngày. Trả về số file đã xóa.
+  static Future<int> cleanOldLocalBackups({required int keepDays}) async {
+    final backups = await listLocalSqliteBackups();
+    final cutoff = DateTime.now().subtract(Duration(days: keepDays));
+    int count = 0;
+    for (final backup in backups) {
+      if (backup.modifiedAt.isBefore(cutoff)) {
+        try {
+          await File(backup.path).delete();
+          count++;
+        } catch (_) {}
+      }
+    }
+    return count;
+  }
+
+  /// Xóa một bản backup SQLite trên Firebase Storage.
+  static Future<void> deleteSqliteBackupFromFirebase({
+    required String fileName,
+  }) async {
+    final shopId = await UserService.getCurrentShopId();
+    if (shopId == null || shopId.isEmpty) {
+      throw Exception('Chưa đăng nhập');
+    }
+    if (!fileName.toLowerCase().endsWith('.db')) {
+      throw Exception('Tên file backup không hợp lệ: $fileName');
+    }
+
+    final ref = FirebaseStorage.instance.ref('db_backups/$shopId/$fileName');
+    await ref.delete();
   }
 
   /// Khôi phục database từ file local

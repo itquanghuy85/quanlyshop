@@ -4,7 +4,166 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-05-29] - Backup: Xóa dữ liệu chọn lọc + Dọn backup cũ
+
+### Quản lý dữ liệu SQLite mở rộng
+
+**Files thay đổi:**
+- `lib/services/backup_service.dart`
+- `lib/views/backup_restore_view.dart`
+
+#### Tính năng mới
+- `BackupService.deleteSelectedData(List<String> collections)` — xóa vĩnh viễn các table được chọn trong SQLite, trả về số bản ghi đã xóa
+- `BackupService.cleanOldLocalBackups({required int keepDays})` — xóa file backup cục bộ cũ hơn N ngày, trả về số file đã xóa
+- Tab SQLite thêm section **Xóa dữ liệu chọn lọc**: preset nhanh "Kho phụ kiện/Sản phẩm", "Linh kiện sửa chữa" + nút "Xóa tùy chọn" mở `_CollectionPickerDialog`
+- Tab SQLite thêm section **Dọn backup cũ**: chọn giữ 30/60/90/180 ngày → tự động dọn file cũ hơn
+
+---
+
+## [2026-05-29] - AI Assistant: 8 UX Improvements (Sprint AI-UX)
+
+### AI Trợ Lý — Cải tiến UX toàn diện
+
+**Files thay đổi:**
+- `lib/services/ai_chat_service.dart`
+- `lib/widgets/ai_chat_overlay.dart`
+- `lib/services/ai_command_router.dart`
+- `lib/services/ai_usage_logger.dart`
+- `lib/views/ai_usage_dashboard_view.dart`
+
+#### #3 Chat → Auto-fill đơn trực tiếp từ overlay
+- Thêm 3 `AiActionType` mới: `createRepairFromChat`, `createSaleFromChat`, `createStockFromChat`
+- Thêm `payload` field vào `AiAction` để truyền nội dung câu hỏi xuống sheet
+- `quickAnswer()`: nếu "tạo đơn sửa iPhone 15 cho Minh" (có ≥2 từ nội dung sau keyword) → trả về action `createRepairFromChat` với `payload = question`
+- `ai_chat_overlay._handleAction()`: xử lý 3 type mới bằng cách gọi `AiOrderInputSheet.show(context, mode: ..., prefilledText: action.payload)` — AI tự điền form từ mô tả
+
+#### #5 Follow-up context chips sau mỗi AI answer
+- Thêm `followUpChips: List<(String, IconData)>` vào `AiQuickResponse`
+- `ai_chat_overlay._buildChips()`: khi `_contextChips` không rỗng → hiển thị context chips (màu xanh lá) thay vì preset chips tím
+- Context chips được cập nhật trong `_send()` sau mỗi quick answer
+- Ví dụ: sau "doanh thu hôm nay" → chips [Tháng này, Lợi nhuận, Đơn sửa]
+
+#### #4 Daily briefing khi mở app lần đầu trong ngày
+- `_sendWelcome()` kiểm tra `SharedPreferences['ai_last_open_date']` → nếu ngày mới hiển thị briefing "Chào buổi mới! Điểm cần lưu ý: X đơn sửa chờ, nợ phải thu..."
+- Các lần mở tiếp trong ngày: chào ngắn có pending repairs count
+
+#### #6 Lưu lịch sử chat qua session (SharedPreferences)
+- `_loadHistory()`: load 20 tin nhắn gần nhất từ `SharedPreferences['ai_chat_history']` khi init
+- `_saveHistory()`: lưu sau mỗi AI response (quick + cloud), giữ tối đa 20 messages
+- `_welcomeSent` flag: tránh gửi welcome 2 lần khi có history
+
+#### #2 More quick action buttons (followUpChips trên nhiều intent)
+- Thêm `followUpChips` cho: doanh thu, tháng này, năm nay, bán hàng, sửa chữa, tồn kho, linh kiện, đơn bán/sửa, công nợ, lợi nhuận
+
+#### #8 Mở rộng từ điển voice command
+- `ai_command_router.dart`: thêm synonym cho stock check (+5 keywords), stock entry (+5), finance today (+6), customer (+5), pending repairs (+6), sale (+5), repair (+10 thương hiệu + triệu chứng)
+
+#### #7 Dashboard: Tab phản hồi xấu
+- `ai_usage_logger.getShopSummaryToday()`: bổ sung `negativeFeedbackItems` — list query/answer của các 👎
+- `ai_usage_dashboard_view.dart`: chuyển từ single-view sang `DefaultTabController` 2 tab: **Tổng quan** + **Phản hồi xấu**
+- Tab Phản hồi xấu: list card từng câu hỏi bị dislike + answer snippet + giờ ghi nhận
+
+---
+
+## [2026-05-29] - Sprint 4B: Flutter Analyze Warning Cleanup (132 → 1)
+
+### Dọn cảnh báo flutter analyze (Sprint 4B)
+
+Xóa toàn bộ unused elements, unused imports, unused fields, dead null-aware expressions và dead code qua ~20 file:
+
+- **home_view.dart** — xóa 8 unused methods (`_buildDataItem`, `_buildPinnedCard`, `_quickActionButton`, `_buildDebtSummaryCard`, `_financeOverviewSection`, `_buildExpenseDetail`, `_financeStatCard`, `_buildLogoutCard`), dead `if (false)` BarChart block, 3 unused profit fields (`_todayNetProfit`, `_todaySalesProfit`, `_todayRepairProfit`), `dart:math` import
+- **inventory_view.dart** — xóa 6 unused imports, 6 unused fields (`_isAdmin`, `_isCheckingLoading`, `_isScanning`, `_iconSize`, `_smallFontSize`, `_btnMinHeight`), 7 unused methods (`_buildInventoryTypeItems`, `_saveCheck`, `_onQRDetected`, `_progressItem`, `_warningItem`, `_showAddProductDialog`, `_showEditProductDialog`, v.v.)
+- **sale_detail_view.dart** — xóa `_hasLogo`, `_toNoSign`, `_row`, unused import `app_text_styles`
+- **sale_list_view.dart** — xóa 7 unused methods (`_summaryItem`, `_activeFilterChip`, `_getTimeFilterLabel`, `_getPaymentStatusLabel`, `_statItem`, `_getPayColor`, `_buildReturnChips`)
+- **repair_detail_view.dart** — xóa `_staffInfoRow`, `_buildCustomerContent`, `_buildFinancialSummary`, v.v.
+- **settings_view.dart** — xóa `_buildLinkedAccountsCard`, `_openHelpCenter`
+- **staff_list_view.dart** — xóa 4 unused fields + `_generateInviteCode`, `_generateTempPassword`, v.v.
+- **work_schedule_settings_view.dart** — xóa `_getShortRoleName`, `_saveStaffSalary`, `_buildStaffWorkScheduleList`, 6 tab methods
+- **unified_sync_button.dart** — xóa `_buildSyncOperationalMarkdown`, `_showReportExportDialog`, `_showOrphanDataDialog`, cascade imports (`sync_audit_service`, `data_migration_service`, `open_filex`, `share_plus`, `foundation`)
+- Nhiều file khác: `cash_closing_view`, `pty_print_designer_view`, `payroll_view`, `quick_input_codes_view`, `shop_settings_view`, `smart_stock_in_view`, `current_shop_service`, `variant_selector`, v.v.
+
+**Kết quả:** 132 warnings → 1 (giữ lại `_eventBusSub2` trong `parts_inventory_view.dart` do là StreamSubscription — xóa sẽ phá event listening)
+
+---
+
+## [2026-05-29] - Phân Quyền Chat AI, Prompt Injection Guard, AI Usage Logger, Fix Compile Error
+
+### Tính năng mới (2026-05-29)
+
+#### Phân quyền Chat & AI chi tiết
+- `lib/services/user_service.dart`
+  - Thêm 4 quyền mới vào permission defaults và save/load: `allowSendChat`, `allowPinChat`, `allowDeleteOtherChat`, `allowCloudAI`.
+  - `allowSendChat`: tất cả vai trò trừ fallback `user`; `allowPinChat`/`allowDeleteOtherChat`: Manager/Owner/Admin; `allowCloudAI`: Manager trở lên.
+  - Tham số mới trong `updateStaffPermissions()` cho phép Owner cấu hình từng quyền per-staff.
+
+#### AI Usage Logger
+- `lib/services/ai_usage_logger.dart` *(file mới)*
+  - Ghi log mọi tương tác AI (`quickAnswer`, `cloudAI`, `parseOrder`, `feedback`) lên Firestore collection `ai_usage_logs`.
+  - Hỗ trợ đếm cloud AI calls trong ngày theo user/shop để hiển thị trên dashboard.
+- `lib/views/ai_usage_dashboard_view.dart` *(file mới)*
+  - Màn hình thống kê usage AI: số lần gọi, phân loại, feedback.
+
+#### Prompt Injection Guard trong AI Chat Service
+- `lib/services/ai_chat_service.dart`
+  - Thêm `_sanitize()`: loại bỏ HTML tags, backticks, collapse newlines, giới hạn 1000 ký tự.
+  - Áp dụng sanitize cho question, history content, repairSummaries, topDebtorLines trước khi gửi lên Cloud Function.
+
+#### AI Chat Overlay — Permission + Connectivity + Search + Feedback
+- `lib/widgets/ai_chat_overlay.dart`
+  - Load `allowCloudAI` từ `UserService.getCurrentUserPermissions()` để kiểm soát nút Cloud AI.
+  - Theo dõi trạng thái kết nối thực từ `ConnectivityService` (poll mỗi giây).
+  - Thêm chế độ tìm kiếm tin nhắn (`_searchMode`) và field controller.
+  - Thêm map phản hồi (`_feedbackMap`) cho từng tin nhắn.
+  - Log `AiCallType.quickAnswer` vào `AiUsageLogger` sau mỗi lần trả lời nhanh.
+
+#### Chat View — Permission, Rate Limit, Pin/Delete Guard
+- `lib/views/advanced_chat_view.dart`
+  - Load `allowSendChat`, `allowPinChat`, `allowDeleteOtherChat` từ permissions.
+  - Client-side rate limit: tối đa 30 tin nhắn / phút (`_kMaxMsgPerMinute`).
+  - Hoàn trả slot rate-limit nếu gửi tin nhắn thất bại.
+
+#### Super Admin Console — Việt hóa nhãn UI
+- `lib/views/super_admin_console_view.dart`
+  - Đổi nhãn tiếng Anh còn sót (`Role`, `Shop ID`, `Broadcast`, `Permissions`, `Settings`, `Danger Zone`) sang tiếng Việt.
+
+#### Sync Service — Dọn Dead Code
+- `lib/services/sync_service.dart`
+  - Xóa hàm `_scheduleResubscribe()` không còn được gọi (dead code gây lint warning).
+
+#### Sync Center — Refactor
+- `lib/widgets/unified_sync_button.dart`
+  - Tách `_handleClearFailed()` (logic xóa failed queue) thành `_handleOpenFirebaseStats()` và `_handleOpenFirestoreConnectivityPage()` (điều hướng đến trang thống kê Firebase RW và Firestore Connectivity Test).
+  - Bỏ import `firebase_auth` không dùng.
+
+### Bug Fix (2026-05-29)
+- `lib/views/shop_selector_view.dart`
+  - Xóa tham chiếu đến biến `_pinVerified` và `_checkingPin` không tồn tại trong class (gây compile error `undefined_identifier`).
+
+### Validation (2026-05-29)
+- `flutter analyze --no-fatal-warnings`: 0 `error`, còn `1230` `info/warning` pre-existing (giảm từ 1552 nhờ dọn dead code).
+- Không có compile error nào.
+
+---
+
 ## [2026-05-26] - Hoàn Thiện Sao Lưu/Khôi Phục Offline + Online, Thêm Nút ... Trên Cài Đặt
+
+### Follow-up Cloud Backup Fix (2026-05-26)
+- `lib/services/backup_service.dart`
+	- Thêm hàm xóa backup SQLite cloud: `deleteSqliteBackupFromFirebase(fileName)`.
+	- Tối ưu liệt kê backup cloud: bỏ phụ thuộc `getDownloadURL()` để giảm lỗi đọc metadata/list khi policy chặt.
+- `lib/views/backup_restore_view.dart`
+	- Thêm nút xóa cho từng bản backup SQLite trên Cloud.
+	- Bổ sung dialog xác nhận xóa và reload danh sách sau khi xóa.
+	- Cải thiện thông báo lỗi sao lưu/khôi phục/xóa cloud theo mã lỗi phổ biến (`permission-denied`, `unauthorized`, `object-not-found`, `unauthenticated`).
+- `storage.rules`
+	- Bổ sung rule cho `db_backups/{shopId}/{allPaths=**}` để cho phép read/create/update/delete đúng theo tenant `shopId`.
+	- Giới hạn upload backup tối đa 250MB.
+
+### Validation (follow-up cloud backup)
+- `flutter analyze lib/services/backup_service.dart lib/views/backup_restore_view.dart`
+	- Không có compile error mới; còn lint info sẵn có của file.
+- `firebase deploy --only storage`
+	- Deploy thành công Storage Rules mới cho project `huyaka-1809`.
 
 ### Follow-up Migration & Sync Hardening (2026-05-26)
 - `lib/services/backup_service.dart`

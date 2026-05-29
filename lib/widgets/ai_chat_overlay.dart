@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
 import '../data/db_helper.dart';
 import '../services/ai_chat_service.dart';
 import '../services/ai_nav_bridge.dart';
+import '../services/ai_usage_logger.dart';
+import '../services/connectivity_service.dart';
+import '../services/user_service.dart';
 import '../services/voice_correction_service.dart';
 import '../theme/popup_theme.dart';
 import '../views/repair_detail_view.dart';
 import '../views/sale_detail_view.dart';
+import 'ai_order_input_sheet.dart';
 
 // ── Message model ──────────────────────────────────────────────────────────────
 
@@ -70,8 +75,26 @@ class _AiChatOverlayState extends State<AiChatOverlay>
   // Tracks last resolved topic for "gần nhất" context continuity
   String? _lastIntent; // 'repair' | 'sale' | 'debt' | 'stock' | null
 
+  // Context-aware follow-up chips shown after AI answers
+  List<(String, IconData)> _contextChips = [];
+
+  // Whether welcome message has been sent this session
+  bool _welcomeSent = false;
+
   // ── FAB drag position (null = default bottom-right on first build) ─────────
   Offset? _fabOffset;
+
+  // ── Permission / connectivity ─────────────────────────────────────────────
+  bool _canCloudAI = false;        // Manager+ only
+  bool _isOnline = true;           // driven by ConnectivityService
+
+  // ── Feedback (👍/👎 per message index) ────────────────────────────────────
+  final Map<int, bool> _feedbackMap = {};
+
+  // ── Search ────────────────────────────────────────────────────────────────
+  bool _searchMode = false;
+  String _searchQuery = '';
+  final _searchCtrl = TextEditingController();
 
   // ── Voice ─────────────────────────────────────────────────────────────────
   final _speech = SpeechToText();
@@ -102,7 +125,31 @@ class _AiChatOverlayState extends State<AiChatOverlay>
       duration: const Duration(milliseconds: 600),
     )..repeat(reverse: true);
     _initSpeech();
+    _loadPermissions();
+    _watchConnectivity();
+    _loadHistory();
     // Stats loaded lazily on first open — not in initState to avoid wasted SQLite reads
+  }
+
+  Future<void> _loadPermissions() async {
+    final perms = await UserService.getCurrentUserPermissions();
+    if (mounted) {
+      setState(() {
+        _canCloudAI = perms['allowCloudAI'] as bool? ?? false;
+      });
+    }
+  }
+
+  void _watchConnectivity() {
+    _isOnline = ConnectivityService.instance.isOnline;
+    // Poll once per second — lightweight, avoids stream subscription teardown
+    Future.doWhile(() async {
+      await Future.delayed(const Duration(seconds: 1));
+      if (!mounted) return false;
+      final online = ConnectivityService.instance.isOnline;
+      if (online != _isOnline) setState(() => _isOnline = online);
+      return true;
+    });
   }
 
   @override
@@ -111,6 +158,7 @@ class _AiChatOverlayState extends State<AiChatOverlay>
     _pulse.dispose();
     _ctrl.dispose();
     _scrollCtrl.dispose();
+    _searchCtrl.dispose();
     _speech.cancel();
     super.dispose();
   }
@@ -125,6 +173,30 @@ class _AiChatOverlayState extends State<AiChatOverlay>
       },
     );
     if (mounted) setState(() => _speechAvailable = ok);
+  }
+
+  // Re-request speech permission if not yet granted, then start listening.
+  Future<void> _requestAndStartMic() async {
+    final ok = await _speech.initialize(
+      onError: (_) => setState(() => _recording = false),
+      onStatus: (s) {
+        if ((s == 'done' || s == 'notListening') && _recording) {
+          setState(() => _recording = false);
+        }
+      },
+    );
+    if (!mounted) return;
+    setState(() => _speechAvailable = ok);
+    if (ok) {
+      _toggleMic();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vui lòng cấp quyền Microphone trong Cài đặt điện thoại'),
+          duration: Duration(seconds: 3),
+        ),
+      );
+    }
   }
 
   Future<void> _preloadStats({bool forceRefresh = false}) async {
@@ -146,6 +218,41 @@ class _AiChatOverlayState extends State<AiChatOverlay>
     } catch (_) {}
   }
 
+  // ── History persistence ───────────────────────────────────────────────────
+
+  static const _kHistoryKey = 'ai_chat_history';
+  static const _kLastOpenKey = 'ai_last_open_date';
+
+  Future<void> _loadHistory() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getStringList(_kHistoryKey) ?? [];
+      final msgs = raw.map((s) {
+        final sep = s.indexOf('|');
+        if (sep < 0) return null;
+        final role = s.substring(0, sep) == 'user' ? _Role.user : _Role.assistant;
+        return _Msg(role, s.substring(sep + 1));
+      }).whereType<_Msg>().toList();
+      if (mounted && msgs.isNotEmpty) setState(() => _messages.addAll(msgs));
+    } catch (_) {}
+  }
+
+  Future<void> _saveHistory() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final toSave = _messages
+          .where((m) => !m.isLoading && m.text.isNotEmpty)
+          .toList()
+          .reversed
+          .take(20)
+          .toList()
+          .reversed
+          .map((m) => '${m.role == _Role.user ? "user" : "assistant"}|${m.text}')
+          .toList();
+      await prefs.setStringList(_kHistoryKey, toSave);
+    } catch (_) {}
+  }
+
   // ── Open / close ──────────────────────────────────────────────────────────
 
   void _toggle() {
@@ -154,26 +261,56 @@ class _AiChatOverlayState extends State<AiChatOverlay>
     } else {
       setState(() => _open = true);
       _anim.forward();
-      // Lazy-load stats on first open (or if cache expired)
+      // Lazy-load stats on first open (or if cache expired), then send welcome once per session
       _preloadStats().then((_) {
-        if (mounted && _open && _messages.isEmpty) _sendWelcome();
+        if (mounted && _open && !_welcomeSent) {
+          _welcomeSent = true;
+          _sendWelcome();
+        }
       });
     }
   }
 
-  void _sendWelcome() {
+  Future<void> _sendWelcome() async {
     final stats = _stats;
     if (stats == null) {
-      _addAI(
-        'Chào bạn! Tôi là AI Trợ Lý. Đang tải dữ liệu shop...',
-      );
+      _addAI('Chào bạn! Tôi là AI Trợ Lý. Đang tải dữ liệu shop...');
       return;
     }
-    _addAI(
-      'Chào bạn! Hôm nay shop bán được **${stats.salesToday} đơn**, '
-      'doanh thu **${_fmtStats(stats.revenueToday)}**. '
-      'Bạn muốn biết thêm gì?',
-    );
+
+    // Check if this is the first open today for a richer daily briefing
+    bool isFirstToday = false;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final now = DateTime.now();
+      final todayStr = '${now.year}-${now.month}-${now.day}';
+      isFirstToday = (prefs.getString(_kLastOpenKey) ?? '') != todayStr;
+      if (isFirstToday) await prefs.setString(_kLastOpenKey, todayStr);
+    } catch (_) {}
+
+    if (!mounted) return;
+
+    if (isFirstToday && (stats.repairsPending > 0 || stats.debtReceivable > 0)) {
+      final buf = StringBuffer('Chào buổi mới! Điểm cần lưu ý hôm nay:\n');
+      if (stats.repairsPending > 0) {
+        buf.writeln('• **${stats.repairsPending} đơn sửa** đang chờ xử lý');
+      }
+      if (stats.debtReceivable > 0) {
+        buf.writeln('• Công nợ khách hàng: **${_fmtStats(stats.debtReceivable)}**');
+      }
+      if (stats.debtPayable > 0) {
+        buf.writeln('• Nợ NCC phải trả: **${_fmtStats(stats.debtPayable)}**');
+      }
+      buf.write('\nBạn muốn biết thêm gì?');
+      _addAI(buf.toString());
+    } else {
+      _addAI(
+        'Chào bạn! Hôm nay bán được **${stats.salesToday} đơn**, '
+        'doanh thu **${_fmtStats(stats.revenueToday)}**'
+        '${stats.repairsPending > 0 ? ", còn **${stats.repairsPending} đơn sửa** chờ xử lý" : ""}. '
+        'Bạn muốn biết thêm gì?',
+      );
+    }
   }
 
   // ── Messaging ─────────────────────────────────────────────────────────────
@@ -214,15 +351,17 @@ class _AiChatOverlayState extends State<AiChatOverlay>
     // Fast local answer (pass lastIntent for context continuity)
     final quick = AiChatService.instance.quickAnswer(q, stats, lastIntent: _lastIntent);
     if (quick != null) {
-      // Update intent context from the response's actions
       _updateLastIntent(quick.actions);
+      AiUsageLogger.log(type: AiCallType.quickAnswer, query: q, answer: quick.text).ignore();
       await Future.delayed(const Duration(milliseconds: 300));
       if (!mounted) return;
       setState(() {
         _sending = false;
         _messages.add(_Msg(_Role.assistant, quick.text, actions: quick.actions));
+        if (quick.followUpChips.isNotEmpty) _contextChips = quick.followUpChips;
       });
       _scrollToBottom();
+      _saveHistory().ignore();
       return;
     }
 
@@ -240,6 +379,20 @@ class _AiChatOverlayState extends State<AiChatOverlay>
         ));
       });
       _scrollToBottom();
+      return;
+    }
+
+    // Connectivity gate — quick-answers still work offline (handled above)
+    if (!_isOnline) {
+      setState(() => _sending = false);
+      _addAI('Không có kết nối internet. Chỉ hỗ trợ quick-answer khi mất mạng.');
+      return;
+    }
+
+    // Permission gate — cloud AI is Manager+ only
+    if (!_canCloudAI) {
+      setState(() => _sending = false);
+      _addAI('Tính năng AI nâng cao chỉ dành cho Manager trở lên. Hãy thử các câu hỏi về doanh thu, tồn kho...');
       return;
     }
 
@@ -273,6 +426,10 @@ class _AiChatOverlayState extends State<AiChatOverlay>
     final (answer, error) = await AiChatService.instance.askAI(q, stats, history);
     if (!mounted) return;
 
+    if (answer != null) {
+      AiUsageLogger.log(type: AiCallType.cloudAI, query: q, answer: answer).ignore();
+    }
+
     setState(() {
       _sending = false;
       _messages.removeLast(); // remove loading bubble
@@ -281,6 +438,7 @@ class _AiChatOverlayState extends State<AiChatOverlay>
       );
     });
     _scrollToBottom();
+    _saveHistory().ignore();
   }
 
   // ── Intent tracking ───────────────────────────────────────────────────────
@@ -289,10 +447,14 @@ class _AiChatOverlayState extends State<AiChatOverlay>
     if (actions.isEmpty) return;
     final type = actions.first.type;
     _lastIntent = switch (type) {
-      AiActionType.openLatestRepair || AiActionType.openRepairsTab => 'repair',
-      AiActionType.openLatestSale || AiActionType.openSalesTab => 'sale',
+      AiActionType.openLatestRepair ||
+      AiActionType.openRepairsTab ||
+      AiActionType.createRepairFromChat => 'repair',
+      AiActionType.openLatestSale ||
+      AiActionType.openSalesTab ||
+      AiActionType.createSaleFromChat => 'sale',
       AiActionType.viewDebts || AiActionType.viewDebtPayable => 'debt',
-      AiActionType.viewStock => 'stock',
+      AiActionType.viewStock || AiActionType.createStockFromChat => 'stock',
     };
   }
 
@@ -328,6 +490,33 @@ class _AiChatOverlayState extends State<AiChatOverlay>
       case AiActionType.openRepairsTab:
         AiNavBridge.switchToTab(AiNavBridge.tabRepairs);
         _toggle();
+      case AiActionType.createRepairFromChat:
+        _toggle();
+        if (mounted) {
+          AiOrderInputSheet.show(
+            context,
+            mode: AiSheetMode.repair,
+            prefilledText: action.payload,
+          );
+        }
+      case AiActionType.createSaleFromChat:
+        _toggle();
+        if (mounted) {
+          AiOrderInputSheet.show(
+            context,
+            mode: AiSheetMode.sale,
+            prefilledText: action.payload,
+          );
+        }
+      case AiActionType.createStockFromChat:
+        _toggle();
+        if (mounted) {
+          AiOrderInputSheet.show(
+            context,
+            mode: AiSheetMode.stock,
+            prefilledText: action.payload,
+          );
+        }
     }
   }
 
@@ -481,8 +670,9 @@ class _AiChatOverlayState extends State<AiChatOverlay>
             child: Column(
               children: [
                 _buildPanelHeader(),
-                _buildChips(),
+                _searchMode ? _buildSearchBar() : _buildChips(),
                 Expanded(child: _buildMessageList()),
+                if (!_isOnline) _buildOfflineBanner(),
                 _buildInput(mq),
               ],
             ),
@@ -544,6 +734,25 @@ class _AiChatOverlayState extends State<AiChatOverlay>
                 ),
               ),
               IconButton(
+                icon: Icon(
+                  _searchMode ? Icons.search_off_rounded : Icons.search_rounded,
+                  color: _searchMode ? Colors.white : Colors.white54,
+                  size: 18,
+                ),
+                padding: const EdgeInsets.all(8),
+                constraints: const BoxConstraints(),
+                tooltip: _searchMode ? 'Đóng tìm kiếm' : 'Tìm trong lịch sử',
+                onPressed: () {
+                  setState(() {
+                    _searchMode = !_searchMode;
+                    if (!_searchMode) {
+                      _searchQuery = '';
+                      _searchCtrl.clear();
+                    }
+                  });
+                },
+              ),
+              IconButton(
                 icon: const Icon(Icons.refresh_rounded,
                     color: Colors.white54, size: 18),
                 padding: const EdgeInsets.all(8),
@@ -566,36 +775,81 @@ class _AiChatOverlayState extends State<AiChatOverlay>
     );
   }
 
+  Widget _buildSearchBar() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 6),
+      child: TextField(
+        controller: _searchCtrl,
+        autofocus: true,
+        style: const TextStyle(fontSize: 13.5),
+        decoration: InputDecoration(
+          hintText: 'Tìm trong lịch sử hội thoại...',
+          hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
+          prefixIcon: const Icon(Icons.search_rounded, size: 18, color: Color(0xFF64748B)),
+          suffixIcon: _searchQuery.isNotEmpty
+              ? GestureDetector(
+                  onTap: () => setState(() { _searchQuery = ''; _searchCtrl.clear(); }),
+                  child: const Icon(Icons.clear_rounded, size: 16, color: Color(0xFF94A3B8)),
+                )
+              : null,
+          filled: true,
+          fillColor: const Color(0xFFF1F5F9),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: _kPurple, width: 1.5),
+          ),
+        ),
+        onChanged: (v) => setState(() => _searchQuery = v.trim().toLowerCase()),
+      ),
+    );
+  }
+
   Widget _buildChips() {
+    final chips = _contextChips.isNotEmpty ? _contextChips : _kChips;
+    final isContext = _contextChips.isNotEmpty;
     return SizedBox(
       height: 42,
       child: ListView.separated(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         scrollDirection: Axis.horizontal,
-        itemCount: _kChips.length,
+        itemCount: chips.length,
         separatorBuilder: (_, __) => const SizedBox(width: 8),
         itemBuilder: (_, i) {
-          final (label, icon) = _kChips[i];
+          final (label, icon) = chips[i];
           return GestureDetector(
             onTap: _sending ? null : () => _send(label),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
-                color: _kPurpleLight,
+                color: isContext
+                    ? const Color(0xFFF0FDF4) // green tint for context chips
+                    : _kPurpleLight,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: _kPurple.withValues(alpha: 0.3),
+                  color: isContext
+                      ? const Color(0xFF16A34A).withValues(alpha: 0.35)
+                      : _kPurple.withValues(alpha: 0.3),
                 ),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(icon, size: 13, color: _kPurple),
+                  Icon(icon, size: 13,
+                      color: isContext ? const Color(0xFF16A34A) : _kPurple),
                   const SizedBox(width: 5),
                   Text(
                     label,
-                    style: const TextStyle(
-                      color: _kPurple,
+                    style: TextStyle(
+                      color: isContext ? const Color(0xFF15803D) : _kPurple,
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                     ),
@@ -610,17 +864,33 @@ class _AiChatOverlayState extends State<AiChatOverlay>
   }
 
   Widget _buildMessageList() {
-    if (_messages.isEmpty) {
-      return const Center(
+    // Build filtered index list (preserves original index for feedback map)
+    final filtered = <(int, _Msg)>[];
+    for (int i = 0; i < _messages.length; i++) {
+      final m = _messages[i];
+      if (_searchQuery.isEmpty || m.text.toLowerCase().contains(_searchQuery)) {
+        filtered.add((i, m));
+      }
+    }
+
+    if (filtered.isEmpty) {
+      return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.chat_bubble_outline_rounded,
-                size: 40, color: Color(0xFFD8C5FF)),
-            SizedBox(height: 10),
+            Icon(
+              _searchQuery.isEmpty
+                  ? Icons.chat_bubble_outline_rounded
+                  : Icons.search_off_rounded,
+              size: 40,
+              color: const Color(0xFFD8C5FF),
+            ),
+            const SizedBox(height: 10),
             Text(
-              'Hỏi tôi về shop của bạn!',
-              style: TextStyle(color: PopupTheme.textMuted, fontSize: 14),
+              _searchQuery.isEmpty
+                  ? 'Hỏi tôi về shop của bạn!'
+                  : 'Không tìm thấy "$_searchQuery"',
+              style: const TextStyle(color: PopupTheme.textMuted, fontSize: 14),
             ),
           ],
         ),
@@ -629,15 +899,19 @@ class _AiChatOverlayState extends State<AiChatOverlay>
     return ListView.builder(
       controller: _scrollCtrl,
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-      itemCount: _messages.length,
-      itemBuilder: (_, i) => _buildBubble(_messages[i]),
+      itemCount: filtered.length,
+      itemBuilder: (_, i) {
+        final (origIdx, msg) = filtered[i];
+        return _buildBubble(msg, origIdx, highlight: _searchQuery);
+      },
     );
   }
 
-  Widget _buildBubble(_Msg msg) {
+  Widget _buildBubble(_Msg msg, int index, {String highlight = ''}) {
     final isUser = msg.role == _Role.user;
     final hasActions = !isUser && msg.actions.isNotEmpty && !msg.isLoading;
     final hasSuggestions = !isUser && msg.suggestions.isNotEmpty && !msg.isLoading;
+    final hasFeedback = !isUser && !msg.isLoading && msg.text.isNotEmpty;
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Column(
@@ -677,7 +951,7 @@ class _AiChatOverlayState extends State<AiChatOverlay>
                   ),
                   child: msg.isLoading
                       ? _buildTypingIndicator()
-                      : _buildMsgText(msg.text, isUser),
+                      : _buildMsgText(msg.text, isUser, highlight: highlight),
                 ),
               ),
               if (isUser) const SizedBox(width: 8),
@@ -685,6 +959,7 @@ class _AiChatOverlayState extends State<AiChatOverlay>
           ),
           if (hasActions) _buildActionRow(msg.actions),
           if (hasSuggestions) _buildSuggestionChips(msg.suggestions),
+          if (hasFeedback) _buildFeedbackRow(index, msg.text),
         ],
       ),
     );
@@ -800,38 +1075,139 @@ class _AiChatOverlayState extends State<AiChatOverlay>
     );
   }
 
-  Widget _buildMsgText(String text, bool isUser) {
-    // Simple bold markdown: **text**
-    final spans = <InlineSpan>[];
-    final re = RegExp(r'\*\*(.*?)\*\*');
+  Widget _buildMsgText(String text, bool isUser, {String highlight = ''}) {
+    final baseColor = isUser ? Colors.white : PopupTheme.textPrimary;
+    const baseSize = 13.5;
+    const baseHeight = 1.45;
+
+    // Build flat list of plain/bold segments from **markdown**
+    final segments = <({String text, bool bold})>[];
+    final boldRe = RegExp(r'\*\*(.*?)\*\*');
     int last = 0;
-    for (final m in re.allMatches(text)) {
-      if (m.start > last) {
-        spans.add(TextSpan(
-            text: text.substring(last, m.start),
-            style: TextStyle(
-                color: isUser ? Colors.white : PopupTheme.textPrimary,
-                fontSize: 13.5,
-                height: 1.45)));
-      }
-      spans.add(TextSpan(
-          text: m.group(1),
-          style: TextStyle(
-              color: isUser ? Colors.white : _kPurple,
-              fontSize: 13.5,
-              fontWeight: FontWeight.w700,
-              height: 1.45)));
+    for (final m in boldRe.allMatches(text)) {
+      if (m.start > last) segments.add((text: text.substring(last, m.start), bold: false));
+      segments.add((text: m.group(1)!, bold: true));
       last = m.end;
     }
-    if (last < text.length) {
-      spans.add(TextSpan(
-          text: text.substring(last),
-          style: TextStyle(
-              color: isUser ? Colors.white : PopupTheme.textPrimary,
-              fontSize: 13.5,
-              height: 1.45)));
+    if (last < text.length) segments.add((text: text.substring(last), bold: false));
+
+    // Apply search highlight within each segment
+    final spans = <InlineSpan>[];
+    for (final seg in segments) {
+      final color = seg.bold ? (isUser ? Colors.white : _kPurple) : baseColor;
+      final weight = seg.bold ? FontWeight.w700 : FontWeight.normal;
+
+      if (highlight.isEmpty) {
+        spans.add(TextSpan(
+            text: seg.text,
+            style: TextStyle(color: color, fontSize: baseSize, fontWeight: weight, height: baseHeight)));
+        continue;
+      }
+
+      // Split segment by highlight match (case-insensitive)
+      int pos = 0;
+      final hlRe = RegExp(RegExp.escape(highlight), caseSensitive: false);
+      for (final hm in hlRe.allMatches(seg.text)) {
+        if (hm.start > pos) {
+          spans.add(TextSpan(
+              text: seg.text.substring(pos, hm.start),
+              style: TextStyle(color: color, fontSize: baseSize, fontWeight: weight, height: baseHeight)));
+        }
+        spans.add(TextSpan(
+            text: seg.text.substring(hm.start, hm.end),
+            style: const TextStyle(
+                color: Color(0xFF92400E),
+                fontSize: baseSize,
+                fontWeight: FontWeight.w700,
+                height: baseHeight,
+                backgroundColor: Color(0xFFFEF3C7))));
+        pos = hm.end;
+      }
+      if (pos < seg.text.length) {
+        spans.add(TextSpan(
+            text: seg.text.substring(pos),
+            style: TextStyle(color: color, fontSize: baseSize, fontWeight: weight, height: baseHeight)));
+      }
     }
     return RichText(text: TextSpan(children: spans));
+  }
+
+  void _giveFeedback(int msgIndex, String aiAnswer, bool positive) {
+    setState(() => _feedbackMap[msgIndex] = positive);
+    String query = '';
+    for (int i = msgIndex - 1; i >= 0; i--) {
+      if (_messages[i].role == _Role.user) { query = _messages[i].text; break; }
+    }
+    AiUsageLogger.log(
+      type: AiCallType.feedback,
+      query: query.isEmpty ? 'N/A' : query,
+      answer: aiAnswer,
+      feedbackPositive: positive,
+    ).ignore();
+  }
+
+  Widget _buildFeedbackRow(int index, String aiAnswer) {
+    final given = _feedbackMap[index];
+    return Padding(
+      padding: const EdgeInsets.only(top: 4, left: 36),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _feedbackBtn(Icons.thumb_up_rounded, given == true,
+              given != null ? null : () => _giveFeedback(index, aiAnswer, true)),
+          const SizedBox(width: 6),
+          _feedbackBtn(Icons.thumb_down_rounded, given == false,
+              given != null ? null : () => _giveFeedback(index, aiAnswer, false)),
+          if (given != null)
+            Padding(
+              padding: const EdgeInsets.only(left: 8),
+              child: Text(
+                'Cảm ơn phản hồi!',
+                style: TextStyle(fontSize: 10.5, color: Colors.grey.shade500),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _feedbackBtn(IconData icon, bool active, VoidCallback? onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.all(5),
+        decoration: BoxDecoration(
+          color: active ? _kPurpleLight : Colors.transparent,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+            color: active ? _kPurple.withValues(alpha: 0.4) : Colors.transparent,
+          ),
+        ),
+        child: Icon(icon, size: 14,
+            color: active ? _kPurple : Colors.grey.shade400),
+      ),
+    );
+  }
+
+  Widget _buildOfflineBanner() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      color: const Color(0xFFFEF3C7),
+      child: const Row(
+        children: [
+          Icon(Icons.wifi_off_rounded, size: 15, color: Color(0xFFD97706)),
+          SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Mất kết nối — chỉ hỗ trợ quick-answer offline',
+              style: TextStyle(fontSize: 12, color: Color(0xFF92400E)),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildInput(MediaQueryData mq) {
@@ -843,41 +1219,50 @@ class _AiChatOverlayState extends State<AiChatOverlay>
       ),
       child: Row(
         children: [
-          // Mic
-          if (_speechAvailable)
-            GestureDetector(
-              onTap: _sending ? null : _toggleMic,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                width: 40,
-                height: 40,
-                margin: const EdgeInsets.only(right: 8),
-                decoration: BoxDecoration(
+          // Mic — always visible; requests permission on first tap if needed
+          GestureDetector(
+            onTap: _sending
+                ? null
+                : (_speechAvailable ? _toggleMic : _requestAndStartMic),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: 40,
+              height: 40,
+              margin: const EdgeInsets.only(right: 8),
+              decoration: BoxDecoration(
+                color: _recording
+                    ? const Color(0xFFFEF2F2)
+                    : _speechAvailable
+                        ? _kPurpleLight
+                        : const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
                   color: _recording
-                      ? const Color(0xFFFEF2F2)
-                      : _kPurpleLight,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: _recording
-                        ? const Color(0xFFDC2626)
-                        : _kPurple.withValues(alpha: 0.3),
-                  ),
+                      ? const Color(0xFFDC2626)
+                      : _speechAvailable
+                          ? _kPurple.withValues(alpha: 0.3)
+                          : const Color(0xFFCBD5E1),
                 ),
-                child: _recording
-                    ? AnimatedBuilder(
-                        animation: _pulse,
-                        builder: (_, __) => Icon(
-                          Icons.mic_rounded,
-                          size: 20,
-                          color: Color.lerp(
-                              const Color(0xFFDC2626),
-                              Colors.red.shade300,
-                              _pulse.value),
-                        ),
-                      )
-                    : const Icon(Icons.mic_rounded, size: 20, color: _kPurple),
               ),
+              child: _recording
+                  ? AnimatedBuilder(
+                      animation: _pulse,
+                      builder: (_, __) => Icon(
+                        Icons.mic_rounded,
+                        size: 20,
+                        color: Color.lerp(
+                            const Color(0xFFDC2626),
+                            Colors.red.shade300,
+                            _pulse.value),
+                      ),
+                    )
+                  : Icon(
+                      _speechAvailable ? Icons.mic_rounded : Icons.mic_off_rounded,
+                      size: 20,
+                      color: _speechAvailable ? _kPurple : const Color(0xFF94A3B8),
+                    ),
             ),
+          ),
           // Text field
           Expanded(
             child: ValueListenableBuilder<String>(

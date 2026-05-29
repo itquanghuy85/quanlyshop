@@ -15,13 +15,17 @@ enum AiActionType {
   viewStock,
   openSalesTab,
   openRepairsTab,
+  createRepairFromChat,
+  createSaleFromChat,
+  createStockFromChat,
 }
 
 class AiAction {
   final String label;
   final IconData icon;
   final AiActionType type;
-  const AiAction({required this.label, required this.icon, required this.type});
+  final String? payload;
+  const AiAction({required this.label, required this.icon, required this.type, this.payload});
 }
 
 // ── Quick response ──────────────────────────────────────────────────────────────
@@ -29,7 +33,8 @@ class AiAction {
 class AiQuickResponse {
   final String text;
   final List<AiAction> actions;
-  const AiQuickResponse(this.text, {this.actions = const []});
+  final List<(String, IconData)> followUpChips;
+  const AiQuickResponse(this.text, {this.actions = const [], this.followUpChips = const []});
 }
 
 // ── Intent clarification ────────────────────────────────────────────────────────
@@ -388,27 +393,110 @@ class AiChatService {
   // Expand common synonyms before intent matching so short / variant phrasing works.
   static String _expandSynonyms(String normalized) {
     const synonyms = <String, String>{
+      // ── Viết tắt phổ biến ──────────────────────────────────────────────────
+      ' dt ': ' doanh thu ',          // "dt hôm nay" → "doanh thu hôm nay"
+      ' ln ': ' loi nhuan ',          // "ln tháng này"
+      ' bh ': ' ban hang ',           // "bh hôm nay"
+      ' ds ': ' don sua ',            // "ds mới nhất"
+      ' db ': ' don ban ',            // "db gần nhất"
+      ' kh ': ' khach hang ',         // "kh nào nợ"
+      ' ncc ': ' nha cung cap ',
+      // ── Tiếng Anh ──────────────────────────────────────────────────────────
       'bill': 'hoa don ban',
       'invoice': 'hoa don ban',
       'receipt': 'hoa don ban',
-      'moi nhat': 'gan nhat',
-      'gan day': 'gan nhat',
-      'ban gan': 'don ban gan nhat',
-      'ban moi': 'don ban gan nhat',
-      'xem ban': 'don ban gan nhat',
-      'sua gan': 'don sua gan nhat',
-      'sua moi': 'don sua gan nhat',
-      'xem sua': 'don sua gan nhat',
-      'no ai': 'ai no nhieu nhat',
-      'no ncc': 'tra no ncc',
-      'nha cung cap': 'ncc',
-      'supplier': 'ncc',
       'inventory': 'ton kho',
       'stock': 'ton kho',
       'revenue': 'doanh thu',
       'profit': 'loi nhuan',
+      'supplier': 'nha cung cap',
+      'customer': 'khach hang',
+      'order': 'don',
+      'repair': 'sua chua',
+      'sale': 'ban hang',
+      'debt': 'cong no',
+      // ── Gần nhất ───────────────────────────────────────────────────────────
+      'moi nhat': 'gan nhat',
+      'gan day': 'gan nhat',
+      'vua roi': 'gan nhat',
+      'cuoi cung': 'gan nhat',
+      'vua xong': 'gan nhat',
+      'vua tao': 'gan nhat',
+      'moi tao': 'gan nhat',
+      // ── Đơn bán nói tắt ────────────────────────────────────────────────────
+      'ban gan': 'don ban gan nhat',
+      'ban moi': 'don ban gan nhat',
+      'xem ban': 'don ban gan nhat',
+      'hoa don': 'don ban gan nhat',
+      'don vua ban': 'don ban gan nhat',
+      'ban vua xong': 'don ban gan nhat',
+      // ── Đơn sửa nói tắt ────────────────────────────────────────────────────
+      'sua gan': 'don sua gan nhat',
+      'sua moi': 'don sua gan nhat',
+      'xem sua': 'don sua gan nhat',
+      'don vua sua': 'don sua gan nhat',
+      'may vua sua': 'don sua gan nhat',
+      // ── Nợ ────────────────────────────────────────────────────────────────
+      'no ai': 'ai no nhieu nhat',
+      'no ncc': 'tra no ncc',
+      'nha cung cap': 'ncc',
+      'ai no': 'ai no nhieu nhat',
+      'khach no': 'thu no khach',
+      'no khach': 'thu no khach',
+      'owe': 'cong no',
+      // ── Linh kiện ─────────────────────────────────────────────────────────
       'linh phu': 'linh kien',
       'phu tung': 'linh kien',
+      'spare part': 'linh kien',
+      'part': 'linh kien',
+      // ── Doanh thu nói tắt ─────────────────────────────────────────────────
+      'ban duoc': 'doanh thu',
+      'thu ve': 'doanh thu',
+      'tien vao': 'doanh thu',
+      'bao nhieu tien': 'doanh thu',
+      'ket qua': 'tai chinh',
+      'hom nay the nao': 'tai chinh',
+      'hom nay sao': 'tai chinh',
+      'ngay hom nay': 'hom nay',
+      'buoi nay': 'hom nay',
+      'sang nay': 'hom nay',
+      'chieu nay': 'hom nay',
+      // ── Lợi nhuận ─────────────────────────────────────────────────────────
+      'loi duoc': 'loi nhuan',
+      'lai duoc': 'loi nhuan',
+      'loi bao nhieu': 'loi nhuan',
+      'loi nhieu khong': 'loi nhuan',
+      'lai bao nhieu': 'loi nhuan',
+      'loi': 'loi nhuan',
+      // ── Tạo đơn nói tắt ───────────────────────────────────────────────────
+      'muon ban': 'tao don ban',
+      'co khach mua': 'tao don ban',
+      'khach mua': 'tao don ban',
+      'ban may': 'tao don ban',
+      'xuat may': 'tao don ban',
+      'co khach sua': 'tao don sua',
+      'khach mang may den': 'tao don sua',
+      'tiep nhan': 'tao don sua',
+      'nhan may': 'tao don sua',
+      'may bi hong': 'tao don sua',
+      'may bi loi': 'tao don sua',
+      'them don': 'tao don',
+      // ── Kho ───────────────────────────────────────────────────────────────
+      'hang hoa': 'ton kho',
+      'so luong': 'ton kho',
+      'con hang': 'ton kho',
+      'hang con khong': 'ton kho',
+      'het hang': 'ton kho',
+      'con may cai': 'ton kho',
+      // ── Thời gian nói tắt ─────────────────────────────────────────────────
+      'bay gio': 'hom nay',
+      'luc nay': 'hom nay',
+      't2': 'thu 2',
+      't3': 'thu 3',
+      't4': 'thu 4',
+      't5': 'thu 5',
+      't6': 'thu 6',
+      't7': 'thu 7',
     };
     String result = normalized;
     for (final e in synonyms.entries) {
@@ -421,16 +509,237 @@ class AiChatService {
     final raw = VietnameseUtils.normalize(question.toLowerCase());
     final n = RepairVocabularyService.instance.preprocessQuery(_expandSynonyms(raw));
 
-    // Tạo đơn bán → switch to sales tab
+    // ── Câu hỏi cực ngắn / nói tắt ──────────────────────────────────────────
+
+    // "bao nhiêu" / "mấy" / "được không" → tổng hợp nhanh hôm nay
+    if (n.trim() == 'bao nhieu' || n.trim() == 'may' ||
+        _has(n, ['bao nhieu do', 'duoc bao nhieu', 'ban duoc chua', 'co gi chua'])) {
+      final buf = StringBuffer('Hôm nay: bán **${stats.salesToday} đơn** '
+          '(${AiChatService.fmt(stats.saleRevenueToday)})');
+      if (stats.repairsPending > 0) buf.write(', **${stats.repairsPending} đơn sửa** chờ');
+      buf.write('.');
+      return AiQuickResponse(
+        buf.toString(),
+        followUpChips: const [
+          ('Chi tiết doanh thu', Icons.trending_up_rounded),
+          ('Lợi nhuận', Icons.attach_money_rounded),
+          ('Đơn đang chờ', Icons.pending_actions_rounded),
+        ],
+      );
+    }
+
+    // "thêm đơn" / "tạo đơn" → clarify sửa hay bán
+    if (_has(n, ['tao don', 'them don', 'tao moi', 'muon tao']) &&
+        !_has(n, ['sua', 'ban', 'kho', 'hang'])) {
+      return const AiQuickResponse(
+        'Bạn muốn tạo đơn gì?',
+        actions: [
+          AiAction(label: 'Đơn sửa chữa', icon: Icons.build_circle_rounded, type: AiActionType.openRepairsTab),
+          AiAction(label: 'Đơn bán hàng', icon: Icons.point_of_sale_rounded, type: AiActionType.openSalesTab),
+        ],
+        followUpChips: [
+          ('Nhập kho mới', Icons.add_box_rounded),
+        ],
+      );
+    }
+
+    // "xem" / "mở" + không có ngữ cảnh → clarify
+    if (_has(n, ['xem gi', 'mo gi', 'xem cai gi', 'cho xem', 'mo ra']) &&
+        !_has(n, ['don', 'kho', 'no', 'tai chinh', 'bao cao'])) {
+      return const AiQuickResponse(
+        'Bạn muốn xem gì?',
+        followUpChips: [
+          ('Doanh thu hôm nay', Icons.trending_up_rounded),
+          ('Đơn sửa gần nhất', Icons.build_circle_rounded),
+          ('Tồn kho', Icons.inventory_2_rounded),
+          ('Công nợ', Icons.account_balance_wallet_rounded),
+        ],
+      );
+    }
+
+    // "có không" / "còn không" / "hết chưa" → tồn kho
+    if (_has(n, ['con khong', 'co khong', 'het chua', 'con bao nhieu',
+                  'con may', 'co san khong', 'da het'])) {
+      return AiQuickResponse(
+        'Tồn kho hiện có **${stats.stockCount} sản phẩm** '
+        '(giá vốn ${AiChatService.fmt(stats.stockCapital)}).',
+        actions: const [_kViewStockAction],
+        followUpChips: const [
+          ('Sắp hết hàng', Icons.warning_amber_rounded),
+          ('Kho linh kiện', Icons.memory_rounded),
+        ],
+      );
+    }
+
+    // "ổn không" / "tốt không" / "được không" → tóm tắt
+    if (_has(n, ['on khong', 'tot khong', 'the nao', 'sao roi',
+                  'ra sao', 'nhu the nao', 'co van de gi khong'])) {
+      final ok = stats.repairsPending == 0 && stats.debtReceivable < 1000000;
+      final buf = StringBuffer(ok
+          ? 'Hôm nay ổn! '
+          : 'Có một số điểm cần chú ý: ');
+      if (stats.repairsPending > 0) buf.write('**${stats.repairsPending} đơn sửa** đang chờ. ');
+      if (stats.debtReceivable > 0) buf.write('Nợ phải thu: **${AiChatService.fmt(stats.debtReceivable)}**. ');
+      buf.write('Doanh thu hôm nay: **${AiChatService.fmt(stats.revenueToday)}**.');
+      return AiQuickResponse(
+        buf.toString(),
+        followUpChips: const [
+          ('Chi tiết tài chính', Icons.summarize_rounded),
+          ('Đơn đang chờ', Icons.pending_actions_rounded),
+        ],
+      );
+    }
+
+    // "nhanh" / "tóm tắt" / "brief" → quick summary
+    if (_has(n, ['nhanh', 'tom tat', 'brief', 'ngon', 'ngan gon', 'chot', 'diem qua'])) {
+      return AiQuickResponse(
+        '**Hôm nay:**  ${stats.salesToday} đơn bán · '
+        '${stats.repairsToday} đơn sửa · '
+        'DT ${AiChatService.fmt(stats.revenueToday)} · '
+        'LN ${AiChatService.fmt(stats.profitToday)}'
+        '${stats.repairsPending > 0 ? ' · ⏳ ${stats.repairsPending} chờ' : ''}',
+        followUpChips: const [
+          ('Chi tiết', Icons.info_outline_rounded),
+          ('Tháng này', Icons.calendar_month_rounded),
+        ],
+      );
+    }
+
+    // Hướng dẫn / trợ giúp
+    if (_has(n, ['huong dan', 'tro giup', 'giup toi', 'ban co the', 'lam gi duoc',
+                  'chuc nang', 'ho tro', 'dung duoc gi', 'biet gi'])) {
+      return const AiQuickResponse(
+        'Em có thể giúp anh:\n'
+        '• **Doanh thu / lợi nhuận** — hôm nay, tháng, năm\n'
+        '• **Đơn sửa** — danh sách, đang chờ, tạo nhanh\n'
+        '• **Đơn bán** — gần nhất, tạo nhanh bằng giọng nói\n'
+        '• **Tồn kho** — kiểm tra, nhập kho mới\n'
+        '• **Công nợ** — khách nợ, nợ NCC\n'
+        '• **Tổng hợp tài chính** — báo cáo nhanh\n\n'
+        'Nói hoặc gõ câu hỏi — em hiểu tiếng Việt tự nhiên!',
+        followUpChips: [
+          ('Doanh thu hôm nay', Icons.trending_up_rounded),
+          ('Tạo đơn sửa', Icons.build_circle_rounded),
+          ('Tồn kho hiện tại', Icons.inventory_2_rounded),
+        ],
+      );
+    }
+
+    // "Hôm nay thế nào" / tổng kết nhanh
+    if (_has(n, ['hom nay the nao', 'ket qua hom nay', 'hom nay on khong',
+                  'ngay hom nay nhu the nao', 'tong ket hom nay', 'bao cao nhanh'])) {
+      final buf = StringBuffer('**Tóm tắt hôm nay:**\n');
+      buf.writeln('• Bán hàng: **${stats.salesToday} đơn** — ${fmt(stats.saleRevenueToday)}');
+      if (stats.deliveredRepairsToday > 0) {
+        buf.writeln('• Sửa chữa giao: **${stats.deliveredRepairsToday} đơn** — ${fmt(stats.repairRevenueToday)}');
+      }
+      buf.writeln('• Tổng doanh thu: **${fmt(stats.revenueToday)}** | LN: **${fmt(stats.profitToday)}**');
+      if (stats.repairsPending > 0) {
+        buf.writeln('• Đơn sửa đang chờ: **${stats.repairsPending} đơn**');
+      }
+      return AiQuickResponse(
+        buf.toString(),
+        followUpChips: const [
+          ('Tháng này', Icons.calendar_month_rounded),
+          ('Công nợ', Icons.account_balance_wallet_rounded),
+          ('Đơn đang chờ', Icons.pending_actions_rounded),
+        ],
+      );
+    }
+
+    // Nhập kho mới (từ chat)
+    if (_has(n, ['nhap kho moi', 'nhap hang moi', 'them hang vao kho',
+                  'nhap linh kien moi', 'bo sung kho', 'hang moi ve'])) {
+      final rest = _contentAfterKeyword(n, [
+        'nhap kho moi', 'nhap hang moi', 'them hang vao kho',
+        'nhap linh kien moi', 'bo sung kho', 'hang moi ve',
+      ]);
+      final hasPayload = rest.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).length >= 2;
+      if (hasPayload) {
+        return AiQuickResponse(
+          'Nhập kho nhanh — AI sẽ điền thông tin từ mô tả:',
+          actions: [AiAction(
+            label: 'Mở form nhập kho',
+            icon: Icons.add_box_rounded,
+            type: AiActionType.createStockFromChat,
+            payload: question,
+          )],
+        );
+      }
+      return const AiQuickResponse(
+        'Chuyển sang màn hình **Kho hàng** để nhập hàng mới:',
+        actions: [_kViewStockAction],
+      );
+    }
+
+    // Đơn sửa đang chờ (pending)
+    if (_has(n, ['don dang cho', 'may dang sua', 'chua xong', 'dang xu ly',
+                  'cho xu ly', 'don chua giao', 'may chua lay'])) {
+      if (stats.repairsPending == 0) {
+        return const AiQuickResponse(
+          'Hiện không có đơn sửa nào đang chờ xử lý. Tất cả đã được giao!',
+          actions: [_kOpenLatestRepairAction],
+        );
+      }
+      final pending = stats.repairSummaries
+          .where((s) => s.contains('Đang sửa') || s.contains('Mới nhận') || s.contains('Xong chờ'))
+          .take(5)
+          .map((s) => '• $s')
+          .join('\n');
+      return AiQuickResponse(
+        'Đang có **${stats.repairsPending} đơn** chờ xử lý:\n$pending',
+        actions: const [_kOpenLatestRepairAction],
+        followUpChips: const [
+          ('Tạo đơn sửa mới', Icons.add_circle_outline_rounded),
+          ('Sửa chữa hôm nay', Icons.today_rounded),
+        ],
+      );
+    }
+
+    // Tạo đơn bán — if user described the sale inline, open AI sheet pre-filled
     if (_has(n, ['tao don ban', 'them don ban', 'ban hang moi'])) {
+      final rest = _contentAfterKeyword(n, ['tao don ban', 'them don ban', 'ban hang moi']);
+      final hasPayload = rest.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).length >= 2;
+      if (hasPayload) {
+        return AiQuickResponse(
+          'Tạo đơn bán nhanh — AI sẽ điền thông tin từ mô tả của bạn:',
+          actions: [AiAction(
+            label: 'Mở form bán hàng',
+            icon: Icons.point_of_sale_rounded,
+            type: AiActionType.createSaleFromChat,
+            payload: question,
+          )],
+          followUpChips: const [
+            ('Doanh thu hôm nay', Icons.trending_up_rounded),
+            ('Đơn bán gần nhất', Icons.receipt_long_rounded),
+          ],
+        );
+      }
       return const AiQuickResponse(
         'Chuyển sang màn hình **Bán hàng** để tạo đơn bán mới:',
         actions: [_kOpenSalesTabAction],
       );
     }
 
-    // Tạo đơn sửa → switch to repairs tab
+    // Tạo đơn sửa — if user described the repair inline, open AI sheet pre-filled
     if (_has(n, ['tao don sua', 'them don sua', 'tiep nhan sua'])) {
+      final rest = _contentAfterKeyword(n, ['tao don sua', 'them don sua', 'tiep nhan sua']);
+      final hasPayload = rest.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).length >= 2;
+      if (hasPayload) {
+        return AiQuickResponse(
+          'Tạo đơn sửa nhanh — AI sẽ điền thông tin từ mô tả của bạn:',
+          actions: [AiAction(
+            label: 'Mở form sửa chữa',
+            icon: Icons.build_circle_rounded,
+            type: AiActionType.createRepairFromChat,
+            payload: question,
+          )],
+          followUpChips: const [
+            ('Đơn sửa hôm nay', Icons.today_rounded),
+            ('Đơn đang chờ', Icons.pending_actions_rounded),
+          ],
+        );
+      }
       return const AiQuickResponse(
         'Chuyển sang màn hình **Sửa chữa** để tiếp nhận máy mới:',
         actions: [_kOpenRepairsTabAction],
@@ -474,7 +783,15 @@ class AiChatService {
       buf.writeln('• Doanh thu: **${fmt(stats.revenueThisYear)}** | LN: **${fmt(stats.profitThisYear)}**');
       buf.writeln();
       buf.write('• Công nợ phải thu: **${fmt(stats.debtReceivable)}** | Phải trả: **${fmt(stats.debtPayable)}**');
-      return AiQuickResponse(buf.toString(), actions: const [_kViewDebtsAction]);
+      return AiQuickResponse(
+        buf.toString(),
+        actions: const [_kViewDebtsAction],
+        followUpChips: const [
+          ('Đơn sửa đang chờ', Icons.pending_actions_rounded),
+          ('Ai nợ nhiều nhất', Icons.person_rounded),
+          ('Tồn kho', Icons.inventory_2_rounded),
+        ],
+      );
     }
 
     // Năm nay
@@ -484,7 +801,14 @@ class AiChatService {
       buf.writeln('• Sửa chữa đã giao: **${stats.repairsThisYear} đơn** — ${fmt(stats.repairRevenueThisYear)}');
       buf.writeln('• Tổng doanh thu: **${fmt(stats.revenueThisYear)}**');
       buf.write('• Lợi nhuận: **${fmt(stats.profitThisYear)}**');
-      return AiQuickResponse(buf.toString());
+      return AiQuickResponse(
+        buf.toString(),
+        followUpChips: const [
+          ('Tháng này', Icons.calendar_month_rounded),
+          ('Hôm nay', Icons.today_rounded),
+          ('Lợi nhuận', Icons.trending_up_rounded),
+        ],
+      );
     }
 
     // Tháng này (chi tiết)
@@ -495,17 +819,36 @@ class AiChatService {
       buf.writeln('• Sửa chữa đã giao: **${stats.repairsThisMonth} đơn** — ${fmt(stats.repairRevenueThisMonth)}');
       buf.writeln('• Tổng doanh thu: **${fmt(stats.revenueThisMonth)}**');
       buf.write('• Lợi nhuận: **${fmt(stats.profitThisMonth)}**');
-      return AiQuickResponse(buf.toString());
+      return AiQuickResponse(
+        buf.toString(),
+        followUpChips: const [
+          ('Hôm nay', Icons.today_rounded),
+          ('Năm nay', Icons.bar_chart_rounded),
+          ('Lợi nhuận', Icons.trending_up_rounded),
+        ],
+      );
     }
 
     // Bán hàng hôm nay
     if (_has(n, ['ban hang hom nay', 'don ban hom nay', 'so don ban hom nay'])) {
       if (stats.salesToday == 0) {
-        return const AiQuickResponse('Hôm nay chưa có đơn bán nào.', actions: [_kOpenLatestSaleAction]);
+        return const AiQuickResponse(
+          'Hôm nay chưa có đơn bán nào.',
+          actions: [_kOpenLatestSaleAction],
+          followUpChips: [
+            ('Tạo đơn bán', Icons.add_shopping_cart_rounded),
+            ('Doanh thu tháng này', Icons.calendar_month_rounded),
+          ],
+        );
       }
       return AiQuickResponse(
         'Hôm nay bán **${stats.salesToday} đơn**, doanh thu **${fmt(stats.saleRevenueToday)}**.',
         actions: const [_kOpenLatestSaleAction],
+        followUpChips: const [
+          ('Tạo đơn bán', Icons.add_shopping_cart_rounded),
+          ('Lợi nhuận', Icons.trending_up_rounded),
+          ('Tháng này', Icons.calendar_month_rounded),
+        ],
       );
     }
 
@@ -516,6 +859,11 @@ class AiChatService {
         'Đã giao: **${stats.deliveredRepairsToday}**, đang chờ: **${stats.repairsPending}**. '
         'Doanh thu sửa chữa: **${fmt(stats.repairRevenueToday)}**.',
         actions: const [_kOpenLatestRepairAction],
+        followUpChips: const [
+          ('Tạo đơn sửa', Icons.add_circle_outline_rounded),
+          ('Đơn đang chờ', Icons.pending_actions_rounded),
+          ('Sửa chữa tháng này', Icons.calendar_month_rounded),
+        ],
       );
     }
 
@@ -528,7 +876,14 @@ class AiChatService {
         buf.write('Sửa chữa giao: **${stats.deliveredRepairsToday} đơn** (${fmt(stats.repairRevenueToday)}). ');
       }
       buf.write('Tổng doanh thu: **${fmt(stats.revenueToday)}**, lợi nhuận: **${fmt(stats.profitToday)}**.');
-      return AiQuickResponse(buf.toString());
+      return AiQuickResponse(
+        buf.toString(),
+        followUpChips: const [
+          ('Tháng này', Icons.calendar_month_rounded),
+          ('Lợi nhuận', Icons.trending_up_rounded),
+          ('Đơn sửa', Icons.build_circle_rounded),
+        ],
+      );
     }
 
     // Tồn kho hàng hoá
@@ -538,6 +893,11 @@ class AiChatService {
         'Tồn kho hiện tại: **${stats.stockCount} sản phẩm**, '
         'giá vốn **${fmt(stats.stockCapital)}**.',
         actions: const [_kViewStockAction],
+        followUpChips: const [
+          ('Sắp hết hàng', Icons.warning_amber_rounded),
+          ('Kho linh kiện', Icons.memory_rounded),
+          ('Nhập kho mới', Icons.add_box_rounded),
+        ],
       );
     }
 
@@ -547,6 +907,11 @@ class AiChatService {
         'Kho linh kiện & phụ kiện: **${stats.stockCount} mặt hàng** '
         '(giá vốn **${fmt(stats.stockCapital)}**).',
         actions: const [_kViewStockAction],
+        followUpChips: const [
+          ('Linh kiện sắp hết', Icons.warning_amber_rounded),
+          ('Nhập linh kiện mới', Icons.add_box_rounded),
+          ('Tồn kho hàng hoá', Icons.inventory_2_rounded),
+        ],
       );
     }
 
@@ -556,6 +921,10 @@ class AiChatService {
       return const AiQuickResponse(
         'Mở hóa đơn bán hàng gần nhất:',
         actions: [_kOpenLatestSaleAction],
+        followUpChips: [
+          ('Tạo đơn bán mới', Icons.add_shopping_cart_rounded),
+          ('Doanh thu hôm nay', Icons.trending_up_rounded),
+        ],
       );
     }
 
@@ -565,6 +934,10 @@ class AiChatService {
       return const AiQuickResponse(
         'Mở đơn sửa chữa gần nhất:',
         actions: [_kOpenLatestRepairAction],
+        followUpChips: [
+          ('Tạo đơn sửa mới', Icons.add_circle_outline_rounded),
+          ('Đơn đang chờ', Icons.pending_actions_rounded),
+        ],
       );
     }
 
@@ -605,6 +978,10 @@ class AiChatService {
       return AiQuickResponse(
         answer.toString(),
         actions: const [_kOpenLatestRepairAction],
+        followUpChips: const [
+          ('Tạo đơn sửa', Icons.add_circle_outline_rounded),
+          ('Sửa chữa tháng này', Icons.calendar_month_rounded),
+        ],
       );
     }
 
@@ -622,6 +999,10 @@ class AiChatService {
       return AiQuickResponse(
         buf.toString(),
         actions: const [_kViewDebtsAction],
+        followUpChips: const [
+          ('Ai nợ nhiều nhất', Icons.person_rounded),
+          ('Nợ NCC', Icons.store_rounded),
+        ],
       );
     }
 
@@ -666,6 +1047,11 @@ class AiChatService {
       return AiQuickResponse(
         answer.toString(),
         actions: [_kViewDebtsAction, if (stats.debtPayable > 0) _kViewDebtPayableAction],
+        followUpChips: const [
+          ('Ai nợ nhiều nhất', Icons.person_rounded),
+          ('Nợ NCC', Icons.store_rounded),
+          ('Tổng hợp tài chính', Icons.summarize_rounded),
+        ],
       );
     }
 
@@ -674,18 +1060,95 @@ class AiChatService {
       return AiQuickResponse(
         'Lợi nhuận hôm nay: **${fmt(stats.profitToday)}** '
         '(bán hàng + sửa chữa đã giao).',
+        followUpChips: const [
+          ('Tháng này', Icons.calendar_month_rounded),
+          ('Năm nay', Icons.bar_chart_rounded),
+          ('Doanh thu hôm nay', Icons.trending_up_rounded),
+        ],
       );
     }
 
     // Chào hỏi
-    if (_has(n, ['xin chao', 'hello', 'chao ban', 'chao ai', 'ban la ai'])) {
+    if (_has(n, ['xin chao', 'hello', 'chao ban', 'chao ai', 'ban la ai',
+                  'hey', 'hi ', 'alo', 'co ai o day khong'])) {
       return const AiQuickResponse(
         'Xin chào! Em là **AI Trợ Lý** của shop.\n'
         'Anh có thể hỏi em về:\n'
         '• Doanh thu / lợi nhuận hôm nay, tháng này\n'
         '• Tồn kho, kho linh kiện\n'
         '• Công nợ phải thu / phải trả NCC\n'
-        '• Đơn sửa đang chờ, đơn bán gần nhất',
+        '• Đơn sửa đang chờ, đơn bán gần nhất\n\n'
+        'Hoặc ra lệnh: *"tạo đơn sửa iPhone 14 cho Minh"*',
+        followUpChips: [
+          ('Doanh thu hôm nay', Icons.trending_up_rounded),
+          ('Đơn đang chờ', Icons.pending_actions_rounded),
+          ('Hướng dẫn', Icons.help_outline_rounded),
+        ],
+      );
+    }
+
+    // Cảm ơn / phản hồi tích cực
+    if (_has(n, ['cam on', 'thank', 'ok em', 'tuyet', 'gioi', 'tot lam', 'hay day'])) {
+      return const AiQuickResponse(
+        'Dạ, không có gì ạ! Anh cần gì thêm cứ hỏi em nhé.',
+        followUpChips: [
+          ('Tổng hợp tài chính', Icons.summarize_rounded),
+          ('Tạo đơn sửa', Icons.build_circle_rounded),
+        ],
+      );
+    }
+
+    // Kiểm tra lợi nhuận tháng / năm cụ thể
+    if (_has(n, ['loi nhuan thang', 'lai thang', 'loi thang nay'])) {
+      return AiQuickResponse(
+        'Lợi nhuận tháng ${DateTime.now().month}/${DateTime.now().year}: '
+        '**${fmt(stats.profitThisMonth)}**\n'
+        '(Bán hàng + sửa chữa đã giao)',
+        followUpChips: const [
+          ('Năm nay', Icons.bar_chart_rounded),
+          ('Hôm nay', Icons.today_rounded),
+        ],
+      );
+    }
+
+    if (_has(n, ['loi nhuan nam', 'lai nam nay', 'loi nam nay'])) {
+      return AiQuickResponse(
+        'Lợi nhuận năm ${DateTime.now().year}: **${fmt(stats.profitThisYear)}**\n'
+        '(Bán hàng + sửa chữa đã giao)',
+        followUpChips: const [
+          ('Tháng này', Icons.calendar_month_rounded),
+          ('Doanh thu năm', Icons.bar_chart_rounded),
+        ],
+      );
+    }
+
+    // Đơn sửa danh sách chi tiết
+    if (_has(n, ['gom nhung don', 'don nao', 'nhung don', 'don hom nay',
+                  'danh sach don', 'co nhung don gi'])) {
+      if (stats.repairSummaries.isEmpty) {
+        return const AiQuickResponse('Hôm nay chưa có đơn sửa nào.');
+      }
+      final lines = stats.repairSummaries
+          .asMap()
+          .entries
+          .map((e) => '${e.key + 1}. ${e.value}')
+          .join('\n');
+      return AiQuickResponse(
+        'Đơn sửa hôm nay (${stats.repairsToday} đơn):\n$lines',
+        actions: const [_kOpenLatestRepairAction],
+      );
+    }
+
+    // Số đơn / bao nhiêu đơn
+    if (_has(n, ['bao nhieu don', 'may don', 'so don', 'dem don'])) {
+      return AiQuickResponse(
+        'Hôm nay:\n'
+        '• Bán hàng: **${stats.salesToday} đơn**\n'
+        '• Sửa chữa nhận: **${stats.repairsToday} đơn** (chờ: ${stats.repairsPending}, đã giao: ${stats.deliveredRepairsToday})',
+        followUpChips: const [
+          ('Tháng này', Icons.calendar_month_rounded),
+          ('Chi tiết đơn sửa', Icons.list_alt_rounded),
+        ],
       );
     }
 
@@ -831,7 +1294,34 @@ class AiChatService {
   bool _has(String n, List<String> keywords) =>
       keywords.any((k) => n.contains(VietnameseUtils.normalize(k)));
 
+  // Returns normalized text after stripping first matched keyword, empty if nothing left.
+  static String _contentAfterKeyword(String norm, List<String> keywords) {
+    for (final kw in keywords) {
+      final nkw = VietnameseUtils.normalize(kw);
+      if (norm.contains(nkw)) return norm.replaceFirst(nkw, '').trim();
+    }
+    return '';
+  }
+
   // ── Cloud AI ──────────────────────────────────────────────────────────────
+
+  // ── Prompt sanitizer ─────────────────────────────────────────────────────
+  // Strips characters that could be used for prompt injection:
+  // angle brackets, backticks, and sequences that look like role/system overrides.
+  static String _sanitize(String s) {
+    // Remove HTML/XML tags
+    var out = s.replaceAll(RegExp(r'<[^>]*>'), '');
+    // Remove backtick blocks
+    out = out.replaceAll('`', "'");
+    // Collapse newlines to single space to prevent multi-line injection
+    out = out.replaceAll(RegExp(r'\n{2,}'), '\n');
+    // Limit length to 1000 chars — questions beyond that are unusual
+    if (out.length > 1000) out = out.substring(0, 1000);
+    return out.trim();
+  }
+
+  static List<String> _sanitizeList(List<String> items) =>
+      items.map(_sanitize).toList();
 
   Future<(String?, String?)> askAI(
     String question,
@@ -843,19 +1333,31 @@ class AiChatService {
         'chatAssistant',
         options: HttpsCallableOptions(timeout: const Duration(seconds: 20)),
       );
+      // Sanitize user-controlled strings before sending to LLM
+      final safeQuestion = _sanitize(question);
+      final safeHistory = history
+          .map((m) => {
+                'role': m['role'] ?? '',
+                'content': _sanitize(m['content'] ?? ''),
+              })
+          .toList();
       // Trim payload to reduce token cost:
-      // - repairSummaries: send max 5 (not 20)
-      // - topDebtorLines: send max 3
+      // - repairSummaries: send max 5 (not 20), sanitize customer names
+      // - topDebtorLines: send max 3, sanitize
       // - history already limited to 8 by caller
       final trimmedStats = {
         ...stats.toJson(),
-        'repairSummaries': (stats.repairSummaries).take(5).toList(),
-        'topDebtorLines': (stats.topDebtorLines).take(3).toList(),
+        'repairSummaries': _sanitizeList(
+          (stats.repairSummaries).take(5).toList(),
+        ),
+        'topDebtorLines': _sanitizeList(
+          (stats.topDebtorLines).take(3).toList(),
+        ),
       };
       final res = await callable.call({
-        'question': question,
+        'question': safeQuestion,
         'stats': trimmedStats,
-        'history': history,
+        'history': safeHistory,
       });
       final data = res.data as Map<Object?, Object?>;
       final answer = data['answer'] as String?;

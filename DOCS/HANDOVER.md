@@ -7,12 +7,12 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 ## ⚡ Trạng thái hiện tại
 
 **Version:** 1.x (develop) → 2.0 planning  
-**Last Updated:** 2026-05-26  
+**Last Updated:** 2026-05-29  
 **Build Status:** ✅ Debug build passing (`flutter build apk --debug`)  
-**Analyze Status:** ⚠️ `flutter analyze` còn `1552` issues pre-existing  
+**Analyze Status:** ✅ 0 compile error; 1 intentional warning (`_eventBusSub2` StreamSubscription); còn ~1168 info (giảm từ 1552)  
 **Database Version:** SQLite v17  
 **Branch:** master  
-**Active Initiative:** 💾 Migration restore cross-shop đầy đủ dữ liệu + ổn định Sync Center + khóa business type về điện tử
+**Active Initiative:** ✅ Sprint 4B hoàn tất — flutter analyze warnings 132 → 1
 
 ---
 
@@ -24,7 +24,63 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 
 ---
 
+## ✅ Vừa hoàn thành (2026-05-29)
+
+1. **Backup: Xóa dữ liệu chọn lọc + Dọn backup cũ (2026-05-29)**
+  - `BackupService.deleteSelectedData()`: xóa table SQLite theo danh sách collection, trả về số bản ghi xóa
+  - `BackupService.cleanOldLocalBackups(keepDays)`: dọn file backup cục bộ cũ hơn N ngày
+  - Tab SQLite tab: section "Xóa dữ liệu chọn lọc" (preset kho phụ kiện, linh kiện, tùy chọn tự do) + section "Dọn backup cũ" (30/60/90/180 ngày)
+  - Files: `backup_service.dart`, `backup_restore_view.dart`
+
+2. **AI Assistant — 8 UX Improvements (2026-05-29)**
+  - #3 Auto-fill đơn từ chat: "tạo đơn sửa iPhone 15 cho Minh" → mở `AiOrderInputSheet` với text pre-filled
+  - #5 Context chips xanh sau mỗi answer (followUpChips per intent)
+  - #4 Daily briefing lần mở đầu trong ngày: hiển thị pending repairs, nợ phải thu/trả
+  - #6 Lưu/khôi phục lịch sử chat (SharedPreferences, max 20 messages)
+  - #2 followUpChips trên 12+ intent khác nhau
+  - #8 Mở rộng voice command vocabulary (+40 keywords)
+  - #7 Dashboard tab "Phản hồi xấu": xem từng query bị dislike
+  - Files: `ai_chat_service.dart`, `ai_chat_overlay.dart`, `ai_command_router.dart`, `ai_usage_logger.dart`, `ai_usage_dashboard_view.dart`
+
+2. **Sprint 4B: Flutter Analyze Warning Cleanup (2026-05-29)**
+  - Xóa 130+ unused elements, fields, imports, dead code qua ~20 file.
+  - Kết quả: 132 warnings → 1 (giữ `_eventBusSub2` StreamSubscription intentionally).
+  - Files chính: `home_view`, `inventory_view`, `sale_detail_view`, `sale_list_view`, `repair_detail_view`, `settings_view`, `staff_list_view`, `work_schedule_settings_view`, `unified_sync_button`.
+
+2. **Phân quyền Chat & Cloud AI (2026-05-29)**
+  - Thêm 4 quyền mới: `allowSendChat`, `allowPinChat`, `allowDeleteOtherChat`, `allowCloudAI` vào `UserService`.
+  - `advanced_chat_view`: load quyền và áp dụng rate-limit 30 tin/phút.
+  - `ai_chat_overlay`: kiểm tra `allowCloudAI` trước khi gọi Cloud AI.
+
+2. **AI Usage Logger + Dashboard (2026-05-29)**
+  - Tạo `lib/services/ai_usage_logger.dart`: ghi log mọi AI interaction lên Firestore.
+  - Tạo `lib/views/ai_usage_dashboard_view.dart`: màn hình thống kê cho Owner.
+
+3. **Prompt Injection Guard (2026-05-29)**
+  - `ai_chat_service.dart`: thêm `_sanitize()` làm sạch question/history trước khi gửi LLM.
+
+4. **Fix compile error `_pinVerified` (2026-05-29)**
+  - `shop_selector_view.dart`: xóa tham chiếu biến không tồn tại.
+
+5. **Việt hóa UI Super Admin Console (2026-05-29)**
+  - Đổi nhãn tiếng Anh còn sót sang tiếng Việt.
+
+6. **Dọn dead code Sync (2026-05-29)**
+  - Xóa `_scheduleResubscribe()` không dùng trong `sync_service.dart`.
+
+---
+
 ## ✅ Vừa hoàn thành (2026-05-25)
+
+1. **Fix lỗi sao lưu/khôi phục Cloud + thêm xóa backup DB (2026-05-26)**
+  - Thêm khả năng xóa từng bản backup SQLite trên Cloud trực tiếp trong màn hình Sao lưu/Khôi phục.
+  - Cải thiện thông báo lỗi cloud thân thiện theo mã lỗi Firebase Storage phổ biến.
+  - Vá `storage.rules` cho đường dẫn `db_backups/{shopId}/{allPaths=**}` để backup/restore/xóa cloud hoạt động đúng theo tenant.
+  - Đã deploy Storage Rules mới thành công lên Firebase project `huyaka-1809`.
+
+2. **Validation đợt cloud backup fix (2026-05-26)**
+  - `flutter analyze` cho `backup_service.dart` và `backup_restore_view.dart`: không phát sinh compile error mới.
+  - `firebase deploy --only storage`: thành công.
 
 1. **Hardening restore cross-shop đầy đủ domain (2026-05-26)**
   - Mở rộng selective restore cho các miền dữ liệu còn thiếu khi khôi phục toàn bộ: đơn sửa, kho linh kiện, kho máy xác, kho vị trí, yêu cầu đóng tiền, đối tác sửa chữa, lịch sử đối tác, nhập kho.

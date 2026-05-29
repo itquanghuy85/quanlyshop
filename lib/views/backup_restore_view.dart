@@ -296,7 +296,46 @@ class _SqliteTabState extends State<_SqliteTab> {
       NotificationService.showSnackBar('Sao lưu SQLite lên Cloud thành công!', color: AppColors.success);
       await _loadCloudBackups();
     } catch (e) {
-      NotificationService.showSnackBar('Lỗi sao lưu: $e', color: AppColors.error);
+      NotificationService.showSnackBar(
+        _friendlyCloudError('Sao lưu', e),
+        color: AppColors.error,
+      );
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _deleteCloudBackup(String fileName) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Xóa bản sao lưu Cloud?'),
+        content: Text('Bạn có chắc muốn xóa file "$fileName"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Hủy'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Xóa'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+
+    setState(() => _loading = true);
+    try {
+      await BackupService.deleteSqliteBackupFromFirebase(fileName: fileName);
+      await _loadCloudBackups();
+      NotificationService.showSnackBar('Đã xóa bản sao lưu Cloud.', color: AppColors.success);
+    } catch (e) {
+      NotificationService.showSnackBar(
+        _friendlyCloudError('Xóa', e),
+        color: AppColors.error,
+      );
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -458,12 +497,135 @@ class _SqliteTabState extends State<_SqliteTab> {
       );
     } catch (e) {
       NotificationService.showSnackBar(
-        'Lỗi khôi phục từ Cloud: $e',
+        _friendlyCloudError('Khôi phục', e),
         color: AppColors.error,
       );
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  // ── Selective data delete ──────────────────────────────────────────────────
+
+  Future<void> _deleteSelectedData(List<String> collections, String label) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Row(children: [
+          const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 22),
+          const SizedBox(width: 8),
+          Expanded(child: Text('Xóa: $label?', style: const TextStyle(fontSize: 15))),
+        ]),
+        content: const Text(
+          'Dữ liệu sẽ bị xóa vĩnh viễn khỏi thiết bị này.\n\n'
+          'Nên sao lưu trước khi xóa để tránh mất dữ liệu quan trọng.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Hủy')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Xóa vĩnh viễn'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() => _loading = true);
+    try {
+      final rows = await BackupService.deleteSelectedData(collections);
+      if (mounted) {
+        NotificationService.showSnackBar(
+          'Đã xóa $rows bản ghi ($label). Khởi động lại app để áp dụng.',
+          color: AppColors.success,
+        );
+      }
+    } catch (e) {
+      if (mounted) NotificationService.showSnackBar('Lỗi xóa: $e', color: AppColors.error);
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _deleteCustomData() async {
+    final selected = await showDialog<List<String>>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const _CollectionPickerDialog(
+        title: 'Chọn dữ liệu cần xóa',
+        confirmLabel: 'Xóa',
+        confirmIcon: Icons.delete_outline,
+        confirmColor: Colors.red,
+        availableCollections: null,
+      ),
+    );
+    if (selected == null || selected.isEmpty || !mounted) return;
+    await _deleteSelectedData(selected, '${selected.length} mục đã chọn');
+  }
+
+  // ── Clean old backups ──────────────────────────────────────────────────────
+
+  Future<void> _cleanOldBackups() async {
+    final days = await showDialog<int>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: const Text('Giữ backup bao nhiêu ngày gần nhất?'),
+        children: [
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(ctx, 30),
+            child: const Text('30 ngày — xóa backup cũ hơn 1 tháng'),
+          ),
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(ctx, 60),
+            child: const Text('60 ngày — xóa backup cũ hơn 2 tháng'),
+          ),
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(ctx, 90),
+            child: const Text('90 ngày — xóa backup cũ hơn 3 tháng'),
+          ),
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(ctx, 180),
+            child: const Text('180 ngày — xóa backup cũ hơn 6 tháng'),
+          ),
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Hủy', style: TextStyle(color: Colors.grey)),
+          ),
+        ],
+      ),
+    );
+    if (days == null || !mounted) return;
+    setState(() => _loading = true);
+    try {
+      final count = await BackupService.cleanOldLocalBackups(keepDays: days);
+      await _loadLocalBackups();
+      if (mounted) {
+        NotificationService.showSnackBar(
+          count == 0
+              ? 'Không có backup nào cũ hơn $days ngày.'
+              : 'Đã xóa $count file backup cũ hơn $days ngày.',
+          color: AppColors.success,
+        );
+      }
+    } catch (e) {
+      if (mounted) NotificationService.showSnackBar('Lỗi dọn backup: $e', color: AppColors.error);
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  String _friendlyCloudError(String action, Object error) {
+    final raw = error.toString().toLowerCase();
+    if (raw.contains('permission-denied') || raw.contains('unauthorized')) {
+      return '$action Cloud thất bại: tài khoản chưa có quyền Firebase Storage cho db_backups.';
+    }
+    if (raw.contains('object-not-found')) {
+      return '$action Cloud thất bại: không tìm thấy file backup trên Cloud.';
+    }
+    if (raw.contains('unauthenticated')) {
+      return '$action Cloud thất bại: phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.';
+    }
+    return '$action Cloud thất bại: $error';
   }
 
   @override
@@ -554,6 +716,7 @@ class _SqliteTabState extends State<_SqliteTab> {
                         name: b['name'] ?? '',
                         timestamp: b['timestamp'] ?? '',
                         onRestore: () => _restoreFromCloudBackup(b['name'] ?? ''),
+                        onDelete: () => _deleteCloudBackup(b['name'] ?? ''),
                       )),
               ],
             ),
@@ -565,6 +728,56 @@ class _SqliteTabState extends State<_SqliteTab> {
                 Text('Chọn file .db đã sao lưu trước đó để khôi phục.', style: TextStyle(fontSize: AppTextStyles.subtitle1Size, color: AppColors.textSecondary)),
                 AppSpacing.gapSm,
                 _ActionButton(label: 'Chọn file .db', icon: Icons.folder_open, onTap: _loading ? null : _restoreFromFile, color: AppColors.warning),
+              ],
+            ),
+            AppSpacing.gapMd,
+            _SectionCard(
+              title: 'Xóa dữ liệu chọn lọc',
+              icon: Icons.delete_sweep_outlined,
+              children: [
+                const Text(
+                  'Xóa vĩnh viễn dữ liệu cục bộ khỏi thiết bị này. Nên sao lưu trước khi xóa.',
+                  style: TextStyle(fontSize: AppTextStyles.subtitle1Size, color: AppColors.textSecondary),
+                ),
+                AppSpacing.gapSm,
+                _ActionButton(
+                  label: 'Xóa Kho phụ kiện / Sản phẩm',
+                  icon: Icons.inventory_2_outlined,
+                  onTap: _loading ? null : () => _deleteSelectedData(['products'], 'Kho phụ kiện / Sản phẩm'),
+                  color: Colors.deepOrange,
+                ),
+                AppSpacing.gapSm,
+                _ActionButton(
+                  label: 'Xóa Linh kiện sửa chữa',
+                  icon: Icons.build_outlined,
+                  onTap: _loading ? null : () => _deleteSelectedData(['repair_parts'], 'Linh kiện sửa chữa'),
+                  color: Colors.deepOrange,
+                ),
+                AppSpacing.gapSm,
+                _ActionButton(
+                  label: 'Xóa tùy chọn (chọn nhiều mục)...',
+                  icon: Icons.checklist_outlined,
+                  onTap: _loading ? null : _deleteCustomData,
+                  color: Colors.red,
+                ),
+              ],
+            ),
+            AppSpacing.gapMd,
+            _SectionCard(
+              title: 'Dọn backup cũ',
+              icon: Icons.cleaning_services_outlined,
+              children: [
+                const Text(
+                  'Xóa các file backup cục bộ cũ hơn số ngày bạn chọn.',
+                  style: TextStyle(fontSize: AppTextStyles.subtitle1Size, color: AppColors.textSecondary),
+                ),
+                AppSpacing.gapSm,
+                _ActionButton(
+                  label: 'Dọn backup cũ...',
+                  icon: Icons.delete_outline,
+                  onTap: _loading ? null : _cleanOldBackups,
+                  color: Colors.blueGrey,
+                ),
               ],
             ),
             AppSpacing.gapLg,
@@ -1203,7 +1416,9 @@ class _StorageAuthWarning extends StatelessWidget {
         const SizedBox(height: 6),
         Text(
           'match /db_backups/{shopId}/{allPaths=**} {\n'
-          '  allow read, write: if request.auth != null;\n'
+          '  allow read: if request.auth != null;\n'
+          '  allow create, update: if request.auth != null;\n'
+          '  allow delete: if request.auth != null;\n'
           '}',
           style: TextStyle(fontSize: AppTextStyles.subtitle1Size, color: AppColors.textSecondary, fontFamily: 'monospace', height: 1.5),
         ),
@@ -1281,8 +1496,14 @@ class _SqliteBackupItem extends StatelessWidget {
   final String name;
   final String timestamp;
   final VoidCallback onRestore;
+  final VoidCallback onDelete;
 
-  const _SqliteBackupItem({required this.name, required this.timestamp, required this.onRestore});
+  const _SqliteBackupItem({
+    required this.name,
+    required this.timestamp,
+    required this.onRestore,
+    required this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1297,7 +1518,17 @@ class _SqliteBackupItem extends StatelessWidget {
         leading: const Icon(Icons.storage, color: Color(0xFF0A56C2)),
         title: Text(name, style: const TextStyle(fontSize: AppTextStyles.h4, fontWeight: FontWeight.w500), maxLines: 1, overflow: TextOverflow.ellipsis),
         subtitle: Text(timestamp, style: TextStyle(fontSize: AppTextStyles.subtitle1Size, color: AppColors.textSecondary)),
-        trailing: TextButton(onPressed: onRestore, child: const Text('Khôi phục')),
+        trailing: Wrap(
+          spacing: 2,
+          children: [
+            TextButton(onPressed: onRestore, child: const Text('Khôi phục')),
+            IconButton(
+              onPressed: onDelete,
+              tooltip: 'Xóa',
+              icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+            ),
+          ],
+        ),
       ),
     );
   }
