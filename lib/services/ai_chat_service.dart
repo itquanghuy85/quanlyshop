@@ -505,9 +505,28 @@ class AiChatService {
     return result;
   }
 
-  AiQuickResponse? quickAnswer(String question, AiChatStats stats, {String? lastIntent}) {
+  bool _isFinanceQuery(String n) => _has(n, [
+    'doanh thu', 'loi nhuan', 'tai chinh', 'cong no', 'chi phi',
+    'no phai thu', 'no phai tra', 'thu chi', 'tong ket', 'bao cao',
+    'thang nay', 'nam nay', 'tong hop',
+    'on khong', 'tot khong', 'sao roi', 'ra sao', 'nhu the nao',
+    'hom nay the nao', 'ket qua hom nay', 'tong ket hom nay', 'bao cao nhanh',
+    'ban hang hom nay', 'don ban hom nay', 'sua chua hom nay', 'don sua hom nay',
+  ]) || n.trim() == 'bao nhieu' || n.trim() == 'may';
+
+  AiQuickResponse? quickAnswer(String question, AiChatStats stats, {
+    String? lastIntent,
+    bool canViewFinance = true,
+  }) {
     final raw = VietnameseUtils.normalize(question.toLowerCase());
     final n = RepairVocabularyService.instance.preprocessQuery(_expandSynonyms(raw));
+
+    if (!canViewFinance && _isFinanceQuery(n)) {
+      return const AiQuickResponse(
+        'Bạn không có quyền xem dữ liệu tài chính.\n'
+        'Liên hệ quản lý để được cấp quyền xem doanh thu, lợi nhuận, công nợ.',
+      );
+    }
 
     // ── Câu hỏi cực ngắn / nói tắt ──────────────────────────────────────────
 

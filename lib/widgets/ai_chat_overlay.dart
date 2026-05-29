@@ -86,6 +86,7 @@ class _AiChatOverlayState extends State<AiChatOverlay>
 
   // ── Permission / connectivity ─────────────────────────────────────────────
   bool _canCloudAI = false;        // Manager+ only
+  bool _canViewFinance = true;     // false for staff without allowViewRevenue
   bool _isOnline = true;           // driven by ConnectivityService
 
   // ── Feedback (👍/👎 per message index) ────────────────────────────────────
@@ -136,6 +137,7 @@ class _AiChatOverlayState extends State<AiChatOverlay>
     if (mounted) {
       setState(() {
         _canCloudAI = perms['allowCloudAI'] as bool? ?? false;
+        _canViewFinance = perms['allowViewRevenue'] as bool? ?? false;
       });
     }
   }
@@ -290,24 +292,31 @@ class _AiChatOverlayState extends State<AiChatOverlay>
 
     if (!mounted) return;
 
-    if (isFirstToday && (stats.repairsPending > 0 || stats.debtReceivable > 0)) {
+    if (isFirstToday && (stats.repairsPending > 0 || (_canViewFinance && stats.debtReceivable > 0))) {
       final buf = StringBuffer('Chào buổi mới! Điểm cần lưu ý hôm nay:\n');
       if (stats.repairsPending > 0) {
         buf.writeln('• **${stats.repairsPending} đơn sửa** đang chờ xử lý');
       }
-      if (stats.debtReceivable > 0) {
+      if (_canViewFinance && stats.debtReceivable > 0) {
         buf.writeln('• Công nợ khách hàng: **${_fmtStats(stats.debtReceivable)}**');
       }
-      if (stats.debtPayable > 0) {
+      if (_canViewFinance && stats.debtPayable > 0) {
         buf.writeln('• Nợ NCC phải trả: **${_fmtStats(stats.debtPayable)}**');
       }
       buf.write('\nBạn muốn biết thêm gì?');
       _addAI(buf.toString());
-    } else {
+    } else if (_canViewFinance) {
       _addAI(
         'Chào bạn! Hôm nay bán được **${stats.salesToday} đơn**, '
         'doanh thu **${_fmtStats(stats.revenueToday)}**'
         '${stats.repairsPending > 0 ? ", còn **${stats.repairsPending} đơn sửa** chờ xử lý" : ""}. '
+        'Bạn muốn biết thêm gì?',
+      );
+    } else {
+      _addAI(
+        'Chào bạn! Hôm nay có **${stats.salesToday} đơn bán**, '
+        '**${stats.repairsToday} đơn sửa**'
+        '${stats.repairsPending > 0 ? ", **${stats.repairsPending} đơn** đang chờ xử lý" : ""}. '
         'Bạn muốn biết thêm gì?',
       );
     }
@@ -349,7 +358,7 @@ class _AiChatOverlayState extends State<AiChatOverlay>
     if (mounted) setState(() => _stats = stats);
 
     // Fast local answer (pass lastIntent for context continuity)
-    final quick = AiChatService.instance.quickAnswer(q, stats, lastIntent: _lastIntent);
+    final quick = AiChatService.instance.quickAnswer(q, stats, lastIntent: _lastIntent, canViewFinance: _canViewFinance);
     if (quick != null) {
       _updateLastIntent(quick.actions);
       AiUsageLogger.log(type: AiCallType.quickAnswer, query: q, answer: quick.text).ignore();
