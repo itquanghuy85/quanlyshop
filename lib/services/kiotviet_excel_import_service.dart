@@ -338,6 +338,12 @@ class KiotVietExcelImportService {
             errors: ['File không đúng định dạng — thiếu cột "Mã hóa đơn"']);
       }
 
+      // "DanhSachChiTietHoaDon": col 0 = "Chi nhánh", invoice at col 1
+      if (_at(rows.first, 0).contains('Chi nhánh')) {
+        return await _importSalesDetailed(rows, shopId,
+            overwriteExisting: overwriteExisting, onProgress: onProgress);
+      }
+
       final db = await _db.database;
       int inserted = 0, updated = 0, skipped = 0;
       final errors = <String>[];
@@ -493,6 +499,191 @@ class KiotVietExcelImportService {
     } catch (e) {
       return KvImportResult(errors: ['Lỗi nhập hóa đơn: $e']);
     }
+  }
+
+  // ── Sales (Detailed — DanhSachChiTietHoaDon) ─────────────────────────────
+
+  static Future<KvImportResult> _importSalesDetailed(
+    List<List<String>> rows,
+    String shopId, {
+    bool overwriteExisting = false,
+    void Function(int done, int total)? onProgress,
+  }) async {
+    final db = await _db.database;
+    int inserted = 0, updated = 0, skipped = 0;
+    final errors = <String>[];
+    final dataRows = rows.skip(1).toList();
+    final totalRows = dataRows.length;
+
+    // Group rows by invoice code (col 1 = Mã hóa đơn)
+    final invoiceGroups = <String, List<List<String>>>{};
+    final invoiceOrder = <String>[];
+    for (final row in dataRows) {
+      final code = _at(row, 1).trim();
+      if (code.isEmpty) { skipped++; continue; }
+      if (!invoiceGroups.containsKey(code)) {
+        invoiceGroups[code] = [];
+        invoiceOrder.add(code);
+      }
+      invoiceGroups[code]!.add(row);
+    }
+
+    final total = invoiceOrder.length;
+
+    for (int i = 0; i < total; i++) {
+      try { onProgress?.call(i, total); } catch (_) {}
+
+      final invoiceCode = invoiceOrder[i];
+      final group = invoiceGroups[invoiceCode]!;
+      final firstRow = group.first;
+
+      try {
+        // Skip non-completed invoices (col 48 = Trạng thái)
+        final status = _at(firstRow, 48);
+        if (status.isNotEmpty && status != 'Hoàn thành') { skipped++; continue; }
+
+        final noteKey = 'KV:$invoiceCode';
+        final soldAt = _datetimeMs(firstRow, 6);        // col 6 = Thời gian
+        final customerCode = _at(firstRow, 12).trim();  // col 12 = Mã KH
+        final customerName = _at(firstRow, 13).trim();  // col 13 = Tên KH
+        final rawPhone = _at(firstRow, 15).trim();      // col 15 = Điện thoại
+        final phone = _cleanPhone(rawPhone);
+        final sellerName = _at(firstRow, 21).trim();    // col 21 = Người bán
+        final noteText = _at(firstRow, 37).trim();      // col 37 = Ghi chú
+        final totalPrice = _intFromString(_at(firstRow, 38)); // col 38 = Tổng tiền hàng
+        final discount = _intFromString(_at(firstRow, 39));   // col 39 = Giảm giá HĐ
+        final cashAmount = _intFromString(_at(firstRow, 42)); // col 42 = Tiền mặt
+        final cardAmount = _intFromString(_at(firstRow, 43)); // col 43 = Thẻ
+        final transferAmount = _intFromString(_at(firstRow, 45)); // col 45 = Chuyển khoản
+
+        final isWalkIn = (customerCode.isEmpty ||
+            customerCode.toUpperCase() == 'KL' ||
+            customerName.isEmpty ||
+            customerName == 'Khách lẻ' ||
+            customerName == 'KHÁCH LẺ') ? 1 : 0;
+
+        // Determine payment method
+        final hasCash = cashAmount > 0;
+        final hasCard = cardAmount > 0;
+        final hasTransfer = transferAmount > 0;
+        final paymentCount = (hasCash ? 1 : 0) + (hasCard ? 1 : 0) + (hasTransfer ? 1 : 0);
+        final String paymentMethod;
+        if (paymentCount > 1) {
+          paymentMethod = 'KẾT HỢP';
+        } else if (hasTransfer) {
+          paymentMethod = 'CHUYỂN KHOẢN';
+        } else if (hasCard) {
+          paymentMethod = 'THẺ';
+        } else {
+          paymentMethod = 'TIỀN MẶT';
+        }
+
+        // Collect product snapshots (cols 50-63)
+        final itemSnapshots = <Map<String, dynamic>>[];
+        final collectedNames = <String>[];
+        String? firstWarranty;
+
+        for (final row in group) {
+          final pName = _at(row, 52); // col 52 = Tên hàng
+          if (pName.isEmpty) continue;
+
+          collectedNames.add(pName);
+          final sku = _at(row, 50);       // col 50 = Mã hàng
+          final brand = _at(row, 53);     // col 53 = Thương hiệu
+          final imei = _at(row, 55);      // col 55 = IMEI
+          final qty = _int(row, 57);      // col 57 = Số lượng
+          final unitPrice = _int(row, 58);// col 58 = Đơn giá
+          final itemDiscount = _intFromString(_at(row, 60)); // col 60 = Giảm giá item
+          final lineTotal = _intFromString(_at(row, 62));    // col 62 = Thành tiền
+          final warranty = _at(row, 63); // col 63 = Bảo hành
+
+          firstWarranty ??= warranty.isNotEmpty ? warranty : null;
+
+          final snapshot = <String, dynamic>{
+            'name': pName,
+            'quantity': qty > 0 ? qty : 1,
+            'price': unitPrice,
+            'totalPrice': lineTotal > 0 ? lineTotal : unitPrice * (qty > 0 ? qty : 1),
+            'source': 'kv',
+          };
+          if (sku.isNotEmpty) snapshot['sku'] = sku;
+          if (brand.isNotEmpty) snapshot['brand'] = brand;
+          if (imei.isNotEmpty) snapshot['imei'] = imei;
+          if (itemDiscount > 0) snapshot['discount'] = itemDiscount;
+          if (warranty.isNotEmpty) snapshot['warranty'] = warranty;
+          itemSnapshots.add(snapshot);
+        }
+
+        final productNamesStr = collectedNames.isNotEmpty ? collectedNames.join(', ') : null;
+        final itemSnapshotsStr = itemSnapshots.isNotEmpty ? jsonEncode(itemSnapshots) : null;
+
+        final dup = await db.query('sales',
+            where: 'notes = ? AND (deleted IS NULL OR deleted != 1)',
+            whereArgs: [noteKey],
+            limit: 1);
+
+        if (dup.isNotEmpty && !overwriteExisting) { skipped++; continue; }
+
+        final now = DateTime.now().millisecondsSinceEpoch;
+        final map = <String, dynamic>{
+          'customerName': isWalkIn == 1 ? 'Khách lẻ' : (customerName.isNotEmpty ? customerName : 'Khách lẻ'),
+          'phone': phone.isNotEmpty ? phone : null,
+          'isWalkIn': isWalkIn,
+          'walkInName': isWalkIn == 1 ? 'Khách lẻ' : null,
+          'walkInPhone': null,
+          'address': null,
+          'productNames': productNamesStr,
+          'productImeis': null,
+          'itemSnapshotsJson': itemSnapshotsStr,
+          'totalPrice': totalPrice,
+          'totalCost': 0,
+          'discount': discount,
+          'paymentMethod': paymentMethod,
+          'sellerName': sellerName.isNotEmpty ? sellerName : null,
+          'sellerUid': null,
+          'soldAt': soldAt > 0 ? soldAt : now,
+          'notes': noteKey,
+          'gifts': noteText.isNotEmpty ? noteText : null,
+          'isInstallment': 0,
+          'downPayment': 0,
+          'downPaymentMethod': null,
+          'loanAmount': 0,
+          'cashAmount': cashAmount,
+          'transferAmount': transferAmount,
+          'isSynced': 0,
+          'deleted': 0,
+        };
+
+        try {
+          map['shopId'] = shopId;
+          if (dup.isNotEmpty && overwriteExisting) {
+            final id = dup.first['id'];
+            await db.update('sales', map, where: 'id = ?', whereArgs: [id]);
+            updated++;
+          } else {
+            await db.insert('sales', map);
+            inserted++;
+          }
+        } catch (_) {
+          map.remove('shopId');
+          if (dup.isNotEmpty && overwriteExisting) {
+            final id = dup.first['id'];
+            await db.update('sales', map, where: 'id = ?', whereArgs: [id]);
+            updated++;
+          } else {
+            await db.insert('sales', map);
+            inserted++;
+          }
+        }
+      } catch (e, st) {
+        final msg = 'HĐ $invoiceCode: $e';
+        errors.add(msg);
+        debugPrint('KvImport sale(chi tiết) $msg\n$st');
+      }
+    }
+
+    try { onProgress?.call(totalRows, totalRows); } catch (_) {}
+    return KvImportResult(inserted: inserted, updated: updated, skipped: skipped, errors: errors);
   }
 
   // ── Customers ─────────────────────────────────────────────────────────────
