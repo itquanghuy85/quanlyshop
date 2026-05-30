@@ -6360,4 +6360,1867 @@ class AppLocalizationsEn extends AppLocalizations {
   String restoreLabelWithCount(int count) {
     return 'Restore ($count)';
   }
+
+  @override
+  String saleListSearchHint(String productLabel, String codeLabel) {
+    return 'Search by customer, $productLabel or $codeLabel...';
+  }
+
+  @override
+  String get saleListGuideTitle => 'Sales History';
+
+  @override
+  String get saleListGuide1Title => '🛒 Invoice list';
+
+  @override
+  String get saleListGuide1Desc => 'View all sale invoices by day/week/month. Total revenue is shown at the top.';
+
+  @override
+  String get saleListGuide2Title => '🔍 Search';
+
+  @override
+  String get saleListGuide2Desc => 'Find invoices by customer name, product name or invoice code.';
+
+  @override
+  String get saleListGuide3Title => '📄 View details & reprint';
+
+  @override
+  String get saleListGuide3Desc => 'Tap an invoice to view details, reprint the receipt or create a return.';
+
+  @override
+  String get saleListGuide4Title => '💳 Payment status';
+
+  @override
+  String get saleListGuide4Desc => 'Instantly see which invoices are paid, pending or on credit.';
+
+  @override
+  String get saleListFilterTitle => 'FILTER';
+
+  @override
+  String get saleListTimeSection => 'TIME';
+
+  @override
+  String get saleListPaymentStatusSection => 'PAYMENT STATUS';
+
+  @override
+  String get saleListLast7Days => '7 days';
+
+  @override
+  String get saleListCustomDate => 'Custom';
+
+  @override
+  String get saleListFilterPaid => 'Paid';
+
+  @override
+  String get saleListFilterDebt => 'Has debt';
+
+  @override
+  String get saleListFilterBankPending => 'Install. pending';
+
+  @override
+  String get saleListFilterBankReceived => 'Install. received';
+
+  @override
+  String get saleListDayYesterday => 'Yesterday';
+
+  @override
+  String get saleListExportOrders => 'Export sale orders';
+
+  @override
+  String get saleListSortTooltip => 'Sort';
+
+  @override
+  String get saleListSortNewest => 'Newest first';
+
+  @override
+  String get saleListSortHighestValue => 'Highest value';
+
+  @override
+  String get saleListSortMostDebt => 'Most debt';
+
+  @override
+  String saleListRevenueShort(String amount) {
+    return 'Rev: $amount';
+  }
+
+  @override
+  String saleListDebtShort(String amount) {
+    return 'Debt: $amount';
+  }
+
+  @override
+  String saleListProfitShort(String amount) {
+    return 'Profit: $amount';
+  }
+
+  @override
+  String get saleListStatusReturned => 'RETURNED';
+
+  @override
+  String get saleListStatusBankPending => 'BANK PENDING';
+
+  @override
+  String get saleListStatusCollected => 'COLLECTED';
+
+  @override
+  String get saleListStatusHasDebt => 'HAS DEBT';
+
+  @override
+  String get saleListChipPaid => '💰 Collected';
+
+  @override
+  String get saleListChipDebt => '⚠️ Has debt';
+
+  @override
+  String get saleListChipSale => '🏷 Sale';
+
+  @override
+  String get saleListChipCost => '📦 Cost';
+
+  @override
+  String get saleListChipProfit => '📈 Profit';
+
+  @override
+  String get saleListChipLoss => '📉 Loss';
+
+  @override
+  String get saleListReturnFull => '↩ Fully returned';
+
+  @override
+  String get saleListReturnPartial => '↩ Partial return';
+
+  @override
+  String get saleListInstallmentLabel => '🏦 Installment';
+
+  @override
+  String saleListBankReceivedAmount(String amount) {
+    return 'Bank received $amount';
+  }
+
+  @override
+  String get saleListBankNotReceived => 'Bank not received yet';
+
+  @override
+  String get saleListHoldToReturn => 'Hold to create return';
+
+  @override
+  String get saleListNoOrders => 'No orders found';
+
+  @override
+  String get saleListClearFilterHint => 'Try clearing filters to see all';
+
+  @override
+  String get saleListClearFilter => 'Clear filters';
+
+  @override
+  String saleListDisplayedOrders(int count) {
+    return 'Showing $count sale orders';
+  }
+
+  @override
+  String get saleListOrderFullyReturned => 'This order has been fully returned';
+
+  @override
+  String saleListReturnTimesCount(String amount, int count) {
+    return '$amount ($count times)';
+  }
+
+  @override
+  String saleListGroupOrdersCount(String label, int count) {
+    return '$label · $count orders';
+  }
+
+  @override
+  String get saleDetailTitle => 'SALE DETAILS';
+
+  @override
+  String get needManagerLogin => 'PLEASE LOGIN WITH MANAGER ACCOUNT';
+
+  @override
+  String get onlyManagerCanEdit => 'Only manager accounts can edit/delete';
+
+  @override
+  String get managerAuthTitle => 'MANAGER AUTHENTICATION';
+
+  @override
+  String get managerPasswordLabel => 'Manager password';
+
+  @override
+  String get editUnlocked => 'EDIT UNLOCKED';
+
+  @override
+  String get wrongManagerPassword => 'Wrong manager password';
+
+  @override
+  String get printInvoiceSuccess => 'Invoice printed successfully!';
+
+  @override
+  String get printInvoiceFailed => 'Print failed! Please check printer settings.';
+
+  @override
+  String printErrorMsg(String error) {
+    return 'Print error: $error';
+  }
+
+  @override
+  String get receiveBankTitle => 'RECEIVE BANK PAYMENT';
+
+  @override
+  String get receivedAmountLabel => 'Amount received (VND)';
+
+  @override
+  String get receivedAmountField => 'Amount received';
+
+  @override
+  String get bankFeeLabel => 'Bank fee withheld (VND)';
+
+  @override
+  String get bankFeeField => 'Bank fee';
+
+  @override
+  String get bankReceivedConfirmed => 'BANK PAYMENT RECORDED';
+
+  @override
+  String get editSaleTitle => 'EDIT SALE ORDER';
+
+  @override
+  String get customerNameFieldLabel => 'Customer name';
+
+  @override
+  String get enterCustomerNameHint => 'Enter customer name';
+
+  @override
+  String get phoneFieldLabel => 'Phone';
+
+  @override
+  String get addressFieldLabel => 'Address';
+
+  @override
+  String get paymentMethodFieldLabel => 'Payment method';
+
+  @override
+  String get notesFieldLabel => 'Notes';
+
+  @override
+  String get saveLabel => 'SAVE';
+
+  @override
+  String get saleUpdated => 'Sale order updated successfully';
+
+  @override
+  String get deleteSaleTitle => 'DELETE SALE ORDER';
+
+  @override
+  String saleOrderItem(String name) {
+    return 'Order: $name';
+  }
+
+  @override
+  String saleOrderValue(String amount) {
+    return 'Value: $amountđ';
+  }
+
+  @override
+  String get systemWillAutoLabel => 'The system will automatically:';
+
+  @override
+  String get restoreStockQty => 'Restore stock quantity';
+
+  @override
+  String get deleteLinkedDebt => 'Delete related debt';
+
+  @override
+  String get deletePaymentRecord => 'Delete payment record';
+
+  @override
+  String get updateCustomerSpend => 'Update customer spending';
+
+  @override
+  String get cannotUndoWarning => '⚠️ This action cannot be undone!';
+
+  @override
+  String get deleteSaleButton => 'DELETE ORDER';
+
+  @override
+  String saleDeletedMsg(String inventoryInfo, String debtInfo) {
+    return 'Sale deleted$inventoryInfo$debtInfo';
+  }
+
+  @override
+  String saleDeleteError(String error) {
+    return 'Error deleting sale order: $error';
+  }
+
+  @override
+  String get editSaleTooltip => 'Edit order info';
+
+  @override
+  String get previewInvoiceLabel => 'Preview';
+
+  @override
+  String get printInvoiceLabel => 'Print';
+
+  @override
+  String get returnAllLabel => 'Fully returned';
+
+  @override
+  String get returnGoodsLabel => 'Return';
+
+  @override
+  String get returnSuccessMsg => 'Return processed successfully!';
+
+  @override
+  String get printTemplateLabel => 'Templates';
+
+  @override
+  String updateSettlementBtn(String amount) {
+    return 'UPDATE SETTLEMENT (remaining $amount)';
+  }
+
+  @override
+  String returnedFullLabel(String amount) {
+    return 'FULLY RETURNED — $amount';
+  }
+
+  @override
+  String returnedPartialLabel(String amount, int count) {
+    return 'PARTIALLY RETURNED — $amount ($count times)';
+  }
+
+  @override
+  String get sectionTransaction => 'TRANSACTION';
+
+  @override
+  String get itemAddress => 'Address';
+
+  @override
+  String get openProductDetailTooltip => 'Open product detail from sale';
+
+  @override
+  String get itemWarranty => 'Warranty';
+
+  @override
+  String get itemTime => 'Date/Time';
+
+  @override
+  String get itemPaymentMethod => 'Payment';
+
+  @override
+  String get itemCash => '💵 Cash';
+
+  @override
+  String get itemTransfer => '🏦 Transfer';
+
+  @override
+  String get itemNotes => 'Notes';
+
+  @override
+  String get itemDiscount => 'Discount';
+
+  @override
+  String get itemTotal => 'Total';
+
+  @override
+  String get itemCostPrice => 'Cost price';
+
+  @override
+  String get itemProfit => 'Profit';
+
+  @override
+  String get sectionInstallment => 'INSTALLMENT - BANK';
+
+  @override
+  String get installmentDownPayment => 'Down payment';
+
+  @override
+  String get installmentBank1 => 'Bank 1 disbursement';
+
+  @override
+  String get installmentAmount1 => 'Bank 1 amount';
+
+  @override
+  String get installmentBank2 => 'Bank 2 disbursement';
+
+  @override
+  String get installmentAmount2 => 'Bank 2 amount';
+
+  @override
+  String get installmentTotalLoan => 'Total bank loan';
+
+  @override
+  String get installmentExpectedDate => 'Expected date';
+
+  @override
+  String get installmentFileCode => 'File code';
+
+  @override
+  String get installmentNotes => 'Notes';
+
+  @override
+  String get installmentSettlement => 'Settlement';
+
+  @override
+  String get settlementNotReceived => 'Not received';
+
+  @override
+  String settlementFullyReceived(String date) {
+    return 'Received in full $date';
+  }
+
+  @override
+  String settlementPartialReceived(String received, String total) {
+    return 'Received $received / $total';
+  }
+
+  @override
+  String get installmentBankFee => 'Bank fee';
+
+  @override
+  String get staffItemLabel => 'Staff member';
+
+  @override
+  String get chatPinnedSale => 'SALE ORDER PINNED TO INTERNAL CHAT';
+
+  @override
+  String get noCustomerPhone => 'NO CUSTOMER PHONE NUMBER';
+
+  @override
+  String get smsAppOpened => 'SMS app opened (message already copied).';
+
+  @override
+  String get smsAppCannotOpen => 'Cannot open SMS app. Please paste the message into Zalo/SMS.';
+
+  @override
+  String get smsSendError => 'Error sending message, but content has been copied.';
+
+  @override
+  String get debtManagementTitle => 'DEBT MANAGEMENT';
+
+  @override
+  String activeDebtsCount(int count) {
+    return '$count active debts';
+  }
+
+  @override
+  String get tabCustomer => 'CUSTOMER';
+
+  @override
+  String get tabSupplier => 'SUPPLIER';
+
+  @override
+  String get tabPartner => 'PARTNER';
+
+  @override
+  String get tabOther => 'OTHER';
+
+  @override
+  String get syncWithFirebase => 'Sync with Firebase';
+
+  @override
+  String get exportExcelDebt => 'Export debt Excel';
+
+  @override
+  String get exportDebtTitle => 'Export debts';
+
+  @override
+  String get syncedStatus => 'Synced';
+
+  @override
+  String get syncingStatus => 'Syncing...';
+
+  @override
+  String get syncErrorStatus => 'Sync error';
+
+  @override
+  String get searchNamePhone => 'Search name, phone...';
+
+  @override
+  String get filterPaid => 'Paid';
+
+  @override
+  String get debtReceivable => 'Receivable';
+
+  @override
+  String get debtPayable => 'Payable';
+
+  @override
+  String get overdueDebts => 'Overdue';
+
+  @override
+  String get needsHandling => 'Needs attention';
+
+  @override
+  String get noDebtFound => 'No results found';
+
+  @override
+  String get noDebtYet => 'No debts yet';
+
+  @override
+  String get trySearchOther => 'Try searching by other name or phone';
+
+  @override
+  String get showPaidToSeeHistory => 'Enable \"Paid\" to see history';
+
+  @override
+  String get totalRemainingDebt => 'TOTAL REMAINING DEBT';
+
+  @override
+  String get noPartnerDebt => 'No partner debts';
+
+  @override
+  String get partnerDebtManageGuide => 'Manage partners at: Settings › Partner Management';
+
+  @override
+  String get totalPartnerRepairDebt => 'TOTAL REPAIR PARTNER DEBT';
+
+  @override
+  String get paymentHistoryTitle => 'PAYMENT HISTORY';
+
+  @override
+  String get noPaymentHistory => 'No payment history yet';
+
+  @override
+  String get payDebtButton => 'PAY DEBT';
+
+  @override
+  String get collectDebtTitle => 'COLLECT CUSTOMER DEBT';
+
+  @override
+  String get payDebtTitle => 'PAY DEBT';
+
+  @override
+  String get totalDebtLabel => 'Total debt';
+
+  @override
+  String get paidAmountLabel => 'Paid';
+
+  @override
+  String get remainingLabel => 'Remaining';
+
+  @override
+  String get collectAmountVnd => 'AMOUNT TO COLLECT (VND)';
+
+  @override
+  String get payAmountVnd => 'AMOUNT TO PAY (VND)';
+
+  @override
+  String get payWithLabel => 'PAY WITH';
+
+  @override
+  String get confirmPayButton => 'CONFIRM';
+
+  @override
+  String get createOtherDebtTitle => 'CREATE OTHER DEBT';
+
+  @override
+  String get debtorNameLabel => 'Debtor name';
+
+  @override
+  String get pleaseEnterDebtorName => 'Please enter debtor name';
+
+  @override
+  String get debtAmountVnd => 'Debt amount (VND)';
+
+  @override
+  String get debtFormTypeLabel => 'Debt type:';
+
+  @override
+  String get receivableDebt => 'RECEIVABLE';
+
+  @override
+  String get payableDebt => 'PAYABLE';
+
+  @override
+  String get customerOwesShop => '(Customer owes shop)';
+
+  @override
+  String get shopOwesOther => '(Shop owes others)';
+
+  @override
+  String get createButton => 'CREATE';
+
+  @override
+  String get debtCreated => 'New debt created';
+
+  @override
+  String get createReceivableDebtTitle => 'CREATE RECEIVABLE DEBT';
+
+  @override
+  String get pleaseEnterCustomerNameDebt => 'Please enter customer name';
+
+  @override
+  String get customerDebtCreated => 'Customer debt created!';
+
+  @override
+  String createDebtError(String error) {
+    return 'Error creating debt: $error';
+  }
+
+  @override
+  String get createPayableDebtTitle => 'CREATE PAYABLE DEBT';
+
+  @override
+  String get supplierNameLabel => 'Supplier name';
+
+  @override
+  String get pleaseEnterSupplierNameDebt => 'Please enter supplier name';
+
+  @override
+  String get supplierDebtCreated => 'Supplier debt created!';
+
+  @override
+  String get noDebtAnywhere => 'No debts';
+
+  @override
+  String get collectDebtAction => 'Collect';
+
+  @override
+  String get payDebtAction => 'Pay debt';
+
+  @override
+  String get historyButton => 'History';
+
+  @override
+  String get returnDebtAction => 'Repay';
+
+  @override
+  String get partnerRepairType => 'Repair partner';
+
+  @override
+  String get manualSource => 'Manual';
+
+  @override
+  String get autoSource => 'Automatic';
+
+  @override
+  String get totalFeeLabel => 'Total fee';
+
+  @override
+  String get remainingDebtLabel => 'Remaining';
+
+  @override
+  String get paymentAction => 'Pay';
+
+  @override
+  String overdueCountDays(int count) {
+    return '$count overdue >60 days';
+  }
+
+  @override
+  String urgentCountDays(int count) {
+    return '$count need attention >30 days';
+  }
+
+  @override
+  String partnerNotInSystem(String name) {
+    return 'Partner \"$name\" is no longer in the system but the debt is kept.';
+  }
+
+  @override
+  String partnerDebtNotFound(String name) {
+    return 'Cannot find partner \"$name\". Debt still appears in list.';
+  }
+
+  @override
+  String get closedTodayDebt => '❌ Today is closed! Cannot collect debt payment.';
+
+  @override
+  String get closedTodayCreateDebt => '❌ Today is closed! Cannot create new debt.';
+
+  @override
+  String get createCustomerDebtTooltip => 'Create customer debt';
+
+  @override
+  String get createSupplierDebtTooltip => 'Create supplier debt';
+
+  @override
+  String get createOtherDebtTooltip => 'Create other debt';
+
+  @override
+  String get partnerNotInSystemTooltip => 'Partner no longer in system';
+
+  @override
+  String overdueDaysLabel(int days) {
+    return 'Overdue $days days';
+  }
+
+  @override
+  String daysLabel(int days) {
+    return '$days days';
+  }
+
+  @override
+  String get paidFullLabel => '✓ Fully paid';
+
+  @override
+  String ordersCountLabel(int count) {
+    return '$count orders';
+  }
+
+  @override
+  String get expenseManagementTitle => 'EXPENSE MANAGEMENT';
+
+  @override
+  String get incomeManagementTitle => 'INCOME';
+
+  @override
+  String expenseCountSubtitle(int count) {
+    return '$count expenses';
+  }
+
+  @override
+  String incomeCountSubtitle(int count) {
+    return '$count incomes';
+  }
+
+  @override
+  String get exportExcelIncomeExpense => 'Export income/expense Excel';
+
+  @override
+  String get exportIncomeExpenseTitle => 'Export income/expense';
+
+  @override
+  String get confirmDeleteIncome => 'CONFIRM DELETE INCOME';
+
+  @override
+  String get confirmDeleteExpenseTitle => 'CONFIRM DELETE EXPENSE';
+
+  @override
+  String deleteIncomeContent(String title, String amount) {
+    return 'You are deleting income: $title\nAmount: $amount';
+  }
+
+  @override
+  String deleteExpenseContent(String title, String amount) {
+    return 'You are deleting expense: $title\nAmount: $amount';
+  }
+
+  @override
+  String get enterPasswordToDeleteLabel => 'Enter account password to delete';
+
+  @override
+  String get confirmDeleteButton => 'CONFIRM DELETE';
+
+  @override
+  String get cannotDeletePurchaseExpense => 'Cannot delete expense from purchase order!';
+
+  @override
+  String get wrongPasswordCannotDelete => 'Wrong password! Cannot delete.';
+
+  @override
+  String get deletedIncomeSuccess => 'Income deleted successfully';
+
+  @override
+  String get deletedExpenseSuccess => 'Expense deleted successfully';
+
+  @override
+  String get closedTodayExpense => '❌ Today is closed! Cannot add new expense.';
+
+  @override
+  String get closedTodayIncome => '❌ Today is closed! Cannot add new income.';
+
+  @override
+  String get writeExpensesTitle => 'RECORD EXPENSE';
+
+  @override
+  String get categoryLabel => 'CATEGORY';
+
+  @override
+  String get expenseContentRequired => 'Expense description *';
+
+  @override
+  String get pleaseEnterExpenseContent => 'Please enter expense description';
+
+  @override
+  String get amountVndRequired => 'Amount (VND) *';
+
+  @override
+  String get extraNoteLabel => 'Additional note';
+
+  @override
+  String get expenseScopeLabel => 'EXPENSE SCOPE';
+
+  @override
+  String get saveExpenseButton => 'SAVE EXPENSE';
+
+  @override
+  String get savedExpense => 'Expense saved!';
+
+  @override
+  String get writeIncomeTitle => 'RECORD INCOME';
+
+  @override
+  String get incomeContentRequired => 'Income description *';
+
+  @override
+  String get pleaseEnterIncomeContent => 'Please enter income description';
+
+  @override
+  String get incomeScopeLabel => 'SCOPE';
+
+  @override
+  String get saveIncomeButton => 'SAVE INCOME';
+
+  @override
+  String get savedIncome => 'Income saved!';
+
+  @override
+  String get newExpenseFab => 'New expense';
+
+  @override
+  String get newIncomeFab => 'New income';
+
+  @override
+  String get totalIncomeLabel => 'Total income';
+
+  @override
+  String get totalExpenseLabel => 'Total expenses';
+
+  @override
+  String get todayPeriod => 'TODAY';
+
+  @override
+  String get thisWeekPeriod => 'THIS WEEK';
+
+  @override
+  String get thisMonthPeriod => 'THIS MONTH';
+
+  @override
+  String noExpenseInPeriod(String period) {
+    return 'No expenses in this $period';
+  }
+
+  @override
+  String noIncomeInPeriod(String period) {
+    return 'No income in this $period';
+  }
+
+  @override
+  String get webNotAvailableMessage => 'This feature is not available on web browser.\nPlease use the mobile app.';
+
+  @override
+  String get noNameLabel => 'No name';
+
+  @override
+  String closedDayCannotDelete(String date, String label) {
+    return '❌ Day $date is closed! Cannot delete $label.';
+  }
+
+  @override
+  String get incomeTypeLabel => 'income';
+
+  @override
+  String get expenseTypeLabel => 'expense';
+
+  @override
+  String get noPermissionFeature => 'You don\'t have permission to access this feature.';
+
+  @override
+  String get expenseGuideStep1Title => '💸 Record Income & Expense';
+
+  @override
+  String get expenseGuideStep1Desc => 'Record income beyond sales (INCOME) and operating expenses (EXPENSE) of the shop.';
+
+  @override
+  String get expenseGuideStep2Title => '📂 Categorize expenses';
+
+  @override
+  String get expenseGuideStep2Desc => 'Distinguish shop expenses (electricity, water, rent) and personal expenses for accurate reporting.';
+
+  @override
+  String get expenseGuideStep3Title => '📅 Filter by time';
+
+  @override
+  String get expenseGuideStep3Desc => 'View income/expense by day, week, or month to effectively control cash flow.';
+
+  @override
+  String get expenseGuideStep4Title => '📊 Summary chart';
+
+  @override
+  String get expenseGuideStep4Desc => 'Track income/expense trends with visual charts, detect unusual expenses.';
+
+  @override
+  String get expenseCatIncidental => 'Incidental';
+
+  @override
+  String get expenseCatService => 'Service';
+
+  @override
+  String get expenseCatRefund => 'Refund';
+
+  @override
+  String get expenseCatFixed => 'Fixed';
+
+  @override
+  String get expenseCatStockIn => 'Stock in';
+
+  @override
+  String get expenseScopePersonal => 'PERSONAL';
+
+  @override
+  String get expenseScopeAll => 'ALL';
+
+  @override
+  String debtPartnerDefaultName(int index) {
+    return 'Partner $index';
+  }
+
+  @override
+  String debtGenericError(String error) {
+    return 'Error: $error';
+  }
+
+  @override
+  String get debtPaymentGenericError => 'An error occurred';
+
+  @override
+  String get debtGuideTitle => 'Debt Management';
+
+  @override
+  String get debtGuideStep1Title3Types => '📊 3 debt types';
+
+  @override
+  String get debtGuideStep1Title2Types => '📊 2 debt types';
+
+  @override
+  String get debtGuideStep1Desc3Types => 'CUSTOMER OWES (unpaid customers), SUPPLIER DEBT (owed to suppliers), PARTNER DEBT (external repair partners).';
+
+  @override
+  String get debtGuideStep1Desc2Types => 'CUSTOMER OWES (unpaid customers), SUPPLIER DEBT (owed to suppliers).';
+
+  @override
+  String get debtGuideStep2Title => '💰 Record payment';
+
+  @override
+  String get debtGuideStep2Desc => 'Tap on a debt to view details and record partial or full payment.';
+
+  @override
+  String get debtGuideStep3Title => '📅 Track due dates';
+
+  @override
+  String get debtGuideStep3Desc => 'Overdue debts are highlighted in red. Summary reports help track cash flow.';
+
+  @override
+  String get debtGuideStep4Title => '🔄 Auto-create debts';
+
+  @override
+  String get debtGuideStep4Desc => 'When selling/stocking and selecting "DEBT", the system automatically creates a corresponding debt record.';
+
+  @override
+  String get debtCollectFieldName => 'Collection amount';
+
+  @override
+  String get debtPayFieldName => 'Payment amount';
+
+  @override
+  String get debtAmountFieldName => 'Debt amount';
+
+  @override
+  String get backupGroupOperations => 'Operations';
+
+  @override
+  String get backupGroupWarehouse => 'Warehouse & Products';
+
+  @override
+  String get backupGroupFinance => 'Finance';
+
+  @override
+  String get backupGroupHr => 'HR & Staff';
+
+  @override
+  String get backupGroupCrm => 'Customer Relations';
+
+  @override
+  String get backupGroupSystem => 'System';
+
+  @override
+  String get backupColRepairs => 'Repair Orders';
+
+  @override
+  String get backupColRepairParts => 'Repair Parts Warehouse';
+
+  @override
+  String get backupColRepairPartners => 'Repair Partners';
+
+  @override
+  String get backupColPartnerHistory => 'Partner Send History';
+
+  @override
+  String get backupColSales => 'Sale Orders';
+
+  @override
+  String get backupColInventoryChecks => 'Inventory Checks';
+
+  @override
+  String get backupColCashClosings => 'Cash Closings';
+
+  @override
+  String get backupColProducts => 'Products / Warehouse';
+
+  @override
+  String get backupColSalvagePhones => 'Salvage Phones';
+
+  @override
+  String get backupColStorageLocations => 'Storage Locations';
+
+  @override
+  String get backupColSuppliers => 'Suppliers';
+
+  @override
+  String get backupColPurchaseOrders => 'Purchase Orders';
+
+  @override
+  String get backupColImportOrders => 'Stock-in Orders';
+
+  @override
+  String get backupColSupplierImportHistory => 'Supplier Import History';
+
+  @override
+  String get backupColQuickInputCodes => 'Quick Input Codes';
+
+  @override
+  String get backupColDebts => 'Debts';
+
+  @override
+  String get backupColDebtPayments => 'Debt Payments';
+
+  @override
+  String get backupColExpenses => 'Expenses';
+
+  @override
+  String get backupColPaymentIntents => 'Payment Requests';
+
+  @override
+  String get backupColPaymentRequests => 'Payment Dues';
+
+  @override
+  String get backupColSupplierPayments => 'Supplier Payments';
+
+  @override
+  String get backupColRepairPartnerPayments => 'Repair Partner Payments';
+
+  @override
+  String get backupColAttendance => 'Attendance';
+
+  @override
+  String get backupColPayrollSettings => 'Payroll Settings';
+
+  @override
+  String get backupColWorkSchedules => 'Work Schedules';
+
+  @override
+  String get backupColCustomers => 'Customers';
+
+  @override
+  String get backupColChats => 'Chat Messages';
+
+  @override
+  String get backupColAuditLogs => 'Audit Logs';
+
+  @override
+  String get backupOptionsTooltip => 'Options';
+
+  @override
+  String get backupOpenSqliteTab => 'Open SQLite tab';
+
+  @override
+  String get backupOpenFirestoreTab => 'Open Firestore tab';
+
+  @override
+  String get backupSqliteTabLabel => 'SQLite (file .db)';
+
+  @override
+  String get backupFirestoreTabLabel => 'Firestore (cloud)';
+
+  @override
+  String get backupGuideTitle => 'Backup & Restore Guide';
+
+  @override
+  String get backupGuideStep1 => '1. SQLite (offline): use for backing up/restoring the entire data file on device.';
+
+  @override
+  String get backupGuideStep2 => '2. Firestore (online): allows backup/restore by section (repair orders, sales, warehouse, debts...).';
+
+  @override
+  String get backupGuideStep3 => '3. Recommended: backup to Cloud daily and before app updates.';
+
+  @override
+  String get backupGuideStep4 => '4. SQLite Restore has 2 modes: restore original for same shop, or transfer data to current shop by remapping shopId.';
+
+  @override
+  String get backupGuideStep5 => '5. If restoring to a different shop without remapping shopId, data still belongs to old shop and app will not display correctly.';
+
+  @override
+  String get backupRestoreBtn => 'Restore';
+
+  @override
+  String get backupRestoreOriginalBtn => 'Restore original';
+
+  @override
+  String get backupTransferToCurrentShop => 'Transfer to current shop';
+
+  @override
+  String get backupSaveToDevice => 'Save .db file to device';
+
+  @override
+  String get backupShareLatest => 'Share latest backup';
+
+  @override
+  String get backupSelectAndBackup => 'Select items & Backup to Cloud';
+
+  @override
+  String get backupSelectFile => 'Select .db file';
+
+  @override
+  String get backupSelectCustomItems => 'Select custom items...';
+
+  @override
+  String get backupCleanOldBtn => 'Clean old backups...';
+
+  @override
+  String get backupUploadToCloud => 'Backup to Cloud';
+
+  @override
+  String get backupBackupLabel => 'Backup';
+
+  @override
+  String get backupSqliteSectionTitle => 'Backup SQLite';
+
+  @override
+  String get backupLocalListTitle => 'Local SQLite Backups';
+
+  @override
+  String get backupQuickGuideTitle => 'Quick guide';
+
+  @override
+  String get backupCloudListTitle => 'Cloud SQLite Backups';
+
+  @override
+  String get backupRestoreFromFileTitle => 'Restore from file';
+
+  @override
+  String get backupDeleteSelectiveTitle => 'Delete selective data';
+
+  @override
+  String get backupCleanOldTitle => 'Clean old backups';
+
+  @override
+  String get backupFirestoreInfoText => 'Firestore backup saves each collection as a separate JSON file. You can select which items to backup or restore.';
+
+  @override
+  String get backupRestoreByItemTitle => 'Restore by item';
+
+  @override
+  String get backupRestoreByItemDesc1 => 'You can select exactly which data groups to restore (e.g., only Repair Orders, only Warehouse, only Debts).';
+
+  @override
+  String get backupRestoreByItemDesc2 => 'System only overwrites selected items, does not affect remaining items.';
+
+  @override
+  String get backupFirestoreSectionTitle => 'Backup Firestore';
+
+  @override
+  String get backupFirestoreListTitle => 'Firestore Backups';
+
+  @override
+  String get backupNoFirestoreBackups => 'No Firestore backups yet.';
+
+  @override
+  String get backupProcessing => 'Processing...';
+
+  @override
+  String backupSavedPathLabel(String fileName) => 'Saved: $fileName';
+
+  @override
+  String get backupNoLocalBackupsHint => 'No local backups yet. Tap "Save .db file to device" above.';
+
+  @override
+  String get backupNoCloudBackups => 'No backups yet.';
+
+  @override
+  String get backupRestoreFileHint => 'Select a previously backed-up .db file to restore.';
+
+  @override
+  String get backupDeleteSelectiveHint => 'Permanently delete local data from this device. Backup before deleting.';
+
+  @override
+  String get backupCleanOldHint => 'Delete local backup files older than selected number of days.';
+
+  @override
+  String get backupQuickGuideOffline => '• Offline backup: tap "Save .db file to device" to create a local backup.';
+
+  @override
+  String get backupQuickGuideShare => '• Share backup: use the "Share" button in the local backup list.';
+
+  @override
+  String get backupQuickGuideRestoreOffline => '• Offline restore: select from local backup list or .db file.';
+
+  @override
+  String get backupQuickGuideRestoreOnline => '• Online restore: select a Cloud SQLite backup and tap "Restore".';
+
+  @override
+  String backupCannotLoad(String error) => 'Cannot load backup: $error';
+
+  @override
+  String get backupSavedLocally => 'SQLite backup saved to device. Share from local backup list.';
+
+  @override
+  String backupExportError(String error) => 'Export error: $error';
+
+  @override
+  String backupShareFileError(String error) => 'Share error: $error';
+
+  @override
+  String backupDeletedLocalName(String name) => 'Deleted local backup $name.';
+
+  @override
+  String backupDeleteLocalError(String error) => 'Error deleting local backup: $error';
+
+  @override
+  String get backupCloudSuccess => 'SQLite backup to Cloud successful!';
+
+  @override
+  String get backupDeletedCloud => 'Cloud backup deleted.';
+
+  @override
+  String backupRestoreErrorMsg(String error) => 'Restore error: $error';
+
+  @override
+  String backupRestoreLocalErrorMsg(String error) => 'Local restore error: $error';
+
+  @override
+  String backupDeleteSuccessWithCloud(int localRows, int cloudRows, String label) =>
+      'Deleted local $localRows records and cloud $cloudRows records ($label). Restart app to apply.';
+
+  @override
+  String backupDeleteSuccessLocalOnly(int localRows, String label) =>
+      'Deleted $localRows local records ($label). If Cloud still has data, app may sync again.';
+
+  @override
+  String backupDeleteErrorMsg(String error) => 'Delete error: $error';
+
+  @override
+  String backupFirestoreError(String error) => 'Firestore backup error: $error';
+
+  @override
+  String backupRestoreSuccessMsg(int count) => 'Restore successful ($count items)!';
+
+  @override
+  String backupRestoreFirestoreError(String error) => 'Restore error: $error';
+
+  @override
+  String get backupDeletedSet => 'Backup deleted.';
+
+  @override
+  String backupDeleteSetErrorMsg(String error) => 'Delete error: $error';
+
+  @override
+  String backupNoOldFiles(int days) => 'No backups older than $days days.';
+
+  @override
+  String backupDeletedOldFiles(int count, int days) =>
+      'Deleted $count backup files older than $days days.';
+
+  @override
+  String backupCleanError(String error) => 'Backup cleanup error: $error';
+
+  @override
+  String get backupDeleteLocalTitle => 'Delete local backup?';
+
+  @override
+  String backupDeleteLocalContent(String name) => 'Are you sure you want to delete file "$name"?';
+
+  @override
+  String get backupDeleteCloudTitle => 'Delete Cloud backup?';
+
+  @override
+  String get backupChooseRestoreType => 'Choose restore type';
+
+  @override
+  String get backupRestoreOriginalDesc =>
+      'Restore original: keep data from backed-up shop.\n\nTransfer to current shop: remap shopId so data appears in logged-in shop.';
+
+  @override
+  String get backupRestoreCloudTitle => 'Restore SQLite from Cloud';
+
+  @override
+  String backupRestoreCloudContent(String fileName) =>
+      'You are about to restore from backup:\n$fileName\n\nCurrent data on device will be overwritten. Continue?';
+
+  @override
+  String get backupChooseRestoreTypeTip =>
+      'Restore original will keep the old shopId.\n\nTo bring data to current shop, choose the shopId transfer option.';
+
+  @override
+  String get backupSelectDataSqlite => 'Select data to restore (SQLite)';
+
+  @override
+  String get backupRestoreSuccessTitle => 'Restore successful';
+
+  @override
+  String backupRestoredWithTransfer(int count) =>
+      'Restored $count items and transferred to current shop. Please restart the app to apply changes.';
+
+  @override
+  String backupRestoredNoTransfer(int count) =>
+      'Restored $count items. Please restart the app to apply changes.';
+
+  @override
+  String backupRestoredCloudWithTransfer(int count) =>
+      'Restored $count items from Cloud and transferred to current shop. Please restart the app.';
+
+  @override
+  String backupRestoredCloudNoTransfer(int count) =>
+      'Restored $count items from Cloud. Please restart the app to apply new data.';
+
+  @override
+  String backupDeleteWarningTitle(String label) => 'Delete: $label?';
+
+  @override
+  String get backupDeleteWarningContent =>
+      'Data will be permanently deleted from this device.\n\nRecommend backing up before deleting to avoid data loss.';
+
+  @override
+  String get backupDeleteCloudTooLabel => 'Also delete Cloud data for current shop';
+
+  @override
+  String get backupDeleteCloudTooSubtitle =>
+      'If not selected, Cloud data may sync back to device after local deletion.';
+
+  @override
+  String get backupDeleteForever => 'Delete permanently';
+
+  @override
+  String get backupSelectDataToDelete => 'Select data to delete';
+
+  @override
+  String get backupKeepDaysTitle => 'How many recent days of backup to keep?';
+
+  @override
+  String get backupKeep30Days => '30 days — delete backups older than 1 month';
+
+  @override
+  String get backupKeep60Days => '60 days — delete backups older than 2 months';
+
+  @override
+  String get backupKeep90Days => '90 days — delete backups older than 3 months';
+
+  @override
+  String get backupKeep180Days => '180 days — delete backups older than 6 months';
+
+  @override
+  String get backupLocalRestoreTitle => 'Restore local SQLite';
+
+  @override
+  String get backupLocalRestoreContent => 'Current data will be overwritten by this backup. Continue?';
+
+  @override
+  String backupRestoredLocalWithTransfer(int count) =>
+      'Restored $count items and transferred to current shop. Please restart the app.';
+
+  @override
+  String backupRestoredLocalNoTransfer(int count) =>
+      'Restored $count items from local backup. Please restart the app.';
+
+  @override
+  String backupConfirmRestoreContent(int count, String date) =>
+      'Current data of $count items will be overwritten by backup from $date.\n\nContinue?';
+
+  @override
+  String get backupDeleteSetTitle => 'Delete backup?';
+
+  @override
+  String backupDeleteSetContent(String date) => 'Delete backup from $date?';
+
+  @override
+  String get backupPreparingMsg => 'Preparing...';
+
+  @override
+  String backupBackingUpItem(String item, int done, int total) =>
+      'Backing up $item ($done/$total)...';
+
+  @override
+  String get backupRestoringMsg => 'Restoring...';
+
+  @override
+  String get backupSelectDataBackup => 'Select data to backup';
+
+  @override
+  String backupSelectedCountLabel(int count) => '$count items selected';
+
+  @override
+  String get backupNotAvailable => 'Not in this backup';
+
+  @override
+  String get backupStorageRulesTitle => 'Firebase Storage Rules configuration needed';
+
+  @override
+  String backupCloudPermissionError(String action) =>
+      '$action Cloud failed: account does not have Firebase Storage permission for db_backups.';
+
+  @override
+  String backupCloudNotFoundError(String action) =>
+      '$action Cloud failed: backup file not found on Cloud.';
+
+  @override
+  String backupCloudAuthError(String action) =>
+      '$action Cloud failed: session expired, please login again.';
+
+  @override
+  String backupCloudGenericError(String action, String error) =>
+      '$action Cloud failed: $error';
+
+  @override
+  String get backupPresetInventoryCash => 'Inventory & Cash Closing';
+
+  @override
+  String get backupPresetAccessoriesProducts => 'Accessories / Products';
+
+  @override
+  String get backupPresetRepairParts => 'Repair Parts';
+
+  @override
+  String get backupPresetSupplierImport => 'Suppliers & Stock-in';
+
+  @override
+  String get backupPresetPayments => 'Payments';
+
+  @override
+  String get backupPresetOther => 'Other';
+
+  @override
+  String get backupPresetHr => 'HR';
+
+  @override
+  String get backupPresetSystemLog => 'System Logs';
+
+  @override
+  String get backupConfirmRestoreTitle => 'Confirm restore';
+
+  // Inventory view keys
+  @override
+  String get inventoryManageTitle => 'WAREHOUSE';
+
+  @override
+  String get inventoryManageTotalTitle => 'WAREHOUSE MANAGEMENT';
+
+  @override
+  String get inventoryNoAccessMsg => "You don't have access\nto warehouse management";
+
+  @override
+  String inventoryUnsyncedNote(int count) => '$count unsynced';
+
+  @override
+  String get inventoryInStockLabel => 'IN STOCK';
+
+  @override
+  String get inventoryTempStockLabel => 'TEMP STOCK';
+
+  @override
+  String get inventoryTempStockBanner => 'TEMP STOCK – Waiting for price confirmation';
+
+  @override
+  String inventoryExpectedSupplier(String supplier) => 'Expected supplier: $supplier';
+
+  @override
+  String get inventoryStockQty => 'Stock qty';
+
+  @override
+  String get inventoryPurchasePrice => 'Purchase price';
+
+  @override
+  String get inventorySalePriceItem => 'Sale price';
+
+  @override
+  String get inventoryLoss => 'Loss';
+
+  @override
+  String get inventoryCapacityLabel => 'Capacity';
+
+  @override
+  String get inventorySizeLabel => 'Size';
+
+  @override
+  String get inventorySupplierLabel => 'Supplier';
+
+  @override
+  String get inventoryPendingConfirm => 'Pending confirmation';
+
+  @override
+  String get inventoryWaitingConfirm => 'Waiting for confirmation';
+
+  @override
+  String get inventoryWarehouseLocation => 'Storage location';
+
+  @override
+  String get inventoryLastUpdated => 'Last updated';
+
+  @override
+  String get inventoryRepairHistorySection => 'REPAIR HISTORY';
+
+  @override
+  String get inventoryConfirmPriceBtn => 'CONFIRM PRICE – TRANSFER TO MAIN WAREHOUSE';
+
+  @override
+  String get inventoryPrintingLabelMsg => 'Printing label...';
+
+  @override
+  String get inventoryPrintLabelSuccess => 'Print label successful';
+
+  @override
+  String get inventoryPrintLabelError => 'Error printing label';
+
+  @override
+  String get inventoryPrintLabelAction => 'PRINT LABEL';
+
+  @override
+  String get inventoryEditAction => 'EDIT';
+
+  @override
+  String get inventorySellAction => 'SELL';
+
+  @override
+  String inventoryStockMoreAction(int count) => 'RESTOCK ($count)';
+
+  @override
+  String get inventoryDeleteAction => 'DELETE';
+
+  @override
+  String get inventoryRestockTitle => 'RESTOCK';
+
+  @override
+  String inventoryCurrentStockNote(int qty) => 'Current stock: $qty';
+
+  @override
+  String inventoryCurrentCostNote(String price) => 'Current cost price: $price';
+
+  @override
+  String get inventoryRestockQtyLabel => 'Additional quantity';
+
+  @override
+  String get inventoryRestockPriceLabel => 'Purchase price (VND)';
+
+  @override
+  String inventoryWeightedCostNote(String price) => 'Weighted cost after restock: $price';
+
+  @override
+  String get inventoryPaymentMethodLabel => 'Payment method';
+
+  @override
+  String get inventoryCashOption => 'Cash';
+
+  @override
+  String get inventoryBankTransferOption => 'Bank transfer';
+
+  @override
+  String get inventoryDebtOption => 'Debt';
+
+  @override
+  String get inventoryStockInAction => 'STOCK IN';
+
+  @override
+  String get inventoryValidQtyError => 'Please enter a valid quantity';
+
+  @override
+  String get inventoryValidPriceError => 'Please enter a valid purchase price';
+
+  @override
+  String get inventoryStockingIn => 'Stocking in...';
+
+  @override
+  String get inventoryNoSupplierFoundError => 'No valid supplier found for this product. Please update the supplier and restock.';
+
+  @override
+  String get inventoryCreateEntryError => 'Error creating stock-in entry';
+
+  @override
+  String inventoryStockInSuccess(int qty, String name) => 'Added $qty $name to warehouse';
+
+  @override
+  String get inventoryConfirmEntryError => 'Error confirming stock-in entry';
+
+  @override
+  String inventoryErrorMsg(String error) => 'Error: $error';
+
+  @override
+  String get inventoryEditOption => 'Edit';
+
+  @override
+  String get inventoryHideOption => 'Hide from warehouse';
+
+  @override
+  String inventoryCostPriceNote(String price) => 'Cost price: $price';
+
+  @override
+  String get inventorySoftDeleteWarning => '⚠️ IMPORTANT NOTE:';
+
+  @override
+  String get inventorySoftDeleteDesc => '• This is a SOFT DELETE – only hides from inventory list\n• Does NOT affect revenue, debts, import history\n• All other financial data REMAINS UNCHANGED';
+
+  @override
+  String get inventoryDeleteReasonLabel => 'Delete reason (optional)';
+
+  @override
+  String get inventoryDeleteReasonHint => 'E.g.: Input error, return to supplier...';
+
+  @override
+  String get inventoryAccountPassword => 'Account password *';
+
+  @override
+  String get inventoryEnterPasswordError => 'Please enter password';
+
+  @override
+  String get inventoryWrongPasswordError => 'Wrong password';
+
+  @override
+  String get inventoryHideFromWarehouse => 'HIDE FROM WAREHOUSE';
+
+  @override
+  String inventoryHideSuccess(String product, String name) => 'Hidden $product from warehouse: $name';
+
+  @override
+  String inventoryHideError(String product, String error) => 'Error hiding $product: $error';
+
+  @override
+  String get inventoryEmptyFiltered => 'No products found';
+
+  @override
+  String get inventoryEmptyAll => 'Warehouse is empty';
+
+  @override
+  String get inventoryEmptyFilteredSub => 'Try removing filters or search for another keyword';
+
+  @override
+  String get inventoryEmptyOutOfStockSub => 'Enable "Out of stock" to see out-of-stock products';
+
+  @override
+  String get inventoryConfirmDeleteTitle => 'CONFIRM DELETE';
+
+  @override
+  String inventoryConfirmDeleteContent(int count) => 'Are you sure you want to delete $count items?';
+
+  @override
+  String get inventoryEnterPasswordToDelete => 'Enter account password to delete:';
+
+  @override
+  String get inventoryAccountPasswordLabel => 'Account password';
+
+  @override
+  String get inventoryDeleteNow => 'DELETE NOW';
+
+  @override
+  String get inventoryAddPartTooltip => 'Add part';
+
+  @override
+  String get inventoryStockInAITooltip => 'Quick stock-in (AI)';
+
+  @override
+  String get inventoryStockInTooltip => 'Stock in';
+
+  @override
+  String inventorySearchWithQuery(String query) => 'Search: "$query"';
+
+  @override
+  String get inventoryMoreTooltip => 'More';
+
+  @override
+  String get inventoryStorageLocationMenu => 'Storage location';
+
+  @override
+  String get inventoryPrintLabelsMenu => 'Print labels';
+
+  @override
+  String inventorySelectedCount(int count) => 'SELECTED $count';
+
+  @override
+  String inventoryShownCount(int count, String product) => 'Showing $count $product';
+
+  @override
+  String get inventoryDisplayOrTotal => 'SHOWING / TOTAL';
+
+  @override
+  String get inventoryTotalLabel => 'TOTAL WAREHOUSE';
+
+  @override
+  String get inventoryCapitalLabel => 'STOCK CAPITAL';
+
+  @override
+  String get inventoryLocationFilter => 'Location';
+
+  @override
+  String get inventoryOutOfStockFilter => 'Out of stock';
+
+  @override
+  String get inventoryNoLocationMsg => 'No location has been created.';
+
+  @override
+  String get inventoryFilterByLocation => 'Filter by location';
+
+  @override
+  String get inventoryAllFilter => 'All';
+
+  @override
+  String get inventoryStatusPending => 'Temp stock';
+
+  @override
+  String get inventoryStatusLowStock => 'Running low';
+
+  @override
+  String get inventoryWaitingPrice => 'Awaiting price';
+
+  @override
+  String get inventoryRemainingLabel => 'left';
+
+  @override
+  String get inventoryConfirmCostTitle => 'Confirm price - Transfer to Main Warehouse';
+
+  @override
+  String get inventoryValidCostError => 'Please enter a valid cost price!';
+
+  @override
+  String get inventorySelectSupplierError => 'Please select a supplier!';
+
+  @override
+  String get inventoryConfirmCostSuccess => 'Price confirmed and transferred to Main Warehouse!';
+
+  @override
+  String get inventorySelectSupplierFirst => 'Please select supplier!';
+
+  @override
+  String get inventoryCostChangeTitle => 'Cost price change warning';
+
+  @override
+  String get inventoryCostChangeMessage => 'This product has been saved to the warehouse. Changing the cost price will not affect old orders but may distort gross profit reports. Are you sure you want to continue?';
+
+  @override
+  String get inventoryUpdateSuccess => 'UPDATE SUCCESSFUL';
+
+  @override
+  String get inventoryProductTypeLocked => 'Product type (locked)';
+
+  @override
+  String get inventoryBrandField => 'Brand *';
+
+  @override
+  String get inventoryModelField => 'Model (E.g.: 15 PRO MAX)';
+
+  @override
+  String get inventoryCapacityField => 'Capacity';
+
+  @override
+  String get inventorySizeField => 'Size';
+
+  @override
+  String get inventoryColorField => 'Color';
+
+  @override
+  String get inventoryConditionField => 'Condition';
+
+  @override
+  String get inventoryLabelInfoField => 'Label print info';
+
+  @override
+  String get inventoryNoteHint => 'Additional notes about the product...';
+
+  @override
+  String get inventoryCostLockedField => 'Cost price (stocked - locked)';
+
+  @override
+  String get inventoryCostField => 'Cost price (k)';
+
+  @override
+  String get inventoryPriceField => 'Sale price (k)';
+
+  @override
+  String get inventoryExpiry => 'EXPIRY DATE';
+
+  @override
+  String get inventoryChooseExpiry => 'Choose expiry date';
+
+  @override
+  String get inventoryExpiryLabel => 'Expiry date';
+
+  @override
+  String get inventoryNotChosen => 'Not chosen';
+
+  @override
+  String get inventoryBatchField => 'Batch number';
+
+  @override
+  String get inventoryPhotoSection => 'PHOTO & STORAGE LOCATION';
+
+  @override
+  String get inventoryQtyLockedField => 'Stock qty';
+
+  @override
+  String get inventorySupplierLockedField => 'Supplier (locked)';
+
+  @override
+  String get inventoryNoSupplier => 'No supplier';
+
+  @override
+  String get inventoryRestockBtn => 'Restock into warehouse';
+
+  @override
+  String get inventoryUpdateAction => 'UPDATE';
+
+  @override
+  String get inventoryStatusReceived => 'Received';
+
+  @override
+  String get inventoryStatusRepairing => 'Repairing';
+
+  @override
+  String get inventoryStatusCompleted => 'Completed';
+
+  @override
+  String get inventoryStatusDelivered => 'Delivered';
+
+  @override
+  String get inventoryStatusUnknown => 'Unknown';
+
+  @override
+  String inventorySearchProduct(String product) => 'Find $product';
+
+  @override
+  String get inventoryExportParts => 'Export parts warehouse';
+
+  @override
+  String get inventoryExportProducts => 'Export product warehouse';
+
+  @override
+  String inventorySearchHint(String product, String category, String field) => 'Enter $product, $category or $field...';
+
+  @override
+  String inventoryHideProductTitle(String product) => 'HIDE $product (WAREHOUSE)';
+
+  @override
+  String get inventorySearchTooltip => 'Search';
+
+  @override
+  String get inventoryExportExcelMenu => 'Export Excel';
+
+  @override
+  String inventoryCapitalChip(String price) => 'Capital ${price}đ';
+
+  @override
+  String inventoryEditProductTitle(String label) => 'EDIT $label';
+
+  @override
+  String inventoryProductNameLabel(String label) => '$label name';
+
+  @override
+  String get inventoryConfirmBtn => 'CONFIRM';
+
+  @override
+  String get inventoryCostPriceRequired => 'COST PRICE (*)';
+
+  @override
+  String get inventorySalePriceOptional => 'SALE PRICE (optional)';
+
+  @override
+  String get inventorySupplierRequired => 'SUPPLIER (*)';
+
+  @override
+  String get inventoryPaymentLabel => 'PAYMENT';
 }

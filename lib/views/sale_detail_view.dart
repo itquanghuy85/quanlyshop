@@ -1,6 +1,6 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_esc_pos_utils/flutter_esc_pos_utils.dart';
@@ -34,7 +34,6 @@ import '../constants/product_constants.dart';
 import '../widgets/printer_selection_dialog.dart';
 import '../widgets/responsive_wrapper.dart';
 import '../theme/app_colors.dart';
-import '../theme/app_text_styles.dart';
 import 'sale_invoice_template_view.dart';
 import 'sale_invoice_preview_view.dart';
 import 'create_sales_return_view.dart';
@@ -64,8 +63,6 @@ class _SaleDetailViewState extends State<SaleDetailView> {
   String _shopName = "";
   String _shopAddr = "";
   String _shopPhone = "";
-  String _logoPath = "";
-  bool get _hasLogo => _logoPath.isNotEmpty && File(_logoPath).existsSync();
   bool get _isInstallmentNH => s.paymentMethod.toUpperCase() == "TRẢ GÓP (NH)";
   bool _managerUnlocked = false;
   bool _checkingManager = false;
@@ -77,14 +74,10 @@ class _SaleDetailViewState extends State<SaleDetailView> {
       BusinessTypeHelper.instance.getTerminology(_shopSettings);
 
   // Theme colors cho màn hình chi tiết đơn bán hàng
-  final Color _primaryColor = const Color(
-    0xFF2E7D32,
-  ); // Xanh lá - đồng bộ bán hàng
   final Color _accentColor = const Color(0xFF388E3C);
   final Color _backgroundColor = const Color(0xFFF4F6FA);
 
   // Return info
-  SalesReturn? _returnInfo;
   List<SalesReturn> _allReturns = [];
   int _totalReturnedAmount = 0;
   bool _allItemsReturned = false;
@@ -206,7 +199,6 @@ class _SaleDetailViewState extends State<SaleDetailView> {
 
       if (mounted) {
         setState(() {
-          _returnInfo = matches.firstOrNull;
           _allReturns = matches;
           _totalReturnedAmount = totalReturned;
           _allItemsReturned = allReturned;
@@ -224,7 +216,6 @@ class _SaleDetailViewState extends State<SaleDetailView> {
       _shopName = prefs.getString('shop_name') ?? "TEN SHOP";
       _shopAddr = prefs.getString('shop_address') ?? "DIA CHI";
       _shopPhone = prefs.getString('shop_phone') ?? "SDT";
-      _logoPath = prefs.getString('shop_logo_path') ?? "";
     });
   }
 
@@ -327,10 +318,11 @@ class _SaleDetailViewState extends State<SaleDetailView> {
   }
 
   Future<void> _unlockManager() async {
+    final l10n = AppLocalizations.of(context)!;
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("CẦN ĐĂNG NHẬP TÀI KHOẢN QUẢN LÝ")),
+        SnackBar(content: Text(l10n.needManagerLogin)),
       );
       return;
     }
@@ -339,7 +331,7 @@ class _SaleDetailViewState extends State<SaleDetailView> {
     if (!(perms['allowViewSales'] ?? false) && !isSuper) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Chỉ tài khoản quản lý mới được sửa/xóa")),
+        SnackBar(content: Text(l10n.onlyManagerCanEdit)),
       );
       return;
     }
@@ -348,24 +340,27 @@ class _SaleDetailViewState extends State<SaleDetailView> {
     if (!mounted) return;
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text("XÁC THỰC QUẢN LÝ"),
-        content: TextField(
-          controller: passCtrl,
-          obscureText: true,
-          decoration: const InputDecoration(labelText: "Mật khẩu quản lý"),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text("HỦY"),
+      builder: (ctx) {
+        final dialogL10n = AppLocalizations.of(ctx)!;
+        return AlertDialog(
+          title: Text(dialogL10n.managerAuthTitle),
+          content: TextField(
+            controller: passCtrl,
+            obscureText: true,
+            decoration: InputDecoration(labelText: dialogL10n.managerPasswordLabel),
           ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text("XÁC NHẬN"),
-          ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(dialogL10n.cancel),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(dialogL10n.confirmButton),
+            ),
+          ],
+        );
+      },
     );
 
     if (ok != true) return;
@@ -382,34 +377,24 @@ class _SaleDetailViewState extends State<SaleDetailView> {
           _managerUnlocked = true;
           _checkingManager = false;
         });
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("ĐÃ MỞ KHÓA CHỈNH SỬA")));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context)!.editUnlocked)),
+        );
       }
     } catch (_) {
       if (mounted) {
         setState(() => _checkingManager = false);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("Sai mật khẩu quản lý")));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context)!.wrongManagerPassword)),
+        );
       }
     }
-  }
-
-  String _toNoSign(String str) {
-    var withDia =
-        'àáâãèéêìíòóôõùúýỳỹỷỵửữừứựửữừứựàáâãèéêìíòóôõùúýỳỹỷỵửữừứựửữừứự';
-    var withoutDia =
-        'aaaaeeeeiioooouuyyyyyuuuuuuuuuuuaaaaeeeeiioooouuyyyyyuuuuuuuuuuu';
-    for (int i = 0; i < withDia.length; i++) {
-      str = str.replaceAll(withDia[i], withoutDia[i]);
-    }
-    return str.toUpperCase();
   }
 
   Future<void> _printWifi() async {
     // Show printer selection dialog
     final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final printerConfig = await showPrinterSelectionDialog(context);
     if (printerConfig == null) return; // User cancelled
 
@@ -432,17 +417,17 @@ class _SaleDetailViewState extends State<SaleDetailView> {
 
       if (success) {
         messenger.showSnackBar(
-          const SnackBar(content: Text('Đã in hóa đơn thành công!')),
+          SnackBar(content: Text(l10n.printInvoiceSuccess)),
         );
       } else {
         messenger.showSnackBar(
-          const SnackBar(
-            content: Text('In thất bại! Vui lòng kiểm tra cài đặt máy in.'),
-          ),
+          SnackBar(content: Text(l10n.printInvoiceFailed)),
         );
       }
     } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text('Lỗi khi in: $e')));
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.printErrorMsg(e.toString()))),
+      );
     }
   }
 
@@ -524,13 +509,13 @@ class _SaleDetailViewState extends State<SaleDetailView> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 const PopupDragHandle(),
-                const Row(
+                Row(
                   children: [
-                    Icon(Icons.account_balance, size: 18, color: PopupTheme.blue),
-                    SizedBox(width: 8),
+                    const Icon(Icons.account_balance, size: 18, color: PopupTheme.blue),
+                    const SizedBox(width: 8),
                     Text(
-                      "NHẬN TIỀN TỪ NGÂN HÀNG",
-                      style: TextStyle(
+                      AppLocalizations.of(ctx)!.receiveBankTitle,
+                      style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
                         color: PopupTheme.textPrimary,
@@ -541,28 +526,28 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                 const SizedBox(height: 16),
                 CurrencyTextField(
                   controller: amountCtrl,
-                  label: "Số tiền nhận (VNĐ)",
+                  label: AppLocalizations.of(ctx)!.receivedAmountLabel,
                   validator: (v) => MoneyUtils.validateAmount(
                     v ?? '',
                     min: 1,
-                    fieldName: 'Số tiền nhận',
+                    fieldName: AppLocalizations.of(ctx)!.receivedAmountField,
                   ),
                 ),
                 const SizedBox(height: 10),
                 CurrencyTextField(
                   controller: feeCtrl,
-                  label: "Phí NH giữ lại (VNĐ)",
+                  label: AppLocalizations.of(ctx)!.bankFeeLabel,
                   validator: (v) => MoneyUtils.validateAmount(
                     v ?? '',
                     min: 0,
-                    fieldName: 'Phí NH',
+                    fieldName: AppLocalizations.of(ctx)!.bankFeeField,
                   ),
                 ),
                 const SizedBox(height: 10),
                 TextField(
                   controller: noteCtrl,
                   decoration: InputDecoration(
-                    labelText: "Ghi chú",
+                    labelText: AppLocalizations.of(ctx)!.notesFieldLabel,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(PopupTheme.radiusField),
                     ),
@@ -574,7 +559,7 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                     Expanded(
                       child: OutlinedButton(
                         onPressed: () => Navigator.pop(ctx, false),
-                        child: const Text("HỦY"),
+                        child: Text(AppLocalizations.of(ctx)!.cancel),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -589,7 +574,7 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                           if (!(formKey.currentState?.validate() ?? false)) return;
                           Navigator.pop(ctx, true);
                         },
-                        child: const Text("XÁC NHẬN"),
+                        child: Text(AppLocalizations.of(ctx)!.confirmButton),
                       ),
                     ),
                   ],
@@ -693,7 +678,7 @@ class _SaleDetailViewState extends State<SaleDetailView> {
       },
     );
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("ĐÃ GHI NHẬN TIỀN NGÂN HÀNG CHUYỂN")),
+      SnackBar(content: Text(AppLocalizations.of(context)!.bankReceivedConfirmed)),
     );
     setState(() {});
   }
@@ -713,88 +698,90 @@ class _SaleDetailViewState extends State<SaleDetailView> {
 
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text("SỬA ĐƠN BÁN"),
-        content: SingleChildScrollView(
-          child: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  controller: name,
-                  decoration: const InputDecoration(labelText: "Tên khách"),
-                  validator: (v) =>
-                      (v ?? '').trim().isEmpty ? 'Nhập tên khách' : null,
-                ),
-                TextFormField(
-                  controller: phone,
-                  decoration: const InputDecoration(labelText: "SĐT"),
-                ),
-                TextFormField(
-                  controller: address,
-                  decoration: const InputDecoration(labelText: "Địa chỉ"),
-                ),
-                TextFormField(
-                  controller: products,
-                  decoration: InputDecoration(labelText: _terms.productLabel),
-                ),
-                TextFormField(
-                  controller: imeis,
-                  decoration: InputDecoration(
-                    labelText: _terms.specialField1Label,
+      builder: (ctx) {
+        final dialogL10n = AppLocalizations.of(ctx)!;
+        return AlertDialog(
+          title: Text(dialogL10n.editSaleTitle),
+          content: SingleChildScrollView(
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    controller: name,
+                    decoration: InputDecoration(labelText: dialogL10n.customerNameFieldLabel),
+                    validator: (v) =>
+                        (v ?? '').trim().isEmpty ? dialogL10n.enterCustomerNameHint : null,
                   ),
-                ),
-                // Các trường số tiền đã bị vô hiệu hóa để bảo vệ dữ liệu tài chính
-                DropdownButtonFormField<String>(
-                  initialValue: warranty,
-                  decoration: InputDecoration(
-                    labelText: _terms.specialField2Label,
+                  TextFormField(
+                    controller: phone,
+                    decoration: InputDecoration(labelText: dialogL10n.phoneFieldLabel),
                   ),
-                  items: warranties
-                      .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                      .toList(),
-                  onChanged: (v) => warranty = v ?? warranty,
-                ),
-                DropdownButtonFormField<String>(
-                  initialValue: payment,
-                  decoration: const InputDecoration(labelText: "Hình thức"),
-                  items:
-                      const [
-                            "TIỀN MẶT",
-                            "CHUYỂN KHOẢN",
-                            "KẾT HỢP",
-                            "CÔNG NỢ",
-                            "TRẢ GÓP (NH)",
-                          ]
-                          .map(
-                            (e) => DropdownMenuItem(value: e, child: Text(e)),
-                          )
-                          .toList(),
-                  onChanged: (v) => payment = v ?? payment,
-                ),
-                TextField(
-                  controller: notes,
-                  decoration: const InputDecoration(labelText: "Ghi chú"),
-                ),
-              ],
+                  TextFormField(
+                    controller: address,
+                    decoration: InputDecoration(labelText: dialogL10n.addressFieldLabel),
+                  ),
+                  TextFormField(
+                    controller: products,
+                    decoration: InputDecoration(labelText: _terms.productLabel),
+                  ),
+                  TextFormField(
+                    controller: imeis,
+                    decoration: InputDecoration(
+                      labelText: _terms.specialField1Label,
+                    ),
+                  ),
+                  // Các trường số tiền đã bị vô hiệu hóa để bảo vệ dữ liệu tài chính
+                  DropdownButtonFormField<String>(
+                    initialValue: warranty,
+                    decoration: InputDecoration(
+                      labelText: _terms.specialField2Label,
+                    ),
+                    items: warranties
+                        .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                        .toList(),
+                    onChanged: (v) => warranty = v ?? warranty,
+                  ),
+                  DropdownButtonFormField<String>(
+                    initialValue: payment,
+                    decoration: InputDecoration(labelText: dialogL10n.paymentMethodFieldLabel),
+                    items: const [
+                      "TIỀN MẶT",
+                      "CHUYỂN KHOẢN",
+                      "KẾT HỢP",
+                      "CÔNG NỢ",
+                      "TRẢ GÓP (NH)",
+                    ]
+                        .map(
+                          (e) => DropdownMenuItem(value: e, child: Text(e)),
+                        )
+                        .toList(),
+                    onChanged: (v) => payment = v ?? payment,
+                  ),
+                  TextField(
+                    controller: notes,
+                    decoration: InputDecoration(labelText: dialogL10n.notesFieldLabel),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text("HỦY"),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (!(formKey.currentState?.validate() ?? false)) return;
-              Navigator.pop(ctx, true);
-            },
-            child: const Text("LƯU"),
-          ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(dialogL10n.cancel),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (!(formKey.currentState?.validate() ?? false)) return;
+                Navigator.pop(ctx, true);
+              },
+              child: Text(dialogL10n.saveLabel),
+            ),
+          ],
+        );
+      },
     );
 
     if (ok != true) return;
@@ -933,8 +920,8 @@ class _SaleDetailViewState extends State<SaleDetailView> {
     EventBus().emit('products_changed');
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Đã cập nhật thông tin đơn hàng'),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.saleUpdated),
           backgroundColor: Colors.green,
         ),
       );
@@ -953,82 +940,85 @@ class _SaleDetailViewState extends State<SaleDetailView> {
 
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Row(
-          children: [
-            Icon(Icons.delete_forever, color: AppColors.error, size: 22),
-            const SizedBox(width: 8),
-            const Text("XÓA ĐƠN BÁN", style: TextStyle(fontSize: 17)),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Đơn hàng: ${s.productNamesDisplay}',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Giá trị: ${NumberFormat('#,###', 'vi').format(finalPrice)}đ',
-              style: TextStyle(
-                color: AppColors.error,
-                fontWeight: FontWeight.w600,
+      builder: (ctx) {
+        final dialogL10n = AppLocalizations.of(ctx)!;
+        return AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.delete_forever, color: AppColors.error, size: 22),
+              const SizedBox(width: 8),
+              Text(dialogL10n.deleteSaleTitle, style: const TextStyle(fontSize: 17)),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                dialogL10n.saleOrderItem(s.productNamesDisplay),
+                style: const TextStyle(fontWeight: FontWeight.bold),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.blue.shade50,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.blue.shade200),
+              const SizedBox(height: 8),
+              Text(
+                dialogL10n.saleOrderValue(NumberFormat('#,###', 'vi').format(finalPrice)),
+                style: TextStyle(
+                  color: AppColors.error,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Hệ thống sẽ tự động:',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                  ),
-                  const SizedBox(height: 4),
-                  _infoRow(Icons.inventory, 'Khôi phục số lượng kho'),
-                  if (hasDebt)
-                    _infoRow(
-                      Icons.account_balance_wallet,
-                      'Xóa công nợ liên quan',
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue.shade200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      dialogL10n.systemWillAutoLabel,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                     ),
-                  _infoRow(Icons.receipt_long, 'Xóa bản ghi thanh toán'),
-                  _infoRow(Icons.person, 'Cập nhật lại chi tiêu KH'),
-                ],
+                    const SizedBox(height: 4),
+                    _infoRow(Icons.inventory, dialogL10n.restoreStockQty),
+                    if (hasDebt)
+                      _infoRow(
+                        Icons.account_balance_wallet,
+                        dialogL10n.deleteLinkedDebt,
+                      ),
+                    _infoRow(Icons.receipt_long, dialogL10n.deletePaymentRecord),
+                    _infoRow(Icons.person, dialogL10n.updateCustomerSpend),
+                  ],
+                ),
               ),
+              const SizedBox(height: 12),
+              Text(
+                dialogL10n.cannotUndoWarning,
+                style: TextStyle(
+                  color: AppColors.error,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(dialogL10n.cancel),
             ),
-            const SizedBox(height: 12),
-            Text(
-              '⚠️ Hành động này không thể hoàn tác!',
-              style: TextStyle(
-                color: AppColors.error,
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-              ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+              child: Text(dialogL10n.deleteSaleButton),
             ),
           ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text("HỦY"),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-            child: const Text("XÓA ĐƠN"),
-          ),
-        ],
-      ),
+        );
+      },
     );
 
     if (ok != true) return;
@@ -1236,20 +1226,28 @@ class _SaleDetailViewState extends State<SaleDetailView> {
       );
 
       // 2I: Thông báo thành công
-      NotificationService.showSnackBar(
-        'Đã xóa đơn bán${restoredCount > 0 ? ' • Kho +$restoredCount' : ''}${debtDeleted > 0 ? ' • Xóa $debtDeleted nợ' : ''}',
-        color: Colors.green,
-      );
+      if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
+        NotificationService.showSnackBar(
+          l10n.saleDeletedMsg(
+            restoredCount > 0 ? ' • Kho +$restoredCount' : '',
+            debtDeleted > 0 ? ' • Xóa $debtDeleted nợ' : '',
+          ),
+          color: Colors.green,
+        );
+      }
 
       if (mounted) {
         Navigator.pop(context, true);
       }
     } catch (e) {
       debugPrint('❌ Lỗi xóa đơn bán: $e');
-      NotificationService.showSnackBar(
-        'Lỗi xóa đơn bán: $e',
-        color: Colors.red,
-      );
+      if (mounted) {
+        NotificationService.showSnackBar(
+          AppLocalizations.of(context)!.saleDeleteError(e.toString()),
+          color: Colors.red,
+        );
+      }
     }
   }
 
@@ -1276,7 +1274,7 @@ class _SaleDetailViewState extends State<SaleDetailView> {
     return Scaffold(
       backgroundColor: _backgroundColor,
       appBar: CustomAppBar.build(
-        title: 'CHI TIẾT ĐƠN BÁN',
+        title: AppLocalizations.of(context)!.saleDetailTitle,
         subtitle: s.customerName,
         gradient: const LinearGradient(
           colors: [Color(0xFF1B5E20), Color(0xFF2E7D32)],
@@ -1304,7 +1302,7 @@ class _SaleDetailViewState extends State<SaleDetailView> {
           if (_managerUnlocked)
             IconButton(
               onPressed: _openEditSaleDialog,
-              tooltip: 'Sửa thông tin đơn',
+              tooltip: AppLocalizations.of(context)!.editSaleTooltip,
               icon: const Icon(Icons.edit_note_rounded, color: Colors.white),
             ),
           if (_managerUnlocked)
@@ -1331,60 +1329,63 @@ class _SaleDetailViewState extends State<SaleDetailView> {
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _bottomAction(Icons.sms_rounded, 'SMS', _sendSmsToCustomer),
-                _bottomAction(
-                  Icons.chat_bubble_outline_rounded,
-                  'Chat',
-                  _sendToChat,
-                ),
-                _bottomAction(Icons.preview, 'Xem trước', () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => SaleInvoicePreviewView(
-                        saleData: _buildSalePrintData(),
-                        paper: PaperSize.mm58,
+            child: Builder(builder: (ctx) {
+              final l10n = AppLocalizations.of(ctx)!;
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _bottomAction(Icons.sms_rounded, 'SMS', _sendSmsToCustomer),
+                  _bottomAction(
+                    Icons.chat_bubble_outline_rounded,
+                    'Chat',
+                    _sendToChat,
+                  ),
+                  _bottomAction(Icons.preview, l10n.previewInvoiceLabel, () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => SaleInvoicePreviewView(
+                          saleData: _buildSalePrintData(),
+                          paper: PaperSize.mm58,
+                        ),
                       ),
-                    ),
-                  );
-                }),
-                _bottomAction(Icons.print_rounded, 'In', _printWifi),
-                _bottomAction(
-                  Icons.assignment_return_rounded,
-                  _allItemsReturned ? 'Đã trả hết' : 'Trả hàng',
-                  _allItemsReturned
-                      ? null
-                      : () async {
-                          final result = await Navigator.push<bool>(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => CreateSalesReturnView(sale: s),
-                            ),
-                          );
-                          if (result == true && mounted) {
-                            _loadReturnInfo();
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Trả hàng thành công!'),
-                                backgroundColor: Colors.green,
+                    );
+                  }),
+                  _bottomAction(Icons.print_rounded, l10n.printInvoiceLabel, _printWifi),
+                  _bottomAction(
+                    Icons.assignment_return_rounded,
+                    _allItemsReturned ? l10n.returnAllLabel : l10n.returnGoodsLabel,
+                    _allItemsReturned
+                        ? null
+                        : () async {
+                            final result = await Navigator.push<bool>(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => CreateSalesReturnView(sale: s),
                               ),
                             );
-                          }
-                        },
-                ),
-                _bottomAction(Icons.design_services, 'Mẫu in', () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const SaleInvoiceTemplateView(),
-                    ),
-                  );
-                }),
-              ],
-            ),
+                            if (result == true && mounted) {
+                              _loadReturnInfo();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(AppLocalizations.of(context)!.returnSuccessMsg),
+                                  backgroundColor: Colors.green,
+                                ),
+                              );
+                            }
+                          },
+                  ),
+                  _bottomAction(Icons.design_services, l10n.printTemplateLabel, () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const SaleInvoiceTemplateView(),
+                      ),
+                    );
+                  }),
+                ],
+              );
+            }),
           ),
         ),
       ),
@@ -1411,8 +1412,8 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                     icon: const Icon(Icons.account_balance_wallet_outlined),
                     label: Text(
                       s.settlementReceivedAt != null
-                          ? "CẬP NHẬT TẤT TOÁN (còn ${_money(s.loanAmount + s.loanAmount2 - s.settlementAmount)})"
-                          : "NHẬN TIỀN TỪ NGÂN HÀNG",
+                          ? AppLocalizations.of(context)!.updateSettlementBtn(_money(s.loanAmount + s.loanAmount2 - s.settlementAmount))
+                          : AppLocalizations.of(context)!.receiveBankTitle,
                     ),
                   ),
                 ),
@@ -1451,8 +1452,8 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                           children: [
                             Text(
                               _allItemsReturned
-                                  ? 'ĐÃ TRẢ TOÀN BỘ — ${_money(_totalReturnedAmount)}'
-                                  : 'ĐÃ TRẢ 1 PHẦN — ${_money(_totalReturnedAmount)} (${_allReturns.length} lần)',
+                                  ? AppLocalizations.of(context)!.returnedFullLabel(_money(_totalReturnedAmount))
+                                  : AppLocalizations.of(context)!.returnedPartialLabel(_money(_totalReturnedAmount), _allReturns.length),
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
@@ -1479,52 +1480,52 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                   ),
                 ),
 
-              _card("GIAO DỊCH", [
+              _card(AppLocalizations.of(context)!.sectionTransaction, [
                 ClickableCustomerHeader(
                   customerName: s.customerName,
                   phoneNumber: s.phone,
                   sourceEvent: 'customer_profile_opened_from_sale',
                 ),
-                _item("Địa chỉ", s.address.isEmpty ? "---" : s.address),
+                _item(AppLocalizations.of(context)!.itemAddress, s.address.isEmpty ? "---" : s.address),
                 ClickableProductList(
                   items: _buildLinkedProducts(),
-                  tooltip: 'Mở chi tiết sản phẩm từ đơn bán',
+                  tooltip: AppLocalizations.of(context)!.openProductDetailTooltip,
                 ),
-                _item("Bảo hành", s.warranty.isNotEmpty ? s.warranty : "KO BH"),
+                _item(AppLocalizations.of(context)!.itemWarranty, s.warranty.isNotEmpty ? s.warranty : "KO BH"),
                 _staffItem(s.sellerName, s.sellerUid),
-                _item("Thời gian", _fmtDate(s.soldAt)),
-                _item("Hình thức", s.paymentMethod),
+                _item(AppLocalizations.of(context)!.itemTime, _fmtDate(s.soldAt)),
+                _item(AppLocalizations.of(context)!.itemPaymentMethod, s.paymentMethod),
                 // Hiển thị chi tiết kết hợp thanh toán
                 if (s.paymentMethod.toUpperCase() == 'KẾT HỢP' &&
                     (s.cashAmount > 0 || s.transferAmount > 0)) ...[
                   _item(
-                    "💵 Tiền mặt",
+                    AppLocalizations.of(context)!.itemCash,
                     _money(s.cashAmount),
                     color: Colors.green,
                   ),
                   _item(
-                    "🏦 Chuyển khoản",
+                    AppLocalizations.of(context)!.itemTransfer,
                     _money(s.transferAmount),
                     color: Colors.blue,
                   ),
                 ],
                 if (s.notes != null && s.notes!.isNotEmpty)
-                  _item("Ghi chú", s.notes!),
+                  _item(AppLocalizations.of(context)!.itemNotes, s.notes!),
                 if (s.discount > 0)
                   _item(
-                    "Giảm giá",
+                    AppLocalizations.of(context)!.itemDiscount,
                     '-${_money(s.discount)}',
                     color: Colors.orange,
                   ),
-                _item("Tổng tiền", _money(s.finalPrice), color: Colors.red),
+                _item(AppLocalizations.of(context)!.itemTotal, _money(s.finalPrice), color: Colors.red),
                 if (_canViewCostPrice && s.totalCost > 0) ...[
                   _item(
-                    "Giá vốn",
+                    AppLocalizations.of(context)!.itemCostPrice,
                     _money(s.totalCost),
                     color: Colors.orange.shade700,
                   ),
                   _item(
-                    "Lợi nhuận",
+                    AppLocalizations.of(context)!.itemProfit,
                     '${s.finalPrice - s.totalCost >= 0 ? '+' : ''}${_money(s.finalPrice - s.totalCost)}',
                     color: s.finalPrice - s.totalCost >= 0
                         ? Colors.green.shade700
@@ -1533,29 +1534,29 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                 ],
               ]),
               if (_isInstallmentNH)
-                _card("TRẢ GÓP - NGÂN HÀNG", [
-                  _item("Down payment", _money(s.downPayment)),
-                  _item("NH 1 giải ngân", s.bankName ?? "---"),
-                  _item("Số tiền NH 1", _money(s.loanAmount)),
+                _card(AppLocalizations.of(context)!.sectionInstallment, [
+                  _item(AppLocalizations.of(context)!.installmentDownPayment, _money(s.downPayment)),
+                  _item(AppLocalizations.of(context)!.installmentBank1, s.bankName ?? "---"),
+                  _item(AppLocalizations.of(context)!.installmentAmount1, _money(s.loanAmount)),
                   if (s.bankName2 != null && s.bankName2!.isNotEmpty) ...[
-                    _item("NH 2 giải ngân", s.bankName2!),
-                    _item("Số tiền NH 2", _money(s.loanAmount2)),
+                    _item(AppLocalizations.of(context)!.installmentBank2, s.bankName2!),
+                    _item(AppLocalizations.of(context)!.installmentAmount2, _money(s.loanAmount2)),
                   ],
-                  _item("Tổng vay NH", _money(s.loanAmount + s.loanAmount2)),
-                  _item("Ngày dự kiến", _fmtShort(s.settlementPlannedAt)),
-                  _item("Mã hồ sơ", s.settlementCode ?? "---"),
-                  _item("Ghi chú", s.settlementNote ?? "---"),
+                  _item(AppLocalizations.of(context)!.installmentTotalLoan, _money(s.loanAmount + s.loanAmount2)),
+                  _item(AppLocalizations.of(context)!.installmentExpectedDate, _fmtShort(s.settlementPlannedAt)),
+                  _item(AppLocalizations.of(context)!.installmentFileCode, s.settlementCode ?? "---"),
+                  _item(AppLocalizations.of(context)!.installmentNotes, s.settlementNote ?? "---"),
                   _item(
-                    "Tất toán",
+                    AppLocalizations.of(context)!.installmentSettlement,
                     s.settlementReceivedAt == null
-                        ? "Chưa nhận"
+                        ? AppLocalizations.of(context)!.settlementNotReceived
                         : s.settlementAmount >= s.loanAmount + s.loanAmount2
-                        ? "Đã nhận đủ ${_fmtShort(s.settlementReceivedAt)}"
-                        : 'Đã nhận ${_money(s.settlementAmount)} / ${_money(s.loanAmount + s.loanAmount2)}',
+                        ? AppLocalizations.of(context)!.settlementFullyReceived(_fmtShort(s.settlementReceivedAt))
+                        : AppLocalizations.of(context)!.settlementPartialReceived(_money(s.settlementAmount), _money(s.loanAmount + s.loanAmount2)),
                   ),
                   if (s.settlementFee > 0)
                     _item(
-                      "Phí NH",
+                      AppLocalizations.of(context)!.installmentBankFee,
                       _money(s.settlementFee),
                       color: Colors.orange,
                     ),
@@ -1641,7 +1642,7 @@ class _SaleDetailViewState extends State<SaleDetailView> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Nhân viên', style: TextStyle(color: Colors.grey)),
+          Text(AppLocalizations.of(context)!.staffItemLabel, style: const TextStyle(color: Colors.grey)),
           const SizedBox(width: 12),
           GestureDetector(
             onTap: tappable
@@ -1679,30 +1680,6 @@ class _SaleDetailViewState extends State<SaleDetailView> {
       ),
     );
   }
-  Widget _row(String l, String v) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 4),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(l, style: TextStyle(fontSize: AppTextStyles.subtitle1.fontSize)),
-        const SizedBox(width: 12),
-        Flexible(
-          child: Text(
-            v,
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: AppTextStyles.headline5.fontSize,
-            ),
-            textAlign: TextAlign.end,
-            maxLines: 3,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ],
-    ),
-  );
-
   Widget _bottomAction(IconData icon, String label, VoidCallback? onTap) {
     final isDisabled = onTap == null;
     return InkWell(
@@ -1742,6 +1719,7 @@ class _SaleDetailViewState extends State<SaleDetailView> {
     final msg = "Trao đổi về $summary";
 
     final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context)!;
     await FirestoreService.sendChat(
       message: msg,
       senderId: senderId,
@@ -1752,16 +1730,17 @@ class _SaleDetailViewState extends State<SaleDetailView> {
     );
 
     messenger.showSnackBar(
-      const SnackBar(content: Text("ĐÃ GIM ĐƠN BÁN VÀO CHAT NỘI BỘ")),
+      SnackBar(content: Text(l10n.chatPinnedSale)),
     );
   }
 
   Future<void> _sendSmsToCustomer() async {
     final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final phone = s.phone.trim();
     if (phone.isEmpty) {
       messenger.showSnackBar(
-        const SnackBar(content: Text("KHÔNG CÓ SỐ DIEN_THOAI KHÁCH")),
+        SnackBar(content: Text(l10n.noCustomerPhone)),
       );
       return;
     }
@@ -1782,26 +1761,16 @@ class _SaleDetailViewState extends State<SaleDetailView> {
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri);
         messenger.showSnackBar(
-          const SnackBar(
-            content: Text("ĐÃ MỞ ỨNG DỤNG NHẮN TIN (nội dung đã copy sẵn)."),
-          ),
+          SnackBar(content: Text(l10n.smsAppOpened)),
         );
       } else {
         messenger.showSnackBar(
-          const SnackBar(
-            content: Text(
-              "KHÔNG MỞ ĐƯỢC ỨNG DỤNG NHẮN TIN, anh/chị dán nội dung vào Zalo/SMS giúp em.",
-            ),
-          ),
+          SnackBar(content: Text(l10n.smsAppCannotOpen)),
         );
       }
     } catch (_) {
       messenger.showSnackBar(
-        const SnackBar(
-          content: Text(
-            "LỖI KHI GỬI TIN NHẮN, nhưng nội dung đã được copy sẵn.",
-          ),
-        ),
+        SnackBar(content: Text(l10n.smsSendError)),
       );
     }
   }

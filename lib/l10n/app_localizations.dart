@@ -8723,7 +8723,7 @@ abstract class AppLocalizations {
   /// **'Are you sure you want to delete template \"{name}\"?'**
   String confirmDeleteTemplate(String name);
 
-  /// No description provided for @cancelButton.
+  /// Cancel button label
   ///
   /// In en, this message translates to:
   /// **'CANCEL'**
@@ -12172,6 +12172,2074 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Restore ({count})'**
   String restoreLabelWithCount(int count);
+
+  /// Search hint in sale list with dynamic product and code labels
+  ///
+  /// In en, this message translates to:
+  /// **'Search by customer, {productLabel} or {codeLabel}...'**
+  String saleListSearchHint(String productLabel, String codeLabel);
+
+  /// Title for the first-time guide on the sale list screen
+  ///
+  /// In en, this message translates to:
+  /// **'Sales History'**
+  String get saleListGuideTitle;
+
+  /// Step 1 title in sale list guide
+  ///
+  /// In en, this message translates to:
+  /// **'🛒 Invoice list'**
+  String get saleListGuide1Title;
+
+  /// Step 1 description in sale list guide
+  ///
+  /// In en, this message translates to:
+  /// **'View all sale invoices by day/week/month. Total revenue is shown at the top.'**
+  String get saleListGuide1Desc;
+
+  /// Step 2 title in sale list guide
+  ///
+  /// In en, this message translates to:
+  /// **'🔍 Search'**
+  String get saleListGuide2Title;
+
+  /// Step 2 description in sale list guide
+  ///
+  /// In en, this message translates to:
+  /// **'Find invoices by customer name, product name or invoice code.'**
+  String get saleListGuide2Desc;
+
+  /// Step 3 title in sale list guide
+  ///
+  /// In en, this message translates to:
+  /// **'📄 View details & reprint'**
+  String get saleListGuide3Title;
+
+  /// Step 3 description in sale list guide
+  ///
+  /// In en, this message translates to:
+  /// **'Tap an invoice to view details, reprint the receipt or create a return.'**
+  String get saleListGuide3Desc;
+
+  /// Step 4 title in sale list guide
+  ///
+  /// In en, this message translates to:
+  /// **'💳 Payment status'**
+  String get saleListGuide4Title;
+
+  /// Step 4 description in sale list guide
+  ///
+  /// In en, this message translates to:
+  /// **'Instantly see which invoices are paid, pending or on credit.'**
+  String get saleListGuide4Desc;
+
+  /// Title of the filter bottom sheet on the sale list screen
+  ///
+  /// In en, this message translates to:
+  /// **'FILTER'**
+  String get saleListFilterTitle;
+
+  /// Section header for time filter in sale list
+  ///
+  /// In en, this message translates to:
+  /// **'TIME'**
+  String get saleListTimeSection;
+
+  /// Section header for payment status filter in sale list
+  ///
+  /// In en, this message translates to:
+  /// **'PAYMENT STATUS'**
+  String get saleListPaymentStatusSection;
+
+  /// Filter chip label for last 7 days in sale list
+  ///
+  /// In en, this message translates to:
+  /// **'7 days'**
+  String get saleListLast7Days;
+
+  /// Filter chip label for custom date range in sale list
+  ///
+  /// In en, this message translates to:
+  /// **'Custom'**
+  String get saleListCustomDate;
+
+  /// Payment status filter chip: paid
+  ///
+  /// In en, this message translates to:
+  /// **'Paid'**
+  String get saleListFilterPaid;
+
+  /// Payment status filter chip: has debt
+  ///
+  /// In en, this message translates to:
+  /// **'Has debt'**
+  String get saleListFilterDebt;
+
+  /// Payment status filter chip: installment pending bank settlement
+  ///
+  /// In en, this message translates to:
+  /// **'Install. pending'**
+  String get saleListFilterBankPending;
+
+  /// Payment status filter chip: installment bank settlement received
+  ///
+  /// In en, this message translates to:
+  /// **'Install. received'**
+  String get saleListFilterBankReceived;
+
+  /// Label for yesterday in date group header
+  ///
+  /// In en, this message translates to:
+  /// **'Yesterday'**
+  String get saleListDayYesterday;
+
+  /// Title for the export date filter dialog on sale list
+  ///
+  /// In en, this message translates to:
+  /// **'Export sale orders'**
+  String get saleListExportOrders;
+
+  /// Tooltip for the sort button on sale list
+  ///
+  /// In en, this message translates to:
+  /// **'Sort'**
+  String get saleListSortTooltip;
+
+  /// Sort option: newest first
+  ///
+  /// In en, this message translates to:
+  /// **'Newest first'**
+  String get saleListSortNewest;
+
+  /// Sort option: highest sale value first
+  ///
+  /// In en, this message translates to:
+  /// **'Highest value'**
+  String get saleListSortHighestValue;
+
+  /// Sort option: most debt first
+  ///
+  /// In en, this message translates to:
+  /// **'Most debt'**
+  String get saleListSortMostDebt;
+
+  /// Revenue label in summary bar
+  ///
+  /// In en, this message translates to:
+  /// **'Rev: {amount}'**
+  String saleListRevenueShort(String amount);
+
+  /// Debt label in summary bar
+  ///
+  /// In en, this message translates to:
+  /// **'Debt: {amount}'**
+  String saleListDebtShort(String amount);
+
+  /// Profit label in summary bar
+  ///
+  /// In en, this message translates to:
+  /// **'Profit: {amount}'**
+  String saleListProfitShort(String amount);
+
+  /// Status badge text when sale is fully returned
+  ///
+  /// In en, this message translates to:
+  /// **'RETURNED'**
+  String get saleListStatusReturned;
+
+  /// Status badge text when installment is pending bank settlement
+  ///
+  /// In en, this message translates to:
+  /// **'BANK PENDING'**
+  String get saleListStatusBankPending;
+
+  /// Status badge text when payment is fully collected
+  ///
+  /// In en, this message translates to:
+  /// **'COLLECTED'**
+  String get saleListStatusCollected;
+
+  /// Status badge text when sale still has remaining debt
+  ///
+  /// In en, this message translates to:
+  /// **'HAS DEBT'**
+  String get saleListStatusHasDebt;
+
+  /// Label for collected amount chip in sale card
+  ///
+  /// In en, this message translates to:
+  /// **'💰 Collected'**
+  String get saleListChipPaid;
+
+  /// Label for remaining debt chip in sale card
+  ///
+  /// In en, this message translates to:
+  /// **'⚠️ Has debt'**
+  String get saleListChipDebt;
+
+  /// Label for sale price chip in sale card
+  ///
+  /// In en, this message translates to:
+  /// **'🏷 Sale'**
+  String get saleListChipSale;
+
+  /// Label for cost price chip in sale card
+  ///
+  /// In en, this message translates to:
+  /// **'📦 Cost'**
+  String get saleListChipCost;
+
+  /// Label for profit chip in sale card
+  ///
+  /// In en, this message translates to:
+  /// **'📈 Profit'**
+  String get saleListChipProfit;
+
+  /// Label for loss chip in sale card
+  ///
+  /// In en, this message translates to:
+  /// **'📉 Loss'**
+  String get saleListChipLoss;
+
+  /// Label when sale order is fully returned
+  ///
+  /// In en, this message translates to:
+  /// **'↩ Fully returned'**
+  String get saleListReturnFull;
+
+  /// Label when sale order is partially returned
+  ///
+  /// In en, this message translates to:
+  /// **'↩ Partial return'**
+  String get saleListReturnPartial;
+
+  /// Label for installment chip in sale card
+  ///
+  /// In en, this message translates to:
+  /// **'🏦 Installment'**
+  String get saleListInstallmentLabel;
+
+  /// Text shown when bank installment settlement has been received
+  ///
+  /// In en, this message translates to:
+  /// **'Bank received {amount}'**
+  String saleListBankReceivedAmount(String amount);
+
+  /// Text shown when bank installment settlement has not been received
+  ///
+  /// In en, this message translates to:
+  /// **'Bank not received yet'**
+  String get saleListBankNotReceived;
+
+  /// Hint text to long-press a sale card to create a return
+  ///
+  /// In en, this message translates to:
+  /// **'Hold to create return'**
+  String get saleListHoldToReturn;
+
+  /// Empty state title when no sale orders match the current filter
+  ///
+  /// In en, this message translates to:
+  /// **'No orders found'**
+  String get saleListNoOrders;
+
+  /// Empty state subtitle suggesting to clear filters
+  ///
+  /// In en, this message translates to:
+  /// **'Try clearing filters to see all'**
+  String get saleListClearFilterHint;
+
+  /// Action button label to clear all active filters
+  ///
+  /// In en, this message translates to:
+  /// **'Clear filters'**
+  String get saleListClearFilter;
+
+  /// Footer text showing total number of displayed sale orders
+  ///
+  /// In en, this message translates to:
+  /// **'Showing {count} sale orders'**
+  String saleListDisplayedOrders(int count);
+
+  /// Snackbar message when trying to return an already fully-returned order
+  ///
+  /// In en, this message translates to:
+  /// **'This order has been fully returned'**
+  String get saleListOrderFullyReturned;
+
+  /// Return amount with count for partial returns
+  ///
+  /// In en, this message translates to:
+  /// **'{amount} ({count} times)'**
+  String saleListReturnTimesCount(String amount, int count);
+
+  /// Day group header showing label and order count
+  ///
+  /// In en, this message translates to:
+  /// **'{label} · {count} orders'**
+  String saleListGroupOrdersCount(String label, int count);
+
+  /// AppBar title for sale detail screen
+  ///
+  /// In en, this message translates to:
+  /// **'SALE DETAILS'**
+  String get saleDetailTitle;
+
+  /// Snackbar when manager auth fails - not logged in
+  ///
+  /// In en, this message translates to:
+  /// **'PLEASE LOGIN WITH MANAGER ACCOUNT'**
+  String get needManagerLogin;
+
+  /// Snackbar when user lacks manager permission
+  ///
+  /// In en, this message translates to:
+  /// **'Only manager accounts can edit/delete'**
+  String get onlyManagerCanEdit;
+
+  /// Title for manager password dialog
+  ///
+  /// In en, this message translates to:
+  /// **'MANAGER AUTHENTICATION'**
+  String get managerAuthTitle;
+
+  /// Label for manager password field
+  ///
+  /// In en, this message translates to:
+  /// **'Manager password'**
+  String get managerPasswordLabel;
+
+  /// Snackbar after manager successfully reauthenticated
+  ///
+  /// In en, this message translates to:
+  /// **'EDIT UNLOCKED'**
+  String get editUnlocked;
+
+  /// Snackbar when manager password is incorrect
+  ///
+  /// In en, this message translates to:
+  /// **'Wrong manager password'**
+  String get wrongManagerPassword;
+
+  /// Snackbar when receipt print succeeds
+  ///
+  /// In en, this message translates to:
+  /// **'Invoice printed successfully!'**
+  String get printInvoiceSuccess;
+
+  /// Snackbar when receipt print fails
+  ///
+  /// In en, this message translates to:
+  /// **'Print failed! Please check printer settings.'**
+  String get printInvoiceFailed;
+
+  /// Snackbar when print throws an exception
+  ///
+  /// In en, this message translates to:
+  /// **'Print error: {error}'**
+  String printErrorMsg(String error);
+
+  /// Title for settlement/bank-receive bottom sheet
+  ///
+  /// In en, this message translates to:
+  /// **'RECEIVE BANK PAYMENT'**
+  String get receiveBankTitle;
+
+  /// Label for settlement amount field
+  ///
+  /// In en, this message translates to:
+  /// **'Amount received (VND)'**
+  String get receivedAmountLabel;
+
+  /// fieldName used in validateAmount for settlement
+  ///
+  /// In en, this message translates to:
+  /// **'Amount received'**
+  String get receivedAmountField;
+
+  /// Label for bank fee field in settlement sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Bank fee withheld (VND)'**
+  String get bankFeeLabel;
+
+  /// fieldName used in validateAmount for bank fee
+  ///
+  /// In en, this message translates to:
+  /// **'Bank fee'**
+  String get bankFeeField;
+
+  /// Snackbar after bank settlement is saved
+  ///
+  /// In en, this message translates to:
+  /// **'BANK PAYMENT RECORDED'**
+  String get bankReceivedConfirmed;
+
+  /// Title for edit sale dialog
+  ///
+  /// In en, this message translates to:
+  /// **'EDIT SALE ORDER'**
+  String get editSaleTitle;
+
+  /// Label for customer name in edit sale dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Customer name'**
+  String get customerNameFieldLabel;
+
+  /// Validation message when customer name is empty
+  ///
+  /// In en, this message translates to:
+  /// **'Enter customer name'**
+  String get enterCustomerNameHint;
+
+  /// Label for phone field in edit sale dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Phone'**
+  String get phoneFieldLabel;
+
+  /// Label for address field in edit sale dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Address'**
+  String get addressFieldLabel;
+
+  /// Label for payment method dropdown
+  ///
+  /// In en, this message translates to:
+  /// **'Payment method'**
+  String get paymentMethodFieldLabel;
+
+  /// Label for notes text field
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get notesFieldLabel;
+
+  /// Save button label in dialogs
+  ///
+  /// In en, this message translates to:
+  /// **'SAVE'**
+  String get saveLabel;
+
+  /// Snackbar after sale is edited and saved
+  ///
+  /// In en, this message translates to:
+  /// **'Sale order updated successfully'**
+  String get saleUpdated;
+
+  /// Title for delete-sale confirmation dialog
+  ///
+  /// In en, this message translates to:
+  /// **'DELETE SALE ORDER'**
+  String get deleteSaleTitle;
+
+  /// Shows product names of the sale order being deleted
+  ///
+  /// In en, this message translates to:
+  /// **'Order: {name}'**
+  String saleOrderItem(String name);
+
+  /// Shows sale order value in delete confirmation
+  ///
+  /// In en, this message translates to:
+  /// **'Value: {amount}đ'**
+  String saleOrderValue(String amount);
+
+  /// Header for auto-action list in delete confirmation
+  ///
+  /// In en, this message translates to:
+  /// **'The system will automatically:'**
+  String get systemWillAutoLabel;
+
+  /// Auto-action: restore inventory when sale deleted
+  ///
+  /// In en, this message translates to:
+  /// **'Restore stock quantity'**
+  String get restoreStockQty;
+
+  /// Auto-action: remove linked debt record
+  ///
+  /// In en, this message translates to:
+  /// **'Delete related debt'**
+  String get deleteLinkedDebt;
+
+  /// Auto-action: remove payment intent
+  ///
+  /// In en, this message translates to:
+  /// **'Delete payment record'**
+  String get deletePaymentRecord;
+
+  /// Auto-action: revert customer total spent
+  ///
+  /// In en, this message translates to:
+  /// **'Update customer spending'**
+  String get updateCustomerSpend;
+
+  /// Warning text in delete confirmation dialog
+  ///
+  /// In en, this message translates to:
+  /// **'⚠️ This action cannot be undone!'**
+  String get cannotUndoWarning;
+
+  /// Confirm delete button in delete sale dialog
+  ///
+  /// In en, this message translates to:
+  /// **'DELETE ORDER'**
+  String get deleteSaleButton;
+
+  /// Snackbar after sale deleted with optional inventory/debt info appended
+  ///
+  /// In en, this message translates to:
+  /// **'Sale deleted{inventoryInfo}{debtInfo}'**
+  String saleDeletedMsg(String inventoryInfo, String debtInfo);
+
+  /// Snackbar when deleting sale fails
+  ///
+  /// In en, this message translates to:
+  /// **'Error deleting sale order: {error}'**
+  String saleDeleteError(String error);
+
+  /// Tooltip for the edit icon button in AppBar
+  ///
+  /// In en, this message translates to:
+  /// **'Edit order info'**
+  String get editSaleTooltip;
+
+  /// Bottom action label for invoice preview
+  ///
+  /// In en, this message translates to:
+  /// **'Preview'**
+  String get previewInvoiceLabel;
+
+  /// Bottom action label for print button
+  ///
+  /// In en, this message translates to:
+  /// **'Print'**
+  String get printInvoiceLabel;
+
+  /// Bottom action label when all items are returned
+  ///
+  /// In en, this message translates to:
+  /// **'Fully returned'**
+  String get returnAllLabel;
+
+  /// Bottom action label to initiate a return
+  ///
+  /// In en, this message translates to:
+  /// **'Return'**
+  String get returnGoodsLabel;
+
+  /// Snackbar after sales return is created
+  ///
+  /// In en, this message translates to:
+  /// **'Return processed successfully!'**
+  String get returnSuccessMsg;
+
+  /// Bottom action label for invoice template
+  ///
+  /// In en, this message translates to:
+  /// **'Templates'**
+  String get printTemplateLabel;
+
+  /// Button label when settlement has been partially received
+  ///
+  /// In en, this message translates to:
+  /// **'UPDATE SETTLEMENT (remaining {amount})'**
+  String updateSettlementBtn(String amount);
+
+  /// Return indicator when all items returned
+  ///
+  /// In en, this message translates to:
+  /// **'FULLY RETURNED — {amount}'**
+  String returnedFullLabel(String amount);
+
+  /// Return indicator when partially returned
+  ///
+  /// In en, this message translates to:
+  /// **'PARTIALLY RETURNED — {amount} ({count} times)'**
+  String returnedPartialLabel(String amount, int count);
+
+  /// Card header for the main transaction section
+  ///
+  /// In en, this message translates to:
+  /// **'TRANSACTION'**
+  String get sectionTransaction;
+
+  /// Row label: customer address
+  ///
+  /// In en, this message translates to:
+  /// **'Address'**
+  String get itemAddress;
+
+  /// Tooltip on clickable product list
+  ///
+  /// In en, this message translates to:
+  /// **'Open product detail from sale'**
+  String get openProductDetailTooltip;
+
+  /// Row label: warranty period
+  ///
+  /// In en, this message translates to:
+  /// **'Warranty'**
+  String get itemWarranty;
+
+  /// Row label: sale date and time
+  ///
+  /// In en, this message translates to:
+  /// **'Date/Time'**
+  String get itemTime;
+
+  /// Row label: payment method
+  ///
+  /// In en, this message translates to:
+  /// **'Payment'**
+  String get itemPaymentMethod;
+
+  /// Row label: cash portion in combined payment
+  ///
+  /// In en, this message translates to:
+  /// **'💵 Cash'**
+  String get itemCash;
+
+  /// Row label: bank transfer portion in combined payment
+  ///
+  /// In en, this message translates to:
+  /// **'🏦 Transfer'**
+  String get itemTransfer;
+
+  /// Row label: order notes
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get itemNotes;
+
+  /// Row label: discount amount
+  ///
+  /// In en, this message translates to:
+  /// **'Discount'**
+  String get itemDiscount;
+
+  /// Row label: total (final price)
+  ///
+  /// In en, this message translates to:
+  /// **'Total'**
+  String get itemTotal;
+
+  /// Row label: product cost (visible to managers)
+  ///
+  /// In en, this message translates to:
+  /// **'Cost price'**
+  String get itemCostPrice;
+
+  /// Row label: profit (final - cost)
+  ///
+  /// In en, this message translates to:
+  /// **'Profit'**
+  String get itemProfit;
+
+  /// Card header for bank installment section
+  ///
+  /// In en, this message translates to:
+  /// **'INSTALLMENT - BANK'**
+  String get sectionInstallment;
+
+  /// Row label: down payment
+  ///
+  /// In en, this message translates to:
+  /// **'Down payment'**
+  String get installmentDownPayment;
+
+  /// Row label: bank 1 name
+  ///
+  /// In en, this message translates to:
+  /// **'Bank 1 disbursement'**
+  String get installmentBank1;
+
+  /// Row label: bank 1 loan amount
+  ///
+  /// In en, this message translates to:
+  /// **'Bank 1 amount'**
+  String get installmentAmount1;
+
+  /// Row label: bank 2 name
+  ///
+  /// In en, this message translates to:
+  /// **'Bank 2 disbursement'**
+  String get installmentBank2;
+
+  /// Row label: bank 2 loan amount
+  ///
+  /// In en, this message translates to:
+  /// **'Bank 2 amount'**
+  String get installmentAmount2;
+
+  /// Row label: total loan from all banks
+  ///
+  /// In en, this message translates to:
+  /// **'Total bank loan'**
+  String get installmentTotalLoan;
+
+  /// Row label: planned settlement date
+  ///
+  /// In en, this message translates to:
+  /// **'Expected date'**
+  String get installmentExpectedDate;
+
+  /// Row label: settlement code/file number
+  ///
+  /// In en, this message translates to:
+  /// **'File code'**
+  String get installmentFileCode;
+
+  /// Row label: settlement notes
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get installmentNotes;
+
+  /// Row label: settlement status
+  ///
+  /// In en, this message translates to:
+  /// **'Settlement'**
+  String get installmentSettlement;
+
+  /// Settlement status when nothing received yet
+  ///
+  /// In en, this message translates to:
+  /// **'Not received'**
+  String get settlementNotReceived;
+
+  /// Settlement status when fully received
+  ///
+  /// In en, this message translates to:
+  /// **'Received in full {date}'**
+  String settlementFullyReceived(String date);
+
+  /// Settlement status when partially received
+  ///
+  /// In en, this message translates to:
+  /// **'Received {received} / {total}'**
+  String settlementPartialReceived(String received, String total);
+
+  /// Row label: bank fee deducted from settlement
+  ///
+  /// In en, this message translates to:
+  /// **'Bank fee'**
+  String get installmentBankFee;
+
+  /// Row label: seller/staff name
+  ///
+  /// In en, this message translates to:
+  /// **'Staff member'**
+  String get staffItemLabel;
+
+  /// Snackbar after sale is shared to group chat
+  ///
+  /// In en, this message translates to:
+  /// **'SALE ORDER PINNED TO INTERNAL CHAT'**
+  String get chatPinnedSale;
+
+  /// Snackbar when trying to SMS but customer has no phone
+  ///
+  /// In en, this message translates to:
+  /// **'NO CUSTOMER PHONE NUMBER'**
+  String get noCustomerPhone;
+
+  /// Snackbar after SMS app is launched successfully
+  ///
+  /// In en, this message translates to:
+  /// **'SMS app opened (message already copied).'**
+  String get smsAppOpened;
+
+  /// Snackbar when SMS app cannot be launched
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot open SMS app. Please paste the message into Zalo/SMS.'**
+  String get smsAppCannotOpen;
+
+  /// Snackbar when SMS launch throws an exception
+  ///
+  /// In en, this message translates to:
+  /// **'Error sending message, but content has been copied.'**
+  String get smsSendError;
+
+  /// Title for debt management screen
+  ///
+  /// In en, this message translates to:
+  /// **'DEBT MANAGEMENT'**
+  String get debtManagementTitle;
+
+  /// Subtitle showing count of active debts
+  ///
+  /// In en, this message translates to:
+  /// **'{count} active debts'**
+  String activeDebtsCount(int count);
+
+  /// Tab label for customer debts
+  ///
+  /// In en, this message translates to:
+  /// **'CUSTOMER'**
+  String get tabCustomer;
+
+  /// Tab label for supplier debts
+  ///
+  /// In en, this message translates to:
+  /// **'SUPPLIER'**
+  String get tabSupplier;
+
+  /// Tab label for repair partner debts
+  ///
+  /// In en, this message translates to:
+  /// **'PARTNER'**
+  String get tabPartner;
+
+  /// Tab label for other debts
+  ///
+  /// In en, this message translates to:
+  /// **'OTHER'**
+  String get tabOther;
+
+  /// Tooltip for sync button
+  ///
+  /// In en, this message translates to:
+  /// **'Sync with Firebase'**
+  String get syncWithFirebase;
+
+  /// Tooltip for export debt excel button
+  ///
+  /// In en, this message translates to:
+  /// **'Export debt Excel'**
+  String get exportExcelDebt;
+
+  /// Title for export debt dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Export debts'**
+  String get exportDebtTitle;
+
+  /// Sync status: synced
+  ///
+  /// In en, this message translates to:
+  /// **'Synced'**
+  String get syncedStatus;
+
+  /// Sync status: syncing
+  ///
+  /// In en, this message translates to:
+  /// **'Syncing...'**
+  String get syncingStatus;
+
+  /// Sync status: error
+  ///
+  /// In en, this message translates to:
+  /// **'Sync error'**
+  String get syncErrorStatus;
+
+  /// Hint text for debt search field
+  ///
+  /// In en, this message translates to:
+  /// **'Search name, phone...'**
+  String get searchNamePhone;
+
+  /// Filter chip label to show paid debts
+  ///
+  /// In en, this message translates to:
+  /// **'Paid'**
+  String get filterPaid;
+
+  /// Label for receivable debt (customer owes)
+  ///
+  /// In en, this message translates to:
+  /// **'Receivable'**
+  String get debtReceivable;
+
+  /// Label for payable debt (shop owes)
+  ///
+  /// In en, this message translates to:
+  /// **'Payable'**
+  String get debtPayable;
+
+  /// KPI chip label for overdue debts
+  ///
+  /// In en, this message translates to:
+  /// **'Overdue'**
+  String get overdueDebts;
+
+  /// KPI chip label for debts needing attention
+  ///
+  /// In en, this message translates to:
+  /// **'Needs attention'**
+  String get needsHandling;
+
+  /// Empty state when search finds nothing
+  ///
+  /// In en, this message translates to:
+  /// **'No results found'**
+  String get noDebtFound;
+
+  /// Empty state when no debts exist
+  ///
+  /// In en, this message translates to:
+  /// **'No debts yet'**
+  String get noDebtYet;
+
+  /// Hint when search has no results
+  ///
+  /// In en, this message translates to:
+  /// **'Try searching by other name or phone'**
+  String get trySearchOther;
+
+  /// Hint to enable paid filter
+  ///
+  /// In en, this message translates to:
+  /// **'Enable \"Paid\" to see history'**
+  String get showPaidToSeeHistory;
+
+  /// Summary header for total remaining debt
+  ///
+  /// In en, this message translates to:
+  /// **'TOTAL REMAINING DEBT'**
+  String get totalRemainingDebt;
+
+  /// Empty state for partner debts tab
+  ///
+  /// In en, this message translates to:
+  /// **'No partner debts'**
+  String get noPartnerDebt;
+
+  /// Guide for managing partners
+  ///
+  /// In en, this message translates to:
+  /// **'Manage partners at: Settings › Partner Management'**
+  String get partnerDebtManageGuide;
+
+  /// Summary header for partner repair debt
+  ///
+  /// In en, this message translates to:
+  /// **'TOTAL REPAIR PARTNER DEBT'**
+  String get totalPartnerRepairDebt;
+
+  /// Title of payment history bottom sheet
+  ///
+  /// In en, this message translates to:
+  /// **'PAYMENT HISTORY'**
+  String get paymentHistoryTitle;
+
+  /// Empty state for payment history
+  ///
+  /// In en, this message translates to:
+  /// **'No payment history yet'**
+  String get noPaymentHistory;
+
+  /// Button label to pay debt
+  ///
+  /// In en, this message translates to:
+  /// **'PAY DEBT'**
+  String get payDebtButton;
+
+  /// Title for collecting customer debt
+  ///
+  /// In en, this message translates to:
+  /// **'COLLECT CUSTOMER DEBT'**
+  String get collectDebtTitle;
+
+  /// Title for paying a debt
+  ///
+  /// In en, this message translates to:
+  /// **'PAY DEBT'**
+  String get payDebtTitle;
+
+  /// Label for total debt amount
+  ///
+  /// In en, this message translates to:
+  /// **'Total debt'**
+  String get totalDebtLabel;
+
+  /// Label for paid amount
+  ///
+  /// In en, this message translates to:
+  /// **'Paid'**
+  String get paidAmountLabel;
+
+  /// Label for remaining amount
+  ///
+  /// In en, this message translates to:
+  /// **'Remaining'**
+  String get remainingLabel;
+
+  /// Label for collect amount input
+  ///
+  /// In en, this message translates to:
+  /// **'AMOUNT TO COLLECT (VND)'**
+  String get collectAmountVnd;
+
+  /// Label for pay amount input
+  ///
+  /// In en, this message translates to:
+  /// **'AMOUNT TO PAY (VND)'**
+  String get payAmountVnd;
+
+  /// Label for payment method selection
+  ///
+  /// In en, this message translates to:
+  /// **'PAY WITH'**
+  String get payWithLabel;
+
+  /// Confirm payment button
+  ///
+  /// In en, this message translates to:
+  /// **'CONFIRM'**
+  String get confirmPayButton;
+
+  /// Title for creating other debt
+  ///
+  /// In en, this message translates to:
+  /// **'CREATE OTHER DEBT'**
+  String get createOtherDebtTitle;
+
+  /// Label for debtor name field
+  ///
+  /// In en, this message translates to:
+  /// **'Debtor name'**
+  String get debtorNameLabel;
+
+  /// Validation message for debtor name
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter debtor name'**
+  String get pleaseEnterDebtorName;
+
+  /// Label for debt amount field
+  ///
+  /// In en, this message translates to:
+  /// **'Debt amount (VND)'**
+  String get debtAmountVnd;
+
+  /// Label for debt type selection
+  ///
+  /// In en, this message translates to:
+  /// **'Debt type:'**
+  String get debtFormTypeLabel;
+
+  /// Debt type: receivable
+  ///
+  /// In en, this message translates to:
+  /// **'RECEIVABLE'**
+  String get receivableDebt;
+
+  /// Debt type: payable
+  ///
+  /// In en, this message translates to:
+  /// **'PAYABLE'**
+  String get payableDebt;
+
+  /// Subtitle for receivable debt type
+  ///
+  /// In en, this message translates to:
+  /// **'(Customer owes shop)'**
+  String get customerOwesShop;
+
+  /// Subtitle for payable debt type
+  ///
+  /// In en, this message translates to:
+  /// **'(Shop owes others)'**
+  String get shopOwesOther;
+
+  /// Create button label
+  ///
+  /// In en, this message translates to:
+  /// **'CREATE'**
+  String get createButton;
+
+  /// Snackbar after creating a debt
+  ///
+  /// In en, this message translates to:
+  /// **'New debt created'**
+  String get debtCreated;
+
+  /// Title for creating receivable debt
+  ///
+  /// In en, this message translates to:
+  /// **'CREATE RECEIVABLE DEBT'**
+  String get createReceivableDebtTitle;
+
+  /// Validation for customer name in debt form
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter customer name'**
+  String get pleaseEnterCustomerNameDebt;
+
+  /// Snackbar after creating customer debt
+  ///
+  /// In en, this message translates to:
+  /// **'Customer debt created!'**
+  String get customerDebtCreated;
+
+  /// Error message when creating debt fails
+  ///
+  /// In en, this message translates to:
+  /// **'Error creating debt: {error}'**
+  String createDebtError(String error);
+
+  /// Title for creating payable debt
+  ///
+  /// In en, this message translates to:
+  /// **'CREATE PAYABLE DEBT'**
+  String get createPayableDebtTitle;
+
+  /// Label for supplier name field
+  ///
+  /// In en, this message translates to:
+  /// **'Supplier name'**
+  String get supplierNameLabel;
+
+  /// Validation for supplier name in debt form
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter supplier name'**
+  String get pleaseEnterSupplierNameDebt;
+
+  /// Snackbar after creating supplier debt
+  ///
+  /// In en, this message translates to:
+  /// **'Supplier debt created!'**
+  String get supplierDebtCreated;
+
+  /// Empty state when no other debts
+  ///
+  /// In en, this message translates to:
+  /// **'No debts'**
+  String get noDebtAnywhere;
+
+  /// Button to collect customer debt
+  ///
+  /// In en, this message translates to:
+  /// **'Collect'**
+  String get collectDebtAction;
+
+  /// Button to pay a debt
+  ///
+  /// In en, this message translates to:
+  /// **'Pay debt'**
+  String get payDebtAction;
+
+  /// Button to view debt history
+  ///
+  /// In en, this message translates to:
+  /// **'History'**
+  String get historyButton;
+
+  /// Button to repay a debt
+  ///
+  /// In en, this message translates to:
+  /// **'Repay'**
+  String get returnDebtAction;
+
+  /// Chip label for repair partner debt type
+  ///
+  /// In en, this message translates to:
+  /// **'Repair partner'**
+  String get partnerRepairType;
+
+  /// Source label: manual
+  ///
+  /// In en, this message translates to:
+  /// **'Manual'**
+  String get manualSource;
+
+  /// Source label: automatic
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic'**
+  String get autoSource;
+
+  /// Label for total fee amount
+  ///
+  /// In en, this message translates to:
+  /// **'Total fee'**
+  String get totalFeeLabel;
+
+  /// Label for remaining debt amount
+  ///
+  /// In en, this message translates to:
+  /// **'Remaining'**
+  String get remainingDebtLabel;
+
+  /// Action button label to make payment
+  ///
+  /// In en, this message translates to:
+  /// **'Pay'**
+  String get paymentAction;
+
+  /// Urgency chip: very overdue count
+  ///
+  /// In en, this message translates to:
+  /// **'{count} overdue >60 days'**
+  String overdueCountDays(int count);
+
+  /// Urgency chip: urgent count
+  ///
+  /// In en, this message translates to:
+  /// **'{count} need attention >30 days'**
+  String urgentCountDays(int count);
+
+  /// Message when partner is missing but debt remains
+  ///
+  /// In en, this message translates to:
+  /// **'Partner \"{name}\" is no longer in the system but the debt is kept.'**
+  String partnerNotInSystem(String name);
+
+  /// Message when partner cannot be found
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot find partner \"{name}\". Debt still appears in list.'**
+  String partnerDebtNotFound(String name);
+
+  /// Error when trying to pay debt on closed day
+  ///
+  /// In en, this message translates to:
+  /// **'❌ Today is closed! Cannot collect debt payment.'**
+  String get closedTodayDebt;
+
+  /// Error when trying to create debt on closed day
+  ///
+  /// In en, this message translates to:
+  /// **'❌ Today is closed! Cannot create new debt.'**
+  String get closedTodayCreateDebt;
+
+  /// FAB tooltip for customer tab
+  ///
+  /// In en, this message translates to:
+  /// **'Create customer debt'**
+  String get createCustomerDebtTooltip;
+
+  /// FAB tooltip for supplier tab
+  ///
+  /// In en, this message translates to:
+  /// **'Create supplier debt'**
+  String get createSupplierDebtTooltip;
+
+  /// FAB tooltip for other tab
+  ///
+  /// In en, this message translates to:
+  /// **'Create other debt'**
+  String get createOtherDebtTooltip;
+
+  /// Tooltip for missing partner icon
+  ///
+  /// In en, this message translates to:
+  /// **'Partner no longer in system'**
+  String get partnerNotInSystemTooltip;
+
+  /// Chip label for very overdue debt
+  ///
+  /// In en, this message translates to:
+  /// **'Overdue {days} days'**
+  String overdueDaysLabel(int days);
+
+  /// Chip label for urgent debt days count
+  ///
+  /// In en, this message translates to:
+  /// **'{days} days'**
+  String daysLabel(int days);
+
+  /// Chip label when debt is fully paid
+  ///
+  /// In en, this message translates to:
+  /// **'✓ Fully paid'**
+  String get paidFullLabel;
+
+  /// Badge showing number of repair orders
+  ///
+  /// In en, this message translates to:
+  /// **'{count} orders'**
+  String ordersCountLabel(int count);
+
+  /// Title for expense management screen
+  ///
+  /// In en, this message translates to:
+  /// **'EXPENSE MANAGEMENT'**
+  String get expenseManagementTitle;
+
+  /// Title for income management screen
+  ///
+  /// In en, this message translates to:
+  /// **'INCOME'**
+  String get incomeManagementTitle;
+
+  /// Subtitle showing expense count
+  ///
+  /// In en, this message translates to:
+  /// **'{count} expenses'**
+  String expenseCountSubtitle(int count);
+
+  /// Subtitle showing income count
+  ///
+  /// In en, this message translates to:
+  /// **'{count} incomes'**
+  String incomeCountSubtitle(int count);
+
+  /// Tooltip for export income/expense excel
+  ///
+  /// In en, this message translates to:
+  /// **'Export income/expense Excel'**
+  String get exportExcelIncomeExpense;
+
+  /// Title for export income/expense dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Export income/expense'**
+  String get exportIncomeExpenseTitle;
+
+  /// Title for delete income dialog
+  ///
+  /// In en, this message translates to:
+  /// **'CONFIRM DELETE INCOME'**
+  String get confirmDeleteIncome;
+
+  /// Title for delete expense dialog
+  ///
+  /// In en, this message translates to:
+  /// **'CONFIRM DELETE EXPENSE'**
+  String get confirmDeleteExpenseTitle;
+
+  /// Content for delete income confirmation
+  ///
+  /// In en, this message translates to:
+  /// **'You are deleting income: {title}\nAmount: {amount}'**
+  String deleteIncomeContent(String title, String amount);
+
+  /// Content for delete expense confirmation
+  ///
+  /// In en, this message translates to:
+  /// **'You are deleting expense: {title}\nAmount: {amount}'**
+  String deleteExpenseContent(String title, String amount);
+
+  /// Label for password field in delete dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Enter account password to delete'**
+  String get enterPasswordToDeleteLabel;
+
+  /// Button to confirm deletion
+  ///
+  /// In en, this message translates to:
+  /// **'CONFIRM DELETE'**
+  String get confirmDeleteButton;
+
+  /// Error when trying to delete purchase expense
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot delete expense from purchase order!'**
+  String get cannotDeletePurchaseExpense;
+
+  /// Error when password is wrong during delete
+  ///
+  /// In en, this message translates to:
+  /// **'Wrong password! Cannot delete.'**
+  String get wrongPasswordCannotDelete;
+
+  /// Snackbar after deleting income
+  ///
+  /// In en, this message translates to:
+  /// **'Income deleted successfully'**
+  String get deletedIncomeSuccess;
+
+  /// Snackbar after deleting expense
+  ///
+  /// In en, this message translates to:
+  /// **'Expense deleted successfully'**
+  String get deletedExpenseSuccess;
+
+  /// Error when adding expense on closed day
+  ///
+  /// In en, this message translates to:
+  /// **'❌ Today is closed! Cannot add new expense.'**
+  String get closedTodayExpense;
+
+  /// Error when adding income on closed day
+  ///
+  /// In en, this message translates to:
+  /// **'❌ Today is closed! Cannot add new income.'**
+  String get closedTodayIncome;
+
+  /// Title of add expense bottom sheet
+  ///
+  /// In en, this message translates to:
+  /// **'RECORD EXPENSE'**
+  String get writeExpensesTitle;
+
+  /// Section label for expense category
+  ///
+  /// In en, this message translates to:
+  /// **'CATEGORY'**
+  String get categoryLabel;
+
+  /// Label for expense content field
+  ///
+  /// In en, this message translates to:
+  /// **'Expense description *'**
+  String get expenseContentRequired;
+
+  /// Validation message for expense content
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter expense description'**
+  String get pleaseEnterExpenseContent;
+
+  /// Label for amount field
+  ///
+  /// In en, this message translates to:
+  /// **'Amount (VND) *'**
+  String get amountVndRequired;
+
+  /// Label for extra note field
+  ///
+  /// In en, this message translates to:
+  /// **'Additional note'**
+  String get extraNoteLabel;
+
+  /// Section label for expense scope
+  ///
+  /// In en, this message translates to:
+  /// **'EXPENSE SCOPE'**
+  String get expenseScopeLabel;
+
+  /// Button label to save expense
+  ///
+  /// In en, this message translates to:
+  /// **'SAVE EXPENSE'**
+  String get saveExpenseButton;
+
+  /// Snackbar after saving expense
+  ///
+  /// In en, this message translates to:
+  /// **'Expense saved!'**
+  String get savedExpense;
+
+  /// Title of add income bottom sheet
+  ///
+  /// In en, this message translates to:
+  /// **'RECORD INCOME'**
+  String get writeIncomeTitle;
+
+  /// Label for income content field
+  ///
+  /// In en, this message translates to:
+  /// **'Income description *'**
+  String get incomeContentRequired;
+
+  /// Validation message for income content
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter income description'**
+  String get pleaseEnterIncomeContent;
+
+  /// Section label for income scope
+  ///
+  /// In en, this message translates to:
+  /// **'SCOPE'**
+  String get incomeScopeLabel;
+
+  /// Button label to save income
+  ///
+  /// In en, this message translates to:
+  /// **'SAVE INCOME'**
+  String get saveIncomeButton;
+
+  /// Snackbar after saving income
+  ///
+  /// In en, this message translates to:
+  /// **'Income saved!'**
+  String get savedIncome;
+
+  /// FAB label for adding expense
+  ///
+  /// In en, this message translates to:
+  /// **'New expense'**
+  String get newExpenseFab;
+
+  /// FAB label for adding income
+  ///
+  /// In en, this message translates to:
+  /// **'New income'**
+  String get newIncomeFab;
+
+  /// Label for total income amount
+  ///
+  /// In en, this message translates to:
+  /// **'Total income'**
+  String get totalIncomeLabel;
+
+  /// Label for total expense amount
+  ///
+  /// In en, this message translates to:
+  /// **'Total expenses'**
+  String get totalExpenseLabel;
+
+  /// Period label for today
+  ///
+  /// In en, this message translates to:
+  /// **'TODAY'**
+  String get todayPeriod;
+
+  /// Period label for this week
+  ///
+  /// In en, this message translates to:
+  /// **'THIS WEEK'**
+  String get thisWeekPeriod;
+
+  /// Period label for this month
+  ///
+  /// In en, this message translates to:
+  /// **'THIS MONTH'**
+  String get thisMonthPeriod;
+
+  /// Empty state for no expenses in period
+  ///
+  /// In en, this message translates to:
+  /// **'No expenses in this {period}'**
+  String noExpenseInPeriod(String period);
+
+  /// Empty state for no income in period
+  ///
+  /// In en, this message translates to:
+  /// **'No income in this {period}'**
+  String noIncomeInPeriod(String period);
+
+  /// Message when feature not available on web
+  ///
+  /// In en, this message translates to:
+  /// **'This feature is not available on web browser.\nPlease use the mobile app.'**
+  String get webNotAvailableMessage;
+
+  /// Fallback label when no name available
+  ///
+  /// In en, this message translates to:
+  /// **'No name'**
+  String get noNameLabel;
+
+  /// Error when trying to delete on a closed day
+  ///
+  /// In en, this message translates to:
+  /// **'❌ Day {date} is closed! Cannot delete {label}.'**
+  String closedDayCannotDelete(String date, String label);
+
+  /// Label for income type (used in delete messages)
+  ///
+  /// In en, this message translates to:
+  /// **'income'**
+  String get incomeTypeLabel;
+
+  /// Label for expense type (used in delete messages)
+  ///
+  /// In en, this message translates to:
+  /// **'expense'**
+  String get expenseTypeLabel;
+
+  /// Generic no-permission message for a feature
+  ///
+  /// In en, this message translates to:
+  /// **'You don\'t have permission to access this feature.'**
+  String get noPermissionFeature;
+
+  /// Guide step 1 title for expense view
+  ///
+  /// In en, this message translates to:
+  /// **'💸 Record Income & Expense'**
+  String get expenseGuideStep1Title;
+
+  /// Guide step 1 description for expense view
+  ///
+  /// In en, this message translates to:
+  /// **'Record income beyond sales (INCOME) and operating expenses (EXPENSE) of the shop.'**
+  String get expenseGuideStep1Desc;
+
+  /// Guide step 2 title for expense view
+  ///
+  /// In en, this message translates to:
+  /// **'📂 Categorize expenses'**
+  String get expenseGuideStep2Title;
+
+  /// Guide step 2 description for expense view
+  ///
+  /// In en, this message translates to:
+  /// **'Distinguish shop expenses (electricity, water, rent) and personal expenses for accurate reporting.'**
+  String get expenseGuideStep2Desc;
+
+  /// Guide step 3 title for expense view
+  ///
+  /// In en, this message translates to:
+  /// **'📅 Filter by time'**
+  String get expenseGuideStep3Title;
+
+  /// Guide step 3 description for expense view
+  ///
+  /// In en, this message translates to:
+  /// **'View income/expense by day, week, or month to effectively control cash flow.'**
+  String get expenseGuideStep3Desc;
+
+  /// Guide step 4 title for expense view
+  ///
+  /// In en, this message translates to:
+  /// **'📊 Summary chart'**
+  String get expenseGuideStep4Title;
+
+  /// Guide step 4 description for expense view
+  ///
+  /// In en, this message translates to:
+  /// **'Track income/expense trends with visual charts, detect unusual expenses.'**
+  String get expenseGuideStep4Desc;
+
+  /// Category label: incidental expense/income
+  ///
+  /// In en, this message translates to:
+  /// **'Incidental'**
+  String get expenseCatIncidental;
+
+  /// Category label: service income
+  ///
+  /// In en, this message translates to:
+  /// **'Service'**
+  String get expenseCatService;
+
+  /// Category label: refund income
+  ///
+  /// In en, this message translates to:
+  /// **'Refund'**
+  String get expenseCatRefund;
+
+  /// Category label: fixed expense
+  ///
+  /// In en, this message translates to:
+  /// **'Fixed'**
+  String get expenseCatFixed;
+
+  /// Category label: stock-in expense
+  ///
+  /// In en, this message translates to:
+  /// **'Stock in'**
+  String get expenseCatStockIn;
+
+  /// Scope chip label: personal
+  ///
+  /// In en, this message translates to:
+  /// **'PERSONAL'**
+  String get expenseScopePersonal;
+
+  /// Scope filter chip label: all
+  ///
+  /// In en, this message translates to:
+  /// **'ALL'**
+  String get expenseScopeAll;
+
+  /// Default partner name when actual name is unavailable
+  ///
+  /// In en, this message translates to:
+  /// **'Partner {index}'**
+  String debtPartnerDefaultName(int index);
+
+  /// Generic error with message
+  ///
+  /// In en, this message translates to:
+  /// **'Error: {error}'**
+  String debtGenericError(String error);
+
+  /// Generic error message for payment failure
+  ///
+  /// In en, this message translates to:
+  /// **'An error occurred'**
+  String get debtPaymentGenericError;
+
+  /// Title for debt management first-time guide
+  ///
+  /// In en, this message translates to:
+  /// **'Debt Management'**
+  String get debtGuideTitle;
+
+  /// Guide step 1 title: 3 debt types
+  ///
+  /// In en, this message translates to:
+  /// **'📊 3 debt types'**
+  String get debtGuideStep1Title3Types;
+
+  /// Guide step 1 title: 2 debt types
+  ///
+  /// In en, this message translates to:
+  /// **'📊 2 debt types'**
+  String get debtGuideStep1Title2Types;
+
+  /// Guide step 1 description: 3 debt types
+  ///
+  /// In en, this message translates to:
+  /// **'CUSTOMER OWES (unpaid customers), SUPPLIER DEBT (owed to suppliers), PARTNER DEBT (external repair partners).'**
+  String get debtGuideStep1Desc3Types;
+
+  /// Guide step 1 description: 2 debt types
+  ///
+  /// In en, this message translates to:
+  /// **'CUSTOMER OWES (unpaid customers), SUPPLIER DEBT (owed to suppliers).'**
+  String get debtGuideStep1Desc2Types;
+
+  /// Guide step 2 title: record payment
+  ///
+  /// In en, this message translates to:
+  /// **'💰 Record payment'**
+  String get debtGuideStep2Title;
+
+  /// Guide step 2 description
+  ///
+  /// In en, this message translates to:
+  /// **'Tap on a debt to view details and record partial or full payment.'**
+  String get debtGuideStep2Desc;
+
+  /// Guide step 3 title: track due dates
+  ///
+  /// In en, this message translates to:
+  /// **'📅 Track due dates'**
+  String get debtGuideStep3Title;
+
+  /// Guide step 3 description
+  ///
+  /// In en, this message translates to:
+  /// **'Overdue debts are highlighted in red. Summary reports help track cash flow.'**
+  String get debtGuideStep3Desc;
+
+  /// Guide step 4 title: auto-create debts
+  ///
+  /// In en, this message translates to:
+  /// **'🔄 Auto-create debts'**
+  String get debtGuideStep4Title;
+
+  /// Guide step 4 description
+  ///
+  /// In en, this message translates to:
+  /// **'When selling/stocking and selecting "DEBT", the system automatically creates a corresponding debt record.'**
+  String get debtGuideStep4Desc;
+
+  /// Field name for collection amount validator
+  ///
+  /// In en, this message translates to:
+  /// **'Collection amount'**
+  String get debtCollectFieldName;
+
+  /// Field name for payment amount validator
+  ///
+  /// In en, this message translates to:
+  /// **'Payment amount'**
+  String get debtPayFieldName;
+
+  /// Field name for debt amount validator
+  ///
+  /// In en, this message translates to:
+  /// **'Debt amount'**
+  String get debtAmountFieldName;
+
+  String get backupGroupOperations;
+  String get backupGroupWarehouse;
+  String get backupGroupFinance;
+  String get backupGroupHr;
+  String get backupGroupCrm;
+  String get backupGroupSystem;
+  String get backupColRepairs;
+  String get backupColRepairParts;
+  String get backupColRepairPartners;
+  String get backupColPartnerHistory;
+  String get backupColSales;
+  String get backupColInventoryChecks;
+  String get backupColCashClosings;
+  String get backupColProducts;
+  String get backupColSalvagePhones;
+  String get backupColStorageLocations;
+  String get backupColSuppliers;
+  String get backupColPurchaseOrders;
+  String get backupColImportOrders;
+  String get backupColSupplierImportHistory;
+  String get backupColQuickInputCodes;
+  String get backupColDebts;
+  String get backupColDebtPayments;
+  String get backupColExpenses;
+  String get backupColPaymentIntents;
+  String get backupColPaymentRequests;
+  String get backupColSupplierPayments;
+  String get backupColRepairPartnerPayments;
+  String get backupColAttendance;
+  String get backupColPayrollSettings;
+  String get backupColWorkSchedules;
+  String get backupColCustomers;
+  String get backupColChats;
+  String get backupColAuditLogs;
+  String get backupOptionsTooltip;
+  String get backupOpenSqliteTab;
+  String get backupOpenFirestoreTab;
+  String get backupSqliteTabLabel;
+  String get backupFirestoreTabLabel;
+  String get backupGuideTitle;
+  String get backupGuideStep1;
+  String get backupGuideStep2;
+  String get backupGuideStep3;
+  String get backupGuideStep4;
+  String get backupGuideStep5;
+  String get backupRestoreBtn;
+  String get backupRestoreOriginalBtn;
+  String get backupTransferToCurrentShop;
+  String get backupSaveToDevice;
+  String get backupShareLatest;
+  String get backupSelectAndBackup;
+  String get backupSelectFile;
+  String get backupSelectCustomItems;
+  String get backupCleanOldBtn;
+  String get backupUploadToCloud;
+  String get backupBackupLabel;
+  String get backupSqliteSectionTitle;
+  String get backupLocalListTitle;
+  String get backupQuickGuideTitle;
+  String get backupCloudListTitle;
+  String get backupRestoreFromFileTitle;
+  String get backupDeleteSelectiveTitle;
+  String get backupCleanOldTitle;
+  String get backupFirestoreInfoText;
+  String get backupRestoreByItemTitle;
+  String get backupRestoreByItemDesc1;
+  String get backupRestoreByItemDesc2;
+  String get backupFirestoreSectionTitle;
+  String get backupFirestoreListTitle;
+  String get backupNoFirestoreBackups;
+  String get backupProcessing;
+  String backupSavedPathLabel(String fileName);
+  String get backupNoLocalBackupsHint;
+  String get backupNoCloudBackups;
+  String get backupRestoreFileHint;
+  String get backupDeleteSelectiveHint;
+  String get backupCleanOldHint;
+  String get backupQuickGuideOffline;
+  String get backupQuickGuideShare;
+  String get backupQuickGuideRestoreOffline;
+  String get backupQuickGuideRestoreOnline;
+  String backupCannotLoad(String error);
+  String get backupSavedLocally;
+  String backupExportError(String error);
+  String backupShareFileError(String error);
+  String backupDeletedLocalName(String name);
+  String backupDeleteLocalError(String error);
+  String get backupCloudSuccess;
+  String get backupDeletedCloud;
+  String backupRestoreErrorMsg(String error);
+  String backupRestoreLocalErrorMsg(String error);
+  String backupDeleteSuccessWithCloud(int localRows, int cloudRows, String label);
+  String backupDeleteSuccessLocalOnly(int localRows, String label);
+  String backupDeleteErrorMsg(String error);
+  String backupFirestoreError(String error);
+  String backupRestoreSuccessMsg(int count);
+  String backupRestoreFirestoreError(String error);
+  String get backupDeletedSet;
+  String backupDeleteSetErrorMsg(String error);
+  String backupNoOldFiles(int days);
+  String backupDeletedOldFiles(int count, int days);
+  String backupCleanError(String error);
+  String get backupDeleteLocalTitle;
+  String backupDeleteLocalContent(String name);
+  String get backupDeleteCloudTitle;
+  String get backupChooseRestoreType;
+  String get backupRestoreOriginalDesc;
+  String get backupRestoreCloudTitle;
+  String backupRestoreCloudContent(String fileName);
+  String get backupChooseRestoreTypeTip;
+  String get backupSelectDataSqlite;
+  String get backupRestoreSuccessTitle;
+  String backupRestoredWithTransfer(int count);
+  String backupRestoredNoTransfer(int count);
+  String backupRestoredCloudWithTransfer(int count);
+  String backupRestoredCloudNoTransfer(int count);
+  String backupDeleteWarningTitle(String label);
+  String get backupDeleteWarningContent;
+  String get backupDeleteCloudTooLabel;
+  String get backupDeleteCloudTooSubtitle;
+  String get backupDeleteForever;
+  String get backupSelectDataToDelete;
+  String get backupKeepDaysTitle;
+  String get backupKeep30Days;
+  String get backupKeep60Days;
+  String get backupKeep90Days;
+  String get backupKeep180Days;
+  String get backupLocalRestoreTitle;
+  String get backupLocalRestoreContent;
+  String backupRestoredLocalWithTransfer(int count);
+  String backupRestoredLocalNoTransfer(int count);
+  String backupConfirmRestoreContent(int count, String date);
+  String get backupDeleteSetTitle;
+  String backupDeleteSetContent(String date);
+  String get backupPreparingMsg;
+  String backupBackingUpItem(String item, int done, int total);
+  String get backupRestoringMsg;
+  String get backupSelectDataBackup;
+  String backupSelectedCountLabel(int count);
+  String get backupNotAvailable;
+  String get backupStorageRulesTitle;
+  String backupCloudPermissionError(String action);
+  String backupCloudNotFoundError(String action);
+  String backupCloudAuthError(String action);
+  String backupCloudGenericError(String action, String error);
+  String get backupPresetInventoryCash;
+  String get backupPresetAccessoriesProducts;
+  String get backupPresetRepairParts;
+  String get backupPresetSupplierImport;
+  String get backupPresetPayments;
+  String get backupPresetOther;
+  String get backupPresetHr;
+  String get backupPresetSystemLog;
+
+  /// Title for the confirm-restore dialog in backup/restore view
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm restore'**
+  String get backupConfirmRestoreTitle;
+
+  // Inventory view keys
+  String get inventoryManageTitle;
+  String get inventoryManageTotalTitle;
+  String get inventoryNoAccessMsg;
+  String inventoryUnsyncedNote(int count);
+  String get inventoryInStockLabel;
+  String get inventoryTempStockLabel;
+  String get inventoryTempStockBanner;
+  String inventoryExpectedSupplier(String supplier);
+  String get inventoryStockQty;
+  String get inventoryPurchasePrice;
+  String get inventorySalePriceItem;
+  String get inventoryLoss;
+  String get inventoryCapacityLabel;
+  String get inventorySizeLabel;
+  String get inventorySupplierLabel;
+  String get inventoryPendingConfirm;
+  String get inventoryWaitingConfirm;
+  String get inventoryWarehouseLocation;
+  String get inventoryLastUpdated;
+  String get inventoryRepairHistorySection;
+  String get inventoryConfirmPriceBtn;
+  String get inventoryPrintingLabelMsg;
+  String get inventoryPrintLabelSuccess;
+  String get inventoryPrintLabelError;
+  String get inventoryPrintLabelAction;
+  String get inventoryEditAction;
+  String get inventorySellAction;
+  String inventoryStockMoreAction(int count);
+  String get inventoryDeleteAction;
+  String get inventoryRestockTitle;
+  String inventoryCurrentStockNote(int qty);
+  String inventoryCurrentCostNote(String price);
+  String get inventoryRestockQtyLabel;
+  String get inventoryRestockPriceLabel;
+  String inventoryWeightedCostNote(String price);
+  String get inventoryPaymentMethodLabel;
+  String get inventoryCashOption;
+  String get inventoryBankTransferOption;
+  String get inventoryDebtOption;
+  String get inventoryStockInAction;
+  String get inventoryValidQtyError;
+  String get inventoryValidPriceError;
+  String get inventoryStockingIn;
+  String get inventoryNoSupplierFoundError;
+  String get inventoryCreateEntryError;
+  String inventoryStockInSuccess(int qty, String name);
+  String get inventoryConfirmEntryError;
+  String inventoryErrorMsg(String error);
+  String get inventoryEditOption;
+  String get inventoryHideOption;
+  String inventoryCostPriceNote(String price);
+  String get inventorySoftDeleteWarning;
+  String get inventorySoftDeleteDesc;
+  String get inventoryDeleteReasonLabel;
+  String get inventoryDeleteReasonHint;
+  String get inventoryAccountPassword;
+  String get inventoryEnterPasswordError;
+  String get inventoryWrongPasswordError;
+  String get inventoryHideFromWarehouse;
+  String inventoryHideSuccess(String product, String name);
+  String inventoryHideError(String product, String error);
+  String get inventoryEmptyFiltered;
+  String get inventoryEmptyAll;
+  String get inventoryEmptyFilteredSub;
+  String get inventoryEmptyOutOfStockSub;
+  String get inventoryConfirmDeleteTitle;
+  String inventoryConfirmDeleteContent(int count);
+  String get inventoryEnterPasswordToDelete;
+  String get inventoryAccountPasswordLabel;
+  String get inventoryDeleteNow;
+  String get inventoryAddPartTooltip;
+  String get inventoryStockInAITooltip;
+  String get inventoryStockInTooltip;
+  String inventorySearchWithQuery(String query);
+  String get inventoryMoreTooltip;
+  String get inventoryStorageLocationMenu;
+  String get inventoryPrintLabelsMenu;
+  String inventorySelectedCount(int count);
+  String inventoryShownCount(int count, String product);
+  String get inventoryDisplayOrTotal;
+  String get inventoryTotalLabel;
+  String get inventoryCapitalLabel;
+  String get inventoryLocationFilter;
+  String get inventoryOutOfStockFilter;
+  String get inventoryNoLocationMsg;
+  String get inventoryFilterByLocation;
+  String get inventoryAllFilter;
+  String get inventoryStatusPending;
+  String get inventoryStatusLowStock;
+  String get inventoryWaitingPrice;
+  String get inventoryRemainingLabel;
+  String get inventoryConfirmCostTitle;
+  String get inventoryValidCostError;
+  String get inventorySelectSupplierError;
+  String get inventoryConfirmCostSuccess;
+  String get inventorySelectSupplierFirst;
+  String get inventoryCostChangeTitle;
+  String get inventoryCostChangeMessage;
+  String get inventoryUpdateSuccess;
+  String get inventoryProductTypeLocked;
+  String get inventoryBrandField;
+  String get inventoryModelField;
+  String get inventoryCapacityField;
+  String get inventorySizeField;
+  String get inventoryColorField;
+  String get inventoryConditionField;
+  String get inventoryLabelInfoField;
+  String get inventoryNoteHint;
+  String get inventoryCostLockedField;
+  String get inventoryCostField;
+  String get inventoryPriceField;
+  String get inventoryExpiry;
+  String get inventoryChooseExpiry;
+  String get inventoryExpiryLabel;
+  String get inventoryNotChosen;
+  String get inventoryBatchField;
+  String get inventoryPhotoSection;
+  String get inventoryQtyLockedField;
+  String get inventorySupplierLockedField;
+  String get inventoryNoSupplier;
+  String get inventoryRestockBtn;
+  String get inventoryUpdateAction;
+  String get inventoryStatusReceived;
+  String get inventoryStatusRepairing;
+  String get inventoryStatusCompleted;
+  String get inventoryStatusDelivered;
+  String get inventoryStatusUnknown;
+  String inventorySearchProduct(String product);
+  String get inventoryExportParts;
+  String get inventoryExportProducts;
+  String inventorySearchHint(String product, String category, String field);
+  String inventoryHideProductTitle(String product);
+  String get inventorySearchTooltip;
+  String get inventoryExportExcelMenu;
+  String inventoryCapitalChip(String price);
+  String inventoryEditProductTitle(String label);
+  String inventoryProductNameLabel(String label);
+  String get inventoryConfirmBtn;
+  String get inventoryCostPriceRequired;
+  String get inventorySalePriceOptional;
+  String get inventorySupplierRequired;
+  String get inventoryPaymentLabel;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

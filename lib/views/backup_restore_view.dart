@@ -1,54 +1,68 @@
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../l10n/app_localizations.dart';
 import '../theme/app_colors.dart';
 import '../services/backup_service.dart';
 import '../services/notification_service.dart';
 import '../theme/app_text_styles.dart';
 import '../theme/app_spacing.dart';
 import '../widgets/custom_app_bar.dart';
+import 'kiotviet_import_view.dart';
 
-// Collection groups for the picker UI — reuses same structure as selective reset
-const _kGroups = [
-  _ColGroup('Vận hành', Icons.build_outlined, Color(0xFF1565C0), [
-    _ColItem('repairs', 'Đơn sửa chữa'),
-    _ColItem('repair_parts', 'Kho linh kiện sửa chữa'),
-    _ColItem('repair_partners', 'Đối tác sửa chữa'),
-    _ColItem('partner_repair_history', 'Lịch sử gửi đối tác'),
-    _ColItem('sales', 'Đơn bán hàng'),
-    _ColItem('inventory_checks', 'Kiểm kê kho'),
-    _ColItem('cash_closings', 'Chốt ca'),
+// All collection keys in order — used by initState() without needing l10n.
+const _kAllCollectionKeys = [
+  'repairs', 'repair_parts', 'repair_partners', 'partner_repair_history',
+  'sales', 'inventory_checks', 'cash_closings',
+  'products', 'salvage_phones', 'storage_locations',
+  'suppliers', 'purchase_orders', 'import_orders', 'supplier_import_history',
+  'quick_input_codes', 'debts', 'debt_payments', 'expenses',
+  'payment_intents', 'payment_requests', 'supplier_payments', 'repair_partner_payments',
+  'attendance', 'payroll_settings', 'work_schedules',
+  'customers', 'chats', 'audit_logs',
+];
+
+// Build localized collection groups for the picker UI.
+List<_ColGroup> _buildGroups(AppLocalizations l10n) => [
+  _ColGroup(l10n.backupGroupOperations, Icons.build_outlined, const Color(0xFF1565C0), [
+    _ColItem('repairs', l10n.backupColRepairs),
+    _ColItem('repair_parts', l10n.backupColRepairParts),
+    _ColItem('repair_partners', l10n.backupColRepairPartners),
+    _ColItem('partner_repair_history', l10n.backupColPartnerHistory),
+    _ColItem('sales', l10n.backupColSales),
+    _ColItem('inventory_checks', l10n.backupColInventoryChecks),
+    _ColItem('cash_closings', l10n.backupColCashClosings),
   ]),
-  _ColGroup('Kho & Sản phẩm', Icons.inventory_2_outlined, Color(0xFF00695C), [
-    _ColItem('products', 'Sản phẩm / Kho'),
-    _ColItem('salvage_phones', 'Kho máy xác'),
-    _ColItem('storage_locations', 'Kho vị trí'),
-    _ColItem('suppliers', 'Nhà cung cấp'),
-    _ColItem('purchase_orders', 'Đơn nhập hàng'),
-    _ColItem('import_orders', 'Phiếu nhập kho'),
-    _ColItem('supplier_import_history', 'Lịch sử nhập NCC'),
-    _ColItem('quick_input_codes', 'Mã nhập nhanh'),
+  _ColGroup(l10n.backupGroupWarehouse, Icons.inventory_2_outlined, const Color(0xFF00695C), [
+    _ColItem('products', l10n.backupColProducts),
+    _ColItem('salvage_phones', l10n.backupColSalvagePhones),
+    _ColItem('storage_locations', l10n.backupColStorageLocations),
+    _ColItem('suppliers', l10n.backupColSuppliers),
+    _ColItem('purchase_orders', l10n.backupColPurchaseOrders),
+    _ColItem('import_orders', l10n.backupColImportOrders),
+    _ColItem('supplier_import_history', l10n.backupColSupplierImportHistory),
+    _ColItem('quick_input_codes', l10n.backupColQuickInputCodes),
   ]),
-  _ColGroup('Tài chính', Icons.account_balance_wallet_outlined, Color(0xFF2E7D32), [
-    _ColItem('debts', 'Công nợ'),
-    _ColItem('debt_payments', 'Thanh toán nợ'),
-    _ColItem('expenses', 'Chi phí'),
-    _ColItem('payment_intents', 'Yêu cầu thanh toán'),
-    _ColItem('payment_requests', 'Yêu cầu đóng tiền'),
-    _ColItem('supplier_payments', 'Chi NCC'),
-    _ColItem('repair_partner_payments', 'Chi đối tác sửa chữa'),
+  _ColGroup(l10n.backupGroupFinance, Icons.account_balance_wallet_outlined, const Color(0xFF2E7D32), [
+    _ColItem('debts', l10n.backupColDebts),
+    _ColItem('debt_payments', l10n.backupColDebtPayments),
+    _ColItem('expenses', l10n.backupColExpenses),
+    _ColItem('payment_intents', l10n.backupColPaymentIntents),
+    _ColItem('payment_requests', l10n.backupColPaymentRequests),
+    _ColItem('supplier_payments', l10n.backupColSupplierPayments),
+    _ColItem('repair_partner_payments', l10n.backupColRepairPartnerPayments),
   ]),
-  _ColGroup('Nhân sự', Icons.people_outline, Color(0xFF6A1B9A), [
-    _ColItem('attendance', 'Chấm công'),
-    _ColItem('payroll_settings', 'Cài đặt lương'),
-    _ColItem('work_schedules', 'Lịch làm việc'),
+  _ColGroup(l10n.backupGroupHr, Icons.people_outline, const Color(0xFF6A1B9A), [
+    _ColItem('attendance', l10n.backupColAttendance),
+    _ColItem('payroll_settings', l10n.backupColPayrollSettings),
+    _ColItem('work_schedules', l10n.backupColWorkSchedules),
   ]),
-  _ColGroup('Quan hệ khách hàng', Icons.person_outline, Color(0xFFE65100), [
-    _ColItem('customers', 'Khách hàng'),
-    _ColItem('chats', 'Tin nhắn chat'),
+  _ColGroup(l10n.backupGroupCrm, Icons.person_outline, const Color(0xFFE65100), [
+    _ColItem('customers', l10n.backupColCustomers),
+    _ColItem('chats', l10n.backupColChats),
   ]),
-  _ColGroup('Hệ thống', Icons.settings_outlined, Color(0xFF546E7A), [
-    _ColItem('audit_logs', 'Nhật ký thao tác'),
+  _ColGroup(l10n.backupGroupSystem, Icons.settings_outlined, const Color(0xFF546E7A), [
+    _ColItem('audit_logs', l10n.backupColAuditLogs),
   ]),
 ];
 
@@ -81,31 +95,32 @@ class _BackupRestoreViewState extends State<BackupRestoreView>
 
   Future<void> _showUsageGuide() async {
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
     await showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Hướng dẫn sao lưu & khôi phục'),
-        content: const SingleChildScrollView(
+        title: Text(l10n.backupGuideTitle),
+        content: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('1. SQLite (offline): dùng khi cần sao lưu/khôi phục toàn bộ file dữ liệu tại máy.'),
-              SizedBox(height: 8),
-              Text('2. Firestore (online): cho phép sao lưu/khôi phục theo từng mục (đơn sửa, đơn bán, kho, công nợ...).'),
-              SizedBox(height: 8),
-              Text('3. Khuyến nghị: sao lưu lên Cloud định kỳ mỗi ngày và trước khi cập nhật ứng dụng.'),
-              SizedBox(height: 8),
-              Text('4. Restore SQLite có 2 kiểu: khôi phục nguyên bản cho cùng shop, hoặc chuyển dữ liệu sang shop hiện tại bằng cách đổi shopId.'),
-              SizedBox(height: 8),
-              Text('5. Nếu khôi phục vào shop khác mà không đổi shopId thì dữ liệu vẫn thuộc shop cũ nên app sẽ không hiển thị đúng.'),
+              Text(l10n.backupGuideStep1),
+              const SizedBox(height: 8),
+              Text(l10n.backupGuideStep2),
+              const SizedBox(height: 8),
+              Text(l10n.backupGuideStep3),
+              const SizedBox(height: 8),
+              Text(l10n.backupGuideStep4),
+              const SizedBox(height: 8),
+              Text(l10n.backupGuideStep5),
             ],
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Đã hiểu'),
+            child: Text(l10n.understood),
           ),
         ],
       ),
@@ -126,12 +141,13 @@ class _BackupRestoreViewState extends State<BackupRestoreView>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: CustomAppBar.build(
-        title: 'Sao lưu & Khôi phục',
+        title: l10n.backupRestoreTitle,
         actions: [
           PopupMenuButton<String>(
-            tooltip: 'Tùy chọn',
+            tooltip: l10n.backupOptionsTooltip,
             onSelected: (value) {
               switch (value) {
                 case 'sqlite':
@@ -145,14 +161,14 @@ class _BackupRestoreViewState extends State<BackupRestoreView>
                   break;
               }
             },
-            itemBuilder: (ctx) => const [
+            itemBuilder: (ctx) => [
               PopupMenuItem<String>(
                 value: 'sqlite',
                 child: Row(
                   children: [
-                    Icon(Icons.storage_outlined, size: 18),
-                    SizedBox(width: 8),
-                    Text('Mở tab SQLite'),
+                    const Icon(Icons.storage_outlined, size: 18),
+                    const SizedBox(width: 8),
+                    Text(l10n.backupOpenSqliteTab),
                   ],
                 ),
               ),
@@ -160,20 +176,20 @@ class _BackupRestoreViewState extends State<BackupRestoreView>
                 value: 'firestore',
                 child: Row(
                   children: [
-                    Icon(Icons.cloud_outlined, size: 18),
-                    SizedBox(width: 8),
-                    Text('Mở tab Firestore'),
+                    const Icon(Icons.cloud_outlined, size: 18),
+                    const SizedBox(width: 8),
+                    Text(l10n.backupOpenFirestoreTab),
                   ],
                 ),
               ),
-              PopupMenuDivider(),
+              const PopupMenuDivider(),
               PopupMenuItem<String>(
                 value: 'guide',
                 child: Row(
                   children: [
-                    Icon(Icons.help_outline, size: 18),
-                    SizedBox(width: 8),
-                    Text('Hướng dẫn sử dụng'),
+                    const Icon(Icons.help_outline, size: 18),
+                    const SizedBox(width: 8),
+                    Text(l10n.usageGuide),
                   ],
                 ),
               ),
@@ -187,9 +203,9 @@ class _BackupRestoreViewState extends State<BackupRestoreView>
           indicatorColor: Colors.white,
           indicatorWeight: 3,
           dividerColor: Colors.white24,
-          tabs: const [
-            Tab(icon: Icon(Icons.storage_outlined, size: 18), text: 'SQLite (file .db)'),
-            Tab(icon: Icon(Icons.cloud_outlined, size: 18), text: 'Firestore (cloud)'),
+          tabs: [
+            Tab(icon: const Icon(Icons.storage_outlined, size: 18), text: l10n.backupSqliteTabLabel),
+            Tab(icon: const Icon(Icons.cloud_outlined, size: 18), text: l10n.backupFirestoreTabLabel),
           ],
         ),
       ),
@@ -240,6 +256,7 @@ class _SqliteTabState extends State<_SqliteTab> {
       }
     } catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         final isUnauth = e.toString().contains('unauthorized') ||
             e.toString().contains('permission-denied');
         setState(() {
@@ -247,24 +264,22 @@ class _SqliteTabState extends State<_SqliteTab> {
           _storageUnauthorized = isUnauth;
         });
         if (!isUnauth) {
-          NotificationService.showSnackBar('Không thể tải backup: $e', color: AppColors.error);
+          NotificationService.showSnackBar(l10n.backupCannotLoad(e.toString()), color: AppColors.error);
         }
       }
     }
   }
 
   Future<void> _exportToLocal() async {
+    final l10n = AppLocalizations.of(context)!;
     setState(() => _loading = true);
     try {
       final path = await BackupService.saveSqliteToLocal();
       _lastSavedPath = path;
       await _loadLocalBackups();
-      NotificationService.showSnackBar(
-        'Đã lưu bản sao SQLite vào máy. Bạn có thể chia sẻ từ danh sách backup cục bộ.',
-        color: AppColors.success,
-      );
+      NotificationService.showSnackBar(l10n.backupSavedLocally, color: AppColors.success);
     } catch (e) {
-      NotificationService.showSnackBar('Lỗi xuất file: $e', color: AppColors.error);
+      NotificationService.showSnackBar(l10n.backupExportError(e.toString()), color: AppColors.error);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -282,22 +297,65 @@ class _SqliteTabState extends State<_SqliteTab> {
   }
 
   Future<void> _shareLocalBackup(LocalSqliteBackup backup) async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       await BackupService.shareSqliteFile(backup.path);
     } catch (e) {
-      NotificationService.showSnackBar('Lỗi chia sẻ file: $e', color: AppColors.error);
+      NotificationService.showSnackBar(l10n.backupShareFileError(e.toString()), color: AppColors.error);
+    }
+  }
+
+  Future<void> _deleteLocalBackup(LocalSqliteBackup backup) async {
+    final l10n = AppLocalizations.of(context)!;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.backupDeleteLocalTitle),
+        content: Text(l10n.backupDeleteLocalContent(backup.name)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l10n.delete),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+
+    setState(() => _loading = true);
+    try {
+      await BackupService.deleteLocalSqliteBackup(backup.path);
+      await _loadLocalBackups();
+      if (mounted) {
+        NotificationService.showSnackBar(
+          l10n.backupDeletedLocalName(backup.name),
+          color: AppColors.success,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        NotificationService.showSnackBar(l10n.backupDeleteLocalError(e.toString()), color: AppColors.error);
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
   }
 
   Future<void> _backupToCloud() async {
+    final l10n = AppLocalizations.of(context)!;
     setState(() => _loading = true);
     try {
       await BackupService.backupToFirebase();
-      NotificationService.showSnackBar('Sao lưu SQLite lên Cloud thành công!', color: AppColors.success);
+      NotificationService.showSnackBar(l10n.backupCloudSuccess, color: AppColors.success);
       await _loadCloudBackups();
     } catch (e) {
       NotificationService.showSnackBar(
-        _friendlyCloudError('Sao lưu', e),
+        _friendlyCloudError(l10n, l10n.backupBackupLabel, e),
         color: AppColors.error,
       );
     } finally {
@@ -306,20 +364,21 @@ class _SqliteTabState extends State<_SqliteTab> {
   }
 
   Future<void> _deleteCloudBackup(String fileName) async {
+    final l10n = AppLocalizations.of(context)!;
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Xóa bản sao lưu Cloud?'),
-        content: Text('Bạn có chắc muốn xóa file "$fileName"?'),
+        title: Text(l10n.backupDeleteCloudTitle),
+        content: Text(l10n.backupDeleteLocalContent(fileName)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Hủy'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Xóa'),
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -330,10 +389,10 @@ class _SqliteTabState extends State<_SqliteTab> {
     try {
       await BackupService.deleteSqliteBackupFromFirebase(fileName: fileName);
       await _loadCloudBackups();
-      NotificationService.showSnackBar('Đã xóa bản sao lưu Cloud.', color: AppColors.success);
+      NotificationService.showSnackBar(l10n.backupDeletedCloud, color: AppColors.success);
     } catch (e) {
       NotificationService.showSnackBar(
-        _friendlyCloudError('Xóa', e),
+        _friendlyCloudError(l10n, l10n.delete, e),
         color: AppColors.error,
       );
     } finally {
@@ -346,25 +405,23 @@ class _SqliteTabState extends State<_SqliteTab> {
     final file = await openFile(acceptedTypeGroups: [typeGroup]);
     if (file == null) return;
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
     setState(() => _loading = true);
     try {
       final remap = await showDialog<bool>(
         context: context,
         barrierDismissible: false,
         builder: (ctx) => AlertDialog(
-          title: const Text('Chọn kiểu khôi phục'),
-          content: const Text(
-            'Khôi phục nguyên bản: giữ dữ liệu thuộc shop đã backup.\n\n'
-            'Chuyển vào shop hiện tại: đổi shopId để dữ liệu hiện ra trong shop đang đăng nhập.',
-          ),
+          title: Text(l10n.backupChooseRestoreType),
+          content: Text(l10n.backupRestoreOriginalDesc),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Khôi phục nguyên bản'),
+              child: Text(l10n.backupRestoreOriginalBtn),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Chuyển vào shop hiện tại'),
+              child: Text(l10n.backupTransferToCurrentShop),
             ),
           ],
         ),
@@ -374,9 +431,9 @@ class _SqliteTabState extends State<_SqliteTab> {
       final selected = await showDialog<List<String>>(
         context: context,
         barrierDismissible: false,
-        builder: (ctx) => const _CollectionPickerDialog(
-          title: 'Chọn dữ liệu cần khôi phục (SQLite)',
-          confirmLabel: 'Khôi phục',
+        builder: (ctx) => _CollectionPickerDialog(
+          title: l10n.backupSelectDataSqlite,
+          confirmLabel: l10n.backupRestoreBtn,
           confirmIcon: Icons.restore_outlined,
           confirmColor: Colors.orange,
           availableCollections: null,
@@ -395,38 +452,37 @@ class _SqliteTabState extends State<_SqliteTab> {
         context: context,
         barrierDismissible: false,
         builder: (ctx) => AlertDialog(
-          title: const Text('Khôi phục thành công'),
+          title: Text(l10n.backupRestoreSuccessTitle),
           content: Text(
             remap
-                ? 'Đã khôi phục ${selected.length} mục và chuyển vào shop hiện tại. Vui lòng khởi động lại ứng dụng để áp dụng thay đổi.'
-                : 'Đã khôi phục ${selected.length} mục dữ liệu. Vui lòng khởi động lại ứng dụng để áp dụng thay đổi.',
+                ? l10n.backupRestoredWithTransfer(selected.length)
+                : l10n.backupRestoredNoTransfer(selected.length),
           ),
-          actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Đóng'))],
+          actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: Text(l10n.close))],
         ),
       );
     } catch (e) {
-      NotificationService.showSnackBar('Lỗi khôi phục: $e', color: AppColors.error);
+      NotificationService.showSnackBar(l10n.backupRestoreErrorMsg(e.toString()), color: AppColors.error);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
   Future<void> _restoreFromCloudBackup(String fileName) async {
+    final l10n = AppLocalizations.of(context)!;
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Khôi phục SQLite từ Cloud'),
-        content: Text(
-          'Bạn sắp khôi phục từ bản sao lưu:\n$fileName\n\nDữ liệu hiện tại trên máy sẽ bị ghi đè. Tiếp tục?',
-        ),
+        title: Text(l10n.backupRestoreCloudTitle),
+        content: Text(l10n.backupRestoreCloudContent(fileName)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Hủy'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Khôi phục'),
+            child: Text(l10n.backupRestoreBtn),
           ),
         ],
       ),
@@ -437,19 +493,16 @@ class _SqliteTabState extends State<_SqliteTab> {
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        title: const Text('Chọn kiểu khôi phục'),
-        content: const Text(
-          'Khôi phục nguyên bản sẽ giữ nguyên shopId cũ.\n\n'
-          'Nếu muốn đưa dữ liệu vào shop hiện tại, chọn phương án chuyển shopId.',
-        ),
+        title: Text(l10n.backupChooseRestoreType),
+        content: Text(l10n.backupChooseRestoreTypeTip),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Khôi phục nguyên bản'),
+            child: Text(l10n.backupRestoreOriginalBtn),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Chuyển vào shop hiện tại'),
+            child: Text(l10n.backupTransferToCurrentShop),
           ),
         ],
       ),
@@ -459,9 +512,9 @@ class _SqliteTabState extends State<_SqliteTab> {
     final selected = await showDialog<List<String>>(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => const _CollectionPickerDialog(
-        title: 'Chọn dữ liệu cần khôi phục (SQLite)',
-        confirmLabel: 'Khôi phục',
+      builder: (ctx) => _CollectionPickerDialog(
+        title: l10n.backupSelectDataSqlite,
+        confirmLabel: l10n.backupRestoreBtn,
         confirmIcon: Icons.restore_outlined,
         confirmColor: Colors.orange,
         availableCollections: null,
@@ -481,23 +534,23 @@ class _SqliteTabState extends State<_SqliteTab> {
         context: context,
         barrierDismissible: false,
         builder: (ctx) => AlertDialog(
-          title: const Text('Khôi phục thành công'),
+          title: Text(l10n.backupRestoreSuccessTitle),
           content: Text(
             remap
-                ? 'Đã khôi phục ${selected.length} mục từ Cloud và chuyển vào shop hiện tại. Vui lòng khởi động lại ứng dụng.'
-                : 'Đã khôi phục ${selected.length} mục từ Cloud. Vui lòng khởi động lại ứng dụng để áp dụng dữ liệu mới.',
+                ? l10n.backupRestoredCloudWithTransfer(selected.length)
+                : l10n.backupRestoredCloudNoTransfer(selected.length),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Đóng'),
+              child: Text(l10n.close),
             ),
           ],
         ),
       );
     } catch (e) {
       NotificationService.showSnackBar(
-        _friendlyCloudError('Khôi phục', e),
+        _friendlyCloudError(l10n, l10n.backupRestoreBtn, e),
         color: AppColors.error,
       );
     } finally {
@@ -508,88 +561,116 @@ class _SqliteTabState extends State<_SqliteTab> {
   // ── Selective data delete ──────────────────────────────────────────────────
 
   Future<void> _deleteSelectedData(List<String> collections, String label) async {
+    final l10n = AppLocalizations.of(context)!;
+    bool deleteCloudToo = false;
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Row(children: [
-          const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 22),
-          const SizedBox(width: 8),
-          Expanded(child: Text('Xóa: $label?', style: const TextStyle(fontSize: 15))),
-        ]),
-        content: const Text(
-          'Dữ liệu sẽ bị xóa vĩnh viễn khỏi thiết bị này.\n\n'
-          'Nên sao lưu trước khi xóa để tránh mất dữ liệu quan trọng.',
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Hủy')),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Xóa vĩnh viễn'),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setDialogState) => AlertDialog(
+            title: Row(children: [
+              const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 22),
+              const SizedBox(width: 8),
+              Expanded(child: Text(l10n.backupDeleteWarningTitle(label), style: const TextStyle(fontSize: 15))),
+            ]),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(l10n.backupDeleteWarningContent),
+                const SizedBox(height: 12),
+                CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  value: deleteCloudToo,
+                  onChanged: (v) => setDialogState(() => deleteCloudToo = v ?? false),
+                  title: Text(l10n.backupDeleteCloudTooLabel),
+                  subtitle: Text(l10n.backupDeleteCloudTooSubtitle),
+                  controlAffinity: ListTileControlAffinity.leading,
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel)),
+              FilledButton(
+                style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                onPressed: () => Navigator.pop(ctx, true),
+                child: Text(l10n.backupDeleteForever),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
     if (confirmed != true || !mounted) return;
     setState(() => _loading = true);
     try {
-      final rows = await BackupService.deleteSelectedData(collections);
+      final localRows = await BackupService.deleteSelectedData(collections);
+      int cloudRows = 0;
+      if (deleteCloudToo) {
+        cloudRows = await BackupService.deleteSelectedDataFromCloud(
+          collections: collections,
+        );
+      }
       if (mounted) {
         NotificationService.showSnackBar(
-          'Đã xóa $rows bản ghi ($label). Khởi động lại app để áp dụng.',
+          deleteCloudToo
+              ? l10n.backupDeleteSuccessWithCloud(localRows, cloudRows, label)
+              : l10n.backupDeleteSuccessLocalOnly(localRows, label),
           color: AppColors.success,
         );
       }
     } catch (e) {
-      if (mounted) NotificationService.showSnackBar('Lỗi xóa: $e', color: AppColors.error);
+      if (mounted) NotificationService.showSnackBar(l10n.backupDeleteErrorMsg(e.toString()), color: AppColors.error);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
   Future<void> _deleteCustomData() async {
+    final l10n = AppLocalizations.of(context)!;
     final selected = await showDialog<List<String>>(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => const _CollectionPickerDialog(
-        title: 'Chọn dữ liệu cần xóa',
-        confirmLabel: 'Xóa',
+      builder: (ctx) => _CollectionPickerDialog(
+        title: l10n.backupSelectDataToDelete,
+        confirmLabel: l10n.delete,
         confirmIcon: Icons.delete_outline,
         confirmColor: Colors.red,
         availableCollections: null,
       ),
     );
     if (selected == null || selected.isEmpty || !mounted) return;
-    await _deleteSelectedData(selected, '${selected.length} mục đã chọn');
+    await _deleteSelectedData(selected, l10n.backupSelectedCountLabel(selected.length));
   }
 
   // ── Clean old backups ──────────────────────────────────────────────────────
 
   Future<void> _cleanOldBackups() async {
+    final l10n = AppLocalizations.of(context)!;
     final days = await showDialog<int>(
       context: context,
       builder: (ctx) => SimpleDialog(
-        title: const Text('Giữ backup bao nhiêu ngày gần nhất?'),
+        title: Text(l10n.backupKeepDaysTitle),
         children: [
           SimpleDialogOption(
             onPressed: () => Navigator.pop(ctx, 30),
-            child: const Text('30 ngày — xóa backup cũ hơn 1 tháng'),
+            child: Text(l10n.backupKeep30Days),
           ),
           SimpleDialogOption(
             onPressed: () => Navigator.pop(ctx, 60),
-            child: const Text('60 ngày — xóa backup cũ hơn 2 tháng'),
+            child: Text(l10n.backupKeep60Days),
           ),
           SimpleDialogOption(
             onPressed: () => Navigator.pop(ctx, 90),
-            child: const Text('90 ngày — xóa backup cũ hơn 3 tháng'),
+            child: Text(l10n.backupKeep90Days),
           ),
           SimpleDialogOption(
             onPressed: () => Navigator.pop(ctx, 180),
-            child: const Text('180 ngày — xóa backup cũ hơn 6 tháng'),
+            child: Text(l10n.backupKeep180Days),
           ),
           SimpleDialogOption(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Hủy', style: TextStyle(color: Colors.grey)),
+            child: Text(l10n.cancel, style: const TextStyle(color: Colors.grey)),
           ),
         ],
       ),
@@ -602,13 +683,13 @@ class _SqliteTabState extends State<_SqliteTab> {
       if (mounted) {
         NotificationService.showSnackBar(
           count == 0
-              ? 'Không có backup nào cũ hơn $days ngày.'
-              : 'Đã xóa $count file backup cũ hơn $days ngày.',
+              ? l10n.backupNoOldFiles(days)
+              : l10n.backupDeletedOldFiles(count, days),
           color: AppColors.success,
         );
       }
     } catch (e) {
-      if (mounted) NotificationService.showSnackBar('Lỗi dọn backup: $e', color: AppColors.error);
+      if (mounted) NotificationService.showSnackBar(l10n.backupCleanError(e.toString()), color: AppColors.error);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -655,43 +736,44 @@ class _SqliteTabState extends State<_SqliteTab> {
     ];
   }
 
-  String _friendlyCloudError(String action, Object error) {
+  String _friendlyCloudError(AppLocalizations l10n, String action, Object error) {
     final raw = error.toString().toLowerCase();
     if (raw.contains('permission-denied') || raw.contains('unauthorized')) {
-      return '$action Cloud thất bại: tài khoản chưa có quyền Firebase Storage cho db_backups.';
+      return l10n.backupCloudPermissionError(action);
     }
     if (raw.contains('object-not-found')) {
-      return '$action Cloud thất bại: không tìm thấy file backup trên Cloud.';
+      return l10n.backupCloudNotFoundError(action);
     }
     if (raw.contains('unauthenticated')) {
-      return '$action Cloud thất bại: phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.';
+      return l10n.backupCloudAuthError(action);
     }
-    return '$action Cloud thất bại: $error';
+    return l10n.backupCloudGenericError(action, error.toString());
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Stack(
       children: [
         ListView(
           padding: const EdgeInsets.all(AppSpacing.md),
           children: [
             _SectionCard(
-              title: 'Sao lưu SQLite',
+              title: l10n.backupSqliteSectionTitle,
               icon: Icons.backup,
               children: [
-                _ActionButton(label: 'Lưu file .db vào máy', icon: Icons.save_alt, onTap: _loading ? null : _exportToLocal),
+                _ActionButton(label: l10n.backupSaveToDevice, icon: Icons.save_alt, onTap: _loading ? null : _exportToLocal),
                 AppSpacing.gapSm,
                 if (_localBackups.isNotEmpty)
                   _ActionButton(
-                    label: 'Chia sẻ bản sao mới nhất',
+                    label: l10n.backupShareLatest,
                     icon: Icons.share,
                     onTap: _loading ? null : () => _shareLocalBackup(_localBackups.first),
                   ),
                 if (_lastSavedPath != null) ...[
                   AppSpacing.gapSm,
                   Text(
-                    'Đã lưu: ${_lastSavedPath!.split('\\').last}',
+                    l10n.backupSavedPathLabel(_lastSavedPath!.split('\\').last),
                     style: TextStyle(
                       fontSize: AppTextStyles.subtitle1Size,
                       color: AppColors.textSecondary,
@@ -699,22 +781,22 @@ class _SqliteTabState extends State<_SqliteTab> {
                   ),
                 ],
                 AppSpacing.gapSm,
-                _ActionButton(label: 'Sao lưu lên Cloud', icon: Icons.cloud_upload, onTap: _loading ? null : _backupToCloud, color: const Color(0xFF0A56C2)),
+                _ActionButton(label: l10n.backupUploadToCloud, icon: Icons.cloud_upload, onTap: _loading ? null : _backupToCloud, color: const Color(0xFF0A56C2)),
               ],
             ),
             AppSpacing.gapMd,
             _SectionCard(
-              title: 'Bản sao lưu SQLite trong máy',
+              title: l10n.backupLocalListTitle,
               icon: Icons.folder_outlined,
               trailing: IconButton(
                 icon: const Icon(Icons.refresh, size: 18),
                 onPressed: _loading ? null : _loadLocalBackups,
-                tooltip: 'Tải lại',
+                tooltip: l10n.refresh,
               ),
               children: [
                 if (_localBackups.isEmpty)
                   Text(
-                    'Chưa có bản sao lưu cục bộ nào. Hãy bấm "Lưu file .db vào máy" ở trên.',
+                    l10n.backupNoLocalBackupsHint,
                     style: TextStyle(fontSize: AppTextStyles.subtitle1Size, color: AppColors.textSecondary),
                   )
                 else
@@ -723,27 +805,28 @@ class _SqliteTabState extends State<_SqliteTab> {
                       backup: b,
                       onRestoreFromPath: () => _restoreFromLocalPath(b.path),
                       onShare: () => _shareLocalBackup(b),
+                      onDelete: () => _deleteLocalBackup(b),
                     ),
                   ),
               ],
             ),
             AppSpacing.gapMd,
             _SectionCard(
-              title: 'Hướng dẫn nhanh',
+              title: l10n.backupQuickGuideTitle,
               icon: Icons.help_outline,
-              children: const [
-                Text('• Sao lưu offline: bấm "Lưu file .db vào máy" để tạo bản backup cục bộ.'),
-                SizedBox(height: 4),
-                Text('• Chia sẻ backup: dùng nút "Chia sẻ" trong danh sách backup cục bộ.'),
-                SizedBox(height: 4),
-                Text('• Khôi phục offline: chọn từ danh sách backup cục bộ hoặc file .db.'),
-                SizedBox(height: 4),
-                Text('• Khôi phục online: chọn một bản SQLite trên Cloud và bấm "Khôi phục".'),
+              children: [
+                Text(l10n.backupQuickGuideOffline),
+                const SizedBox(height: 4),
+                Text(l10n.backupQuickGuideShare),
+                const SizedBox(height: 4),
+                Text(l10n.backupQuickGuideRestoreOffline),
+                const SizedBox(height: 4),
+                Text(l10n.backupQuickGuideRestoreOnline),
               ],
             ),
             AppSpacing.gapMd,
             _SectionCard(
-              title: 'Bản sao lưu SQLite trên Cloud',
+              title: l10n.backupCloudListTitle,
               icon: Icons.cloud,
               children: [
                 if (!_backupsLoaded)
@@ -751,7 +834,7 @@ class _SqliteTabState extends State<_SqliteTab> {
                 else if (_storageUnauthorized)
                   _StorageAuthWarning()
                 else if (_cloudBackups.isEmpty)
-                  Text('Chưa có bản sao lưu nào.', style: TextStyle(fontSize: AppTextStyles.subtitle1Size, color: AppColors.textSecondary))
+                  Text(l10n.backupNoCloudBackups, style: TextStyle(fontSize: AppTextStyles.subtitle1Size, color: AppColors.textSecondary))
                 else
                   ..._cloudBackups.map((b) => _SqliteBackupItem(
                         name: b['name'] ?? '',
@@ -763,47 +846,68 @@ class _SqliteTabState extends State<_SqliteTab> {
             ),
             AppSpacing.gapMd,
             _SectionCard(
-              title: 'Khôi phục từ file',
+              title: l10n.backupRestoreFromFileTitle,
               icon: Icons.restore,
               children: [
-                Text('Chọn file .db đã sao lưu trước đó để khôi phục.', style: TextStyle(fontSize: AppTextStyles.subtitle1Size, color: AppColors.textSecondary)),
+                Text(l10n.backupRestoreFileHint, style: TextStyle(fontSize: AppTextStyles.subtitle1Size, color: AppColors.textSecondary)),
                 AppSpacing.gapSm,
-                _ActionButton(label: 'Chọn file .db', icon: Icons.folder_open, onTap: _loading ? null : _restoreFromFile, color: AppColors.warning),
+                _ActionButton(label: l10n.backupSelectFile, icon: Icons.folder_open, onTap: _loading ? null : _restoreFromFile, color: AppColors.warning),
               ],
             ),
             AppSpacing.gapMd,
             _SectionCard(
-              title: 'Xóa dữ liệu chọn lọc',
-              icon: Icons.delete_sweep_outlined,
+              title: 'Nhập từ KiotViet',
+              icon: Icons.upload_file_outlined,
               children: [
                 const Text(
-                  'Xóa vĩnh viễn dữ liệu cục bộ khỏi thiết bị này. Nên sao lưu trước khi xóa.',
+                  'Nhập danh sách sản phẩm, khách hàng, nhà cung cấp từ file Excel xuất bởi KiotViet.',
                   style: TextStyle(fontSize: AppTextStyles.subtitle1Size, color: AppColors.textSecondary),
                 ),
+                AppSpacing.gapSm,
+                _ActionButton(
+                  label: 'Mở màn hình nhập KiotViet',
+                  icon: Icons.arrow_forward_rounded,
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const KiotVietImportView()),
+                  ),
+                  color: const Color(0xFF0068D6),
+                ),
+              ],
+            ),
+            AppSpacing.gapMd,
+            _SectionCard(
+              title: l10n.backupDeleteSelectiveTitle,
+              icon: Icons.delete_sweep_outlined,
+              children: [
+                Text(
+                  l10n.backupDeleteSelectiveHint,
+                  style: const TextStyle(fontSize: AppTextStyles.subtitle1Size, color: AppColors.textSecondary),
+                ),
                 const SizedBox(height: 12),
-                ..._deletePresetGroup('Vận hành', const Color(0xFF1565C0), [
-                  ('Đơn sửa chữa', Icons.build_outlined, ['repairs']),
-                  ('Đơn bán hàng', Icons.point_of_sale_outlined, ['sales']),
-                  ('Kiểm kê & Chốt ca', Icons.assignment_outlined, ['inventory_checks', 'cash_closings']),
+                ..._deletePresetGroup(l10n.backupGroupOperations, const Color(0xFF1565C0), [
+                  (l10n.backupColRepairs, Icons.build_outlined, ['repairs']),
+                  (l10n.backupColSales, Icons.point_of_sale_outlined, ['sales']),
+                  (l10n.backupPresetInventoryCash, Icons.assignment_outlined, ['inventory_checks', 'cash_closings']),
                 ]),
-                ..._deletePresetGroup('Kho & Sản phẩm', const Color(0xFF00695C), [
-                  ('Phụ kiện / Sản phẩm', Icons.inventory_2_outlined, ['products']),
-                  ('Linh kiện sửa chữa', Icons.build_circle_outlined, ['repair_parts']),
-                  ('Kho máy xác', Icons.phone_android_outlined, ['salvage_phones']),
-                  ('NCC & Nhập hàng', Icons.local_shipping_outlined, ['suppliers', 'purchase_orders', 'import_orders', 'supplier_import_history']),
+                ..._deletePresetGroup(l10n.backupGroupWarehouse, const Color(0xFF00695C), [
+                  (l10n.backupPresetAccessoriesProducts, Icons.inventory_2_outlined, ['products']),
+                  (l10n.backupPresetRepairParts, Icons.build_circle_outlined, ['repair_parts']),
+                  (l10n.backupColSalvagePhones, Icons.phone_android_outlined, ['salvage_phones']),
+                  (l10n.backupPresetSupplierImport, Icons.local_shipping_outlined, ['suppliers', 'purchase_orders', 'import_orders', 'supplier_import_history']),
                 ]),
-                ..._deletePresetGroup('Tài chính', const Color(0xFF2E7D32), [
-                  ('Công nợ', Icons.account_balance_outlined, ['debts', 'debt_payments']),
-                  ('Chi phí', Icons.receipt_long_outlined, ['expenses']),
-                  ('Thanh toán', Icons.payment_outlined, ['payment_intents', 'payment_requests', 'supplier_payments', 'repair_partner_payments']),
+                ..._deletePresetGroup(l10n.backupGroupFinance, const Color(0xFF2E7D32), [
+                  (l10n.backupColDebts, Icons.account_balance_outlined, ['debts', 'debt_payments']),
+                  (l10n.backupColExpenses, Icons.receipt_long_outlined, ['expenses']),
+                  (l10n.backupPresetPayments, Icons.payment_outlined, ['payment_intents', 'payment_requests', 'supplier_payments', 'repair_partner_payments']),
                 ]),
-                ..._deletePresetGroup('Khác', const Color(0xFF546E7A), [
-                  ('Khách hàng', Icons.person_outline, ['customers']),
-                  ('Nhân sự', Icons.people_outline, ['attendance', 'payroll_settings', 'work_schedules']),
-                  ('Nhật ký hệ thống', Icons.history_outlined, ['audit_logs']),
+                ..._deletePresetGroup(l10n.backupPresetOther, const Color(0xFF546E7A), [
+                  (l10n.backupColCustomers, Icons.person_outline, ['customers']),
+                  (l10n.backupPresetHr, Icons.people_outline, ['attendance', 'payroll_settings', 'work_schedules']),
+                  (l10n.backupPresetSystemLog, Icons.history_outlined, ['audit_logs']),
                 ]),
                 _ActionButton(
-                  label: 'Chọn tùy ý nhiều mục...',
+                  label: l10n.backupSelectCustomItems,
                   icon: Icons.checklist_outlined,
                   onTap: _loading ? null : _deleteCustomData,
                   color: Colors.red,
@@ -812,16 +916,16 @@ class _SqliteTabState extends State<_SqliteTab> {
             ),
             AppSpacing.gapMd,
             _SectionCard(
-              title: 'Dọn backup cũ',
+              title: l10n.backupCleanOldTitle,
               icon: Icons.cleaning_services_outlined,
               children: [
-                const Text(
-                  'Xóa các file backup cục bộ cũ hơn số ngày bạn chọn.',
-                  style: TextStyle(fontSize: AppTextStyles.subtitle1Size, color: AppColors.textSecondary),
+                Text(
+                  l10n.backupCleanOldHint,
+                  style: const TextStyle(fontSize: AppTextStyles.subtitle1Size, color: AppColors.textSecondary),
                 ),
                 AppSpacing.gapSm,
                 _ActionButton(
-                  label: 'Dọn backup cũ...',
+                  label: l10n.backupCleanOldBtn,
                   icon: Icons.delete_outline,
                   onTap: _loading ? null : _cleanOldBackups,
                   color: Colors.blueGrey,
@@ -838,19 +942,20 @@ class _SqliteTabState extends State<_SqliteTab> {
   }
 
   Future<void> _restoreFromLocalPath(String filePath) async {
+    final l10n = AppLocalizations.of(context)!;
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Khôi phục SQLite cục bộ'),
-        content: const Text('Dữ liệu hiện tại sẽ bị ghi đè bởi bản backup này. Tiếp tục?'),
+        title: Text(l10n.backupLocalRestoreTitle),
+        content: Text(l10n.backupLocalRestoreContent),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Hủy'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Khôi phục'),
+            child: Text(l10n.backupRestoreBtn),
           ),
         ],
       ),
@@ -863,19 +968,16 @@ class _SqliteTabState extends State<_SqliteTab> {
         context: context,
         barrierDismissible: false,
         builder: (ctx) => AlertDialog(
-          title: const Text('Chọn kiểu khôi phục'),
-          content: const Text(
-            'Khôi phục nguyên bản sẽ giữ nguyên shopId cũ.\n\n'
-            'Nếu muốn đưa dữ liệu vào shop hiện tại, chọn phương án chuyển shopId.',
-          ),
+          title: Text(l10n.backupChooseRestoreType),
+          content: Text(l10n.backupChooseRestoreTypeTip),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Khôi phục nguyên bản'),
+              child: Text(l10n.backupRestoreOriginalBtn),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Chuyển vào shop hiện tại'),
+              child: Text(l10n.backupTransferToCurrentShop),
             ),
           ],
         ),
@@ -885,9 +987,9 @@ class _SqliteTabState extends State<_SqliteTab> {
       final selected = await showDialog<List<String>>(
         context: context,
         barrierDismissible: false,
-        builder: (ctx) => const _CollectionPickerDialog(
-          title: 'Chọn dữ liệu cần khôi phục (SQLite)',
-          confirmLabel: 'Khôi phục',
+        builder: (ctx) => _CollectionPickerDialog(
+          title: l10n.backupSelectDataSqlite,
+          confirmLabel: l10n.backupRestoreBtn,
           confirmIcon: Icons.restore_outlined,
           confirmColor: Colors.orange,
           availableCollections: null,
@@ -906,19 +1008,19 @@ class _SqliteTabState extends State<_SqliteTab> {
         context: context,
         barrierDismissible: false,
         builder: (ctx) => AlertDialog(
-          title: const Text('Khôi phục thành công'),
+          title: Text(l10n.backupRestoreSuccessTitle),
           content: Text(
             remap
-                ? 'Đã khôi phục ${selected.length} mục và chuyển vào shop hiện tại. Vui lòng khởi động lại ứng dụng.'
-                : 'Đã khôi phục ${selected.length} mục từ bản backup cục bộ. Vui lòng khởi động lại ứng dụng.',
+                ? l10n.backupRestoredLocalWithTransfer(selected.length)
+                : l10n.backupRestoredLocalNoTransfer(selected.length),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Đóng')),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text(l10n.close)),
           ],
         ),
       );
     } catch (e) {
-      NotificationService.showSnackBar('Lỗi khôi phục cục bộ: $e', color: AppColors.error);
+      NotificationService.showSnackBar(l10n.backupRestoreLocalErrorMsg(e.toString()), color: AppColors.error);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -956,46 +1058,53 @@ class _FirestoreTabState extends State<_FirestoreTab> {
   }
 
   Future<void> _startBackup() async {
-    // Show collection picker
+    final l10n = AppLocalizations.of(context)!;
+    final groups = _buildGroups(l10n);
+    final colLabels = <String, String>{
+      for (final g in groups)
+        for (final item in g.items)
+          item.key: item.label,
+    };
     final selected = await showDialog<List<String>>(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => const _CollectionPickerDialog(
-        title: 'Chọn dữ liệu cần sao lưu',
-        confirmLabel: 'Sao lưu',
+      builder: (ctx) => _CollectionPickerDialog(
+        title: l10n.backupSelectDataBackup,
+        confirmLabel: l10n.backupBackupLabel,
         confirmIcon: Icons.cloud_upload_outlined,
-        confirmColor: Color(0xFF0A56C2),
-        availableCollections: null, // all
+        confirmColor: const Color(0xFF0A56C2),
+        availableCollections: null,
       ),
     );
     if (selected == null || selected.isEmpty) return;
 
-    setState(() { _loading = true; _progressMsg = 'Đang chuẩn bị...'; });
+    setState(() { _loading = true; _progressMsg = l10n.backupPreparingMsg; });
     try {
       await BackupService.backupFirestoreToCloud(
         collections: selected,
         onProgress: (col, done, total) {
           if (mounted) {
-            setState(() => _progressMsg = 'Đang sao lưu ${BackupService.kCollectionLabels[col] ?? col} ($done/$total)...');
+            setState(() => _progressMsg = l10n.backupBackingUpItem(colLabels[col] ?? col, done, total));
           }
         },
       );
-      NotificationService.showSnackBar('Sao lưu Firestore thành công (${selected.length} mục)!', color: AppColors.success);
+      NotificationService.showSnackBar(l10n.backupFirestoreSuccess(selected.length), color: AppColors.success);
       await _loadBackupSets();
     } catch (e) {
-      NotificationService.showSnackBar('Lỗi sao lưu Firestore: $e', color: AppColors.error);
+      NotificationService.showSnackBar(l10n.backupFirestoreError(e.toString()), color: AppColors.error);
     } finally {
       if (mounted) setState(() { _loading = false; _progressMsg = null; });
     }
   }
 
   Future<void> _restoreBackupSet(FirestoreBackupSet set) async {
+    final l10n = AppLocalizations.of(context)!;
     final selected = await showDialog<List<String>>(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => _CollectionPickerDialog(
-        title: 'Chọn dữ liệu cần khôi phục',
-        confirmLabel: 'Khôi phục',
+        title: l10n.backupSelectDataSqlite,
+        confirmLabel: l10n.backupRestoreBtn,
         confirmIcon: Icons.restore_outlined,
         confirmColor: Colors.orange,
         availableCollections: set.collections,
@@ -1004,57 +1113,56 @@ class _FirestoreTabState extends State<_FirestoreTab> {
     if (selected == null || selected.isEmpty) return;
     if (!mounted) return;
 
-    // Confirm
+    final formattedDate = DateFormat('dd/MM/yyyy HH:mm').format(set.createdAt);
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Row(children: [
-          Icon(Icons.warning_amber_rounded, color: Colors.orange),
-          SizedBox(width: 8),
-          Text('Xác nhận khôi phục'),
+        title: Row(children: [
+          const Icon(Icons.warning_amber_rounded, color: Colors.orange),
+          const SizedBox(width: 8),
+          Text(l10n.backupConfirmRestoreTitle),
         ]),
-        content: Text(
-          'Dữ liệu hiện tại của ${selected.length} mục sẽ bị ghi đè bởi bản sao lưu ngày '
-          '${DateFormat('dd/MM/yyyy HH:mm').format(set.createdAt)}.\n\nTiếp tục?',
-        ),
+        content: Text(l10n.backupConfirmRestoreContent(selected.length, formattedDate)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Hủy')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel)),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.orange),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Khôi phục'),
+            child: Text(l10n.backupRestoreBtn),
           ),
         ],
       ),
     );
     if (ok != true) return;
 
-    setState(() { _loading = true; _progressMsg = 'Đang khôi phục...'; });
+    setState(() { _loading = true; _progressMsg = l10n.backupRestoringMsg; });
     try {
       await BackupService.restoreFirestoreFromCloud(
         backupSet: set,
         collections: selected,
       );
-      NotificationService.showSnackBar('Khôi phục thành công (${selected.length} mục)!', color: AppColors.success);
+      NotificationService.showSnackBar(l10n.backupRestoreSuccessMsg(selected.length), color: AppColors.success);
     } catch (e) {
-      NotificationService.showSnackBar('Lỗi khôi phục: $e', color: AppColors.error);
+      NotificationService.showSnackBar(l10n.backupRestoreFirestoreError(e.toString()), color: AppColors.error);
     } finally {
       if (mounted) setState(() { _loading = false; _progressMsg = null; });
     }
   }
 
   Future<void> _deleteBackupSet(FirestoreBackupSet set) async {
+    final l10n = AppLocalizations.of(context)!;
+    final formattedDate = DateFormat('dd/MM/yyyy HH:mm').format(set.createdAt);
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Xóa bản sao lưu?'),
-        content: Text('Xóa bản sao lưu ngày ${DateFormat('dd/MM/yyyy HH:mm').format(set.createdAt)}?'),
+        title: Text(l10n.backupDeleteSetTitle),
+        content: Text(l10n.backupDeleteSetContent(formattedDate)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Hủy')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel)),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Xóa'),
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -1063,14 +1171,15 @@ class _FirestoreTabState extends State<_FirestoreTab> {
     try {
       await BackupService.deleteFirestoreBackupSet(set);
       await _loadBackupSets();
-      NotificationService.showSnackBar('Đã xóa bản sao lưu.', color: AppColors.success);
+      NotificationService.showSnackBar(l10n.backupDeletedSet, color: AppColors.success);
     } catch (e) {
-      NotificationService.showSnackBar('Lỗi xóa: $e', color: AppColors.error);
+      NotificationService.showSnackBar(l10n.backupDeleteSetErrorMsg(e.toString()), color: AppColors.error);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Stack(
       children: [
         ListView(
@@ -1081,37 +1190,37 @@ class _FirestoreTabState extends State<_FirestoreTab> {
               color: Colors.blue.shade50,
               elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.blue.shade200)),
-              child: const Padding(
-                padding: EdgeInsets.all(12),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
                 child: Row(children: [
-                  Icon(Icons.info_outline, color: Colors.blue, size: 18),
-                  SizedBox(width: 8),
+                  const Icon(Icons.info_outline, color: Colors.blue, size: 18),
+                  const SizedBox(width: 8),
                   Expanded(child: Text(
-                    'Sao lưu Firestore lưu từng collection thành file JSON riêng. Bạn có thể chọn mục nào cần sao lưu hoặc khôi phục.',
-                    style: TextStyle(fontSize: 12, color: Colors.blue),
+                    l10n.backupFirestoreInfoText,
+                    style: const TextStyle(fontSize: 12, color: Colors.blue),
                   )),
                 ]),
               ),
             ),
             AppSpacing.gapMd,
             _SectionCard(
-              title: 'Khôi phục theo từng mục',
+              title: l10n.backupRestoreByItemTitle,
               icon: Icons.tune,
-              children: const [
-                Text('Bạn có thể chọn chính xác từng nhóm dữ liệu khi khôi phục (VD: chỉ Đơn sửa, chỉ Kho, chỉ Công nợ).'),
-                SizedBox(height: 4),
-                Text('Hệ thống chỉ ghi đè các mục bạn chọn, không ảnh hưởng các mục còn lại.'),
+              children: [
+                Text(l10n.backupRestoreByItemDesc1),
+                const SizedBox(height: 4),
+                Text(l10n.backupRestoreByItemDesc2),
               ],
             ),
             AppSpacing.gapMd,
 
             // Backup now
             _SectionCard(
-              title: 'Sao lưu Firestore',
+              title: l10n.backupFirestoreSectionTitle,
               icon: Icons.cloud_upload_outlined,
               children: [
                 _ActionButton(
-                  label: 'Chọn mục & Sao lưu lên Cloud',
+                  label: l10n.backupSelectAndBackup,
                   icon: Icons.cloud_upload,
                   onTap: _loading ? null : _startBackup,
                   color: const Color(0xFF0A56C2),
@@ -1122,18 +1231,18 @@ class _FirestoreTabState extends State<_FirestoreTab> {
 
             // Backup sets list
             _SectionCard(
-              title: 'Bản sao lưu Firestore',
+              title: l10n.backupFirestoreListTitle,
               icon: Icons.history,
               trailing: IconButton(
                 icon: const Icon(Icons.refresh, size: 18),
                 onPressed: _loading ? null : _loadBackupSets,
-                tooltip: 'Tải lại',
+                tooltip: l10n.refresh,
               ),
               children: [
                 if (!_setsLoaded)
                   const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator()))
                 else if (_backupSets.isEmpty)
-                  Text('Chưa có bản sao lưu Firestore nào.', style: TextStyle(fontSize: AppTextStyles.subtitle1Size, color: AppColors.textSecondary))
+                  Text(l10n.backupNoFirestoreBackups, style: TextStyle(fontSize: AppTextStyles.subtitle1Size, color: AppColors.textSecondary))
                 else
                   ..._backupSets.map((set) => _FirestoreBackupItem(
                         set: set,
@@ -1156,7 +1265,7 @@ class _FirestoreTabState extends State<_FirestoreTab> {
                   child: Column(mainAxisSize: MainAxisSize.min, children: [
                     const CircularProgressIndicator(),
                     const SizedBox(height: 16),
-                    Text(_progressMsg ?? 'Đang xử lý...', style: const TextStyle(fontSize: 14)),
+                    Text(_progressMsg ?? l10n.backupProcessing, style: const TextStyle(fontSize: 14)),
                   ]),
                 ),
               ),
@@ -1194,12 +1303,8 @@ class _CollectionPickerDialogState extends State<_CollectionPickerDialog> {
   @override
   void initState() {
     super.initState();
-    for (final g in _kGroups) {
-      for (final item in g.items) {
-        final available = widget.availableCollections == null ||
-            widget.availableCollections!.contains(item.key);
-        _checked[item.key] = available ? false : false;
-      }
+    for (final key in _kAllCollectionKeys) {
+      _checked[key] = false;
     }
   }
 
@@ -1236,6 +1341,8 @@ class _CollectionPickerDialogState extends State<_CollectionPickerDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final groups = _buildGroups(l10n);
     return AlertDialog(
       title: Text(widget.title, style: const TextStyle(fontSize: 16)),
       contentPadding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
@@ -1255,15 +1362,15 @@ class _CollectionPickerDialogState extends State<_CollectionPickerDialog> {
                 dense: true,
                 value: _allChecked ? true : (_anyChecked ? null : false),
                 tristate: true,
-                title: const Text('Chọn tất cả', style: TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: Text('$_selectedCount mục đã chọn'),
+                title: Text(l10n.selectAll, style: const TextStyle(fontWeight: FontWeight.bold)),
+                subtitle: Text(l10n.backupSelectedCountLabel(_selectedCount)),
                 onChanged: (v) => _toggleAll(v == true),
               ),
             ),
             const SizedBox(height: 8),
             Expanded(
               child: ListView(
-                children: _kGroups.map((g) {
+                children: groups.map((g) {
                   final hasAvailable = g.items.any((i) => _isAvailable(i.key));
                   if (!hasAvailable) return const SizedBox.shrink();
                   return _GroupTile(
@@ -1282,7 +1389,7 @@ class _CollectionPickerDialogState extends State<_CollectionPickerDialog> {
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Hủy')),
+        TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel)),
         FilledButton.icon(
           onPressed: _anyChecked ? () => Navigator.pop(context, _result) : null,
           style: FilledButton.styleFrom(backgroundColor: widget.confirmColor),
@@ -1315,6 +1422,7 @@ class _GroupTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Card(
       margin: const EdgeInsets.only(bottom: 6),
       elevation: 0,
@@ -1364,7 +1472,7 @@ class _GroupTile extends StatelessWidget {
                 item.label,
                 style: TextStyle(fontSize: 13, color: available ? null : Colors.grey),
               ),
-              subtitle: available ? null : const Text('Không có trong bản sao lưu này', style: TextStyle(fontSize: 11, color: Colors.grey)),
+              subtitle: available ? null : Text(l10n.backupNotAvailable, style: const TextStyle(fontSize: 11, color: Colors.grey)),
               onChanged: available ? (v) => onItemToggle(item.key, v ?? false) : null,
             );
           }).toList(),
@@ -1389,7 +1497,13 @@ class _FirestoreBackupItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final label = BackupService.kCollectionLabels;
+    final l10n = AppLocalizations.of(context)!;
+    final groups = _buildGroups(l10n);
+    final colLabels = <String, String>{
+      for (final g in groups)
+        for (final item in g.items)
+          item.key: item.label,
+    };
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       elevation: 0,
@@ -1414,12 +1528,12 @@ class _FirestoreBackupItem extends StatelessWidget {
                 ),
                 IconButton(
                   icon: const Icon(Icons.restore_outlined, color: Colors.orange),
-                  tooltip: 'Khôi phục',
+                  tooltip: l10n.backupRestoreBtn,
                   onPressed: onRestore,
                 ),
                 IconButton(
                   icon: const Icon(Icons.delete_outline, color: Colors.red),
-                  tooltip: 'Xóa',
+                  tooltip: l10n.delete,
                   onPressed: onDelete,
                 ),
               ],
@@ -1429,7 +1543,7 @@ class _FirestoreBackupItem extends StatelessWidget {
               spacing: 4,
               runSpacing: 4,
               children: set.collections.map((col) {
-                final lbl = label[col] ?? col;
+                final lbl = colLabels[col] ?? col;
                 return Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
@@ -1453,13 +1567,14 @@ class _FirestoreBackupItem extends StatelessWidget {
 class _StorageAuthWarning extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Row(children: [
-          Icon(Icons.warning_amber, color: AppColors.warning, size: 16),
-          SizedBox(width: 6),
-          Text('Cần cấu hình Firebase Storage Rules', style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.warning, fontSize: 13)),
+        Row(children: [
+          const Icon(Icons.warning_amber, color: AppColors.warning, size: 16),
+          const SizedBox(width: 6),
+          Text(l10n.backupStorageRulesTitle, style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.warning, fontSize: 13)),
         ]),
         const SizedBox(height: 6),
         Text(
@@ -1555,6 +1670,7 @@ class _SqliteBackupItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       margin: const EdgeInsets.only(bottom: AppSpacing.sm),
       decoration: BoxDecoration(
@@ -1569,10 +1685,10 @@ class _SqliteBackupItem extends StatelessWidget {
         trailing: Wrap(
           spacing: 2,
           children: [
-            TextButton(onPressed: onRestore, child: const Text('Khôi phục')),
+            TextButton(onPressed: onRestore, child: Text(l10n.backupRestoreBtn)),
             IconButton(
               onPressed: onDelete,
-              tooltip: 'Xóa',
+              tooltip: l10n.delete,
               icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
             ),
           ],
@@ -1586,11 +1702,13 @@ class _LocalSqliteBackupItem extends StatelessWidget {
   final LocalSqliteBackup backup;
   final VoidCallback onRestoreFromPath;
   final VoidCallback onShare;
+  final VoidCallback onDelete;
 
   const _LocalSqliteBackupItem({
     required this.backup,
     required this.onRestoreFromPath,
     required this.onShare,
+    required this.onDelete,
   });
 
   String _formatSize(int size) {
@@ -1603,6 +1721,7 @@ class _LocalSqliteBackupItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       margin: const EdgeInsets.only(bottom: AppSpacing.sm),
       decoration: BoxDecoration(
@@ -1633,13 +1752,18 @@ class _LocalSqliteBackupItem extends StatelessWidget {
           children: [
             IconButton(
               onPressed: onShare,
-              tooltip: 'Chia sẻ',
+              tooltip: l10n.share,
               icon: const Icon(Icons.share_outlined, size: 20),
             ),
             IconButton(
               onPressed: onRestoreFromPath,
-              tooltip: 'Khôi phục',
+              tooltip: l10n.backupRestoreBtn,
               icon: const Icon(Icons.restore_outlined, size: 20),
+            ),
+            IconButton(
+              onPressed: onDelete,
+              tooltip: l10n.delete,
+              icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
             ),
           ],
         ),

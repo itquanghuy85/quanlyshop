@@ -6360,4 +6360,1867 @@ class AppLocalizationsVi extends AppLocalizations {
   String restoreLabelWithCount(int count) {
     return 'Khôi phục ($count)';
   }
+
+  @override
+  String saleListSearchHint(String productLabel, String codeLabel) {
+    return 'Tìm theo tên khách, $productLabel hoặc $codeLabel...';
+  }
+
+  @override
+  String get saleListGuideTitle => 'Lịch Sử Bán Hàng';
+
+  @override
+  String get saleListGuide1Title => '🛒 Danh sách hóa đơn';
+
+  @override
+  String get saleListGuide1Desc => 'Xem tất cả hóa đơn bán hàng theo ngày/tuần/tháng. Tổng doanh thu hiển thị ngay phía trên.';
+
+  @override
+  String get saleListGuide2Title => '🔍 Tìm kiếm';
+
+  @override
+  String get saleListGuide2Desc => 'Tìm hóa đơn theo tên khách hàng, tên sản phẩm hoặc mã hóa đơn.';
+
+  @override
+  String get saleListGuide3Title => '📄 Xem chi tiết & in lại';
+
+  @override
+  String get saleListGuide3Desc => 'Nhấn vào hóa đơn để xem chi tiết, in lại biên lai hoặc tạo phiếu đổi trả.';
+
+  @override
+  String get saleListGuide4Title => '💳 Trạng thái thanh toán';
+
+  @override
+  String get saleListGuide4Desc => 'Biết ngay hóa đơn nào đã thanh toán, đang chờ thanh toán hay ghi nợ.';
+
+  @override
+  String get saleListFilterTitle => 'BỘ LỌC';
+
+  @override
+  String get saleListTimeSection => 'THỜI GIAN';
+
+  @override
+  String get saleListPaymentStatusSection => 'TRẠNG THÁI THANH TOÁN';
+
+  @override
+  String get saleListLast7Days => '7 ngày';
+
+  @override
+  String get saleListCustomDate => 'Tùy chọn';
+
+  @override
+  String get saleListFilterPaid => 'Đã thanh toán';
+
+  @override
+  String get saleListFilterDebt => 'Còn nợ';
+
+  @override
+  String get saleListFilterBankPending => 'TG chờ NH';
+
+  @override
+  String get saleListFilterBankReceived => 'TG đã nhận NH';
+
+  @override
+  String get saleListDayYesterday => 'Hôm qua';
+
+  @override
+  String get saleListExportOrders => 'Xuất đơn bán';
+
+  @override
+  String get saleListSortTooltip => 'Sắp xếp';
+
+  @override
+  String get saleListSortNewest => 'Mới nhất trước';
+
+  @override
+  String get saleListSortHighestValue => 'Giá trị cao nhất';
+
+  @override
+  String get saleListSortMostDebt => 'Nợ nhiều nhất';
+
+  @override
+  String saleListRevenueShort(String amount) {
+    return 'DT: $amount';
+  }
+
+  @override
+  String saleListDebtShort(String amount) {
+    return 'Nợ: $amount';
+  }
+
+  @override
+  String saleListProfitShort(String amount) {
+    return 'Lãi: $amount';
+  }
+
+  @override
+  String get saleListStatusReturned => 'TRẢ';
+
+  @override
+  String get saleListStatusBankPending => 'CHỜ NH';
+
+  @override
+  String get saleListStatusCollected => 'ĐÃ THU';
+
+  @override
+  String get saleListStatusHasDebt => 'CÒN NỢ';
+
+  @override
+  String get saleListChipPaid => '💰 Đã thu';
+
+  @override
+  String get saleListChipDebt => '⚠️ Còn nợ';
+
+  @override
+  String get saleListChipSale => '🏷 Bán';
+
+  @override
+  String get saleListChipCost => '📦 Vốn';
+
+  @override
+  String get saleListChipProfit => '📈 Lãi';
+
+  @override
+  String get saleListChipLoss => '📉 Lỗ';
+
+  @override
+  String get saleListReturnFull => '↩ Trả hết';
+
+  @override
+  String get saleListReturnPartial => '↩ Trả 1 phần';
+
+  @override
+  String get saleListInstallmentLabel => '🏦 Trả góp';
+
+  @override
+  String saleListBankReceivedAmount(String amount) {
+    return 'Đã nhận NH $amount';
+  }
+
+  @override
+  String get saleListBankNotReceived => 'Chưa nhận tiền NH';
+
+  @override
+  String get saleListHoldToReturn => 'Giữ để đổi trả';
+
+  @override
+  String get saleListNoOrders => 'Không có đơn hàng nào';
+
+  @override
+  String get saleListClearFilterHint => 'Thử xóa bộ lọc để xem tất cả';
+
+  @override
+  String get saleListClearFilter => 'Xóa bộ lọc';
+
+  @override
+  String saleListDisplayedOrders(int count) {
+    return 'Đã hiển thị $count đơn bán';
+  }
+
+  @override
+  String get saleListOrderFullyReturned => 'Đơn này đã trả hết hàng';
+
+  @override
+  String saleListReturnTimesCount(String amount, int count) {
+    return '$amount ($count lần)';
+  }
+
+  @override
+  String saleListGroupOrdersCount(String label, int count) {
+    return '$label · $count đơn';
+  }
+
+  @override
+  String get saleDetailTitle => 'CHI TIẾT ĐƠN BÁN';
+
+  @override
+  String get needManagerLogin => 'CẦN ĐĂNG NHẬP TÀI KHOẢN QUẢN LÝ';
+
+  @override
+  String get onlyManagerCanEdit => 'Chỉ tài khoản quản lý mới được sửa/xóa';
+
+  @override
+  String get managerAuthTitle => 'XÁC THỰC QUẢN LÝ';
+
+  @override
+  String get managerPasswordLabel => 'Mật khẩu quản lý';
+
+  @override
+  String get editUnlocked => 'ĐÃ MỞ KHÓA CHỈNH SỬA';
+
+  @override
+  String get wrongManagerPassword => 'Sai mật khẩu quản lý';
+
+  @override
+  String get printInvoiceSuccess => 'Đã in hóa đơn thành công!';
+
+  @override
+  String get printInvoiceFailed => 'In thất bại! Vui lòng kiểm tra cài đặt máy in.';
+
+  @override
+  String printErrorMsg(String error) {
+    return 'Lỗi khi in: $error';
+  }
+
+  @override
+  String get receiveBankTitle => 'NHẬN TIỀN TỪ NGÂN HÀNG';
+
+  @override
+  String get receivedAmountLabel => 'Số tiền nhận (VNĐ)';
+
+  @override
+  String get receivedAmountField => 'Số tiền nhận';
+
+  @override
+  String get bankFeeLabel => 'Phí NH giữ lại (VNĐ)';
+
+  @override
+  String get bankFeeField => 'Phí NH';
+
+  @override
+  String get bankReceivedConfirmed => 'ĐÃ GHI NHẬN TIỀN NGÂN HÀNG CHUYỂN';
+
+  @override
+  String get editSaleTitle => 'SỬA ĐƠN BÁN';
+
+  @override
+  String get customerNameFieldLabel => 'Tên khách';
+
+  @override
+  String get enterCustomerNameHint => 'Nhập tên khách';
+
+  @override
+  String get phoneFieldLabel => 'SĐT';
+
+  @override
+  String get addressFieldLabel => 'Địa chỉ';
+
+  @override
+  String get paymentMethodFieldLabel => 'Hình thức';
+
+  @override
+  String get notesFieldLabel => 'Ghi chú';
+
+  @override
+  String get saveLabel => 'LƯU';
+
+  @override
+  String get saleUpdated => 'Đã cập nhật thông tin đơn hàng';
+
+  @override
+  String get deleteSaleTitle => 'XÓA ĐƠN BÁN';
+
+  @override
+  String saleOrderItem(String name) {
+    return 'Đơn hàng: $name';
+  }
+
+  @override
+  String saleOrderValue(String amount) {
+    return 'Giá trị: $amountđ';
+  }
+
+  @override
+  String get systemWillAutoLabel => 'Hệ thống sẽ tự động:';
+
+  @override
+  String get restoreStockQty => 'Khôi phục số lượng kho';
+
+  @override
+  String get deleteLinkedDebt => 'Xóa công nợ liên quan';
+
+  @override
+  String get deletePaymentRecord => 'Xóa bản ghi thanh toán';
+
+  @override
+  String get updateCustomerSpend => 'Cập nhật lại chi tiêu KH';
+
+  @override
+  String get cannotUndoWarning => '⚠️ Hành động này không thể hoàn tác!';
+
+  @override
+  String get deleteSaleButton => 'XÓA ĐƠN';
+
+  @override
+  String saleDeletedMsg(String inventoryInfo, String debtInfo) {
+    return 'Đã xóa đơn bán$inventoryInfo$debtInfo';
+  }
+
+  @override
+  String saleDeleteError(String error) {
+    return 'Lỗi xóa đơn bán: $error';
+  }
+
+  @override
+  String get editSaleTooltip => 'Sửa thông tin đơn';
+
+  @override
+  String get previewInvoiceLabel => 'Xem trước';
+
+  @override
+  String get printInvoiceLabel => 'In';
+
+  @override
+  String get returnAllLabel => 'Đã trả hết';
+
+  @override
+  String get returnGoodsLabel => 'Trả hàng';
+
+  @override
+  String get returnSuccessMsg => 'Trả hàng thành công!';
+
+  @override
+  String get printTemplateLabel => 'Mẫu in';
+
+  @override
+  String updateSettlementBtn(String amount) {
+    return 'CẬP NHẬT TẤT TOÁN (còn $amount)';
+  }
+
+  @override
+  String returnedFullLabel(String amount) {
+    return 'ĐÃ TRẢ TOÀN BỘ — $amount';
+  }
+
+  @override
+  String returnedPartialLabel(String amount, int count) {
+    return 'ĐÃ TRẢ 1 PHẦN — $amount ($count lần)';
+  }
+
+  @override
+  String get sectionTransaction => 'GIAO DỊCH';
+
+  @override
+  String get itemAddress => 'Địa chỉ';
+
+  @override
+  String get openProductDetailTooltip => 'Mở chi tiết sản phẩm từ đơn bán';
+
+  @override
+  String get itemWarranty => 'Bảo hành';
+
+  @override
+  String get itemTime => 'Thời gian';
+
+  @override
+  String get itemPaymentMethod => 'Hình thức';
+
+  @override
+  String get itemCash => '💵 Tiền mặt';
+
+  @override
+  String get itemTransfer => '🏦 Chuyển khoản';
+
+  @override
+  String get itemNotes => 'Ghi chú';
+
+  @override
+  String get itemDiscount => 'Giảm giá';
+
+  @override
+  String get itemTotal => 'Tổng tiền';
+
+  @override
+  String get itemCostPrice => 'Giá vốn';
+
+  @override
+  String get itemProfit => 'Lợi nhuận';
+
+  @override
+  String get sectionInstallment => 'TRẢ GÓP - NGÂN HÀNG';
+
+  @override
+  String get installmentDownPayment => 'Down payment';
+
+  @override
+  String get installmentBank1 => 'NH 1 giải ngân';
+
+  @override
+  String get installmentAmount1 => 'Số tiền NH 1';
+
+  @override
+  String get installmentBank2 => 'NH 2 giải ngân';
+
+  @override
+  String get installmentAmount2 => 'Số tiền NH 2';
+
+  @override
+  String get installmentTotalLoan => 'Tổng vay NH';
+
+  @override
+  String get installmentExpectedDate => 'Ngày dự kiến';
+
+  @override
+  String get installmentFileCode => 'Mã hồ sơ';
+
+  @override
+  String get installmentNotes => 'Ghi chú';
+
+  @override
+  String get installmentSettlement => 'Tất toán';
+
+  @override
+  String get settlementNotReceived => 'Chưa nhận';
+
+  @override
+  String settlementFullyReceived(String date) {
+    return 'Đã nhận đủ $date';
+  }
+
+  @override
+  String settlementPartialReceived(String received, String total) {
+    return 'Đã nhận $received / $total';
+  }
+
+  @override
+  String get installmentBankFee => 'Phí NH';
+
+  @override
+  String get staffItemLabel => 'Nhân viên';
+
+  @override
+  String get chatPinnedSale => 'ĐÃ GIM ĐƠN BÁN VÀO CHAT NỘI BỘ';
+
+  @override
+  String get noCustomerPhone => 'KHÔNG CÓ SỐ ĐIỆN THOẠI KHÁCH';
+
+  @override
+  String get smsAppOpened => 'ĐÃ MỞ ỨNG DỤNG NHẮN TIN (nội dung đã copy sẵn).';
+
+  @override
+  String get smsAppCannotOpen => 'KHÔNG MỞ ĐƯỢC ỨNG DỤNG NHẮN TIN, anh/chị dán nội dung vào Zalo/SMS giúp em.';
+
+  @override
+  String get smsSendError => 'LỖI KHI GỬI TIN NHẮN, nhưng nội dung đã được copy sẵn.';
+
+  @override
+  String get debtManagementTitle => 'DEBT MANAGEMENT';
+
+  @override
+  String activeDebtsCount(int count) {
+    return '$count active debts';
+  }
+
+  @override
+  String get tabCustomer => 'CUSTOMER';
+
+  @override
+  String get tabSupplier => 'SUPPLIER';
+
+  @override
+  String get tabPartner => 'PARTNER';
+
+  @override
+  String get tabOther => 'OTHER';
+
+  @override
+  String get syncWithFirebase => 'Sync with Firebase';
+
+  @override
+  String get exportExcelDebt => 'Export debt Excel';
+
+  @override
+  String get exportDebtTitle => 'Export debts';
+
+  @override
+  String get syncedStatus => 'Đã đồng bộ';
+
+  @override
+  String get syncingStatus => 'Đang đồng bộ...';
+
+  @override
+  String get syncErrorStatus => 'Lỗi đồng bộ';
+
+  @override
+  String get searchNamePhone => 'Search name, phone...';
+
+  @override
+  String get filterPaid => 'Paid';
+
+  @override
+  String get debtReceivable => 'Receivable';
+
+  @override
+  String get debtPayable => 'Payable';
+
+  @override
+  String get overdueDebts => 'Overdue';
+
+  @override
+  String get needsHandling => 'Needs attention';
+
+  @override
+  String get noDebtFound => 'No results found';
+
+  @override
+  String get noDebtYet => 'No debts yet';
+
+  @override
+  String get trySearchOther => 'Try searching by other name or phone';
+
+  @override
+  String get showPaidToSeeHistory => 'Enable \"Paid\" to see history';
+
+  @override
+  String get totalRemainingDebt => 'TOTAL REMAINING DEBT';
+
+  @override
+  String get noPartnerDebt => 'No partner debts';
+
+  @override
+  String get partnerDebtManageGuide => 'Manage partners at: Settings › Partner Management';
+
+  @override
+  String get totalPartnerRepairDebt => 'TOTAL REPAIR PARTNER DEBT';
+
+  @override
+  String get paymentHistoryTitle => 'PAYMENT HISTORY';
+
+  @override
+  String get noPaymentHistory => 'No payment history yet';
+
+  @override
+  String get payDebtButton => 'PAY DEBT';
+
+  @override
+  String get collectDebtTitle => 'COLLECT CUSTOMER DEBT';
+
+  @override
+  String get payDebtTitle => 'PAY DEBT';
+
+  @override
+  String get totalDebtLabel => 'Total debt';
+
+  @override
+  String get paidAmountLabel => 'Paid';
+
+  @override
+  String get remainingLabel => 'Remaining';
+
+  @override
+  String get collectAmountVnd => 'AMOUNT TO COLLECT (VND)';
+
+  @override
+  String get payAmountVnd => 'AMOUNT TO PAY (VND)';
+
+  @override
+  String get payWithLabel => 'PAY WITH';
+
+  @override
+  String get confirmPayButton => 'CONFIRM';
+
+  @override
+  String get createOtherDebtTitle => 'CREATE OTHER DEBT';
+
+  @override
+  String get debtorNameLabel => 'Debtor name';
+
+  @override
+  String get pleaseEnterDebtorName => 'Please enter debtor name';
+
+  @override
+  String get debtAmountVnd => 'Debt amount (VND)';
+
+  @override
+  String get debtFormTypeLabel => 'Debt type:';
+
+  @override
+  String get receivableDebt => 'RECEIVABLE';
+
+  @override
+  String get payableDebt => 'PAYABLE';
+
+  @override
+  String get customerOwesShop => '(Customer owes shop)';
+
+  @override
+  String get shopOwesOther => '(Shop owes others)';
+
+  @override
+  String get createButton => 'CREATE';
+
+  @override
+  String get debtCreated => 'New debt created';
+
+  @override
+  String get createReceivableDebtTitle => 'CREATE RECEIVABLE DEBT';
+
+  @override
+  String get pleaseEnterCustomerNameDebt => 'Please enter customer name';
+
+  @override
+  String get customerDebtCreated => 'Customer debt created!';
+
+  @override
+  String createDebtError(String error) {
+    return 'Error creating debt: $error';
+  }
+
+  @override
+  String get createPayableDebtTitle => 'CREATE PAYABLE DEBT';
+
+  @override
+  String get supplierNameLabel => 'Supplier name';
+
+  @override
+  String get pleaseEnterSupplierNameDebt => 'Please enter supplier name';
+
+  @override
+  String get supplierDebtCreated => 'Supplier debt created!';
+
+  @override
+  String get noDebtAnywhere => 'No debts';
+
+  @override
+  String get collectDebtAction => 'Collect';
+
+  @override
+  String get payDebtAction => 'Pay debt';
+
+  @override
+  String get historyButton => 'History';
+
+  @override
+  String get returnDebtAction => 'Repay';
+
+  @override
+  String get partnerRepairType => 'Repair partner';
+
+  @override
+  String get manualSource => 'Manual';
+
+  @override
+  String get autoSource => 'Automatic';
+
+  @override
+  String get totalFeeLabel => 'Total fee';
+
+  @override
+  String get remainingDebtLabel => 'Remaining';
+
+  @override
+  String get paymentAction => 'Pay';
+
+  @override
+  String overdueCountDays(int count) {
+    return '$count overdue >60 days';
+  }
+
+  @override
+  String urgentCountDays(int count) {
+    return '$count need attention >30 days';
+  }
+
+  @override
+  String partnerNotInSystem(String name) {
+    return 'Partner \"$name\" is no longer in the system but the debt is kept.';
+  }
+
+  @override
+  String partnerDebtNotFound(String name) {
+    return 'Cannot find partner \"$name\". Debt still appears in list.';
+  }
+
+  @override
+  String get closedTodayDebt => '❌ Today is closed! Cannot collect debt payment.';
+
+  @override
+  String get closedTodayCreateDebt => '❌ Today is closed! Cannot create new debt.';
+
+  @override
+  String get createCustomerDebtTooltip => 'Create customer debt';
+
+  @override
+  String get createSupplierDebtTooltip => 'Create supplier debt';
+
+  @override
+  String get createOtherDebtTooltip => 'Create other debt';
+
+  @override
+  String get partnerNotInSystemTooltip => 'Partner no longer in system';
+
+  @override
+  String overdueDaysLabel(int days) {
+    return 'Overdue $days days';
+  }
+
+  @override
+  String daysLabel(int days) {
+    return '$days days';
+  }
+
+  @override
+  String get paidFullLabel => '✓ Fully paid';
+
+  @override
+  String ordersCountLabel(int count) {
+    return '$count orders';
+  }
+
+  @override
+  String get expenseManagementTitle => 'QUẢN LÝ CHI PHÍ';
+
+  @override
+  String get incomeManagementTitle => 'THU PHÁT SINH';
+
+  @override
+  String expenseCountSubtitle(int count) {
+    return '$count khoản chi';
+  }
+
+  @override
+  String incomeCountSubtitle(int count) {
+    return '$count khoản thu';
+  }
+
+  @override
+  String get exportExcelIncomeExpense => 'Xuất Excel thu chi';
+
+  @override
+  String get exportIncomeExpenseTitle => 'Xuất thu chi';
+
+  @override
+  String get confirmDeleteIncome => 'XÁC NHẬN XÓA KHOẢN THU';
+
+  @override
+  String get confirmDeleteExpenseTitle => 'XÁC NHẬN XÓA CHI PHÍ';
+
+  @override
+  String deleteIncomeContent(String title, String amount) {
+    return 'Bạn đang xóa khoản thu: $title\nSố tiền: $amount';
+  }
+
+  @override
+  String deleteExpenseContent(String title, String amount) {
+    return 'Bạn đang xóa khoản chi: $title\nSố tiền: $amount';
+  }
+
+  @override
+  String get enterPasswordToDeleteLabel => 'Nhập mật khẩu tài khoản để xóa';
+
+  @override
+  String get confirmDeleteButton => 'XÁC NHẬN XÓA';
+
+  @override
+  String get cannotDeletePurchaseExpense => 'Không thể xóa chi phí từ đơn nhập hàng!';
+
+  @override
+  String get wrongPasswordCannotDelete => 'Mật khẩu không đúng! Không thể xóa.';
+
+  @override
+  String get deletedIncomeSuccess => 'Đã xóa khoản thu thành công';
+
+  @override
+  String get deletedExpenseSuccess => 'Đã xóa chi phí thành công';
+
+  @override
+  String get closedTodayExpense => '❌ Ngày hôm nay đã chốt quỹ! Không thể thêm chi phí mới.';
+
+  @override
+  String get closedTodayIncome => '❌ Ngày hôm nay đã chốt quỹ! Không thể thêm thu phát sinh mới.';
+
+  @override
+  String get writeExpensesTitle => 'GHI CHÉP CHI PHÍ';
+
+  @override
+  String get categoryLabel => 'PHÂN LOẠI';
+
+  @override
+  String get expenseContentRequired => 'Nội dung chi *';
+
+  @override
+  String get pleaseEnterExpenseContent => 'Vui lòng nhập nội dung chi';
+
+  @override
+  String get amountVndRequired => 'Số tiền (VNĐ) *';
+
+  @override
+  String get extraNoteLabel => 'Ghi chú thêm';
+
+  @override
+  String get expenseScopeLabel => 'PHẠM VI CHI';
+
+  @override
+  String get saveExpenseButton => 'LƯU CHI PHÍ';
+
+  @override
+  String get savedExpense => 'Đã lưu chi phí!';
+
+  @override
+  String get writeIncomeTitle => 'GHI CHÉP THU PHÁT SINH';
+
+  @override
+  String get incomeContentRequired => 'Nội dung thu *';
+
+  @override
+  String get pleaseEnterIncomeContent => 'Vui lòng nhập nội dung thu';
+
+  @override
+  String get incomeScopeLabel => 'PHẠM VI';
+
+  @override
+  String get saveIncomeButton => 'LƯU KHOẢN THU';
+
+  @override
+  String get savedIncome => 'Đã lưu thu phát sinh!';
+
+  @override
+  String get newExpenseFab => 'Chi phí mới';
+
+  @override
+  String get newIncomeFab => 'Thu phát sinh';
+
+  @override
+  String get totalIncomeLabel => 'Tổng thu phát sinh';
+
+  @override
+  String get totalExpenseLabel => 'Tổng chi';
+
+  @override
+  String get todayPeriod => 'HÔM NAY';
+
+  @override
+  String get thisWeekPeriod => 'TUẦN NÀY';
+
+  @override
+  String get thisMonthPeriod => 'THÁNG NÀY';
+
+  @override
+  String noExpenseInPeriod(String period) {
+    return 'Không có chi phí nào trong $period này';
+  }
+
+  @override
+  String noIncomeInPeriod(String period) {
+    return 'Không có khoản thu phát sinh nào trong $period này';
+  }
+
+  @override
+  String get webNotAvailableMessage => 'Tính năng này không khả dụng trên trình duyệt web.\nVui lòng sử dụng ứng dụng di động.';
+
+  @override
+  String get noNameLabel => 'Không tên';
+
+  @override
+  String closedDayCannotDelete(String date, String label) {
+    return '❌ Ngày $date đã chốt quỹ! Không thể xóa $label.';
+  }
+
+  @override
+  String get incomeTypeLabel => 'thu phát sinh';
+
+  @override
+  String get expenseTypeLabel => 'chi phí';
+
+  @override
+  String get noPermissionFeature => 'Bạn không có quyền truy cập tính năng này.';
+
+  @override
+  String get expenseGuideStep1Title => '💸 Ghi nhận Thu & Chi';
+
+  @override
+  String get expenseGuideStep1Desc => 'Ghi lại các khoản thu nhập ngoài bán hàng (THU) và chi phí vận hành (CHI) của cửa hàng.';
+
+  @override
+  String get expenseGuideStep2Title => '📂 Phân loại chi phí';
+
+  @override
+  String get expenseGuideStep2Desc => 'Phân biệt chi phí cửa hàng (điện, nước, mặt bằng) và chi phí cá nhân để báo cáo chính xác.';
+
+  @override
+  String get expenseGuideStep3Title => '📅 Lọc theo thời gian';
+
+  @override
+  String get expenseGuideStep3Desc => 'Xem thu chi theo ngày, tuần hoặc tháng để kiểm soát dòng tiền hiệu quả.';
+
+  @override
+  String get expenseGuideStep4Title => '📊 Biểu đồ tổng hợp';
+
+  @override
+  String get expenseGuideStep4Desc => 'Theo dõi xu hướng thu chi bằng biểu đồ trực quan, phát hiện khoản chi bất thường.';
+
+  @override
+  String get expenseCatIncidental => 'Phát sinh';
+
+  @override
+  String get expenseCatService => 'Dịch vụ';
+
+  @override
+  String get expenseCatRefund => 'Hoàn tiền';
+
+  @override
+  String get expenseCatFixed => 'Cố định';
+
+  @override
+  String get expenseCatStockIn => 'Nhập hàng';
+
+  @override
+  String get expenseScopePersonal => 'CÁ NHÂN';
+
+  @override
+  String get expenseScopeAll => 'TẤT CẢ';
+
+  @override
+  String debtPartnerDefaultName(int index) {
+    return 'Đối tác $index';
+  }
+
+  @override
+  String debtGenericError(String error) {
+    return 'Lỗi: $error';
+  }
+
+  @override
+  String get debtPaymentGenericError => 'Có lỗi xảy ra';
+
+  @override
+  String get debtGuideTitle => 'Quản Lý Công Nợ';
+
+  @override
+  String get debtGuideStep1Title3Types => '📊 3 loại công nợ';
+
+  @override
+  String get debtGuideStep1Title2Types => '📊 2 loại công nợ';
+
+  @override
+  String get debtGuideStep1Desc3Types => 'KHÁCH NỢ (khách chưa TT), NỢ NCC (nợ nhà cung cấp), NỢ ĐỐI TÁC (nợ thợ sửa ngoài).';
+
+  @override
+  String get debtGuideStep1Desc2Types => 'KHÁCH NỢ (khách chưa TT), NỢ NCC (nợ nhà cung cấp).';
+
+  @override
+  String get debtGuideStep2Title => '💰 Ghi nhận thanh toán';
+
+  @override
+  String get debtGuideStep2Desc => 'Nhấn vào khoản nợ để xem chi tiết và ghi nhận thanh toán từng phần hoặc toàn bộ.';
+
+  @override
+  String get debtGuideStep3Title => '📅 Theo dõi hạn nợ';
+
+  @override
+  String get debtGuideStep3Desc => 'Nợ quá hạn sẽ được highlight đỏ. Báo cáo tổng hợp giúp theo dõi dòng tiền.';
+
+  @override
+  String get debtGuideStep4Title => '🔄 Tự động tạo nợ';
+
+  @override
+  String get debtGuideStep4Desc => 'Khi bán hàng/nhập kho chọn "CÔNG NỢ", hệ thống tự tạo khoản nợ tương ứng.';
+
+  @override
+  String get debtCollectFieldName => 'Số tiền thu';
+
+  @override
+  String get debtPayFieldName => 'Số tiền thanh toán';
+
+  @override
+  String get debtAmountFieldName => 'Số tiền nợ';
+
+  @override
+  String get backupGroupOperations => 'Vận hành';
+
+  @override
+  String get backupGroupWarehouse => 'Kho & Sản phẩm';
+
+  @override
+  String get backupGroupFinance => 'Tài chính';
+
+  @override
+  String get backupGroupHr => 'Nhân sự';
+
+  @override
+  String get backupGroupCrm => 'Quan hệ khách hàng';
+
+  @override
+  String get backupGroupSystem => 'Hệ thống';
+
+  @override
+  String get backupColRepairs => 'Đơn sửa chữa';
+
+  @override
+  String get backupColRepairParts => 'Kho linh kiện sửa chữa';
+
+  @override
+  String get backupColRepairPartners => 'Đối tác sửa chữa';
+
+  @override
+  String get backupColPartnerHistory => 'Lịch sử gửi đối tác';
+
+  @override
+  String get backupColSales => 'Đơn bán hàng';
+
+  @override
+  String get backupColInventoryChecks => 'Kiểm kê kho';
+
+  @override
+  String get backupColCashClosings => 'Chốt ca';
+
+  @override
+  String get backupColProducts => 'Sản phẩm / Kho';
+
+  @override
+  String get backupColSalvagePhones => 'Kho máy xác';
+
+  @override
+  String get backupColStorageLocations => 'Kho vị trí';
+
+  @override
+  String get backupColSuppliers => 'Nhà cung cấp';
+
+  @override
+  String get backupColPurchaseOrders => 'Đơn nhập hàng';
+
+  @override
+  String get backupColImportOrders => 'Phiếu nhập kho';
+
+  @override
+  String get backupColSupplierImportHistory => 'Lịch sử nhập NCC';
+
+  @override
+  String get backupColQuickInputCodes => 'Mã nhập nhanh';
+
+  @override
+  String get backupColDebts => 'Công nợ';
+
+  @override
+  String get backupColDebtPayments => 'Thanh toán nợ';
+
+  @override
+  String get backupColExpenses => 'Chi phí';
+
+  @override
+  String get backupColPaymentIntents => 'Yêu cầu thanh toán';
+
+  @override
+  String get backupColPaymentRequests => 'Yêu cầu đóng tiền';
+
+  @override
+  String get backupColSupplierPayments => 'Chi NCC';
+
+  @override
+  String get backupColRepairPartnerPayments => 'Chi đối tác sửa chữa';
+
+  @override
+  String get backupColAttendance => 'Chấm công';
+
+  @override
+  String get backupColPayrollSettings => 'Cài đặt lương';
+
+  @override
+  String get backupColWorkSchedules => 'Lịch làm việc';
+
+  @override
+  String get backupColCustomers => 'Khách hàng';
+
+  @override
+  String get backupColChats => 'Tin nhắn chat';
+
+  @override
+  String get backupColAuditLogs => 'Nhật ký thao tác';
+
+  @override
+  String get backupOptionsTooltip => 'Tùy chọn';
+
+  @override
+  String get backupOpenSqliteTab => 'Mở tab SQLite';
+
+  @override
+  String get backupOpenFirestoreTab => 'Mở tab Firestore';
+
+  @override
+  String get backupSqliteTabLabel => 'SQLite (file .db)';
+
+  @override
+  String get backupFirestoreTabLabel => 'Firestore (cloud)';
+
+  @override
+  String get backupGuideTitle => 'Hướng dẫn sao lưu & khôi phục';
+
+  @override
+  String get backupGuideStep1 => '1. SQLite (offline): dùng khi cần sao lưu/khôi phục toàn bộ file dữ liệu tại máy.';
+
+  @override
+  String get backupGuideStep2 => '2. Firestore (online): cho phép sao lưu/khôi phục theo từng mục (đơn sửa, đơn bán, kho, công nợ...).';
+
+  @override
+  String get backupGuideStep3 => '3. Khuyến nghị: sao lưu lên Cloud định kỳ mỗi ngày và trước khi cập nhật ứng dụng.';
+
+  @override
+  String get backupGuideStep4 => '4. Restore SQLite có 2 kiểu: khôi phục nguyên bản cho cùng shop, hoặc chuyển dữ liệu sang shop hiện tại bằng cách đổi shopId.';
+
+  @override
+  String get backupGuideStep5 => '5. Nếu khôi phục vào shop khác mà không đổi shopId thì dữ liệu vẫn thuộc shop cũ nên app sẽ không hiển thị đúng.';
+
+  @override
+  String get backupRestoreBtn => 'Khôi phục';
+
+  @override
+  String get backupRestoreOriginalBtn => 'Khôi phục nguyên bản';
+
+  @override
+  String get backupTransferToCurrentShop => 'Chuyển vào shop hiện tại';
+
+  @override
+  String get backupSaveToDevice => 'Lưu file .db vào máy';
+
+  @override
+  String get backupShareLatest => 'Chia sẻ bản sao mới nhất';
+
+  @override
+  String get backupSelectAndBackup => 'Chọn mục & Sao lưu lên Cloud';
+
+  @override
+  String get backupSelectFile => 'Chọn file .db';
+
+  @override
+  String get backupSelectCustomItems => 'Chọn tùy ý nhiều mục...';
+
+  @override
+  String get backupCleanOldBtn => 'Dọn backup cũ...';
+
+  @override
+  String get backupUploadToCloud => 'Sao lưu lên Cloud';
+
+  @override
+  String get backupBackupLabel => 'Sao lưu';
+
+  @override
+  String get backupSqliteSectionTitle => 'Sao lưu SQLite';
+
+  @override
+  String get backupLocalListTitle => 'Bản sao lưu SQLite trong máy';
+
+  @override
+  String get backupQuickGuideTitle => 'Hướng dẫn nhanh';
+
+  @override
+  String get backupCloudListTitle => 'Bản sao lưu SQLite trên Cloud';
+
+  @override
+  String get backupRestoreFromFileTitle => 'Khôi phục từ file';
+
+  @override
+  String get backupDeleteSelectiveTitle => 'Xóa dữ liệu chọn lọc';
+
+  @override
+  String get backupCleanOldTitle => 'Dọn backup cũ';
+
+  @override
+  String get backupFirestoreInfoText => 'Sao lưu Firestore lưu từng collection thành file JSON riêng. Bạn có thể chọn mục nào cần sao lưu hoặc khôi phục.';
+
+  @override
+  String get backupRestoreByItemTitle => 'Khôi phục theo từng mục';
+
+  @override
+  String get backupRestoreByItemDesc1 => 'Bạn có thể chọn chính xác từng nhóm dữ liệu khi khôi phục (VD: chỉ Đơn sửa, chỉ Kho, chỉ Công nợ).';
+
+  @override
+  String get backupRestoreByItemDesc2 => 'Hệ thống chỉ ghi đè các mục bạn chọn, không ảnh hưởng các mục còn lại.';
+
+  @override
+  String get backupFirestoreSectionTitle => 'Sao lưu Firestore';
+
+  @override
+  String get backupFirestoreListTitle => 'Bản sao lưu Firestore';
+
+  @override
+  String get backupNoFirestoreBackups => 'Chưa có bản sao lưu Firestore nào.';
+
+  @override
+  String get backupProcessing => 'Đang xử lý...';
+
+  @override
+  String backupSavedPathLabel(String fileName) => 'Đã lưu: $fileName';
+
+  @override
+  String get backupNoLocalBackupsHint => 'Chưa có bản sao lưu cục bộ nào. Hãy bấm "Lưu file .db vào máy" ở trên.';
+
+  @override
+  String get backupNoCloudBackups => 'Chưa có bản sao lưu nào.';
+
+  @override
+  String get backupRestoreFileHint => 'Chọn file .db đã sao lưu trước đó để khôi phục.';
+
+  @override
+  String get backupDeleteSelectiveHint => 'Xóa vĩnh viễn dữ liệu cục bộ khỏi thiết bị này. Nên sao lưu trước khi xóa.';
+
+  @override
+  String get backupCleanOldHint => 'Xóa các file backup cục bộ cũ hơn số ngày bạn chọn.';
+
+  @override
+  String get backupQuickGuideOffline => '• Sao lưu offline: bấm "Lưu file .db vào máy" để tạo bản backup cục bộ.';
+
+  @override
+  String get backupQuickGuideShare => '• Chia sẻ backup: dùng nút "Chia sẻ" trong danh sách backup cục bộ.';
+
+  @override
+  String get backupQuickGuideRestoreOffline => '• Khôi phục offline: chọn từ danh sách backup cục bộ hoặc file .db.';
+
+  @override
+  String get backupQuickGuideRestoreOnline => '• Khôi phục online: chọn một bản SQLite trên Cloud và bấm "Khôi phục".';
+
+  @override
+  String backupCannotLoad(String error) => 'Không thể tải backup: $error';
+
+  @override
+  String get backupSavedLocally => 'Đã lưu bản sao SQLite vào máy. Bạn có thể chia sẻ từ danh sách backup cục bộ.';
+
+  @override
+  String backupExportError(String error) => 'Lỗi xuất file: $error';
+
+  @override
+  String backupShareFileError(String error) => 'Lỗi chia sẻ file: $error';
+
+  @override
+  String backupDeletedLocalName(String name) => 'Đã xóa backup cục bộ $name.';
+
+  @override
+  String backupDeleteLocalError(String error) => 'Lỗi xóa backup cục bộ: $error';
+
+  @override
+  String get backupCloudSuccess => 'Sao lưu SQLite lên Cloud thành công!';
+
+  @override
+  String get backupDeletedCloud => 'Đã xóa bản sao lưu Cloud.';
+
+  @override
+  String backupRestoreErrorMsg(String error) => 'Lỗi khôi phục: $error';
+
+  @override
+  String backupRestoreLocalErrorMsg(String error) => 'Lỗi khôi phục cục bộ: $error';
+
+  @override
+  String backupDeleteSuccessWithCloud(int localRows, int cloudRows, String label) =>
+      'Đã xóa local $localRows bản ghi và cloud $cloudRows bản ghi ($label). Khởi động lại app để áp dụng.';
+
+  @override
+  String backupDeleteSuccessLocalOnly(int localRows, String label) =>
+      'Đã xóa $localRows bản ghi local ($label). Nếu Cloud còn dữ liệu, app có thể sync lại.';
+
+  @override
+  String backupDeleteErrorMsg(String error) => 'Lỗi xóa: $error';
+
+  @override
+  String backupFirestoreError(String error) => 'Lỗi sao lưu Firestore: $error';
+
+  @override
+  String backupRestoreSuccessMsg(int count) => 'Khôi phục thành công ($count mục)!';
+
+  @override
+  String backupRestoreFirestoreError(String error) => 'Lỗi khôi phục: $error';
+
+  @override
+  String get backupDeletedSet => 'Đã xóa bản sao lưu.';
+
+  @override
+  String backupDeleteSetErrorMsg(String error) => 'Lỗi xóa: $error';
+
+  @override
+  String backupNoOldFiles(int days) => 'Không có backup nào cũ hơn $days ngày.';
+
+  @override
+  String backupDeletedOldFiles(int count, int days) =>
+      'Đã xóa $count file backup cũ hơn $days ngày.';
+
+  @override
+  String backupCleanError(String error) => 'Lỗi dọn backup: $error';
+
+  @override
+  String get backupDeleteLocalTitle => 'Xóa bản sao lưu cục bộ?';
+
+  @override
+  String backupDeleteLocalContent(String name) => 'Bạn có chắc muốn xóa file "$name"?';
+
+  @override
+  String get backupDeleteCloudTitle => 'Xóa bản sao lưu Cloud?';
+
+  @override
+  String get backupChooseRestoreType => 'Chọn kiểu khôi phục';
+
+  @override
+  String get backupRestoreOriginalDesc =>
+      'Khôi phục nguyên bản: giữ dữ liệu thuộc shop đã backup.\n\nChuyển vào shop hiện tại: đổi shopId để dữ liệu hiện ra trong shop đang đăng nhập.';
+
+  @override
+  String get backupRestoreCloudTitle => 'Khôi phục SQLite từ Cloud';
+
+  @override
+  String backupRestoreCloudContent(String fileName) =>
+      'Bạn sắp khôi phục từ bản sao lưu:\n$fileName\n\nDữ liệu hiện tại trên máy sẽ bị ghi đè. Tiếp tục?';
+
+  @override
+  String get backupChooseRestoreTypeTip =>
+      'Khôi phục nguyên bản sẽ giữ nguyên shopId cũ.\n\nNếu muốn đưa dữ liệu vào shop hiện tại, chọn phương án chuyển shopId.';
+
+  @override
+  String get backupSelectDataSqlite => 'Chọn dữ liệu cần khôi phục (SQLite)';
+
+  @override
+  String get backupRestoreSuccessTitle => 'Khôi phục thành công';
+
+  @override
+  String backupRestoredWithTransfer(int count) =>
+      'Đã khôi phục $count mục và chuyển vào shop hiện tại. Vui lòng khởi động lại ứng dụng để áp dụng thay đổi.';
+
+  @override
+  String backupRestoredNoTransfer(int count) =>
+      'Đã khôi phục $count mục dữ liệu. Vui lòng khởi động lại ứng dụng để áp dụng thay đổi.';
+
+  @override
+  String backupRestoredCloudWithTransfer(int count) =>
+      'Đã khôi phục $count mục từ Cloud và chuyển vào shop hiện tại. Vui lòng khởi động lại ứng dụng.';
+
+  @override
+  String backupRestoredCloudNoTransfer(int count) =>
+      'Đã khôi phục $count mục từ Cloud. Vui lòng khởi động lại ứng dụng để áp dụng dữ liệu mới.';
+
+  @override
+  String backupDeleteWarningTitle(String label) => 'Xóa: $label?';
+
+  @override
+  String get backupDeleteWarningContent =>
+      'Dữ liệu sẽ bị xóa vĩnh viễn khỏi thiết bị này.\n\nNên sao lưu trước khi xóa để tránh mất dữ liệu quan trọng.';
+
+  @override
+  String get backupDeleteCloudTooLabel => 'Xóa luôn dữ liệu Cloud của shop hiện tại';
+
+  @override
+  String get backupDeleteCloudTooSubtitle =>
+      'Nếu không chọn, dữ liệu Cloud có thể đồng bộ trở lại thiết bị sau khi xóa local.';
+
+  @override
+  String get backupDeleteForever => 'Xóa vĩnh viễn';
+
+  @override
+  String get backupSelectDataToDelete => 'Chọn dữ liệu cần xóa';
+
+  @override
+  String get backupKeepDaysTitle => 'Giữ backup bao nhiêu ngày gần nhất?';
+
+  @override
+  String get backupKeep30Days => '30 ngày — xóa backup cũ hơn 1 tháng';
+
+  @override
+  String get backupKeep60Days => '60 ngày — xóa backup cũ hơn 2 tháng';
+
+  @override
+  String get backupKeep90Days => '90 ngày — xóa backup cũ hơn 3 tháng';
+
+  @override
+  String get backupKeep180Days => '180 ngày — xóa backup cũ hơn 6 tháng';
+
+  @override
+  String get backupLocalRestoreTitle => 'Khôi phục SQLite cục bộ';
+
+  @override
+  String get backupLocalRestoreContent => 'Dữ liệu hiện tại sẽ bị ghi đè bởi bản backup này. Tiếp tục?';
+
+  @override
+  String backupRestoredLocalWithTransfer(int count) =>
+      'Đã khôi phục $count mục và chuyển vào shop hiện tại. Vui lòng khởi động lại ứng dụng.';
+
+  @override
+  String backupRestoredLocalNoTransfer(int count) =>
+      'Đã khôi phục $count mục từ bản backup cục bộ. Vui lòng khởi động lại ứng dụng.';
+
+  @override
+  String backupConfirmRestoreContent(int count, String date) =>
+      'Dữ liệu hiện tại của $count mục sẽ bị ghi đè bởi bản sao lưu ngày $date.\n\nTiếp tục?';
+
+  @override
+  String get backupDeleteSetTitle => 'Xóa bản sao lưu?';
+
+  @override
+  String backupDeleteSetContent(String date) => 'Xóa bản sao lưu ngày $date?';
+
+  @override
+  String get backupPreparingMsg => 'Đang chuẩn bị...';
+
+  @override
+  String backupBackingUpItem(String item, int done, int total) =>
+      'Đang sao lưu $item ($done/$total)...';
+
+  @override
+  String get backupRestoringMsg => 'Đang khôi phục...';
+
+  @override
+  String get backupSelectDataBackup => 'Chọn dữ liệu cần sao lưu';
+
+  @override
+  String backupSelectedCountLabel(int count) => '$count mục đã chọn';
+
+  @override
+  String get backupNotAvailable => 'Không có trong bản sao lưu này';
+
+  @override
+  String get backupStorageRulesTitle => 'Cần cấu hình Firebase Storage Rules';
+
+  @override
+  String backupCloudPermissionError(String action) =>
+      '$action Cloud thất bại: tài khoản chưa có quyền Firebase Storage cho db_backups.';
+
+  @override
+  String backupCloudNotFoundError(String action) =>
+      '$action Cloud thất bại: không tìm thấy file backup trên Cloud.';
+
+  @override
+  String backupCloudAuthError(String action) =>
+      '$action Cloud thất bại: phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.';
+
+  @override
+  String backupCloudGenericError(String action, String error) =>
+      '$action Cloud thất bại: $error';
+
+  @override
+  String get backupPresetInventoryCash => 'Kiểm kê & Chốt ca';
+
+  @override
+  String get backupPresetAccessoriesProducts => 'Phụ kiện / Sản phẩm';
+
+  @override
+  String get backupPresetRepairParts => 'Linh kiện sửa chữa';
+
+  @override
+  String get backupPresetSupplierImport => 'NCC & Nhập hàng';
+
+  @override
+  String get backupPresetPayments => 'Thanh toán';
+
+  @override
+  String get backupPresetOther => 'Khác';
+
+  @override
+  String get backupPresetHr => 'Nhân sự';
+
+  @override
+  String get backupPresetSystemLog => 'Nhật ký hệ thống';
+
+  @override
+  String get backupConfirmRestoreTitle => 'Xác nhận khôi phục';
+
+  // Inventory view keys
+  @override
+  String get inventoryManageTitle => 'QUẢN LÝ KHO';
+
+  @override
+  String get inventoryManageTotalTitle => 'QUẢN LÝ KHO TỔNG';
+
+  @override
+  String get inventoryNoAccessMsg => 'Bạn không có quyền truy cập\nmàn hình quản lý kho';
+
+  @override
+  String inventoryUnsyncedNote(int count) => '$count chưa đồng bộ';
+
+  @override
+  String get inventoryInStockLabel => 'CÒN HÀNG';
+
+  @override
+  String get inventoryTempStockLabel => 'KHO TẠM';
+
+  @override
+  String get inventoryTempStockBanner => 'KHO TẠM – Chờ xác nhận giá';
+
+  @override
+  String inventoryExpectedSupplier(String supplier) => 'NCC dự kiến: $supplier';
+
+  @override
+  String get inventoryStockQty => 'SL tồn kho';
+
+  @override
+  String get inventoryPurchasePrice => 'Giá nhập';
+
+  @override
+  String get inventorySalePriceItem => 'Giá bán';
+
+  @override
+  String get inventoryLoss => 'Lỗ';
+
+  @override
+  String get inventoryCapacityLabel => 'Dung lượng';
+
+  @override
+  String get inventorySizeLabel => 'Kích thước';
+
+  @override
+  String get inventorySupplierLabel => 'Nhà cung cấp';
+
+  @override
+  String get inventoryPendingConfirm => 'Chưa xác nhận';
+
+  @override
+  String get inventoryWaitingConfirm => 'Chờ xác nhận';
+
+  @override
+  String get inventoryWarehouseLocation => 'Vị trí kho';
+
+  @override
+  String get inventoryLastUpdated => 'Cập nhật cuối';
+
+  @override
+  String get inventoryRepairHistorySection => 'LỊCH SỬ SỬA CHỮA';
+
+  @override
+  String get inventoryConfirmPriceBtn => 'XÁC NHẬN GIÁ – CHUYỂN KHO CHÍNH';
+
+  @override
+  String get inventoryPrintingLabelMsg => 'Đang in tem...';
+
+  @override
+  String get inventoryPrintLabelSuccess => 'In tem thành công';
+
+  @override
+  String get inventoryPrintLabelError => 'Lỗi khi in tem';
+
+  @override
+  String get inventoryPrintLabelAction => 'IN TEM';
+
+  @override
+  String get inventoryEditAction => 'SỬA';
+
+  @override
+  String get inventorySellAction => 'BÁN';
+
+  @override
+  String inventoryStockMoreAction(int count) => 'NHẬP THÊM ($count)';
+
+  @override
+  String get inventoryDeleteAction => 'XÓA';
+
+  @override
+  String get inventoryRestockTitle => 'NHẬP THÊM';
+
+  @override
+  String inventoryCurrentStockNote(int qty) => 'Tồn kho hiện tại: $qty';
+
+  @override
+  String inventoryCurrentCostNote(String price) => 'Giá vốn hiện tại: $price';
+
+  @override
+  String get inventoryRestockQtyLabel => 'Số lượng nhập thêm';
+
+  @override
+  String get inventoryRestockPriceLabel => 'Giá nhập (VNĐ)';
+
+  @override
+  String inventoryWeightedCostNote(String price) => 'Giá vốn sau nhập: $price';
+
+  @override
+  String get inventoryPaymentMethodLabel => 'Phương thức thanh toán';
+
+  @override
+  String get inventoryCashOption => 'Tiền mặt';
+
+  @override
+  String get inventoryBankTransferOption => 'Chuyển khoản';
+
+  @override
+  String get inventoryDebtOption => 'Công nợ';
+
+  @override
+  String get inventoryStockInAction => 'NHẬP KHO';
+
+  @override
+  String get inventoryValidQtyError => 'Vui lòng nhập số lượng hợp lệ';
+
+  @override
+  String get inventoryValidPriceError => 'Vui lòng nhập giá nhập hợp lệ';
+
+  @override
+  String get inventoryStockingIn => 'Đang nhập kho...';
+
+  @override
+  String get inventoryNoSupplierFoundError => 'Không tìm thấy nhà cung cấp hợp lệ cho sản phẩm này. Vui lòng cập nhật NCC rồi nhập lại.';
+
+  @override
+  String get inventoryCreateEntryError => 'Lỗi tạo phiếu nhập kho';
+
+  @override
+  String inventoryStockInSuccess(int qty, String name) => 'Đã nhập thêm $qty $name vào kho';
+
+  @override
+  String get inventoryConfirmEntryError => 'Lỗi xác nhận phiếu nhập kho';
+
+  @override
+  String inventoryErrorMsg(String error) => 'Lỗi: $error';
+
+  @override
+  String get inventoryEditOption => 'Chỉnh sửa';
+
+  @override
+  String get inventoryHideOption => 'Ẩn khỏi kho';
+
+  @override
+  String inventoryCostPriceNote(String price) => 'Giá vốn: $price';
+
+  @override
+  String get inventorySoftDeleteWarning => '⚠️ LƯU Ý QUAN TRỌNG:';
+
+  @override
+  String get inventorySoftDeleteDesc => '• Đây là XÓA MỀM – chỉ ẩn khỏi danh sách kho\n• KHÔNG ảnh hưởng doanh thu, công nợ, lịch sử nhập\n• Mọi số liệu tài chính khác GIỮ NGUYÊN';
+
+  @override
+  String get inventoryDeleteReasonLabel => 'Lý do xóa (tùy chọn)';
+
+  @override
+  String get inventoryDeleteReasonHint => 'VD: Nhập sai, trả hàng NCC...';
+
+  @override
+  String get inventoryAccountPassword => 'Mật khẩu tài khoản *';
+
+  @override
+  String get inventoryEnterPasswordError => 'Vui lòng nhập mật khẩu';
+
+  @override
+  String get inventoryWrongPasswordError => 'Mật khẩu không đúng';
+
+  @override
+  String get inventoryHideFromWarehouse => 'ẨN KHỎI KHO';
+
+  @override
+  String inventoryHideSuccess(String product, String name) => 'Đã ẩn $product khỏi kho: $name';
+
+  @override
+  String inventoryHideError(String product, String error) => 'Lỗi xóa $product: $error';
+
+  @override
+  String get inventoryEmptyFiltered => 'Không tìm thấy sản phẩm';
+
+  @override
+  String get inventoryEmptyAll => 'Kho hàng đang trống';
+
+  @override
+  String get inventoryEmptyFilteredSub => 'Thử bỏ bộ lọc hoặc tìm từ khóa khác';
+
+  @override
+  String get inventoryEmptyOutOfStockSub => 'Bật "Hết hàng" để xem sản phẩm đã hết';
+
+  @override
+  String get inventoryConfirmDeleteTitle => 'XÁC NHẬN XÓA';
+
+  @override
+  String inventoryConfirmDeleteContent(int count) => 'Bạn có chắc chắn muốn xóa $count mặt hàng đã chọn không?';
+
+  @override
+  String get inventoryEnterPasswordToDelete => 'Nhập mật khẩu tài khoản để xóa:';
+
+  @override
+  String get inventoryAccountPasswordLabel => 'Mật khẩu tài khoản';
+
+  @override
+  String get inventoryDeleteNow => 'XÓA NGAY';
+
+  @override
+  String get inventoryAddPartTooltip => 'Thêm linh kiện';
+
+  @override
+  String get inventoryStockInAITooltip => 'Nhập kho nhanh (AI)';
+
+  @override
+  String get inventoryStockInTooltip => 'Nhập kho';
+
+  @override
+  String inventorySearchWithQuery(String query) => 'Tìm kiếm: "$query"';
+
+  @override
+  String get inventoryMoreTooltip => 'Thêm';
+
+  @override
+  String get inventoryStorageLocationMenu => 'Vị trí lưu kho';
+
+  @override
+  String get inventoryPrintLabelsMenu => 'In tem';
+
+  @override
+  String inventorySelectedCount(int count) => 'ĐÃ CHỌN $count';
+
+  @override
+  String inventoryShownCount(int count, String product) => 'Đã hiển thị $count $product';
+
+  @override
+  String get inventoryDisplayOrTotal => 'HIỂN THỊ / TỔNG';
+
+  @override
+  String get inventoryTotalLabel => 'TỔNG KHO';
+
+  @override
+  String get inventoryCapitalLabel => 'VỐN TỒN KHO';
+
+  @override
+  String get inventoryLocationFilter => 'Vị trí';
+
+  @override
+  String get inventoryOutOfStockFilter => 'Hết hàng';
+
+  @override
+  String get inventoryNoLocationMsg => 'Chưa có vị trí nào được tạo.';
+
+  @override
+  String get inventoryFilterByLocation => 'Lọc theo vị trí';
+
+  @override
+  String get inventoryAllFilter => 'Tất cả';
+
+  @override
+  String get inventoryStatusPending => 'Kho tạm';
+
+  @override
+  String get inventoryStatusLowStock => 'Sắp hết';
+
+  @override
+  String get inventoryWaitingPrice => 'Chờ giá';
+
+  @override
+  String get inventoryRemainingLabel => 'còn';
+
+  @override
+  String get inventoryConfirmCostTitle => 'Xác nhận giá - Chuyển Kho Chính';
+
+  @override
+  String get inventoryValidCostError => 'Vui lòng nhập giá vốn hợp lệ!';
+
+  @override
+  String get inventorySelectSupplierError => 'Vui lòng chọn nhà cung cấp!';
+
+  @override
+  String get inventoryConfirmCostSuccess => 'Đã xác nhận giá và chuyển sang Kho Chính!';
+
+  @override
+  String get inventorySelectSupplierFirst => 'Vui lòng chọn Nhà cung cấp!';
+
+  @override
+  String get inventoryCostChangeTitle => 'Cảnh báo thay đổi giá vốn';
+
+  @override
+  String get inventoryCostChangeMessage => 'Sản phẩm này đã được lưu vào kho. Sửa giá vốn sẽ không ảnh hưởng các đơn cũ nhưng có thể làm sai báo cáo lãi gộp. Bạn có chắc muốn tiếp tục?';
+
+  @override
+  String get inventoryUpdateSuccess => 'CẬP NHẬT THÀNH CÔNG';
+
+  @override
+  String get inventoryProductTypeLocked => 'Loại hàng (không đổi)';
+
+  @override
+  String get inventoryBrandField => 'Hãng *';
+
+  @override
+  String get inventoryModelField => 'Model (VD: 15 PRO MAX)';
+
+  @override
+  String get inventoryCapacityField => 'Dung lượng';
+
+  @override
+  String get inventorySizeField => 'Kích thước';
+
+  @override
+  String get inventoryColorField => 'Màu sắc';
+
+  @override
+  String get inventoryConditionField => 'Tình trạng';
+
+  @override
+  String get inventoryLabelInfoField => 'Thông tin in trên tem';
+
+  @override
+  String get inventoryNoteHint => 'Ghi chú thêm về sản phẩm...';
+
+  @override
+  String get inventoryCostLockedField => 'Giá vốn (đã nhập kho - không đổi)';
+
+  @override
+  String get inventoryCostField => 'Giá vốn (k)';
+
+  @override
+  String get inventoryPriceField => 'Giá bán (k)';
+
+  @override
+  String get inventoryExpiry => 'HẠN SỬ DỤNG';
+
+  @override
+  String get inventoryChooseExpiry => 'Chọn ngày hết hạn';
+
+  @override
+  String get inventoryExpiryLabel => 'Ngày hết hạn';
+
+  @override
+  String get inventoryNotChosen => 'Chưa chọn';
+
+  @override
+  String get inventoryBatchField => 'Số lô hàng';
+
+  @override
+  String get inventoryPhotoSection => 'ẢNH & VỊ TRÍ LƯU KHO';
+
+  @override
+  String get inventoryQtyLockedField => 'SL tồn kho';
+
+  @override
+  String get inventorySupplierLockedField => 'Nhà cung cấp (không đổi)';
+
+  @override
+  String get inventoryNoSupplier => 'Không có';
+
+  @override
+  String get inventoryRestockBtn => 'Nhập thêm hàng vào kho';
+
+  @override
+  String get inventoryUpdateAction => 'CẬP NHẬT';
+
+  @override
+  String get inventoryStatusReceived => 'Đã nhận';
+
+  @override
+  String get inventoryStatusRepairing => 'Đang sửa';
+
+  @override
+  String get inventoryStatusCompleted => 'Hoàn thành';
+
+  @override
+  String get inventoryStatusDelivered => 'Đã giao';
+
+  @override
+  String get inventoryStatusUnknown => 'Không rõ';
+
+  @override
+  String inventorySearchProduct(String product) => 'Tìm $product';
+
+  @override
+  String get inventoryExportParts => 'Xuất kho linh kiện';
+
+  @override
+  String get inventoryExportProducts => 'Xuất kho hàng';
+
+  @override
+  String inventorySearchHint(String product, String category, String field) => 'Nhập $product, $category hoặc $field...';
+
+  @override
+  String inventoryHideProductTitle(String product) => 'ẨN $product (KHO)';
+
+  @override
+  String get inventorySearchTooltip => 'Tìm kiếm';
+
+  @override
+  String get inventoryExportExcelMenu => 'Xuất Excel';
+
+  @override
+  String inventoryCapitalChip(String price) => 'Vốn ${price}đ';
+
+  @override
+  String inventoryEditProductTitle(String label) => 'CHỈNH SỬA $label';
+
+  @override
+  String inventoryProductNameLabel(String label) => 'Tên $label';
+
+  @override
+  String get inventoryConfirmBtn => 'XÁC NHẬN';
+
+  @override
+  String get inventoryCostPriceRequired => 'GIÁ VỐN (*)';
+
+  @override
+  String get inventorySalePriceOptional => 'GIÁ BÁN (tùy chọn)';
+
+  @override
+  String get inventorySupplierRequired => 'NHÀ CUNG CẤP (*)';
+
+  @override
+  String get inventoryPaymentLabel => 'THANH TOÁN';
 }

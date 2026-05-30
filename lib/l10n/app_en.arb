@@ -3193,5 +3193,1674 @@
         "type": "int"
       }
     }
-  }
+  },
+
+  "saleListSearchHint": "Search by customer, {productLabel} or {codeLabel}...",
+  "@saleListSearchHint": {
+    "description": "Search hint in sale list with dynamic product and code labels",
+    "placeholders": {
+      "productLabel": {
+        "type": "String"
+      },
+      "codeLabel": {
+        "type": "String"
+      }
+    }
+  },
+  "saleListGuideTitle": "Sales History",
+  "@saleListGuideTitle": {
+    "description": "Title for the first-time guide on the sale list screen"
+  },
+  "saleListGuide1Title": "🛒 Invoice list",
+  "@saleListGuide1Title": {
+    "description": "Step 1 title in sale list guide"
+  },
+  "saleListGuide1Desc": "View all sale invoices by day/week/month. Total revenue is shown at the top.",
+  "@saleListGuide1Desc": {
+    "description": "Step 1 description in sale list guide"
+  },
+  "saleListGuide2Title": "🔍 Search",
+  "@saleListGuide2Title": {
+    "description": "Step 2 title in sale list guide"
+  },
+  "saleListGuide2Desc": "Find invoices by customer name, product name or invoice code.",
+  "@saleListGuide2Desc": {
+    "description": "Step 2 description in sale list guide"
+  },
+  "saleListGuide3Title": "📄 View details & reprint",
+  "@saleListGuide3Title": {
+    "description": "Step 3 title in sale list guide"
+  },
+  "saleListGuide3Desc": "Tap an invoice to view details, reprint the receipt or create a return.",
+  "@saleListGuide3Desc": {
+    "description": "Step 3 description in sale list guide"
+  },
+  "saleListGuide4Title": "💳 Payment status",
+  "@saleListGuide4Title": {
+    "description": "Step 4 title in sale list guide"
+  },
+  "saleListGuide4Desc": "Instantly see which invoices are paid, pending or on credit.",
+  "@saleListGuide4Desc": {
+    "description": "Step 4 description in sale list guide"
+  },
+  "saleListFilterTitle": "FILTER",
+  "@saleListFilterTitle": {
+    "description": "Title of the filter bottom sheet on the sale list screen"
+  },
+  "saleListTimeSection": "TIME",
+  "@saleListTimeSection": {
+    "description": "Section header for time filter in sale list"
+  },
+  "saleListPaymentStatusSection": "PAYMENT STATUS",
+  "@saleListPaymentStatusSection": {
+    "description": "Section header for payment status filter in sale list"
+  },
+  "saleListLast7Days": "7 days",
+  "@saleListLast7Days": {
+    "description": "Filter chip label for last 7 days in sale list"
+  },
+  "saleListCustomDate": "Custom",
+  "@saleListCustomDate": {
+    "description": "Filter chip label for custom date range in sale list"
+  },
+  "saleListFilterPaid": "Paid",
+  "@saleListFilterPaid": {
+    "description": "Payment status filter chip: paid"
+  },
+  "saleListFilterDebt": "Has debt",
+  "@saleListFilterDebt": {
+    "description": "Payment status filter chip: has debt"
+  },
+  "saleListFilterBankPending": "Install. pending",
+  "@saleListFilterBankPending": {
+    "description": "Payment status filter chip: installment pending bank settlement"
+  },
+  "saleListFilterBankReceived": "Install. received",
+  "@saleListFilterBankReceived": {
+    "description": "Payment status filter chip: installment bank settlement received"
+  },
+  "saleListDayYesterday": "Yesterday",
+  "@saleListDayYesterday": {
+    "description": "Label for yesterday in date group header"
+  },
+  "saleListExportOrders": "Export sale orders",
+  "@saleListExportOrders": {
+    "description": "Title for the export date filter dialog on sale list"
+  },
+  "saleListSortTooltip": "Sort",
+  "@saleListSortTooltip": {
+    "description": "Tooltip for the sort button on sale list"
+  },
+  "saleListSortNewest": "Newest first",
+  "@saleListSortNewest": {
+    "description": "Sort option: newest first"
+  },
+  "saleListSortHighestValue": "Highest value",
+  "@saleListSortHighestValue": {
+    "description": "Sort option: highest sale value first"
+  },
+  "saleListSortMostDebt": "Most debt",
+  "@saleListSortMostDebt": {
+    "description": "Sort option: most debt first"
+  },
+  "saleListRevenueShort": "Rev: {amount}",
+  "@saleListRevenueShort": {
+    "description": "Revenue label in summary bar",
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "saleListDebtShort": "Debt: {amount}",
+  "@saleListDebtShort": {
+    "description": "Debt label in summary bar",
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "saleListProfitShort": "Profit: {amount}",
+  "@saleListProfitShort": {
+    "description": "Profit label in summary bar",
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "saleListStatusReturned": "RETURNED",
+  "@saleListStatusReturned": {
+    "description": "Status badge text when sale is fully returned"
+  },
+  "saleListStatusBankPending": "BANK PENDING",
+  "@saleListStatusBankPending": {
+    "description": "Status badge text when installment is pending bank settlement"
+  },
+  "saleListStatusCollected": "COLLECTED",
+  "@saleListStatusCollected": {
+    "description": "Status badge text when payment is fully collected"
+  },
+  "saleListStatusHasDebt": "HAS DEBT",
+  "@saleListStatusHasDebt": {
+    "description": "Status badge text when sale still has remaining debt"
+  },
+  "saleListChipPaid": "💰 Collected",
+  "@saleListChipPaid": {
+    "description": "Label for collected amount chip in sale card"
+  },
+  "saleListChipDebt": "⚠️ Has debt",
+  "@saleListChipDebt": {
+    "description": "Label for remaining debt chip in sale card"
+  },
+  "saleListChipSale": "🏷 Sale",
+  "@saleListChipSale": {
+    "description": "Label for sale price chip in sale card"
+  },
+  "saleListChipCost": "📦 Cost",
+  "@saleListChipCost": {
+    "description": "Label for cost price chip in sale card"
+  },
+  "saleListChipProfit": "📈 Profit",
+  "@saleListChipProfit": {
+    "description": "Label for profit chip in sale card"
+  },
+  "saleListChipLoss": "📉 Loss",
+  "@saleListChipLoss": {
+    "description": "Label for loss chip in sale card"
+  },
+  "saleListReturnFull": "↩ Fully returned",
+  "@saleListReturnFull": {
+    "description": "Label when sale order is fully returned"
+  },
+  "saleListReturnPartial": "↩ Partial return",
+  "@saleListReturnPartial": {
+    "description": "Label when sale order is partially returned"
+  },
+  "saleListInstallmentLabel": "🏦 Installment",
+  "@saleListInstallmentLabel": {
+    "description": "Label for installment chip in sale card"
+  },
+  "saleListBankReceivedAmount": "Bank received {amount}",
+  "@saleListBankReceivedAmount": {
+    "description": "Text shown when bank installment settlement has been received",
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "saleListBankNotReceived": "Bank not received yet",
+  "@saleListBankNotReceived": {
+    "description": "Text shown when bank installment settlement has not been received"
+  },
+  "saleListHoldToReturn": "Hold to create return",
+  "@saleListHoldToReturn": {
+    "description": "Hint text to long-press a sale card to create a return"
+  },
+  "saleListNoOrders": "No orders found",
+  "@saleListNoOrders": {
+    "description": "Empty state title when no sale orders match the current filter"
+  },
+  "saleListClearFilterHint": "Try clearing filters to see all",
+  "@saleListClearFilterHint": {
+    "description": "Empty state subtitle suggesting to clear filters"
+  },
+  "saleListClearFilter": "Clear filters",
+  "@saleListClearFilter": {
+    "description": "Action button label to clear all active filters"
+  },
+  "saleListDisplayedOrders": "Showing {count} sale orders",
+  "@saleListDisplayedOrders": {
+    "description": "Footer text showing total number of displayed sale orders",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "saleListOrderFullyReturned": "This order has been fully returned",
+  "@saleListOrderFullyReturned": {
+    "description": "Snackbar message when trying to return an already fully-returned order"
+  },
+  "saleListReturnTimesCount": "{amount} ({count} times)",
+  "@saleListReturnTimesCount": {
+    "description": "Return amount with count for partial returns",
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "saleListGroupOrdersCount": "{label} · {count} orders",
+  "@saleListGroupOrdersCount": {
+    "description": "Day group header showing label and order count",
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+
+  "saleDetailTitle": "SALE DETAILS",
+  "@saleDetailTitle": { "description": "AppBar title for sale detail screen" },
+
+  "needManagerLogin": "PLEASE LOGIN WITH MANAGER ACCOUNT",
+  "@needManagerLogin": { "description": "Snackbar when manager auth fails - not logged in" },
+
+  "onlyManagerCanEdit": "Only manager accounts can edit/delete",
+  "@onlyManagerCanEdit": { "description": "Snackbar when user lacks manager permission" },
+
+  "managerAuthTitle": "MANAGER AUTHENTICATION",
+  "@managerAuthTitle": { "description": "Title for manager password dialog" },
+
+  "managerPasswordLabel": "Manager password",
+  "@managerPasswordLabel": { "description": "Label for manager password field" },
+
+  "editUnlocked": "EDIT UNLOCKED",
+  "@editUnlocked": { "description": "Snackbar after manager successfully reauthenticated" },
+
+  "wrongManagerPassword": "Wrong manager password",
+  "@wrongManagerPassword": { "description": "Snackbar when manager password is incorrect" },
+
+  "printInvoiceSuccess": "Invoice printed successfully!",
+  "@printInvoiceSuccess": { "description": "Snackbar when receipt print succeeds" },
+
+  "printInvoiceFailed": "Print failed! Please check printer settings.",
+  "@printInvoiceFailed": { "description": "Snackbar when receipt print fails" },
+
+  "printErrorMsg": "Print error: {error}",
+  "@printErrorMsg": {
+    "description": "Snackbar when print throws an exception",
+    "placeholders": { "error": { "type": "String" } }
+  },
+
+  "receiveBankTitle": "RECEIVE BANK PAYMENT",
+  "@receiveBankTitle": { "description": "Title for settlement/bank-receive bottom sheet" },
+
+  "receivedAmountLabel": "Amount received (VND)",
+  "@receivedAmountLabel": { "description": "Label for settlement amount field" },
+
+  "receivedAmountField": "Amount received",
+  "@receivedAmountField": { "description": "fieldName used in validateAmount for settlement" },
+
+  "bankFeeLabel": "Bank fee withheld (VND)",
+  "@bankFeeLabel": { "description": "Label for bank fee field in settlement sheet" },
+
+  "bankFeeField": "Bank fee",
+  "@bankFeeField": { "description": "fieldName used in validateAmount for bank fee" },
+
+  "bankReceivedConfirmed": "BANK PAYMENT RECORDED",
+  "@bankReceivedConfirmed": { "description": "Snackbar after bank settlement is saved" },
+
+  "editSaleTitle": "EDIT SALE ORDER",
+  "@editSaleTitle": { "description": "Title for edit sale dialog" },
+
+  "customerNameFieldLabel": "Customer name",
+  "@customerNameFieldLabel": { "description": "Label for customer name in edit sale dialog" },
+
+  "enterCustomerNameHint": "Enter customer name",
+  "@enterCustomerNameHint": { "description": "Validation message when customer name is empty" },
+
+  "phoneFieldLabel": "Phone",
+  "@phoneFieldLabel": { "description": "Label for phone field in edit sale dialog" },
+
+  "addressFieldLabel": "Address",
+  "@addressFieldLabel": { "description": "Label for address field in edit sale dialog" },
+
+  "paymentMethodFieldLabel": "Payment method",
+  "@paymentMethodFieldLabel": { "description": "Label for payment method dropdown" },
+
+  "notesFieldLabel": "Notes",
+  "@notesFieldLabel": { "description": "Label for notes text field" },
+
+  "saveLabel": "SAVE",
+  "@saveLabel": { "description": "Save button label in dialogs" },
+
+  "saleUpdated": "Sale order updated successfully",
+  "@saleUpdated": { "description": "Snackbar after sale is edited and saved" },
+
+  "deleteSaleTitle": "DELETE SALE ORDER",
+  "@deleteSaleTitle": { "description": "Title for delete-sale confirmation dialog" },
+
+  "saleOrderItem": "Order: {name}",
+  "@saleOrderItem": {
+    "description": "Shows product names of the sale order being deleted",
+    "placeholders": { "name": { "type": "String" } }
+  },
+
+  "saleOrderValue": "Value: {amount}đ",
+  "@saleOrderValue": {
+    "description": "Shows sale order value in delete confirmation",
+    "placeholders": { "amount": { "type": "String" } }
+  },
+
+  "systemWillAutoLabel": "The system will automatically:",
+  "@systemWillAutoLabel": { "description": "Header for auto-action list in delete confirmation" },
+
+  "restoreStockQty": "Restore stock quantity",
+  "@restoreStockQty": { "description": "Auto-action: restore inventory when sale deleted" },
+
+  "deleteLinkedDebt": "Delete related debt",
+  "@deleteLinkedDebt": { "description": "Auto-action: remove linked debt record" },
+
+  "deletePaymentRecord": "Delete payment record",
+  "@deletePaymentRecord": { "description": "Auto-action: remove payment intent" },
+
+  "updateCustomerSpend": "Update customer spending",
+  "@updateCustomerSpend": { "description": "Auto-action: revert customer total spent" },
+
+  "cannotUndoWarning": "⚠️ This action cannot be undone!",
+  "@cannotUndoWarning": { "description": "Warning text in delete confirmation dialog" },
+
+  "deleteSaleButton": "DELETE ORDER",
+  "@deleteSaleButton": { "description": "Confirm delete button in delete sale dialog" },
+
+  "saleDeletedMsg": "Sale deleted{inventoryInfo}{debtInfo}",
+  "@saleDeletedMsg": {
+    "description": "Snackbar after sale deleted with optional inventory/debt info appended",
+    "placeholders": {
+      "inventoryInfo": { "type": "String" },
+      "debtInfo": { "type": "String" }
+    }
+  },
+
+  "saleDeleteError": "Error deleting sale order: {error}",
+  "@saleDeleteError": {
+    "description": "Snackbar when deleting sale fails",
+    "placeholders": { "error": { "type": "String" } }
+  },
+
+  "editSaleTooltip": "Edit order info",
+  "@editSaleTooltip": { "description": "Tooltip for the edit icon button in AppBar" },
+
+  "previewInvoiceLabel": "Preview",
+  "@previewInvoiceLabel": { "description": "Bottom action label for invoice preview" },
+
+  "printInvoiceLabel": "Print",
+  "@printInvoiceLabel": { "description": "Bottom action label for print button" },
+
+  "returnAllLabel": "Fully returned",
+  "@returnAllLabel": { "description": "Bottom action label when all items are returned" },
+
+  "returnGoodsLabel": "Return",
+  "@returnGoodsLabel": { "description": "Bottom action label to initiate a return" },
+
+  "returnSuccessMsg": "Return processed successfully!",
+  "@returnSuccessMsg": { "description": "Snackbar after sales return is created" },
+
+  "printTemplateLabel": "Templates",
+  "@printTemplateLabel": { "description": "Bottom action label for invoice template" },
+
+  "updateSettlementBtn": "UPDATE SETTLEMENT (remaining {amount})",
+  "@updateSettlementBtn": {
+    "description": "Button label when settlement has been partially received",
+    "placeholders": { "amount": { "type": "String" } }
+  },
+
+  "returnedFullLabel": "FULLY RETURNED — {amount}",
+  "@returnedFullLabel": {
+    "description": "Return indicator when all items returned",
+    "placeholders": { "amount": { "type": "String" } }
+  },
+
+  "returnedPartialLabel": "PARTIALLY RETURNED — {amount} ({count} times)",
+  "@returnedPartialLabel": {
+    "description": "Return indicator when partially returned",
+    "placeholders": {
+      "amount": { "type": "String" },
+      "count": { "type": "int" }
+    }
+  },
+
+  "sectionTransaction": "TRANSACTION",
+  "@sectionTransaction": { "description": "Card header for the main transaction section" },
+
+  "itemAddress": "Address",
+  "@itemAddress": { "description": "Row label: customer address" },
+
+  "openProductDetailTooltip": "Open product detail from sale",
+  "@openProductDetailTooltip": { "description": "Tooltip on clickable product list" },
+
+  "itemWarranty": "Warranty",
+  "@itemWarranty": { "description": "Row label: warranty period" },
+
+  "itemTime": "Date/Time",
+  "@itemTime": { "description": "Row label: sale date and time" },
+
+  "itemPaymentMethod": "Payment",
+  "@itemPaymentMethod": { "description": "Row label: payment method" },
+
+  "itemCash": "💵 Cash",
+  "@itemCash": { "description": "Row label: cash portion in combined payment" },
+
+  "itemTransfer": "🏦 Transfer",
+  "@itemTransfer": { "description": "Row label: bank transfer portion in combined payment" },
+
+  "itemNotes": "Notes",
+  "@itemNotes": { "description": "Row label: order notes" },
+
+  "itemDiscount": "Discount",
+  "@itemDiscount": { "description": "Row label: discount amount" },
+
+  "itemTotal": "Total",
+  "@itemTotal": { "description": "Row label: total (final price)" },
+
+  "itemCostPrice": "Cost price",
+  "@itemCostPrice": { "description": "Row label: product cost (visible to managers)" },
+
+  "itemProfit": "Profit",
+  "@itemProfit": { "description": "Row label: profit (final - cost)" },
+
+  "sectionInstallment": "INSTALLMENT - BANK",
+  "@sectionInstallment": { "description": "Card header for bank installment section" },
+
+  "installmentDownPayment": "Down payment",
+  "@installmentDownPayment": { "description": "Row label: down payment" },
+
+  "installmentBank1": "Bank 1 disbursement",
+  "@installmentBank1": { "description": "Row label: bank 1 name" },
+
+  "installmentAmount1": "Bank 1 amount",
+  "@installmentAmount1": { "description": "Row label: bank 1 loan amount" },
+
+  "installmentBank2": "Bank 2 disbursement",
+  "@installmentBank2": { "description": "Row label: bank 2 name" },
+
+  "installmentAmount2": "Bank 2 amount",
+  "@installmentAmount2": { "description": "Row label: bank 2 loan amount" },
+
+  "installmentTotalLoan": "Total bank loan",
+  "@installmentTotalLoan": { "description": "Row label: total loan from all banks" },
+
+  "installmentExpectedDate": "Expected date",
+  "@installmentExpectedDate": { "description": "Row label: planned settlement date" },
+
+  "installmentFileCode": "File code",
+  "@installmentFileCode": { "description": "Row label: settlement code/file number" },
+
+  "installmentNotes": "Notes",
+  "@installmentNotes": { "description": "Row label: settlement notes" },
+
+  "installmentSettlement": "Settlement",
+  "@installmentSettlement": { "description": "Row label: settlement status" },
+
+  "settlementNotReceived": "Not received",
+  "@settlementNotReceived": { "description": "Settlement status when nothing received yet" },
+
+  "settlementFullyReceived": "Received in full {date}",
+  "@settlementFullyReceived": {
+    "description": "Settlement status when fully received",
+    "placeholders": { "date": { "type": "String" } }
+  },
+
+  "settlementPartialReceived": "Received {received} / {total}",
+  "@settlementPartialReceived": {
+    "description": "Settlement status when partially received",
+    "placeholders": {
+      "received": { "type": "String" },
+      "total": { "type": "String" }
+    }
+  },
+
+  "installmentBankFee": "Bank fee",
+  "@installmentBankFee": { "description": "Row label: bank fee deducted from settlement" },
+
+  "staffItemLabel": "Staff member",
+  "@staffItemLabel": { "description": "Row label: seller/staff name" },
+
+  "chatPinnedSale": "SALE ORDER PINNED TO INTERNAL CHAT",
+  "@chatPinnedSale": { "description": "Snackbar after sale is shared to group chat" },
+
+  "noCustomerPhone": "NO CUSTOMER PHONE NUMBER",
+  "@noCustomerPhone": { "description": "Snackbar when trying to SMS but customer has no phone" },
+
+  "smsAppOpened": "SMS app opened (message already copied).",
+  "@smsAppOpened": { "description": "Snackbar after SMS app is launched successfully" },
+
+  "smsAppCannotOpen": "Cannot open SMS app. Please paste the message into Zalo/SMS.",
+  "@smsAppCannotOpen": { "description": "Snackbar when SMS app cannot be launched" },
+
+  "smsSendError": "Error sending message, but content has been copied.",
+  "@smsSendError": { "description": "Snackbar when SMS launch throws an exception" },
+
+  "debtManagementTitle": "DEBT MANAGEMENT",
+  "@debtManagementTitle": { "description": "Title for debt management screen" },
+  "activeDebtsCount": "{count} active debts",
+  "@activeDebtsCount": {
+    "description": "Subtitle showing count of active debts",
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "tabCustomer": "CUSTOMER",
+  "@tabCustomer": { "description": "Tab label for customer debts" },
+  "tabSupplier": "SUPPLIER",
+  "@tabSupplier": { "description": "Tab label for supplier debts" },
+  "tabPartner": "PARTNER",
+  "@tabPartner": { "description": "Tab label for repair partner debts" },
+  "tabOther": "OTHER",
+  "@tabOther": { "description": "Tab label for other debts" },
+  "syncWithFirebase": "Sync with Firebase",
+  "@syncWithFirebase": { "description": "Tooltip for sync button" },
+  "exportExcelDebt": "Export debt Excel",
+  "@exportExcelDebt": { "description": "Tooltip for export debt excel button" },
+  "exportDebtTitle": "Export debts",
+  "@exportDebtTitle": { "description": "Title for export debt dialog" },
+  "syncedStatus": "Synced",
+  "@syncedStatus": { "description": "Sync status: synced" },
+  "syncingStatus": "Syncing...",
+  "@syncingStatus": { "description": "Sync status: syncing" },
+  "syncErrorStatus": "Sync error",
+  "@syncErrorStatus": { "description": "Sync status: error" },
+  "searchNamePhone": "Search name, phone...",
+  "@searchNamePhone": { "description": "Hint text for debt search field" },
+  "filterPaid": "Paid",
+  "@filterPaid": { "description": "Filter chip label to show paid debts" },
+  "debtReceivable": "Receivable",
+  "@debtReceivable": { "description": "Label for receivable debt (customer owes)" },
+  "debtPayable": "Payable",
+  "@debtPayable": { "description": "Label for payable debt (shop owes)" },
+  "overdueDebts": "Overdue",
+  "@overdueDebts": { "description": "KPI chip label for overdue debts" },
+  "needsHandling": "Needs attention",
+  "@needsHandling": { "description": "KPI chip label for debts needing attention" },
+  "noDebtFound": "No results found",
+  "@noDebtFound": { "description": "Empty state when search finds nothing" },
+  "noDebtYet": "No debts yet",
+  "@noDebtYet": { "description": "Empty state when no debts exist" },
+  "trySearchOther": "Try searching by other name or phone",
+  "@trySearchOther": { "description": "Hint when search has no results" },
+  "showPaidToSeeHistory": "Enable \"Paid\" to see history",
+  "@showPaidToSeeHistory": { "description": "Hint to enable paid filter" },
+  "totalRemainingDebt": "TOTAL REMAINING DEBT",
+  "@totalRemainingDebt": { "description": "Summary header for total remaining debt" },
+  "noPartnerDebt": "No partner debts",
+  "@noPartnerDebt": { "description": "Empty state for partner debts tab" },
+  "partnerDebtManageGuide": "Manage partners at: Settings › Partner Management",
+  "@partnerDebtManageGuide": { "description": "Guide for managing partners" },
+  "totalPartnerRepairDebt": "TOTAL REPAIR PARTNER DEBT",
+  "@totalPartnerRepairDebt": { "description": "Summary header for partner repair debt" },
+  "paymentHistoryTitle": "PAYMENT HISTORY",
+  "@paymentHistoryTitle": { "description": "Title of payment history bottom sheet" },
+  "noPaymentHistory": "No payment history yet",
+  "@noPaymentHistory": { "description": "Empty state for payment history" },
+  "payDebtButton": "PAY DEBT",
+  "@payDebtButton": { "description": "Button label to pay debt" },
+  "collectDebtTitle": "COLLECT CUSTOMER DEBT",
+  "@collectDebtTitle": { "description": "Title for collecting customer debt" },
+  "payDebtTitle": "PAY DEBT",
+  "@payDebtTitle": { "description": "Title for paying a debt" },
+  "totalDebtLabel": "Total debt",
+  "@totalDebtLabel": { "description": "Label for total debt amount" },
+  "paidAmountLabel": "Paid",
+  "@paidAmountLabel": { "description": "Label for paid amount" },
+  "remainingLabel": "Remaining",
+  "@remainingLabel": { "description": "Label for remaining amount" },
+  "collectAmountVnd": "AMOUNT TO COLLECT (VND)",
+  "@collectAmountVnd": { "description": "Label for collect amount input" },
+  "payAmountVnd": "AMOUNT TO PAY (VND)",
+  "@payAmountVnd": { "description": "Label for pay amount input" },
+  "payWithLabel": "PAY WITH",
+  "@payWithLabel": { "description": "Label for payment method selection" },
+  "cancelButton": "CANCEL",
+  "@cancelButton": { "description": "Cancel button label" },
+  "confirmPayButton": "CONFIRM",
+  "@confirmPayButton": { "description": "Confirm payment button" },
+  "createOtherDebtTitle": "CREATE OTHER DEBT",
+  "@createOtherDebtTitle": { "description": "Title for creating other debt" },
+  "debtorNameLabel": "Debtor name",
+  "@debtorNameLabel": { "description": "Label for debtor name field" },
+  "pleaseEnterDebtorName": "Please enter debtor name",
+  "@pleaseEnterDebtorName": { "description": "Validation message for debtor name" },
+  "debtAmountVnd": "Debt amount (VND)",
+  "@debtAmountVnd": { "description": "Label for debt amount field" },
+  "debtFormTypeLabel": "Debt type:",
+  "@debtFormTypeLabel": { "description": "Label for debt type selection" },
+  "receivableDebt": "RECEIVABLE",
+  "@receivableDebt": { "description": "Debt type: receivable" },
+  "payableDebt": "PAYABLE",
+  "@payableDebt": { "description": "Debt type: payable" },
+  "customerOwesShop": "(Customer owes shop)",
+  "@customerOwesShop": { "description": "Subtitle for receivable debt type" },
+  "shopOwesOther": "(Shop owes others)",
+  "@shopOwesOther": { "description": "Subtitle for payable debt type" },
+  "createButton": "CREATE",
+  "@createButton": { "description": "Create button label" },
+  "debtCreated": "New debt created",
+  "@debtCreated": { "description": "Snackbar after creating a debt" },
+  "createReceivableDebtTitle": "CREATE RECEIVABLE DEBT",
+  "@createReceivableDebtTitle": { "description": "Title for creating receivable debt" },
+  "pleaseEnterCustomerNameDebt": "Please enter customer name",
+  "@pleaseEnterCustomerNameDebt": { "description": "Validation for customer name in debt form" },
+  "customerDebtCreated": "Customer debt created!",
+  "@customerDebtCreated": { "description": "Snackbar after creating customer debt" },
+  "createDebtError": "Error creating debt: {error}",
+  "@createDebtError": {
+    "description": "Error message when creating debt fails",
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "createPayableDebtTitle": "CREATE PAYABLE DEBT",
+  "@createPayableDebtTitle": { "description": "Title for creating payable debt" },
+  "supplierNameLabel": "Supplier name",
+  "@supplierNameLabel": { "description": "Label for supplier name field" },
+  "pleaseEnterSupplierNameDebt": "Please enter supplier name",
+  "@pleaseEnterSupplierNameDebt": { "description": "Validation for supplier name in debt form" },
+  "supplierDebtCreated": "Supplier debt created!",
+  "@supplierDebtCreated": { "description": "Snackbar after creating supplier debt" },
+  "noDebtAnywhere": "No debts",
+  "@noDebtAnywhere": { "description": "Empty state when no other debts" },
+  "collectDebtAction": "Collect",
+  "@collectDebtAction": { "description": "Button to collect customer debt" },
+  "payDebtAction": "Pay debt",
+  "@payDebtAction": { "description": "Button to pay a debt" },
+  "historyButton": "History",
+  "@historyButton": { "description": "Button to view debt history" },
+  "returnDebtAction": "Repay",
+  "@returnDebtAction": { "description": "Button to repay a debt" },
+  "partnerRepairType": "Repair partner",
+  "@partnerRepairType": { "description": "Chip label for repair partner debt type" },
+  "manualSource": "Manual",
+  "@manualSource": { "description": "Source label: manual" },
+  "autoSource": "Automatic",
+  "@autoSource": { "description": "Source label: automatic" },
+  "totalFeeLabel": "Total fee",
+  "@totalFeeLabel": { "description": "Label for total fee amount" },
+  "remainingDebtLabel": "Remaining",
+  "@remainingDebtLabel": { "description": "Label for remaining debt amount" },
+  "paymentAction": "Pay",
+  "@paymentAction": { "description": "Action button label to make payment" },
+  "overdueCountDays": "{count} overdue >60 days",
+  "@overdueCountDays": {
+    "description": "Urgency chip: very overdue count",
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "urgentCountDays": "{count} need attention >30 days",
+  "@urgentCountDays": {
+    "description": "Urgency chip: urgent count",
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "partnerNotInSystem": "Partner \"{name}\" is no longer in the system but the debt is kept.",
+  "@partnerNotInSystem": {
+    "description": "Message when partner is missing but debt remains",
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "partnerDebtNotFound": "Cannot find partner \"{name}\". Debt still appears in list.",
+  "@partnerDebtNotFound": {
+    "description": "Message when partner cannot be found",
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "closedTodayDebt": "❌ Today is closed! Cannot collect debt payment.",
+  "@closedTodayDebt": { "description": "Error when trying to pay debt on closed day" },
+  "closedTodayCreateDebt": "❌ Today is closed! Cannot create new debt.",
+  "@closedTodayCreateDebt": { "description": "Error when trying to create debt on closed day" },
+  "createCustomerDebtTooltip": "Create customer debt",
+  "@createCustomerDebtTooltip": { "description": "FAB tooltip for customer tab" },
+  "createSupplierDebtTooltip": "Create supplier debt",
+  "@createSupplierDebtTooltip": { "description": "FAB tooltip for supplier tab" },
+  "createOtherDebtTooltip": "Create other debt",
+  "@createOtherDebtTooltip": { "description": "FAB tooltip for other tab" },
+  "partnerNotInSystemTooltip": "Partner no longer in system",
+  "@partnerNotInSystemTooltip": { "description": "Tooltip for missing partner icon" },
+  "overdueDaysLabel": "Overdue {days} days",
+  "@overdueDaysLabel": {
+    "description": "Chip label for very overdue debt",
+    "placeholders": { "days": { "type": "int" } }
+  },
+  "daysLabel": "{days} days",
+  "@daysLabel": {
+    "description": "Chip label for urgent debt days count",
+    "placeholders": { "days": { "type": "int" } }
+  },
+  "paidFullLabel": "✓ Fully paid",
+  "@paidFullLabel": { "description": "Chip label when debt is fully paid" },
+  "ordersCountLabel": "{count} orders",
+  "@ordersCountLabel": {
+    "description": "Badge showing number of repair orders",
+    "placeholders": { "count": { "type": "int" } }
+  },
+
+  "expenseManagementTitle": "EXPENSE MANAGEMENT",
+  "@expenseManagementTitle": { "description": "Title for expense management screen" },
+  "incomeManagementTitle": "INCOME",
+  "@incomeManagementTitle": { "description": "Title for income management screen" },
+  "expenseCountSubtitle": "{count} expenses",
+  "@expenseCountSubtitle": {
+    "description": "Subtitle showing expense count",
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "incomeCountSubtitle": "{count} incomes",
+  "@incomeCountSubtitle": {
+    "description": "Subtitle showing income count",
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "exportExcelIncomeExpense": "Export income/expense Excel",
+  "@exportExcelIncomeExpense": { "description": "Tooltip for export income/expense excel" },
+  "exportIncomeExpenseTitle": "Export income/expense",
+  "@exportIncomeExpenseTitle": { "description": "Title for export income/expense dialog" },
+  "confirmDeleteIncome": "CONFIRM DELETE INCOME",
+  "@confirmDeleteIncome": { "description": "Title for delete income dialog" },
+  "confirmDeleteExpenseTitle": "CONFIRM DELETE EXPENSE",
+  "@confirmDeleteExpenseTitle": { "description": "Title for delete expense dialog" },
+  "deleteIncomeContent": "You are deleting income: {title}\nAmount: {amount}",
+  "@deleteIncomeContent": {
+    "description": "Content for delete income confirmation",
+    "placeholders": {
+      "title": { "type": "String" },
+      "amount": { "type": "String" }
+    }
+  },
+  "deleteExpenseContent": "You are deleting expense: {title}\nAmount: {amount}",
+  "@deleteExpenseContent": {
+    "description": "Content for delete expense confirmation",
+    "placeholders": {
+      "title": { "type": "String" },
+      "amount": { "type": "String" }
+    }
+  },
+  "enterPasswordToDeleteLabel": "Enter account password to delete",
+  "@enterPasswordToDeleteLabel": { "description": "Label for password field in delete dialog" },
+  "confirmDeleteButton": "CONFIRM DELETE",
+  "@confirmDeleteButton": { "description": "Button to confirm deletion" },
+  "cannotDeletePurchaseExpense": "Cannot delete expense from purchase order!",
+  "@cannotDeletePurchaseExpense": { "description": "Error when trying to delete purchase expense" },
+  "wrongPasswordCannotDelete": "Wrong password! Cannot delete.",
+  "@wrongPasswordCannotDelete": { "description": "Error when password is wrong during delete" },
+  "deletedIncomeSuccess": "Income deleted successfully",
+  "@deletedIncomeSuccess": { "description": "Snackbar after deleting income" },
+  "deletedExpenseSuccess": "Expense deleted successfully",
+  "@deletedExpenseSuccess": { "description": "Snackbar after deleting expense" },
+  "closedTodayExpense": "❌ Today is closed! Cannot add new expense.",
+  "@closedTodayExpense": { "description": "Error when adding expense on closed day" },
+  "closedTodayIncome": "❌ Today is closed! Cannot add new income.",
+  "@closedTodayIncome": { "description": "Error when adding income on closed day" },
+  "writeExpensesTitle": "RECORD EXPENSE",
+  "@writeExpensesTitle": { "description": "Title of add expense bottom sheet" },
+  "categoryLabel": "CATEGORY",
+  "@categoryLabel": { "description": "Section label for expense category" },
+  "expenseContentRequired": "Expense description *",
+  "@expenseContentRequired": { "description": "Label for expense content field" },
+  "pleaseEnterExpenseContent": "Please enter expense description",
+  "@pleaseEnterExpenseContent": { "description": "Validation message for expense content" },
+  "amountVndRequired": "Amount (VND) *",
+  "@amountVndRequired": { "description": "Label for amount field" },
+  "extraNoteLabel": "Additional note",
+  "@extraNoteLabel": { "description": "Label for extra note field" },
+  "expenseScopeLabel": "EXPENSE SCOPE",
+  "@expenseScopeLabel": { "description": "Section label for expense scope" },
+  "saveExpenseButton": "SAVE EXPENSE",
+  "@saveExpenseButton": { "description": "Button label to save expense" },
+  "savedExpense": "Expense saved!",
+  "@savedExpense": { "description": "Snackbar after saving expense" },
+  "writeIncomeTitle": "RECORD INCOME",
+  "@writeIncomeTitle": { "description": "Title of add income bottom sheet" },
+  "incomeContentRequired": "Income description *",
+  "@incomeContentRequired": { "description": "Label for income content field" },
+  "pleaseEnterIncomeContent": "Please enter income description",
+  "@pleaseEnterIncomeContent": { "description": "Validation message for income content" },
+  "incomeScopeLabel": "SCOPE",
+  "@incomeScopeLabel": { "description": "Section label for income scope" },
+  "saveIncomeButton": "SAVE INCOME",
+  "@saveIncomeButton": { "description": "Button label to save income" },
+  "savedIncome": "Income saved!",
+  "@savedIncome": { "description": "Snackbar after saving income" },
+  "newExpenseFab": "New expense",
+  "@newExpenseFab": { "description": "FAB label for adding expense" },
+  "newIncomeFab": "New income",
+  "@newIncomeFab": { "description": "FAB label for adding income" },
+  "totalIncomeLabel": "Total income",
+  "@totalIncomeLabel": { "description": "Label for total income amount" },
+  "totalExpenseLabel": "Total expenses",
+  "@totalExpenseLabel": { "description": "Label for total expense amount" },
+  "todayPeriod": "TODAY",
+  "@todayPeriod": { "description": "Period label for today" },
+  "thisWeekPeriod": "THIS WEEK",
+  "@thisWeekPeriod": { "description": "Period label for this week" },
+  "thisMonthPeriod": "THIS MONTH",
+  "@thisMonthPeriod": { "description": "Period label for this month" },
+  "noExpenseInPeriod": "No expenses in this {period}",
+  "@noExpenseInPeriod": {
+    "description": "Empty state for no expenses in period",
+    "placeholders": { "period": { "type": "String" } }
+  },
+  "noIncomeInPeriod": "No income in this {period}",
+  "@noIncomeInPeriod": {
+    "description": "Empty state for no income in period",
+    "placeholders": { "period": { "type": "String" } }
+  },
+  "webNotAvailableMessage": "This feature is not available on web browser.\nPlease use the mobile app.",
+  "@webNotAvailableMessage": { "description": "Message when feature not available on web" },
+  "noNameLabel": "No name",
+  "@noNameLabel": { "description": "Fallback label when no name available" },
+  "closedDayCannotDelete": "❌ Day {date} is closed! Cannot delete {label}.",
+  "@closedDayCannotDelete": {
+    "description": "Error when trying to delete on a closed day",
+    "placeholders": {
+      "date": { "type": "String" },
+      "label": { "type": "String" }
+    }
+  },
+  "incomeTypeLabel": "income",
+  "@incomeTypeLabel": { "description": "Label for income type (used in delete messages)" },
+  "expenseTypeLabel": "expense",
+  "@expenseTypeLabel": { "description": "Label for expense type (used in delete messages)" },
+
+  "noPermissionFeature": "You don't have permission to access this feature.",
+  "@noPermissionFeature": { "description": "Generic no-permission message for a feature" },
+  "expenseGuideStep1Title": "💸 Record Income & Expense",
+  "@expenseGuideStep1Title": { "description": "Guide step 1 title for expense view" },
+  "expenseGuideStep1Desc": "Record income beyond sales (INCOME) and operating expenses (EXPENSE) of the shop.",
+  "@expenseGuideStep1Desc": { "description": "Guide step 1 description for expense view" },
+  "expenseGuideStep2Title": "📂 Categorize expenses",
+  "@expenseGuideStep2Title": { "description": "Guide step 2 title for expense view" },
+  "expenseGuideStep2Desc": "Distinguish shop expenses (electricity, water, rent) and personal expenses for accurate reporting.",
+  "@expenseGuideStep2Desc": { "description": "Guide step 2 description for expense view" },
+  "expenseGuideStep3Title": "📅 Filter by time",
+  "@expenseGuideStep3Title": { "description": "Guide step 3 title for expense view" },
+  "expenseGuideStep3Desc": "View income/expense by day, week, or month to effectively control cash flow.",
+  "@expenseGuideStep3Desc": { "description": "Guide step 3 description for expense view" },
+  "expenseGuideStep4Title": "📊 Summary chart",
+  "@expenseGuideStep4Title": { "description": "Guide step 4 title for expense view" },
+  "expenseGuideStep4Desc": "Track income/expense trends with visual charts, detect unusual expenses.",
+  "@expenseGuideStep4Desc": { "description": "Guide step 4 description for expense view" },
+  "expenseCatIncidental": "Incidental",
+  "@expenseCatIncidental": { "description": "Category label: incidental expense/income" },
+  "expenseCatService": "Service",
+  "@expenseCatService": { "description": "Category label: service income" },
+  "expenseCatRefund": "Refund",
+  "@expenseCatRefund": { "description": "Category label: refund income" },
+  "expenseCatFixed": "Fixed",
+  "@expenseCatFixed": { "description": "Category label: fixed expense" },
+  "expenseCatStockIn": "Stock in",
+  "@expenseCatStockIn": { "description": "Category label: stock-in expense" },
+  "expenseScopePersonal": "PERSONAL",
+  "@expenseScopePersonal": { "description": "Scope chip label: personal (ca nhan)" },
+  "expenseScopeAll": "ALL",
+  "@expenseScopeAll": { "description": "Scope filter chip label: all" },
+
+  "debtPartnerDefaultName": "Partner {index}",
+  "@debtPartnerDefaultName": {
+    "description": "Default partner name when actual name is unavailable",
+    "placeholders": { "index": { "type": "int" } }
+  },
+  "debtGenericError": "Error: {error}",
+  "@debtGenericError": {
+    "description": "Generic error with message",
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "debtPaymentGenericError": "An error occurred",
+  "@debtPaymentGenericError": { "description": "Generic error message for payment failure" },
+  "debtGuideTitle": "Debt Management",
+  "@debtGuideTitle": { "description": "Title for debt management first-time guide" },
+  "debtGuideStep1Title3Types": "📊 3 debt types",
+  "@debtGuideStep1Title3Types": { "description": "Guide step 1 title: 3 debt types" },
+  "debtGuideStep1Title2Types": "📊 2 debt types",
+  "@debtGuideStep1Title2Types": { "description": "Guide step 1 title: 2 debt types" },
+  "debtGuideStep1Desc3Types": "CUSTOMER OWES (unpaid customers), SUPPLIER DEBT (owed to suppliers), PARTNER DEBT (external repair partners).",
+  "@debtGuideStep1Desc3Types": { "description": "Guide step 1 description: 3 debt types" },
+  "debtGuideStep1Desc2Types": "CUSTOMER OWES (unpaid customers), SUPPLIER DEBT (owed to suppliers).",
+  "@debtGuideStep1Desc2Types": { "description": "Guide step 1 description: 2 debt types" },
+  "debtGuideStep2Title": "💰 Record payment",
+  "@debtGuideStep2Title": { "description": "Guide step 2 title: record payment" },
+  "debtGuideStep2Desc": "Tap on a debt to view details and record partial or full payment.",
+  "@debtGuideStep2Desc": { "description": "Guide step 2 description" },
+  "debtGuideStep3Title": "📅 Track due dates",
+  "@debtGuideStep3Title": { "description": "Guide step 3 title: track due dates" },
+  "debtGuideStep3Desc": "Overdue debts are highlighted in red. Summary reports help track cash flow.",
+  "@debtGuideStep3Desc": { "description": "Guide step 3 description" },
+  "debtGuideStep4Title": "🔄 Auto-create debts",
+  "@debtGuideStep4Title": { "description": "Guide step 4 title: auto-create debts" },
+  "debtGuideStep4Desc": "When selling/stocking and selecting \"DEBT\", the system automatically creates a corresponding debt record.",
+  "@debtGuideStep4Desc": { "description": "Guide step 4 description" },
+  "debtCollectFieldName": "Collection amount",
+  "@debtCollectFieldName": { "description": "Field name for collection amount validator" },
+  "debtPayFieldName": "Payment amount",
+  "@debtPayFieldName": { "description": "Field name for payment amount validator" },
+  "debtAmountFieldName": "Debt amount",
+  "@debtAmountFieldName": { "description": "Field name for debt amount validator" },
+  "backupGroupOperations": "Operations",
+  "@backupGroupOperations": {},
+  "backupGroupWarehouse": "Warehouse & Products",
+  "@backupGroupWarehouse": {},
+  "backupGroupFinance": "Finance",
+  "@backupGroupFinance": {},
+  "backupGroupHr": "HR & Staff",
+  "@backupGroupHr": {},
+  "backupGroupCrm": "Customer Relations",
+  "@backupGroupCrm": {},
+  "backupGroupSystem": "System",
+  "@backupGroupSystem": {},
+  "backupColRepairs": "Repair Orders",
+  "@backupColRepairs": {},
+  "backupColRepairParts": "Repair Parts Warehouse",
+  "@backupColRepairParts": {},
+  "backupColRepairPartners": "Repair Partners",
+  "@backupColRepairPartners": {},
+  "backupColPartnerHistory": "Partner Send History",
+  "@backupColPartnerHistory": {},
+  "backupColSales": "Sale Orders",
+  "@backupColSales": {},
+  "backupColInventoryChecks": "Inventory Checks",
+  "@backupColInventoryChecks": {},
+  "backupColCashClosings": "Cash Closings",
+  "@backupColCashClosings": {},
+  "backupColProducts": "Products / Warehouse",
+  "@backupColProducts": {},
+  "backupColSalvagePhones": "Salvage Phones",
+  "@backupColSalvagePhones": {},
+  "backupColStorageLocations": "Storage Locations",
+  "@backupColStorageLocations": {},
+  "backupColSuppliers": "Suppliers",
+  "@backupColSuppliers": {},
+  "backupColPurchaseOrders": "Purchase Orders",
+  "@backupColPurchaseOrders": {},
+  "backupColImportOrders": "Stock-in Orders",
+  "@backupColImportOrders": {},
+  "backupColSupplierImportHistory": "Supplier Import History",
+  "@backupColSupplierImportHistory": {},
+  "backupColQuickInputCodes": "Quick Input Codes",
+  "@backupColQuickInputCodes": {},
+  "backupColDebts": "Debts",
+  "@backupColDebts": {},
+  "backupColDebtPayments": "Debt Payments",
+  "@backupColDebtPayments": {},
+  "backupColExpenses": "Expenses",
+  "@backupColExpenses": {},
+  "backupColPaymentIntents": "Payment Requests",
+  "@backupColPaymentIntents": {},
+  "backupColPaymentRequests": "Payment Dues",
+  "@backupColPaymentRequests": {},
+  "backupColSupplierPayments": "Supplier Payments",
+  "@backupColSupplierPayments": {},
+  "backupColRepairPartnerPayments": "Repair Partner Payments",
+  "@backupColRepairPartnerPayments": {},
+  "backupColAttendance": "Attendance",
+  "@backupColAttendance": {},
+  "backupColPayrollSettings": "Payroll Settings",
+  "@backupColPayrollSettings": {},
+  "backupColWorkSchedules": "Work Schedules",
+  "@backupColWorkSchedules": {},
+  "backupColCustomers": "Customers",
+  "@backupColCustomers": {},
+  "backupColChats": "Chat Messages",
+  "@backupColChats": {},
+  "backupColAuditLogs": "Audit Logs",
+  "@backupColAuditLogs": {},
+  "backupOptionsTooltip": "Options",
+  "@backupOptionsTooltip": {},
+  "backupOpenSqliteTab": "Open SQLite tab",
+  "@backupOpenSqliteTab": {},
+  "backupOpenFirestoreTab": "Open Firestore tab",
+  "@backupOpenFirestoreTab": {},
+  "backupSqliteTabLabel": "SQLite (file .db)",
+  "@backupSqliteTabLabel": {},
+  "backupFirestoreTabLabel": "Firestore (cloud)",
+  "@backupFirestoreTabLabel": {},
+  "backupGuideTitle": "Backup & Restore Guide",
+  "@backupGuideTitle": {},
+  "backupGuideStep1": "1. SQLite (offline): use for backing up/restoring the entire data file on device.",
+  "@backupGuideStep1": {},
+  "backupGuideStep2": "2. Firestore (online): allows backup/restore by section (repair orders, sales, warehouse, debts...).",
+  "@backupGuideStep2": {},
+  "backupGuideStep3": "3. Recommended: backup to Cloud daily and before app updates.",
+  "@backupGuideStep3": {},
+  "backupGuideStep4": "4. SQLite Restore has 2 modes: restore original for same shop, or transfer data to current shop by remapping shopId.",
+  "@backupGuideStep4": {},
+  "backupGuideStep5": "5. If restoring to a different shop without remapping shopId, data still belongs to old shop and app will not display correctly.",
+  "@backupGuideStep5": {},
+  "backupRestoreBtn": "Restore",
+  "@backupRestoreBtn": {},
+  "backupRestoreOriginalBtn": "Restore original",
+  "@backupRestoreOriginalBtn": {},
+  "backupTransferToCurrentShop": "Transfer to current shop",
+  "@backupTransferToCurrentShop": {},
+  "backupSaveToDevice": "Save .db file to device",
+  "@backupSaveToDevice": {},
+  "backupShareLatest": "Share latest backup",
+  "@backupShareLatest": {},
+  "backupSelectAndBackup": "Select items & Backup to Cloud",
+  "@backupSelectAndBackup": {},
+  "backupSelectFile": "Select .db file",
+  "@backupSelectFile": {},
+  "backupSelectCustomItems": "Select custom items...",
+  "@backupSelectCustomItems": {},
+  "backupCleanOldBtn": "Clean old backups...",
+  "@backupCleanOldBtn": {},
+  "backupUploadToCloud": "Backup to Cloud",
+  "@backupUploadToCloud": {},
+  "backupBackupLabel": "Backup",
+  "@backupBackupLabel": {},
+  "backupSqliteSectionTitle": "Backup SQLite",
+  "@backupSqliteSectionTitle": {},
+  "backupLocalListTitle": "Local SQLite Backups",
+  "@backupLocalListTitle": {},
+  "backupQuickGuideTitle": "Quick guide",
+  "@backupQuickGuideTitle": {},
+  "backupCloudListTitle": "Cloud SQLite Backups",
+  "@backupCloudListTitle": {},
+  "backupRestoreFromFileTitle": "Restore from file",
+  "@backupRestoreFromFileTitle": {},
+  "backupDeleteSelectiveTitle": "Delete selective data",
+  "@backupDeleteSelectiveTitle": {},
+  "backupCleanOldTitle": "Clean old backups",
+  "@backupCleanOldTitle": {},
+  "backupFirestoreInfoText": "Firestore backup saves each collection as a separate JSON file. You can select which items to backup or restore.",
+  "@backupFirestoreInfoText": {},
+  "backupRestoreByItemTitle": "Restore by item",
+  "@backupRestoreByItemTitle": {},
+  "backupRestoreByItemDesc1": "You can select exactly which data groups to restore (e.g., only Repair Orders, only Warehouse, only Debts).",
+  "@backupRestoreByItemDesc1": {},
+  "backupRestoreByItemDesc2": "System only overwrites selected items, does not affect remaining items.",
+  "@backupRestoreByItemDesc2": {},
+  "backupFirestoreSectionTitle": "Backup Firestore",
+  "@backupFirestoreSectionTitle": {},
+  "backupFirestoreListTitle": "Firestore Backups",
+  "@backupFirestoreListTitle": {},
+  "backupNoFirestoreBackups": "No Firestore backups yet.",
+  "@backupNoFirestoreBackups": {},
+  "backupProcessing": "Processing...",
+  "@backupProcessing": {},
+  "backupSavedPathLabel": "Saved: {fileName}",
+  "@backupSavedPathLabel": {
+    "placeholders": { "fileName": { "type": "String" } }
+  },
+  "backupNoLocalBackupsHint": "No local backups yet. Tap \"Save .db file to device\" above.",
+  "@backupNoLocalBackupsHint": {},
+  "backupNoCloudBackups": "No backups yet.",
+  "@backupNoCloudBackups": {},
+  "backupRestoreFileHint": "Select a previously backed-up .db file to restore.",
+  "@backupRestoreFileHint": {},
+  "backupDeleteSelectiveHint": "Permanently delete local data from this device. Backup before deleting.",
+  "@backupDeleteSelectiveHint": {},
+  "backupCleanOldHint": "Delete local backup files older than selected number of days.",
+  "@backupCleanOldHint": {},
+  "backupQuickGuideOffline": "• Offline backup: tap \"Save .db file to device\" to create a local backup.",
+  "@backupQuickGuideOffline": {},
+  "backupQuickGuideShare": "• Share backup: use the \"Share\" button in the local backup list.",
+  "@backupQuickGuideShare": {},
+  "backupQuickGuideRestoreOffline": "• Offline restore: select from local backup list or .db file.",
+  "@backupQuickGuideRestoreOffline": {},
+  "backupQuickGuideRestoreOnline": "• Online restore: select a Cloud SQLite backup and tap \"Restore\".",
+  "@backupQuickGuideRestoreOnline": {},
+  "backupCannotLoad": "Cannot load backup: {error}",
+  "@backupCannotLoad": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "backupSavedLocally": "SQLite backup saved to device. Share from local backup list.",
+  "@backupSavedLocally": {},
+  "backupExportError": "Export error: {error}",
+  "@backupExportError": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "backupShareFileError": "Share error: {error}",
+  "@backupShareFileError": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "backupDeletedLocalName": "Deleted local backup {name}.",
+  "@backupDeletedLocalName": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "backupDeleteLocalError": "Error deleting local backup: {error}",
+  "@backupDeleteLocalError": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "backupCloudSuccess": "SQLite backup to Cloud successful!",
+  "@backupCloudSuccess": {},
+  "backupDeletedCloud": "Cloud backup deleted.",
+  "@backupDeletedCloud": {},
+  "backupRestoreErrorMsg": "Restore error: {error}",
+  "@backupRestoreErrorMsg": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "backupRestoreLocalErrorMsg": "Local restore error: {error}",
+  "@backupRestoreLocalErrorMsg": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "backupDeleteSuccessWithCloud": "Deleted local {localRows} records and cloud {cloudRows} records ({label}). Restart app to apply.",
+  "@backupDeleteSuccessWithCloud": {
+    "placeholders": {
+      "localRows": { "type": "int" },
+      "cloudRows": { "type": "int" },
+      "label": { "type": "String" }
+    }
+  },
+  "backupDeleteSuccessLocalOnly": "Deleted {localRows} local records ({label}). If Cloud still has data, app may sync again.",
+  "@backupDeleteSuccessLocalOnly": {
+    "placeholders": {
+      "localRows": { "type": "int" },
+      "label": { "type": "String" }
+    }
+  },
+  "backupDeleteErrorMsg": "Delete error: {error}",
+  "@backupDeleteErrorMsg": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "backupFirestoreError": "Firestore backup error: {error}",
+  "@backupFirestoreError": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "backupRestoreSuccessMsg": "Restore successful ({count} items)!",
+  "@backupRestoreSuccessMsg": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "backupRestoreFirestoreError": "Restore error: {error}",
+  "@backupRestoreFirestoreError": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "backupDeletedSet": "Backup deleted.",
+  "@backupDeletedSet": {},
+  "backupDeleteSetErrorMsg": "Delete error: {error}",
+  "@backupDeleteSetErrorMsg": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "backupNoOldFiles": "No backups older than {days} days.",
+  "@backupNoOldFiles": {
+    "placeholders": { "days": { "type": "int" } }
+  },
+  "backupDeletedOldFiles": "Deleted {count} backup files older than {days} days.",
+  "@backupDeletedOldFiles": {
+    "placeholders": {
+      "count": { "type": "int" },
+      "days": { "type": "int" }
+    }
+  },
+  "backupCleanError": "Backup cleanup error: {error}",
+  "@backupCleanError": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "backupDeleteLocalTitle": "Delete local backup?",
+  "@backupDeleteLocalTitle": {},
+  "backupDeleteLocalContent": "Are you sure you want to delete file \"{name}\"?",
+  "@backupDeleteLocalContent": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "backupDeleteCloudTitle": "Delete Cloud backup?",
+  "@backupDeleteCloudTitle": {},
+  "backupChooseRestoreType": "Choose restore type",
+  "@backupChooseRestoreType": {},
+  "backupRestoreOriginalDesc": "Restore original: keep data from backed-up shop.\n\nTransfer to current shop: remap shopId so data appears in logged-in shop.",
+  "@backupRestoreOriginalDesc": {},
+  "backupRestoreCloudTitle": "Restore SQLite from Cloud",
+  "@backupRestoreCloudTitle": {},
+  "backupRestoreCloudContent": "You are about to restore from backup:\n{fileName}\n\nCurrent data on device will be overwritten. Continue?",
+  "@backupRestoreCloudContent": {
+    "placeholders": { "fileName": { "type": "String" } }
+  },
+  "backupChooseRestoreTypeTip": "Restore original will keep the old shopId.\n\nTo bring data to current shop, choose the shopId transfer option.",
+  "@backupChooseRestoreTypeTip": {},
+  "backupSelectDataSqlite": "Select data to restore (SQLite)",
+  "@backupSelectDataSqlite": {},
+  "backupRestoreSuccessTitle": "Restore successful",
+  "@backupRestoreSuccessTitle": {},
+  "backupRestoredWithTransfer": "Restored {count} items and transferred to current shop. Please restart the app to apply changes.",
+  "@backupRestoredWithTransfer": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "backupRestoredNoTransfer": "Restored {count} items. Please restart the app to apply changes.",
+  "@backupRestoredNoTransfer": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "backupRestoredCloudWithTransfer": "Restored {count} items from Cloud and transferred to current shop. Please restart the app.",
+  "@backupRestoredCloudWithTransfer": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "backupRestoredCloudNoTransfer": "Restored {count} items from Cloud. Please restart the app to apply new data.",
+  "@backupRestoredCloudNoTransfer": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "backupDeleteWarningTitle": "Delete: {label}?",
+  "@backupDeleteWarningTitle": {
+    "placeholders": { "label": { "type": "String" } }
+  },
+  "backupDeleteWarningContent": "Data will be permanently deleted from this device.\n\nRecommend backing up before deleting to avoid data loss.",
+  "@backupDeleteWarningContent": {},
+  "backupDeleteCloudTooLabel": "Also delete Cloud data for current shop",
+  "@backupDeleteCloudTooLabel": {},
+  "backupDeleteCloudTooSubtitle": "If not selected, Cloud data may sync back to device after local deletion.",
+  "@backupDeleteCloudTooSubtitle": {},
+  "backupDeleteForever": "Delete permanently",
+  "@backupDeleteForever": {},
+  "backupSelectDataToDelete": "Select data to delete",
+  "@backupSelectDataToDelete": {},
+  "backupKeepDaysTitle": "How many recent days of backup to keep?",
+  "@backupKeepDaysTitle": {},
+  "backupKeep30Days": "30 days — delete backups older than 1 month",
+  "@backupKeep30Days": {},
+  "backupKeep60Days": "60 days — delete backups older than 2 months",
+  "@backupKeep60Days": {},
+  "backupKeep90Days": "90 days — delete backups older than 3 months",
+  "@backupKeep90Days": {},
+  "backupKeep180Days": "180 days — delete backups older than 6 months",
+  "@backupKeep180Days": {},
+  "backupLocalRestoreTitle": "Restore local SQLite",
+  "@backupLocalRestoreTitle": {},
+  "backupLocalRestoreContent": "Current data will be overwritten by this backup. Continue?",
+  "@backupLocalRestoreContent": {},
+  "backupRestoredLocalWithTransfer": "Restored {count} items and transferred to current shop. Please restart the app.",
+  "@backupRestoredLocalWithTransfer": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "backupRestoredLocalNoTransfer": "Restored {count} items from local backup. Please restart the app.",
+  "@backupRestoredLocalNoTransfer": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "backupConfirmRestoreTitle": "Confirm restore",
+  "@backupConfirmRestoreTitle": {},
+  "backupConfirmRestoreContent": "Current data of {count} items will be overwritten by backup from {date}.\n\nContinue?",
+  "@backupConfirmRestoreContent": {
+    "placeholders": {
+      "count": { "type": "int" },
+      "date": { "type": "String" }
+    }
+  },
+  "backupDeleteSetTitle": "Delete backup?",
+  "@backupDeleteSetTitle": {},
+  "backupDeleteSetContent": "Delete backup from {date}?",
+  "@backupDeleteSetContent": {
+    "placeholders": { "date": { "type": "String" } }
+  },
+  "backupPreparingMsg": "Preparing...",
+  "@backupPreparingMsg": {},
+  "backupBackingUpItem": "Backing up {item} ({done}/{total})...",
+  "@backupBackingUpItem": {
+    "placeholders": {
+      "item": { "type": "String" },
+      "done": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "backupRestoringMsg": "Restoring...",
+  "@backupRestoringMsg": {},
+  "backupSelectDataBackup": "Select data to backup",
+  "@backupSelectDataBackup": {},
+  "backupSelectedCountLabel": "{count} items selected",
+  "@backupSelectedCountLabel": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "backupNotAvailable": "Not in this backup",
+  "@backupNotAvailable": {},
+  "backupStorageRulesTitle": "Firebase Storage Rules configuration needed",
+  "@backupStorageRulesTitle": {},
+  "backupCloudPermissionError": "{action} Cloud failed: account does not have Firebase Storage permission for db_backups.",
+  "@backupCloudPermissionError": {
+    "placeholders": { "action": { "type": "String" } }
+  },
+  "backupCloudNotFoundError": "{action} Cloud failed: backup file not found on Cloud.",
+  "@backupCloudNotFoundError": {
+    "placeholders": { "action": { "type": "String" } }
+  },
+  "backupCloudAuthError": "{action} Cloud failed: session expired, please login again.",
+  "@backupCloudAuthError": {
+    "placeholders": { "action": { "type": "String" } }
+  },
+  "backupCloudGenericError": "{action} Cloud failed: {error}",
+  "@backupCloudGenericError": {
+    "placeholders": {
+      "action": { "type": "String" },
+      "error": { "type": "String" }
+    }
+  },
+  "backupPresetInventoryCash": "Inventory & Cash Closing",
+  "@backupPresetInventoryCash": {},
+  "backupPresetAccessoriesProducts": "Accessories / Products",
+  "@backupPresetAccessoriesProducts": {},
+  "backupPresetRepairParts": "Repair Parts",
+  "@backupPresetRepairParts": {},
+  "backupPresetSupplierImport": "Suppliers & Stock-in",
+  "@backupPresetSupplierImport": {},
+  "backupPresetPayments": "Payments",
+  "@backupPresetPayments": {},
+  "backupPresetOther": "Other",
+  "@backupPresetOther": {},
+  "backupPresetHr": "HR",
+  "@backupPresetHr": {},
+  "backupPresetSystemLog": "System Logs",
+  "@backupPresetSystemLog": {},
+  "inventoryManageTitle": "WAREHOUSE",
+  "@inventoryManageTitle": {},
+  "inventoryManageTotalTitle": "WAREHOUSE MANAGEMENT",
+  "@inventoryManageTotalTitle": {},
+  "inventoryNoAccessMsg": "You don't have access\nto warehouse management",
+  "@inventoryNoAccessMsg": {},
+  "inventoryUnsyncedNote": "{count} unsynced",
+  "@inventoryUnsyncedNote": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "inventoryInStockLabel": "IN STOCK",
+  "@inventoryInStockLabel": {},
+  "inventoryTempStockLabel": "TEMP STOCK",
+  "@inventoryTempStockLabel": {},
+  "inventoryTempStockBanner": "TEMP STOCK – Waiting for price confirmation",
+  "@inventoryTempStockBanner": {},
+  "inventoryExpectedSupplier": "Expected supplier: {supplier}",
+  "@inventoryExpectedSupplier": {
+    "placeholders": { "supplier": { "type": "String" } }
+  },
+  "inventoryStockQty": "Stock qty",
+  "@inventoryStockQty": {},
+  "inventoryPurchasePrice": "Purchase price",
+  "@inventoryPurchasePrice": {},
+  "inventorySalePriceItem": "Sale price",
+  "@inventorySalePriceItem": {},
+  "inventoryLoss": "Loss",
+  "@inventoryLoss": {},
+  "inventoryCapacityLabel": "Capacity",
+  "@inventoryCapacityLabel": {},
+  "inventorySizeLabel": "Size",
+  "@inventorySizeLabel": {},
+  "inventorySupplierLabel": "Supplier",
+  "@inventorySupplierLabel": {},
+  "inventoryPendingConfirm": "Pending confirmation",
+  "@inventoryPendingConfirm": {},
+  "inventoryWaitingConfirm": "Waiting for confirmation",
+  "@inventoryWaitingConfirm": {},
+  "inventoryWarehouseLocation": "Storage location",
+  "@inventoryWarehouseLocation": {},
+  "inventoryLastUpdated": "Last updated",
+  "@inventoryLastUpdated": {},
+  "inventoryRepairHistorySection": "REPAIR HISTORY",
+  "@inventoryRepairHistorySection": {},
+  "inventoryConfirmPriceBtn": "CONFIRM PRICE – TRANSFER TO MAIN WAREHOUSE",
+  "@inventoryConfirmPriceBtn": {},
+  "inventoryPrintingLabelMsg": "Printing label...",
+  "@inventoryPrintingLabelMsg": {},
+  "inventoryPrintLabelSuccess": "Print label successful",
+  "@inventoryPrintLabelSuccess": {},
+  "inventoryPrintLabelError": "Error printing label",
+  "@inventoryPrintLabelError": {},
+  "inventoryPrintLabelAction": "PRINT LABEL",
+  "@inventoryPrintLabelAction": {},
+  "inventoryEditAction": "EDIT",
+  "@inventoryEditAction": {},
+  "inventorySellAction": "SELL",
+  "@inventorySellAction": {},
+  "inventoryStockMoreAction": "RESTOCK ({count})",
+  "@inventoryStockMoreAction": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "inventoryDeleteAction": "DELETE",
+  "@inventoryDeleteAction": {},
+  "inventoryRestockTitle": "RESTOCK",
+  "@inventoryRestockTitle": {},
+  "inventoryCurrentStockNote": "Current stock: {qty}",
+  "@inventoryCurrentStockNote": {
+    "placeholders": { "qty": { "type": "int" } }
+  },
+  "inventoryCurrentCostNote": "Current cost price: {price}",
+  "@inventoryCurrentCostNote": {
+    "placeholders": { "price": { "type": "String" } }
+  },
+  "inventoryRestockQtyLabel": "Additional quantity",
+  "@inventoryRestockQtyLabel": {},
+  "inventoryRestockPriceLabel": "Purchase price (VND)",
+  "@inventoryRestockPriceLabel": {},
+  "inventoryWeightedCostNote": "Weighted cost after restock: {price}",
+  "@inventoryWeightedCostNote": {
+    "placeholders": { "price": { "type": "String" } }
+  },
+  "inventoryPaymentMethodLabel": "Payment method",
+  "@inventoryPaymentMethodLabel": {},
+  "inventoryCashOption": "Cash",
+  "@inventoryCashOption": {},
+  "inventoryBankTransferOption": "Bank transfer",
+  "@inventoryBankTransferOption": {},
+  "inventoryDebtOption": "Debt",
+  "@inventoryDebtOption": {},
+  "inventoryStockInAction": "STOCK IN",
+  "@inventoryStockInAction": {},
+  "inventoryValidQtyError": "Please enter a valid quantity",
+  "@inventoryValidQtyError": {},
+  "inventoryValidPriceError": "Please enter a valid purchase price",
+  "@inventoryValidPriceError": {},
+  "inventoryStockingIn": "Stocking in...",
+  "@inventoryStockingIn": {},
+  "inventoryNoSupplierFoundError": "No valid supplier found for this product. Please update the supplier and restock.",
+  "@inventoryNoSupplierFoundError": {},
+  "inventoryCreateEntryError": "Error creating stock-in entry",
+  "@inventoryCreateEntryError": {},
+  "inventoryStockInSuccess": "Added {qty} {name} to warehouse",
+  "@inventoryStockInSuccess": {
+    "placeholders": {
+      "qty": { "type": "int" },
+      "name": { "type": "String" }
+    }
+  },
+  "inventoryConfirmEntryError": "Error confirming stock-in entry",
+  "@inventoryConfirmEntryError": {},
+  "inventoryErrorMsg": "Error: {error}",
+  "@inventoryErrorMsg": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "inventoryEditOption": "Edit",
+  "@inventoryEditOption": {},
+  "inventoryHideOption": "Hide from warehouse",
+  "@inventoryHideOption": {},
+  "inventoryCostPriceNote": "Cost price: {price}",
+  "@inventoryCostPriceNote": {
+    "placeholders": { "price": { "type": "String" } }
+  },
+  "inventorySoftDeleteWarning": "⚠️ IMPORTANT NOTE:",
+  "@inventorySoftDeleteWarning": {},
+  "inventorySoftDeleteDesc": "• This is a SOFT DELETE – only hides from inventory list\n• Does NOT affect revenue, debts, import history\n• All other financial data REMAINS UNCHANGED",
+  "@inventorySoftDeleteDesc": {},
+  "inventoryDeleteReasonLabel": "Delete reason (optional)",
+  "@inventoryDeleteReasonLabel": {},
+  "inventoryDeleteReasonHint": "E.g.: Input error, return to supplier...",
+  "@inventoryDeleteReasonHint": {},
+  "inventoryAccountPassword": "Account password *",
+  "@inventoryAccountPassword": {},
+  "inventoryEnterPasswordError": "Please enter password",
+  "@inventoryEnterPasswordError": {},
+  "inventoryWrongPasswordError": "Wrong password",
+  "@inventoryWrongPasswordError": {},
+  "inventoryHideFromWarehouse": "HIDE FROM WAREHOUSE",
+  "@inventoryHideFromWarehouse": {},
+  "inventoryHideSuccess": "Hidden {product} from warehouse: {name}",
+  "@inventoryHideSuccess": {
+    "placeholders": {
+      "product": { "type": "String" },
+      "name": { "type": "String" }
+    }
+  },
+  "inventoryHideError": "Error hiding {product}: {error}",
+  "@inventoryHideError": {
+    "placeholders": {
+      "product": { "type": "String" },
+      "error": { "type": "String" }
+    }
+  },
+  "inventoryEmptyFiltered": "No products found",
+  "@inventoryEmptyFiltered": {},
+  "inventoryEmptyAll": "Warehouse is empty",
+  "@inventoryEmptyAll": {},
+  "inventoryEmptyFilteredSub": "Try removing filters or search for another keyword",
+  "@inventoryEmptyFilteredSub": {},
+  "inventoryEmptyOutOfStockSub": "Enable \"Out of stock\" to see out-of-stock products",
+  "@inventoryEmptyOutOfStockSub": {},
+  "inventoryConfirmDeleteTitle": "CONFIRM DELETE",
+  "@inventoryConfirmDeleteTitle": {},
+  "inventoryConfirmDeleteContent": "Are you sure you want to delete {count} items?",
+  "@inventoryConfirmDeleteContent": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "inventoryEnterPasswordToDelete": "Enter account password to delete:",
+  "@inventoryEnterPasswordToDelete": {},
+  "inventoryAccountPasswordLabel": "Account password",
+  "@inventoryAccountPasswordLabel": {},
+  "inventoryDeleteNow": "DELETE NOW",
+  "@inventoryDeleteNow": {},
+  "inventoryAddPartTooltip": "Add part",
+  "@inventoryAddPartTooltip": {},
+  "inventoryStockInAITooltip": "Quick stock-in (AI)",
+  "@inventoryStockInAITooltip": {},
+  "inventoryStockInTooltip": "Stock in",
+  "@inventoryStockInTooltip": {},
+  "inventorySearchWithQuery": "Search: \"{query}\"",
+  "@inventorySearchWithQuery": {
+    "placeholders": { "query": { "type": "String" } }
+  },
+  "inventoryMoreTooltip": "More",
+  "@inventoryMoreTooltip": {},
+  "inventoryStorageLocationMenu": "Storage location",
+  "@inventoryStorageLocationMenu": {},
+  "inventoryPrintLabelsMenu": "Print labels",
+  "@inventoryPrintLabelsMenu": {},
+  "inventorySelectedCount": "SELECTED {count}",
+  "@inventorySelectedCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "inventoryShownCount": "Showing {count} {product}",
+  "@inventoryShownCount": {
+    "placeholders": {
+      "count": { "type": "int" },
+      "product": { "type": "String" }
+    }
+  },
+  "inventoryDisplayOrTotal": "SHOWING / TOTAL",
+  "@inventoryDisplayOrTotal": {},
+  "inventoryTotalLabel": "TOTAL WAREHOUSE",
+  "@inventoryTotalLabel": {},
+  "inventoryCapitalLabel": "STOCK CAPITAL",
+  "@inventoryCapitalLabel": {},
+  "inventoryLocationFilter": "Location",
+  "@inventoryLocationFilter": {},
+  "inventoryOutOfStockFilter": "Out of stock",
+  "@inventoryOutOfStockFilter": {},
+  "inventoryNoLocationMsg": "No location has been created.",
+  "@inventoryNoLocationMsg": {},
+  "inventoryFilterByLocation": "Filter by location",
+  "@inventoryFilterByLocation": {},
+  "inventoryAllFilter": "All",
+  "@inventoryAllFilter": {},
+  "inventoryStatusPending": "Temp stock",
+  "@inventoryStatusPending": {},
+  "inventoryStatusLowStock": "Running low",
+  "@inventoryStatusLowStock": {},
+  "inventoryWaitingPrice": "Awaiting price",
+  "@inventoryWaitingPrice": {},
+  "inventoryRemainingLabel": "left",
+  "@inventoryRemainingLabel": {},
+  "inventoryConfirmCostTitle": "Confirm price - Transfer to Main Warehouse",
+  "@inventoryConfirmCostTitle": {},
+  "inventoryValidCostError": "Please enter a valid cost price!",
+  "@inventoryValidCostError": {},
+  "inventorySelectSupplierError": "Please select a supplier!",
+  "@inventorySelectSupplierError": {},
+  "inventoryConfirmCostSuccess": "Price confirmed and transferred to Main Warehouse!",
+  "@inventoryConfirmCostSuccess": {},
+  "inventorySelectSupplierFirst": "Please select supplier!",
+  "@inventorySelectSupplierFirst": {},
+  "inventoryCostChangeTitle": "Cost price change warning",
+  "@inventoryCostChangeTitle": {},
+  "inventoryCostChangeMessage": "This product has been saved to the warehouse. Changing the cost price will not affect old orders but may distort gross profit reports. Are you sure you want to continue?",
+  "@inventoryCostChangeMessage": {},
+  "inventoryUpdateSuccess": "UPDATE SUCCESSFUL",
+  "@inventoryUpdateSuccess": {},
+  "inventoryProductTypeLocked": "Product type (locked)",
+  "@inventoryProductTypeLocked": {},
+  "inventoryBrandField": "Brand *",
+  "@inventoryBrandField": {},
+  "inventoryModelField": "Model (E.g.: 15 PRO MAX)",
+  "@inventoryModelField": {},
+  "inventoryCapacityField": "Capacity",
+  "@inventoryCapacityField": {},
+  "inventorySizeField": "Size",
+  "@inventorySizeField": {},
+  "inventoryColorField": "Color",
+  "@inventoryColorField": {},
+  "inventoryConditionField": "Condition",
+  "@inventoryConditionField": {},
+  "inventoryLabelInfoField": "Label print info",
+  "@inventoryLabelInfoField": {},
+  "inventoryNoteHint": "Additional notes about the product...",
+  "@inventoryNoteHint": {},
+  "inventoryCostLockedField": "Cost price (stocked - locked)",
+  "@inventoryCostLockedField": {},
+  "inventoryCostField": "Cost price (k)",
+  "@inventoryCostField": {},
+  "inventoryPriceField": "Sale price (k)",
+  "@inventoryPriceField": {},
+  "inventoryExpiry": "EXPIRY DATE",
+  "@inventoryExpiry": {},
+  "inventoryChooseExpiry": "Choose expiry date",
+  "@inventoryChooseExpiry": {},
+  "inventoryExpiryLabel": "Expiry date",
+  "@inventoryExpiryLabel": {},
+  "inventoryNotChosen": "Not chosen",
+  "@inventoryNotChosen": {},
+  "inventoryBatchField": "Batch number",
+  "@inventoryBatchField": {},
+  "inventoryPhotoSection": "PHOTO & STORAGE LOCATION",
+  "@inventoryPhotoSection": {},
+  "inventoryQtyLockedField": "Stock qty",
+  "@inventoryQtyLockedField": {},
+  "inventorySupplierLockedField": "Supplier (locked)",
+  "@inventorySupplierLockedField": {},
+  "inventoryNoSupplier": "No supplier",
+  "@inventoryNoSupplier": {},
+  "inventoryRestockBtn": "Restock into warehouse",
+  "@inventoryRestockBtn": {},
+  "inventoryUpdateAction": "UPDATE",
+  "@inventoryUpdateAction": {},
+  "inventoryStatusReceived": "Received",
+  "@inventoryStatusReceived": {},
+  "inventoryStatusRepairing": "Repairing",
+  "@inventoryStatusRepairing": {},
+  "inventoryStatusCompleted": "Completed",
+  "@inventoryStatusCompleted": {},
+  "inventoryStatusDelivered": "Delivered",
+  "@inventoryStatusDelivered": {},
+  "inventoryStatusUnknown": "Unknown",
+  "@inventoryStatusUnknown": {},
+  "inventorySearchProduct": "Find {product}",
+  "@inventorySearchProduct": {
+    "placeholders": { "product": { "type": "String" } }
+  },
+  "inventoryExportParts": "Export parts warehouse",
+  "@inventoryExportParts": {},
+  "inventoryExportProducts": "Export product warehouse",
+  "@inventoryExportProducts": {},
+  "inventorySearchHint": "Enter {product}, {category} or {field}...",
+  "@inventorySearchHint": {
+    "placeholders": {
+      "product": { "type": "String" },
+      "category": { "type": "String" },
+      "field": { "type": "String" }
+    }
+  },
+  "inventoryHideProductTitle": "HIDE {product} (WAREHOUSE)",
+  "@inventoryHideProductTitle": {
+    "placeholders": { "product": { "type": "String" } }
+  },
+  "inventorySearchTooltip": "Search",
+  "@inventorySearchTooltip": {},
+  "inventoryExportExcelMenu": "Export Excel",
+  "@inventoryExportExcelMenu": {},
+  "inventoryCapitalChip": "Capital {price}đ",
+  "@inventoryCapitalChip": {
+    "placeholders": { "price": { "type": "String" } }
+  },
+  "inventoryEditProductTitle": "EDIT {label}",
+  "@inventoryEditProductTitle": {
+    "placeholders": { "label": { "type": "String" } }
+  },
+  "inventoryProductNameLabel": "{label} name",
+  "@inventoryProductNameLabel": {
+    "placeholders": { "label": { "type": "String" } }
+  },
+  "inventoryConfirmBtn": "CONFIRM",
+  "@inventoryConfirmBtn": {},
+  "inventoryCostPriceRequired": "COST PRICE (*)",
+  "@inventoryCostPriceRequired": {},
+  "inventorySalePriceOptional": "SALE PRICE (optional)",
+  "@inventorySalePriceOptional": {},
+  "inventorySupplierRequired": "SUPPLIER (*)",
+  "@inventorySupplierRequired": {},
+  "inventoryPaymentLabel": "PAYMENT",
+  "@inventoryPaymentLabel": {}
 }

@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -20,8 +19,6 @@ import '../services/payment_intent_service.dart';
 import '../services/firestore_write_helper.dart';
 import '../models/payment_intent_model.dart';
 import '../models/expense_model.dart';
-import '../services/financial_activity_service.dart';
-import '../services/audit_service.dart';
 import '../constants/financial_constants.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
@@ -34,6 +31,7 @@ import '../utils/excel_export_helper.dart';
 import '../widgets/export_date_filter_dialog.dart';
 import '../theme/popup_theme.dart';
 import '../widgets/app_popup.dart';
+import '../l10n/app_localizations.dart';
 
 class ExpenseView extends StatefulWidget {
   final bool embedded;
@@ -87,34 +85,35 @@ class _ExpenseViewState extends State<ExpenseView> {
   }
 
   Future<void> _showFirstTimeGuide() async {
+    final l10n = AppLocalizations.of(context)!;
     await FirstTimeGuideService.showGuideIfNeeded(
       context: context,
       screenKey: FirstTimeGuideService.keyExpenseView,
-      title: 'Thu & Chi',
+      title: l10n.incomeExpense,
       icon: Icons.account_balance_wallet_rounded,
       color: Colors.deepPurple,
       steps: [
-        const GuideStep(
-          title: '💸 Ghi nhận Thu & Chi',
-          description: 'Ghi lại các khoản thu nhập ngoài bán hàng (THU) và chi phí vận hành (CHI) của cửa hàng.',
+        GuideStep(
+          title: l10n.expenseGuideStep1Title,
+          description: l10n.expenseGuideStep1Desc,
           icon: Icons.swap_vert_rounded,
           iconColor: Colors.deepPurple,
         ),
-        const GuideStep(
-          title: '📂 Phân loại chi phí',
-          description: 'Phân biệt chi phí cửa hàng (điện, nước, mặt bằng) và chi phí cá nhân để báo cáo chính xác.',
+        GuideStep(
+          title: l10n.expenseGuideStep2Title,
+          description: l10n.expenseGuideStep2Desc,
           icon: Icons.category_rounded,
           iconColor: Colors.blue,
         ),
-        const GuideStep(
-          title: '📅 Lọc theo thời gian',
-          description: 'Xem thu chi theo ngày, tuần hoặc tháng để kiểm soát dòng tiền hiệu quả.',
+        GuideStep(
+          title: l10n.expenseGuideStep3Title,
+          description: l10n.expenseGuideStep3Desc,
           icon: Icons.date_range_rounded,
           iconColor: Colors.teal,
         ),
-        const GuideStep(
-          title: '📊 Biểu đồ tổng hợp',
-          description: 'Theo dõi xu hướng thu chi bằng biểu đồ trực quan, phát hiện khoản chi bất thường.',
+        GuideStep(
+          title: l10n.expenseGuideStep4Title,
+          description: l10n.expenseGuideStep4Desc,
           icon: Icons.pie_chart_rounded,
           iconColor: Colors.orange,
         ),
@@ -333,6 +332,7 @@ class _ExpenseViewState extends State<ExpenseView> {
     List<Map<String, dynamic>> list,
     Color accentColor,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     final shopTotal = _sumAmountByScope(list, 'SHOP');
     final personalTotal = _sumAmountByScope(list, 'CA_NHAN');
 
@@ -389,18 +389,19 @@ class _ExpenseViewState extends State<ExpenseView> {
       children: [
         buildScopeBox(label: 'SHOP', value: shopTotal, isPersonal: false),
         const SizedBox(width: 8),
-        buildScopeBox(label: 'CÁ NHÂN', value: personalTotal, isPersonal: true),
+        buildScopeBox(label: l10n.expenseScopePersonal, value: personalTotal, isPersonal: true),
       ],
     );
   }
 
   Future<void> _handleDeleteExpense(Map<String, dynamic> exp) async {
+    final l10n = AppLocalizations.of(context)!;
     final isIncome = (exp['type'] ?? 'CHI') == 'THU';
-    final label = isIncome ? 'thu phát sinh' : 'chi phí';
+    final label = isIncome ? l10n.incomeTypeLabel : l10n.expenseTypeLabel;
 
     if (exp['isPurchaseDebt'] == true) {
       NotificationService.showSnackBar(
-        "Không thể xóa chi phí từ đơn nhập hàng!",
+        l10n.cannotDeletePurchaseExpense,
         color: AppColors.error,
       );
       return;
@@ -414,7 +415,7 @@ class _ExpenseViewState extends State<ExpenseView> {
     if (!canEdit && mounted) {
       final expenseDate = DateTime.fromMillisecondsSinceEpoch(expenseTimestamp);
       NotificationService.showSnackBar(
-        '❌ Ngày ${DateFormat('dd/MM/yyyy').format(expenseDate)} đã chốt quỹ! Không thể xóa $label.',
+        l10n.closedDayCannotDelete(DateFormat('dd/MM/yyyy').format(expenseDate), label),
         color: Colors.red,
       );
       return;
@@ -425,7 +426,7 @@ class _ExpenseViewState extends State<ExpenseView> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(
-          isIncome ? "XÁC NHẬN XÓA KHOẢN THU" : "XÁC NHẬN XÓA CHI PHÍ",
+          isIncome ? l10n.confirmDeleteIncome : l10n.confirmDeleteExpenseTitle,
           style: AppTextStyles.headline5.copyWith(
             color: AppColors.error,
             fontWeight: FontWeight.bold,
@@ -435,15 +436,17 @@ class _ExpenseViewState extends State<ExpenseView> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              "Bạn đang xóa khoản ${isIncome ? 'thu' : 'chi'}: ${exp['title']}\nSố tiền: ${MoneyUtils.formatCurrency(exp['amount'])}",
+              isIncome
+                  ? l10n.deleteIncomeContent(exp['title'].toString(), MoneyUtils.formatCurrency(exp['amount']))
+                  : l10n.deleteExpenseContent(exp['title'].toString(), MoneyUtils.formatCurrency(exp['amount'])),
             ),
             const SizedBox(height: 15),
             TextField(
               controller: passC,
               obscureText: true,
-              decoration: const InputDecoration(
-                labelText: "Nhập mật khẩu tài khoản để xóa",
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n.enterPasswordToDeleteLabel,
+                border: const OutlineInputBorder(),
               ),
             ),
           ],
@@ -451,13 +454,13 @@ class _ExpenseViewState extends State<ExpenseView> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text("HỦY"),
+            child: Text(l10n.cancel),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: AppButtonStyles.errorElevatedButtonStyle,
             child: Text(
-              "XÁC NHẬN XÓA",
+              l10n.confirmDeleteButton,
               style: AppTextStyles.button.copyWith(color: AppColors.onError),
             ),
           ),
@@ -524,16 +527,14 @@ class _ExpenseViewState extends State<ExpenseView> {
           );
 
           NotificationService.showSnackBar(
-            isIncome
-                ? "Đã xóa khoản thu thành công"
-                : "Đã xóa chi phí thành công",
+            isIncome ? l10n.deletedIncomeSuccess : l10n.deletedExpenseSuccess,
             color: AppColors.success,
           );
           _refresh();
         }
       } catch (e) {
         NotificationService.showSnackBar(
-          "Mật khẩu không đúng! Không thể xóa.",
+          l10n.wrongPasswordCannotDelete,
           color: AppColors.error,
         );
         setState(() => _isLoading = false);
@@ -544,6 +545,8 @@ class _ExpenseViewState extends State<ExpenseView> {
   void _showAddExpenseDialog() async {
     if (_isSaving) return;
 
+    final l10n = AppLocalizations.of(context)!;
+
     // Kiểm tra ngày hôm nay đã chốt quỹ chưa
     final today = DateTime.now();
     final canEdit = await AdjustmentService.canEditDirectly(
@@ -551,7 +554,7 @@ class _ExpenseViewState extends State<ExpenseView> {
     );
     if (!canEdit && mounted) {
       NotificationService.showSnackBar(
-        '❌ Ngày hôm nay đã chốt quỹ! Không thể thêm chi phí mới.',
+        l10n.closedTodayExpense,
         color: Colors.red,
       );
       return;
@@ -591,15 +594,15 @@ class _ExpenseViewState extends State<ExpenseView> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const PopupDragHandle(),
-                    const Padding(
-                      padding: EdgeInsets.fromLTRB(20, 0, 20, 12),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
                       child: Row(
                         children: [
-                          Icon(Icons.trending_down, color: Colors.redAccent),
-                          SizedBox(width: 8),
+                          const Icon(Icons.trending_down, color: Colors.redAccent),
+                          const SizedBox(width: 8),
                           Text(
-                            "GHI CHÉP CHI PHÍ",
-                            style: TextStyle(
+                            l10n.writeExpensesTitle,
+                            style: const TextStyle(
                               color: PopupTheme.textPrimary,
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -616,7 +619,7 @@ class _ExpenseViewState extends State<ExpenseView> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              "PHÂN LOẠI",
+                              l10n.categoryLabel,
                               style: AppTextStyles.overline.copyWith(
                                 color: PopupTheme.textSecondary,
                               ),
@@ -651,19 +654,19 @@ class _ExpenseViewState extends State<ExpenseView> {
                             TextFormField(
                               controller: titleC,
                               style: const TextStyle(color: PopupTheme.textPrimary),
-                              decoration: const InputDecoration(
-                                labelText: "Nội dung chi *",
-                                prefixIcon: Icon(Icons.edit_note),
+                              decoration: InputDecoration(
+                                labelText: l10n.expenseContentRequired,
+                                prefixIcon: const Icon(Icons.edit_note),
                               ),
                               textCapitalization: TextCapitalization.characters,
                               validator: (v) => (v == null || v.trim().isEmpty)
-                                  ? 'Vui lòng nhập nội dung chi'
+                                  ? l10n.pleaseEnterExpenseContent
                                   : null,
                             ),
                             const SizedBox(height: 12),
                             CurrencyTextField(
                               controller: amountC,
-                              label: "Số tiền (VNĐ) *",
+                              label: l10n.amountVndRequired,
                               icon: Icons.payments,
                               validator: (v) => MoneyUtils.validateAmount(
                                 v ?? '',
@@ -675,14 +678,14 @@ class _ExpenseViewState extends State<ExpenseView> {
                             TextField(
                               controller: noteC,
                               style: const TextStyle(color: PopupTheme.textPrimary),
-                              decoration: const InputDecoration(
-                                labelText: "Ghi chú thêm",
-                                prefixIcon: Icon(Icons.description),
+                              decoration: InputDecoration(
+                                labelText: l10n.extraNoteLabel,
+                                prefixIcon: const Icon(Icons.description),
                               ),
                             ),
                             const SizedBox(height: 12),
                             Text(
-                              "THANH TOÁN BẰNG",
+                              l10n.paymentMethod,
                               style: AppTextStyles.overline.copyWith(
                                 color: PopupTheme.textSecondary,
                               ),
@@ -706,7 +709,7 @@ class _ExpenseViewState extends State<ExpenseView> {
                             ),
                             const SizedBox(height: 12),
                             Text(
-                              "PHẠM VI CHI",
+                              l10n.expenseScopeLabel,
                               style: AppTextStyles.overline.copyWith(
                                 color: PopupTheme.textSecondary,
                               ),
@@ -715,9 +718,9 @@ class _ExpenseViewState extends State<ExpenseView> {
                             Wrap(
                               spacing: 8,
                               runSpacing: 8,
-                              children: const [
+                              children: [
                                 {'value': 'SHOP', 'label': 'SHOP'},
-                                {'value': 'CA_NHAN', 'label': 'CÁ NHÂN'},
+                                {'value': 'CA_NHAN', 'label': l10n.expenseScopePersonal},
                               ].map((item) {
                                 final value = item['value']!;
                                 final label = item['label']!;
@@ -740,7 +743,7 @@ class _ExpenseViewState extends State<ExpenseView> {
                           Expanded(
                             child: OutlinedButton(
                               onPressed: () => Navigator.pop(ctx),
-                              child: const Text("HỦY"),
+                              child: Text(l10n.cancel),
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -795,7 +798,7 @@ class _ExpenseViewState extends State<ExpenseView> {
                                       if (result.success) {
                                         EventBus().emit('expenses_changed');
                                         NotificationService.showSnackBar(
-                                          "Đã lưu chi phí!",
+                                          l10n.savedExpense,
                                           color: AppColors.success,
                                         );
                                       }
@@ -803,9 +806,9 @@ class _ExpenseViewState extends State<ExpenseView> {
                                       setState(() => _isSaving = false);
                                       await _refresh();
                                     },
-                              child: const Text(
-                                "LƯU CHI PHÍ",
-                                style: TextStyle(fontWeight: FontWeight.bold),
+                              child: Text(
+                                l10n.saveExpenseButton,
+                                style: const TextStyle(fontWeight: FontWeight.bold),
                               ),
                             ),
                           ),
@@ -824,11 +827,12 @@ class _ExpenseViewState extends State<ExpenseView> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     if (!_hasPermission) {
       if (widget.embedded) {
         return Center(
           child: Text(
-            "Bạn không có quyền truy cập tính năng này",
+            l10n.noPermissionFeature,
             style: AppTextStyles.body1.copyWith(
               color: AppColors.onSurface.withOpacity(0.6),
             ),
@@ -836,10 +840,10 @@ class _ExpenseViewState extends State<ExpenseView> {
         );
       }
       return Scaffold(
-        appBar: CustomAppBar.build(title: 'QUẢN LÝ CHI PHÍ'),
+        appBar: CustomAppBar.build(title: l10n.expenseManagementTitle),
         body: Center(
           child: Text(
-            "Bạn không có quyền truy cập tính năng này",
+            l10n.noPermissionFeature,
             style: AppTextStyles.body1.copyWith(
               color: AppColors.onSurface.withOpacity(0.6),
             ),
@@ -890,7 +894,7 @@ class _ExpenseViewState extends State<ExpenseView> {
             icon: _viewMode == 'CHI'
                 ? Icons.add_circle_outline
                 : Icons.add_card,
-            label: _viewMode == 'CHI' ? 'Chi phí mới' : 'Thu phát sinh',
+            label: _viewMode == 'CHI' ? l10n.newExpenseFab : l10n.newIncomeFab,
             gradientColors: _viewMode == 'CHI'
                 ? [const Color(0xFFD32F2F), const Color(0xFFEF5350)]
                 : [const Color(0xFF2E7D32), const Color(0xFF66BB6A)],
@@ -905,13 +909,19 @@ class _ExpenseViewState extends State<ExpenseView> {
       );
     }
 
+    final syncDisplayText = _syncStatus == 'Đã đồng bộ'
+        ? l10n.syncedStatus
+        : _syncStatus == 'Đang đồng bộ...'
+        ? l10n.syncingStatus
+        : l10n.syncErrorStatus;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFF),
       appBar: CustomAppBar.build(
-        title: _viewMode == 'CHI' ? 'QUẢN LÝ CHI PHÍ' : 'THU PHÁT SINH',
+        title: _viewMode == 'CHI' ? l10n.expenseManagementTitle : l10n.incomeManagementTitle,
         subtitle: _viewMode == 'CHI'
-            ? '${_filteredExpenses.length} khoản chi'
-            : '${_filteredExpenses.length} khoản thu',
+            ? l10n.expenseCountSubtitle(_filteredExpenses.length)
+            : l10n.incomeCountSubtitle(_filteredExpenses.length),
         accentColor: _viewMode == 'CHI'
             ? AppBarAccents.staff
             : const Color(0xFF2E7D32),
@@ -925,13 +935,13 @@ class _ExpenseViewState extends State<ExpenseView> {
               Icons.inventory_2_outlined,
               color: AppBarAccents.staff,
             ),
-            tooltip: 'Nhập kho',
+            tooltip: l10n.stockIn,
           ),
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                _syncStatus,
+                syncDisplayText,
                 style: AppTextStyles.caption.copyWith(
                   color: _syncStatus == 'Lỗi đồng bộ'
                       ? Colors.orange
@@ -946,20 +956,20 @@ class _ExpenseViewState extends State<ExpenseView> {
                   _isSyncing ? Icons.sync : Icons.sync_outlined,
                   color: _isSyncing ? Colors.orange : AppBarAccents.staff,
                 ),
-                tooltip: 'Đồng bộ với Firebase',
+                tooltip: l10n.syncWithFirebase,
               ),
             ],
           ),
           IconButton(
-            icon: Icon(
+            icon: const Icon(
               Icons.file_download_outlined,
               color: AppBarAccents.staff,
             ),
-            tooltip: 'Xuất Excel thu chi',
+            tooltip: l10n.exportExcelIncomeExpense,
             onPressed: () async {
               final result = await ExportDateFilterDialog.show(
                 context,
-                title: 'Xuất thu chi',
+                title: l10n.exportIncomeExpenseTitle,
               );
               if (result == null) return;
               if (!mounted) return;
@@ -997,6 +1007,7 @@ class _ExpenseViewState extends State<ExpenseView> {
 
   Widget _toggleBtn(String mode, IconData icon, Color activeColor) {
     final active = _viewMode == mode;
+    final l10n = AppLocalizations.of(context)!;
     return Expanded(
       child: GestureDetector(
         onTap: () {
@@ -1022,7 +1033,7 @@ class _ExpenseViewState extends State<ExpenseView> {
               ),
               const SizedBox(width: 4),
               Text(
-                mode == 'CHI' ? 'CHI PHÍ' : 'THU PHÁT SINH',
+                mode == 'CHI' ? l10n.expenses : l10n.incidentalIncome,
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
@@ -1037,6 +1048,7 @@ class _ExpenseViewState extends State<ExpenseView> {
   }
 
   Widget _buildIncomeHeader(int total, List<Map<String, dynamic>> list) {
+    final l10n = AppLocalizations.of(context)!;
     int phatSinh = list
         .where((e) => e['category'] == 'PHÁT SINH')
         .fold(0, (sum, e) => sum + (e['amount'] as int));
@@ -1056,10 +1068,10 @@ class _ExpenseViewState extends State<ExpenseView> {
         .fold(0, (sum, e) => sum + (e['amount'] as int));
 
     final categories = <_ExpCat>[
-      _ExpCat('Phát sinh', phatSinh, const Color(0xFF43A047)),
-      _ExpCat('Dịch vụ', dichVu, const Color(0xFF1E88E5)),
-      _ExpCat('Hoàn tiền', hoanTien, const Color(0xFF00ACC1)),
-      _ExpCat('Khác', khac, const Color(0xFF7E57C2)),
+      _ExpCat(l10n.expenseCatIncidental, phatSinh, const Color(0xFF43A047)),
+      _ExpCat(l10n.expenseCatService, dichVu, const Color(0xFF1E88E5)),
+      _ExpCat(l10n.expenseCatRefund, hoanTien, const Color(0xFF00ACC1)),
+      _ExpCat(l10n.other, khac, const Color(0xFF7E57C2)),
     ].where((c) => c.value > 0).toList();
 
     return Container(
@@ -1083,10 +1095,10 @@ class _ExpenseViewState extends State<ExpenseView> {
                 ),
                 child: Text(
                   _filterType == 'NGÀY'
-                      ? 'HÔM NAY'
+                      ? l10n.todayPeriod
                       : _filterType == 'TUẦN'
-                      ? 'TUẦN NÀY'
-                      : 'THÁNG NÀY',
+                      ? l10n.thisWeekPeriod
+                      : l10n.thisMonthPeriod,
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
@@ -1100,7 +1112,7 @@ class _ExpenseViewState extends State<ExpenseView> {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    'Tổng thu phát sinh',
+                    l10n.totalIncomeLabel,
                     style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
                   ),
                   Text(
@@ -1200,6 +1212,8 @@ class _ExpenseViewState extends State<ExpenseView> {
   void _showAddIncomeDialog() async {
     if (_isSaving) return;
 
+    final l10n = AppLocalizations.of(context)!;
+
     // Kiểm tra ngày hôm nay đã chốt quỹ chưa
     final today = DateTime.now();
     final canEdit = await AdjustmentService.canEditDirectly(
@@ -1207,7 +1221,7 @@ class _ExpenseViewState extends State<ExpenseView> {
     );
     if (!canEdit && mounted) {
       NotificationService.showSnackBar(
-        '❌ Ngày hôm nay đã chốt quỹ! Không thể thêm thu phát sinh mới.',
+        l10n.closedTodayIncome,
         color: Colors.red,
       );
       return;
@@ -1247,15 +1261,15 @@ class _ExpenseViewState extends State<ExpenseView> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const PopupDragHandle(),
-                    const Padding(
-                      padding: EdgeInsets.fromLTRB(20, 0, 20, 12),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
                       child: Row(
                         children: [
-                          Icon(Icons.trending_up, color: Color(0xFF66BB6A)),
-                          SizedBox(width: 8),
+                          const Icon(Icons.trending_up, color: Color(0xFF66BB6A)),
+                          const SizedBox(width: 8),
                           Text(
-                            "GHI CHÉP THU PHÁT SINH",
-                            style: TextStyle(
+                            l10n.writeIncomeTitle,
+                            style: const TextStyle(
                               color: PopupTheme.textPrimary,
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -1272,7 +1286,7 @@ class _ExpenseViewState extends State<ExpenseView> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              "PHÂN LOẠI",
+                              l10n.categoryLabel,
                               style: AppTextStyles.overline.copyWith(
                                 color: PopupTheme.textSecondary,
                               ),
@@ -1307,19 +1321,19 @@ class _ExpenseViewState extends State<ExpenseView> {
                             TextFormField(
                               controller: titleC,
                               style: const TextStyle(color: PopupTheme.textPrimary),
-                              decoration: const InputDecoration(
-                                labelText: "Nội dung thu *",
-                                prefixIcon: Icon(Icons.edit_note),
+                              decoration: InputDecoration(
+                                labelText: l10n.incomeContentRequired,
+                                prefixIcon: const Icon(Icons.edit_note),
                               ),
                               textCapitalization: TextCapitalization.characters,
                               validator: (v) => (v == null || v.trim().isEmpty)
-                                  ? 'Vui lòng nhập nội dung thu'
+                                  ? l10n.pleaseEnterIncomeContent
                                   : null,
                             ),
                             const SizedBox(height: 12),
                             CurrencyTextField(
                               controller: amountC,
-                              label: "Số tiền (VNĐ) *",
+                              label: l10n.amountVndRequired,
                               icon: Icons.payments,
                               validator: (v) => MoneyUtils.validateAmount(
                                 v ?? '',
@@ -1331,14 +1345,14 @@ class _ExpenseViewState extends State<ExpenseView> {
                             TextField(
                               controller: noteC,
                               style: const TextStyle(color: PopupTheme.textPrimary),
-                              decoration: const InputDecoration(
-                                labelText: "Ghi chú thêm",
-                                prefixIcon: Icon(Icons.description),
+                              decoration: InputDecoration(
+                                labelText: l10n.extraNoteLabel,
+                                prefixIcon: const Icon(Icons.description),
                               ),
                             ),
                             const SizedBox(height: 12),
                             Text(
-                              "THANH TOÁN BẰNG",
+                              l10n.paymentMethod,
                               style: AppTextStyles.overline.copyWith(
                                 color: PopupTheme.textSecondary,
                               ),
@@ -1362,7 +1376,7 @@ class _ExpenseViewState extends State<ExpenseView> {
                             ),
                             const SizedBox(height: 12),
                             Text(
-                              "PHẠM VI",
+                              l10n.incomeScopeLabel,
                               style: AppTextStyles.overline.copyWith(
                                 color: PopupTheme.textSecondary,
                               ),
@@ -1371,9 +1385,9 @@ class _ExpenseViewState extends State<ExpenseView> {
                             Wrap(
                               spacing: 8,
                               runSpacing: 8,
-                              children: const [
+                              children: [
                                 {'value': 'SHOP', 'label': 'SHOP'},
-                                {'value': 'CA_NHAN', 'label': 'CÁ NHÂN'},
+                                {'value': 'CA_NHAN', 'label': l10n.expenseScopePersonal},
                               ].map((item) {
                                 final value = item['value']!;
                                 final label = item['label']!;
@@ -1396,7 +1410,7 @@ class _ExpenseViewState extends State<ExpenseView> {
                           Expanded(
                             child: OutlinedButton(
                               onPressed: () => Navigator.pop(ctx),
-                              child: const Text("HỦY"),
+                              child: Text(l10n.cancel),
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -1449,7 +1463,7 @@ class _ExpenseViewState extends State<ExpenseView> {
                                       if (result.success) {
                                         EventBus().emit('expenses_changed');
                                         NotificationService.showSnackBar(
-                                          "Đã lưu thu phát sinh!",
+                                          l10n.savedIncome,
                                           color: AppColors.success,
                                         );
                                       }
@@ -1457,9 +1471,9 @@ class _ExpenseViewState extends State<ExpenseView> {
                                       setState(() => _isSaving = false);
                                       await _refresh();
                                     },
-                              child: const Text(
-                                "LƯU KHOẢN THU",
-                                style: TextStyle(fontWeight: FontWeight.bold),
+                              child: Text(
+                                l10n.saveIncomeButton,
+                                style: const TextStyle(fontWeight: FontWeight.bold),
                               ),
                             ),
                           ),
@@ -1477,6 +1491,7 @@ class _ExpenseViewState extends State<ExpenseView> {
   }
 
   Widget _buildFilterBar() {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -1571,10 +1586,10 @@ class _ExpenseViewState extends State<ExpenseView> {
           const SizedBox(height: 8),
           Row(
             children: [
-              ...const [
-                {'value': 'TAT_CA', 'label': 'TẤT CẢ'},
+              ...[
+                {'value': 'TAT_CA', 'label': l10n.expenseScopeAll},
                 {'value': 'SHOP', 'label': 'SHOP'},
-                {'value': 'CA_NHAN', 'label': 'CÁ NHÂN'},
+                {'value': 'CA_NHAN', 'label': l10n.expenseScopePersonal},
               ].map((item) {
                 final value = item['value']!;
                 final label = item['label']!;
@@ -1637,6 +1652,7 @@ class _ExpenseViewState extends State<ExpenseView> {
   }
 
   Widget _buildProfessionalHeader(int total, List<Map<String, dynamic>> list) {
+    final l10n = AppLocalizations.of(context)!;
     int coDinh = list
         .where(
           (e) =>
@@ -1665,10 +1681,10 @@ class _ExpenseViewState extends State<ExpenseView> {
         .fold(0, (sum, e) => sum + (e['amount'] as int));
 
     final categories = <_ExpCat>[
-      _ExpCat('Cố định', coDinh, const Color(0xFF1E88E5)),
-      _ExpCat('Phát sinh', phatSinh, const Color(0xFFFB8C00)),
-      _ExpCat('Nhập hàng', nhapHang, const Color(0xFF43A047)),
-      _ExpCat('Khác', khac, const Color(0xFF7E57C2)),
+      _ExpCat(l10n.expenseCatFixed, coDinh, const Color(0xFF1E88E5)),
+      _ExpCat(l10n.expenseCatIncidental, phatSinh, const Color(0xFFFB8C00)),
+      _ExpCat(l10n.expenseCatStockIn, nhapHang, const Color(0xFF43A047)),
+      _ExpCat(l10n.other, khac, const Color(0xFF7E57C2)),
     ].where((c) => c.value > 0).toList();
 
     return Container(
@@ -1693,10 +1709,10 @@ class _ExpenseViewState extends State<ExpenseView> {
                 ),
                 child: Text(
                   _filterType == 'NGÀY'
-                      ? 'HÔM NAY'
+                      ? l10n.todayPeriod
                       : _filterType == 'TUẦN'
-                      ? 'TUẦN NÀY'
-                      : 'THÁNG NÀY',
+                      ? l10n.thisWeekPeriod
+                      : l10n.thisMonthPeriod,
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
@@ -1710,7 +1726,7 @@ class _ExpenseViewState extends State<ExpenseView> {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    'Tổng chi',
+                    l10n.totalExpenseLabel,
                     style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
                   ),
                   Text(
@@ -1809,10 +1825,11 @@ class _ExpenseViewState extends State<ExpenseView> {
   }
 
   Widget _expenseProfessionalCard(Map<String, dynamic> e, int index) {
+    final l10n = AppLocalizations.of(context)!;
     final cat = (e['category'] ?? 'KHÁC').toString();
     final isIncome = (e['type'] ?? 'CHI') == 'THU';
     final scopeLabel = _normalizedScopeFromRow(e) == 'CA_NHAN'
-        ? 'CÁ NHÂN'
+        ? l10n.expenseScopePersonal
         : 'SHOP';
     Color color;
     IconData icon;
@@ -1884,7 +1901,7 @@ class _ExpenseViewState extends State<ExpenseView> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  (e['title'] ?? 'Không tên').toString(),
+                  (e['title'] ?? l10n.noNameLabel).toString(),
                   style: const TextStyle(
                     fontWeight: FontWeight.w600,
                     fontSize: 13,
@@ -1930,30 +1947,33 @@ class _ExpenseViewState extends State<ExpenseView> {
     );
   }
 
-  Widget _buildEmpty() => Center(
-    child: Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(
-          _viewMode == 'THU'
-              ? Icons.account_balance_wallet_outlined
-              : Icons.money_off_rounded,
-          size: 80,
-          color: Colors.grey[200],
-        ),
-        const SizedBox(height: 16),
-        Text(
-          kIsWeb
-              ? "Tính năng này không khả dụng trên trình duyệt web.\nVui lòng sử dụng ứng dụng di động."
-              : _viewMode == 'THU'
-              ? "Không có khoản thu phát sinh nào trong ${_filterType.toLowerCase()} này"
-              : "Không có chi phí nào trong ${_filterType.toLowerCase()} này",
-          style: const TextStyle(color: Colors.grey),
-          textAlign: TextAlign.center,
-        ),
-      ],
-    ),
-  );
+  Widget _buildEmpty() {
+    final l10n = AppLocalizations.of(context)!;
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            _viewMode == 'THU'
+                ? Icons.account_balance_wallet_outlined
+                : Icons.money_off_rounded,
+            size: 80,
+            color: Colors.grey[200],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            kIsWeb
+                ? l10n.webNotAvailableMessage
+                : _viewMode == 'THU'
+                ? l10n.noIncomeInPeriod(_filterType.toLowerCase())
+                : l10n.noExpenseInPeriod(_filterType.toLowerCase()),
+            style: const TextStyle(color: Colors.grey),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _ExpCat {

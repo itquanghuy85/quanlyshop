@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../l10n/app_localizations.dart';
 import '../utils/money_utils.dart';
 import '../widgets/currency_text_field.dart';
 import '../data/db_helper.dart';
@@ -54,7 +55,7 @@ class _DebtViewState extends State<DebtView>
   List<Map<String, dynamic>> _partnerDebts = []; // Công nợ đối tác sửa chữa
   bool _isLoading = true;
   bool _isSyncing = false;
-  String _syncStatus = 'Đã đồng bộ';
+  String _syncStatus = '';
   StreamSubscription<String>? _eventSub;
   Timer? _reloadDebounce;
 
@@ -126,39 +127,37 @@ class _DebtViewState extends State<DebtView>
 
   /// Hiển thị hướng dẫn lần đầu
   Future<void> _showFirstTimeGuide() async {
+    final l10n = AppLocalizations.of(context)!;
     await FirstTimeGuideService.showGuideIfNeeded(
       context: context,
       screenKey: FirstTimeGuideService.keyDebtManagement,
-      title: 'Quản Lý Công Nợ',
+      title: l10n.debtGuideTitle,
       icon: Icons.account_balance_wallet,
       color: Colors.red,
       steps: [
         GuideStep(
-          title: _enableRepair ? '📊 3 loại công nợ' : '📊 2 loại công nợ',
+          title: _enableRepair ? l10n.debtGuideStep1Title3Types : l10n.debtGuideStep1Title2Types,
           description: _enableRepair
-              ? 'KHÁCH NỢ (khách chưa TT), NỢ NCC (nợ nhà cung cấp), NỢ ĐỐI TÁC (nợ thợ sửa ngoài).'
-              : 'KHÁCH NỢ (khách chưa TT), NỢ NCC (nợ nhà cung cấp).',
+              ? l10n.debtGuideStep1Desc3Types
+              : l10n.debtGuideStep1Desc2Types,
           icon: Icons.category,
           iconColor: Colors.blue,
         ),
-        const GuideStep(
-          title: '💰 Ghi nhận thanh toán',
-          description:
-              'Nhấn vào khoản nợ để xem chi tiết và ghi nhận thanh toán từng phần hoặc toàn bộ.',
+        GuideStep(
+          title: l10n.debtGuideStep2Title,
+          description: l10n.debtGuideStep2Desc,
           icon: Icons.payment,
           iconColor: Colors.green,
         ),
-        const GuideStep(
-          title: '📅 Theo dõi hạn nợ',
-          description:
-              'Nợ quá hạn sẽ được highlight đỏ. Báo cáo tổng hợp giúp theo dõi dòng tiền.',
+        GuideStep(
+          title: l10n.debtGuideStep3Title,
+          description: l10n.debtGuideStep3Desc,
           icon: Icons.event,
           iconColor: Colors.orange,
         ),
-        const GuideStep(
-          title: '🔄 Tự động tạo nợ',
-          description:
-              'Khi bán hàng/nhập kho chọn "CÔNG NỢ", hệ thống tự tạo khoản nợ tương ứng.',
+        GuideStep(
+          title: l10n.debtGuideStep4Title,
+          description: l10n.debtGuideStep4Desc,
           icon: Icons.auto_mode,
           iconColor: Colors.blue,
         ),
@@ -230,9 +229,10 @@ class _DebtViewState extends State<DebtView>
   Future<void> _syncWithFirebase() async {
     if (_isSyncing) return;
 
+    final l10n = AppLocalizations.of(context)!;
     setState(() {
       _isSyncing = true;
-      _syncStatus = 'Đang đồng bộ...';
+      _syncStatus = l10n.syncingStatus;
     });
 
     try {
@@ -244,14 +244,14 @@ class _DebtViewState extends State<DebtView>
 
       if (mounted) {
         setState(() {
-          _syncStatus = 'Đã đồng bộ';
+          _syncStatus = AppLocalizations.of(context)!.syncedStatus;
         });
       }
     } catch (e) {
       debugPrint('Sync error: $e');
       if (mounted) {
         setState(() {
-          _syncStatus = 'Lỗi đồng bộ';
+          _syncStatus = AppLocalizations.of(context)!.syncErrorStatus;
         });
       }
     } finally {
@@ -289,7 +289,7 @@ class _DebtViewState extends State<DebtView>
             ),
             const SizedBox(height: 20),
             Text(
-              "LỊCH SỬ THANH TOÁN",
+              AppLocalizations.of(ctx)!.paymentHistoryTitle,
               style: AppTextStyles.body1.copyWith(
                 fontWeight: FontWeight.bold,
                 color: AppColors.primary,
@@ -306,7 +306,7 @@ class _DebtViewState extends State<DebtView>
               Padding(
                 padding: const EdgeInsets.all(40),
                 child: Text(
-                  "Chưa có lịch sử trả nợ",
+                  AppLocalizations.of(ctx)!.noPaymentHistory,
                   style: AppTextStyles.body1.copyWith(
                     color: AppColors.onSurface.withOpacity(0.5),
                   ),
@@ -357,7 +357,9 @@ class _DebtViewState extends State<DebtView>
                                 ),
                               ),
                               Text(
-                                p['paymentMethod'] ?? "TIỀN MẶT",
+                                p['paymentMethod'] == 'CHUYỂN KHOẢN'
+                                    ? AppLocalizations.of(ctx)!.bankTransfer
+                                    : AppLocalizations.of(ctx)!.cash,
                                 style: AppTextStyles.overline.copyWith(
                                   color: AppColors.onSurface.withOpacity(0.7),
                                 ),
@@ -377,7 +379,7 @@ class _DebtViewState extends State<DebtView>
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF2962FF),
               ),
-              child: Text("THANH TOÁN NỢ", style: AppTextStyles.button),
+              child: Text(AppLocalizations.of(ctx)!.payDebtButton, style: AppTextStyles.button),
             ),
           ],
         ),
@@ -411,13 +413,14 @@ class _DebtViewState extends State<DebtView>
 
   void _payDebt(Map<String, dynamic> debt) async {
     // Kiểm tra ngày hôm nay đã chốt quỹ chưa (thanh toán ở ngày hiện tại)
+    final l10n = AppLocalizations.of(context)!;
     final today = DateTime.now();
     final canEdit = await AdjustmentService.canEditDirectly(
       today.millisecondsSinceEpoch,
     );
     if (!canEdit && mounted) {
       NotificationService.showSnackBar(
-        '❌ Ngày hôm nay đã chốt quỹ! Không thể thu tiền trả nợ.',
+        l10n.closedTodayDebt,
         color: Colors.red,
       );
       return;
@@ -457,7 +460,7 @@ class _DebtViewState extends State<DebtView>
                 children: [
                   const PopupDragHandle(),
                   Text(
-                    isCustomerDebtForTitle ? "THU NỢ KHÁCH" : "THANH TOÁN NỢ",
+                    isCustomerDebtForTitle ? l10n.collectDebtTitle : l10n.payDebtTitle,
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -476,9 +479,9 @@ class _DebtViewState extends State<DebtView>
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        _miniPayValue('Tổng nợ', totalAmount, Colors.grey.shade700),
-                        _miniPayValue('Đã trả', paidAmount, Colors.green),
-                        _miniPayValue('Còn lại', remainingAmount, Colors.red),
+                        _miniPayValue(l10n.totalDebtLabel, totalAmount, Colors.grey.shade700),
+                        _miniPayValue(l10n.paidAmountLabel, paidAmount, Colors.green),
+                        _miniPayValue(l10n.remainingLabel, remainingAmount, Colors.red),
                       ],
                     ),
                   ),
@@ -486,20 +489,20 @@ class _DebtViewState extends State<DebtView>
                   CurrencyTextField(
                     controller: payC,
                     label: isCustomerDebtForTitle
-                        ? "SỐ TIỀN THU (VNĐ)"
-                        : "SỐ TIỀN THANH TOÁN (VNĐ)",
+                        ? l10n.collectAmountVnd
+                        : l10n.payAmountVnd,
                     validator: (v) => MoneyUtils.validateAmount(
                       v ?? '',
                       min: 1,
                       max: remainingAmount,
                       fieldName: isCustomerDebtForTitle
-                          ? 'Số tiền thu'
-                          : 'Số tiền thanh toán',
+                          ? l10n.debtCollectFieldName
+                          : l10n.debtPayFieldName,
                     ),
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    "THANH TOÁN BẰNG",
+                    l10n.payWithLabel,
                     style: AppTextStyles.overline.copyWith(
                       color: AppColors.onSurface.withOpacity(0.6),
                     ),
@@ -512,7 +515,10 @@ class _DebtViewState extends State<DebtView>
                             child: Padding(
                               padding: const EdgeInsets.only(right: 4),
                               child: ChoiceChip(
-                                label: Text(m, style: AppTextStyles.caption),
+                                label: Text(
+                                  m == 'TIỀN MẶT' ? l10n.cash : l10n.bankTransfer,
+                                  style: AppTextStyles.caption,
+                                ),
                                 selected: payMethod == m,
                                 onSelected: (v) => setS(() => payMethod = m),
                               ),
@@ -527,7 +533,7 @@ class _DebtViewState extends State<DebtView>
                       Expanded(
                         child: OutlinedButton(
                           onPressed: () => Navigator.pop(ctx),
-                          child: const Text("HỦY"),
+                          child: Text(l10n.cancelButton),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -611,12 +617,12 @@ class _DebtViewState extends State<DebtView>
                     await PaymentResultSheet.show(
                       context: context,
                       state: PaymentResultState.failure,
-                      errorMessage: result.errorMessage ?? 'Có lỗi xảy ra',
+                      errorMessage: result.errorMessage ?? l10n.debtPaymentGenericError,
                     );
                   }
                 }
               },
-                          child: const Text("XÁC NHẬN"),
+                          child: Text(l10n.confirmPayButton),
                         ),
                       ),
                     ],
@@ -637,17 +643,19 @@ class _DebtViewState extends State<DebtView>
   Widget build(BuildContext context) {
     super.build(context);
 
+    final l10n = AppLocalizations.of(context)!;
+
     if (!_hasPermission) {
       return Scaffold(
         backgroundColor: FinanceV2Theme.pageBg,
         appBar: CustomAppBar.build(
-          title: 'QUẢN LÝ CÔNG NỢ',
+          title: l10n.debtManagementTitle,
           accentColor: AppBarAccents.customer,
         ),
-        body: const Center(
+        body: Center(
           child: Text(
-            'Bạn không có quyền truy cập tính năng này',
-            style: TextStyle(color: Colors.grey),
+            l10n.noAccessPermission,
+            style: const TextStyle(color: Colors.grey),
           ),
         ),
       );
@@ -671,14 +679,14 @@ class _DebtViewState extends State<DebtView>
     return Scaffold(
       backgroundColor: FinanceV2Theme.pageBg,
       appBar: CustomAppBar.buildWithTabs(
-        title: 'QUẢN LÝ CÔNG NỢ',
-        subtitle: '$activeDebtsCount khoản nợ còn',
+        title: l10n.debtManagementTitle,
+        subtitle: l10n.activeDebtsCount(activeDebtsCount),
         tabController: _tabController!,
         tabs: [
-          const Tab(text: "KHÁCH"),
-          const Tab(text: "NCC"),
-          if (_enableRepair) const Tab(text: "ĐỐI TÁC"),
-          const Tab(text: "KHÁC"),
+          Tab(text: l10n.tabCustomer),
+          Tab(text: l10n.tabSupplier),
+          if (_enableRepair) Tab(text: l10n.tabPartner),
+          Tab(text: l10n.tabOther),
         ],
         accentColor: AppBarAccents.customer,
         actions: [
@@ -686,9 +694,9 @@ class _DebtViewState extends State<DebtView>
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                _syncStatus,
+                _syncStatus.isEmpty ? l10n.syncedStatus : _syncStatus,
                 style: AppTextStyles.caption.copyWith(
-                  color: _syncStatus == 'Lỗi đồng bộ'
+                  color: _syncStatus == l10n.syncErrorStatus
                       ? Colors.orange
                       : AppBarAccents.customer.withOpacity(0.7),
                   fontWeight: _isSyncing ? FontWeight.bold : FontWeight.normal,
@@ -701,7 +709,7 @@ class _DebtViewState extends State<DebtView>
                   _isSyncing ? Icons.sync : Icons.sync_outlined,
                   color: _isSyncing ? Colors.orange : AppBarAccents.customer,
                 ),
-                tooltip: 'Đồng bộ với Firebase',
+                tooltip: l10n.syncWithFirebase,
               ),
             ],
           ),
@@ -710,11 +718,11 @@ class _DebtViewState extends State<DebtView>
               Icons.file_download_outlined,
               color: AppBarAccents.customer,
             ),
-            tooltip: 'Xuất Excel công nợ',
+            tooltip: l10n.exportExcelDebt,
             onPressed: () async {
               final result = await ExportDateFilterDialog.show(
                 context,
-                title: 'Xuất công nợ',
+                title: l10n.exportDebtTitle,
               );
               if (result == null) return;
               if (!mounted) return;
@@ -764,10 +772,10 @@ class _DebtViewState extends State<DebtView>
                   ? Colors.blueAccent
                   : Colors.blueAccent,
               tooltip: _tabController?.index == 0
-                  ? 'Tạo nợ khách hàng'
+                  ? l10n.createCustomerDebtTooltip
                   : _tabController?.index == 1
-                  ? 'Tạo nợ nhà cung cấp'
-                  : 'Tạo công nợ khác',
+                  ? l10n.createSupplierDebtTooltip
+                  : l10n.createOtherDebtTooltip,
               child: const Icon(Icons.add, color: Colors.white),
             ),
     );
@@ -792,6 +800,7 @@ class _DebtViewState extends State<DebtView>
   }
 
   Widget _buildDebtList(String type) {
+    final l10n = AppLocalizations.of(context)!;
     List<Map<String, dynamic>> list;
     if (type == 'OTHER') {
       list = _debts
@@ -886,7 +895,7 @@ class _DebtViewState extends State<DebtView>
                   controller: _searchController,
                   style: FinanceV2Theme.bodyMd,
                   decoration: InputDecoration(
-                    hintText: 'Tìm kiếm tên, SĐT...',
+                    hintText: l10n.searchNamePhone,
                     hintStyle: FinanceV2Theme.bodyMd.copyWith(color: FinanceV2Theme.subInk),
                     prefixIcon: const Icon(Icons.search_rounded, size: 18, color: FinanceV2Theme.subInk),
                     suffixIcon: _searchQuery.isNotEmpty
@@ -918,7 +927,7 @@ class _DebtViewState extends State<DebtView>
               ),
               const SizedBox(width: 8),
               FilterChip(
-                label: const Text('Đã trả', style: TextStyle(fontSize: 12)),
+                label: Text(l10n.filterPaid, style: const TextStyle(fontSize: 12)),
                 selected: _showPaidDebts,
                 onSelected: (v) => setState(() => _showPaidDebts = v),
                 selectedColor: Colors.green.shade100,
@@ -934,7 +943,7 @@ class _DebtViewState extends State<DebtView>
             child: Row(
               children: [
                 _kpiChip(
-                  label: type == 'CUSTOMER_OWES' ? 'Phải thu' : 'Phải trả',
+                  label: type == 'CUSTOMER_OWES' ? l10n.debtReceivable : l10n.debtPayable,
                   value: MoneyUtils.formatCompactCurrency(kpiTotal),
                   color: type == 'CUSTOMER_OWES' ? Colors.red.shade700 : Colors.blue.shade700,
                   icon: type == 'CUSTOMER_OWES'
@@ -944,8 +953,8 @@ class _DebtViewState extends State<DebtView>
                 if (kpiOverdue > 0) ...[
                   const SizedBox(width: 6),
                   _kpiChip(
-                    label: 'Quá hạn',
-                    value: '$kpiOverdue khoản',
+                    label: l10n.overdueDebts,
+                    value: l10n.overdueCountDays(kpiOverdue),
                     color: Colors.red.shade700,
                     icon: Icons.warning_rounded,
                   ),
@@ -953,8 +962,8 @@ class _DebtViewState extends State<DebtView>
                 if (kpiUrgent > 0) ...[
                   const SizedBox(width: 6),
                   _kpiChip(
-                    label: 'Cần xử lý',
-                    value: '$kpiUrgent khoản',
+                    label: l10n.needsHandling,
+                    value: l10n.urgentCountDays(kpiUrgent),
                     color: Colors.orange.shade700,
                     icon: Icons.schedule_rounded,
                   ),
@@ -968,11 +977,11 @@ class _DebtViewState extends State<DebtView>
             child: EmptyStateWidget(
               icon: Icons.receipt_long_outlined,
               title: _searchQuery.isNotEmpty
-                  ? 'Không tìm thấy kết quả'
-                  : 'Chưa có khoản nợ nào',
+                  ? l10n.noDebtFound
+                  : l10n.noDebtYet,
               subtitle: _searchQuery.isNotEmpty
-                  ? 'Thử tìm tên hoặc số điện thoại khác'
-                  : _showPaidDebts ? null : 'Bật "Đã trả" để xem lịch sử',
+                  ? l10n.trySearchOther
+                  : _showPaidDebts ? null : l10n.showPaidToSeeHistory,
             ),
           )
         else if (type == 'OTHER')
@@ -986,6 +995,7 @@ class _DebtViewState extends State<DebtView>
   }
 
   Widget _buildOtherDebtContent(List<Map<String, dynamic>> list) {
+    final l10n = AppLocalizations.of(context)!;
     final receivableDebts = list
         .where((d) => d['type'] == 'OTHER_CUSTOMER_OWES')
         .toList();
@@ -1031,7 +1041,7 @@ class _DebtViewState extends State<DebtView>
                   const Icon(Icons.arrow_downward, color: Colors.red),
                   const SizedBox(width: 8),
                   Text(
-                    "NỢ PHẢI THU",
+                    l10n.receivableDebt,
                     style: AppTextStyles.caption.copyWith(
                       color: AppColors.error,
                       fontWeight: FontWeight.bold,
@@ -1082,7 +1092,7 @@ class _DebtViewState extends State<DebtView>
                   const Icon(Icons.arrow_upward, color: Colors.blue),
                   const SizedBox(width: 8),
                   Text(
-                    "NỢ PHẢI TRẢ",
+                    l10n.payableDebt,
                     style: AppTextStyles.caption.copyWith(
                       color: AppColors.info,
                       fontWeight: FontWeight.bold,
@@ -1123,7 +1133,7 @@ class _DebtViewState extends State<DebtView>
             Expanded(
               child: Center(
                 child: Text(
-                  "Không có công nợ nào",
+                  l10n.noDebtAnywhere,
                   style: AppTextStyles.body1.copyWith(
                     color: AppColors.onSurface.withOpacity(0.5),
                   ),
@@ -1135,6 +1145,7 @@ class _DebtViewState extends State<DebtView>
     }
 
   Widget _buildSimpleDebtList(List<Map<String, dynamic>> list) {
+    final l10n = AppLocalizations.of(context)!;
     final activeList = list.where(_isActiveDebt).toList();
     final totalRemain = activeList.fold(0, (sum, d) => sum + _remainingDebt(d));
 
@@ -1158,7 +1169,7 @@ class _DebtViewState extends State<DebtView>
     return Column(
       children: [
         _summaryHeader(
-          "TỔNG NỢ CÒN LẠI",
+          l10n.totalRemainingDebt,
           totalRemain,
           Colors.redAccent,
         ),
@@ -1169,7 +1180,7 @@ class _DebtViewState extends State<DebtView>
               children: [
                 if (veryUrgentCount > 0)
                   _urgencyChip(
-                    '$veryUrgentCount quá hạn >60 ngày',
+                    l10n.overdueCountDays(veryUrgentCount),
                     Colors.red.shade100,
                     Colors.red.shade700,
                     Icons.warning_rounded,
@@ -1178,7 +1189,7 @@ class _DebtViewState extends State<DebtView>
                   const SizedBox(width: 6),
                 if (urgentCount > 0)
                   _urgencyChip(
-                    '$urgentCount cần chú ý >30 ngày',
+                    l10n.urgentCountDays(urgentCount),
                     Colors.orange.shade100,
                     Colors.orange.shade700,
                     Icons.schedule_rounded,
@@ -1244,11 +1255,12 @@ class _DebtViewState extends State<DebtView>
 
   /// Build danh sách công nợ đối tác sửa chữa
   Widget _buildPartnerDebtList() {
+    final l10n = AppLocalizations.of(context)!;
     if (_partnerDebts.isEmpty) {
-      return const EmptyStateWidget(
+      return EmptyStateWidget(
         icon: Icons.handshake_outlined,
-        title: 'Không có công nợ đối tác',
-        subtitle: 'Quản lý đối tác tại: Cài đặt › Quản lý đối tác',
+        title: l10n.noPartnerDebt,
+        subtitle: l10n.partnerDebtManageGuide,
       );
     }
 
@@ -1259,7 +1271,7 @@ class _DebtViewState extends State<DebtView>
 
     return Column(
       children: [
-        _summaryHeader("TỔNG NỢ ĐỐI TÁC SỬA CHỮA", totalRemain, Colors.orange),
+        _summaryHeader(l10n.totalPartnerRepairDebt, totalRemain, Colors.orange),
         Expanded(
           child: ListView.builder(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -1273,7 +1285,8 @@ class _DebtViewState extends State<DebtView>
 
   /// Card hiển thị công nợ đối tác - style giống pending_stock_list_view
   Widget _partnerDebtCard(Map<String, dynamic> partner, int index) {
-    final name = partner['name'] ?? 'Đối tác $index';
+    final l10n = AppLocalizations.of(context)!;
+    final name = partner['name'] ?? l10n.debtPartnerDefaultName(index);
     final phone = partner['phone'] ?? '';
     final totalRepairs = _toInt(partner['totalRepairs']);
     final totalCost = _toInt(partner['totalCost']);
@@ -1367,7 +1380,7 @@ class _DebtViewState extends State<DebtView>
                               Padding(
                                 padding: const EdgeInsets.only(left: 4),
                                 child: Tooltip(
-                                  message: 'Đối tác không còn trong hệ thống',
+                                  message: l10n.partnerNotInSystemTooltip,
                                   child: Icon(
                                     Icons.info_outline,
                                     size: 14,
@@ -1399,7 +1412,7 @@ class _DebtViewState extends State<DebtView>
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      '$totalRepairs đơn',
+                      l10n.ordersCountLabel(totalRepairs),
                       style: TextStyle(
                         color: Colors.blue.shade700,
                         fontWeight: FontWeight.bold,
@@ -1418,12 +1431,12 @@ class _DebtViewState extends State<DebtView>
                 runSpacing: 4,
                 children: [
                   _debtInfoChip(
-                    'Đối tác sửa chữa',
+                    l10n.partnerRepairType,
                     Colors.orange.withValues(alpha: 0.14),
                     Colors.orange.shade800,
                   ),
                   _debtInfoChip(
-                    source == 'manual' ? 'Thủ công' : 'Tự động',
+                    source == 'manual' ? l10n.manualSource : l10n.autoSource,
                     Colors.grey.shade200,
                     Colors.grey.shade700,
                   ),
@@ -1450,7 +1463,7 @@ class _DebtViewState extends State<DebtView>
                 children: [
                   Expanded(
                     child: _amountPill(
-                      label: 'Tổng phí',
+                      label: l10n.totalFeeLabel,
                       amount: totalCost,
                       valueColor: Colors.grey.shade700,
                     ),
@@ -1458,7 +1471,7 @@ class _DebtViewState extends State<DebtView>
                   const SizedBox(width: 4),
                   Expanded(
                     child: _amountPill(
-                      label: 'Đã trả',
+                      label: l10n.paidAmountLabel,
                       amount: totalPaid,
                       valueColor: Colors.green,
                     ),
@@ -1466,7 +1479,7 @@ class _DebtViewState extends State<DebtView>
                   const SizedBox(width: 4),
                   Expanded(
                     child: _amountPill(
-                      label: 'Còn nợ',
+                      label: l10n.remainingDebtLabel,
                       amount: remainingDebt,
                       valueColor: Colors.white,
                       bgColor: Colors.orange,
@@ -1486,7 +1499,7 @@ class _DebtViewState extends State<DebtView>
                       onPressed: () => _navigateToPartnerDetail(partner),
                       icon: const Icon(Icons.visibility, size: 15),
                       label: Text(
-                        'Thanh toán',
+                        l10n.paymentAction,
                         style: TextStyle(
                           fontSize: AppTextStyles.body1.fontSize,
                         ),
@@ -1512,31 +1525,11 @@ class _DebtViewState extends State<DebtView>
     );
   }
 
-  Widget _buildStatColumn(String label, int amount, Color color) {
-    return Column(
-      children: [
-        Text(
-          label,
-          style: AppTextStyles.body2.copyWith(
-            color: AppColors.onSurface.withOpacity(0.6),
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          MoneyUtils.formatCompactCurrency(amount),
-          style: AppTextStyles.body1.copyWith(
-            color: color,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ],
-    );
-  }
-
   /// Điều hướng đến trang chi tiết đối tác để thanh toán.
   /// Nếu đối tác đã bị xóa / không tìm thấy, vẫn hiển thị thông báo rõ ràng
   /// thay vì xóa bản ghi nợ khỏi màn hình.
   Future<void> _navigateToPartnerDetail(Map<String, dynamic> partner) async {
+    final l10n = AppLocalizations.of(context)!;
     final partnerId = partner['partnerId'] ?? partner['id'];
     final partnerName = partner['name']?.toString() ?? '';
     final isMissing = partner['missingPartner'] == true;
@@ -1550,9 +1543,7 @@ class _DebtViewState extends State<DebtView>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              'Đối tác "$partnerName" không còn trong hệ thống nhưng khoản nợ vẫn được giữ lại.',
-            ),
+            content: Text(l10n.partnerNotInSystem(partnerName)),
             backgroundColor: Colors.orange.shade700,
             duration: const Duration(seconds: 4),
           ),
@@ -1596,9 +1587,7 @@ class _DebtViewState extends State<DebtView>
         );
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              'Không tìm thấy đối tác "$partnerName". Khoản nợ vẫn còn trong danh sách.',
-            ),
+            content: Text(l10n.partnerDebtNotFound(partnerName)),
             backgroundColor: Colors.orange.shade700,
             duration: const Duration(seconds: 4),
           ),
@@ -1607,7 +1596,7 @@ class _DebtViewState extends State<DebtView>
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text(l10n.debtGenericError(e.toString())), backgroundColor: Colors.red),
         );
       }
     }
@@ -1646,6 +1635,7 @@ class _DebtViewState extends State<DebtView>
   }
 
   Widget _debtCard(Map<String, dynamic> d, [int? index]) {
+    final l10n = AppLocalizations.of(context)!;
     final int total = _toInt(d['totalAmount']);
     final int paid = _toInt(d['paidAmount']);
     final int remain = (total - paid).clamp(0, total);
@@ -1800,26 +1790,26 @@ class _DebtViewState extends State<DebtView>
               Row(
                 children: [
                   _debtInfoChip(
-                    isCustomerDebt ? 'Phải thu' : 'Phải trả',
+                    isCustomerDebt ? l10n.debtReceivable : l10n.debtPayable,
                     mainColor.withValues(alpha: 0.14),
                     mainColor,
                   ),
                   const SizedBox(width: 6),
                   if (remain == 0)
                     _debtInfoChip(
-                      '✓ Đã trả hết',
+                      l10n.paidFullLabel,
                       Colors.green.shade100,
                       Colors.green.shade700,
                     )
                   else if (isVeryUrgent)
                     _debtInfoChip(
-                      'Quá hạn $daysSince ngày',
+                      l10n.overdueDaysLabel(daysSince),
                       Colors.red.shade100,
                       Colors.red.shade800,
                     )
                   else if (isUrgent)
                     _debtInfoChip(
-                      '$daysSince ngày',
+                      l10n.daysLabel(daysSince),
                       Colors.orange.shade100,
                       Colors.orange.shade800,
                     ),
@@ -1846,7 +1836,7 @@ class _DebtViewState extends State<DebtView>
                 children: [
                   Expanded(
                     child: _amountPill(
-                      label: 'Tổng nợ',
+                      label: l10n.totalDebtLabel,
                       amount: total,
                       valueColor: Colors.grey.shade700,
                     ),
@@ -1854,7 +1844,7 @@ class _DebtViewState extends State<DebtView>
                   const SizedBox(width: 4),
                   Expanded(
                     child: _amountPill(
-                      label: 'Đã trả',
+                      label: l10n.paidAmountLabel,
                       amount: paid,
                       valueColor: Colors.green,
                     ),
@@ -1862,7 +1852,7 @@ class _DebtViewState extends State<DebtView>
                   const SizedBox(width: 4),
                   Expanded(
                     child: _amountPill(
-                      label: 'Còn nợ',
+                      label: l10n.remainingDebtLabel,
                       amount: remain,
                       valueColor: Colors.white,
                       bgColor: mainColor,
@@ -1881,7 +1871,7 @@ class _DebtViewState extends State<DebtView>
                     onPressed: () => _showDebtHistory(d),
                     icon: const Icon(Icons.history, size: 14),
                     label: Text(
-                      'Lịch sử',
+                      l10n.historyButton,
                       style: TextStyle(fontSize: AppTextStyles.body1.fontSize),
                     ),
                     style: TextButton.styleFrom(
@@ -1898,7 +1888,7 @@ class _DebtViewState extends State<DebtView>
                       size: 14,
                     ),
                     label: Text(
-                      isCustomerDebt ? 'Thu nợ' : 'Thanh toán nợ',
+                      isCustomerDebt ? l10n.collectDebtAction : l10n.payDebtAction,
                       style: FinanceV2Theme.bodySm,
                     ),
                     style: ElevatedButton.styleFrom(
@@ -1984,13 +1974,14 @@ class _DebtViewState extends State<DebtView>
 
   void _createOtherDebt() async {
     // Kiểm tra ngày hôm nay đã chốt quỹ chưa
+    final l10n = AppLocalizations.of(context)!;
     final today = DateTime.now();
     final canEdit = await AdjustmentService.canEditDirectly(
       today.millisecondsSinceEpoch,
     );
     if (!canEdit && mounted) {
       NotificationService.showSnackBar(
-        '❌ Ngày hôm nay đã chốt quỹ! Không thể tạo công nợ mới.',
+        l10n.closedTodayCreateDebt,
         color: Colors.red,
       );
       return;
@@ -2028,15 +2019,15 @@ class _DebtViewState extends State<DebtView>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const PopupDragHandle(),
-                    const Padding(
-                      padding: EdgeInsets.fromLTRB(20, 0, 20, 12),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
                       child: Row(
                         children: [
-                          Icon(Icons.add_circle_outline, color: PopupTheme.blue),
-                          SizedBox(width: 8),
+                          const Icon(Icons.add_circle_outline, color: PopupTheme.blue),
+                          const SizedBox(width: 8),
                           Text(
-                            "TẠO CÔNG NỢ KHÁC",
-                            style: TextStyle(
+                            l10n.createOtherDebtTitle,
+                            style: const TextStyle(
                               color: PopupTheme.textPrimary,
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -2055,42 +2046,42 @@ class _DebtViewState extends State<DebtView>
                             TextFormField(
                               controller: nameC,
                               style: const TextStyle(color: PopupTheme.textPrimary),
-                              decoration: const InputDecoration(
-                                labelText: "Tên người nợ",
+                              decoration: InputDecoration(
+                                labelText: l10n.debtorNameLabel,
                               ),
                               validator: (v) => (v == null || v.trim().isEmpty)
-                                  ? 'Vui lòng nhập tên người nợ'
+                                  ? l10n.pleaseEnterDebtorName
                                   : null,
                             ),
                             const SizedBox(height: 10),
                             TextFormField(
                               controller: phoneC,
                               style: const TextStyle(color: PopupTheme.textPrimary),
-                              decoration: const InputDecoration(
-                                labelText: "Số điện thoại",
+                              decoration: InputDecoration(
+                                labelText: l10n.phoneNumberLabel,
                               ),
                               keyboardType: TextInputType.phone,
                             ),
                             const SizedBox(height: 10),
                             CurrencyTextField(
                               controller: amountC,
-                              label: "Số tiền nợ (VNĐ)",
+                              label: l10n.debtAmountVnd,
                               validator: (v) => MoneyUtils.validateAmount(
                                 v ?? '',
                                 min: 1,
-                                fieldName: 'Số tiền nợ',
+                                fieldName: l10n.debtAmountFieldName,
                               ),
                             ),
                             const SizedBox(height: 10),
                             TextField(
                               controller: noteC,
                               style: const TextStyle(color: PopupTheme.textPrimary),
-                              decoration: const InputDecoration(labelText: "Ghi chú"),
+                              decoration: InputDecoration(labelText: l10n.note),
                             ),
                             const SizedBox(height: 15),
-                            const Text(
-                              "Hình thức nợ:",
-                              style: TextStyle(
+                            Text(
+                              l10n.debtFormTypeLabel,
+                              style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 color: PopupTheme.textPrimary,
                               ),
@@ -2128,7 +2119,7 @@ class _DebtViewState extends State<DebtView>
                                           ),
                                           const SizedBox(height: 4),
                                           Text(
-                                            "NỢ PHẢI THU",
+                                            l10n.receivableDebt,
                                             style: TextStyle(
                                               fontSize: AppTextStyles.body1.fontSize,
                                               fontWeight: FontWeight.bold,
@@ -2138,9 +2129,9 @@ class _DebtViewState extends State<DebtView>
                                             ),
                                             textAlign: TextAlign.center,
                                           ),
-                                          const Text(
-                                            "(Khách nợ shop)",
-                                            style: TextStyle(
+                                          Text(
+                                            l10n.customerOwesShop,
+                                            style: const TextStyle(
                                               fontSize: AppTextStyles.overlineSize,
                                               color: Colors.grey,
                                             ),
@@ -2181,7 +2172,7 @@ class _DebtViewState extends State<DebtView>
                                           ),
                                           const SizedBox(height: 4),
                                           Text(
-                                            "NỢ PHẢI TRẢ",
+                                            l10n.payableDebt,
                                             style: TextStyle(
                                               fontSize: AppTextStyles.body1.fontSize,
                                               fontWeight: FontWeight.bold,
@@ -2191,9 +2182,9 @@ class _DebtViewState extends State<DebtView>
                                             ),
                                             textAlign: TextAlign.center,
                                           ),
-                                          const Text(
-                                            "(Shop nợ người khác)",
-                                            style: TextStyle(
+                                          Text(
+                                            l10n.shopOwesOther,
+                                            style: const TextStyle(
                                               fontSize: AppTextStyles.overlineSize,
                                               color: Colors.grey,
                                             ),
@@ -2217,7 +2208,7 @@ class _DebtViewState extends State<DebtView>
                           Expanded(
                             child: OutlinedButton(
                               onPressed: () => Navigator.pop(ctx),
-                              child: const Text("HỦY"),
+                              child: Text(l10n.cancelButton),
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -2265,12 +2256,12 @@ class _DebtViewState extends State<DebtView>
                                 if (!mounted) return;
                                 if (ctx.mounted) Navigator.pop(ctx);
                                 NotificationService.showSnackBar(
-                                  "Đã tạo công nợ mới",
+                                  l10n.debtCreated,
                                   color: Colors.green,
                                 );
                                 await _refresh();
                               },
-                              child: const Text("TẠO"),
+                              child: Text(l10n.createButton),
                             ),
                           ),
                         ],
@@ -2287,6 +2278,7 @@ class _DebtViewState extends State<DebtView>
   }
 
   void _createCustomerDebt() async {
+    final l10n = AppLocalizations.of(context)!;
     // Kiểm tra ngày hôm nay đã chốt quỹ chưa
     final today = DateTime.now();
     final canEdit = await AdjustmentService.canEditDirectly(
@@ -2294,7 +2286,7 @@ class _DebtViewState extends State<DebtView>
     );
     if (!canEdit && mounted) {
       NotificationService.showSnackBar(
-        '❌ Ngày hôm nay đã chốt quỹ! Không thể tạo công nợ mới.',
+        l10n.closedTodayCreateDebt,
         color: Colors.red,
       );
       return;
@@ -2327,15 +2319,15 @@ class _DebtViewState extends State<DebtView>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const PopupDragHandle(),
-                const Padding(
-                  padding: EdgeInsets.fromLTRB(20, 0, 20, 12),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
                   child: Row(
                     children: [
-                      Icon(Icons.arrow_downward, color: Colors.red),
-                      SizedBox(width: 8),
+                      const Icon(Icons.arrow_downward, color: Colors.red),
+                      const SizedBox(width: 8),
                       Text(
-                        "TẠO NỢ PHẢI THU",
-                        style: TextStyle(
+                        l10n.createReceivableDebtTitle,
+                        style: const TextStyle(
                           color: PopupTheme.textPrimary,
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -2353,33 +2345,33 @@ class _DebtViewState extends State<DebtView>
                         TextFormField(
                           controller: nameC,
                           style: const TextStyle(color: PopupTheme.textPrimary),
-                          decoration: const InputDecoration(labelText: "Tên khách hàng"),
+                          decoration: InputDecoration(labelText: l10n.customerNameLabel),
                           validator: (v) => (v == null || v.trim().isEmpty)
-                              ? 'Vui lòng nhập tên khách hàng'
+                              ? l10n.pleaseEnterCustomerNameDebt
                               : null,
                         ),
                         const SizedBox(height: 10),
                         TextFormField(
                           controller: phoneC,
                           style: const TextStyle(color: PopupTheme.textPrimary),
-                          decoration: const InputDecoration(labelText: "Số điện thoại"),
+                          decoration: InputDecoration(labelText: l10n.phoneNumberLabel),
                           keyboardType: TextInputType.phone,
                         ),
                         const SizedBox(height: 10),
                         CurrencyTextField(
                           controller: amountC,
-                          label: "Số tiền nợ (VNĐ)",
+                          label: l10n.debtAmountVnd,
                           validator: (v) => MoneyUtils.validateAmount(
                             v ?? '',
                             min: 1,
-                            fieldName: 'Số tiền nợ',
+                            fieldName: l10n.debtAmountFieldName,
                           ),
                         ),
                         const SizedBox(height: 10),
                         TextField(
                           controller: noteC,
                           style: const TextStyle(color: PopupTheme.textPrimary),
-                          decoration: const InputDecoration(labelText: "Ghi chú"),
+                          decoration: InputDecoration(labelText: l10n.note),
                         ),
                         const SizedBox(height: 16),
                       ],
@@ -2393,7 +2385,7 @@ class _DebtViewState extends State<DebtView>
                       Expanded(
                         child: OutlinedButton(
                           onPressed: () => Navigator.pop(ctx),
-                          child: const Text("HỦY"),
+                          child: Text(l10n.cancelButton),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -2452,19 +2444,19 @@ class _DebtViewState extends State<DebtView>
                               if (!mounted) return;
                               if (ctx.mounted) Navigator.pop(ctx);
                               NotificationService.showSnackBar(
-                                "Đã tạo nợ khách hàng!",
+                                l10n.customerDebtCreated,
                                 color: Colors.green,
                               );
                               await _refresh();
                             } catch (e) {
                               if (!mounted) return;
                               NotificationService.showSnackBar(
-                                "Lỗi tạo nợ: $e",
+                                l10n.createDebtError(e.toString()),
                                 color: Colors.red,
                               );
                             }
                           },
-                          child: const Text("TẠO"),
+                          child: Text(l10n.createButton),
                         ),
                       ),
                     ],
@@ -2479,14 +2471,14 @@ class _DebtViewState extends State<DebtView>
   }
 
   void _createSupplierDebt() async {
-    // Kiểm tra ngày hôm nay đã chốt quỹ chưa
+    final l10n = AppLocalizations.of(context)!;
     final today = DateTime.now();
     final canEdit = await AdjustmentService.canEditDirectly(
       today.millisecondsSinceEpoch,
     );
     if (!canEdit && mounted) {
       NotificationService.showSnackBar(
-        '❌ Ngày hôm nay đã chốt quỹ! Không thể tạo công nợ mới.',
+        l10n.closedTodayCreateDebt,
         color: Colors.red,
       );
       return;
@@ -2519,15 +2511,15 @@ class _DebtViewState extends State<DebtView>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const PopupDragHandle(),
-                const Padding(
-                  padding: EdgeInsets.fromLTRB(20, 0, 20, 12),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
                   child: Row(
                     children: [
-                      Icon(Icons.arrow_upward, color: PopupTheme.blue),
-                      SizedBox(width: 8),
+                      const Icon(Icons.arrow_upward, color: PopupTheme.blue),
+                      const SizedBox(width: 8),
                       Text(
-                        "TẠO NỢ PHẢI TRẢ",
-                        style: TextStyle(
+                        l10n.createPayableDebtTitle,
+                        style: const TextStyle(
                           color: PopupTheme.textPrimary,
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -2545,35 +2537,35 @@ class _DebtViewState extends State<DebtView>
                         TextFormField(
                           controller: nameC,
                           style: const TextStyle(color: PopupTheme.textPrimary),
-                          decoration: const InputDecoration(
-                            labelText: "Tên nhà cung cấp",
+                          decoration: InputDecoration(
+                            labelText: l10n.supplierNameLabel,
                           ),
                           validator: (v) => (v == null || v.trim().isEmpty)
-                              ? 'Vui lòng nhập tên nhà cung cấp'
+                              ? l10n.pleaseEnterSupplierNameDebt
                               : null,
                         ),
                         const SizedBox(height: 10),
                         TextFormField(
                           controller: phoneC,
                           style: const TextStyle(color: PopupTheme.textPrimary),
-                          decoration: const InputDecoration(labelText: "Số điện thoại"),
+                          decoration: InputDecoration(labelText: l10n.phoneNumberLabel),
                           keyboardType: TextInputType.phone,
                         ),
                         const SizedBox(height: 10),
                         CurrencyTextField(
                           controller: amountC,
-                          label: "Số tiền nợ (VNĐ)",
+                          label: l10n.debtAmountVnd,
                           validator: (v) => MoneyUtils.validateAmount(
                             v ?? '',
                             min: 1,
-                            fieldName: 'Số tiền nợ',
+                            fieldName: l10n.debtAmountFieldName,
                           ),
                         ),
                         const SizedBox(height: 10),
                         TextField(
                           controller: noteC,
                           style: const TextStyle(color: PopupTheme.textPrimary),
-                          decoration: const InputDecoration(labelText: "Ghi chú"),
+                          decoration: InputDecoration(labelText: l10n.note),
                         ),
                         const SizedBox(height: 16),
                       ],
@@ -2587,7 +2579,7 @@ class _DebtViewState extends State<DebtView>
                       Expanded(
                         child: OutlinedButton(
                           onPressed: () => Navigator.pop(ctx),
-                          child: const Text("HỦY"),
+                          child: Text(l10n.cancelButton),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -2646,19 +2638,19 @@ class _DebtViewState extends State<DebtView>
                               if (!mounted) return;
                               if (ctx.mounted) Navigator.pop(ctx);
                               NotificationService.showSnackBar(
-                                "Đã tạo nợ nhà cung cấp!",
+                                l10n.supplierDebtCreated,
                                 color: Colors.green,
                               );
                               await _refresh();
                             } catch (e) {
                               if (!mounted) return;
                               NotificationService.showSnackBar(
-                                "Lỗi tạo nợ: $e",
+                                l10n.createDebtError(e.toString()),
                                 color: Colors.red,
                               );
                             }
                           },
-                          child: const Text("TẠO"),
+                          child: Text(l10n.createButton),
                         ),
                       ),
                     ],
@@ -2678,6 +2670,7 @@ class _DebtViewState extends State<DebtView>
     Color iconColor, [
     int? index,
   ]) {
+    final l10n = AppLocalizations.of(context)!;
     final int total = _toInt(d['totalAmount']);
     final int paid = _toInt(d['paidAmount']);
     final int remain = (total - paid).clamp(0, total);
@@ -2801,7 +2794,7 @@ class _DebtViewState extends State<DebtView>
               Row(
                 children: [
                   _debtInfoChip(
-                    isReceivable ? 'Phải thu' : 'Phải trả',
+                    isReceivable ? l10n.debtReceivable : l10n.debtPayable,
                     iconColor.withValues(alpha: 0.14),
                     iconColor,
                   ),
@@ -2824,7 +2817,7 @@ class _DebtViewState extends State<DebtView>
                 children: [
                   Expanded(
                     child: _amountPill(
-                      label: 'Tổng nợ',
+                      label: l10n.totalDebtLabel,
                       amount: total,
                       valueColor: Colors.grey.shade700,
                     ),
@@ -2832,7 +2825,7 @@ class _DebtViewState extends State<DebtView>
                   const SizedBox(width: 4),
                   Expanded(
                     child: _amountPill(
-                      label: 'Đã trả',
+                      label: l10n.paidAmountLabel,
                       amount: paid,
                       valueColor: Colors.green,
                     ),
@@ -2840,7 +2833,7 @@ class _DebtViewState extends State<DebtView>
                   const SizedBox(width: 4),
                   Expanded(
                     child: _amountPill(
-                      label: 'Còn nợ',
+                      label: l10n.remainingDebtLabel,
                       amount: remain,
                       valueColor: Colors.white,
                       bgColor: iconColor,
@@ -2857,7 +2850,7 @@ class _DebtViewState extends State<DebtView>
                     onPressed: () => _showDebtHistory(d),
                     icon: const Icon(Icons.history, size: 14),
                     label: Text(
-                      'Lịch sử',
+                      l10n.historyButton,
                       style: TextStyle(fontSize: AppTextStyles.body1.fontSize),
                     ),
                     style: TextButton.styleFrom(
@@ -2874,7 +2867,7 @@ class _DebtViewState extends State<DebtView>
                       size: 14,
                     ),
                     label: Text(
-                      isReceivable ? 'Thu nợ' : 'Trả nợ',
+                      isReceivable ? l10n.collectDebtAction : l10n.returnDebtAction,
                       style: TextStyle(fontSize: AppTextStyles.body1.fontSize),
                     ),
                     style: ElevatedButton.styleFrom(
