@@ -725,6 +725,35 @@ class DBHelper {
         await db.execute(
           'CREATE INDEX IF NOT EXISTS idx_financial_activity_type ON financial_activity_log(activityType)',
         );
+        // === ADJUSTMENT ENTRIES TABLE (v49) ===
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS adjustment_entries(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            firestoreId TEXT UNIQUE,
+            shopId TEXT,
+            adjustmentType TEXT,
+            originalEntityType TEXT,
+            originalEntityId TEXT,
+            originalDate INTEGER,
+            adjustmentDate INTEGER,
+            description TEXT,
+            reason TEXT,
+            oldValues TEXT,
+            newValues TEXT,
+            costDelta INTEGER DEFAULT 0,
+            debtDelta INTEGER DEFAULT 0,
+            cashDelta INTEGER DEFAULT 0,
+            bankDelta INTEGER DEFAULT 0,
+            supplierId INTEGER,
+            supplierName TEXT,
+            createdBy TEXT,
+            createdAt INTEGER,
+            approvedBy TEXT,
+            approvedAt INTEGER,
+            status TEXT DEFAULT 'PENDING',
+            isSynced INTEGER DEFAULT 0
+          )
+        ''');
         // === MULTI-INDUSTRY EXPANSION - Phase 1 (v75) ===
         await db.execute('''
           CREATE TABLE IF NOT EXISTS shop_settings(
@@ -9024,9 +9053,11 @@ class DBHelper {
     try {
       return await db.insert('customers', data);
     } catch (e) {
-      // Fallback for old DBs still carrying global unique(phone).
+      // Fallback for old DBs (global unique(phone)) and new composite index (shopId, phone).
       final msg = e.toString();
-      if (msg.contains('UNIQUE constraint failed: customers.phone') &&
+      if (msg.contains('UNIQUE constraint') &&
+          msg.contains('customers') &&
+          msg.contains('phone') &&
           phone.isNotEmpty) {
         final existingByPhone = await db.query(
           'customers',
@@ -9147,6 +9178,18 @@ class DBHelper {
     );
   }
 
+  /// Returns customers that have not yet been pushed to Firestore.
+  Future<List<Map<String, dynamic>>> getUnsyncedCustomers() async {
+    final db = await database;
+    final shopId = await _getScopedShopId('getUnsyncedCustomers');
+    if (shopId == null) return [];
+    return await db.query(
+      'customers',
+      where: 'shopId = ? AND (firestoreId IS NULL OR firestoreId = "") AND deleted = 0',
+      whereArgs: [shopId],
+    );
+  }
+
   Future<void> upsertCustomer(Map<String, dynamic> customer) async {
     final db = await database;
     final firestoreId = customer['firestoreId'];
@@ -9200,7 +9243,9 @@ class DBHelper {
       await db.insert('customers', cleanData);
     } catch (e) {
       final msg = e.toString();
-      if (msg.contains('UNIQUE constraint failed: customers.phone') &&
+      if (msg.contains('UNIQUE constraint') &&
+          msg.contains('customers') &&
+          msg.contains('phone') &&
           phone.isNotEmpty) {
         final existingByPhone = await db.query(
           'customers',

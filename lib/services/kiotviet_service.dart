@@ -458,15 +458,17 @@ class KiotVietService {
 
             if (existing.isNotEmpty) {
               final existingId = existing.first['id'] as int;
+              // Do NOT update quantity — KiotViet API returns total stock across all
+              // branches, which inflates the local capital calculation. Only sync
+              // descriptive fields; local quantity tracks this shop's stock.
               await db.database.then(
                 (database) => database.rawUpdate(
-                  'UPDATE products SET name = ?, price = ?, description = ?, status = ?, quantity = ?, updatedAt = ? WHERE id = ?',
+                  'UPDATE products SET name = ?, price = ?, description = ?, status = ?, updatedAt = ? WHERE id = ?',
                   [
                     name,
                     price,
                     description,
                     status,
-                    quantity,
                     DateTime.now().millisecondsSinceEpoch,
                     existingId,
                   ],

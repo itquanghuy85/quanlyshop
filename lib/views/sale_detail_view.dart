@@ -1487,10 +1487,22 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                   sourceEvent: 'customer_profile_opened_from_sale',
                 ),
                 _item(AppLocalizations.of(context)!.itemAddress, s.address.isEmpty ? "---" : s.address),
-                ClickableProductList(
-                  items: _buildLinkedProducts(),
-                  tooltip: AppLocalizations.of(context)!.openProductDetailTooltip,
-                ),
+                Builder(builder: (ctx) {
+                  final linked = _buildLinkedProducts();
+                  if (linked.isEmpty && (s.notes?.startsWith('KV:') ?? false)) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                      child: Text(
+                        'Hóa đơn KiotViet — không có chi tiết sản phẩm (nhập lại với "Ghi đè" để lấy dữ liệu)',
+                        style: TextStyle(fontSize: 12, color: Colors.grey[500], fontStyle: FontStyle.italic),
+                      ),
+                    );
+                  }
+                  return ClickableProductList(
+                    items: linked,
+                    tooltip: AppLocalizations.of(context)!.openProductDetailTooltip,
+                  );
+                }),
                 _item(AppLocalizations.of(context)!.itemWarranty, s.warranty.isNotEmpty ? s.warranty : "KO BH"),
                 _staffItem(s.sellerName, s.sellerUid),
                 _item(AppLocalizations.of(context)!.itemTime, _fmtDate(s.soldAt)),

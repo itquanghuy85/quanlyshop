@@ -40,7 +40,9 @@ class CustomerService {
       }
     } catch (e) {
       final errorMsg = e.toString();
-      final isUniquePhoneError = errorMsg.contains('UNIQUE constraint failed: customers.phone');
+      final isUniquePhoneError = errorMsg.contains('UNIQUE constraint') &&
+          errorMsg.contains('customers') &&
+          errorMsg.contains('phone');
       if (!isUniquePhoneError) rethrow;
 
       // Fallback cho DB cũ còn UNIQUE(phone): lấy bản ghi cũ theo phone rồi update.
