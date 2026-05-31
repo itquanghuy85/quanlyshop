@@ -557,9 +557,11 @@ class KiotVietExcelImportService {
         final noteText = _at(firstRow, 37).trim();      // col 37 = Ghi chú
         final totalPrice = _intFromString(_at(firstRow, 38)); // col 38 = Tổng tiền hàng
         final discount = _intFromString(_at(firstRow, 39));   // col 39 = Giảm giá HĐ
+        final totalPaid = _intFromString(_at(firstRow, 41));  // col 41 = Khách đã trả
         final cashAmount = _intFromString(_at(firstRow, 42)); // col 42 = Tiền mặt
         final cardAmount = _intFromString(_at(firstRow, 43)); // col 43 = Thẻ
         final transferAmount = _intFromString(_at(firstRow, 45)); // col 45 = Chuyển khoản
+        final codRemaining = _intFromString(_at(firstRow, 46)); // col 46 = Còn cần thu
 
         final isWalkIn = (customerCode.isEmpty ||
             customerCode.toUpperCase() == 'KL' ||
@@ -677,7 +679,9 @@ class KiotVietExcelImportService {
           'notes': noteKey,
           'gifts': noteText.isNotEmpty ? noteText : null,
           'isInstallment': 0,
-          'downPayment': 0,
+          // downPayment = totalPaid so remainingDebt = finalPrice - totalPaid
+          // This makes isPaid = true for fully paid KiotViet invoices
+          'downPayment': totalPaid > 0 ? totalPaid : (codRemaining == 0 ? (totalPrice - discount) : 0),
           'downPaymentMethod': null,
           'loanAmount': 0,
           'cashAmount': cashAmount,
