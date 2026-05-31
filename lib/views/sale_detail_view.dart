@@ -1294,148 +1294,73 @@ class _SaleDetailViewState extends State<SaleDetailView> {
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
               child: SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Colors.white,
-                ),
+                width: 18, height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
               ),
-            ),
-          if (!_managerUnlocked)
-            IconButton(
-              onPressed: _unlockManager,
-              icon: const Icon(Icons.edit_rounded, color: Colors.white),
-            ),
-          if (_managerUnlocked)
-            IconButton(
-              onPressed: _openEditSaleDialog,
-              tooltip: AppLocalizations.of(context)!.editSaleTooltip,
-              icon: const Icon(Icons.edit_note_rounded, color: Colors.white),
-            ),
-          if (_managerUnlocked)
-            IconButton(
-              onPressed: _deleteSale,
-              icon: const Icon(
-                Icons.delete_forever_rounded,
-                color: Colors.white,
-              ),
-            ),
-        ],
-      ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withAlpha(20),
-              blurRadius: 8,
-              offset: const Offset(0, -2),
-            ),
-          ],
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            child: Builder(builder: (ctx) {
+            )
+          else
+            Builder(builder: (ctx) {
               final l10n = AppLocalizations.of(ctx)!;
-              return Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  // Primary: SMS
-                  _bottomAction(Icons.sms_rounded, 'SMS', _sendSmsToCustomer),
-                  // Primary: In
-                  _bottomAction(Icons.print_rounded, l10n.printInvoiceLabel, _printWifi),
-                  // Primary: Trả hàng
-                  _bottomAction(
+              return PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert_rounded, color: Colors.white),
+                onSelected: (value) async {
+                  switch (value) {
+                    case 'sms':
+                      _sendSmsToCustomer();
+                    case 'chat':
+                      _sendToChat();
+                    case 'print':
+                      _printWifi();
+                    case 'preview':
+                      if (!mounted) return;
+                      Navigator.push(context, MaterialPageRoute(
+                        builder: (_) => SaleInvoicePreviewView(
+                          saleData: _buildSalePrintData(),
+                          paper: PaperSize.mm58,
+                        ),
+                      ));
+                    case 'template':
+                      if (!mounted) return;
+                      Navigator.push(context, MaterialPageRoute(
+                        builder: (_) => const SaleInvoiceTemplateView(),
+                      ));
+                    case 'return':
+                      _openReturnView();
+                    case 'edit':
+                      if (!_managerUnlocked) await _unlockManager();
+                      if (_managerUnlocked && mounted) _openEditSaleDialog();
+                    case 'delete':
+                      if (!_managerUnlocked) await _unlockManager();
+                      if (_managerUnlocked && mounted) _deleteSale();
+                  }
+                },
+                itemBuilder: (_) => [
+                  _menuItem('sms', Icons.sms_rounded, 'SMS'),
+                  _menuItem('chat', Icons.chat_bubble_outline_rounded, 'Chat'),
+                  const PopupMenuDivider(),
+                  _menuItem('print', Icons.print_rounded, l10n.printInvoiceLabel),
+                  _menuItem('preview', Icons.preview_rounded, l10n.previewInvoiceLabel),
+                  _menuItem('template', Icons.design_services_rounded, l10n.printTemplateLabel),
+                  const PopupMenuDivider(),
+                  _menuItem(
+                    'return',
                     Icons.assignment_return_rounded,
                     _allItemsReturned ? l10n.returnAllLabel : l10n.returnGoodsLabel,
-                    _allItemsReturned
-                        ? null
-                        : () async {
-                            final result = await Navigator.push<bool>(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => CreateSalesReturnView(sale: s),
-                              ),
-                            );
-                            if (result == true && mounted) {
-                              _loadReturnInfo();
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(AppLocalizations.of(context)!.returnSuccessMsg),
-                                  backgroundColor: Colors.green,
-                                ),
-                              );
-                            }
-                          },
+                    enabled: !_allItemsReturned,
+                    color: _allItemsReturned ? Colors.grey : Colors.orange.shade700,
                   ),
-                  // Overflow "..." — Chat, Xem trước, Mẫu in
-                  PopupMenuButton<String>(
-                    icon: const Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.more_horiz_rounded, size: 22, color: Color(0xFF0068FF)),
-                        SizedBox(height: 2),
-                        Text('Khác', style: TextStyle(fontSize: 12, color: Color(0xFF0068FF))),
-                      ],
-                    ),
-                    padding: EdgeInsets.zero,
-                    onSelected: (value) {
-                      switch (value) {
-                        case 'chat':
-                          _sendToChat();
-                        case 'preview':
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => SaleInvoicePreviewView(
-                                saleData: _buildSalePrintData(),
-                                paper: PaperSize.mm58,
-                              ),
-                            ),
-                          );
-                        case 'template':
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const SaleInvoiceTemplateView(),
-                            ),
-                          );
-                      }
-                    },
-                    itemBuilder: (_) => [
-                      const PopupMenuItem(
-                        value: 'chat',
-                        child: Row(children: [
-                          Icon(Icons.chat_bubble_outline_rounded, size: 18, color: Color(0xFF0068FF)),
-                          SizedBox(width: 10),
-                          Text('Chat'),
-                        ]),
-                      ),
-                      PopupMenuItem(
-                        value: 'preview',
-                        child: Row(children: [
-                          const Icon(Icons.preview, size: 18, color: Color(0xFF0068FF)),
-                          const SizedBox(width: 10),
-                          Text(l10n.previewInvoiceLabel),
-                        ]),
-                      ),
-                      PopupMenuItem(
-                        value: 'template',
-                        child: Row(children: [
-                          const Icon(Icons.design_services, size: 18, color: Color(0xFF0068FF)),
-                          const SizedBox(width: 10),
-                          Text(l10n.printTemplateLabel),
-                        ]),
-                      ),
-                    ],
+                  const PopupMenuDivider(),
+                  _menuItem(
+                    'edit',
+                    _managerUnlocked ? Icons.edit_note_rounded : Icons.lock_outline_rounded,
+                    l10n.editSaleTooltip,
                   ),
+                  _menuItem('delete', Icons.delete_forever_rounded, 'Xóa đơn',
+                      color: Colors.red),
                 ],
               );
             }),
-          ),
-        ),
+        ],
       ),
       body: ResponsiveCenter(
         maxWidth: 800,
@@ -1737,32 +1662,41 @@ class _SaleDetailViewState extends State<SaleDetailView> {
       ),
     );
   }
-  Widget _bottomAction(IconData icon, String label, VoidCallback? onTap) {
-    final isDisabled = onTap == null;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              size: 22,
-              color: isDisabled ? Colors.grey : const Color(0xFF0068FF),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                color: isDisabled ? Colors.grey : const Color(0xFF0068FF),
-              ),
-            ),
-          ],
-        ),
-      ),
+  Future<void> _openReturnView() async {
+    if (_allItemsReturned) return;
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => CreateSalesReturnView(sale: s)),
+    );
+    if (result == true && mounted) {
+      _loadReturnInfo();
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(AppLocalizations.of(context)!.returnSuccessMsg),
+        backgroundColor: Colors.green,
+      ));
+    }
+  }
+
+  PopupMenuItem<String> _menuItem(
+    String value,
+    IconData icon,
+    String label, {
+    Color? color,
+    bool enabled = true,
+  }) {
+    final c = color ?? const Color(0xFF0068FF);
+    return PopupMenuItem<String>(
+      value: value,
+      enabled: enabled,
+      child: Row(children: [
+        Icon(icon, size: 18, color: enabled ? c : Colors.grey),
+        const SizedBox(width: 12),
+        Text(label,
+            style: TextStyle(
+              color: enabled ? c : Colors.grey,
+              fontWeight: FontWeight.w500,
+            )),
+      ]),
     );
   }
 
