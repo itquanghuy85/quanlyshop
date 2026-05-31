@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:archive/archive.dart';
 import 'package:flutter/foundation.dart';
+import 'package:sqflite/sqflite.dart';
 import 'package:xml/xml.dart';
 import '../data/db_helper.dart';
 import '../services/user_service.dart';
@@ -167,6 +168,9 @@ class KiotVietExcelImportService {
       final rows = await _parseRows(bytes);
       if (rows == null || rows.isEmpty) return null;
       final header = rows.first.map(_str).join(' ');
+      if (header.contains('Mã nhập hàng') || header.contains('Giá nhập')) {
+        return 'purchase_orders';
+      }
       if (header.contains('Mã hóa đơn') || header.contains('Tổng tiền hàng')) {
         return 'sales';
       }
@@ -873,15 +877,31 @@ class KiotVietExcelImportService {
         try {
           final row = data[i];
           // col 0=Mã, 1=Tên, 2=Email, 3=SĐT, 4=Địa chỉ, 11=Ghi chú, 17=Ngày tạo
+          // col 0=Mã NCC, 1=Tên, 2=Email, 3=SĐT, 4=Địa chỉ, 7=Tổng mua,
+          // col 8=Nợ hiện tại, 11=Ghi chú, 13=Trạng thái, 17=Ngày tạo
+          final kvCode = _at(row, 0);
           final name = _at(row, 1);
           if (name.isEmpty) { skipped++; continue; }
 
           final email = _at(row, 2);
           final phone = _cleanPhone(_at(row, 3));
           final addr = _at(row, 4);
-          final note = _at(row, 11);
-          final createdAt = _dateMs(row, 17);
+          final totalBuy = _int(row, 7);
+          final currentDebt = _int(row, 8);
+          final rawNote = _at(row, 11);
+          final statusRaw = _at(row, 13);
+          final activeVal = statusRaw == '1' || statusRaw.toLowerCase() == 'active' ? 1 : 1;
+          final createdAt = _datetimeMs(row, 17);
           final now = DateTime.now().millisecondsSinceEpoch;
+          // Compose note: preserve existing + append KV code and debt info
+          final noteExtra = [
+            if (kvCode.isNotEmpty) 'KV:$kvCode',
+            if (currentDebt > 0) 'Nợ KV: ${currentDebt}đ',
+          ].join(' | ');
+          final finalNote = [
+            if (rawNote.isNotEmpty) rawNote,
+            if (noteExtra.isNotEmpty) noteExtra,
+          ].join(' — ');
 
           final dup = await db.query('suppliers',
               where:
@@ -893,14 +913,16 @@ class KiotVietExcelImportService {
 
           if (dup.isNotEmpty && overwriteExisting) {
             final id = dup.first['id'];
-            await db.update('suppliers', {
+            final upd = <String, dynamic>{
               'phone': phone.isNotEmpty ? phone : null,
               'email': email.isNotEmpty ? email : null,
               'address': addr.isNotEmpty ? addr : null,
-              'note': note.isNotEmpty ? note : null,
+              'note': finalNote.isNotEmpty ? finalNote : null,
               'updatedAt': now,
               'isSynced': 0,
-            }, where: 'id = ?', whereArgs: [id]);
+            };
+            if (totalBuy > 0) upd['totalAmount'] = totalBuy;
+            await db.update('suppliers', upd, where: 'id = ?', whereArgs: [id]);
             updated++;
           } else {
             await db.insert('suppliers', {
@@ -908,15 +930,15 @@ class KiotVietExcelImportService {
               'phone': phone.isNotEmpty ? phone : null,
               'email': email.isNotEmpty ? email : null,
               'address': addr.isNotEmpty ? addr : null,
-              'note': note.isNotEmpty ? note : null,
+              'note': finalNote.isNotEmpty ? finalNote : null,
               'shopId': shopId,
-              'active': 1,
+              'active': activeVal,
               'favorite': 0,
               'createdAt': createdAt > 0 ? createdAt : now,
               'updatedAt': now,
               'isSynced': 0,
               'importCount': 0,
-              'totalAmount': 0,
+              'totalAmount': totalBuy,
               'deleted': 0,
             });
             inserted++;
@@ -936,6 +958,246 @@ class KiotVietExcelImportService {
           errors: errors);
     } catch (e) {
       return KvImportResult(errors: ['Lỗi nhập nhà cung cấp: $e']);
+    }
+  }
+
+  // ── Purchase Orders (DanhSachChiTietNhapHang) ─────────────────────────────
+
+  static Future<KvImportResult> importPurchaseOrders(
+    Uint8List bytes, {
+    bool overwriteExisting = false,
+    void Function(int done, int total)? onProgress,
+  }) async {
+    try {
+      final shopId = await UserService.getCurrentShopId();
+      if (shopId == null) return const KvImportResult(errors: ['Chưa đăng nhập']);
+
+      final rows = await _parseRows(bytes);
+      if (rows == null) return const KvImportResult(errors: ['Không đọc được file Excel']);
+      if (rows.length < 2) return const KvImportResult(errors: ['File trống']);
+
+      final header = rows.first.map(_str).join(' ');
+      if (!header.contains('Mã nhập hàng')) {
+        return const KvImportResult(
+            errors: ['File không đúng định dạng — cần file DanhSachChiTietNhapHang từ KiotViet']);
+      }
+
+      // col 0=Chi nhánh, 1=Mã nhập hàng, 2=Thời gian, 3=Thời gian tạo,
+      // col 5=Mã NCC, 6=Tên NCC, 7=SĐT NCC, 8=Địa chỉ NCC,
+      // col 9=Người nhập, 10=Người tạo, 11=Tổng tiền hàng,
+      // col 12=Giảm giá phiếu, 13=Cần trả NCC, 14=Tiền đã trả NCC,
+      // col 15=Ghi chú, 17=Tổng SL, 18=Tổng mặt hàng, 19=Trạng thái,
+      // col 20=Mã hàng, 21=Mã vạch, 22=Tên hàng, 23=Thương hiệu,
+      // col 24=ĐVT, 25=Serial/IMEI, 26=Ghi chú hàng,
+      // col 27=Đơn giá, 28=Giảm giá%, 29=Giảm giá, 30=Giá nhập,
+      // col 31=Thành tiền, 32=Số lượng
+
+      // Group rows by order code
+      final orderGroups = <String, List<List<String>>>{};
+      final orderSeq = <String>[];
+      for (final row in rows.skip(1)) {
+        final code = _at(row, 1).trim();
+        if (code.isEmpty) continue;
+        if (!orderGroups.containsKey(code)) {
+          orderGroups[code] = [];
+          orderSeq.add(code);
+        }
+        orderGroups[code]!.add(row);
+      }
+
+      final db = await _db.database;
+      int inserted = 0, updated = 0, skipped = 0;
+      final errors = <String>[];
+      final total = orderSeq.length;
+      final supplierTotals = <String, int>{}; // supplierName → totalAmount delta
+
+      for (int i = 0; i < total; i++) {
+        try { onProgress?.call(i, total); } catch (_) {}
+
+        final code = orderSeq[i];
+        final group = orderGroups[code]!;
+        final first = group.first;
+
+        try {
+          final firestoreId = 'KV:$code';
+          final supplierName = _at(first, 6).trim();
+          // supplierPhone available but not stored separately (in supplier record)
+          _cleanPhone(_at(first, 7));
+          final importedBy = _at(first, 9).trim();
+          final totalAmount = _intFromString(_at(first, 11));
+          final paidAmount = _intFromString(_at(first, 14));
+          final notes = _at(first, 15).trim();
+          final statusRaw = _at(first, 19).trim();
+          final importDate = _datetimeMs(first, 2);
+          final now = DateTime.now().millisecondsSinceEpoch;
+
+          final paymentStatus = paidAmount >= totalAmount ? 'PAID' : (paidAmount > 0 ? 'PARTIAL' : 'UNPAID');
+
+          // Dedup by firestoreId (= KV:orderCode)
+          final dup = await db.query('import_orders',
+              where: 'firestoreId = ? AND (deleted IS NULL OR deleted != 1)',
+              whereArgs: [firestoreId],
+              limit: 1);
+
+          if (dup.isNotEmpty && !overwriteExisting) { skipped++; continue; }
+
+          // Find or resolve supplier id
+          String? supplierId;
+          if (supplierName.isNotEmpty) {
+            final sRows = await db.query('suppliers',
+                where: 'UPPER(name) = UPPER(?) AND shopId = ? AND (deleted IS NULL OR deleted != 1)',
+                whereArgs: [supplierName, shopId],
+                limit: 1);
+            if (sRows.isNotEmpty) supplierId = sRows.first['id']?.toString();
+          }
+
+          // Build items
+          final itemMaps = <Map<String, dynamic>>[];
+          int totalQty = 0;
+          for (int j = 0; j < group.length; j++) {
+            final row = group[j];
+            final pName = _at(row, 22);
+            if (pName.isEmpty) continue;
+            final brand = _at(row, 23);
+            final sku = _at(row, 20);
+            final imei = _at(row, 25);
+            final unit = _at(row, 24);
+            final qty = _int(row, 32);
+            final costPrice = _intFromString(_at(row, 30));
+            final lineTotal = _intFromString(_at(row, 31));
+            final itemNote = _at(row, 26);
+            totalQty += qty > 0 ? qty : 1;
+
+            final details = _parseProductNameDetails(pName);
+
+            itemMaps.add({
+              'firestoreId': '$firestoreId#$j',
+              'importOrderFirestoreId': firestoreId,
+              'productName': pName.toUpperCase(),
+              'productBrand': brand.isNotEmpty ? brand.toUpperCase() : null,
+              'productModel': details['model'],
+              'imei': imei.isNotEmpty ? imei : null,
+              'sku': sku.isNotEmpty ? sku : null,
+              'quantity': qty > 0 ? qty : 1,
+              'unit': unit.isNotEmpty ? unit : null,
+              'costPrice': costPrice,
+              'totalAmount': lineTotal > 0 ? lineTotal : costPrice * (qty > 0 ? qty : 1),
+              'color': details['color'],
+              'capacity': details['capacity'],
+              'productType': _guessType('', imei.isNotEmpty),
+              'notes': itemNote.isNotEmpty ? itemNote : null,
+              'shopId': shopId,
+              'isSynced': 0,
+              'deleted': 0,
+            });
+          }
+
+          final orderMap = <String, dynamic>{
+            'firestoreId': firestoreId,
+            'shopId': shopId,
+            'orderCode': code,
+            'supplierId': supplierId,
+            'supplierName': supplierName.isNotEmpty ? supplierName.toUpperCase() : null,
+            'totalQuantity': totalQty,
+            'totalAmount': totalAmount,
+            'paymentMethod': 'TIỀN MẶT',
+            'paymentStatus': paymentStatus,
+            'paidAmount': paidAmount,
+            'status': statusRaw.isNotEmpty ? statusRaw.toUpperCase() : 'CONFIRMED',
+            'importDate': importDate > 0 ? importDate : now,
+            'importedBy': importedBy.isNotEmpty ? importedBy : null,
+            'notes': notes.isNotEmpty ? notes : null,
+            'createdAt': importDate > 0 ? importDate : now,
+            'updatedAt': now,
+            'isSynced': 0,
+            'deleted': 0,
+          };
+
+          if (dup.isNotEmpty && overwriteExisting) {
+            final orderId = dup.first['id'];
+            await db.update('import_orders', orderMap..remove('firestoreId'),
+                where: 'id = ?', whereArgs: [orderId]);
+            // Delete old items before re-inserting
+            await db.delete('import_order_items',
+                where: 'importOrderFirestoreId = ?', whereArgs: [firestoreId]);
+            updated++;
+          } else {
+            await db.insert('import_orders', orderMap);
+            inserted++;
+          }
+
+          // Insert items
+          for (final item in itemMaps) {
+            try {
+              await db.insert('import_order_items', item,
+                  conflictAlgorithm: ConflictAlgorithm.replace);
+            } catch (_) {}
+
+            // Update matching product: set supplier + cost if missing
+            final imei = item['imei'] as String?;
+            final costPrice = item['costPrice'] as int;
+            if (imei != null && imei.isNotEmpty) {
+              try {
+                final prods = await db.query('products',
+                    where: 'imei = ? AND shopId = ? AND (deleted IS NULL OR deleted != 1)',
+                    whereArgs: [imei, shopId], limit: 1);
+                if (prods.isNotEmpty) {
+                  final prod = prods.first;
+                  final upd = <String, dynamic>{};
+                  if (supplierName.isNotEmpty && (prod['supplier'] == null || (prod['supplier'] as String).isEmpty)) {
+                    upd['supplier'] = supplierName.toUpperCase();
+                  }
+                  if (costPrice > 0 && ((prod['cost'] as int?) ?? 0) == 0) {
+                    upd['cost'] = costPrice;
+                  }
+                  if (upd.isNotEmpty) {
+                    upd['updatedAt'] = DateTime.now().millisecondsSinceEpoch;
+                    upd['isSynced'] = 0;
+                    await db.update('products', upd,
+                        where: 'id = ?', whereArgs: [prod['id']]);
+                  }
+                }
+              } catch (_) {}
+            }
+          }
+
+          // Track supplier totals for batch update
+          if (supplierName.isNotEmpty) {
+            supplierTotals[supplierName] =
+                (supplierTotals[supplierName] ?? 0) + totalAmount;
+          }
+        } catch (e, st) {
+          errors.add('PN $code: $e');
+          debugPrint('KvImport purchaseOrder $code: $e\n$st');
+        }
+      }
+
+      // Batch update supplier importCount + totalAmount
+      for (final entry in supplierTotals.entries) {
+        try {
+          final sRows = await db.query('suppliers',
+              where: 'UPPER(name) = UPPER(?) AND shopId = ? AND (deleted IS NULL OR deleted != 1)',
+              whereArgs: [entry.key, shopId], limit: 1);
+          if (sRows.isNotEmpty) {
+            final sid = sRows.first['id'];
+            final currentCount = await db.rawQuery(
+                'SELECT COUNT(*) as c FROM import_orders WHERE supplierId = ? AND (deleted IS NULL OR deleted != 1)',
+                [sid.toString()]);
+            final count = (currentCount.first['c'] as int?) ?? 0;
+            await db.update('suppliers', {
+              'importCount': count,
+              'totalAmount': entry.value,
+              'updatedAt': DateTime.now().millisecondsSinceEpoch,
+              'isSynced': 0,
+            }, where: 'id = ?', whereArgs: [sid]);
+          }
+        } catch (_) {}
+      }
+
+      try { onProgress?.call(total, total); } catch (_) {}
+      return KvImportResult(inserted: inserted, updated: updated, skipped: skipped, errors: errors);
+    } catch (e) {
+      return KvImportResult(errors: ['Lỗi nhập phiếu nhập hàng: $e']);
     }
   }
 

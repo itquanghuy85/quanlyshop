@@ -23,6 +23,7 @@ class _KiotVietImportViewState extends State<KiotVietImportView> {
     'products': const _FileState(),
     'customers': const _FileState(),
     'suppliers': const _FileState(),
+    'purchase_orders': const _FileState(),
     'sales': const _FileState(),
   };
 
@@ -30,13 +31,23 @@ class _KiotVietImportViewState extends State<KiotVietImportView> {
     'products': 'Sản phẩm / Kho hàng',
     'customers': 'Khách hàng',
     'suppliers': 'Nhà cung cấp',
+    'purchase_orders': 'Phiếu nhập hàng (NCC)',
     'sales': 'Hóa đơn bán hàng',
+  };
+
+  static const _typeHint = {
+    'products': 'DanhSachSanPham_KV*.xlsx',
+    'customers': 'DanhSachKhachHang_KV*.xlsx',
+    'suppliers': 'DanhSachNhaCungCap_KV*.xlsx',
+    'purchase_orders': 'DanhSachChiTietNhapHang_KV*.xlsx',
+    'sales': 'DanhSachChiTietHoaDon_KV*.xlsx',
   };
 
   static const _typeIcon = {
     'products': Icons.inventory_2_outlined,
     'customers': Icons.people_outline,
     'suppliers': Icons.store_outlined,
+    'purchase_orders': Icons.local_shipping_outlined,
     'sales': Icons.receipt_long_outlined,
   };
 
@@ -44,6 +55,7 @@ class _KiotVietImportViewState extends State<KiotVietImportView> {
     'products': Color(0xFF1565C0),
     'customers': Color(0xFF6A1B9A),
     'suppliers': Color(0xFF2E7D32),
+    'purchase_orders': Color(0xFFE65100),
     'sales': Color(0xFFBF360C),
   };
 
@@ -141,6 +153,12 @@ class _KiotVietImportViewState extends State<KiotVietImportView> {
               overwriteExisting: _overwrite,
               onProgress: (done, t) => _setProgress(type, done, t),
             );
+          case 'purchase_orders':
+            result = await KiotVietExcelImportService.importPurchaseOrders(
+              bytes,
+              overwriteExisting: _overwrite,
+              onProgress: (done, t) => _setProgress(type, done, t),
+            );
           case 'sales':
             result = await KiotVietExcelImportService.importSales(
               bytes,
@@ -206,7 +224,7 @@ class _KiotVietImportViewState extends State<KiotVietImportView> {
           children: [
             _buildGuide(),
             const SizedBox(height: 16),
-            ...['products', 'customers', 'suppliers', 'sales'].map(_buildFileCard),
+            ...['products', 'customers', 'suppliers', 'purchase_orders', 'sales'].map(_buildFileCard),
             const SizedBox(height: 12),
             _buildOptions(),
             const SizedBox(height: 20),
@@ -259,11 +277,12 @@ class _KiotVietImportViewState extends State<KiotVietImportView> {
           ]),
           const SizedBox(height: 8),
           const Text(
-            '1. Vào KiotViet → Hàng hóa (hoặc Khách hàng / NCC)\n'
-            '2. Bấm nút "Xuất file" → chọn "Excel"\n'
-            '3. Tải file về → chọn file dưới đây\n\n'
-            'Hỗ trợ: DanhSachSanPham_KV*.xlsx · DanhSachKhachHang_KV*.xlsx · DanhSachNhaCungCap_KV*.xlsx · DanhSachHoaDon_KV*.xlsx',
-            style: TextStyle(fontSize: 12, height: 1.6),
+            '1. Sản phẩm: KiotViet → Hàng hóa → Xuất file\n'
+            '2. Khách hàng: KiotViet → Khách hàng → Xuất file\n'
+            '3. Nhà cung cấp: KiotViet → Nhà cung cấp → Xuất file\n'
+            '4. Phiếu nhập hàng: KiotViet → Nhập hàng → Xuất file chi tiết\n'
+            '5. Hóa đơn bán: KiotViet → Bán hàng → Báo cáo → Xuất chi tiết',
+            style: TextStyle(fontSize: 12, height: 1.7),
           ),
         ],
       ),
@@ -297,8 +316,9 @@ class _KiotVietImportViewState extends State<KiotVietImportView> {
             subtitle: state.path != null
                 ? Text(state.name!, style: TextStyle(fontSize: 11, color: color),
                     overflow: TextOverflow.ellipsis)
-                : Text('Chưa chọn file',
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
+                : Text(_typeHint[type] ?? 'Chưa chọn file',
+                    style: TextStyle(fontSize: 11, color: Colors.grey.shade400),
+                    overflow: TextOverflow.ellipsis),
             trailing: state.path != null
                 ? Row(mainAxisSize: MainAxisSize.min, children: [
                     if (state.status == _ImportStatus.done)
