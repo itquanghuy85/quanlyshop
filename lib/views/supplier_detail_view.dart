@@ -36,6 +36,8 @@ class _SupplierDetailViewState extends State<SupplierDetailView> with TickerProv
   late TabController _tab;
 
   List<Map<String, dynamic>> _imports = [];
+  List<Map<String, dynamic>> _importOrders = [];
+  Map<String, List<Map<String, dynamic>>> _importOrderItems = {};
   List<Map<String, dynamic>> _debts = [];
   List<Map<String, dynamic>> _payments = [];
   List<Product> _products = [];
@@ -56,8 +58,9 @@ class _SupplierDetailViewState extends State<SupplierDetailView> with TickerProv
     setState(() => _loading = true);
     try {
       _shopId ??= await UserService.getCurrentShopId();
-      // Truyền cả supplierId và supplierName để tìm được cả các record lưu với supplierId = 0
       final isWarehouse = widget.supplier.type == 'warehouse';
+      final db = await _db.database;
+
       final results = await Future.wait([
         _db.getSupplierImportHistory(
           widget.supplier.id!,
@@ -78,6 +81,28 @@ class _SupplierDetailViewState extends State<SupplierDetailView> with TickerProv
       final allDebts = results[1] as List<Map<String, dynamic>>;
       final products = results[2] as List<Product>;
 
+      // Load import_orders from KiotViet import
+      List<Map<String, dynamic>> importOrders = [];
+      Map<String, List<Map<String, dynamic>>> importOrderItems = {};
+      try {
+        importOrders = await db.query(
+          'import_orders',
+          where: '(UPPER(supplierName) = UPPER(?) OR supplierId = ?) AND (deleted IS NULL OR deleted != 1)',
+          whereArgs: [widget.supplier.name, widget.supplier.id?.toString() ?? '-1'],
+          orderBy: 'importDate DESC',
+        );
+        for (final order in importOrders) {
+          final fid = order['firestoreId'] as String? ?? '';
+          if (fid.isEmpty) continue;
+          final items = await db.query(
+            'import_order_items',
+            where: 'importOrderFirestoreId = ? AND (deleted IS NULL OR deleted != 1)',
+            whereArgs: [fid],
+          );
+          importOrderItems[fid] = items;
+        }
+      } catch (_) {}
+
       final debts = allDebts
           .where((d) =>
               d['type'] == 'SHOP_OWES' &&
@@ -94,6 +119,8 @@ class _SupplierDetailViewState extends State<SupplierDetailView> with TickerProv
 
       setState(() {
         _imports = imports;
+        _importOrders = importOrders;
+        _importOrderItems = importOrderItems;
         _debts = debts;
         _payments = payments;
         _products = products;
@@ -250,13 +277,20 @@ class _SupplierDetailViewState extends State<SupplierDetailView> with TickerProv
       ),
       body: ResponsiveCenter(child: _loading
           ? const Center(child: CircularProgressIndicator())
-          : TabBarView(
-              controller: _tab,
+          : Column(
               children: [
-                _buildImportTab(),
-                _buildDebtTab(),
-                _buildStatsTab(),
-                _buildProductsTab(),
+                _buildContactCard(),
+                Expanded(
+                  child: TabBarView(
+                    controller: _tab,
+                    children: [
+                      _buildImportTab(),
+                      _buildDebtTab(),
+                      _buildStatsTab(),
+                      _buildProductsTab(),
+                    ],
+                  ),
+                ),
               ],
             )),
       floatingActionButton: _tab.index == 1
@@ -269,64 +303,184 @@ class _SupplierDetailViewState extends State<SupplierDetailView> with TickerProv
     );
   }
 
+  Widget _buildContactCard() {
+    final s = widget.supplier;
+    final hasPhone = (s.phone ?? '').isNotEmpty;
+    final hasEmail = (s.email ?? '').isNotEmpty;
+    final hasAddress = (s.address ?? '').isNotEmpty;
+    final hasNote = (s.note ?? '').isNotEmpty;
+    if (!hasPhone && !hasEmail && !hasAddress && !hasNote) return const SizedBox.shrink();
+    return Container(
+      margin: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 6, offset: const Offset(0, 2))],
+      ),
+      child: Wrap(
+        spacing: 16,
+        runSpacing: 4,
+        children: [
+          if (hasPhone)   _contactChip(Icons.phone_outlined, s.phone!, Colors.green),
+          if (hasEmail)   _contactChip(Icons.email_outlined, s.email!, Colors.blue),
+          if (hasAddress) _contactChip(Icons.location_on_outlined, s.address!, Colors.orange),
+          if (hasNote)    _contactChip(Icons.notes_outlined, s.note!, Colors.purple),
+        ],
+      ),
+    );
+  }
+
+  Widget _contactChip(IconData icon, String text, Color color) {
+    return Row(mainAxisSize: MainAxisSize.min, children: [
+      Icon(icon, size: 14, color: color),
+      const SizedBox(width: 4),
+      ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 240),
+        child: Text(text, style: AppTextStyles.caption.copyWith(color: Colors.grey.shade700),
+            overflow: TextOverflow.ellipsis),
+      ),
+    ]);
+  }
+
   Widget _buildImportTab() {
-    if (_imports.isEmpty && _debts.isEmpty) {
+    final hasKv = _importOrders.isNotEmpty;
+    final hasOld = _imports.isNotEmpty;
+    final hasDebt = _debts.isNotEmpty;
+
+    if (!hasKv && !hasOld && !hasDebt) {
       return Center(child: Text('Chưa có lịch sử nhập', style: AppTextStyles.body1));
     }
 
-    final List<Widget> items = [];
+    final items = <Widget>[];
 
-    // Formal import records from supplier_import_history
-    for (final h in _imports) {
-      final date = DateFormat('dd/MM/yyyy').format(DateTime.fromMillisecondsSinceEpoch(h['importDate'] as int? ?? 0));
-      items.add(Card(
-        child: ListTile(
-          leading: const Icon(Icons.inventory_2_outlined, color: Colors.blue),
-          title: Text(h['productName'] ?? 'Sản phẩm', style: AppTextStyles.body1.copyWith(fontWeight: FontWeight.bold)),
-          subtitle: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Ngày: $date', style: AppTextStyles.caption),
-              Text('Số tiền: ${MoneyUtils.formatCurrency(h['totalAmount'] as int? ?? 0)}', style: AppTextStyles.caption),
-              if (h['notes'] != null) Text('Ghi chú: ${h['notes']}', style: AppTextStyles.caption),
-            ],
-          ),
-        ),
+    // Priority 1: import_orders from KiotViet
+    if (hasKv) {
+      items.add(Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Text('Phiếu nhập hàng (${_importOrders.length})',
+            style: AppTextStyles.headline6.copyWith(color: Colors.indigo.shade700)),
       ));
-    }
-
-    // When no formal imports, show debts (SHOP_OWES = supplier import events)
-    if (_imports.isEmpty) {
-      for (final d in _debts) {
-        final date = DateFormat('dd/MM/yyyy').format(DateTime.fromMillisecondsSinceEpoch(d['createdAt'] as int? ?? 0));
-        final note = (d['note'] as String? ?? '').trim();
-        final amount = d['totalAmount'] as int? ?? 0;
+      for (final o in _importOrders) {
+        final fid = o['firestoreId'] as String? ?? '';
+        final code = o['orderCode'] as String? ?? fid.replaceFirst('KV:', '');
+        final date = DateFormat('dd/MM/yyyy').format(
+            DateTime.fromMillisecondsSinceEpoch(o['importDate'] as int? ?? 0));
+        final total = o['totalAmount'] as int? ?? 0;
+        final paid = o['paidAmount'] as int? ?? 0;
+        final status = o['paymentStatus'] as String? ?? '';
+        final items2 = _importOrderItems[fid] ?? [];
+        final statusColor = status == 'PAID' ? Colors.green : (status == 'PARTIAL' ? Colors.orange : Colors.red);
+        final statusLabel = status == 'PAID' ? 'Đã trả' : (status == 'PARTIAL' ? 'Trả một phần' : 'Chưa trả');
         items.add(Card(
-          child: ListTile(
-            leading: const Icon(Icons.receipt_long, color: Colors.orange),
-            title: Text(note.isNotEmpty ? note : 'Nhập hàng', style: AppTextStyles.body1.copyWith(fontWeight: FontWeight.bold)),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Ngày: $date', style: AppTextStyles.caption),
-                Text('Số tiền: ${MoneyUtils.formatCurrency(amount)}', style: AppTextStyles.caption),
-              ],
+          margin: const EdgeInsets.only(bottom: 8),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          child: ExpansionTile(
+            leading: CircleAvatar(
+              radius: 18,
+              backgroundColor: Colors.indigo.shade50,
+              child: Icon(Icons.local_shipping_outlined, size: 18, color: Colors.indigo.shade600),
             ),
+            title: Text(code, style: AppTextStyles.body1.copyWith(fontWeight: FontWeight.bold)),
+            subtitle: Text('$date · ${MoneyUtils.formatCurrency(total)}đ',
+                style: AppTextStyles.caption),
             trailing: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: Colors.orange.shade50,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.orange.shade200),
-              ),
-              child: Text('Ghi nợ', style: AppTextStyles.caption.copyWith(color: Colors.orange.shade700)),
+                  color: statusColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: statusColor.withValues(alpha: 0.4))),
+              child: Text(statusLabel,
+                  style: AppTextStyles.caption.copyWith(color: statusColor, fontWeight: FontWeight.w600)),
             ),
+            children: [
+              if (paid > 0 && paid < total)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+                  child: Row(children: [
+                    Text('Đã trả: ', style: AppTextStyles.caption),
+                    Text(MoneyUtils.formatCurrency(paid) + 'đ',
+                        style: AppTextStyles.caption.copyWith(color: Colors.green.shade700, fontWeight: FontWeight.bold)),
+                    Text(' / Còn: ', style: AppTextStyles.caption),
+                    Text(MoneyUtils.formatCurrency(total - paid) + 'đ',
+                        style: AppTextStyles.caption.copyWith(color: Colors.red.shade700, fontWeight: FontWeight.bold)),
+                  ]),
+                ),
+              ...items2.map((item) {
+                final name = item['productName'] as String? ?? '';
+                final imei = item['imei'] as String? ?? '';
+                final qty = item['quantity'] as int? ?? 1;
+                final cost = item['costPrice'] as int? ?? 0;
+                return ListTile(
+                  dense: true,
+                  leading: const Icon(Icons.phone_android_rounded, size: 18, color: Colors.blueGrey),
+                  title: Text(name, style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.w600),
+                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                  subtitle: imei.isNotEmpty ? Text('IMEI: $imei', style: AppTextStyles.caption) : null,
+                  trailing: Text(
+                    'x$qty · ${MoneyUtils.formatCompactCurrency(cost)}đ',
+                    style: AppTextStyles.caption.copyWith(color: Colors.indigo.shade700),
+                  ),
+                );
+              }),
+            ],
           ),
         ));
       }
     }
 
-    return ListView(padding: const EdgeInsets.all(16), children: items);
+    // Priority 2: old supplier_import_history
+    if (hasOld) {
+      if (hasKv) items.add(const SizedBox(height: 8));
+      items.add(Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Text('Lịch sử nhập cũ (${_imports.length})',
+            style: AppTextStyles.headline6.copyWith(color: Colors.blueGrey.shade700)),
+      ));
+      for (final h in _imports) {
+        final date = DateFormat('dd/MM/yyyy').format(
+            DateTime.fromMillisecondsSinceEpoch(h['importDate'] as int? ?? 0));
+        items.add(Card(
+          margin: const EdgeInsets.only(bottom: 6),
+          child: ListTile(
+            leading: const Icon(Icons.inventory_2_outlined, color: Colors.blue),
+            title: Text(h['productName'] ?? 'Sản phẩm',
+                style: AppTextStyles.body1.copyWith(fontWeight: FontWeight.bold),
+                maxLines: 1, overflow: TextOverflow.ellipsis),
+            subtitle: Text('$date · ${MoneyUtils.formatCurrency(h['totalAmount'] as int? ?? 0)}đ',
+                style: AppTextStyles.caption),
+          ),
+        ));
+      }
+    }
+
+    // Priority 3: debts only (no purchase records)
+    if (!hasKv && !hasOld && hasDebt) {
+      items.add(Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Text('Ghi nợ (${_debts.length})',
+            style: AppTextStyles.headline6.copyWith(color: Colors.orange.shade700)),
+      ));
+      for (final d in _debts) {
+        final date = DateFormat('dd/MM/yyyy').format(
+            DateTime.fromMillisecondsSinceEpoch(d['createdAt'] as int? ?? 0));
+        final note = (d['note'] as String? ?? '').trim();
+        final amount = d['totalAmount'] as int? ?? 0;
+        items.add(Card(
+          margin: const EdgeInsets.only(bottom: 6),
+          child: ListTile(
+            leading: const Icon(Icons.receipt_long, color: Colors.orange),
+            title: Text(note.isNotEmpty ? note : 'Nhập hàng',
+                style: AppTextStyles.body1.copyWith(fontWeight: FontWeight.bold)),
+            subtitle: Text('$date · ${MoneyUtils.formatCurrency(amount)}đ',
+                style: AppTextStyles.caption),
+          ),
+        ));
+      }
+    }
+
+    return ListView(padding: const EdgeInsets.all(14), children: items);
   }
 
   Widget _buildDebtTab() {
@@ -368,33 +522,89 @@ class _SupplierDetailViewState extends State<SupplierDetailView> with TickerProv
   }
 
   Widget _buildStatsTab() {
-    // Compute directly from loaded debts (debts = how imports are tracked in this app)
-    final totalImport = _totalDebt;
-    final totalPaid = _paidDebt;
-    final totalImports = _debts.length;
-    final avg = totalImports == 0 ? 0 : (totalImport / totalImports).round();
-    return Padding(
+    final hasKv = _importOrders.isNotEmpty;
+    // KiotViet import_orders data (preferred)
+    final kvTotal = _importOrders.fold<int>(0, (s, o) => s + (o['totalAmount'] as int? ?? 0));
+    final kvPaid = _importOrders.fold<int>(0, (s, o) => s + (o['paidAmount'] as int? ?? 0));
+    final kvCount = _importOrders.length;
+    final kvAvg = kvCount == 0 ? 0 : (kvTotal / kvCount).round();
+    final kvItemCount = _importOrderItems.values.fold<int>(0, (s, list) => s + list.length);
+    final kvUnpaid = kvTotal - kvPaid;
+    // Debt-based data (fallback)
+    final debtTotal = _totalDebt;
+    final debtPaid = _paidDebt;
+    final debtCount = _debts.length;
+
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _statRow('Tổng nhập', MoneyUtils.formatCurrency(totalImport)),
-          _statRow('Đã thanh toán', MoneyUtils.formatCurrency(totalPaid)),
-          _statRow('Số lần giao dịch', '$totalImports lần'),
-          _statRow('Trung bình/đơn', MoneyUtils.formatCurrency(avg)),
+          if (hasKv) ...[
+            // Summary chips
+            Row(children: [
+              _statChip('Tổng nhập', kvTotal, Colors.indigo),
+              const SizedBox(width: 8),
+              _statChip('Đã trả', kvPaid, AppColors.success),
+              const SizedBox(width: 8),
+              _statChip('Còn nợ', kvUnpaid, kvUnpaid > 0 ? AppColors.error : AppColors.success),
+            ]),
+            const SizedBox(height: 16),
+            Text('Chi tiết phiếu nhập (KiotViet)', style: AppTextStyles.headline6),
+            const Divider(),
+            _statRow('Số phiếu nhập', '$kvCount phiếu'),
+            _statRow('Tổng mặt hàng', '$kvItemCount sản phẩm'),
+            _statRow('Tổng giá trị', '${MoneyUtils.formatCurrency(kvTotal)}đ'),
+            _statRow('Đã thanh toán', '${MoneyUtils.formatCurrency(kvPaid)}đ'),
+            if (kvUnpaid > 0)
+              _statRow('Còn cần trả', '${MoneyUtils.formatCurrency(kvUnpaid)}đ',
+                  valueColor: AppColors.error),
+            _statRow('Trung bình/phiếu', '${MoneyUtils.formatCurrency(kvAvg)}đ'),
+            // Paid status breakdown
+            const SizedBox(height: 8),
+            _statRow('Đã thanh toán đủ',
+                '${_importOrders.where((o) => (o['paymentStatus'] ?? '') == 'PAID').length} phiếu',
+                valueColor: AppColors.success),
+            _statRow('Chưa thanh toán',
+                '${_importOrders.where((o) => (o['paymentStatus'] ?? '') == 'UNPAID').length} phiếu',
+                valueColor: kvUnpaid > 0 ? AppColors.error : Colors.grey),
+          ] else if (debtCount > 0) ...[
+            Row(children: [
+              _statChip('Tổng nợ', debtTotal, AppColors.warning),
+              const SizedBox(width: 8),
+              _statChip('Đã trả', debtPaid, AppColors.success),
+              const SizedBox(width: 8),
+              _statChip('Còn lại', _remainDebt, AppColors.error),
+            ]),
+            const SizedBox(height: 16),
+            _statRow('Số giao dịch', '$debtCount lần'),
+            _statRow('Tổng giá trị', '${MoneyUtils.formatCurrency(debtTotal)}đ'),
+            _statRow('Đã thanh toán', '${MoneyUtils.formatCurrency(debtPaid)}đ'),
+            _statRow('Còn lại', '${MoneyUtils.formatCurrency(_remainDebt)}đ',
+                valueColor: _remainDebt > 0 ? AppColors.error : AppColors.success),
+          ] else
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Text('Chưa có dữ liệu thống kê', style: AppTextStyles.body1),
+              ),
+            ),
         ],
       ),
     );
   }
 
-  Widget _statRow(String label, String value) {
+  Widget _statRow(String label, String value, {Color? valueColor}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label, style: AppTextStyles.body1),
-          Text(value, style: AppTextStyles.body1.copyWith(fontWeight: FontWeight.bold)),
+          Text(value, style: AppTextStyles.body1.copyWith(
+            fontWeight: FontWeight.bold,
+            color: valueColor,
+          )),
         ],
       ),
     );
@@ -468,70 +678,157 @@ class _SupplierDetailViewState extends State<SupplierDetailView> with TickerProv
         ),
       );
     }
-    return ListView.builder(
-      padding: const EdgeInsets.all(12),
-      itemCount: _products.length,
-      itemBuilder: (_, i) {
-        final p = _products[i];
-        final isSold = p.status == 0;
-        return Card(
-          margin: const EdgeInsets.only(bottom: 8),
-          child: ListTile(
-            leading: CircleAvatar(
-              backgroundColor:
-                  isSold ? Colors.red.shade50 : Colors.green.shade50,
-              child: Icon(
-                isSold ? Icons.sell_outlined : Icons.phone_android_rounded,
-                size: 20,
-                color: isSold ? Colors.red.shade400 : Colors.green.shade600,
-              ),
-            ),
-            title: Text(
-              p.name,
-              style: AppTextStyles.body1.copyWith(fontWeight: FontWeight.w600),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            subtitle: Row(
-              children: [
-                Text(
-                  isSold ? 'Đã bán' : 'Còn hàng · x${p.quantity}',
-                  style: AppTextStyles.caption.copyWith(
-                    color: isSold ? Colors.red.shade400 : Colors.green.shade600,
+
+    final inStock = _products.where((p) => p.quantity > 0 && p.status != 0).toList();
+    final sold = _products.where((p) => p.quantity <= 0 || p.status == 0).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Summary bar
+        Container(
+          margin: const EdgeInsets.fromLTRB(12, 10, 12, 4),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          child: Row(
+            children: [
+              _miniStat('Tổng', '${_products.length}', Colors.indigo),
+              const SizedBox(width: 16),
+              _miniStat('Còn hàng', '${inStock.length}', Colors.green),
+              const SizedBox(width: 16),
+              _miniStat('Đã bán', '${sold.length}', Colors.red),
+              const Spacer(),
+              if (_products.any((p) => p.cost > 0))
+                _miniStat('Vốn TB',
+                  MoneyUtils.formatCompactCurrency(
+                    (_products.fold<int>(0, (s, p) => s + p.cost) / _products.length).round(),
+                  ) + 'đ',
+                  Colors.orange),
+            ],
+          ),
+        ),
+        Expanded(
+          child: ListView.builder(
+            padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
+            itemCount: _products.length,
+            itemBuilder: (_, i) {
+              final p = _products[i];
+              final isSold = p.quantity <= 0 || p.status == 0;
+              final hasImei = (p.imei ?? '').isNotEmpty;
+              final hasPrice = p.price > 0;
+              final hasCost = p.cost > 0;
+              final profit = hasPrice && hasCost ? p.price - p.cost : 0;
+              return Card(
+                margin: const EdgeInsets.only(bottom: 6),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(10),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => InventoryDetailView(product: p)),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        CircleAvatar(
+                          radius: 18,
+                          backgroundColor: isSold ? Colors.red.shade50 : Colors.green.shade50,
+                          child: Icon(
+                            isSold ? Icons.sell_outlined : Icons.phone_android_rounded,
+                            size: 18,
+                            color: isSold ? Colors.red.shade400 : Colors.green.shade600,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(p.name,
+                                  style: AppTextStyles.body1.copyWith(fontWeight: FontWeight.w600),
+                                  maxLines: 1, overflow: TextOverflow.ellipsis),
+                              const SizedBox(height: 4),
+                              Wrap(spacing: 8, runSpacing: 4, children: [
+                                // Status
+                                _tag(
+                                  isSold ? 'Đã bán' : 'Còn x${p.quantity}',
+                                  isSold ? Colors.red : Colors.green,
+                                ),
+                                // IMEI
+                                if (hasImei)
+                                  _tag('# ${p.imei}', Colors.blueGrey),
+                                // Location
+                                if ((p.locationCode ?? '').isNotEmpty)
+                                  _tag(p.locationCode!, Colors.indigo),
+                              ]),
+                              if (hasPrice || hasCost) ...[
+                                const SizedBox(height: 6),
+                                Row(children: [
+                                  if (hasCost) ...[
+                                    Icon(Icons.shopping_cart_outlined, size: 13, color: Colors.orange.shade700),
+                                    const SizedBox(width: 3),
+                                    Text('Vốn: ${MoneyUtils.formatCompactCurrency(p.cost)}đ',
+                                        style: AppTextStyles.caption.copyWith(color: Colors.orange.shade700)),
+                                    const SizedBox(width: 10),
+                                  ],
+                                  if (hasPrice) ...[
+                                    Icon(Icons.sell_outlined, size: 13, color: Colors.green.shade700),
+                                    const SizedBox(width: 3),
+                                    Text('Bán: ${MoneyUtils.formatCompactCurrency(p.price)}đ',
+                                        style: AppTextStyles.caption.copyWith(color: Colors.green.shade700)),
+                                  ],
+                                  if (hasCost && hasPrice && profit > 0) ...[
+                                    const SizedBox(width: 10),
+                                    Text('Lãi: ${MoneyUtils.formatCompactCurrency(profit)}đ',
+                                        style: AppTextStyles.caption.copyWith(
+                                            color: Colors.teal.shade700, fontWeight: FontWeight.bold)),
+                                  ],
+                                ]),
+                              ],
+                            ],
+                          ),
+                        ),
+                        const Icon(Icons.chevron_right_rounded, color: Colors.grey, size: 18),
+                      ],
+                    ),
                   ),
                 ),
-                if ((p.locationCode ?? '').isNotEmpty) ...[
-                  const SizedBox(width: 6),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFEFF6FF),
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: const Color(0xFF93C5FD)),
-                    ),
-                    child: Text(
-                      p.locationCode!,
-                      style: const TextStyle(
-                          fontSize: 11, color: Color(0xFF1D4ED8)),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-            trailing: Text(
-              '${MoneyUtils.formatCompactCurrency(p.price)}đ',
-              style: AppTextStyles.body1
-                  .copyWith(color: Colors.green.shade700, fontWeight: FontWeight.bold),
-            ),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (_) => InventoryDetailView(product: p)),
-            ),
+              );
+            },
           ),
-        );
-      },
+        ),
+      ],
+    );
+  }
+
+  Widget _miniStat(String label, String value, Color color) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: AppTextStyles.caption.copyWith(color: Colors.grey.shade500)),
+        Text(value, style: AppTextStyles.body1.copyWith(
+            color: color, fontWeight: FontWeight.bold, fontSize: 13)),
+      ],
+    );
+  }
+
+  Widget _tag(String text, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(5),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Text(text,
+          style: AppTextStyles.caption.copyWith(
+              color: color, fontWeight: FontWeight.w500, fontSize: 10.5)),
     );
   }
 
