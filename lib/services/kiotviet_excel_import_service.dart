@@ -762,7 +762,8 @@ class KiotVietExcelImportService {
 
         try {
           final row = data[i];
-          // col 3=Tên, 4=SĐT, 5=Địa chỉ, 13=Email, 16=Ghi chú, 18=Ngày tạo, 21=Tổng bán
+          // col 3=Tên, 4=SĐT, 5=Địa chỉ, 13=Email, 16=Ghi chú,
+          // col 18=Ngày tạo, 19=Ngày GD cuối, 20=Nợ, 21=Tổng bán, 23=Trạng thái
           final name = _at(row, 3);
           final phone = _cleanPhone(_at(row, 4));
           if (name.isEmpty && phone.isEmpty) { skipped++; continue; }
@@ -773,8 +774,11 @@ class KiotVietExcelImportService {
           final notes = rawNotes.contains('@')
               ? null
               : (rawNotes.isNotEmpty ? rawNotes : null);
-          final createdAt = _dateMs(row, 18);
+          final createdAt = _datetimeMs(row, 18);       // datetime precision
+          final lastVisitAt = _datetimeMs(row, 19);     // Ngày giao dịch cuối
           final totalSpent = _int(row, 21);
+          final statusRaw = _at(row, 23);
+          final activeVal = statusRaw.isEmpty || statusRaw == '1' ? 1 : 0;
           final now = DateTime.now().millisecondsSinceEpoch;
 
           List<Map<String, dynamic>> dup = const [];
@@ -799,6 +803,7 @@ class KiotVietExcelImportService {
               'isSynced': 0,
             };
             if (name.isNotEmpty) updateMap['name'] = name.toUpperCase();
+            if (lastVisitAt > 0) updateMap['lastVisitAt'] = lastVisitAt;
             await db.update('customers', updateMap, where: 'id = ?', whereArgs: [id]);
             updated++;
           } else {
@@ -809,14 +814,14 @@ class KiotVietExcelImportService {
               'address': address.isNotEmpty ? address : null,
               'notes': notes,
               'createdAt': createdAt > 0 ? createdAt : now,
-              'lastVisitAt': createdAt > 0 ? createdAt : now,
+              'lastVisitAt': lastVisitAt > 0 ? lastVisitAt : (createdAt > 0 ? createdAt : now),
               'updatedAt': now,
               'totalSpent': totalSpent,
               'totalRepairs': 0,
               'totalRepairCost': 0,
               'shopId': shopId,
               'isSynced': 0,
-              'deleted': 0,
+              'deleted': activeVal == 1 ? 0 : 1,
               'coverAlignX': 0.0,
               'coverAlignY': 0.0,
             });
