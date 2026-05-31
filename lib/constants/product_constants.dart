@@ -416,11 +416,35 @@ class ProductConstants {
   /// và giữ nguyên các hậu tố như "x2", "(Tặng)", "[SỈ]".
   static String cleanCompositeProductNames(String names) {
     if (names.trim().isEmpty) return names;
-    return names
+    final parts = names
         .split(RegExp(r',\s*'))
         .map(cleanProductNameWithSuffix)
         .where((e) => e.trim().isNotEmpty)
-        .join(', ');
+        .toList();
+    if (parts.length <= 1) return parts.join(', ');
+    // Phone items first, gift items last
+    parts.sort((a, b) {
+      final aPhone = _isPhoneProductName(a) ? 0 : 1;
+      final bPhone = _isPhoneProductName(b) ? 0 : 1;
+      final aGift = _isGiftItem(a) ? 1 : 0;
+      final bGift = _isGiftItem(b) ? 1 : 0;
+      if (aPhone != bPhone) return aPhone - bPhone;
+      return aGift - bGift;
+    });
+    return parts.join(', ');
+  }
+
+  static bool _isPhoneProductName(String name) {
+    final n = name.toUpperCase();
+    return n.contains('IPHONE') || n.contains('SAMSUNG') || n.contains('OPPO') ||
+        n.contains('XIAOMI') || n.contains('VIVO') || n.contains('REALME') ||
+        n.contains('TECNO') || n.contains('INFINIX') || n.contains('NOKIA') ||
+        n.contains('IPAD') || n.contains('MACBOOK') || n.contains('WATCH');
+  }
+
+  static bool _isGiftItem(String name) {
+    final n = name.toUpperCase();
+    return n.contains('(TẶNG)') || n.contains('TẶNG)') || n.endsWith('(TANG)');
   }
 
   /// Làm sạch 1 dòng tên sản phẩm, vẫn giữ phần số lượng/nhãn phụ ở cuối.

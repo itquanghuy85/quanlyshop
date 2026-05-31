@@ -1342,24 +1342,11 @@ class _SaleDetailViewState extends State<SaleDetailView> {
               return Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
+                  // Primary: SMS
                   _bottomAction(Icons.sms_rounded, 'SMS', _sendSmsToCustomer),
-                  _bottomAction(
-                    Icons.chat_bubble_outline_rounded,
-                    'Chat',
-                    _sendToChat,
-                  ),
-                  _bottomAction(Icons.preview, l10n.previewInvoiceLabel, () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => SaleInvoicePreviewView(
-                          saleData: _buildSalePrintData(),
-                          paper: PaperSize.mm58,
-                        ),
-                      ),
-                    );
-                  }),
+                  // Primary: In
                   _bottomAction(Icons.print_rounded, l10n.printInvoiceLabel, _printWifi),
+                  // Primary: Trả hàng
                   _bottomAction(
                     Icons.assignment_return_rounded,
                     _allItemsReturned ? l10n.returnAllLabel : l10n.returnGoodsLabel,
@@ -1383,14 +1370,67 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                             }
                           },
                   ),
-                  _bottomAction(Icons.design_services, l10n.printTemplateLabel, () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const SaleInvoiceTemplateView(),
+                  // Overflow "..." — Chat, Xem trước, Mẫu in
+                  PopupMenuButton<String>(
+                    icon: const Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.more_horiz_rounded, size: 22, color: Color(0xFF0068FF)),
+                        SizedBox(height: 2),
+                        Text('Khác', style: TextStyle(fontSize: 12, color: Color(0xFF0068FF))),
+                      ],
+                    ),
+                    padding: EdgeInsets.zero,
+                    onSelected: (value) {
+                      switch (value) {
+                        case 'chat':
+                          _sendToChat();
+                        case 'preview':
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => SaleInvoicePreviewView(
+                                saleData: _buildSalePrintData(),
+                                paper: PaperSize.mm58,
+                              ),
+                            ),
+                          );
+                        case 'template':
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const SaleInvoiceTemplateView(),
+                            ),
+                          );
+                      }
+                    },
+                    itemBuilder: (_) => [
+                      const PopupMenuItem(
+                        value: 'chat',
+                        child: Row(children: [
+                          Icon(Icons.chat_bubble_outline_rounded, size: 18, color: Color(0xFF0068FF)),
+                          SizedBox(width: 10),
+                          Text('Chat'),
+                        ]),
                       ),
-                    );
-                  }),
+                      PopupMenuItem(
+                        value: 'preview',
+                        child: Row(children: [
+                          const Icon(Icons.preview, size: 18, color: Color(0xFF0068FF)),
+                          const SizedBox(width: 10),
+                          Text(l10n.previewInvoiceLabel),
+                        ]),
+                      ),
+                      PopupMenuItem(
+                        value: 'template',
+                        child: Row(children: [
+                          const Icon(Icons.design_services, size: 18, color: Color(0xFF0068FF)),
+                          const SizedBox(width: 10),
+                          Text(l10n.printTemplateLabel),
+                        ]),
+                      ),
+                    ],
+                  ),
                 ],
               );
             }),
