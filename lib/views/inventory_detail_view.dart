@@ -15,8 +15,15 @@ import 'supplier_detail_view.dart';
 
 class InventoryDetailView extends StatelessWidget {
   final Product product;
+  final int? soldQty;
+  final int? soldPrice;
 
-  const InventoryDetailView({super.key, required this.product});
+  const InventoryDetailView({
+    super.key,
+    required this.product,
+    this.soldQty,
+    this.soldPrice,
+  });
 
   Future<void> _openSupplier(BuildContext context, String name) async {
     if (name.trim().isEmpty || name == '--') return;
@@ -42,7 +49,9 @@ class InventoryDetailView extends StatelessWidget {
         .split(',')
         .map((e) => e.trim())
         .firstWhere((e) => e.isNotEmpty, orElse: () => '');
-    final isSold = product.status == 0;
+    // status==0 means manually marked sold; qty<=0 means no stock left
+    final isSold = product.status == 0 || product.quantity <= 0;
+    final isOutOfStock = product.status != 0 && product.quantity <= 0;
     final hasImage = imagePath.isNotEmpty;
     final hasLocation = (product.locationCode ?? '').isNotEmpty;
 
@@ -79,28 +88,36 @@ class InventoryDetailView extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
                 color: isSold
-                    ? Colors.red.shade50
+                    ? (isOutOfStock ? Colors.orange.shade50 : Colors.red.shade50)
                     : Colors.green.shade50,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: isSold ? Colors.red.shade300 : Colors.green.shade300,
+                  color: isSold
+                      ? (isOutOfStock ? Colors.orange.shade300 : Colors.red.shade300)
+                      : Colors.green.shade300,
                 ),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    isSold ? Icons.sell_outlined : Icons.check_circle_outline,
+                    isSold
+                        ? (isOutOfStock ? Icons.inventory_2_outlined : Icons.sell_outlined)
+                        : Icons.check_circle_outline,
                     size: 14,
-                    color: isSold ? Colors.red.shade700 : Colors.green.shade700,
+                    color: isSold
+                        ? (isOutOfStock ? Colors.orange.shade700 : Colors.red.shade700)
+                        : Colors.green.shade700,
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    isSold ? 'Đã bán' : 'Còn hàng',
+                    isSold ? (isOutOfStock ? 'Hết hàng' : 'Đã bán') : 'Còn hàng',
                     style: TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 13,
-                      color: isSold ? Colors.red.shade700 : Colors.green.shade700,
+                      color: isSold
+                          ? (isOutOfStock ? Colors.orange.shade700 : Colors.red.shade700)
+                          : Colors.green.shade700,
                     ),
                   ),
                 ],
@@ -174,10 +191,26 @@ class InventoryDetailView extends StatelessWidget {
                   _divider(),
                   _row('Model', (product.model ?? '').trim().isEmpty ? '--' : product.model!),
                   _divider(),
-                  _row('Số lượng', product.quantity.toString()),
+                  _row('Tồn kho', product.quantity.toString()),
+                  if (soldQty != null) ...[
+                    _divider(),
+                    _row(
+                      'Bán trong đơn này',
+                      '$soldQty cái',
+                      valueColor: Colors.blue.shade700,
+                    ),
+                  ],
                   _divider(),
                   _row('Giá bán', MoneyUtils.formatCurrency(product.price),
                       valueColor: Colors.green.shade700),
+                  if (soldPrice != null && soldPrice! > 0 && soldPrice != product.price) ...[
+                    _divider(),
+                    _row(
+                      'Giá bán trong đơn',
+                      MoneyUtils.formatCurrency(soldPrice!),
+                      valueColor: Colors.indigo.shade600,
+                    ),
+                  ],
                   _divider(),
                   _row('Giá vốn', MoneyUtils.formatCurrency(product.cost),
                       valueColor: Colors.orange.shade700),

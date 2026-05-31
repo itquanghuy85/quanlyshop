@@ -272,6 +272,9 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                 (item['id'] ?? item['productId'] ?? item['firestoreId'] ?? '')
                     .toString()
                     .trim();
+            final qty = (item['quantity'] as num?)?.toInt();
+            final price = (item['price'] as num?)?.toInt()
+                ?? (item['totalPrice'] as num?)?.toInt();
             items.add(
               ProductLinkRef(
                 productId: productId.isEmpty ? null : productId,
@@ -281,6 +284,8 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                 sku: sku.isEmpty ? null : sku,
                 imageUrl: _extractImageFromSnapshot(item),
                 sourceEvent: 'product_detail_opened_from_sale',
+                soldQty: (qty != null && qty > 0) ? qty : null,
+                soldPrice: (price != null && price > 0) ? price : null,
               ),
             );
           }

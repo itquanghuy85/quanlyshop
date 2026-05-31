@@ -19,6 +19,8 @@ class ProductLinkRef {
   final String? sku;
   final String? imageUrl;
   final String? sourceEvent;
+  final int? soldQty;
+  final int? soldPrice;
 
   const ProductLinkRef({
     this.productId,
@@ -28,6 +30,8 @@ class ProductLinkRef {
     this.sku,
     this.imageUrl,
     this.sourceEvent,
+    this.soldQty,
+    this.soldPrice,
   });
 }
 
@@ -164,6 +168,8 @@ class DeepLinkNavigator {
     String? sku,
     String? fallbackName,
     String? sourceEvent,
+    int? soldQty,
+    int? soldPrice,
   }) async {
     try {
       final db = DBHelper();
@@ -227,7 +233,13 @@ class DeepLinkNavigator {
 
       await Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => InventoryDetailView(product: found!)),
+        MaterialPageRoute(
+          builder: (_) => InventoryDetailView(
+            product: found!,
+            soldQty: soldQty,
+            soldPrice: soldPrice,
+          ),
+        ),
       );
     } catch (e) {
       debugPrint('DeepLinkNavigator.openProductDetail error: $e');

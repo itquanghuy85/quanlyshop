@@ -9,6 +9,8 @@ class ClickableProductChip extends StatelessWidget {
   final String? imageUrl;
   final String? sourceEvent;
   final String tooltip;
+  final int? soldQty;
+  final int? soldPrice;
 
   const ClickableProductChip({
     super.key,
@@ -19,6 +21,8 @@ class ClickableProductChip extends StatelessWidget {
     this.imageUrl,
     this.sourceEvent,
     this.tooltip = 'Xem chi tiết sản phẩm',
+    this.soldQty,
+    this.soldPrice,
   });
 
   @override
@@ -44,6 +48,8 @@ class ClickableProductChip extends StatelessWidget {
                 sku: sku,
                 fallbackName: displayName,
                 sourceEvent: sourceEvent,
+                soldQty: soldQty,
+                soldPrice: soldPrice,
               );
             },
             child: Container(
@@ -92,24 +98,39 @@ class ClickableProductChip extends StatelessWidget {
                             height: 1.2,
                           ),
                         ),
-                        if (code.isNotEmpty) ...[
+                        if (code.isNotEmpty || soldQty != null) ...[
                           const SizedBox(height: 4),
                           Row(
                             children: [
-                              Icon(
-                                Icons.qr_code_rounded,
-                                size: 12,
-                                color: theme.colorScheme.primary.withValues(alpha: 0.8),
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                code,
-                                style: TextStyle(
-                                  color: const Color(0xFF5B697A),
-                                  fontSize: 11.5,
-                                  fontWeight: FontWeight.w500,
+                              if (code.isNotEmpty) ...[
+                                Icon(
+                                  Icons.qr_code_rounded,
+                                  size: 12,
+                                  color: theme.colorScheme.primary.withValues(alpha: 0.8),
                                 ),
-                              ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  code,
+                                  style: const TextStyle(
+                                    color: Color(0xFF5B697A),
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                if (soldQty != null) const SizedBox(width: 8),
+                              ],
+                              if (soldQty != null) ...[
+                                const Icon(Icons.shopping_cart_outlined, size: 12, color: Color(0xFF1565C0)),
+                                const SizedBox(width: 3),
+                                Text(
+                                  'x$soldQty',
+                                  style: const TextStyle(
+                                    color: Color(0xFF1565C0),
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
                         ],

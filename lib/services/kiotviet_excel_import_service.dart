@@ -252,6 +252,7 @@ class KiotVietExcelImportService {
 
           final condition = _guessCondition(group, name);
           final type = _guessType(group, useImei);
+          final details = _parseProductNameDetails(name);
 
           final map = <String, dynamic>{
             'shopId': shopId,
@@ -275,9 +276,9 @@ class KiotVietExcelImportService {
             'isPending': 0,
             'deleted': 0,
             'images': null,
-            'model': null,
-            'color': null,
-            'capacity': null,
+            'model': details['model'],
+            'color': details['color'],
+            'capacity': details['capacity'],
             'size': null,
             'paymentMethod': null,
             'labelInfo': null,
@@ -612,6 +613,33 @@ class KiotVietExcelImportService {
           if (itemDiscount > 0) snapshot['discount'] = itemDiscount;
           if (warranty.isNotEmpty) snapshot['warranty'] = warranty;
           itemSnapshots.add(snapshot);
+
+          // Update matching product record with IMEI and price if currently missing
+          if (imei.isNotEmpty || unitPrice > 0) {
+            try {
+              final prods = await db.query(
+                'products',
+                where: 'UPPER(name) = UPPER(?) AND shopId = ? AND (deleted IS NULL OR deleted != 1)',
+                whereArgs: [pName.toUpperCase(), shopId],
+                orderBy: 'id ASC',
+                limit: 1,
+              );
+              if (prods.isNotEmpty) {
+                final prod = prods.first;
+                final upd = <String, dynamic>{};
+                final curImei = (prod['imei'] as String?) ?? '';
+                if (imei.isNotEmpty && curImei.isEmpty) upd['imei'] = imei;
+                final curPrice = (prod['price'] as num?)?.toInt() ?? 0;
+                if (unitPrice > 0 && curPrice == 0) upd['price'] = unitPrice;
+                if (upd.isNotEmpty) {
+                  upd['updatedAt'] = DateTime.now().millisecondsSinceEpoch;
+                  upd['isSynced'] = 0;
+                  await db.update('products', upd,
+                      where: 'id = ?', whereArgs: [prod['id']]);
+                }
+              }
+            } catch (_) {}
+          }
         }
 
         final productNamesStr = collectedNames.isNotEmpty ? collectedNames.join(', ') : null;
@@ -1016,5 +1044,102 @@ class KiotVietExcelImportService {
       if (n.contains(b)) return b == 'IPHONE' ? 'APPLE' : b;
     }
     return '';
+  }
+
+  static Map<String, String?> _parseProductNameDetails(String name) {
+    final n = name.toUpperCase();
+    String? model;
+    String? capacity;
+    String? color;
+
+    // Capacity: RAM/Storage (8G/128G) → take storage; or standard values
+    final ramStorage = RegExp(r'\b\d+G(?:B)?/(\d+G(?:B)?)\b').firstMatch(n);
+    if (ramStorage != null) {
+      capacity = ramStorage.group(1)!.replaceAll('GB', 'G');
+    } else {
+      final storage = RegExp(r'\b(16G|32G|64G|128G|256G|512G|1T(?:B)?|2T(?:B)?)\b').firstMatch(n);
+      if (storage != null) capacity = storage.group(1)!.replaceAll('TB', 'T');
+    }
+
+    // iPhone models — longer keys checked first to avoid partial matches
+    if (n.contains('IPHONE')) {
+      const modelMap = {
+        'IPHONE 16PROMAX': '16 Pro Max', 'IPHONE16PROMAX': '16 Pro Max',
+        'IPHONE 16PRO': '16 Pro',       'IPHONE16PRO': '16 Pro',
+        'IPHONE 16PLUS': '16 Plus',     'IPHONE16PLUS': '16 Plus',
+        'IPHONE 16': '16',
+        'IPHONE 15PROMAX': '15 Pro Max','IPHONE15PROMAX': '15 Pro Max',
+        'IPHONE 15PRO': '15 Pro',       'IPHONE15PRO': '15 Pro',
+        'IPHONE 15PLUS': '15 Plus',     'IPHONE15PLUS': '15 Plus',
+        'IPHONE 15': '15',
+        'IPHONE 14PROMAX': '14 Pro Max','IPHONE14PROMAX': '14 Pro Max',
+        'IPHONE 14PRO': '14 Pro',       'IPHONE14PRO': '14 Pro',
+        'IPHONE 14PLUS': '14 Plus',     'IPHONE14PLUS': '14 Plus',
+        'IPHONE 14': '14',
+        'IPHONE 13PROMAX': '13 Pro Max','IPHONE13PROMAX': '13 Pro Max',
+        'IPHONE 13PRO': '13 Pro',       'IPHONE13PRO': '13 Pro',
+        'IPHONE 13MINI': '13 Mini',     'IPHONE13MINI': '13 Mini',
+        'IPHONE 13': '13',
+        'IPHONE 12PROMAX': '12 Pro Max','IPHONE12PROMAX': '12 Pro Max',
+        'IPHONE 12PRO': '12 Pro',       'IPHONE12PRO': '12 Pro',
+        'IPHONE 12MINI': '12 Mini',     'IPHONE12MINI': '12 Mini',
+        'IPHONE 12': '12',
+        'IPHONE 11PROMAX': '11 Pro Max','IPHONE11PROMAX': '11 Pro Max',
+        'IPHONE 11PRO': '11 Pro',       'IPHONE11PRO': '11 Pro',
+        'IPHONE 11': '11',
+        'IPHONE XSMAX': 'XS Max',       'IPHONE XSM': 'XS Max',
+        'IPHONE XS': 'XS',
+        'IPHONE XR': 'XR',
+        'IPHONE 8PLUS': '8 Plus',       'IPHONE8PLUS': '8 Plus',
+        'IPHONE 8': '8',
+        'IPHONE 7PLUS': '7 Plus',       'IPHONE7PLUS': '7 Plus',
+        'IPHONE 7': '7',
+        'IPHONE SE': 'SE',
+        'IPHONE X': 'X',
+      };
+      final sorted = modelMap.keys.toList()..sort((a, b) => b.length - a.length);
+      for (final key in sorted) {
+        if (n.contains(key)) { model = modelMap[key]; break; }
+      }
+    } else if (n.contains('IPAD')) {
+      for (final m in ['IPAD PRO', 'IPAD AIR', 'IPAD MINI']) {
+        if (n.contains(m)) {
+          model = m[0] + m.substring(1).toLowerCase();
+          break;
+        }
+      }
+      model ??= 'iPad';
+    } else if (n.contains('SAMSUNG')) {
+      final sm = RegExp(r'SAMSUNG\s+([A-Z]\d+\S*)').firstMatch(n);
+      if (sm != null) model = 'Samsung ${sm.group(1)!.trim()}';
+    } else if (n.contains('OPPO')) {
+      final om = RegExp(r'OPPO\s+(\S+)').firstMatch(n);
+      if (om != null) model = 'Oppo ${om.group(1)!.trim()}';
+    } else if (n.contains('XIAOMI')) {
+      final xm = RegExp(r'XIAOMI\s+(\S+(?:\s+\S+)?)').firstMatch(n);
+      if (xm != null) model = 'Xiaomi ${xm.group(1)!.trim()}';
+    }
+
+    // Color — longer names first (XANH RÊU before XANH)
+    const colorMap = {
+      'XANH RÊU': 'Xanh Rêu', 'XANH LÁ': 'Xanh Lá',
+      'VÀNG': 'Vàng',    'GOLD': 'Vàng',       'YELLOW': 'Vàng',
+      'ĐEN': 'Đen',      'BLACK': 'Đen',        'MIDNIGHT': 'Đen',
+      'TRẮNG': 'Trắng',  'WHITE': 'Trắng',      'STARLIGHT': 'Trắng',
+      'XANH': 'Xanh',    'BLUE': 'Xanh',        'GREEN': 'Xanh',
+      'ĐỎ': 'Đỏ',        'RED': 'Đỏ',
+      'TÍM': 'Tím',      'PURPLE': 'Tím',
+      'HỒNG': 'Hồng',    'PINK': 'Hồng',
+      'XÁM': 'Xám',      'GRAY': 'Xám',         'SILVER': 'Xám',
+      'CAM': 'Cam',      'ORANGE': 'Cam',
+      'NÂU': 'Nâu',
+      'NATURAL': 'Natural', 'DESERT': 'Desert', 'TITANIUM': 'Titanium',
+    };
+    final sortedColors = colorMap.keys.toList()..sort((a, b) => b.length - a.length);
+    for (final c in sortedColors) {
+      if (n.contains(c)) { color = colorMap[c]; break; }
+    }
+
+    return {'model': model, 'capacity': capacity, 'color': color};
   }
 }
