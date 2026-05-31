@@ -117,13 +117,50 @@ class _SupplierDetailViewState extends State<SupplierDetailView> with TickerProv
         payments.addAll(p);
       }
 
+      // Also load supplier_payments (paid to this supplier via payment dialog)
+      List<Map<String, dynamic>> supplierPayments = [];
+      if (widget.supplier.id != null) {
+        try {
+          supplierPayments = await db.query(
+            'supplier_payments',
+            where: 'supplierId = ? AND (deleted IS NULL OR deleted != 1)',
+            whereArgs: [widget.supplier.id],
+            orderBy: 'paidAt DESC',
+          );
+        } catch (_) {}
+      }
+
+      // Find products by IMEI from import_order_items (when supplier field not set)
+      final foundIds = products.map((p) => p.id ?? 0).toSet();
+      final imeiProducts = <Product>[];
+      if (_shopId != null) {
+        for (final items in importOrderItems.values) {
+          for (final item in items) {
+            final imei = item['imei'] as String?;
+            if (imei == null || imei.isEmpty) continue;
+            try {
+              final rows = await db.query('products',
+                  where: 'imei = ? AND shopId = ? AND (deleted IS NULL OR deleted != 1)',
+                  whereArgs: [imei, _shopId!], limit: 1);
+              for (final row in rows) {
+                final pid = row['id'] as int? ?? 0;
+                if (!foundIds.contains(pid)) {
+                  imeiProducts.add(Product.fromMap(row));
+                  foundIds.add(pid);
+                }
+              }
+            } catch (_) {}
+          }
+        }
+      }
+
       setState(() {
         _imports = imports;
         _importOrders = importOrders;
         _importOrderItems = importOrderItems;
         _debts = debts;
-        _payments = payments;
-        _products = products;
+        _payments = [...payments, ...supplierPayments];
+        _products = [...products, ...imeiProducts];
         _loading = false;
       });
     } catch (e) {
@@ -132,8 +169,14 @@ class _SupplierDetailViewState extends State<SupplierDetailView> with TickerProv
     }
   }
 
-  int get _totalDebt => _debts.fold(0, (s, d) => s + (d['totalAmount'] as int? ?? 0));
-  int get _paidDebt => _debts.fold(0, (s, d) => s + (d['paidAmount'] as int? ?? 0));
+  // Fallback to import_orders when no manual debts recorded
+  bool get _useImportOrdersForDebt => _debts.isEmpty && _importOrders.isNotEmpty;
+  int get _totalDebt => _useImportOrdersForDebt
+      ? _importOrders.fold(0, (s, o) => s + (o['totalAmount'] as int? ?? 0))
+      : _debts.fold(0, (s, d) => s + (d['totalAmount'] as int? ?? 0));
+  int get _paidDebt => _useImportOrdersForDebt
+      ? _importOrders.fold(0, (s, o) => s + (o['paidAmount'] as int? ?? 0))
+      : _debts.fold(0, (s, d) => s + (d['paidAmount'] as int? ?? 0));
   int get _remainDebt => _totalDebt - _paidDebt;
 
   Future<void> _editSupplier() async {
@@ -504,7 +547,44 @@ class _SupplierDetailViewState extends State<SupplierDetailView> with TickerProv
             children: [
               Text('Các khoản nợ', style: AppTextStyles.headline6),
               const SizedBox(height: 8),
-              ..._debts.map((d) => _debtTile(d)),
+              if (_useImportOrdersForDebt) ...[
+                // Show unpaid import_orders as debt items
+                ..._importOrders.where((o) => (o['paymentStatus'] as String? ?? '') != 'PAID').map((o) {
+                  final code = o['orderCode'] as String? ?? '';
+                  final total = o['totalAmount'] as int? ?? 0;
+                  final paid = o['paidAmount'] as int? ?? 0;
+                  final remain = total - paid;
+                  final date = DateFormat('dd/MM/yyyy').format(
+                      DateTime.fromMillisecondsSinceEpoch(o['importDate'] as int? ?? 0));
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 6),
+                    child: ListTile(
+                      leading: const Icon(Icons.local_shipping_outlined, color: Colors.orange),
+                      title: Text(code, style: AppTextStyles.body1.copyWith(fontWeight: FontWeight.bold)),
+                      subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Text('Ngày nhập: $date', style: AppTextStyles.caption),
+                        Text('Tổng: ${MoneyUtils.formatCurrency(total)}đ · Đã trả: ${MoneyUtils.formatCurrency(paid)}đ',
+                            style: AppTextStyles.caption),
+                      ]),
+                      trailing: Text('Còn: ${MoneyUtils.formatCompactCurrency(remain)}đ',
+                          style: AppTextStyles.caption.copyWith(
+                              color: Colors.red.shade700, fontWeight: FontWeight.bold)),
+                    ),
+                  );
+                }),
+                if (_importOrders.where((o) => (o['paymentStatus'] as String? ?? '') != 'PAID').isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Text('Không có khoản nợ', style: AppTextStyles.caption),
+                  ),
+              ] else ...[
+                ..._debts.map((d) => _debtTile(d)),
+                if (_debts.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Text('Không có khoản nợ', style: AppTextStyles.caption),
+                  ),
+              ],
               const SizedBox(height: 12),
               Text('Thanh toán đã ghi nhận', style: AppTextStyles.headline6),
               const SizedBox(height: 8),
