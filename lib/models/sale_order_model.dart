@@ -1,3 +1,4 @@
+import 'dart:convert';
 import '../services/encryption_service.dart';
 import '../constants/product_constants.dart';
 
@@ -102,6 +103,28 @@ class SaleOrder {
   
   /// Kiểm tra đã thanh toán đủ chưa
   bool get isPaid => remainingDebt == 0;
+
+  /// Tổng hợp IMEI từ productImeis + itemSnapshotsJson để tìm kiếm
+  String get allImeisForSearch {
+    final buf = StringBuffer(productImeis);
+    if (itemSnapshotsJson != null && itemSnapshotsJson!.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(itemSnapshotsJson!);
+        if (decoded is List) {
+          for (final item in decoded) {
+            if (item is Map) {
+              final imei = item['imei']?.toString() ?? '';
+              if (imei.isNotEmpty) {
+                if (buf.isNotEmpty) buf.write(',');
+                buf.write(imei);
+              }
+            }
+          }
+        }
+      } catch (_) {}
+    }
+    return buf.toString();
+  }
 
   Map<String, dynamic> toMap() {
     return {

@@ -650,6 +650,19 @@ class KiotVietExcelImportService {
 
         final productNamesStr = collectedNames.isNotEmpty ? collectedNames.join(', ') : null;
         final itemSnapshotsStr = itemSnapshots.isNotEmpty ? jsonEncode(itemSnapshots) : null;
+        // Collect IMEIs for search — phone items get IMEI, accessories get PKX marker
+        final imeiBuf = StringBuffer();
+        for (final snap in itemSnapshots) {
+          final imei = snap['imei']?.toString() ?? '';
+          final qty = (snap['quantity'] as num?)?.toInt() ?? 1;
+          if (imeiBuf.isNotEmpty) imeiBuf.write(', ');
+          if (imei.isNotEmpty) {
+            imeiBuf.write(imei);
+          } else {
+            imeiBuf.write(qty > 1 ? 'PKX$qty' : 'NO_IMEI');
+          }
+        }
+        final productImeisStr = imeiBuf.isNotEmpty ? imeiBuf.toString() : null;
 
         final dup = await db.query('sales',
             where: 'notes = ? AND (deleted IS NULL OR deleted != 1)',
@@ -667,7 +680,7 @@ class KiotVietExcelImportService {
           'walkInPhone': null,
           'address': null,
           'productNames': productNamesStr,
-          'productImeis': null,
+          'productImeis': productImeisStr,
           'itemSnapshotsJson': itemSnapshotsStr,
           'totalPrice': totalPrice,
           'totalCost': 0,

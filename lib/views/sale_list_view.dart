@@ -317,7 +317,7 @@ class _SaleListViewState extends State<SaleListView> {
       if (_search.isNotEmpty) {
         if (!VietnameseUtils.containsVietnamese(s.customerName, _search) &&
             !VietnameseUtils.containsVietnamese(s.productNames, _search) &&
-            !s.productImeis.toUpperCase().contains(_search.toUpperCase())) {
+            !s.allImeisForSearch.toUpperCase().contains(_search.toUpperCase())) {
           return false;
         }
       }
