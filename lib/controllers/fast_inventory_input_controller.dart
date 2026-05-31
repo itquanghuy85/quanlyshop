@@ -224,7 +224,7 @@ class FastInventoryInputController {
         'supplierId': supplierId,
         'supplierName': data['supplier'],
         'productName': product.name,
-        'productBrand': product.brand ?? '',
+        'productBrand': product.brand,
         'productModel': product.model,
         'imei': product.imei,
         'quantity': product.quantity,
@@ -242,13 +242,13 @@ class FastInventoryInputController {
       // Update supplier product price
       await txn.rawUpdate(
         'UPDATE supplier_product_prices SET isActive = 0 WHERE supplierId = ? AND productName = ? AND productBrand = ? AND (productModel = ? OR productModel IS NULL)',
-        [supplierId, product.name, product.brand ?? '', product.model]
+        [supplierId, product.name, product.brand, product.model]
       );
 
       final supplierPrice = {
         'supplierId': supplierId,
         'productName': product.name,
-        'productBrand': product.brand ?? '',
+        'productBrand': product.brand,
         'productModel': product.model,
         'costPrice': product.cost,
         'lastUpdated': product.createdAt,
@@ -291,7 +291,7 @@ class FastInventoryInputController {
   // Load recent products
   Future<List<Product>> loadRecentProducts() async {
     final products = await db.getInStockProducts();
-    products.sort((a, b) => (b.createdAt ?? 0).compareTo(a.createdAt ?? 0));
+    products.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return products.take(10).toList();
   }
 

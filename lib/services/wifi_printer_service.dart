@@ -7,7 +7,6 @@ class WifiPrinterService {
 
   Socket? _socket;
   String? _connectedIp;
-  int? _connectedPort;
 
   // HÀM KẾT NỐI THỰC TẾ QUA IP VÀ PORT
   Future<bool> connect({required String ip, required int port}) async {
@@ -22,7 +21,6 @@ class WifiPrinterService {
       
       if (_socket != null) {
         _connectedIp = ip;
-        _connectedPort = port;
         print("WIFI_PRINTER: Kết nối THÀNH CÔNG tới $ip");
         return true;
       }
@@ -32,19 +30,16 @@ class WifiPrinterService {
       print("WIFI_PRINTER: SocketException: $e");
       _socket = null;
       _connectedIp = null;
-      _connectedPort = null;
       return false;
     } on TimeoutException catch (e) {
       print("WIFI_PRINTER: Timeout kết nối: $e");
       _socket = null;
       _connectedIp = null;
-      _connectedPort = null;
       return false;
     } catch (e) {
       print("WIFI_PRINTER: Lỗi kết nối: $e");
       _socket = null;
       _connectedIp = null;
-      _connectedPort = null;
       return false;
     }
   }
@@ -96,7 +91,6 @@ class WifiPrinterService {
     } finally {
       _socket = null;
       _connectedIp = null;
-      _connectedPort = null;
     }
   }
   

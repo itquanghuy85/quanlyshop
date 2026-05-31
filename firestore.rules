@@ -413,8 +413,7 @@ service cloud.firestore {
       
       allow create: if isAuth() &&
                        newDocInMyShop() &&
-                       has(['customerName', 'phone', 'model', 'issue', 'createdAt', 'status', 'shopId']) &&
-                       str('customerName', 1, 100) &&
+                       has(['model', 'issue', 'createdAt', 'status', 'shopId']) &&
                        str('model', 1, 100) &&
                        status('status', 1, 4) &&
                        optNumGte0('price') &&
@@ -527,14 +526,14 @@ service cloud.firestore {
       allow read: if isAuth() && docInMyShop();
       allow create: if isAuth() && isEmployee() && newDocInMyShop();
       allow update: if isAuth() && docInMyShop() && shopIdLocked();
-      allow delete: if false;
+      allow delete: if isAuth() && docInMyShopForDelete() && isOwner();
     }
 
     match /import_order_items/{itemId} {
       allow read: if isAuth() && docInMyShop();
       allow create: if isAuth() && isEmployee() && newDocInMyShop();
       allow update: if isAuth() && docInMyShop() && shopIdLocked();
-      allow delete: if false;
+      allow delete: if isAuth() && docInMyShopForDelete() && isOwner();
     }
 
     // ═══════════ 3.4 CUSTOMERS ═══════════
@@ -550,8 +549,8 @@ service cloud.firestore {
                        docInMyShop() &&
                        shopIdLocked();
       
-      // DELETE: Super admin only (for shop reset cleanup)
-      allow delete: if isSuperAdmin();
+      // DELETE: Owner can delete their own customers; super admin can delete any
+      allow delete: if isAuth() && (docInMyShopForDelete() && isOwner() || isSuperAdmin());
     }
 
     // ═══════════ 3.5 SALES RETURNS ═══════════
@@ -702,12 +701,12 @@ service cloud.firestore {
                        has(['intentId', 'type', 'amount', 'shopId']) &&
                        numGte0('amount');
       
-      allow update: if isAuth() && 
+      allow update: if isAuth() &&
                        docInMyShop() &&
                        isStaff() &&
                        shopIdLocked();
-      
-      allow delete: if false;
+
+      allow delete: if isAuth() && docInMyShopForDelete() && isOwner();
     }
 
     // ┌──────────────────────────────────────────────────────────────────┐
@@ -768,24 +767,24 @@ service cloud.firestore {
                        isManager() &&
                        shopIdLocked();
 
-      // DELETE: Super admin only (for shop reset cleanup)
-      allow delete: if isSuperAdmin();
+      // DELETE: Owner can delete their own data; super admin can delete any
+      allow delete: if isAuth() && (docInMyShopForDelete() && isOwner() || isSuperAdmin());
     }
 
     // ═══════════ 5.4 SUPPLIER_IMPORT_HISTORY ═══════════
     match /supplier_import_history/{historyId} {
       allow read: if isAuth() && docInMyShop();
-      
-      allow create: if isAuth() && 
+
+      allow create: if isAuth() &&
                        isEmployee() &&
                        newDocInMyShop() &&
                        has(['supplierId', 'shopId']);
-      
-      allow update: if isAuth() && 
+
+      allow update: if isAuth() &&
                        docInMyShop() &&
                        shopIdLocked();
-      
-      allow delete: if false;
+
+      allow delete: if isAuth() && docInMyShopForDelete() && isOwner();
     }
 
     // ═══════════ 5.5 SUPPLIER_PRODUCT_PRICES ═══════════
@@ -815,18 +814,18 @@ service cloud.firestore {
     // ═══════════ 6.1 REPAIR_PARTNERS ═══════════
     match /repair_partners/{partnerId} {
       allow read: if isAuth() && docInMyShop();
-      
-      allow create: if isAuth() && 
+
+      allow create: if isAuth() &&
                        isEmployee() &&
                        newDocInMyShop() &&
                        has(['name', 'shopId']) &&
                        str('name', 1, 200);
-      
-      allow update: if isAuth() && 
+
+      allow update: if isAuth() &&
                        docInMyShop() &&
                        shopIdLocked();
-      
-      allow delete: if false;
+
+      allow delete: if isAuth() && docInMyShopForDelete() && isOwner();
     }
 
     // ═══════════ 6.2 REPAIR_PARTNER_PAYMENTS ═══════════
@@ -839,13 +838,13 @@ service cloud.firestore {
                        has(['partnerId', 'amount', 'paidAt', 'shopId']) &&
                        numGte0('amount');
       
-      allow update: if isAuth() && 
+      allow update: if isAuth() &&
                        docInMyShop() &&
                        isManager() &&
                        shopIdLocked() &&
                        numGte0('amount');
-      
-      allow delete: if false;
+
+      allow delete: if isAuth() && docInMyShopForDelete() && isOwner();
     }
 
     // ═══════════ 6.3 PARTNER_REPAIR_HISTORY ═══════════
@@ -857,11 +856,11 @@ service cloud.firestore {
                        newDocInMyShop() &&
                        has(['partnerId', 'repairOrderId', 'shopId']);
       
-      allow update: if isAuth() && 
+      allow update: if isAuth() &&
                        docInMyShop() &&
                        shopIdLocked();
-      
-      allow delete: if false;
+
+      allow delete: if isAuth() && docInMyShopForDelete() && isOwner();
     }
 
     // ┌──────────────────────────────────────────────────────────────────┐
@@ -892,8 +891,8 @@ service cloud.firestore {
                          !changed('locked') &&
                          !changed('approvedBy')));
 
-      // DELETE: Super admin only (for shop reset cleanup)
-      allow delete: if isSuperAdmin();
+      // DELETE: Owner can clear attendance data; super admin unrestricted
+      allow delete: if isAuth() && (docInMyShopForDelete() && isOwner() || isSuperAdmin());
     }
 
           // ═══════════ 7.1b LEAVE_REQUESTS ═══════════
@@ -921,7 +920,7 @@ service cloud.firestore {
                                !changed('approvedAt') &&
                                !changed('rejectReason')));
 
-            allow delete: if false;
+            allow delete: if isAuth() && docInMyShopForDelete() && isOwner();
           }
 
           // ═══════════ 7.1c SHIFT_SWAP_REQUESTS ═══════════
@@ -1093,7 +1092,7 @@ service cloud.firestore {
 
       allow update: if isAuth() && docInMyShop();
 
-      allow delete: if false;
+      allow delete: if isAuth() && docInMyShopForDelete() && isOwner();
     }
 
     // ┌──────────────────────────────────────────────────────────────────┐
@@ -1160,8 +1159,8 @@ service cloud.firestore {
       // UPDATE: NEVER - audit logs are immutable
       allow update: if false;
 
-      // DELETE: Super admin only (for shop reset cleanup — overrides immutability)
-      allow delete: if isSuperAdmin();
+      // DELETE: Owner can clear their own audit logs; super admin unrestricted
+      allow delete: if isAuth() && (docInMyShopForDelete() && isOwner() || isSuperAdmin());
     }
 
     // ═══════════ 10.2 QUICK_INPUT_CODES ═══════════
@@ -1185,17 +1184,16 @@ service cloud.firestore {
     match /repair_parts/{partId} {
       allow read: if isAuth() && docInMyShop();
       
-      allow create: if isAuth() && 
-                       isEmployee() &&
+      allow create: if isAuth() &&
+                       isStaff() &&
                        newDocInMyShop() &&
-                       has(['partName', 'shopId']) &&
-                       str('partName', 1, 200);
+                       has(['partName', 'shopId']);
       
-      allow update: if isAuth() && 
+      allow update: if isAuth() &&
                        docInMyShop() &&
                        shopIdLocked();
-      
-      allow delete: if false;
+
+      allow delete: if isAuth() && docInMyShopForDelete() && isOwner();
     }
 
     // ═══════════ 10.4 FINANCIAL_ACTIVITIES (Stock entry confirm) ═══════════

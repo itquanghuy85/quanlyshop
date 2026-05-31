@@ -87,7 +87,7 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
     _currentUid = FirebaseAuth.instance.currentUser?.uid;
     final role = await UserService.getUserRole(_currentUid ?? '');
     if (mounted) {
-      setState(() => _userRole = role ?? 'employee');
+      setState(() => _userRole = role);
     }
     _subscribeToRequests();
   }

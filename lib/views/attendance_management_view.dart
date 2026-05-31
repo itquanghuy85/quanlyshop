@@ -2078,7 +2078,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
                   style: TextStyle(fontSize: 11, color: AppColors.error),
                 ),
               ),
-            if (lr.status?.toLowerCase() == 'pending') ...[
+            if (lr.status.toLowerCase() == 'pending') ...[
               const Divider(height: 12),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,

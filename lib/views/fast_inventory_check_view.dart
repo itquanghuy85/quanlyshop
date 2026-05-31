@@ -17,7 +17,6 @@ import '../services/category_service.dart';
 import '../services/business_type_helper.dart';
 import '../utils/qr_parser.dart';
 import '../utils/imei_extractor.dart';
-import '../utils/excel_export_helper.dart';
 import '../models/inventory_check_model.dart';
 import '../services/user_service.dart';
 import 'inventory_check_history_view.dart';
@@ -88,13 +87,10 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
   // Multi-industry support
   ShopSettings? _shopSettings;
   String get _businessType => _shopSettings?.businessType ?? 'electronics';
-  bool get _enableSerial => _shopSettings?.enableSerial ?? true;
-  bool get _isFashion => _businessType == 'fashion';
   BusinessTerminology get _terms => BusinessTypeHelper.instance.getTerminology(_shopSettings);
 
   // Delay trường kự truộc khi bất đầu scan (2 giây để user chuẩn bị)
   bool _isScanReady = false;
-  DateTime? _scanStartTime;
 
   Future<void> _setZoom(double value) async {
     final clamped = value.clamp(0.0, 1.0);
@@ -131,13 +127,6 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _promptRestoreDraft();
       });
-    }
-  }
-
-  Future<void> _loadShopSettings() async {
-    final settings = await CategoryService().getShopSettings();
-    if (mounted) {
-      setState(() => _shopSettings = settings);
     }
   }
 
@@ -615,7 +604,6 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
     });
 
     final currentCount = _scannedAccessoryCounts[code]!;
-    final expectedCount = _expectedAccessoryCounts[code] ?? 0;
 
     final accessoryName = _expectedAccessories
         .firstWhere(
@@ -797,7 +785,6 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
       if (_isScanning) {
         // Bắt đầu countdown 2 giây trước khi cho phép scan
         _isScanReady = false;
-        _scanStartTime = DateTime.now();
         _scannerController.start();
         // Sau 2 giây mới cho phép xử lý scan
         Future.delayed(const Duration(seconds: 2), () {
@@ -1020,22 +1007,6 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
     }
   }
 
-  void _resetCheck() {
-    setState(() {
-      _checkedPhoneImeis.clear();
-      _scannedAccessoryCounts.clear();
-      _scannedItems.clear();
-      _totalScanned = 0;
-      _currentZone = _inventoryZones.isNotEmpty ? _inventoryZones.first : null;
-      // Reset zone progress
-      for (var zone in _inventoryZones) {
-        zone.scannedCounts.clear();
-      }
-    });
-    // Xóa bản nháp khi reset
-    _deleteDraft();
-  }
-
   // ==================== LƯU TẠM / KHÔI PHỤC KẾT QUẢ KIỂM KHO ====================
   static const _draftKey = 'inventory_check_draft';
 
@@ -1101,7 +1072,7 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
 
     try {
       final now = DateTime.now().millisecondsSinceEpoch;
-      final userName = UserService.getCurrentUserName() ?? 'Unknown';
+      final userName = UserService.getCurrentUserName();
 
       // Build InventoryCheckItem list from scanned data
       final List<InventoryCheckItem> items = [];
@@ -1737,119 +1708,6 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
   }
 
   /// Build danh sách sản phẩm chờ kiểm (khi chưa scan gì)
-  Widget _buildPendingItemsList() {
-    // Gộp điện thoại và phụ kiện thành 1 list
-    final allItems = <Map<String, dynamic>>[];
-
-    // Thêm điện thoại
-    for (final phone in _expectedPhones) {
-      final isChecked = _checkedPhoneImeis.contains(phone.imei);
-      // Lấy 5 số cuối IMEI một cách an toàn
-      String imeiSuffix = '';
-      if (phone.imei != null && phone.imei!.isNotEmpty) {
-        final imeiLen = phone.imei!.length;
-        imeiSuffix = imeiLen >= 5
-            ? phone.imei!.substring(imeiLen - 5)
-            : phone.imei!;
-      }
-      allItems.add({
-        'type': '📱',
-        'name': phone.name,
-        'identifier': imeiSuffix,
-        'isChecked': isChecked,
-      });
-    }
-
-    // Thêm phụ kiện
-    for (final acc in _expectedAccessories) {
-      final code = acc.firestoreId ?? acc.id.toString();
-      final scanned = _scannedAccessoryCounts[code] ?? 0;
-      final expected = _expectedAccessoryCounts[code] ?? 1;
-      allItems.add({
-        'type': '🔧',
-        'name': acc.name,
-        'identifier': 'SL: $scanned/$expected',
-        'isChecked': scanned >= expected,
-      });
-    }
-
-    if (allItems.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Text(
-            'Không có ${_terms.productLabel.toLowerCase()} nào trong kho',
-            style: TextStyle(color: Colors.grey[600]),
-            textAlign: TextAlign.center,
-          ),
-        ),
-      );
-    }
-
-    return ListView.builder(
-      itemCount: allItems.length,
-      itemBuilder: (context, index) {
-        final item = allItems[index];
-        final isChecked = item['isChecked'] as bool;
-        final isPhone = item['type'] == '📱';
-
-        return InkWell(
-          // Cho phép nhấn để check thủ công (khi QR mờ/rách)
-          onTap: isChecked ? null : () => _showQuickCheckConfirm(item, isPhone),
-          onLongPress: () => _showQuickCheckConfirm(item, isPhone),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: isChecked ? Colors.green.shade50 : null,
-              border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
-            ),
-            child: Row(
-              children: [
-                Text(
-                  isChecked ? '✅' : '⏳',
-                  style: TextStyle(fontSize: AppTextStyles.caption.fontSize),
-                ),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '${item['type']} ${item['name']}',
-                        style: TextStyle(
-                          fontSize: AppTextStyles.body1.fontSize,
-                          fontWeight: FontWeight.w500,
-                          color: isChecked ? Colors.green.shade700 : null,
-                          decoration: isChecked
-                              ? TextDecoration.lineThrough
-                              : null,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      Text(
-                        item['identifier'],
-                        style: TextStyle(
-                          fontSize: AppTextStyles.overlineSize,
-                          color: Colors.grey[600],
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-                // Icon gợi ý có thể nhấn để check
-                if (!isChecked)
-                  Icon(Icons.touch_app, size: 14, color: Colors.grey.shade400),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
   /// Confirm dialog để check thủ công 1 item
   void _showQuickCheckConfirm(Map<String, dynamic> item, bool isPhone) {
     final name = item['name'] as String;

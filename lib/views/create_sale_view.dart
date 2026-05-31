@@ -33,7 +33,6 @@ import '../models/payment_intent_model.dart';
 import '../models/shop_settings_model.dart';
 import '../constants/product_constants.dart';
 import '../constants/financial_constants.dart';
-import '../widgets/validated_text_field.dart';
 import '../widgets/debounced_search_field.dart';
 import '../widgets/currency_text_field.dart';
 import '../widgets/variant_selector.dart';
@@ -1194,18 +1193,17 @@ class _CreateSaleViewState extends State<CreateSaleView> {
         return;
       }
 
-      final fallbackName = nameCtrl.text.trim().isNotEmpty
-          ? nameCtrl.text.trim().toUpperCase()
-          : 'KHÁCH VÃNG LAI';
+      final customerName = nameCtrl.text.trim().toUpperCase();
       final normalizedPhone = phoneCtrl.text.trim();
+      final noCustomer = customerName.isEmpty && normalizedPhone.isEmpty;
       final itemSnapshotsJson = _buildSaleItemSnapshotsJson(discount: discount);
       final sale = SaleOrder(
         firestoreId: uniqueId,
-        customerName: fallbackName,
+        customerName: customerName,
         phone: normalizedPhone,
-        isWalkIn: _isWalkIn,
-        walkInName: _isWalkIn ? fallbackName : null,
-        walkInPhone: _isWalkIn && normalizedPhone.isNotEmpty
+        isWalkIn: _isWalkIn || noCustomer,
+        walkInName: (_isWalkIn || noCustomer) ? customerName : null,
+        walkInPhone: (_isWalkIn || noCustomer) && normalizedPhone.isNotEmpty
             ? normalizedPhone
             : null,
         address: addressCtrl.text.trim().toUpperCase(),
@@ -2728,283 +2726,6 @@ class _CreateSaleViewState extends State<CreateSaleView> {
               ),
             ),
           ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPaymentSection() {
-    return Column(
-      children: [
-        // TỔNG TIỀN
-        Row(
-          children: [
-            Flexible(
-              child: Text(
-                "TỔNG TIỀN:",
-                style: AppTextStyles.body1.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            const Spacer(),
-            SizedBox(
-              width: 130,
-              child: CurrencyTextField(
-                controller: priceCtrl,
-                label: "",
-                enabled: true,
-                autoMultiply1000: false,
-                onChanged: (_) {
-                  setState(() => _autoCalcTotal = false);
-                  _calculateInstallment();
-                },
-              ),
-            ),
-            Text(
-              " Đ",
-              style: AppTextStyles.body1.copyWith(
-                color: AppColors.error,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-
-        // GIẢM GIÁ TRỰC TIẾP
-        const SizedBox(height: 10),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.discount, size: 18, color: Colors.orange),
-                const SizedBox(width: 6),
-                Text(
-                  "GIẢM GIÁ:",
-                  style: AppTextStyles.body2.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.orange,
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(
-              width: 150,
-              child: CurrencyTextField(
-                controller: discountCtrl,
-                label: "",
-                autoMultiply1000: false,
-                onChanged: (_) {
-                  _calculateInstallment();
-                  setState(() {});
-                },
-              ),
-            ),
-          ],
-        ),
-
-        // THÀNH TIỀN SAU GIẢM GIÁ - FIX: Luôn hiển thị để user thấy số tiền thực thu
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: Colors.green.shade50,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.green.shade200),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                "THÀNH TIỀN:",
-                style: AppTextStyles.body1.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.green.shade700,
-                ),
-              ),
-              Text(
-                MoneyUtils.formatCompactCurrency(_finalPrice),
-                style: AppTextStyles.headline6.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.green.shade700,
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        const SizedBox(height: 15),
-        Wrap(
-          spacing: 8,
-          children: ["TIỀN MẶT", "CHUYỂN KHOẢN", "CÔNG NỢ", "TRẢ GÓP (NH)"]
-              .map(
-                (e) => ChoiceChip(
-                  label: Text(e, style: AppTextStyles.caption),
-                  selected: _paymentMethod == e,
-                  onSelected: (v) => setState(() {
-                    _paymentMethod = e;
-                    _isInstallment = (e == "TRẢ GÓP (NH)");
-                    if (!_isInstallment) {
-                      _hasSecondBank = false;
-                    }
-                  }),
-                ),
-              )
-              .toList(),
-        ),
-        const Divider(height: 30),
-        _moneyInput(
-          downPaymentCtrl,
-          _isInstallment ? "KHÁCH TRẢ TRƯỚC" : "SỐ TIỀN THU THỰC TẾ",
-          AppColors.secondary,
-        ),
-        // Phương thức thanh toán cho tiền trả trước
-        if (_isInstallment) ...[
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 4,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              Text(
-                "TRẢ TRƯỚC:",
-                style: AppTextStyles.caption.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              ...["TIỀN MẶT", "C.KHOẢN"].map(
-                (m) => ChoiceChip(
-                  label: Text(m, style: AppTextStyles.caption),
-                  selected:
-                      _downPaymentMethod ==
-                      (m == "C.KHOẢN" ? "CHUYỂN KHOẢN" : m),
-                  onSelected: (v) => setState(
-                    () => _downPaymentMethod = m == "C.KHOẢN"
-                        ? "CHUYỂN KHOẢN"
-                        : m,
-                  ),
-                  visualDensity: VisualDensity.compact,
-                ),
-              ),
-            ],
-          ),
-        ],
-        if (_isInstallment) ...[
-          const SizedBox(height: 10),
-          _moneyInput(
-            loanAmountCtrl,
-            _hasSecondBank ? "NGÂN HÀNG 1 CHO VAY" : "NGÂN HÀNG CHO VAY",
-            AppColors.grey600,
-            enabled: _hasSecondBank, // Cho phép sửa nếu có 2 NH
-          ),
-          const SizedBox(height: 10),
-          ValidatedTextField(
-            controller: bankCtrl,
-            label: "TÊN CÔNG TY TÀI CHÍNH",
-            icon: Icons.account_balance,
-            uppercase: true,
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            children: ["FE", "HOME", "MIRAE", "HD", "MB", "F83", "T86"]
-                .map(
-                  (b) => ActionChip(
-                    label: Text(b, style: AppTextStyles.caption),
-                    onPressed: () => setState(() => bankCtrl.text = b),
-                  ),
-                )
-                .toList(),
-          ),
-
-          // THÊM NGÂN HÀNG THỨ 2
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Checkbox(
-                value: _hasSecondBank,
-                onChanged: (v) => setState(() {
-                  _hasSecondBank = v ?? false;
-                  if (_hasSecondBank) {
-                    _calculateBank2Loan();
-                  } else {
-                    bankCtrl2.clear();
-                    loanAmountCtrl2.text = "0";
-                    _calculateInstallment();
-                  }
-                }),
-              ),
-              const Text("Trả góp 2 ngân hàng"),
-            ],
-          ),
-
-          if (_hasSecondBank) ...[
-            const Divider(),
-            const SizedBox(height: 8),
-            Text(
-              "NGÂN HÀNG THỨ 2",
-              style: AppTextStyles.caption.copyWith(
-                color: AppColors.primary,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            _moneyInput(
-              loanAmountCtrl2,
-              "NGÂN HÀNG 2 CHO VAY",
-              AppColors.grey600,
-              enabled: false,
-            ),
-            const SizedBox(height: 10),
-            ValidatedTextField(
-              controller: bankCtrl2,
-              label: "TÊN CÔNG TY TÀI CHÍNH 2",
-              icon: Icons.account_balance,
-              uppercase: true,
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              children: ["FE", "HOME", "MIRAE", "HD", "MB", "F83", "T86"]
-                  .map(
-                    (b) => ActionChip(
-                      label: Text(b, style: AppTextStyles.caption),
-                      onPressed: () => setState(() => bankCtrl2.text = b),
-                    ),
-                  )
-                  .toList(),
-            ),
-          ],
-        ],
-        const Divider(height: 30),
-        // KHÔI PHỤC TAB BẢO HÀNH: Cho phép chọn bảo hành bất kể trạng thái nợ
-        DropdownButtonFormField<String>(
-          value: _saleWarranty,
-          isExpanded: true,
-          decoration: const InputDecoration(
-            labelText: "CHỌN THỜI GIAN BẢO HÀNH",
-            prefixIcon: Icon(Icons.verified_user),
-          ),
-          items: ["KO BH", "1 THÁNG", "3 THÁNG", "6 THÁNG", "12 THÁNG"]
-              .map(
-                (e) => DropdownMenuItem(
-                  value: e,
-                  child: Text(e, overflow: TextOverflow.ellipsis),
-                ),
-              )
-              .toList(),
-          onChanged: (v) => setState(() => _saleWarranty = v ?? "KO BH"),
-        ),
-        const SizedBox(height: 15),
-        TextFormField(
-          controller: noteCtrl,
-          maxLines: 2,
-          decoration: const InputDecoration(
-            labelText: "GHI CHÚ ĐƠN HÀNG",
-            hintText: "Nhập ghi chú (nếu có)...",
-            prefixIcon: Icon(Icons.note_alt_outlined),
-          ),
         ),
       ],
     );

@@ -282,8 +282,8 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
               TextField(controller: nameC, decoration: const InputDecoration(labelText: 'Tên')),
               TextField(controller: phoneC, decoration: const InputDecoration(labelText: 'SĐT')),
               TextField(controller: addressC, decoration: const InputDecoration(labelText: 'Địa chỉ')),
-              TextField(controller: roleC, decoration: const InputDecoration(labelText: 'Role')),
-              TextField(controller: shopC, decoration: const InputDecoration(labelText: 'Shop ID')),
+              TextField(controller: roleC, decoration: const InputDecoration(labelText: 'Vai trò')),
+              TextField(controller: shopC, decoration: const InputDecoration(labelText: 'Mã cửa hàng')),
             ],
           ),
         ),
@@ -355,11 +355,11 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
               TextSpan(text: email, style: const TextStyle(fontWeight: FontWeight.bold)),
             ])),
             if (role != null) Text.rich(TextSpan(children: [
-              const TextSpan(text: 'Role: '),
+              const TextSpan(text: 'Vai trò: '),
               TextSpan(text: role, style: const TextStyle(fontWeight: FontWeight.bold)),
             ])),
             if (shopName != null) Text.rich(TextSpan(children: [
-              const TextSpan(text: 'Shop: '),
+              const TextSpan(text: 'Cửa hàng: '),
               TextSpan(text: shopName, style: const TextStyle(fontWeight: FontWeight.bold)),
             ])),
             const SizedBox(height: 12),
@@ -569,22 +569,22 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
           children: [
             ListTile(
               leading: const Icon(Icons.campaign_rounded, color: Colors.indigo),
-              title: const Text('Broadcast'),
+              title: const Text('Thông báo'),
               onTap: () { Navigator.pop(ctx); setState(() => _section = _AdminSection.broadcast); },
             ),
             ListTile(
               leading: const Icon(Icons.shield_outlined),
-              title: const Text('Permissions'),
+              title: const Text('Quyền hạn'),
               onTap: () { Navigator.pop(ctx); setState(() => _section = _AdminSection.permissions); },
             ),
             ListTile(
               leading: const Icon(Icons.settings_outlined),
-              title: const Text('Settings'),
+              title: const Text('Cài đặt'),
               onTap: () { Navigator.pop(ctx); setState(() => _section = _AdminSection.settings); },
             ),
             ListTile(
               leading: const Icon(Icons.warning_amber_rounded, color: Colors.red),
-              title: const Text('Danger Zone'),
+              title: const Text('Vùng nguy hiểm'),
               onTap: () { Navigator.pop(ctx); setState(() => _section = _AdminSection.danger); },
             ),
             ListTile(
@@ -604,14 +604,14 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
       child: ListView(
         children: [
           const SizedBox(height: 8),
-          _navItem(Icons.dashboard, 'Dashboard', _AdminSection.dashboard),
-          _navItem(Icons.store, 'Shops', _AdminSection.shops),
-          _navItem(Icons.people, 'Users', _AdminSection.users),
-          _navItem(Icons.shield, 'Permissions', _AdminSection.permissions),
-          _navItem(Icons.receipt_long, 'Audit Logs', _AdminSection.audit),
-          _navItem(Icons.campaign_rounded, 'Broadcast', _AdminSection.broadcast),
-          _navItem(Icons.settings, 'Settings', _AdminSection.settings),
-          _navItem(Icons.warning_amber_rounded, 'Danger Zone', _AdminSection.danger, danger: true),
+          _navItem(Icons.dashboard, 'Tổng quan', _AdminSection.dashboard),
+          _navItem(Icons.store, 'Cửa hàng', _AdminSection.shops),
+          _navItem(Icons.people, 'Người dùng', _AdminSection.users),
+          _navItem(Icons.shield, 'Quyền hạn', _AdminSection.permissions),
+          _navItem(Icons.receipt_long, 'Nhật ký', _AdminSection.audit),
+          _navItem(Icons.campaign_rounded, 'Thông báo', _AdminSection.broadcast),
+          _navItem(Icons.settings, 'Cài đặt', _AdminSection.settings),
+          _navItem(Icons.warning_amber_rounded, 'Vùng nguy hiểm', _AdminSection.danger, danger: true),
           const Divider(),
           ListTile(
             leading: const Icon(Icons.logout, color: Colors.red),
@@ -1038,22 +1038,22 @@ class _ShopsSectionState extends State<_ShopsSection> {
       builder: (ctx) => DefaultTabController(
         length: 4,
         child: AlertDialog(
-          title: Text('Shop: ${shop['name'] ?? ''}'),
+          title: Text('Cửa hàng: ${shop['name'] ?? ''}'),
           content: SizedBox(
             width: 760,
             height: 520,
             child: Column(
               children: [
                 const TabBar(tabs: [
-                  Tab(text: 'Overview'), Tab(text: 'Users'), Tab(text: 'Locks'), Tab(text: 'Activity'),
+                  Tab(text: 'Tổng quan'), Tab(text: 'Người dùng'), Tab(text: 'Khóa'), Tab(text: 'Hoạt động'),
                 ]),
                 const SizedBox(height: 8),
                 Expanded(
                   child: TabBarView(children: [
                     ListView(children: [
-                      ListTile(title: const Text('Shop ID'), subtitle: Text((shop['id'] ?? '').toString())),
-                      ListTile(title: const Text('Owner'), subtitle: Text((shop['ownerEmail'] ?? 'N/A').toString())),
-                      ListTile(title: const Text('Business Type'), subtitle: Text((shop['businessType'] ?? 'N/A').toString())),
+                      ListTile(title: const Text('Mã cửa hàng'), subtitle: Text((shop['id'] ?? '').toString())),
+                      ListTile(title: const Text('Chủ cửa hàng'), subtitle: Text((shop['ownerEmail'] ?? 'N/A').toString())),
+                      ListTile(title: const Text('Loại hình'), subtitle: Text((shop['businessType'] ?? 'N/A').toString())),
                     ]),
                     _ShopUsersTab(shopId: (shop['id'] ?? '').toString()),
                     ListView(children: [
@@ -1092,7 +1092,7 @@ class _ShopUsersTab extends StatelessWidget {
             return ListTile(
               leading: const Icon(Icons.person_outline),
               title: Text((u['displayName'] ?? u['email'] ?? '').toString()),
-              subtitle: Text('Role: ${(u['role'] ?? 'user')}'),
+              subtitle: Text('Vai trò: ${(u['role'] ?? 'user')}'),
             );
           }).toList(),
         );
@@ -1346,7 +1346,7 @@ class _UsersSectionState extends State<_UsersSection> {
                           children: [
                             Text(email, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
                             Text(
-                              'Role: $role · 🏪 $shopName$joinDate',
+                              'Vai trò: $role · 🏪 $shopName$joinDate',
                               style: const TextStyle(fontSize: 12),
                             ),
                           ],
@@ -1411,7 +1411,7 @@ class _PermissionsSection extends StatelessWidget {
         const Card(
           child: ListTile(
             leading: Icon(Icons.info_outline),
-            title: Text('Permission Panel'),
+            title: Text('Bảng quyền hạn'),
             subtitle: Text('Chuẩn role-based baseline cho owner/manager/staff. Các khóa cấp shop sẽ override tại runtime.'),
           ),
         ),
@@ -1421,11 +1421,11 @@ class _PermissionsSection extends StatelessWidget {
             scrollDirection: Axis.horizontal,
             child: DataTable(
               columns: const [
-                DataColumn(label: Text('Role')),
+                DataColumn(label: Text('Vai trò')),
                 DataColumn(label: Text('Sửa đơn')),
                 DataColumn(label: Text('Xem tài chính')),
                 DataColumn(label: Text('Đổi lock flags')),
-                DataColumn(label: Text('Danger actions')),
+                DataColumn(label: Text('Thao tác nguy hiểm')),
               ],
               rows: rows.map((r) => DataRow(cells: [
                 DataCell(Text(r[0])), DataCell(Text(r[1])), DataCell(Text(r[2])),
@@ -1518,7 +1518,7 @@ class _AuditSection extends StatelessWidget {
                     dense: true,
                     leading: const Icon(Icons.receipt_long, size: 18),
                     title: Text((a['action'] ?? '').toString()),
-                    subtitle: Text('User: ${(a['email'] ?? '')} · Shop: ${(a['shopId'] ?? '-')}'),
+                    subtitle: Text('Người dùng: ${(a['email'] ?? '')} · Cửa hàng: ${(a['shopId'] ?? '-')}'),
                     trailing: Text(_fmtTs(a['timestamp'])),
                   );
                 },
@@ -2032,7 +2032,7 @@ class _DangerSection extends StatelessWidget {
               color: Color(0xFFFFF3F3),
               child: ListTile(
                 leading: Icon(Icons.warning_amber_rounded, color: Colors.red),
-                title: Text('Danger Zone'),
+                title: Text('Vùng nguy hiểm'),
                 subtitle: Text('Mọi thao tác tại đây đều yêu cầu xác thực PIN và được ghi audit log.'),
               ),
             ),
@@ -2048,13 +2048,13 @@ class _DangerSection extends StatelessWidget {
                     OutlinedButton.icon(
                       onPressed: () => onResetShop(s),
                       icon: const Icon(Icons.restart_alt),
-                      label: const Text('Reset'),
+                      label: const Text('Đặt lại'),
                     ),
                     FilledButton.icon(
                       style: FilledButton.styleFrom(backgroundColor: Colors.red),
                       onPressed: () => onDeleteShop(s),
                       icon: const Icon(Icons.delete_forever),
-                      label: const Text('Delete'),
+                      label: const Text('Xóa'),
                     ),
                   ],
                 ),

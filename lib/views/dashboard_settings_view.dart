@@ -6,7 +6,6 @@ import '../services/dashboard_config_service.dart';
 import '../services/notification_service.dart';
 import '../services/user_service.dart';
 import '../theme/app_colors.dart';
-import '../theme/app_text_styles.dart';
 
 /// View to customize dashboard layout - drag & drop, show/hide cards + shortcuts
 class DashboardSettingsView extends StatefulWidget {

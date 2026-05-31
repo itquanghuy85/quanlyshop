@@ -4,7 +4,6 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../models/label_template_model.dart';
 import '../services/label_settings_service.dart';
 import '../services/notification_service.dart';
 import '../theme/app_text_styles.dart';
@@ -841,7 +840,7 @@ class _LabelDesignerViewState extends State<LabelDesignerView>
                       ),
                       ButtonSegment(
                         value: 'barcode',
-                        label: Text('Barcode'),
+                        label: Text('Mã vạch'),
                         icon: Icon(Icons.view_week, size: 18),
                       ),
                     ],

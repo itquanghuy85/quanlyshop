@@ -2,13 +2,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../data/db_helper.dart';
 import '../models/quick_input_code_model.dart';
-import '../models/shop_settings_model.dart';
 import '../services/sync_service.dart';
 import '../services/notification_service.dart';
 import '../services/sync_orchestrator.dart';
 import '../services/event_bus.dart';
-import '../services/category_service.dart';
-import '../services/business_type_helper.dart';
 import '../theme/app_text_styles.dart';
 import '../widgets/validated_text_field.dart';
 import '../widgets/currency_text_field.dart';
@@ -35,13 +32,9 @@ class _QuickInputLibraryViewState extends State<QuickInputLibraryView> {
   // EventBus subscription for real-time sync
   StreamSubscription<String>? _eventSubscription;
 
-  ShopSettings? _shopSettings;
-  BusinessTerminology get _terms => BusinessTypeHelper.instance.getTerminology(_shopSettings);
-
   @override
   void initState() {
     super.initState();
-    _loadShopSettings();
     _loadCodes();
     
     // Subscribe to quick_input_codes_changed event for real-time sync
@@ -52,17 +45,6 @@ class _QuickInputLibraryViewState extends State<QuickInputLibraryView> {
     });
   }
 
-  Future<void> _loadShopSettings() async {
-    try {
-      final settings = await CategoryService().getShopSettings();
-      if (mounted) {
-        setState(() => _shopSettings = settings);
-      }
-    } catch (e) {
-      debugPrint('Error loading shop settings: $e');
-    }
-  }
-  
   @override
   void dispose() {
     _eventSubscription?.cancel();

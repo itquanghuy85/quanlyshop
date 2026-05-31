@@ -11,7 +11,6 @@ import '../models/shop_settings_model.dart';
 import '../services/user_service.dart';
 import '../services/notification_service.dart';
 import '../services/event_bus.dart';
-import '../services/supplier_service.dart';
 import '../services/sync_orchestrator.dart';
 import '../services/payment_intent_service.dart';
 import '../services/category_service.dart';
@@ -31,7 +30,6 @@ class CreatePurchaseOrderView extends StatefulWidget {
 
 class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
   final db = DBHelper();
-  final supplierService = SupplierService();
   final _formKey = GlobalKey<FormState>();
 
   // Controllers
@@ -41,7 +39,6 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
   final notesCtrl = TextEditingController();
 
   // Data
-  List<Map<String, dynamic>> _suppliers = [];
   final List<PurchaseItem> _items = [];
   bool _isLoading = true;
   bool _isSaving = false;
@@ -55,7 +52,6 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
   // Multi-industry getters
   String get _businessType => _shopSettings?.businessType ?? 'electronics';
   bool get _isFashion => _businessType == 'fashion';
-  bool get _isElectronics => _businessType == 'electronics';
   bool get _enableSerial => _shopSettings?.enableSerial ?? true;
 
   // Permission: cost price visibility
@@ -93,7 +89,6 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
 
   Future<void> _loadData() async {
     try {
-      final suppliers = await supplierService.getSuppliers();
       final user = FirebaseAuth.instance.currentUser;
       final userData = await UserService.getUserInfo(user?.uid ?? '');
 
@@ -101,7 +96,6 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
       final perms = await UserService.getCurrentUserPermissions();
 
       setState(() {
-        _suppliers = suppliers.map((s) => s.toMap()).toList();
         _currentUserName = userData['name'] ?? 'Unknown';
         _canViewCostPrice = perms['allowViewCostPrice'] ?? false;
         _isLoading = false;
@@ -216,8 +210,6 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
 
       // If payment method is debt, create a debt record - ĐƠN GIẢN
       if (_paymentMethod == 'CÔNG NỢ') {
-        final supplierData = _suppliers.firstWhere((s) => s['name'] == supplierNameCtrl.text.trim(), orElse: () => {});
-
         final debt = Debt(
           personName: supplierNameCtrl.text.trim(),
           phone: supplierPhoneCtrl.text.trim(),

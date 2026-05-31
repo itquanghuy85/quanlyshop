@@ -32,11 +32,6 @@ class BluetoothPrinterConfig {
 class BluetoothPrinterService {
   static const String _savedPrinterKey = 'saved_printer';
 
-  // Helper function for logging
-  static void _addLog(String message) {
-    print('BluetoothPrinterService: $message');
-  }
-
   static Future<BluetoothPrinterConfig?> getSavedPrinter() async {
     final prefs = await SharedPreferences.getInstance();
     final jsonString = prefs.getString(_savedPrinterKey);

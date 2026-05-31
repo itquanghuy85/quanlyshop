@@ -459,7 +459,7 @@ class _AiChatOverlayState extends State<AiChatOverlay>
       _sending = false;
       _messages.removeLast(); // remove loading bubble
       _messages.add(
-        _Msg(_Role.assistant, answer ?? error ?? 'Em chưa hiểu câu hỏi này. Anh có thể hỏi về doanh thu, tồn kho, đơn sửa, công nợ...'),
+        _Msg(_Role.assistant, answer ?? error ?? 'Mình chưa hiểu rõ. Bạn thử hỏi: "doanh thu hôm nay", "tồn kho", "đơn sửa đang chờ", "công nợ", "tạo đơn sửa"...'),
       );
     });
     _scrollToBottom();

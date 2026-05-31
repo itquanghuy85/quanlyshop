@@ -44,8 +44,6 @@ class DynamicFormBuilder extends StatelessWidget {
         return _buildTextareaField(field);
       case FieldType.color:
         return _buildColorField(context, field);
-      default:
-        return _buildTextField(field);
     }
   }
 

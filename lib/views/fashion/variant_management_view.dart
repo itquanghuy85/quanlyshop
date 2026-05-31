@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../widgets/responsive_wrapper.dart';
 import '../../widgets/custom_app_bar.dart';
-import '../../l10n/app_localizations.dart';
 import '../../models/product_model.dart';
 import '../../models/product_variant_model.dart';
 import '../../models/shop_settings_model.dart';
@@ -9,7 +8,6 @@ import '../../services/variant_service.dart';
 import '../../services/category_service.dart';
 import '../../services/business_type_helper.dart';
 import '../../data/db_helper.dart';
-import '../../widgets/variant_selector.dart';
 
 /// Màn hình quản lý phân loại sản phẩm (size, color)
 /// Module Thời trang - Phase 3 Multi-Industry
@@ -110,9 +108,6 @@ class _VariantManagementViewState extends State<VariantManagementView>
 
   @override
   Widget build(BuildContext context) {
-    final loc = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
-
     return Scaffold(
       appBar: CustomAppBar.build(
         title: 'Quản lý phân loại',
@@ -589,7 +584,7 @@ class _VariantManagementViewState extends State<VariantManagementView>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('SKU: ${variant.sku ?? "N/A"}'),
-            if (variant.barcode != null) Text('Barcode: ${variant.barcode}'),
+            if (variant.barcode != null) Text('Mã vạch: ${variant.barcode}'),
           ],
         ),
         trailing: Column(
@@ -1207,7 +1202,7 @@ class _EditVariantDialogState extends State<_EditVariantDialog> {
           if (widget.variant.barcode != null)
             Row(
               children: [
-                const Text('Barcode: '),
+                const Text('Mã vạch: '),
                 Text(
                   widget.variant.barcode!,
                   style: const TextStyle(fontWeight: FontWeight.bold),

@@ -113,6 +113,16 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
   ShopSettings? _shopSettings;
   bool get _enableRepair => _shopSettings?.enableRepair ?? true;
 
+  // Permission flags (loaded once in _initChat)
+  bool _canSendChat = true;
+  bool _canPinChat = false;
+  bool _canDeleteOtherChat = false;
+
+  // Rate-limit: max 30 messages per minute per user (client-side guard)
+  static const int _kMaxMsgPerMinute = 30;
+  static const Duration _kRateLimitWindow = Duration(minutes: 1);
+  final List<DateTime> _msgTimestamps = [];
+
   // Emoji reactions
   final List<String> _reactions = [
     '👍',
@@ -685,6 +695,16 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
       setState(() => _shopSettings = settings);
     }
 
+    // Load permission flags
+    final perms = await UserService.getCurrentUserPermissions();
+    if (mounted) {
+      setState(() {
+        _canSendChat = perms['allowSendChat'] as bool? ?? true;
+        _canPinChat = perms['allowPinChat'] as bool? ?? false;
+        _canDeleteOtherChat = perms['allowDeleteOtherChat'] as bool? ?? false;
+      });
+    }
+
     // Set online
     await ChatService.setOnlineStatus(true);
 
@@ -768,9 +788,24 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
     );
   }
 
+  bool _checkChatRateLimit() {
+    final now = DateTime.now();
+    _msgTimestamps.removeWhere(
+      (t) => now.difference(t) > _kRateLimitWindow,
+    );
+    if (_msgTimestamps.length >= _kMaxMsgPerMinute) return false;
+    _msgTimestamps.add(now);
+    return true;
+  }
+
   Future<void> _sendMessage() async {
     final text = _msgCtrl.text.trim();
     if (text.isEmpty || _isSending) return;
+
+    if (!_checkChatRateLimit()) {
+      _showError('Gửi quá nhanh. Vui lòng chờ trước khi gửi tiếp.');
+      return;
+    }
 
     setState(() => _isSending = true);
 
@@ -786,6 +821,7 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
       _cancelReply();
       _scrollToBottom();
     } catch (e) {
+      _msgTimestamps.removeLast(); // hoàn lại slot nếu gửi thất bại
       _showError('Không thể gửi tin nhắn');
     } finally {
       if (mounted) setState(() => _isSending = false);
@@ -938,16 +974,17 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
                 _showSuccess('Đã sao chép');
               },
             ),
-            _actionTile(
-              icon: message.isPinned ? Icons.push_pin : Icons.push_pin_outlined,
-              label: message.isPinned ? 'Bỏ ghim' : 'Ghim tin nhắn',
-              onTap: () {
-                Navigator.pop(ctx);
-                if (message.id != null) {
-                  ChatService.pinMessage(message.id!, !message.isPinned);
-                }
-              },
-            ),
+            if (_canPinChat)
+              _actionTile(
+                icon: message.isPinned ? Icons.push_pin : Icons.push_pin_outlined,
+                label: message.isPinned ? 'Bỏ ghim' : 'Ghim tin nhắn',
+                onTap: () {
+                  Navigator.pop(ctx);
+                  if (message.id != null) {
+                    ChatService.pinMessage(message.id!, !message.isPinned);
+                  }
+                },
+              ),
             if (isOwner) ...[
               _actionTile(
                 icon: Icons.edit,
@@ -960,6 +997,16 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
               _actionTile(
                 icon: Icons.delete_outline,
                 label: 'Xóa',
+                color: Colors.red,
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _confirmDelete(message);
+                },
+              ),
+            ] else if (_canDeleteOtherChat) ...[
+              _actionTile(
+                icon: Icons.delete_outline,
+                label: 'Xóa tin nhắn',
                 color: Colors.red,
                 onTap: () {
                   Navigator.pop(ctx);
@@ -2167,7 +2214,7 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
               controller: bridgePortCtrl,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(
-                labelText: 'Port',
+                labelText: 'Cổng kết nối',
                 hintText: '19191',
               ),
             ),
@@ -2335,73 +2382,87 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
             ),
           ],
         ),
-        child: Row(
-          children: [
-            // Image button
-            IconButton(
-              icon: const Icon(Icons.image, color: Colors.blue),
-              onPressed: _isSending ? null : _pickAndSendImage,
-              tooltip: 'Gửi hình ảnh',
-            ),
+        child: _canSendChat
+            ? Row(
+                children: [
+                  // Image button
+                  IconButton(
+                    icon: const Icon(Icons.image, color: Colors.blue),
+                    onPressed: _isSending ? null : _pickAndSendImage,
+                    tooltip: 'Gửi hình ảnh',
+                  ),
 
-            // Pin order button
-            IconButton(
-              icon: const Icon(Icons.attach_file, color: Colors.orange),
-              onPressed: _showPinOrderDialog,
-              tooltip: 'Gim đơn hàng',
-            ),
+                  // Pin order button
+                  IconButton(
+                    icon: const Icon(Icons.attach_file, color: Colors.orange),
+                    onPressed: _showPinOrderDialog,
+                    tooltip: 'Gim đơn hàng',
+                  ),
 
-            // Text field
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                child: TextField(
-                  controller: _msgCtrl,
-                  focusNode: _focusNode,
-                  maxLines: 4,
-                  minLines: 1,
-                  textInputAction: TextInputAction.send,
-                  onSubmitted: (_) => _sendMessage(),
-                  decoration: InputDecoration(
-                    hintText: 'Nhập tin nhắn...',
-                    hintStyle: TextStyle(color: Colors.grey.shade500),
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 10,
+                  // Text field
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      child: TextField(
+                        controller: _msgCtrl,
+                        focusNode: _focusNode,
+                        maxLines: 4,
+                        minLines: 1,
+                        textInputAction: TextInputAction.send,
+                        onSubmitted: (_) => _sendMessage(),
+                        decoration: InputDecoration(
+                          hintText: 'Nhập tin nhắn...',
+                          hintStyle: TextStyle(color: Colors.grey.shade500),
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 10,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
+
+                  const SizedBox(width: 8),
+
+                  // Send button
+                  Container(
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF2962FF),
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      icon: _isSending
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation(Colors.white),
+                              ),
+                            )
+                          : const Icon(Icons.send, color: Colors.white),
+                      onPressed: _isSending ? null : _sendMessage,
+                    ),
+                  ),
+                ],
+              )
+            : Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(
+                  children: [
+                    const Icon(Icons.lock_outline, color: Colors.grey, size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Tài khoản không có quyền gửi tin nhắn',
+                      style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                    ),
+                  ],
                 ),
               ),
-            ),
-
-            const SizedBox(width: 8),
-
-            // Send button
-            Container(
-              decoration: const BoxDecoration(
-                color: Color(0xFF2962FF),
-                shape: BoxShape.circle,
-              ),
-              child: IconButton(
-                icon: _isSending
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation(Colors.white),
-                        ),
-                      )
-                    : const Icon(Icons.send, color: Colors.white),
-                onPressed: _isSending ? null : _sendMessage,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

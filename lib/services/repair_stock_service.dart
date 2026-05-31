@@ -30,10 +30,10 @@ class RepairStockService {
 
   /// Thực hiện trừ kho theo tên (tìm trong cả kho cũ và kho mới)
   Future<bool> deductByName(String name, int qty) async {
-    final shopId = await db.database.then((_) => DBHelper().getSuppliers().then((_) async {
+    await db.database.then((_) => DBHelper().getSuppliers().then((_) async {
        // Helper để lấy shopId an toàn từ DBHelper (vì hàm getScopedShopId là private)
        // Ở đây tôi gọi gián tiếp qua db
-       return null; 
+       return null;
     }));
     
     // Tìm linh kiện và trừ kho - Logic này sẽ gọi các hàm public của DBHelper

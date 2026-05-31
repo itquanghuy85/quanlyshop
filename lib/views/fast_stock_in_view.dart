@@ -73,7 +73,6 @@ class _FastStockInViewState extends State<FastStockInView> {
   ShopSettings? _shopSettings;
   BusinessTerminology get _terms =>
       BusinessTypeHelper.instance.getTerminology(_shopSettings);
-  bool get _isFashion => _shopSettings?.businessType == 'fashion';
   bool get _isElectronics =>
       _shopSettings?.businessType == 'electronics' || _shopSettings == null;
   bool get _enableSerial => _shopSettings?.enableSerial ?? true;

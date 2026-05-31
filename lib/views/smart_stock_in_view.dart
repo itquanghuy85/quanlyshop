@@ -70,9 +70,6 @@ class _SmartStockInViewState extends State<SmartStockInView> {
   BusinessTerminology get _terms =>
       BusinessTypeHelper.instance.getTerminology(_shopSettings);
 
-  // Quick input code
-  QuickInputCode? _currentQuickInputCode;
-
   // Loại sản phẩm
   String _productType = 'DIEN_THOAI';
 
@@ -102,7 +99,6 @@ class _SmartStockInViewState extends State<SmartStockInView> {
   String? _selectedSize; // Fashion size (XS, S, M, L, XL, 28, 29, 30...)
   String? _selectedSupplier;
   String? _selectedSupplierId; // Firestore ID
-  int? _selectedSupplierLocalId; // SQLite local ID
   String? _selectedPaymentMethod;
   StorageLocation? _selectedLocation;
   String? _localImagePath;
@@ -443,7 +439,6 @@ class _SmartStockInViewState extends State<SmartStockInView> {
 
   void _applyQuickInputCode(QuickInputCode code) {
     setState(() {
-      _currentQuickInputCode = code;
       _productType = code.type;
       _nameCtrl.text = code.name;
       _quantityCtrl.text = '1';
@@ -1917,7 +1912,6 @@ class _SmartStockInViewState extends State<SmartStockInView> {
                       setState(() {
                         _selectedSupplier = v;
                         _selectedSupplierId = supplier['firestoreId'];
-                        _selectedSupplierLocalId = supplier['id'] as int?;
                       });
                     },
                     style: TextStyle(

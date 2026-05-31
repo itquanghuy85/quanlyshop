@@ -257,7 +257,7 @@ class _ImeiQrPrinterViewState extends State<ImeiQrPrinterView> {
                                   ),
                                   DropdownMenuItem(
                                     value: 'barcode',
-                                    child: Text('Barcode'),
+                                    child: Text('Mã vạch'),
                                   ),
                                 ],
                                 onChanged: (v) {

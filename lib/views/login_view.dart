@@ -9,7 +9,6 @@ import '../services/social_auth_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 import '../theme/app_button_styles.dart';
-import '../widgets/responsive_wrapper.dart';
 import 'register_view.dart';
 
 class LoginView extends StatefulWidget {

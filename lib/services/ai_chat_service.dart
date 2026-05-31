@@ -394,12 +394,12 @@ class AiChatService {
   static String _expandSynonyms(String normalized) {
     const synonyms = <String, String>{
       // ── Viết tắt phổ biến ──────────────────────────────────────────────────
-      ' dt ': ' doanh thu ',          // "dt hôm nay" → "doanh thu hôm nay"
-      ' ln ': ' loi nhuan ',          // "ln tháng này"
-      ' bh ': ' ban hang ',           // "bh hôm nay"
-      ' ds ': ' don sua ',            // "ds mới nhất"
-      ' db ': ' don ban ',            // "db gần nhất"
-      ' kh ': ' khach hang ',         // "kh nào nợ"
+      ' dt ': ' doanh thu ',
+      ' ln ': ' loi nhuan ',
+      ' bh ': ' ban hang ',
+      ' ds ': ' don sua ',
+      ' db ': ' don ban ',
+      ' kh ': ' khach hang ',
       ' ncc ': ' nha cung cap ',
       // ── Tiếng Anh ──────────────────────────────────────────────────────────
       'bill': 'hoa don ban',
@@ -415,6 +415,13 @@ class AiChatService {
       'repair': 'sua chua',
       'sale': 'ban hang',
       'debt': 'cong no',
+      'report': 'bao cao',
+      'summary': 'tom tat',
+      'pending': 'dang cho',
+      'today': 'hom nay',
+      'week': 'tuan nay',
+      'month': 'thang nay',
+      'year': 'nam nay',
       // ── Gần nhất ───────────────────────────────────────────────────────────
       'moi nhat': 'gan nhat',
       'gan day': 'gan nhat',
@@ -426,31 +433,29 @@ class AiChatService {
       // ── Đơn bán nói tắt ────────────────────────────────────────────────────
       'ban gan': 'don ban gan nhat',
       'ban moi': 'don ban gan nhat',
-      'xem ban': 'don ban gan nhat',
       'hoa don': 'don ban gan nhat',
       'don vua ban': 'don ban gan nhat',
       'ban vua xong': 'don ban gan nhat',
       // ── Đơn sửa nói tắt ────────────────────────────────────────────────────
       'sua gan': 'don sua gan nhat',
       'sua moi': 'don sua gan nhat',
-      'xem sua': 'don sua gan nhat',
       'don vua sua': 'don sua gan nhat',
       'may vua sua': 'don sua gan nhat',
       // ── Nợ ────────────────────────────────────────────────────────────────
       'no ai': 'ai no nhieu nhat',
-      'no ncc': 'tra no ncc',
-      'nha cung cap': 'ncc',
       'ai no': 'ai no nhieu nhat',
       'khach no': 'thu no khach',
       'no khach': 'thu no khach',
+      'no ncc': 'tra no ncc',
+      'nha cung cap': 'ncc',
       'owe': 'cong no',
+      'phai thu': 'thu no khach',
+      'phai tra': 'tra no ncc',
       // ── Linh kiện ─────────────────────────────────────────────────────────
       'linh phu': 'linh kien',
       'phu tung': 'linh kien',
       'spare part': 'linh kien',
-      'part': 'linh kien',
-      // ── Doanh thu nói tắt ─────────────────────────────────────────────────
-      'ban duoc': 'doanh thu',
+      // ── Doanh thu / tài chính nói tắt ────────────────────────────────────
       'thu ve': 'doanh thu',
       'tien vao': 'doanh thu',
       'bao nhieu tien': 'doanh thu',
@@ -461,13 +466,12 @@ class AiChatService {
       'buoi nay': 'hom nay',
       'sang nay': 'hom nay',
       'chieu nay': 'hom nay',
+      'ngay nay': 'hom nay',
+      'hien tai': 'hom nay',
       // ── Lợi nhuận ─────────────────────────────────────────────────────────
       'loi duoc': 'loi nhuan',
       'lai duoc': 'loi nhuan',
-      'loi bao nhieu': 'loi nhuan',
       'loi nhieu khong': 'loi nhuan',
-      'lai bao nhieu': 'loi nhuan',
-      'loi': 'loi nhuan',
       // ── Tạo đơn nói tắt ───────────────────────────────────────────────────
       'muon ban': 'tao don ban',
       'co khach mua': 'tao don ban',
@@ -476,27 +480,28 @@ class AiChatService {
       'xuat may': 'tao don ban',
       'co khach sua': 'tao don sua',
       'khach mang may den': 'tao don sua',
-      'tiep nhan': 'tao don sua',
       'nhan may': 'tao don sua',
       'may bi hong': 'tao don sua',
       'may bi loi': 'tao don sua',
+      'may hong': 'tao don sua',
       'them don': 'tao don',
       // ── Kho ───────────────────────────────────────────────────────────────
-      'hang hoa': 'ton kho',
-      'so luong': 'ton kho',
       'con hang': 'ton kho',
       'hang con khong': 'ton kho',
       'het hang': 'ton kho',
       'con may cai': 'ton kho',
-      // ── Thời gian nói tắt ─────────────────────────────────────────────────
+      // ── Thời gian ─────────────────────────────────────────────────────────
       'bay gio': 'hom nay',
       'luc nay': 'hom nay',
-      't2': 'thu 2',
-      't3': 'thu 3',
-      't4': 'thu 4',
-      't5': 'thu 5',
-      't6': 'thu 6',
-      't7': 'thu 7',
+      'tuan nay': 'thang nay',   // fallback: tuần → tháng (stats chưa có weekly)
+      'tuan nay roi': 'thang nay',
+      't2': 'thu 2', 't3': 'thu 3', 't4': 'thu 4',
+      't5': 'thu 5', 't6': 'thu 6', 't7': 'thu 7',
+      // ── Phản hồi / tương tác ──────────────────────────────────────────────
+      'ok ban': 'cam on',
+      'ok roi': 'cam on',
+      'duoc roi': 'cam on',
+      'hieu roi': 'cam on',
     };
     String result = normalized;
     for (final e in synonyms.entries) {
@@ -626,20 +631,26 @@ class AiChatService {
 
     // Hướng dẫn / trợ giúp
     if (_has(n, ['huong dan', 'tro giup', 'giup toi', 'ban co the', 'lam gi duoc',
-                  'chuc nang', 'ho tro', 'dung duoc gi', 'biet gi'])) {
+                  'chuc nang', 'ho tro', 'dung duoc gi', 'biet gi', 'hoi gi duoc',
+                  'noi nhu the nao', 'cach hoi', 'vi du'])) {
       return const AiQuickResponse(
-        'Em có thể giúp anh:\n'
-        '• **Doanh thu / lợi nhuận** — hôm nay, tháng, năm\n'
-        '• **Đơn sửa** — danh sách, đang chờ, tạo nhanh\n'
-        '• **Đơn bán** — gần nhất, tạo nhanh bằng giọng nói\n'
-        '• **Tồn kho** — kiểm tra, nhập kho mới\n'
-        '• **Công nợ** — khách nợ, nợ NCC\n'
-        '• **Tổng hợp tài chính** — báo cáo nhanh\n\n'
-        'Nói hoặc gõ câu hỏi — em hiểu tiếng Việt tự nhiên!',
+        'Mình hiểu câu hỏi tự nhiên. Ví dụ bạn có thể nói:\n\n'
+        '**Doanh thu & lợi nhuận:**\n'
+        '• *"Hôm nay bán được bao nhiêu?"*\n'
+        '• *"Lợi nhuận tháng này?"* · *"Năm nay doanh thu?"*\n\n'
+        '**Đơn sửa chữa:**\n'
+        '• *"Đơn nào đang chờ?"* · *"Đơn sửa hôm nay"*\n'
+        '• *"Tạo đơn sửa iPhone 15 Pro cho Minh"*\n\n'
+        '**Đơn bán hàng:**\n'
+        '• *"Đơn bán gần nhất"* · *"Bán hàng hôm nay"*\n'
+        '• *"Tạo đơn bán Samsung A55 cho 0912345678"*\n\n'
+        '**Kho & Công nợ:**\n'
+        '• *"Tồn kho hiện tại"* · *"Kho linh kiện"*\n'
+        '• *"Công nợ khách"* · *"Ai nợ nhiều nhất?"*',
         followUpChips: [
           ('Doanh thu hôm nay', Icons.trending_up_rounded),
-          ('Tạo đơn sửa', Icons.build_circle_rounded),
-          ('Tồn kho hiện tại', Icons.inventory_2_rounded),
+          ('Đơn đang chờ', Icons.pending_actions_rounded),
+          ('Tổng hợp tài chính', Icons.summarize_rounded),
         ],
       );
     }
@@ -889,12 +900,25 @@ class AiChatService {
     // Doanh thu hôm nay
     if (_has(n, ['doanh thu', 'ban duoc', 'thu duoc', 'ban hang']) &&
         !_has(n, ['gom', 'nhung', 'nao', 'chi tiet', 'danh sach', 'thang', 'nam'])) {
+      if (stats.revenueToday == 0 && stats.salesToday == 0 && stats.deliveredRepairsToday == 0) {
+        return AiQuickResponse(
+          'Hôm nay chưa có doanh thu — chưa có đơn bán hoặc đơn sửa nào hoàn thành.\n'
+          '${stats.repairsPending > 0 ? "Đang có **${stats.repairsPending} đơn sửa** chờ xử lý." : ""}',
+          followUpChips: const [
+            ('Tạo đơn bán', Icons.point_of_sale_rounded),
+            ('Tạo đơn sửa', Icons.build_circle_rounded),
+            ('Doanh thu tháng này', Icons.calendar_month_rounded),
+          ],
+        );
+      }
       final buf = StringBuffer();
-      buf.write('Bán hàng: **${stats.salesToday} đơn** (${fmt(stats.saleRevenueToday)}). ');
+      if (stats.salesToday > 0) {
+        buf.write('Bán hàng: **${stats.salesToday} đơn** (${fmt(stats.saleRevenueToday)}). ');
+      }
       if (stats.deliveredRepairsToday > 0) {
         buf.write('Sửa chữa giao: **${stats.deliveredRepairsToday} đơn** (${fmt(stats.repairRevenueToday)}). ');
       }
-      buf.write('Tổng doanh thu: **${fmt(stats.revenueToday)}**, lợi nhuận: **${fmt(stats.profitToday)}**.');
+      buf.write('Tổng: **${fmt(stats.revenueToday)}** | LN: **${fmt(stats.profitToday)}**.');
       return AiQuickResponse(
         buf.toString(),
         followUpChips: const [
@@ -1028,15 +1052,22 @@ class AiChatService {
     // Trả nợ NCC / nhà cung cấp
     if (_has(n, ['tra no ncc', 'tra no nha cung cap', 'no ncc',
                   'cong no ncc', 'nha cung cap'])) {
-      final buf = StringBuffer(
-          'Công nợ phải trả NCC: **${fmt(stats.debtPayable)}**.');
       if (stats.debtPayable == 0) {
-        return const AiQuickResponse('Shop hiện không có nợ nhà cung cấp nào đang chờ.');
+        return const AiQuickResponse(
+          'Hiện không có nợ nhà cung cấp nào đang chờ.',
+          followUpChips: [
+            ('Công nợ khách', Icons.account_balance_wallet_rounded),
+            ('Tổng hợp tài chính', Icons.summarize_rounded),
+          ],
+        );
       }
-      buf.write('\nVào mục Nhà cung cấp để ghi thanh toán.');
       return AiQuickResponse(
-        buf.toString(),
+        'Công nợ phải trả NCC: **${fmt(stats.debtPayable)}**.\n'
+        'Vào mục Nhà cung cấp để ghi thanh toán.',
         actions: const [_kViewDebtPayableAction],
+        followUpChips: const [
+          ('Ai nợ mình nhiều nhất', Icons.person_rounded),
+        ],
       );
     }
 
@@ -1089,27 +1120,24 @@ class AiChatService {
 
     // Chào hỏi
     if (_has(n, ['xin chao', 'hello', 'chao ban', 'chao ai', 'ban la ai',
-                  'hey', 'hi ', 'alo', 'co ai o day khong'])) {
+                  'hey', 'hi ', 'alo', 'co ai o day khong', 'may la ai',
+                  'minh la ai', 'gioi thieu', 'ban ten gi', 'ai vay'])) {
       return const AiQuickResponse(
-        'Xin chào! Em là **AI Trợ Lý** của shop.\n'
-        'Anh có thể hỏi em về:\n'
-        '• Doanh thu / lợi nhuận hôm nay, tháng này\n'
-        '• Tồn kho, kho linh kiện\n'
-        '• Công nợ phải thu / phải trả NCC\n'
-        '• Đơn sửa đang chờ, đơn bán gần nhất\n\n'
-        'Hoặc ra lệnh: *"tạo đơn sửa iPhone 14 cho Minh"*',
+        'Xin chào! Mình là **AI Trợ Lý** của shop — hỏi gì cũng được!\n\n'
+        'Thử ngay: *"Hôm nay bán được bao nhiêu?"*\n'
+        'Hoặc: *"Tạo đơn sửa iPhone 15 cho Minh 0912..."*',
         followUpChips: [
-          ('Doanh thu hôm nay', Icons.trending_up_rounded),
-          ('Đơn đang chờ', Icons.pending_actions_rounded),
+          ('Tóm tắt hôm nay', Icons.today_rounded),
+          ('Đơn sửa đang chờ', Icons.pending_actions_rounded),
           ('Hướng dẫn', Icons.help_outline_rounded),
         ],
       );
     }
 
     // Cảm ơn / phản hồi tích cực
-    if (_has(n, ['cam on', 'thank', 'ok em', 'tuyet', 'gioi', 'tot lam', 'hay day'])) {
+    if (_has(n, ['cam on', 'thank', 'tuyet', 'gioi lam', 'tot lam', 'hay day', 'xong roi', 'duoc roi'])) {
       return const AiQuickResponse(
-        'Dạ, không có gì ạ! Anh cần gì thêm cứ hỏi em nhé.',
+        'Không có gì! Cần gì cứ hỏi mình nhé.',
         followUpChips: [
           ('Tổng hợp tài chính', Icons.summarize_rounded),
           ('Tạo đơn sửa', Icons.build_circle_rounded),
@@ -1141,23 +1169,6 @@ class AiChatService {
       );
     }
 
-    // Đơn sửa danh sách chi tiết
-    if (_has(n, ['gom nhung don', 'don nao', 'nhung don', 'don hom nay',
-                  'danh sach don', 'co nhung don gi'])) {
-      if (stats.repairSummaries.isEmpty) {
-        return const AiQuickResponse('Hôm nay chưa có đơn sửa nào.');
-      }
-      final lines = stats.repairSummaries
-          .asMap()
-          .entries
-          .map((e) => '${e.key + 1}. ${e.value}')
-          .join('\n');
-      return AiQuickResponse(
-        'Đơn sửa hôm nay (${stats.repairsToday} đơn):\n$lines',
-        actions: const [_kOpenLatestRepairAction],
-      );
-    }
-
     // Số đơn / bao nhiêu đơn
     if (_has(n, ['bao nhieu don', 'may don', 'so don', 'dem don'])) {
       return AiQuickResponse(
@@ -1186,8 +1197,8 @@ class AiChatService {
     final words = n.trim().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
     final wordCount = words.length;
 
-    // Only fire for short (≤ 3 words) inputs — longer ones are likely specific
-    if (wordCount > 3) return null;
+    // Only fire for short (≤ 4 words) inputs — longer ones are likely specific enough
+    if (wordCount > 4) return null;
 
     // Guard: already contains a specific qualifier → quickAnswer or cloud handles it
     if (_has(n, [
@@ -1195,11 +1206,12 @@ class AiChatService {
       'tao', 'them', 'mo', 'kiem tra', 'bao nhieu', 'danh sach',
       'tong', 'chi tiet', 'nhieu nhat', 'it nhat', 'sap het',
       'dang cho', 'dang sua', 'da giao', 'chua tra',
+      'thu no', 'tra no', 'linh kien', 'phu kien',
     ])) { return null; }
 
     // ── Domain: bán hàng ──
-    if (_has(n, ['ban']) &&
-        !_has(n, ['tra no', 'ncc', 'linh kien', 'phu kien', 'san pham'])) {
+    if (_has(n, ['ban', 'hang ban', 'dat hang', 'order', 'don hang']) &&
+        !_has(n, ['tra no', 'ncc', 'linh kien', 'phu kien', 'san pham', 'phong ban', 'ban be'])) {
       return const AiClarifyResponse(
         'Bạn muốn:',
         suggestions: [
@@ -1213,7 +1225,8 @@ class AiChatService {
     }
 
     // ── Domain: sửa chữa ──
-    if (_has(n, ['sua']) && !_has(n, ['nha', 'may sua', 'sach'])) {
+    if (_has(n, ['sua', 'don sua', 'sua chua', 'tiep nhan', 'bao hanh', 'sua may', 'don dien thoai']) &&
+        !_has(n, ['nha', 'sach', 'sua kho', 'sua gi'])) {
       return const AiClarifyResponse(
         'Bạn muốn:',
         suggestions: [
@@ -1227,7 +1240,8 @@ class AiChatService {
     }
 
     // ── Domain: kho ──
-    if (_has(n, ['kho']) && !_has(n, ['nhap kho', 'xuat kho', 'lich su'])) {
+    if (_has(n, ['kho', 'ton kho', 'hang hoa', 'san pham', 'linh kien', 'inventory', 'stock']) &&
+        !_has(n, ['nhap kho', 'xuat kho', 'lich su nhap', 'thu kho'])) {
       return const AiClarifyResponse(
         'Bạn muốn:',
         suggestions: [
@@ -1241,8 +1255,8 @@ class AiChatService {
     }
 
     // ── Domain: nợ / công nợ ──
-    if (_has(n, ['no', 'cong no']) &&
-        !_has(n, ['ngoai no', 'tro no', 'nhap no', 'ton kho'])) {
+    if (_has(n, ['no', 'cong no', 'no phai thu', 'khach no', 'thu no', 'tra no', 'debt']) &&
+        !_has(n, ['ngoai no', 'nhap no', 'ton kho', 'ba no'])) {
       return const AiClarifyResponse(
         'Bạn muốn:',
         suggestions: [
@@ -1256,7 +1270,8 @@ class AiChatService {
     }
 
     // ── Domain: tài chính / thống kê ──
-    if (_has(n, ['tai chinh', 'thong ke', 'bao cao', 'doanh thu'])) {
+    if (_has(n, ['tai chinh', 'thong ke', 'bao cao', 'doanh thu', 'tien', 'thu nhap',
+                  'loi nhuan', 'doanh so', 'so sanh', 'tong hop', 'finance', 'revenue'])) {
       return const AiClarifyResponse(
         'Bạn muốn:',
         suggestions: [
@@ -1381,17 +1396,17 @@ class AiChatService {
       final data = res.data as Map<Object?, Object?>;
       final answer = data['answer'] as String?;
       if (answer == null || answer.isEmpty) {
-        return (null, 'Em chưa trả lời được. Anh thử hỏi lại nhé.');
+        return (null, 'Mình chưa trả lời được câu này. Thử hỏi lại với cách diễn đạt khác nhé.');
       }
       return (answer, null);
     } on FirebaseFunctionsException catch (e) {
       if (e.code == 'resource-exhausted') {
-        return (null, 'Đã đạt giới hạn câu hỏi AI trong phút này. Thử lại sau nhé.');
+        return (null, 'Đang bận — bạn thử lại sau vài giây nhé.');
       }
       if (e.code == 'unauthenticated') {
         return (null, 'Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
       }
-      return (null, 'Em chưa hiểu câu hỏi này. Anh thử hỏi về: doanh thu, tồn kho, đơn sửa, công nợ...');
+      return (null, 'Mình chưa hiểu câu này. Thử hỏi: "doanh thu hôm nay", "đơn đang chờ", "công nợ", "tạo đơn sửa"...\nHoặc bấm **Hướng dẫn** để xem ví dụ.');
     } catch (_) {
       return (null, 'Mất kết nối. Kiểm tra internet và thử lại.');
     }

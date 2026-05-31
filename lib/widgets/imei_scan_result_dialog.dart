@@ -36,7 +36,6 @@ class IMEIScanResultDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hasMultiple = result.hasMultipleCandidates;
-    final theme = Theme.of(context);
 
     return AlertDialog(
       title: Row(

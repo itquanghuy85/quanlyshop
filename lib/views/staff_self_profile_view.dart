@@ -60,7 +60,6 @@ class _StaffSelfProfileViewState extends State<StaffSelfProfileView> {
 
   int _salesCount = 0;
   int _repairsCount = 0;
-  String _scheduleText = 'Chưa cài lịch';
   int _attendanceCount = 0;
   int _lateCount = 0;
   List<Attendance> _recentAttendance = const [];
@@ -194,14 +193,6 @@ class _StaffSelfProfileViewState extends State<StaffSelfProfileView> {
         debugPrint('StaffSelfProfileView: cannot load work schedule from cloud: $e');
       }
 
-      schedule ??= await _db.getWorkSchedule(_uid);
-      if (schedule != null) {
-        final start = (schedule['startTime'] ?? '08:00').toString();
-        final end = (schedule['endTime'] ?? '17:00').toString();
-        final breakTime = schedule['breakTime'] ?? 1;
-        final ot = schedule['maxOtHours'] ?? 4;
-        _scheduleText = '$start - $end | Nghỉ: ${breakTime}h | OT: ${ot}h';
-      }
     }
 
     final attendance = await _db.getAttendanceByUser(_uid, limit: 120);

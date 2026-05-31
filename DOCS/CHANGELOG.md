@@ -4,6 +4,37 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-05-29] - Fix đơn sửa ghi chi phí lặp + bổ sung xóa backup local + xóa dữ liệu local/cloud
+
+### Sửa nghiệp vụ chi phí đơn sửa và dữ liệu backup/reset
+
+**Files thay đổi:**
+- `lib/views/repair_detail_view.dart`
+- `lib/services/backup_service.dart`
+- `lib/views/backup_restore_view.dart`
+
+#### Sửa lỗi nghiệp vụ đơn sửa
+- `repair_detail_view.dart`: khi đã ghi sổ quỹ trước đó mà sửa giá vốn nhiều lần, hệ thống chỉ ghi phần chênh lệch (`delta`) thay vì ghi lại toàn bộ chi phí mỗi lần lưu.
+- Thêm `_applyCostFundDelta(...)` để tạo bút toán tăng/giảm giá vốn tương ứng (`OUT` khi tăng, `IN` khi giảm), tránh cộng trùng chi phí.
+
+#### Backup SQLite
+- `backup_service.dart`: thêm `deleteLocalSqliteBackup(filePath)` để xóa 1 file backup cục bộ.
+- `backup_restore_view.dart`: thêm nút xóa cho từng item backup SQLite trong máy, có hộp thoại xác nhận trước khi xóa.
+
+#### Xóa dữ liệu chọn lọc (Kho/Tài chính)
+- `backup_service.dart`: mở rộng mapping bảng SQLite để xóa sâu hơn cho nhóm Kho/Tài chính (`product_categories`, `product_variants`, `supplier_product_prices`, `financial_activity_log`, `adjustment_entries`, `payroll_locks`, ...).
+- `backup_restore_view.dart`: thêm tùy chọn **xóa luôn dữ liệu Cloud** theo nhóm đã chọn để tránh dữ liệu cloud đồng bộ ngược trở lại sau khi xóa local.
+- `backup_service.dart`: thêm `deleteSelectedDataFromCloud(...)` (batch delete theo `shopId`).
+
+### Validation
+- `flutter analyze lib/views/repair_detail_view.dart lib/views/backup_restore_view.dart lib/services/backup_service.dart`
+	- Không phát sinh compile error mới; còn các `info`/lint hiện hữu.
+- `flutter build apk --debug`
+	- Build thành công: `build/app/outputs/flutter-apk/app-debug.apk`
+	- Có cảnh báo NDK plugin yêu cầu `28.2.13676358` (không chặn build debug).
+
+---
+
 ## [2026-05-29] - Backup: Xóa dữ liệu chọn lọc + Dọn backup cũ
 
 ### Quản lý dữ liệu SQLite mở rộng

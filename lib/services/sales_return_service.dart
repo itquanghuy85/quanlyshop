@@ -559,14 +559,5 @@ class SalesReturnService {
     return await _db.getSalesReturnStats(startDate: startDate, endDate: endDate);
   }
 
-  static String _formatMoney(int amount) {
-    if (amount >= 1000000) {
-      return '${(amount / 1000000).toStringAsFixed(1)}tr';
-    }
-    if (amount >= 1000) {
-      return '${(amount / 1000).toStringAsFixed(0)}k';
-    }
-    return '$amount';
-  }
 }
 

@@ -33,7 +33,6 @@ class CurrentShopService {
 
   // Cache
   String? _activeShopId;
-  String? _activeShopUid;
   List<Map<String, dynamic>>? _cachedShops;
   bool _initialized = false;
 
@@ -98,7 +97,6 @@ class CurrentShopService {
       final savedUid = prefs.getString(_prefKeyUid);
       if (savedUid == currentUid) {
         _activeShopId = prefs.getString(_prefKey);
-        _activeShopUid = savedUid;
         debugPrint(
           'CurrentShopService: Loaded activeShopId=$_activeShopId for uid=$currentUid',
         );
@@ -156,7 +154,6 @@ class CurrentShopService {
         await prefs.remove(_prefKey);
         await prefs.remove(_prefKeyUid);
         _activeShopId = null;
-        _activeShopUid = null;
         debugPrint('CurrentShopService: Different user, cleared saved shop');
       }
 
@@ -170,7 +167,6 @@ class CurrentShopService {
   /// Clear service state on logout
   void clear() {
     _activeShopId = null;
-    _activeShopUid = null;
     _cachedShops = null;
     _initialized = false;
     debugPrint('CurrentShopService: Cleared');
@@ -315,7 +311,6 @@ class CurrentShopService {
     try {
       // 1. Update local cache
       _activeShopId = newShopId;
-      _activeShopUid = currentUser.uid;
 
       // 2. Persist to SharedPreferences
       final prefs = await SharedPreferences.getInstance();
@@ -432,7 +427,6 @@ class CurrentShopService {
 
       // 2. Clear in-memory cache
       _activeShopId = null;
-      _activeShopUid = null;
       _cachedShops = null;
 
       // 3. Clear SharedPreferences

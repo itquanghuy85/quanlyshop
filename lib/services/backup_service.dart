@@ -47,7 +47,12 @@ class BackupService {
     'repair_partners': ['repair_partners'],
     'partner_repair_history': ['partner_repair_history'],
     'sales': ['sales', 'sales_returns', 'sales_return_items'],
-    'products': ['products'],
+    'products': [
+      'products',
+      'product_categories',
+      'product_variants',
+      'supplier_product_prices',
+    ],
     'salvage_phones': ['salvage_phones'],
     'storage_locations': ['storage_locations'],
     'customers': ['customers'],
@@ -55,20 +60,57 @@ class BackupService {
     'supplier_import_history': ['supplier_import_history'],
     'debts': ['debts'],
     'debt_payments': ['debt_payments'],
-    'expenses': ['expenses'],
+    'expenses': ['expenses', 'financial_activity_log', 'adjustment_entries'],
     'payment_intents': ['payment_intents'],
     'payment_requests': ['payment_requests'],
     'supplier_payments': ['supplier_payments'],
     'repair_partner_payments': ['repair_partner_payments'],
     'attendance': ['attendance'],
-    'payroll_settings': ['payroll_settings', 'employee_salary_settings'],
+    'payroll_settings': [
+      'payroll_settings',
+      'employee_salary_settings',
+      'payroll_locks',
+    ],
     'work_schedules': ['work_schedules'],
+    'leave_requests': ['leave_requests'],
     'audit_logs': ['audit_logs'],
     'inventory_checks': ['inventory_checks'],
     'cash_closings': ['cash_closings'],
+    'shop_settings': ['shop_settings'],
     'purchase_orders': ['purchase_orders'],
     'import_orders': ['import_orders', 'import_order_items'],
     'quick_input_codes': ['quick_input_codes'],
+  };
+
+  static const Map<String, String> _firestoreCollectionNames = {
+    'repairs': 'repairs',
+    'repair_parts': 'repair_parts',
+    'repair_partners': 'repair_partners',
+    'partner_repair_history': 'partner_repair_history',
+    'sales': 'sales',
+    'products': 'products',
+    'salvage_phones': 'salvage_phones',
+    'storage_locations': 'storage_locations',
+    'customers': 'customers',
+    'suppliers': 'suppliers',
+    'supplier_import_history': 'supplier_import_history',
+    'debts': 'debts',
+    'debt_payments': 'debt_payments',
+    'expenses': 'expenses',
+    'payment_intents': 'payment_intents',
+    'payment_requests': 'payment_requests',
+    'supplier_payments': 'supplier_payments',
+    'repair_partner_payments': 'repair_partner_payments',
+    'attendance': 'attendance',
+    'payroll_settings': 'payroll_settings',
+    'work_schedules': 'work_schedules',
+    'leave_requests': 'leave_requests',
+    'audit_logs': 'audit_logs',
+    'inventory_checks': 'inventory_checks',
+    'cash_closings': 'cash_closings',
+    'purchase_orders': 'purchase_orders',
+    'import_orders': 'import_orders',
+    'quick_input_codes': 'quick_input_codes',
   };
 
   static Future<Directory> _getLocalBackupDir() async {
@@ -130,6 +172,21 @@ class BackupService {
         subject: 'QuanLyShop Backup',
       ),
     );
+  }
+
+  /// Xóa một file backup SQLite cục bộ theo đường dẫn tuyệt đối.
+  static Future<void> deleteLocalSqliteBackup(String filePath) async {
+    final normalizedPath = filePath.trim();
+    if (!normalizedPath.toLowerCase().endsWith('.db')) {
+      throw Exception('File backup không hợp lệ');
+    }
+
+    final backupFile = File(normalizedPath);
+    if (!await backupFile.exists()) {
+      throw Exception('Không tìm thấy file backup cần xóa');
+    }
+
+    await backupFile.delete();
   }
 
   /// Danh sách các bản backup SQLite cục bộ (mới nhất trước).
@@ -237,10 +294,19 @@ class BackupService {
     int rowsDeleted = 0;
     final db = await openDatabase(dbPath, singleInstance: false);
     try {
+      final existingTablesRows = await db.rawQuery(
+        "SELECT name FROM sqlite_master WHERE type = 'table'",
+      );
+      final existingTables = existingTablesRows
+          .map((row) => row['name']?.toString() ?? '')
+          .where((name) => name.isNotEmpty)
+          .toSet();
+
       await db.transaction((txn) async {
         for (final key in collections) {
           final tables = _sqliteCollectionTables[key] ?? const <String>[];
           for (final table in tables) {
+            if (!existingTables.contains(table)) continue;
             try {
               final n = await txn.rawDelete('DELETE FROM $table');
               rowsDeleted += n;
@@ -252,6 +318,62 @@ class BackupService {
       await db.close();
     }
     return rowsDeleted;
+  }
+
+  /// Xóa dữ liệu cloud theo nhóm đã chọn của shop hiện tại.
+  /// Trả về tổng số document đã xóa.
+  static Future<int> deleteSelectedDataFromCloud({
+    required List<String> collections,
+    String? shopIdOverride,
+  }) async {
+    if (collections.isEmpty) return 0;
+
+    final shopId = shopIdOverride ?? await UserService.getCurrentShopId();
+    if (shopId == null || shopId.isEmpty) {
+      throw Exception('Chưa đăng nhập');
+    }
+
+    final firestore = FirebaseFirestore.instance;
+    int totalDeleted = 0;
+
+    Future<void> deleteByQuery(Query<Map<String, dynamic>> query) async {
+      while (true) {
+        final snapshot = await query.limit(400).get();
+        if (snapshot.docs.isEmpty) {
+          break;
+        }
+
+        final batch = firestore.batch();
+        for (final doc in snapshot.docs) {
+          batch.delete(doc.reference);
+        }
+        await batch.commit();
+        totalDeleted += snapshot.docs.length;
+
+        if (snapshot.docs.length < 400) {
+          break;
+        }
+      }
+    }
+
+    final List<String> skipped = [];
+    for (final key in collections) {
+      final collection = _firestoreCollectionNames[key];
+      if (collection == null || collection.isEmpty) continue;
+      try {
+        await deleteByQuery(
+          firestore.collection(collection).where('shopId', isEqualTo: shopId),
+        );
+      } catch (e) {
+        skipped.add(collection);
+        debugPrint('⚠️ deleteSelectedDataFromCloud: skip $collection ($e)');
+      }
+    }
+    if (skipped.isNotEmpty) {
+      debugPrint('⚠️ Skipped ${skipped.length} collections (permission denied): $skipped');
+    }
+
+    return totalDeleted;
   }
 
   /// Xóa file backup SQLite cục bộ cũ hơn [keepDays] ngày. Trả về số file đã xóa.

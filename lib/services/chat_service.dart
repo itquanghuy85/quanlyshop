@@ -21,7 +21,6 @@ class ChatService {
 
   // Typing debounce
   static Timer? _typingTimer;
-  static bool _isTyping = false;
 
   static Future<Map<String, String?>> _resolveCurrentSenderProfile(
     User user,
@@ -374,9 +373,14 @@ class ChatService {
     }
   }
 
-  /// Ghim tin nhắn
+  /// Ghim tin nhắn — chỉ Manager trở lên
   static Future<bool> pinMessage(String messageId, bool isPinned) async {
     try {
+      final perms = await UserService.getCurrentUserPermissions();
+      if (perms['allowPinChat'] != true) {
+        debugPrint('❌ Chat pinMessage: no permission');
+        return false;
+      }
       await _db.collection(_collectionChats).doc(messageId).update({
         'isPinned': isPinned,
         'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
@@ -411,12 +415,7 @@ class ChatService {
       final shopId = await UserService.getCurrentShopId();
       if (shopId == null) return;
 
-      // Get unread messages
-      final unread = await _db
-          .collection(_collectionChats)
-          .where('shopId', isEqualTo: shopId)
-          .where('readBy', arrayContains: user.uid)
-          .get();
+      // Get unread messages (unused result — only kept for side-effect ordering)
 
       // Batch update - lấy các tin nhắn chưa đọc
       final allDocs = await _db
@@ -568,8 +567,6 @@ class ChatService {
 
       final shopId = await UserService.getCurrentShopId();
       if (shopId == null) return;
-
-      _isTyping = isTyping;
 
       if (isTyping) {
         final userName = user.email?.split('@').first.toUpperCase() ?? 'USER';

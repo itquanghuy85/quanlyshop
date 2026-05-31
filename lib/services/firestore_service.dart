@@ -55,6 +55,8 @@ class FirestoreService {
     required bool useIndexedQuery,
     int indexedLimit = 50,
   }) {
+    assert(shopId.isNotEmpty, 'watchRepairsByShop: shopId must not be empty');
+    if (shopId.isEmpty) return const Stream.empty();
     Query<Map<String, dynamic>> query = _db
         .collection('repairs')
         .where('shopId', isEqualTo: shopId);

@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../data/db_helper.dart';
 import '../theme/app_text_styles.dart';
 import '../models/repair_model.dart';
 import '../models/sale_order_model.dart';
 import '../models/shop_settings_model.dart';
-import '../services/user_service.dart';
 import '../services/first_time_guide_service.dart';
 import '../services/category_service.dart';
 import '../services/business_type_helper.dart';
@@ -27,7 +25,6 @@ class _WarrantyViewState extends State<WarrantyView> {
   final db = DBHelper();
   List<Map<String, dynamic>> _warrantyList = [];
   bool _isLoading = true;
-  bool _isAdmin = false;
   ShopSettings? _shopSettings;
 
   BusinessTerminology get _terms => BusinessTypeHelper.instance.getTerminology(_shopSettings);
@@ -36,7 +33,6 @@ class _WarrantyViewState extends State<WarrantyView> {
   void initState() {
     super.initState();
     _loadShopSettings();
-    _loadRole();
     _loadAllWarranty();
     WidgetsBinding.instance.addPostFrameCallback((_) => _showFirstTimeGuide());
   }
@@ -86,16 +82,6 @@ class _WarrantyViewState extends State<WarrantyView> {
     } catch (e) {
       debugPrint('Error loading shop settings: $e');
     }
-  }
-
-  Future<void> _loadRole() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
-    final perms = await UserService.getCurrentUserPermissions();
-    if (!mounted) return;
-    setState(() {
-      _isAdmin = perms['allowViewWarranty'] ?? false;
-    });
   }
 
   Future<void> _loadAllWarranty() async {
@@ -483,9 +469,4 @@ class _WarrantyViewState extends State<WarrantyView> {
     );
   }
 
-  Color _getProgressColor(int days) {
-    if (days < 10) return Colors.redAccent;
-    if (days < 30) return Colors.orangeAccent;
-    return const Color(0xFF2962FF);
-  }
 }

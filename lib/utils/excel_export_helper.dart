@@ -30,7 +30,6 @@ class ExcelExportHelper {
   static final _db = DBHelper();
   static final _dateFormat = DateFormat('dd/MM/yyyy');
   static final _dateTimeFormat = DateFormat('dd/MM/yyyy HH:mm');
-  static final _monthFormat = DateFormat('MM/yyyy');
 
   static String _attendanceStatusLabel(String status) {
     switch (status) {

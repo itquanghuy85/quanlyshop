@@ -10,14 +10,7 @@ class SyncStatusWidget extends StatefulWidget {
 }
 
 class _SyncStatusWidgetState extends State<SyncStatusWidget> {
-  bool _isOnline = false;
   bool _isSyncing = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _isOnline = ConnectivityService.instance.isOnline;
-  }
 
   Future<void> _manualSync() async {
     final messenger = ScaffoldMessenger.of(context);

@@ -2,7 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'firestore_write_helper.dart';
 import 'package:flutter/foundation.dart';
 import '../models/product_variant_model.dart';
-import '../models/product_model.dart';
 import '../data/db_helper.dart';
 import 'user_service.dart';
 

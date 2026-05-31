@@ -158,7 +158,6 @@ class _AuditLogViewState extends State<AuditLogView> {
     final Color actionColor = _getActionColor(log['action'] ?? '');
     final String actionLabel = _displayAction(log['action']);
     final String entityType = log['targetType'] ?? log['entityType'] ?? '';
-    final String entityId = log['targetId'] ?? log['entityId'] ?? '';
     final String description = log['description'] ?? log['summary'] ?? '';
 
     return GestureDetector(

@@ -310,15 +310,6 @@ class _SettingsViewState extends State<SettingsView> {
     }
   }
 
-  void _openHelpCenter() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => HelpCenterView(userRole: _role),
-      ),
-    );
-  }
-
   void _openUserGuide() {
     Navigator.push(
       context,
@@ -1569,87 +1560,6 @@ class _SettingsViewState extends State<SettingsView> {
         }
       }
     }
-  }
-
-  Widget _buildLinkedAccountsCard() {
-    final googleLinked = SocialAuthService.isGoogleLinked();
-    final appleLinked = SocialAuthService.isAppleLinked();
-    final passwordLinked = SocialAuthService.isPasswordLinked();
-    final showApple = kIsWeb || (!kIsWeb && Platform.isIOS) || (!kIsWeb && Platform.isMacOS);
-
-    return Card(
-      color: Colors.indigo.shade50,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15),
-        side: BorderSide(color: Colors.indigo.shade200),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.link, color: Colors.indigo, size: 20),
-                const SizedBox(width: 8),
-                const Text(
-                  'Liên kết tài khoản',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                    color: Colors.indigo,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Liên kết để đăng nhập nhanh hơn',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-            ),
-            const Divider(height: 16),
-            // Email/Password
-            _buildProviderRow(
-              icon: Icons.email,
-              color: Colors.blue,
-              label: 'Email/Mật khẩu',
-              linked: passwordLinked,
-              onLink: null, // Always linked by default
-              onUnlink: null, // Cannot unlink if it's the only method
-              providerEmail: SocialAuthService.passwordEmail,
-            ),
-            const SizedBox(height: 8),
-            // Google
-            _buildProviderRow(
-              icon: Icons.g_mobiledata,
-              color: Colors.red,
-              label: 'Google',
-              linked: googleLinked,
-              onLink: () => _linkProvider('google'),
-              onUnlink: googleLinked && SocialAuthService.getLinkedProviders().length > 1
-                  ? () => _unlinkProvider('google')
-                  : null,
-              providerEmail: SocialAuthService.googleEmail,
-            ),
-            // Apple (only on iOS/macOS/web)
-            if (showApple) ...[
-              const SizedBox(height: 8),
-              _buildProviderRow(
-                icon: Icons.apple,
-                color: Colors.black,
-                label: 'Apple',
-                linked: appleLinked,
-                onLink: () => _linkProvider('apple'),
-                onUnlink: appleLinked && SocialAuthService.getLinkedProviders().length > 1
-                    ? () => _unlinkProvider('apple')
-                    : null,
-                providerEmail: SocialAuthService.appleEmail,
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
   }
 
   Widget _buildProviderRow({

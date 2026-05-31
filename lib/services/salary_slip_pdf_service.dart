@@ -1,6 +1,5 @@
 import 'dart:typed_data';
 import 'dart:io';
-import 'package:flutter/material.dart' show Colors;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';

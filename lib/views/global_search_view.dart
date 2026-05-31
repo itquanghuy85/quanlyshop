@@ -8,7 +8,6 @@ import '../models/quick_input_code_model.dart';
 import '../models/shop_settings_model.dart';
 import '../services/category_service.dart';
 import '../services/business_type_helper.dart';
-import '../theme/app_text_styles.dart';
 import '../widgets/custom_app_bar.dart';
 import 'repair_detail_view.dart';
 import 'sale_detail_view.dart';
@@ -116,7 +115,7 @@ class _GlobalSearchViewState extends State<GlobalSearchView> {
           return VietnameseUtils.containsVietnamese(sale.customerName, query) ||
                  sale.phone.contains(query) ||
                  VietnameseUtils.containsVietnamese(sale.productNames, query) ||
-                 (sale.productImeis ?? '').contains(query);
+                 sale.productImeis.contains(query);
         }).toList();
         if (searchAll) {
           allResults.addAll(filtered);

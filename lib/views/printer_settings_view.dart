@@ -7,8 +7,6 @@ import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
 import 'package:flutter_esc_pos_utils/flutter_esc_pos_utils.dart';
 import '../services/notification_service.dart';
 import '../services/bluetooth_printer_service.dart';
-import '../services/thermal_printer_service.dart';
-import '../services/wifi_printer_service.dart';
 import '../services/network_printer_scanner.dart';
 import '../services/user_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';

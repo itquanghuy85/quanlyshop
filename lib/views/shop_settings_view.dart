@@ -32,7 +32,6 @@ import '../theme/app_colors.dart';
 import 'adjustment_history_view.dart';
 import 'hr_salary_settings_view.dart';
 import 'label_designer_view.dart';
-import 'onboarding/business_type_wizard.dart';
 import 'backup_restore_view.dart';
 import 'kiotviet_settings_view.dart';
 
@@ -424,35 +423,6 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
     } catch (e) {
       debugPrint('Error loading shop settings: $e');
     }
-  }
-
-  /// Open business type wizard to change business type
-  Future<void> _openBusinessTypeWizard() async {
-    final shopId = await UserService.getCurrentShopId();
-    if (shopId == null) {
-      NotificationService.showSnackBar('Không tìm thấy thông tin shop', color: Colors.red);
-      return;
-    }
-
-    await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => BusinessTypeWizard(
-          shopId: shopId,
-          shopName: _shopName,
-          onComplete: (settings) async {
-            await CategoryService().saveShopSettings(settings);
-            if (!mounted) return;
-            await _loadShopSettings();
-            NotificationService.showSnackBar(
-              'Đã cập nhật loại hình kinh doanh',
-              color: Colors.green,
-            );
-            Navigator.of(context).pop();
-          },
-        ),
-      ),
-    );
   }
 
   ImageProvider? _buildShopCoverImageProvider() {

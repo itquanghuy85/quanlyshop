@@ -6,7 +6,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../data/db_helper.dart';
 import '../models/repair_model.dart';
-import '../models/shop_settings_model.dart';
 import '../services/notification_service.dart';
 import '../services/background_upload_service.dart';
 import '../services/sync_service.dart';
@@ -15,12 +14,9 @@ import '../services/firestore_service.dart';
 import '../services/unified_printer_service.dart';
 import '../services/adjustment_service.dart';
 import '../services/first_time_guide_service.dart';
-import '../services/category_service.dart';
-import '../services/business_type_helper.dart';
 import '../utils/money_utils.dart';
 import '../utils/vietnamese_utils.dart';
 import '../widgets/currency_text_field.dart';
-import '../widgets/validated_text_field.dart';
 import '../models/repair_partner_model.dart';
 import '../models/repair_service_model.dart';
 import '../services/repair_partner_service.dart';
@@ -100,10 +96,6 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
   int _customerTotalRepairs = 0;
   int _customerActiveDebt = 0;         // net debt amount (positive = owes shop)
 
-  // Shop settings for dynamic terminology
-  ShopSettings? _shopSettings;
-  BusinessTerminology get _terms => BusinessTypeHelper.instance.getTerminology(_shopSettings);
-
   StorageLocation? _selectedLocation;
 
   final List<String> brands = ["IPHONE ", "SAMSUNG ", "OPPO ", "REDMI ", "VIVO "];
@@ -123,7 +115,6 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
   @override
   void initState() {
     super.initState();
-    _loadShopSettings();
     phoneCtrl.addListener(() {
       if (phoneCtrl.text.length == 10) {
         _smartFill();
@@ -144,17 +135,6 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
         _showFirstTimeGuide();
       }
     });
-  }
-
-  Future<void> _loadShopSettings() async {
-    try {
-      final settings = await CategoryService().getShopSettings();
-      if (mounted) {
-        setState(() => _shopSettings = settings);
-      }
-    } catch (e) {
-      debugPrint('Error loading shop settings: $e');
-    }
   }
 
   /// Hiển thị hướng dẫn lần đầu
@@ -491,17 +471,15 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
 
       final now = DateTime.now().millisecondsSinceEpoch;
       final totalCost = _services.fold(0, (sum, s) => sum + s.cost);
-      final fallbackName = nameCtrl.text.trim().isEmpty
-          ? 'KHÁCH VÃNG LAI'
-          : nameCtrl.text.trim().toUpperCase();
+      final customerName = nameCtrl.text.trim().toUpperCase();
       final normalizedPhone = phoneCtrl.text.trim();
-      final docIdTail = normalizedPhone.isNotEmpty ? normalizedPhone : 'walkin';
+      final docIdTail = normalizedPhone.isNotEmpty ? normalizedPhone : now.toString().substring(7);
       final r = Repair(
         firestoreId: "rep_${now}_$docIdTail",
-        customerName: fallbackName,
+        customerName: customerName,
         phone: normalizedPhone,
-        isWalkIn: _isWalkIn,
-        walkInName: _isWalkIn ? fallbackName : null,
+        isWalkIn: _isWalkIn || (customerName.isEmpty && normalizedPhone.isEmpty),
+        walkInName: _isWalkIn ? customerName : null,
         walkInPhone: _isWalkIn && normalizedPhone.isNotEmpty
             ? normalizedPhone
             : null,
@@ -546,7 +524,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
               .toList();
           if (existing.isEmpty) {
             final newCustomer = Customer(
-              name: fallbackName,
+              name: customerName,
               phone: normalizedPhoneForCustomer,
               address: addressCtrl.text.trim().toUpperCase(),
               createdAt: DateTime.now().millisecondsSinceEpoch,
@@ -798,7 +776,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
             normalizedPhoneForCustomer,
             r.price,
             address: addressCtrl.text.trim().toUpperCase(),
-            name: fallbackName,
+            name: customerName,
           );
         }
       } catch (e) {
@@ -1345,14 +1323,14 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
             const SizedBox(height: 10),
             _compactInput(
               phoneCtrl,
-              _isWalkIn ? loc.phoneOptional : loc.phoneRequired,
+              loc.phoneOptional,
               Icons.phone,
               type: TextInputType.phone,
             ),
             const SizedBox(height: 8),
             _compactInput(
               nameCtrl,
-              _isWalkIn ? loc.customerNameOptional : loc.customerName,
+              loc.customerNameOptional,
               Icons.person,
               caps: true,
             ),
@@ -1556,7 +1534,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
                 Expanded(
                   child: _compactInput(
                     phoneCtrl,
-                    _isWalkIn ? loc.phoneOptional : loc.phoneRequired,
+                    loc.phoneOptional,
                     Icons.phone,
                     type: TextInputType.phone,
                   ),
@@ -1565,7 +1543,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
                 Expanded(
                   child: _compactInput(
                     nameCtrl,
-                    _isWalkIn ? loc.customerNameOptional : loc.customerName,
+                    loc.customerNameOptional,
                     Icons.person,
                     caps: true,
                   ),
@@ -1750,89 +1728,6 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
         isDense: true,
         contentPadding: DesignTokens.formContentPadding,
         border: OutlineInputBorder(borderRadius: DesignTokens.brSm),
-      ),
-    );
-  }
-
-  // OLD BUILD METHOD CONTENT REMOVED - replaced with compact version above
-  // Keeping old helper methods below...
-
-  Widget _priorityChip(String label, VoidCallback onTap) {
-    return Expanded(
-      child: ActionChip(
-        label: Text(
-          label,
-          style: AppTextStyles.caption.copyWith(
-            fontWeight: FontWeight.bold,
-            color: AppColors.onSecondary,
-          ),
-        ),
-        backgroundColor: AppColors.secondary,
-        padding: const EdgeInsets.all(0),
-        onPressed: () {
-          HapticFeedback.lightImpact();
-          onTap();
-        },
-      ),
-    );
-  }
-
-  Widget _buildQuickAccs() {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 15),
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 0,
-        children: quickAccs.map((acc) {
-          final isSelected = _selectedAccs.contains(acc);
-          return FilterChip(
-            label: Text(
-              acc,
-              style: AppTextStyles.caption.copyWith(
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected ? AppColors.onPrimary : AppColors.onSurface,
-              ),
-            ),
-            selected: isSelected,
-            onSelected: (v) {
-              HapticFeedback.lightImpact();
-              setState(() {
-                v ? _selectedAccs.add(acc) : _selectedAccs.remove(acc);
-              });
-            },
-            selectedColor: const Color(0xFF2962FF),
-            checkmarkColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-
-  Widget _input(
-    TextEditingController c,
-    String l,
-    IconData i, {
-    bool caps = false,
-    TextInputType type = TextInputType.text,
-    FocusNode? next,
-    int? maxLines,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: ValidatedTextField(
-        controller: c,
-        label: l.replaceAll(' *', ''),
-        icon: i,
-        keyboardType: type,
-        uppercase: caps,
-        required: l.contains('*'),
-        maxLines: maxLines,
-        onSubmitted: () {
-          if (next != null) FocusScope.of(context).requestFocus(next);
-        },
       ),
     );
   }

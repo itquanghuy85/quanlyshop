@@ -1,18 +1,12 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:open_filex/open_filex.dart';
-import 'package:share_plus/share_plus.dart';
 import 'responsive_wrapper.dart';
 import '../data/db_helper.dart';
 import '../services/sync_service.dart';
 import '../services/sync_orchestrator.dart';
 import '../services/sync_health_check.dart';
 import '../services/notification_service.dart';
-import '../services/data_migration_service.dart';
 import '../services/firestore_connectivity_service.dart';
-import '../services/sync_audit_service.dart';
 import '../services/sync_domain_report_service.dart';
 import '../views/firestore_connectivity_test_view.dart';
 import '../views/firebase_rw_stats_view.dart';
@@ -1148,42 +1142,24 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
     }
   }
 
-  Future<void> _handleClearFailed() async {
-    final confirm = await _showConfirmDialog(
-      title: '🗑️ XÓA ITEMS LỖI',
-      message:
-          '⚠️ CẢNH BÁO: Xóa vĩnh viễn tất cả items bị failed.\n\nDữ liệu local KHÔNG bị xóa, chỉ xóa khỏi hàng đợi sync.\n\nDùng khi items không thể sync và bạn muốn làm sạch queue.',
-      confirmText: 'XÓA',
-      confirmColor: Colors.red,
+  Future<void> _handleOpenFirebaseStats() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const FirebaseRwStatsView()),
     );
 
-    if (confirm != true) return;
+    if (!mounted) return;
+    await _loadInitialData();
+  }
 
-    setState(() {
-      _isLoading = true;
-      _loadingMessage = 'Đang xóa...';
-    });
+  Future<void> _handleOpenFirestoreConnectivityPage() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const FirestoreConnectivityTestView()),
+    );
 
-    try {
-      final count = await _orchestrator.clearFailedItems();
-
-      // Reload stats
-      _syncQueueStats = await _orchestrator.getSyncStats();
-      _domainReport = await SyncDomainReportService.buildReport(
-        healthReport: _healthReport,
-      );
-
-      if (mounted) {
-        setState(() => _isLoading = false);
-        NotificationService.showSnackBar(
-          '✅ Đã xóa $count items lỗi!',
-          color: Colors.green,
-        );
-      }
-    } catch (e) {
-      NotificationService.showSnackBar('❌ Lỗi: $e', color: Colors.red);
-      setState(() => _isLoading = false);
-    }
+    if (!mounted) return;
+    await _loadInitialData();
   }
 
   Future<void> _handleDetailedCheck() async {
@@ -1239,244 +1215,6 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
       );
     }
   }
-
-  Future<void> _handleDataRecovery() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      NotificationService.showSnackBar('Vui lòng đăng nhập', color: Colors.red);
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-      _loadingMessage = 'Đang tìm dữ liệu...';
-    });
-
-    try {
-      final orphanData = await DataMigrationService.findOrphanData();
-
-      if (mounted) {
-        setState(() => _isLoading = false);
-
-        if (orphanData.isEmpty) {
-          NotificationService.showSnackBar(
-            'Không tìm thấy dữ liệu bị lạc',
-            color: Colors.blue,
-          );
-        } else {
-          _showOrphanDataDialog(orphanData);
-        }
-      }
-    } catch (e) {
-      NotificationService.showSnackBar('❌ Lỗi: $e', color: Colors.red);
-      setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _handleOpenFirebaseStats() async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const FirebaseRwStatsView()),
-    );
-
-    if (!mounted) return;
-    await _loadInitialData();
-  }
-
-  Future<void> _handleOpenFirestoreConnectivityPage() async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const FirestoreConnectivityTestView()),
-    );
-
-    if (!mounted) return;
-    await _loadInitialData();
-  }
-
-  Future<void> _handleExportSyncReport() async {
-    setState(() {
-      _isLoading = true;
-      _loadingMessage = 'Đang tạo báo cáo sync...';
-    });
-
-    try {
-      final latestHealth =
-          _healthReport ?? await SyncHealthCheck.runFullCheck();
-      final latestDomainReport = await SyncDomainReportService.buildReport(
-        healthReport: latestHealth,
-      );
-      final latestQueueStats = await _orchestrator.getSyncStats();
-      final events = await SyncAuditService.getRecentEvents(limit: 80);
-      final markdown = _buildSyncOperationalMarkdown(
-        report: latestDomainReport,
-        queueStats: latestQueueStats,
-        events: events,
-      );
-
-      final reportPath = await SyncAuditService.writeMarkdownReport(
-        markdown: markdown,
-        prefix: 'sync_operational_report',
-      );
-
-      if (!mounted) return;
-      setState(() {
-        _isLoading = false;
-        _healthReport = latestHealth;
-        _domainReport = latestDomainReport;
-        _syncQueueStats = latestQueueStats;
-      });
-
-      await _showReportExportDialog(reportPath);
-      NotificationService.showSnackBar(
-        '✅ Đã tạo báo cáo sync thành công',
-        color: Colors.green,
-      );
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _isLoading = false);
-      NotificationService.showSnackBar(
-        '❌ Không thể xuất báo cáo sync: $e',
-        color: Colors.red,
-      );
-    }
-  }
-
-  String _buildSyncOperationalMarkdown({
-    required SyncDomainReportSnapshot report,
-    required Map<String, int> queueStats,
-    required List<SyncAuditEvent> events,
-  }) {
-    final buffer = StringBuffer();
-    buffer.writeln('# Báo cáo vận hành Sync');
-    buffer.writeln('');
-    buffer.writeln('- Thời gian tạo: ${_formatSyncTime(report.generatedAt)}');
-    buffer.writeln('- Tổng pending queue: ${queueStats['pending'] ?? 0}');
-    buffer.writeln('- Tổng processing queue: ${queueStats['processing'] ?? 0}');
-    buffer.writeln('- Tổng failed queue: ${queueStats['failed'] ?? 0}');
-    buffer.writeln('- Tổng cảnh báo kẹt queue: ${report.totalStuckQueue}');
-    buffer.writeln('');
-
-    buffer.writeln('## Trạng thái theo nghiệp vụ');
-    for (final domain in report.domains) {
-      buffer.writeln('');
-      buffer.writeln('### ${domain.title} (${domain.statusLabel})');
-      buffer.writeln(
-        '- Queue: pending=${domain.pendingQueue}, processing=${domain.processingQueue}, failed=${domain.failedQueue}',
-      );
-      buffer.writeln(
-        '- Queue kẹt: ${domain.staleQueueTotal} (pending=${domain.stalePendingQueue}, processing=${domain.staleProcessingQueue})',
-      );
-      buffer.writeln(
-        '- Local chưa sync: ${domain.unsyncedLocal}, lệch local-cloud: ${domain.mismatchCount}, tổng local: ${domain.totalLocalRecords}',
-      );
-      buffer.writeln(
-        '- 24h gần nhất: success=${domain.recentSuccessCount}, retry=${domain.recentRetryCount}, failed=${domain.recentFailedCount}',
-      );
-      buffer.writeln(
-        '- Mốc cloud gần nhất: ${domain.lastSyncAt != null ? _formatSyncTime(domain.lastSyncAt!) : 'chưa có'}',
-      );
-      buffer.writeln(
-        '- Lỗi gần nhất: ${domain.lastFailureAt != null ? _formatSyncTime(domain.lastFailureAt!) : 'không có'}',
-      );
-    }
-
-    buffer.writeln('');
-    buffer.writeln('## Nhật ký sự kiện sync gần nhất');
-    if (events.isEmpty) {
-      buffer.writeln('- Chưa có sự kiện trong bảng sync_audit_log.');
-    } else {
-      buffer.writeln('|Thời gian|Domain|Entity|Kết quả|Queue|Retry|Lỗi|');
-      buffer.writeln('|---|---|---|---|---|---:|---|');
-      for (final event in events.take(40)) {
-        final error = (event.errorMessage ?? '')
-            .replaceAll('\n', ' ')
-            .replaceAll('|', '/')
-            .trim();
-        buffer.writeln(
-          '|${_formatSyncTime(event.createdAt)}|${_domainTitleFromKey(event.domainKey)}|${event.entityType}#${event.entityId}|${event.outcome}|${event.queueStatus}|${event.retryCount}|${error.isEmpty ? '-' : error}|',
-        );
-      }
-    }
-
-    return buffer.toString();
-  }
-
-  String _domainTitleFromKey(String key) {
-    switch (key) {
-      case 'financial':
-        return 'Tài chính';
-      case 'repair':
-        return 'Đơn sửa';
-      case 'inventory':
-        return 'Kho';
-      case 'sales':
-        return 'Bán hàng';
-      default:
-        return key;
-    }
-  }
-
-  Future<void> _showReportExportDialog(String reportPath) async {
-    final normalizedPath = reportPath.replaceAll('\\', '/');
-    final fileName = normalizedPath.split('/').last;
-
-    final action = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.description, color: Colors.indigo),
-            SizedBox(width: 8),
-            Text('BÁO CÁO SYNC ĐÃ TẠO'),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('File: $fileName'),
-            const SizedBox(height: 8),
-            Text(
-              reportPath,
-              style: TextStyle(
-                fontSize: AppTextStyles.body1.fontSize,
-                color: Colors.grey.shade700,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, 'close'),
-            child: const Text('Đóng'),
-          ),
-          if (!kIsWeb)
-            TextButton.icon(
-              onPressed: () => Navigator.pop(ctx, 'open'),
-              icon: const Icon(Icons.open_in_new, size: 18),
-              label: const Text('Mở'),
-            ),
-          FilledButton.icon(
-            onPressed: () => Navigator.pop(ctx, 'share'),
-            icon: const Icon(Icons.share, size: 18),
-            label: const Text('Chia sẻ'),
-          ),
-        ],
-      ),
-    );
-
-    if (action == 'open') {
-      await OpenFilex.open(reportPath);
-      return;
-    }
-
-    if (action == 'share') {
-      await SharePlus.instance.share(
-        ShareParams(files: [XFile(reportPath)], title: fileName),
-      );
-    }
-  }
-
   void _showDetailedReportDialog(SyncHealthReport report) {
     showDialog(
       context: context,
@@ -1742,57 +1480,6 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
               color: isOk ? Colors.green : Colors.orange,
               fontSize: AppTextStyles.subtitle1.fontSize,
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showOrphanDataDialog(List<OrphanDataInfo> orphanData) {
-    // Group by shopId
-    final groupedByShop = <String, int>{};
-    for (var info in orphanData) {
-      groupedByShop[info.shopId] =
-          (groupedByShop[info.shopId] ?? 0) + info.count;
-    }
-
-    final totalCount = orphanData.fold<int>(0, (sum, item) => sum + item.count);
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.find_in_page, color: Colors.blue),
-            SizedBox(width: 8),
-            Text('DỮ LIỆU TÌM THẤY'),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Tìm thấy $totalCount bản ghi bị lạc:'),
-            const SizedBox(height: 12),
-            ...orphanData.map(
-              (info) => Text(
-                '• ${info.collection}: ${info.count} (shop: ${info.shopId.substring(0, 8)}...)',
-              ),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'Để khôi phục, vui lòng vào Cài đặt > Thông tin cửa hàng > Khôi phục dữ liệu và chọn shopId nguồn.',
-              style: TextStyle(
-                fontStyle: FontStyle.italic,
-                fontSize: AppTextStyles.body1Size,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('ĐÓNG'),
           ),
         ],
       ),

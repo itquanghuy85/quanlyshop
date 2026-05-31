@@ -2374,7 +2374,7 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
           decoration: BoxDecoration(
             color: AppColors.textHint,
             borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: AppColors.divider!, width: 1),
+            border: Border.all(color: AppColors.divider, width: 1),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,

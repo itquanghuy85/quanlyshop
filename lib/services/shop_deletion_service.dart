@@ -34,31 +34,6 @@ class ShopDeletionService {
     return _deletingShopIds.contains(shopId);
   }
   
-  /// Các subcollections cần xóa khi xóa shop
-  static const _shopSubcollections = [
-    'repairs',
-    'products', 
-    'sales',
-    'expenses',
-    'debts',
-    'debt_payments',
-    'customers',
-    'suppliers',
-    'attendance',
-    'quick_input_codes',
-    'repair_partners',
-    'repair_parts',
-    'supplier_payments',
-    'repair_partner_payments',
-    'supplier_import_history',
-    'audit_logs',
-    'notifications',
-    'settings',
-    'custom_salary_adjustments',
-    'product_categories',
-    'work_schedules',
-  ];
-
   /// Xóa shop an toàn với các bước:
   /// 1. Đánh dấu shop đang xóa (local flag)
   /// 2. Cancel tất cả subscriptions

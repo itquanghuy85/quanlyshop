@@ -1,0 +1,253 @@
+Dead code - lib\controllers\fast_inventory_input_controller.dart:227:39 - dead_code
+Dead code - lib\controllers\fast_inventory_input_controller.dart:294:42 - dead_code
+Dead code - lib\services\payment_intent_service.dart:644:35 - dead_code
+Dead code - lib\services\unified_printer_service.dart:1257:45 - dead_code
+Dead code - lib\views\fast_inventory_check_view.dart:1104:57 - dead_code
+Dead code - lib\views\global_search_view.dart:119:37 - dead_code
+Dead code - lib\views\home_view.dart:9648:24 - dead_code
+Dead code - lib\views\payment_request_chat_view.dart:90:39 - dead_code
+Dead code - lib\views\payroll_view.dart:168:28 - dead_code
+Dead code - lib\views\payroll_view.dart:178:38 - dead_code
+Dead code - lib\views\payroll_view.dart:192:19 - dead_code
+Dead code - lib\views\payroll_view.dart:236:56 - dead_code
+Dead code - lib\views\payroll_view.dart:266:25 - dead_code
+Dead code - lib\views\payroll_view.dart:387:19 - dead_code
+Dead code - lib\views\payroll_view.dart:604:47 - dead_code
+Dead code - lib\views\pending_payments_list_view.dart:114:30 - dead_code
+Dead code - lib\views\quick_input_codes_view.dart:1216:41 - dead_code
+Dead code - lib\views\repair_invoice_preview_view.dart:79:50 - dead_code
+Dead code - lib\views\work_schedule_settings_view.dart:1843:48 - dead_code
+Dead code - lib\views\work_schedule_settings_view.dart:900:61 - dead_code
+Dead code - lib\widgets\variant_selector.dart:85:5 - dead_code
+The '!' will have no effect because the receiver can't be null - lib\finance_v2\finance_v2_daily_report_view.dart:2377:56 - unnecessary_non_null_assertion
+The '!' will have no effect because the receiver can't be null - lib\services\supplier_service.dart:216:69 - unnecessary_non_null_assertion
+The '!' will have no effect because the receiver can't be null - lib\views\cash_closing_view.dart:393:117 - unnecessary_non_null_assertion
+The declaration '_activeFilterChip' isn't referenced - lib\views\sale_list_view.dart:1307:10 - unused_element
+The declaration '_addLog' isn't referenced - lib\services\bluetooth_printer_service.dart:36:15 - unused_element
+The declaration '_autoFixProductPaymentMethod' isn't referenced - lib\views\inventory_view.dart:476:16 - unused_element
+The declaration '_buildActionButton' isn't referenced - lib\views\quick_input_codes_view.dart:882:10 - unused_element
+The declaration '_buildAttendanceTab' isn't referenced - lib\views\work_schedule_settings_view.dart:2071:10 - unused_element
+The declaration '_buildCompactMetaLine' isn't referenced - lib\views\inventory_view.dart:4102:10 - unused_element
+The declaration '_buildCustomerCard' isn't referenced - lib\views\repair_detail_view.dart:6092:10 - unused_element
+The declaration '_buildCustomerContent' isn't referenced - lib\views\repair_detail_view.dart:4933:10 - unused_element
+The declaration '_buildDebtSummaryCard' isn't referenced - lib\views\home_view.dart:8104:10 - unused_element
+The declaration '_buildDetailRow' isn't referenced - lib\views\quick_input_codes_view.dart:832:10 - unused_element
+The declaration '_buildExpenseDetail' isn't referenced - lib\views\home_view.dart:8367:10 - unused_element
+The declaration '_buildFinancialContent' isn't referenced - lib\views\repair_detail_view.dart:4636:10 - unused_element
+The declaration '_buildFinancialSummary' isn't referenced - lib\views\repair_detail_view.dart:4972:10 - unused_element
+The declaration '_buildHistoryChart' isn't referenced - lib\views\cash_closing_view.dart:3087:10 - unused_element
+The declaration '_buildImageContent' isn't referenced - lib\views\repair_detail_view.dart:4898:10 - unused_element
+The declaration '_buildImageGallery' isn't referenced - lib\views\repair_detail_view.dart:5995:10 - unused_element
+The declaration '_buildIncomeExpenseChart' isn't referenced - lib\views\cash_closing_view.dart:1645:10 - unused_element
+The declaration '_buildInventoryCheckTab' isn't referenced - lib\views\inventory_view.dart:3013:10 - unused_element
+The declaration '_buildLibraryTab' isn't referenced - lib\views\quick_input_management_view.dart:199:10 - unused_element
+The declaration '_buildLinkedAccountsCard' isn't referenced - lib\views\settings_view.dart:1574:10 - unused_element
+The declaration '_buildLogoutCard' isn't referenced - lib\views\home_view.dart:9223:10 - unused_element
+The declaration '_buildNewStaffBanner' isn't referenced - lib\views\home_view.dart:3998:10 - unused_element
+The declaration '_buildNewStaffBannerSimple' isn't referenced - lib\views\home_view.dart:3939:10 - unused_element
+The declaration '_buildOvertimeTab' isn't referenced - lib\views\work_schedule_settings_view.dart:1912:10 - unused_element
+The declaration '_buildPaymentSection' isn't referenced - lib\views\create_sale_view.dart:2736:10 - unused_element
+The declaration '_buildPendingItemsList' isn't referenced - lib\views\fast_inventory_check_view.dart:1740:10 - unused_element
+The declaration '_buildPinnedShortcutsSection' isn't referenced - lib\views\home_view.dart:5874:10 - unused_element
+The declaration '_buildPriceBox' isn't referenced - lib\views\quick_input_codes_view.dart:857:10 - unused_element
+The declaration '_buildQuickAccs' isn't referenced - lib\views\create_repair_order_view.dart:1780:10 - unused_element
+The declaration '_buildQuickActions' isn't referenced - lib\views\home_view.dart:6718:10 - unused_element
+The declaration '_buildQuickActionsNew' isn't referenced - lib\views\home_view.dart:6130:10 - unused_element
+The declaration '_buildReturnChips' isn't referenced - lib\views\sale_list_view.dart:1446:16 - unused_element
+The declaration '_buildServicesContent' isn't referenced - lib\views\repair_detail_view.dart:4782:10 - unused_element
+The declaration '_buildServicesSection' isn't referenced - lib\views\repair_detail_view.dart:5161:10 - unused_element
+The declaration '_buildStaffManagementTab' isn't referenced - lib\views\work_schedule_settings_view.dart:971:10 - unused_element
+The declaration '_buildStaffSalaryTab' isn't referenced - lib\views\work_schedule_settings_view.dart:1962:10 - unused_element
+The declaration '_buildStatColumn' isn't referenced - lib\views\debt_view.dart:1515:10 - unused_element
+The declaration '_buildStatusCard' isn't referenced - lib\views\repair_detail_view.dart:4506:10 - unused_element
+The declaration '_buildWorkDaysTab' isn't referenced - lib\views\work_schedule_settings_view.dart:1816:10 - unused_element
+The declaration '_buildWorkScheduleTab' isn't referenced - lib\views\work_schedule_settings_view.dart:1715:10 - unused_element
+The declaration '_canManageStaff' isn't referenced - lib\views\staff_permissions_view.dart:76:12 - unused_element
+The declaration '_copyCode' isn't referenced - lib\views\quick_input_codes_view.dart:359:8 - unused_element
+The declaration '_enableRepair' isn't referenced - lib\views\staff_list_view.dart:69:12 - unused_element
+The declaration '_enableSerial' isn't referenced - lib\views\fast_inventory_check_view.dart:91:12 - unused_element
+The declaration '_enableSerial' isn't referenced - lib\views\home_view.dart:618:12 - unused_element
+The declaration '_ensureCanEditRepairFinancial' isn't referenced - lib\views\repair_detail_view.dart:726:8 - unused_element
+The declaration '_financeOverviewSection' isn't referenced - lib\views\home_view.dart:8252:10 - unused_element
+The declaration '_financeStatCard' isn't referenced - lib\views\home_view.dart:8385:10 - unused_element
+The declaration '_formatMoney' isn't referenced - lib\services\sales_return_service.dart:562:17 - unused_element
+The declaration '_fundCard' isn't referenced - lib\views\cash_closing_view.dart:939:10 - unused_element
+The declaration '_getBrandColor' isn't referenced - lib\views\inventory_view.dart:2161:9 - unused_element
+The declaration '_getPayColor' isn't referenced - lib\views\sale_list_view.dart:1390:9 - unused_element
+The declaration '_getPaymentStatusLabel' isn't referenced - lib\views\sale_list_view.dart:1351:10 - unused_element
+The declaration '_getProgressColor' isn't referenced - lib\views\warranty_view.dart:486:9 - unused_element
+The declaration '_getTimeFilterLabel' isn't referenced - lib\views\sale_list_view.dart:1336:10 - unused_element
+The declaration '_handleClearFailed' isn't referenced - lib\widgets\unified_sync_button.dart:1151:16 - unused_element
+The declaration '_handleDataRecovery' isn't referenced - lib\widgets\unified_sync_button.dart:1243:16 - unused_element
+The declaration '_handleExportSyncReport' isn't referenced - lib\widgets\unified_sync_button.dart:1296:16 - unused_element
+The declaration '_hasLogo' isn't referenced - lib\views\sale_detail_view.dart:68:12 - unused_element
+The declaration '_input' isn't referenced - lib\views\create_repair_order_view.dart:1814:10 - unused_element
+The declaration '_isElectronics' isn't referenced - lib\views\create_purchase_order_view.dart:58:12 - unused_element
+The declaration '_isElectronics' isn't referenced - lib\views\fast_inventory_input_view.dart:79:12 - unused_element
+The declaration '_isFashion' isn't referenced - lib\views\fast_inventory_check_view.dart:92:12 - unused_element
+The declaration '_isFashion' isn't referenced - lib\views\fast_stock_in_view.dart:76:12 - unused_element
+The declaration '_isFashion' isn't referenced - lib\views\home_view.dart:624:12 - unused_element
+The declaration '_isFood' isn't referenced - lib\views\home_view.dart:625:12 - unused_element
+The declaration '_isSameDay' isn't referenced - lib\views\home_view.dart:2221:8 - unused_element
+The declaration '_loadShopSettings' isn't referenced - lib\views\fast_inventory_check_view.dart:137:16 - unused_element
+The declaration '_openBusinessTypeWizard' isn't referenced - lib\views\shop_settings_view.dart:430:16 - unused_element
+The declaration '_openHelpCenter' isn't referenced - lib\views\settings_view.dart:313:8 - unused_element
+The declaration '_parseJsonList' isn't referenced - lib\services\salary_calculation_service.dart:969:24 - unused_element
+The declaration '_priorityChip' isn't referenced - lib\views\create_repair_order_view.dart:1760:10 - unused_element
+The declaration '_resetCheck' isn't referenced - lib\views\fast_inventory_check_view.dart:1023:8 - unused_element
+The declaration '_row' isn't referenced - lib\views\sale_detail_view.dart:1682:10 - unused_element
+The declaration '_scheduleResubscribe' isn't referenced - lib\services\sync_service.dart:2589:15 - unused_element
+The declaration '_showAddProductDialog' isn't referenced - lib\views\inventory_view.dart:4126:8 - unused_element
+The declaration '_showBulkInviteDialog' isn't referenced - lib\views\staff_list_view.dart:796:8 - unused_element
+The declaration '_showEditProductDialog' isn't referenced - lib\views\inventory_view.dart:1532:8 - unused_element
+The declaration '_showImportDialog' isn't referenced - lib\views\staff_list_view.dart:994:8 - unused_element
+The declaration '_showInviteQRDialog' isn't referenced - lib\views\staff_list_view.dart:190:8 - unused_element
+The declaration '_showQuickExpenseDialog' isn't referenced - lib\views\home_view.dart:4712:8 - unused_element
+The declaration '_showQuickIncomeDialog' isn't referenced - lib\views\home_view.dart:4961:8 - unused_element
+The declaration '_statItem' isn't referenced - lib\views\sale_list_view.dart:1366:10 - unused_element
+The declaration '_summaryItem' isn't referenced - lib\views\sale_list_view.dart:1194:10 - unused_element
+The declaration '_tabCount' isn't referenced - lib\views\staff_list_view.dart:1688:11 - unused_element
+The declaration '_terms' isn't referenced - lib\views\create_repair_order_view.dart:105:27 - unused_element
+The declaration '_terms' isn't referenced - lib\views\home_view.dart:628:27 - unused_element
+The declaration '_terms' isn't referenced - lib\views\quick_input_codes_view.dart:45:27 - unused_element
+The declaration '_terms' isn't referenced - lib\views\quick_input_library_view.dart:39:27 - unused_element
+The declaration '_toNoSign' isn't referenced - lib\views\sale_detail_view.dart:399:10 - unused_element
+The declaration '_toggleActive' isn't referenced - lib\views\quick_input_codes_view.dart:208:16 - unused_element
+The left operand can't be null, so the right operand is never executed - lib\controllers\fast_inventory_input_controller.dart:227:42 - dead_null_aware_expression
+The left operand can't be null, so the right operand is never executed - lib\controllers\fast_inventory_input_controller.dart:245:53 - dead_null_aware_expression
+The left operand can't be null, so the right operand is never executed - lib\controllers\fast_inventory_input_controller.dart:251:42 - dead_null_aware_expression
+The left operand can't be null, so the right operand is never executed - lib\controllers\fast_inventory_input_controller.dart:294:45 - dead_null_aware_expression
+The left operand can't be null, so the right operand is never executed - lib\controllers\fast_inventory_input_controller.dart:294:73 - dead_null_aware_expression
+The left operand can't be null, so the right operand is never executed - lib\services\payment_intent_service.dart:644:38 - dead_null_aware_expression
+The left operand can't be null, so the right operand is never executed - lib\services\unified_printer_service.dart:1257:48 - dead_null_aware_expression
+The left operand can't be null, so the right operand is never executed - lib\services\unified_printer_service.dart:1258:42 - dead_null_aware_expression
+The left operand can't be null, so the right operand is never executed - lib\services\unified_printer_service.dart:1259:34 - dead_null_aware_expression
+The left operand can't be null, so the right operand is never executed - lib\services\unified_printer_service.dart:1261:34 - dead_null_aware_expression
+The left operand can't be null, so the right operand is never executed - lib\services\unified_printer_service.dart:1262:40 - dead_null_aware_expression
+The left operand can't be null, so the right operand is never executed - lib\services\unified_printer_service.dart:1263:46 - dead_null_aware_expression
+The left operand can't be null, so the right operand is never executed - lib\services\unified_printer_service.dart:1264:42 - dead_null_aware_expression
+The left operand can't be null, so the right operand is never executed - lib\services\unified_printer_service.dart:1273:50 - dead_null_aware_expression
+The left operand can't be null, so the right operand is never executed - lib\views\fast_inventory_check_view.dart:1104:60 - dead_null_aware_expression
+The left operand can't be null, so the right operand is never executed - lib\views\global_search_view.dart:119:40 - dead_null_aware_expression
+The left operand can't be null, so the right operand is never executed - lib\views\payment_request_chat_view.dart:90:42 - dead_null_aware_expression
+The left operand can't be null, so the right operand is never executed - lib\views\payroll_view.dart:168:31 - dead_null_aware_expression
+The left operand can't be null, so the right operand is never executed - lib\views\payroll_view.dart:178:41 - dead_null_aware_expression
+The left operand can't be null, so the right operand is never executed - lib\views\payroll_view.dart:192:22 - dead_null_aware_expression
+The left operand can't be null, so the right operand is never executed - lib\views\payroll_view.dart:236:59 - dead_null_aware_expression
+The left operand can't be null, so the right operand is never executed - lib\views\payroll_view.dart:266:28 - dead_null_aware_expression
+The left operand can't be null, so the right operand is never executed - lib\views\payroll_view.dart:387:22 - dead_null_aware_expression
+The left operand can't be null, so the right operand is never executed - lib\views\payroll_view.dart:388:19 - dead_null_aware_expression
+The left operand can't be null, so the right operand is never executed - lib\views\payroll_view.dart:392:26 - dead_null_aware_expression
+The left operand can't be null, so the right operand is never executed - lib\views\payroll_view.dart:393:22 - dead_null_aware_expression
+The left operand can't be null, so the right operand is never executed - lib\views\payroll_view.dart:604:50 - dead_null_aware_expression
+The left operand can't be null, so the right operand is never executed - lib\views\payroll_view.dart:606:52 - dead_null_aware_expression
+The left operand can't be null, so the right operand is never executed - lib\views\pending_payments_list_view.dart:114:33 - dead_null_aware_expression
+The left operand can't be null, so the right operand is never executed - lib\views\quick_input_codes_view.dart:1216:44 - dead_null_aware_expression
+The left operand can't be null, so the right operand is never executed - lib\views\repair_invoice_preview_view.dart:79:53 - dead_null_aware_expression
+The left operand can't be null, so the right operand is never executed - lib\views\repair_invoice_preview_view.dart:80:47 - dead_null_aware_expression
+The left operand can't be null, so the right operand is never executed - lib\views\repair_invoice_preview_view.dart:81:39 - dead_null_aware_expression
+The left operand can't be null, so the right operand is never executed - lib\views\repair_invoice_preview_view.dart:83:39 - dead_null_aware_expression
+The left operand can't be null, so the right operand is never executed - lib\views\repair_invoice_preview_view.dart:84:51 - dead_null_aware_expression
+The left operand can't be null, so the right operand is never executed - lib\views\repair_invoice_preview_view.dart:85:45 - dead_null_aware_expression
+The left operand can't be null, so the right operand is never executed - lib\views\repair_invoice_preview_view.dart:86:47 - dead_null_aware_expression
+The left operand can't be null, so the right operand is never executed - lib\views\repair_invoice_preview_view.dart:95:55 - dead_null_aware_expression
+The left operand can't be null, so the right operand is never executed - lib\views\work_schedule_settings_view.dart:1843:51 - dead_null_aware_expression
+The left operand can't be null, so the right operand is never executed - lib\views\work_schedule_settings_view.dart:900:64 - dead_null_aware_expression
+The operand can't be 'null', so the condition is always 'true' - lib\views\home_view.dart:1813:27 - unnecessary_null_comparison
+The operand can't be 'null', so the condition is always 'true' - lib\views\home_view.dart:1818:32 - unnecessary_null_comparison
+The operand can't be 'null', so the condition is always 'true' - lib\views\home_view.dart:4942:36 - unnecessary_null_comparison
+The operand can't be 'null', so the condition is always 'true' - lib\views\home_view.dart:5185:36 - unnecessary_null_comparison
+The operand can't be 'null', so the condition is always 'true' - lib\views\pty_print_designer_view.dart:519:39 - unnecessary_null_comparison
+The receiver can't be null, so the null-aware operator '?.' is unnecessary - lib\views\attendance_management_view.dart:2081:26 - invalid_null_aware_operator
+The receiver can't be null, so the null-aware operator '?[' is unnecessary - lib\views\parts_inventory_view.dart:3102:47 - invalid_null_aware_operator
+The value of the field '_activeShopUid' isn't used - lib\services\current_shop_service.dart:36:11 - unused_field
+The value of the field '_checkingPin' isn't used - lib\views\shop_selector_view.dart:30:8 - unused_field
+The value of the field '_connectedPort' isn't used - lib\services\wifi_printer_service.dart:10:8 - unused_field
+The value of the field '_currentQuickInputCode' isn't used - lib\views\smart_stock_in_view.dart:74:19 - unused_field
+The value of the field '_eventBusSub2' isn't used - lib\views\parts_inventory_view.dart:2687:23 - unused_field
+The value of the field '_firestore' isn't used - lib\services\adjustment_service.dart:19:16 - unused_field
+The value of the field '_isAdmin' isn't used - lib\views\inventory_view.dart:94:8 - unused_field
+The value of the field '_isAdmin' isn't used - lib\views\repair_partner_view.dart:32:8 - unused_field
+The value of the field '_isAdmin' isn't used - lib\views\warranty_view.dart:30:8 - unused_field
+The value of the field '_isDragging' isn't used - lib\views\pty_print_designer_view.dart:190:8 - unused_field
+The value of the field '_isOnline' isn't used - lib\widgets\sync_status_widget.dart:13:8 - unused_field
+The value of the field '_isSaving' isn't used - lib\views\fast_inventory_input_view.dart:64:8 - unused_field
+The value of the field '_monthFormat' isn't used - lib\utils\excel_export_helper.dart:33:16 - unused_field
+The value of the field '_pinVerified' isn't used - lib\views\shop_selector_view.dart:29:8 - unused_field
+The value of the field '_previousClosingTotal' isn't used - lib\views\home_view.dart:2458:7 - unused_field
+The value of the field '_primaryColor' isn't used - lib\views\sale_detail_view.dart:80:15 - unused_field
+The value of the field '_rebuildCounter' isn't used - lib\views\home_view.dart:551:7 - unused_field
+The value of the field '_recentProducts' isn't used - lib\views\fast_inventory_input_view.dart:71:17 - unused_field
+The value of the field '_returnInfo' isn't used - lib\views\sale_detail_view.dart:87:16 - unused_field
+The value of the field '_scanStartTime' isn't used - lib\views\fast_inventory_check_view.dart:97:13 - unused_field
+The value of the field '_scheduleText' isn't used - lib\views\staff_self_profile_view.dart:63:10 - unused_field
+The value of the field '_selectedGroup' isn't used - lib\views\fast_inventory_input_view.dart:55:16 - unused_field
+The value of the field '_selectedSupplierLocalId' isn't used - lib\views\smart_stock_in_view.dart:105:8 - unused_field
+The value of the field '_selectedType' isn't used - lib\views\fast_inventory_input_view.dart:61:16 - unused_field
+The value of the field '_shopSubcollections' isn't used - lib\services\shop_deletion_service.dart:38:16 - unused_field
+The value of the field '_shortImeiPattern' isn't used - lib\utils\imei_extractor.dart:47:23 - unused_field
+The value of the field '_smallFontSize' isn't used - lib\views\inventory_view.dart:152:16 - unused_field
+The value of the field '_todayRepairCost' isn't used - lib\views\home_view.dart:2454:7 - unused_field
+The value of the field '_todayRepairPartsCostFund' isn't used - lib\views\home_view.dart:2452:7 - unused_field
+The value of the field '_todayReturnCost' isn't used - lib\views\home_view.dart:2457:7 - unused_field
+The value of the field '_todaySaleCost' isn't used - lib\views\home_view.dart:2453:7 - unused_field
+The value of the field '_todaySaleOrderCount' isn't used - lib\views\home_view.dart:2440:7 - unused_field
+The value of the field '_todayStockInCost' isn't used - lib\views\home_view.dart:2442:7 - unused_field
+The value of the local variable 'bigStep' isn't used - lib\views\pty_print_designer_view.dart:2207:18 - unused_local_variable
+The value of the local variable 'currentUser' isn't used - lib\views\work_schedule_settings_view.dart:114:13 - unused_local_variable
+The value of the local variable 'days' isn't used - lib\views\food\expiry_management_view.dart:329:11 - unused_local_variable
+The value of the local variable 'doneT' isn't used - lib\views\home_view.dart:2672:11 - unused_local_variable
+The value of the local variable 'entityId' isn't used - lib\views\audit_log_view.dart:161:18 - unused_local_variable
+The value of the local variable 'expectedCount' isn't used - lib\views\fast_inventory_check_view.dart:618:11 - unused_local_variable
+The value of the local variable 'hasStock' isn't used - lib\widgets\variant_selector.dart:200:15 - unused_local_variable
+The value of the local variable 'loc' isn't used - lib\views\fashion\variant_management_view.dart:113:11 - unused_local_variable
+The value of the local variable 'newRT' isn't used - lib\views\home_view.dart:2657:13 - unused_local_variable
+The value of the local variable 'policies' isn't used - lib\services\unified_printer_service.dart:139:11 - unused_local_variable
+The value of the local variable 'roleC' isn't used - lib\views\staff_list_view.dart:798:11 - unused_local_variable
+The value of the local variable 'shopId' isn't used - lib\services\repair_stock_service.dart:33:11 - unused_local_variable
+The value of the local variable 'supplierData' isn't used - lib\views\create_purchase_order_view.dart:219:15 - unused_local_variable
+The value of the local variable 'theme' isn't used - lib\views\fashion\variant_management_view.dart:114:11 - unused_local_variable
+The value of the local variable 'theme' isn't used - lib\widgets\imei_scan_result_dialog.dart:39:11 - unused_local_variable
+The value of the local variable 'totalExpense' isn't used - lib\views\cash_closing_view.dart:1027:11 - unused_local_variable
+The value of the local variable 'totalIncome' isn't used - lib\views\cash_closing_view.dart:1026:11 - unused_local_variable
+The value of the local variable 'user' isn't used - lib\views\parts_inventory_view.dart:3353:31 - unused_local_variable
+The value of the local variable 'user' isn't used - lib\views\parts_inventory_view.dart:3898:29 - unused_local_variable
+This default clause is covered by the previous cases - lib\widgets\dynamic_form_builder.dart:47:7 - unreachable_switch_default
+Unnecessary type check; the result is always 'true' - lib\widgets\variant_selector.dart:82:26 - unnecessary_type_check
+Unnecessary type check; the result is always 'true' - lib\widgets\variant_selector.dart:82:9 - unnecessary_type_check
+Unused import: '../../widgets/variant_selector.dart' - lib\views\fashion\variant_management_view.dart:12:8 - unused_import
+Unused import: '../models/label_template_model.dart' - lib\views\label_designer_view.dart:7:8 - unused_import
+Unused import: '../models/leave_request_model.dart' - lib\services\salary_calculation_service.dart:6:8 - unused_import
+Unused import: '../models/payment_intent_model.dart' - lib\views\parts_inventory_view.dart:15:8 - unused_import
+Unused import: '../models/product_model.dart' - lib\services\variant_service.dart:5:8 - unused_import
+Unused import: '../models/repair_model.dart' - lib\widgets\dashboard_cards.dart:5:8 - unused_import
+Unused import: '../models/sale_order_model.dart' - lib\widgets\dashboard_cards.dart:6:8 - unused_import
+Unused import: '../models/shop_settings_model.dart' - lib\services\expiry_alert_service.dart:5:8 - unused_import
+Unused import: '../services/audit_service.dart' - lib\views\expense_view.dart:24:8 - unused_import
+Unused import: '../services/financial_activity_service.dart' - lib\views\expense_view.dart:23:8 - unused_import
+Unused import: '../services/payment_intent_service.dart' - lib\views\parts_inventory_view.dart:13:8 - unused_import
+Unused import: '../services/thermal_printer_service.dart' - lib\views\printer_settings_view.dart:10:8 - unused_import
+Unused import: '../services/user_service.dart' - lib\widgets\dashboard_cards.dart:7:8 - unused_import
+Unused import: '../services/wifi_printer_service.dart' - lib\views\printer_settings_view.dart:11:8 - unused_import
+Unused import: '../theme/app_button_styles.dart' - lib\views\inventory_view.dart:46:8 - unused_import
+Unused import: '../theme/app_button_styles.dart' - lib\views\payroll_view.dart:14:8 - unused_import
+Unused import: '../theme/app_colors.dart' - lib\views\sales_return_list_view.dart:10:8 - unused_import
+Unused import: '../theme/app_colors.dart' - lib\widgets\dashboard_cards.dart:8:8 - unused_import
+Unused import: '../theme/app_text_styles.dart' - lib\views\dashboard_settings_view.dart:9:8 - unused_import
+Unused import: '../theme/app_text_styles.dart' - lib\views\global_search_view.dart:11:8 - unused_import
+Unused import: '../theme/app_text_styles.dart' - lib\views\sales_return_list_view.dart:11:8 - unused_import
+Unused import: '../theme/app_text_styles.dart' - lib\widgets\dashboard_cards.dart:9:8 - unused_import
+Unused import: '../utils/excel_export_helper.dart' - lib\views\fast_inventory_check_view.dart:20:8 - unused_import
+Unused import: '../utils/money_utils.dart' - lib\views\inventory_check_history_view.dart:9:8 - unused_import
+Unused import: '../utils/money_utils.dart' - lib\widgets\currency_text_field.dart:3:8 - unused_import
+Unused import: '../widgets/export_date_filter_dialog.dart' - lib\views\inventory_check_history_view.dart:10:8 - unused_import
+Unused import: '../widgets/responsive_wrapper.dart' - lib\views\login_view.dart:12:8 - unused_import
+Unused import: 'customer_management_view.dart' - lib\views\sale_list_view.dart:29:8 - unused_import
+Unused import: 'dart:math' - lib\views\expense_view.dart:2:8 - unused_import
+Unused import: 'debt_view.dart' - lib\views\sale_list_view.dart:27:8 - unused_import
+Unused import: 'hr/add_custom_adjustment_dialog.dart' - lib\views\staff_performance_view.dart:12:8 - unused_import
+Unused import: 'monthly_profit_report_view.dart' - lib\views\home_view.dart:22:8 - unused_import
+Unused import: 'monthly_profit_report_view.dart' - lib\views\sale_list_view.dart:28:8 - unused_import
+Unused import: 'package:flutter/material.dart' - lib\services\salary_slip_pdf_service.dart:3:8 - unused_import
+Unused import: 'package:intl/intl.dart' - lib\views\monthly_profit_report_view.dart:2:8 - unused_import
+Unused import: 'parts_inventory_view.dart' - lib\views\home_view.dart:54:8 - unused_import

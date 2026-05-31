@@ -136,7 +136,7 @@ class UnifiedPrinterService {
     String? wifiIp,
   }) async {
     try {
-    final policies = await _loadReceiptPolicies();
+    await _loadReceiptPolicies();
       final profile = await CapabilityProfile.load();
       final generator = Generator(paper, profile);
       final bytes = <int>[];
@@ -1254,14 +1254,14 @@ class UnifiedPrinterService {
         'code': repair.firestoreId?.toString() ?? repair.createdAt.toString(),
         'date': DateFormat('dd/MM/yyyy').format(createdAt),
         'time': DateFormat('HH:mm').format(createdAt),
-        'customerName': repair.customerName ?? '',
-        'customerPhone': repair.phone ?? '',
-        'model': repair.model ?? '',
+        'customerName': repair.customerName,
+        'customerPhone': repair.phone,
+        'model': repair.model,
         'imei': repair.imei ?? '',
-        'issue': repair.issue ?? '',
-        'warranty': repair.warranty ?? '',
-        'accessories': repair.accessories ?? '',
-        'partsUsed': repair.partsUsed ?? '',
+        'issue': repair.issue,
+        'warranty': repair.warranty,
+        'accessories': repair.accessories,
+        'partsUsed': repair.partsUsed,
         'color': repair.color ?? '',
         'condition': repair.condition ?? '',
         'notes': repair.notes ?? '',
@@ -1270,7 +1270,7 @@ class UnifiedPrinterService {
         'deliveredBy': repair.deliveredBy ?? '',
         'services': repair.services.map((s) => s.serviceName).join(', '),
         'price': MoneyUtils.formatVND(repair.price),
-        'paymentMethod': repair.paymentMethod ?? '',
+        'paymentMethod': repair.paymentMethod,
         'status': _repairStatusText(repair.status),
         'qrData': 'repair_check:${repair.firestoreId ?? repair.createdAt}',
       };

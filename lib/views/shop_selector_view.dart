@@ -26,8 +26,6 @@ class _ShopSelectorViewState extends State<ShopSelectorView> {
   List<Map<String, dynamic>> _shops = [];
   bool _loading = true;
   bool _switching = false;
-  bool _pinVerified = false;
-  bool _checkingPin = true;
   String? _selectedShopId;
   String? _error;
   final _searchC = TextEditingController();
@@ -67,11 +65,9 @@ class _ShopSelectorViewState extends State<ShopSelectorView> {
     final hasPinSetup = await SuperAdminSecurityService.isPinSetup();
     if (hasPinSetup && !SuperAdminSecurityService.isSessionValid()) {
       // Need PIN verification
-      if (mounted) setState(() => _checkingPin = false);
       _showPinDialog();
     } else {
       // No PIN set up or session still valid
-      if (mounted) setState(() { _checkingPin = false; _pinVerified = true; });
       _loadShops();
     }
   }
@@ -112,7 +108,6 @@ class _ShopSelectorViewState extends State<ShopSelectorView> {
                   final ok = await SuperAdminSecurityService.verifyPin(pinController.text);
                   if (ok) {
                     Navigator.pop(ctx);
-                    if (mounted) setState(() => _pinVerified = true);
                     _loadShops();
                   } else {
                     setDialogState(() => errorText = 'Mã PIN không đúng');
@@ -137,7 +132,6 @@ class _ShopSelectorViewState extends State<ShopSelectorView> {
                 final ok = await SuperAdminSecurityService.verifyPin(pinController.text);
                 if (ok) {
                   Navigator.pop(ctx);
-                  if (mounted) setState(() => _pinVerified = true);
                   _loadShops();
                 } else {
                   setDialogState(() => errorText = 'Mã PIN không đúng');

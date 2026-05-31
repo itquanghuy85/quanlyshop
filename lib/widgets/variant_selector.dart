@@ -79,10 +79,7 @@ class _VariantSelectorState extends State<VariantSelector> {
     final aOrder = sizeOrder[a] ?? int.tryParse(a) ?? 999;
     final bOrder = sizeOrder[b] ?? int.tryParse(b) ?? 999;
     
-    if (aOrder is int && bOrder is int) {
-      return aOrder.compareTo(bOrder);
-    }
-    return a.compareTo(b);
+    return aOrder.compareTo(bOrder);
   }
 
   void _updateSelection() {
@@ -197,7 +194,7 @@ class _VariantSelectorState extends State<VariantSelector> {
       children: _colors.map((color) {
         final isSelected = _selectedColor == color;
         final variantsWithColor = _variants.where((v) => v.color == color);
-        final hasStock = variantsWithColor.any((v) => v.quantity > 0);
+        // hasStock check removed — stock display handled via validVariants below
 
         // Also filter by selected size if any
         final validVariants = _selectedSize != null

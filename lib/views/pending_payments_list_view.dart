@@ -111,7 +111,7 @@ class _PendingPaymentsListViewState extends State<PendingPaymentsListView>
       final result = await PaymentIntentService.executePayment(
         intentId: intent.id,
         paymentMethod: method,
-        executedBy: userName ?? 'Unknown',
+        executedBy: userName,
       );
 
       if (!mounted) return;

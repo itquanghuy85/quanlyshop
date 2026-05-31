@@ -2585,41 +2585,6 @@ class SyncService {
     debugPrint('🔄 Reset ${keys.length} sync timestamps/cursors');
   }
 
-  /// Schedule re-subscribe after an error with exponential backoff
-  static void _scheduleResubscribe(
-    String collection,
-    String? shopId,
-    Future<void> Function(Map<String, dynamic> data, String docId) onChanged,
-    VoidCallback onBatchDone,
-  ) {
-    // Delay 5 seconds before resubscribing to avoid rapid reconnection loops
-    Future.delayed(const Duration(seconds: 5), () {
-      if (_subscriptionStatus[collection] == false) {
-        debugPrint(
-          '🔄 Attempting to re-subscribe to $collection after error...',
-        );
-        () async {
-          final user = FirebaseAuth.instance.currentUser;
-          final permissions = await UserService.getCurrentUserPermissions();
-          final role = user != null
-              ? await UserService.getUserRole(user.uid)
-              : 'user';
-          final isSuperAdmin = UserService.isCurrentUserSuperAdmin();
-
-          _subscribeToCollection(
-            collection: collection,
-            shopId: shopId,
-            permissions: permissions,
-            role: role,
-            isSuperAdmin: isSuperAdmin,
-            onChanged: onChanged,
-            onBatchDone: onBatchDone,
-          );
-        }();
-      }
-    });
-  }
-
   /// Force reinitialize real-time sync (useful when sync appears broken)
   static Future<void> forceReinitializeSync() async {
     debugPrint('🔄 Force reinitializing real-time sync...');
@@ -3549,6 +3514,62 @@ class SyncService {
         debugPrint("Lỗi sync suppliers collection: $e");
       }
 
+      // Đồng bộ Customers (push unsynced local → Firestore)
+      try {
+        final unsyncedCustomers = await dbHelper.getUnsyncedCustomers();
+        debugPrint(
+            'syncAllToCloud: có ${unsyncedCustomers.length} customers chưa sync');
+        if (unsyncedCustomers.isNotEmpty) {
+          const _customerBatchSize = 400;
+          final chunks = <List<Map<String, dynamic>>>[];
+          for (int i = 0; i < unsyncedCustomers.length; i += _customerBatchSize) {
+            chunks.add(unsyncedCustomers.sublist(
+                i, i + _customerBatchSize > unsyncedCustomers.length
+                    ? unsyncedCustomers.length
+                    : i + _customerBatchSize));
+          }
+          int totalSynced = 0;
+          for (final chunk in chunks) {
+            final batch = _db.batch();
+            final toMark = <Map<String, dynamic>>[];
+            for (final cMap in chunk) {
+              try {
+                final data = Map<String, dynamic>.from(cMap);
+                data['shopId'] = shopId;
+                data.remove('id');
+                data['updatedAt'] = FirestoreWriteHelper.serverUpdatedAt();
+                data.remove('isSynced');
+                final phone = (cMap['phone'] ?? '').toString();
+                final ts = cMap['createdAt'] ?? DateTime.now().millisecondsSinceEpoch;
+                final docId = 'customer_${ts}_${phone.isNotEmpty ? phone : cMap['id']}';
+                data.remove('firestoreId');
+                batch.set(
+                  _db.collection('customers').doc(docId),
+                  data,
+                  SetOptions(merge: true),
+                );
+                toMark.add({...cMap, 'firestoreId': docId});
+              } catch (e) {
+                debugPrint('Lỗi chuẩn bị sync customer ${cMap['id']}: $e');
+              }
+            }
+            try {
+              await batch.commit();
+              for (final c in toMark) {
+                await dbHelper.upsertCustomer(c);
+              }
+              totalSynced += toMark.length;
+            } catch (e) {
+              debugPrint('❌ Batch commit customers failed: $e');
+            }
+          }
+          debugPrint('✅ Synced $totalSynced customers to cloud');
+          EventBus().emit('customers_changed');
+        }
+      } catch (e) {
+        debugPrint('Lỗi sync customers to cloud: $e');
+      }
+
       // Đồng bộ Repair Partners
       try {
         final partners = await dbHelper.getRepairPartners();
@@ -3913,9 +3934,18 @@ class SyncService {
               data.remove('isSynced');
               data.remove('firestoreId');
 
+              // Ensure partName is a non-empty string (Firestore rule requires str('partName', 1, 200))
+              final rawPartName = data['partName'];
+              final partNameStr = rawPartName?.toString().trim() ?? '';
+              if (partNameStr.isEmpty) {
+                debugPrint("⚠️ Skip repair part id=$localId: partName is null/empty");
+                continue;
+              }
+              data['partName'] = partNameStr;
+
               final docId =
                   partMap['firestoreId'] ??
-                  "part_${data['createdAt']}_${data['partName'].toString().replaceAll(' ', '_')}";
+                  "part_${data['createdAt']}_${partNameStr.replaceAll(' ', '_')}";
               partsBatch.set(
                 _db.collection('repair_parts').doc(docId),
                 data,

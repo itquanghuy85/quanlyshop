@@ -9,7 +9,7 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Version:** 1.x (develop) → 2.0 planning  
 **Last Updated:** 2026-05-29  
 **Build Status:** ✅ Debug build passing (`flutter build apk --debug`)  
-**Analyze Status:** ✅ 0 compile error; 1 intentional warning (`_eventBusSub2` StreamSubscription); còn ~1168 info (giảm từ 1552)  
+**Analyze Status:** ✅ 0 compile error trên các file vừa sửa; còn lint/info hiện hữu của dự án  
 **Database Version:** SQLite v17  
 **Branch:** master  
 **Active Initiative:** ✅ Sprint 4B hoàn tất — flutter analyze warnings 132 → 1
@@ -25,6 +25,18 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 ---
 
 ## ✅ Vừa hoàn thành (2026-05-29)
+
+1. **Fix 3 vấn đề vận hành thực tế: đơn sửa, backup, reset dữ liệu (2026-05-29)**
+  - `repair_detail_view.dart`:
+    - Chặn ghi chi phí lặp khi sửa giá vốn nhiều lần trên cùng đơn.
+    - Khi đã ghi sổ quỹ trước đó, lần sửa sau chỉ ghi phần chênh lệch (`delta`) thay vì ghi lại full giá vốn.
+  - `backup_restore_view.dart` + `backup_service.dart`:
+    - Thêm nút **xóa từng file backup SQLite cục bộ**.
+    - Mở rộng mapping xóa dữ liệu SQLite cho nhóm **Kho/Tài chính** để xóa sâu hơn các bảng liên quan.
+    - Thêm tùy chọn **xóa luôn dữ liệu Cloud theo nhóm** để tránh dữ liệu sync ngược sau khi đã xóa local.
+  - Validation:
+    - `flutter analyze` 3 file thay đổi: không có compile error mới.
+    - `flutter build apk --debug`: thành công.
 
 1. **Backup: Xóa dữ liệu chọn lọc + Dọn backup cũ (2026-05-29)**
   - `BackupService.deleteSelectedData()`: xóa table SQLite theo danh sách collection, trả về số bản ghi xóa

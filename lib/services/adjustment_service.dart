@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
@@ -16,7 +15,6 @@ import 'audit_service.dart';
 /// 4. Công nợ có thể điều chỉnh, quỹ ngày cũ không đổi
 class AdjustmentService {
   static final _db = DBHelper();
-  static final _firestore = FirebaseFirestore.instance;
 
   /// Kiểm tra ngày có bị khóa (đã chốt quỹ) không
   /// Returns: dateKey nếu bị khóa, null nếu chưa khóa

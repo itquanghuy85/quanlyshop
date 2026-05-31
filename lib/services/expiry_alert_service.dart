@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'dart:ui' show Color;
 import '../data/db_helper.dart';
 import '../models/product_model.dart';
-import '../models/shop_settings_model.dart';
 import 'category_service.dart';
 import 'user_service.dart';
 import 'notification_service.dart';

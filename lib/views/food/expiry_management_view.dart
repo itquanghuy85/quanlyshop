@@ -326,7 +326,7 @@ class _ExpiryManagementViewState extends State<ExpiryManagementView>
     final expiryDate = product.expiryDate != null
         ? DateTime.fromMillisecondsSinceEpoch(product.expiryDate!)
         : null;
-    final days = _expiryService.daysUntilExpiry(product);
+    _expiryService.daysUntilExpiry(product);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),

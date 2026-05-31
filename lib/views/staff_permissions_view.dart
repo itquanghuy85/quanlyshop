@@ -73,8 +73,6 @@ class _StaffPermissionsViewState extends State<StaffPermissionsView> {
     });
   }
 
-  bool get _canManageStaff => _isSuperAdmin || _currentRole == 'owner' || _currentRole == 'manager';
-
   static const _permissionLabels = <String, String>{
     'allowViewSales': 'Bán hàng',
     'allowViewRepairs': 'Sửa chữa',

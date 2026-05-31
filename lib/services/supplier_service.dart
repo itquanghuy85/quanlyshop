@@ -213,7 +213,7 @@ class SupplierService {
             (s) => s['firestoreId'] == doc.id,
             orElse: () => mapped,
           );
-          suppliers.add(Supplier.fromMap({...local, 'shopId': shopId!}));
+          suppliers.add(Supplier.fromMap({...local, 'shopId': shopId}));
         }
         debugPrint(
           'SupplierService.getSuppliers: Firestore fallback found ${snapshot.docs.length} suppliers',

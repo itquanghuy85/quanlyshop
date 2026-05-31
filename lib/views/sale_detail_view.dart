@@ -67,6 +67,7 @@ class _SaleDetailViewState extends State<SaleDetailView> {
   bool _managerUnlocked = false;
   bool _checkingManager = false;
   bool _canViewCostPrice = false;
+  late List<ProductLinkRef> _linkedProducts;
 
   // Multi-Industry: Shop Settings
   ShopSettings? _shopSettings;
@@ -86,6 +87,7 @@ class _SaleDetailViewState extends State<SaleDetailView> {
   void initState() {
     super.initState();
     s = _normalizeSaleForDisplay(widget.sale);
+    _linkedProducts = _buildLinkedProducts();
     _loadShopInfo();
     _loadReturnInfo();
     _loadCostPermission();
@@ -130,6 +132,7 @@ class _SaleDetailViewState extends State<SaleDetailView> {
       'cashAmount': sale.cashAmount,
       'transferAmount': sale.transferAmount,
       'isSynced': sale.isSynced,
+      'itemSnapshotsJson': sale.itemSnapshotsJson,
     });
   }
 
@@ -273,8 +276,8 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                     .toString()
                     .trim();
             final qty = (item['quantity'] as num?)?.toInt();
-            final price = (item['price'] as num?)?.toInt()
-                ?? (item['totalPrice'] as num?)?.toInt();
+            // Use only unit price — do NOT fall back to totalPrice (which is qty×unit)
+            final price = (item['price'] as num?)?.toInt();
             items.add(
               ProductLinkRef(
                 productId: productId.isEmpty ? null : productId,
@@ -1035,8 +1038,8 @@ class _SaleDetailViewState extends State<SaleDetailView> {
       int intentDeleted = 0;
 
       // 2A: Khôi phục inventory
-      final imeis = s.productImeis.split(', ');
-      final names = s.productNames.split(', ');
+      final imeis = s.productImeis.split(RegExp(r'\s*,\s*'));
+      final names = s.productNames.split(RegExp(r'\s*,\s*'));
       for (int i = 0; i < imeis.length; i++) {
         final imei = imeis[i].trim();
         if (imei.isEmpty) continue;
@@ -1492,22 +1495,19 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                   sourceEvent: 'customer_profile_opened_from_sale',
                 ),
                 _item(AppLocalizations.of(context)!.itemAddress, s.address.isEmpty ? "---" : s.address),
-                Builder(builder: (ctx) {
-                  final linked = _buildLinkedProducts();
-                  if (linked.isEmpty && (s.notes?.startsWith('KV:') ?? false)) {
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                      child: Text(
-                        'Hóa đơn KiotViet — không có chi tiết sản phẩm (nhập lại với "Ghi đè" để lấy dữ liệu)',
-                        style: TextStyle(fontSize: 12, color: Colors.grey[500], fontStyle: FontStyle.italic),
-                      ),
-                    );
-                  }
-                  return ClickableProductList(
-                    items: linked,
+                if (_linkedProducts.isEmpty && (s.notes?.startsWith('KV:') ?? false))
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                    child: Text(
+                      'Hóa đơn KiotViet — không có chi tiết sản phẩm (nhập lại với "Ghi đè" để lấy dữ liệu)',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[500], fontStyle: FontStyle.italic),
+                    ),
+                  )
+                else
+                  ClickableProductList(
+                    items: _linkedProducts,
                     tooltip: AppLocalizations.of(context)!.openProductDetailTooltip,
-                  );
-                }),
+                  ),
                 _item(AppLocalizations.of(context)!.itemWarranty, s.warranty.isNotEmpty ? s.warranty : "KO BH"),
                 _staffItem(s.sellerName, s.sellerUid),
                 _item(AppLocalizations.of(context)!.itemTime, _fmtDate(s.soldAt)),

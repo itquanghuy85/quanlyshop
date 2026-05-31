@@ -515,6 +515,14 @@ class UserService {
           isTechnician ||
           isAdmin ||
           isUser,
+      // Gửi tin nhắn: tất cả trừ fallback 'user'
+      'allowSendChat': isOwner || isManager || isEmployee || isTechnician || isAdmin,
+      // Ghim tin nhắn: chỉ Manager trở lên
+      'allowPinChat': isManagerLike,
+      // Xóa tin nhắn của người khác: chỉ Owner/Admin
+      'allowDeleteOtherChat': isOwnerOrAdmin,
+      // Gọi Cloud AI (DeepSeek): Manager trở lên, Employee/Technician chỉ quick-answer
+      'allowCloudAI': isManagerLike,
       'allowViewAttendance':
           isOwner ||
           isManager ||
@@ -1437,6 +1445,17 @@ class UserService {
             defaults['allowViewWarranty']!,
         'allowViewChat':
             (data['allowViewChat'] as bool?) ?? defaults['allowViewChat']!,
+        'allowSendChat':
+            (data['allowSendChat'] as bool?) ?? defaults['allowSendChat']!,
+        'allowPinChat': isManagerLike
+            ? true
+            : ((data['allowPinChat'] as bool?) ?? defaults['allowPinChat']!),
+        'allowDeleteOtherChat': isOwnerOrAdmin
+            ? true
+            : ((data['allowDeleteOtherChat'] as bool?) ?? defaults['allowDeleteOtherChat']!),
+        'allowCloudAI': isManagerLike
+            ? true
+            : ((data['allowCloudAI'] as bool?) ?? defaults['allowCloudAI']!),
         'allowViewAttendance':
             (data['allowViewAttendance'] as bool?) ??
             defaults['allowViewAttendance']!,
@@ -1494,6 +1513,10 @@ class UserService {
         'allowViewCostPrice',
         'allowViewSettings',
         'allowManageStaff',
+        'allowSendChat',
+        'allowPinChat',
+        'allowDeleteOtherChat',
+        'allowCloudAI',
       ]) {
         // Nếu user có quyền = false và khác với default role → bị chủ shop tắt
         final userPerm = data[key] as bool?;
@@ -1695,6 +1718,10 @@ class UserService {
     required bool allowViewCostPrice,
     bool allowManageStaff = false,
     bool allowViewSettings = false,
+    bool allowSendChat = true,
+    bool allowPinChat = false,
+    bool allowDeleteOtherChat = false,
+    bool allowCloudAI = false,
   }) async {
     // Refresh token để đảm bảo custom claims (role, shopId) được cập nhật
     try {
@@ -1719,6 +1746,10 @@ class UserService {
         'allowViewExpenses': allowViewExpenses,
         'allowViewDebts': allowViewDebts,
         'allowViewCostPrice': allowViewCostPrice,
+        'allowSendChat': allowSendChat,
+        'allowPinChat': allowPinChat,
+        'allowDeleteOtherChat': allowDeleteOtherChat,
+        'allowCloudAI': allowCloudAI,
         'allowManageStaff': allowManageStaff,
         'allowViewSettings': allowViewSettings,
         'permissionsUpdatedAt': FieldValue.serverTimestamp(),

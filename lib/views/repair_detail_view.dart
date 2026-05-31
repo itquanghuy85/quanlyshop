@@ -723,15 +723,6 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     return false;
   }
 
-  bool _ensureCanEditRepairFinancial() {
-    if (_canEditRepairFinancial) return true;
-    NotificationService.showSnackBar(
-      'Nhân viên không có quyền sửa tài chính đơn sửa.',
-      color: Colors.orange,
-    );
-    return false;
-  }
-
   bool _ensureCanEditRepairCharge() {
     if (_canEditRepairCharge || _canEditRepairFinancial) return true;
     NotificationService.showSnackBar(
@@ -3016,6 +3007,8 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       final oldPrice = r.price;
       final oldCost = r.cost;
       final wasFundRecorded = r.costRecordedInFund;
+      final oldRecordedAmount = r.costRecordedAmount ?? 0;
+      final oldRecordedBase = oldRecordedAmount > 0 ? oldRecordedAmount : oldCost;
 
       // Update pricing
       setState(() {
@@ -3023,19 +3016,20 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         r.cost = parsedCost;
       });
 
-      // Show fund recording popup if cost > 0 and cost changed or not yet recorded
-      if (canEditCost &&
-          parsedCost > 0 &&
-          (parsedCost != oldCost || !wasFundRecorded)) {
-        await _showCostFundRecordingPopup(parsedCost);
-      } else if (canEditCost && parsedCost == 0 && wasFundRecorded) {
-        // Reset fund recording if cost is now 0
-        setState(() {
-          r.costRecordedInFund = false;
-          r.costPaymentMethod = null;
-          r.costRecordedAt = null;
-          r.costRecordedAmount = 0;
-        });
+      if (canEditCost) {
+        if (!wasFundRecorded && parsedCost > 0) {
+          // Chỉ popup ghi quỹ lần đầu để chọn phương thức chi.
+          await _showCostFundRecordingPopup(parsedCost);
+        } else if (wasFundRecorded) {
+          // Đã ghi quỹ trước đó: chỉ ghi thêm phần chênh lệch để tránh nhân đôi chi phí.
+          final delta = parsedCost - oldRecordedBase;
+          if (delta != 0) {
+            await _applyCostFundDelta(
+              deltaAmount: delta,
+              newRecordedAmount: parsedCost,
+            );
+          }
+        }
       }
 
       await _saveData();
@@ -3083,6 +3077,63 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         }
       }
     }
+  }
+
+  Future<void> _applyCostFundDelta({
+    required int deltaAmount,
+    required int newRecordedAmount,
+  }) async {
+    final paymentMethod = (r.costPaymentMethod ?? '').trim();
+    if (paymentMethod.isEmpty) {
+      // Dữ liệu cũ thiếu payment method: fallback về popup chọn cách ghi quỹ.
+      if (newRecordedAmount > 0) {
+        await _showCostFundRecordingPopup(newRecordedAmount);
+      }
+      return;
+    }
+
+    final absAmount = deltaAmount.abs();
+    final isOut = deltaAmount > 0;
+    final now = DateTime.now().millisecondsSinceEpoch;
+
+    if (absAmount == 0) return;
+
+    await FinancialActivityService.logCustomActivity(
+      activityType: 'PARTS_COST_ADJUST',
+      amount: absAmount,
+      direction: isOut ? 'OUT' : 'IN',
+      paymentMethod: paymentMethod,
+      title: isOut
+          ? 'Điều chỉnh tăng giá vốn: ${r.customerName} (${r.model})'
+          : 'Điều chỉnh giảm giá vốn: ${r.customerName} (${r.model})',
+      description:
+          'Đơn #${r.firestoreId ?? r.id} — Chênh lệch: ${MoneyUtils.formatVND(absAmount)}',
+      customerName: r.customerName,
+      phone: r.phone,
+      productInfo: r.model,
+      referenceType: 'REPAIR',
+      referenceId: r.firestoreId ?? r.id?.toString() ?? '',
+    );
+
+    setState(() {
+      if (newRecordedAmount > 0) {
+        r.costRecordedInFund = true;
+        r.costRecordedAt = now;
+        r.costRecordedAmount = newRecordedAmount;
+      } else {
+        r.costRecordedInFund = false;
+        r.costPaymentMethod = null;
+        r.costRecordedAt = null;
+        r.costRecordedAmount = 0;
+      }
+    });
+
+    NotificationService.showSnackBar(
+      isOut
+          ? 'Đã ghi bổ sung ${MoneyUtils.formatVND(absAmount)} vào sổ quỹ ($paymentMethod)'
+          : 'Đã hoàn nhập ${MoneyUtils.formatVND(absAmount)} vào sổ quỹ ($paymentMethod)',
+      color: Colors.green,
+    );
   }
 
   /// Show popup asking whether to record parts cost in cash fund
@@ -4432,33 +4483,6 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     );
   }
 
-  Color _staffStageColor(String stage) {
-    switch (stage.toLowerCase()) {
-      case 'nhận':
-        return AppColors.repairReceived;
-      case 'sửa':
-        return AppColors.repairRepairing;
-      case 'xong':
-        return AppColors.repairDone;
-      case 'giao':
-        return AppColors.primary;
-      default:
-        return AppColors.onSurface;
-    }
-  }
-
-  Widget _staffInfoRow(String label, String value) {
-    final color = _staffStageColor(label);
-    final isUnknown = value.trim() == '---';
-    return _infoRow(
-      label,
-      value,
-      labelColor: color.withOpacity(0.9),
-      valueColor: isUnknown ? AppColors.onSurface.withOpacity(0.55) : color,
-      valueWeight: FontWeight.w700,
-    );
-  }
-
   int? _repairStageTimestamp(Repair rep) {
     if ((rep.finishedAt ?? 0) > 0) return rep.finishedAt;
     if ((rep.startedAt ?? 0) > 0) return rep.startedAt;
@@ -4501,70 +4525,6 @@ class _RepairDetailViewState extends State<RepairDetailView> {
   String _formatModifierInfo() {
     if (!_hasModifierInfo) return '---';
     return '${_lastModifiedBy!}  ${_formatTimeAndDay(_lastModifiedAt)}';
-  }
-
-  Widget _buildStatusCard() {
-    Color color;
-    IconData icon;
-
-    switch (r.status) {
-      case 1:
-        color = Colors.blue;
-        icon = Icons.assignment_turned_in;
-        break;
-      case 2:
-        color = Colors.orange;
-        icon = Icons.build;
-        break;
-      case 3:
-        color = AppColors.success;
-        icon = Icons.check_circle;
-        break;
-      case 4:
-        color = AppColors.primary;
-        icon = Icons.verified;
-        break;
-      default:
-        color = Colors.grey;
-        icon = Icons.help_outline;
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.2)),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: color, size: 40),
-          const SizedBox(width: 15),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(r.model.toUpperCase(), style: AppTextStyles.headline5),
-                Text(
-                  _getStatusText(
-                    r.status,
-                    pendingApproval: r.pendingDeliveryApproval,
-                  ),
-                  style: AppTextStyles.body2.copyWith(
-                    color: _getStatusColor(
-                      r.status,
-                      pendingApproval: r.pendingDeliveryApproval,
-                    ),
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   Widget _buildActionButtons() {
@@ -4631,676 +4591,6 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     // Status < 3: nút ĐÃ XONG đã được dời xuống thanh hành động dưới cùng
     // để gom cùng LƯU/IN/ZALO trên một hàng.
     return const SizedBox.shrink();
-  }
-
-  Widget _buildFinancialContent() {
-    final displayPrice = _displayedChargePrice(r);
-    final displayProfit = displayPrice - r.cost;
-    final hideDeliveredSensitiveFinancial = _hideDeliveredSensitiveFinancial(r);
-    final canShowCost =
-      _isManagerLike && _canViewCostPrice && _canViewRevenue && !hideDeliveredSensitiveFinancial;
-    final canShowProfit = _isManagerLike && _canViewRevenue && _canViewCostPrice && !hideDeliveredSensitiveFinancial;
-
-    return Column(
-      children: [
-        if (canShowProfit)
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                loc.expectedProfit,
-                style: AppTextStyles.body1.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Text(
-                "${MoneyUtils.formatCurrency(displayProfit)} đ",
-                style: AppTextStyles.headline5.copyWith(
-                  color: displayProfit >= 0
-                      ? AppColors.success
-                      : AppColors.error,
-                ),
-              ),
-            ],
-          ),
-        const Divider(height: 25),
-        Row(
-          children: [
-            _miniFin(_displayedPriceLabel(r), displayPrice, AppColors.primary),
-            if (canShowCost)
-              _miniFin(loc.costLabel, r.cost, AppColors.warning),
-          ],
-        ),
-        if (r.pendingDeliveryApproval && r.requestedDeliveryPrice != null)
-          Padding(
-            padding: const EdgeInsets.only(top: 6),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Đang chờ duyệt giá yêu cầu: ${MoneyUtils.formatCurrency(displayPrice)} đ',
-                style: AppTextStyles.overline.copyWith(
-                  color: Colors.deepOrange.shade700,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ),
-        const SizedBox(height: 10),
-        // Hiển thị phụ tùng đã dùng
-        if (r.partsUsed.isNotEmpty) ...[
-          const Divider(height: 20),
-          Row(
-            children: [
-              const Icon(Icons.build, size: 16, color: Colors.blue),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  loc.partsUsedLabel(r.partsUsed),
-                  style: AppTextStyles.caption.copyWith(color: Colors.blue),
-                ),
-              ),
-            ],
-          ),
-        ],
-        const SizedBox(height: 10),
-        // Chỉ khóa các nút sửa khi ĐÃ GIAO (status 4)
-        if (r.status < 4)
-          Wrap(
-            alignment: WrapAlignment.spaceEvenly,
-            spacing: 4,
-            runSpacing: 4,
-            children: [
-              TextButton.icon(
-                onPressed: _selectPartsFromInventory,
-                icon: const Icon(
-                  Icons.inventory_2,
-                  size: 14,
-                  color: Colors.blue,
-                ),
-                label: Text(
-                  loc.partsLabel,
-                  style: AppTextStyles.caption.copyWith(color: Colors.blue),
-                ),
-              ),
-              // Lối tắt vào Kho Linh Kiện
-              TextButton.icon(
-                onPressed: _navigateToPartsInventory,
-                icon: const Icon(Icons.warehouse, size: 14, color: Colors.teal),
-                label: Text(
-                  loc.partsInventoryShort,
-                  style: AppTextStyles.caption.copyWith(color: Colors.teal),
-                ),
-              ),
-              // Đổi phụ tùng chọn nhầm
-              if (r.partsUsed.isNotEmpty)
-                TextButton.icon(
-                  onPressed: _swapPartInRepair,
-                  icon: const Icon(
-                    Icons.swap_horiz,
-                    size: 14,
-                    color: Colors.deepPurple,
-                  ),
-                  label: Text(
-                    'Đổi PT',
-                    style: AppTextStyles.caption.copyWith(
-                      color: Colors.deepPurple,
-                    ),
-                  ),
-                ),
-              // Xóa phụ tùng đã chọn nhầm
-              if (r.partsUsed.isNotEmpty)
-                TextButton.icon(
-                  onPressed: _removePartFromRepair,
-                  icon: const Icon(
-                    Icons.delete_sweep,
-                    size: 14,
-                    color: Colors.red,
-                  ),
-                  label: Text(
-                    'Xóa PT',
-                    style: AppTextStyles.caption.copyWith(color: Colors.red),
-                  ),
-                ),
-              TextButton.icon(
-                onPressed: _editTechnicianNotes,
-                icon: const Icon(
-                  Icons.note_add,
-                  size: 14,
-                  color: Colors.orange,
-                ),
-                label: Text(
-                  loc.techShort,
-                  style: AppTextStyles.caption.copyWith(color: Colors.orange),
-                ),
-              ),
-            ],
-          ),
-      ],
-    );
-  }
-
-  Widget _buildServicesContent() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Header with add button
-        if (r.status != 4)
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton.icon(
-              onPressed: _showAddServiceDialog,
-              icon: const Icon(Icons.add, size: 18, color: Colors.blue),
-              label: Text(
-                loc.addServiceButton,
-                style: AppTextStyles.caption.copyWith(
-                  color: Colors.blue,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-        if (r.services.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            child: Text(
-              loc.noServicesMessage,
-              style: AppTextStyles.caption.copyWith(
-                color: AppColors.onSurface.withOpacity(0.5),
-                fontStyle: FontStyle.italic,
-              ),
-            ),
-          )
-        else
-          ...r.services.asMap().entries.map((entry) {
-            final i = entry.key;
-            final s = entry.value;
-            return Container(
-              margin: EdgeInsets.only(
-                bottom: i < r.services.length - 1 ? 10 : 0,
-              ),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.background,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade200),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.build_circle, size: 20, color: Colors.blue),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          s.serviceName,
-                          style: AppTextStyles.body2.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        if (s.partnerName != null)
-                          Text(
-                            loc.partnerLabel(s.partnerName!),
-                            style: AppTextStyles.caption.copyWith(
-                              color: Colors.blue,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                  Text(
-                    "${MoneyUtils.formatCurrency(s.cost)} đ",
-                    style: AppTextStyles.body2.copyWith(
-                      color: AppColors.warning,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  if (r.status != 4)
-                    IconButton(
-                      icon: const Icon(
-                        Icons.edit,
-                        size: 18,
-                        color: Colors.grey,
-                      ),
-                      onPressed: () => _showAddServiceDialog(s, i),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                ],
-              ),
-            );
-          }),
-        if (r.services.isNotEmpty) ...[
-          const Divider(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                loc.totalServiceCost,
-                style: AppTextStyles.body2.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Text(
-                "${MoneyUtils.formatCurrency(r.services.fold(0, (sum, s) => sum + s.cost))} đ",
-                style: AppTextStyles.body1.copyWith(
-                  color: AppColors.warning,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildImageContent() {
-    final images = _displayableImages(r.receiveImages);
-    if (images.isEmpty) {
-      return Text(
-        loc.noImages,
-        style: AppTextStyles.caption.copyWith(
-          color: AppColors.onSurface.withOpacity(0.5),
-          fontStyle: FontStyle.italic,
-        ),
-      );
-    }
-    return SizedBox(
-      height: 100,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: images.length,
-        itemBuilder: (ctx, i) => GestureDetector(
-          onTap: () => _showFullImage(images, i),
-          child: Container(
-            margin: const EdgeInsets.only(right: 10),
-            width: 100,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade200),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: _buildSmartImage(images[i]),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCustomerContent() {
-    return Column(
-      children: [
-        _infoRow(loc.customerLabel, r.customerName),
-        _phoneRow(loc.phoneNumberLabel, r.phone),
-        _infoRow(loc.deviceIssueLabel, r.issue),
-        _staffInfoRow(
-          'Nhận',
-          _formatStageActorWithTime(
-            actorRaw: r.createdBy,
-            timestamp: r.createdAt,
-          ),
-        ),
-        _staffInfoRow(
-          'Sửa',
-          _formatStageActorWithTime(
-            actorRaw: r.repairedBy,
-            timestamp: _repairStageTimestamp(r),
-          ),
-        ),
-        _staffInfoRow(
-          'Giao',
-          _formatStageActorWithTime(
-            actorRaw: r.deliveredBy,
-            timestamp: _deliveryStageTimestamp(r),
-          ),
-        ),
-        if (_hasModifierInfo) _infoRow('Sửa đổi', _formatModifierInfo()),
-        _infoRow(
-          loc.accessoriesLabel,
-          r.accessories.isEmpty ? loc.noAccessories : r.accessories,
-        ),
-        _infoRow(loc.warranty, r.warranty.isEmpty ? loc.noneYet : r.warranty),
-        if (r.notes != null && r.notes!.isNotEmpty)
-          _infoRow(loc.note, r.notes!),
-      ],
-    );
-  }
-
-  Widget _buildFinancialSummary() {
-    final displayPrice = _displayedChargePrice(r);
-    final displayProfit = displayPrice - r.cost;
-    final hideDeliveredSensitiveFinancial = _hideDeliveredSensitiveFinancial(r);
-    final canShowCost =
-      _isManagerLike && _canViewCostPrice && _canViewRevenue && !hideDeliveredSensitiveFinancial;
-    final canShowProfit = _isManagerLike && _canViewRevenue && _canViewCostPrice && !hideDeliveredSensitiveFinancial;
-
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        children: [
-          if (canShowProfit)
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  loc.expectedProfit,
-                  style: AppTextStyles.body1.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  "${MoneyUtils.formatCurrency(displayProfit)} đ",
-                  style: AppTextStyles.headline5.copyWith(
-                    color: displayProfit >= 0
-                        ? AppColors.success
-                        : AppColors.error,
-                  ),
-                ),
-              ],
-            ),
-          const Divider(height: 25),
-          Row(
-            children: [
-              _miniFin(
-                _displayedPriceLabel(r),
-                displayPrice,
-                AppColors.primary,
-              ),
-              if (canShowCost)
-                _miniFin(loc.costLabel, r.cost, AppColors.warning),
-            ],
-          ),
-          if (r.pendingDeliveryApproval && r.requestedDeliveryPrice != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 6),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Đang chờ duyệt giá yêu cầu: ${MoneyUtils.formatCurrency(displayPrice)} đ',
-                  style: AppTextStyles.overline.copyWith(
-                    color: Colors.deepOrange.shade700,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ),
-          const SizedBox(height: 10),
-          // Hiển thị phụ tùng đã dùng
-          if (r.partsUsed.isNotEmpty) ...[
-            const Divider(height: 20),
-            Row(
-              children: [
-                const Icon(Icons.build, size: 16, color: Colors.blue),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    loc.partsUsedLabel(r.partsUsed),
-                    style: AppTextStyles.caption.copyWith(color: Colors.blue),
-                  ),
-                ),
-              ],
-            ),
-          ],
-          const SizedBox(height: 10),
-          // Chỉ khóa các nút sửa khi ĐÃ GIAO (status 4)
-          if (r.status < 4)
-            Wrap(
-              alignment: WrapAlignment.spaceEvenly,
-              spacing: 4,
-              runSpacing: 4,
-              children: [
-                TextButton.icon(
-                  onPressed: _selectPartsFromInventory,
-                  icon: const Icon(
-                    Icons.inventory_2,
-                    size: 14,
-                    color: Colors.blue,
-                  ),
-                  label: Text(
-                    loc.partsLabel,
-                    style: AppTextStyles.caption.copyWith(color: Colors.blue),
-                  ),
-                ),
-                // Lối tắt vào Kho Linh Kiện
-                TextButton.icon(
-                  onPressed: _navigateToPartsInventory,
-                  icon: const Icon(
-                    Icons.warehouse,
-                    size: 14,
-                    color: Colors.teal,
-                  ),
-                  label: Text(
-                    loc.partsInventoryShort,
-                    style: AppTextStyles.caption.copyWith(color: Colors.teal),
-                  ),
-                ),
-                // Đổi phụ tùng chọn nhầm
-                if (r.partsUsed.isNotEmpty)
-                  TextButton.icon(
-                    onPressed: _swapPartInRepair,
-                    icon: const Icon(
-                      Icons.swap_horiz,
-                      size: 14,
-                      color: Colors.deepPurple,
-                    ),
-                    label: Text(
-                      'Đổi PT',
-                      style: AppTextStyles.caption.copyWith(
-                        color: Colors.deepPurple,
-                      ),
-                    ),
-                  ),
-                // Xóa phụ tùng đã chọn nhầm
-                if (r.partsUsed.isNotEmpty)
-                  TextButton.icon(
-                    onPressed: _removePartFromRepair,
-                    icon: const Icon(
-                      Icons.delete_sweep,
-                      size: 14,
-                      color: Colors.red,
-                    ),
-                    label: Text(
-                      'Xóa PT',
-                      style: AppTextStyles.caption.copyWith(color: Colors.red),
-                    ),
-                  ),
-                if (_canEditRepairFinancial || _canEditRepairCharge)
-                  TextButton.icon(
-                    onPressed: _editFinancials,
-                    icon: const Icon(Icons.edit, size: 14),
-                    label: Text(loc.editPrice, style: AppTextStyles.caption),
-                  ),
-                TextButton.icon(
-                  onPressed: _editTechnicianNotes,
-                  icon: const Icon(
-                    Icons.note_add,
-                    size: 14,
-                    color: Colors.orange,
-                  ),
-                  label: Text(
-                    loc.techShort,
-                    style: AppTextStyles.caption.copyWith(color: Colors.orange),
-                  ),
-                ),
-              ],
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _miniFin(String l, int v, Color c) => Expanded(
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          l,
-          style: AppTextStyles.overline.copyWith(
-            color: AppColors.onSurface.withOpacity(0.6),
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        Text(
-          MoneyUtils.formatCurrency(v),
-          style: AppTextStyles.body2.copyWith(
-            color: c,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ],
-    ),
-  );
-
-  Widget _buildServicesSection() {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                loc.repairServices,
-                style: AppTextStyles.body1.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              // Chỉ khóa nút thêm dịch vụ khi ĐÃ GIAO (status 4)
-              if (r.status != 4)
-                TextButton.icon(
-                  onPressed: _showAddServiceDialog,
-                  icon: const Icon(Icons.add, size: 18, color: Colors.blue),
-                  label: Text(
-                    loc.addService,
-                    style: AppTextStyles.caption.copyWith(
-                      color: Colors.blue,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          const Divider(height: 16),
-          if (r.services.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              child: Text(
-                loc.noServicesYet,
-                style: AppTextStyles.caption.copyWith(
-                  color: AppColors.onSurface.withOpacity(0.5),
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-            )
-          else
-            ...r.services.asMap().entries.map((entry) {
-              final i = entry.key;
-              final s = entry.value;
-              return Container(
-                margin: EdgeInsets.only(
-                  bottom: i < r.services.length - 1 ? 10 : 0,
-                ),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.background,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade200),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.build_circle,
-                      size: 20,
-                      color: Colors.blue,
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            s.serviceName,
-                            style: AppTextStyles.body2.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          if (s.partnerName != null)
-                            Text(
-                              loc.partnerLabel(s.partnerName!),
-                              style: AppTextStyles.caption.copyWith(
-                                color: Colors.blue,
-                              ),
-                            ),
-                          if (s.partnerName != null && s.paymentMethod != null)
-                            Text(
-                              'TT: ${s.paymentMethod}',
-                              style: AppTextStyles.caption.copyWith(
-                                color: Colors.grey,
-                                fontSize: 13,
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                    Text(
-                      "${MoneyUtils.formatCurrency(s.cost)} đ",
-                      style: AppTextStyles.body2.copyWith(
-                        color: AppColors.warning,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    // Chỉ khóa nút sửa dịch vụ khi ĐÃ GIAO (status 4)
-                    if (r.status != 4)
-                      IconButton(
-                        icon: const Icon(
-                          Icons.edit,
-                          size: 18,
-                          color: Colors.grey,
-                        ),
-                        onPressed: () => _showAddServiceDialog(s, i),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                      ),
-                  ],
-                ),
-              );
-            }),
-          if (r.services.isNotEmpty) ...[
-            const Divider(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  loc.totalServiceCost,
-                  style: AppTextStyles.body2.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  "${MoneyUtils.formatCurrency(r.services.fold(0, (sum, s) => sum + s.cost))} đ",
-                  style: AppTextStyles.body1.copyWith(
-                    color: AppColors.warning,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ],
-      ),
-    );
   }
 
   Future<void> _showAddServiceDialog([
@@ -5992,46 +5282,6 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     if (mounted) setState(() => _isUpdating = false);
   }
 
-  Widget _buildImageGallery() {
-    final images = _displayableImages(r.receiveImages);
-    if (images.isEmpty) return const SizedBox();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          loc.receivedImages,
-          style: AppTextStyles.caption.copyWith(
-            fontWeight: FontWeight.bold,
-            color: AppColors.onSurface,
-          ),
-        ),
-        const SizedBox(height: 10),
-        SizedBox(
-          height: 120,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: images.length,
-            itemBuilder: (ctx, i) => GestureDetector(
-              onTap: () => _showFullImage(images, i),
-              child: Container(
-                margin: const EdgeInsets.only(right: 10),
-                width: 120,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade200),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: _buildSmartImage(images[i]),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
   Future<void> _showFullImage(List<String> images, int initialIndex) async {
     final resolvedResults = await Future.wait<String?>(
       images.map(_resolveDisplayImagePath),
@@ -6089,118 +5339,6 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     );
   }
 
-  Widget _buildCustomerCard() {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        children: [
-          _infoRow(loc.customerLabel, r.customerName),
-          _phoneRow(loc.phoneNumberLabel, r.phone),
-          _infoRow(loc.deviceIssueLabel, r.issue),
-          _staffInfoRow(
-            'Nhận',
-            _formatStageActorWithTime(
-              actorRaw: r.createdBy,
-              timestamp: r.createdAt,
-            ),
-          ),
-          _staffInfoRow(
-            'Sửa',
-            _formatStageActorWithTime(
-              actorRaw: r.repairedBy,
-              timestamp: _repairStageTimestamp(r),
-            ),
-          ),
-          _staffInfoRow(
-            'Giao',
-            _formatStageActorWithTime(
-              actorRaw: r.deliveredBy,
-              timestamp: _deliveryStageTimestamp(r),
-            ),
-          ),
-          if (_hasModifierInfo) _infoRow('Sửa đổi', _formatModifierInfo()),
-          _infoRow(
-            loc.accessoriesLabel,
-            r.accessories.isEmpty ? loc.noAccessories : r.accessories,
-          ),
-          _infoRow(loc.warranty, r.warranty.isEmpty ? loc.noneYet : r.warranty),
-          if (r.notes != null && r.notes!.isNotEmpty)
-            _infoRow(loc.note, r.notes!),
-        ],
-      ),
-    );
-  }
-
-  Widget _infoRow(
-    String l,
-    String v, {
-    Color? labelColor,
-    Color? valueColor,
-    FontWeight? valueWeight,
-  }) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 8),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          l,
-          style: AppTextStyles.caption.copyWith(
-            color: labelColor ?? AppColors.onSurface.withOpacity(0.6),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Flexible(
-          child: Text(
-            v,
-            style: AppTextStyles.body2.copyWith(
-              color: valueColor,
-              fontWeight: valueWeight ?? FontWeight.bold,
-            ),
-            textAlign: TextAlign.end,
-            overflow: TextOverflow.ellipsis,
-            maxLines: 2,
-          ),
-        ),
-      ],
-    ),
-  );
-
-  Widget _phoneRow(String label, String phone) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 8),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: AppTextStyles.caption.copyWith(
-            color: AppColors.onSurface.withOpacity(0.6),
-          ),
-        ),
-        Row(
-          children: [
-            Text(
-              phone,
-              style: AppTextStyles.body2.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(width: 8),
-            IconButton(
-              onPressed: () => _dialPhone(phone),
-              icon: const Icon(Icons.call, color: AppColors.success, size: 20),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-              tooltip: 'Gọi điện',
-            ),
-          ],
-        ),
-      ],
-    ),
-  );
-
   String _staffLabel(String? raw) {
     final value = raw?.trim();
     if (value == null || value.isEmpty) return '---';
@@ -6208,19 +5346,6 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       return value.split('@').first.toUpperCase();
     }
     return value.toUpperCase();
-  }
-
-  Future<void> _dialPhone(String phone) async {
-    final cleanPhone = phone.replaceAll(RegExp(r'[^\d+]'), '');
-    final url = Uri.parse('tel:$cleanPhone');
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url);
-    } else {
-      NotificationService.showSnackBar(
-        'Không thể gọi điện: $phone',
-        color: Colors.red,
-      );
-    }
   }
 
   Widget _buildBottomActions() {

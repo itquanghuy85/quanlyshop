@@ -9,7 +9,6 @@ import '../theme/app_text_styles.dart';
 import '../widgets/custom_app_bar.dart';
 import 'hr_salary_settings_view.dart';
 import 'hr/shop_deduction_settings_view.dart';
-import 'hr/add_custom_adjustment_dialog.dart';
 
 /// Trang DOANH SỐ & LƯƠNG NHÂN VIÊN - Tính tự động từ chấm công + doanh số
 class StaffPerformanceView extends StatefulWidget {

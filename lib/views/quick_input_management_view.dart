@@ -5,7 +5,6 @@ import '../models/quick_input_code_model.dart';
 import '../theme/app_text_styles.dart';
 import '../services/user_service.dart';
 import '../services/notification_service.dart';
-import '../services/sync_service.dart';
 import '../services/sync_orchestrator.dart';
 import '../data/db_helper.dart';
 import 'smart_stock_in_view.dart';
@@ -27,7 +26,6 @@ class _QuickInputManagementViewState extends State<QuickInputManagementView> {
   bool _isLoading = true;
   List<QuickInputCode> _codes = [];
   QuickInputFilter _currentFilter = QuickInputFilter.all;
-  bool _isSyncing = false;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
@@ -104,24 +102,6 @@ class _QuickInputManagementViewState extends State<QuickInputManagementView> {
     return filtered;
   }
 
-  Future<void> _syncToCloud() async {
-    if (_isSyncing) return;
-
-    setState(() => _isSyncing = true);
-    try {
-      await SyncService.syncQuickInputCodesToCloud();
-      // Real-time listeners handle downloads — chỉ push local changes
-      NotificationService.showSnackBar('Đã đồng bộ thành công mã nhập nhanh!', color: Colors.green);
-      await _loadCodes();
-    } catch (e) {
-      NotificationService.showSnackBar('Lỗi đồng bộ: $e', color: Colors.red);
-    } finally {
-      if (mounted) {
-        setState(() => _isSyncing = false);
-      }
-    }
-  }
-
   Future<void> _toggleActive(QuickInputCode code) async {
     try {
       await db.toggleQuickInputCodeActive(code.id!, !code.isActive);
@@ -194,77 +174,6 @@ class _QuickInputManagementViewState extends State<QuickInputManagementView> {
 
   void _showCreateDialog() {
     NotificationService.showSnackBar('Tính năng tạo mã mới đang được phát triển', color: Colors.blue);
-  }
-
-  Widget _buildLibraryTab() {
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    final filteredCodes = _filteredCodes;
-
-    return Column(
-      children: [
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Row(
-            children: [
-              _buildFilterChip('Tất cả', QuickInputFilter.all),
-              const SizedBox(width: 8),
-              _buildFilterChip('Chưa đồng bộ', QuickInputFilter.unsynced),
-            ],
-          ),
-        ),
-
-        if (_codes.any((code) => !code.isSynced))
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: _isSyncing ? null : _syncToCloud,
-                icon: _isSyncing
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.cloud_upload),
-                label: Text(_isSyncing ? 'Đang đồng bộ...' : 'Đồng bộ lên Cloud'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  foregroundColor: Colors.white,
-                ),
-              ),
-            ),
-          ),
-
-        Expanded(
-          child: filteredCodes.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.library_books, size: 64, color: Colors.grey.shade400),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Chưa có mã nhập nhanh nào',
-                        style: TextStyle(color: Colors.grey.shade600, fontSize: AppTextStyles.headline3.fontSize),
-                      ),
-                    ],
-                  ),
-                )
-              : ListView.builder(
-                  itemCount: filteredCodes.length,
-                  itemBuilder: (context, index) {
-                    final code = filteredCodes[index];
-                    return _buildCodeListTile(code, isLibrary: true);
-                  },
-                ),
-        ),
-      ],
-    );
   }
 
   Widget _buildManagementTab() {
@@ -429,22 +338,6 @@ class _QuickInputManagementViewState extends State<QuickInputManagementView> {
               ),
         onTap: isLibrary ? () => _importToInventory(code) : null,
       ),
-    );
-  }
-
-  Widget _buildFilterChip(String label, QuickInputFilter filter) {
-    final isSelected = _currentFilter == filter;
-    return FilterChip(
-      label: Text(label),
-      selected: isSelected,
-      onSelected: (selected) {
-        if (selected) {
-          setState(() => _currentFilter = filter);
-        }
-      },
-      backgroundColor: Colors.grey.shade100,
-      selectedColor: Theme.of(context).primaryColor.withOpacity(0.2),
-      checkmarkColor: Theme.of(context).primaryColor,
     );
   }
 

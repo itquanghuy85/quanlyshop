@@ -25,6 +25,8 @@ import '../widgets/empty_state_widget.dart';
 import '../utils/vietnamese_utils.dart';
 import '../utils/money_utils.dart';
 import '../widgets/gradient_fab.dart';
+import '../services/notification_service.dart';
+import '../services/firestore_write_helper.dart';
 import 'repair_detail_view.dart';
 import 'create_repair_order_view.dart';
 import 'global_search_view.dart';
@@ -35,6 +37,8 @@ import '../widgets/responsive_wrapper.dart';
 import '../widgets/app_cached_image.dart';
 import '../widgets/sync_status_bar.dart';
 import '../services/connectivity_service.dart';
+import '../services/customer_service.dart';
+import '../models/customer_model.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 class OrderListView extends StatefulWidget {
@@ -1022,6 +1026,143 @@ class OrderListViewState extends State<OrderListView> {
     );
   }
 
+  Future<void> _addCustomerToRepair(Repair r) async {
+    final phoneCtrl = TextEditingController(text: r.phone);
+    final nameCtrl = TextEditingController(text: r.customerName);
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.person_add, size: 20),
+            SizedBox(width: 8),
+            Text('Thêm thông tin khách hàng', style: TextStyle(fontSize: 16)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: phoneCtrl,
+              keyboardType: TextInputType.phone,
+              decoration: const InputDecoration(
+                labelText: 'Số điện thoại',
+                prefixIcon: Icon(Icons.phone),
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: nameCtrl,
+              textCapitalization: TextCapitalization.characters,
+              decoration: const InputDecoration(
+                labelText: 'Tên khách hàng',
+                prefixIcon: Icon(Icons.person),
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Hủy')),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Lưu'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    final newPhone = phoneCtrl.text.trim();
+    final newName = nameCtrl.text.trim().toUpperCase();
+
+    if (newPhone.isEmpty && newName.isEmpty) return;
+
+    try {
+      // 1. Cập nhật đơn sửa
+      final updatedRepair = r.copyWith(
+        customerName: newName,
+        phone: newPhone,
+        isWalkIn: newPhone.isEmpty && newName.isEmpty,
+      );
+      await db.upsertRepair(updatedRepair);
+
+      if (r.firestoreId != null && r.firestoreId!.isNotEmpty) {
+        final encData = EncryptionService.encryptMap({
+          'customerName': newName,
+          'phone': newPhone,
+          'isWalkIn': newPhone.isEmpty && newName.isEmpty,
+          'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
+        });
+        await FirebaseFirestore.instance
+            .collection('repairs')
+            .doc(r.firestoreId)
+            .update(encData);
+      }
+
+      // 2. Lưu vào danh sách khách hàng + tính lại stats từ tất cả đơn cũ
+      if (newPhone.isNotEmpty) {
+        final customerService = CustomerService();
+        final shopId = await UserService.getCurrentShopId();
+
+        // Tính lại totalRepairs/totalSpent từ tất cả đơn sửa theo phone
+        final allRepairs = await db.getCustomerRepairsHistory(newPhone, shopId);
+        final validRepairs = allRepairs
+            .where((rep) => (rep['deleted'] ?? 0) != 1)
+            .toList();
+        final totalRepairs = validRepairs.length;
+        final totalRepairCost = validRepairs.fold<int>(
+          0, (acc, rep) => acc + ((rep['price'] as num?)?.toInt() ?? 0));
+        final lastVisit = validRepairs.isNotEmpty
+            ? validRepairs
+                .map((r) => (r['createdAt'] as num?)?.toInt() ?? 0)
+                .reduce((a, b) => a > b ? a : b)
+            : DateTime.now().millisecondsSinceEpoch;
+
+        final existing = shopId != null
+            ? await db.getCustomerByPhone(newPhone, shopId)
+            : <Map<String, dynamic>>[];
+
+        if (existing.isEmpty) {
+          await customerService.addCustomer(Customer(
+            name: newName.isNotEmpty ? newName : newPhone,
+            phone: newPhone,
+            createdAt: DateTime.now().millisecondsSinceEpoch,
+            totalRepairs: totalRepairs,
+            totalRepairCost: totalRepairCost,
+            lastVisitAt: lastVisit,
+          ));
+        } else {
+          final existingId = (existing.first['id'] as num?)?.toInt();
+          if (existingId != null) {
+            await db.updateCustomer(existingId, {
+              if (newName.isNotEmpty) 'name': newName,
+              'totalRepairs': totalRepairs,
+              'totalRepairCost': totalRepairCost,
+              'lastVisitAt': lastVisit,
+              'updatedAt': DateTime.now().millisecondsSinceEpoch,
+            });
+          }
+        }
+      }
+
+      _rebuildDisplayedRepairs();
+      if (mounted) {
+        NotificationService.showSnackBar(
+          'Đã cập nhật thông tin khách hàng',
+          color: Colors.green,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        NotificationService.showSnackBar('Lỗi: $e', color: Colors.red);
+      }
+    }
+  }
+
   void _confirmDelete(Repair r) {
     if (!canDelete) return;
 
@@ -1884,6 +2025,17 @@ class OrderListViewState extends State<OrderListView> {
                         textColor: Colors.blueGrey.shade800,
                         fontWeight: FontWeight.w600,
                         fontSize: 12,
+                      )
+                    else
+                      GestureDetector(
+                        onTap: () => _addCustomerToRepair(r),
+                        child: _repairInfoChip(
+                          '👤 Thêm khách hàng',
+                          Colors.orange.shade50,
+                          textColor: Colors.orange.shade800,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                        ),
                       ),
                     if (r.phone.trim().isNotEmpty)
                       _repairInfoChip(

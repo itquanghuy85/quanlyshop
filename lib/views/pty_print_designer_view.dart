@@ -187,7 +187,6 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
 
   // Elements & selection
   LabelElement? _selectedElement;
-  bool _isDragging = false;
 
   final Product _sampleProduct = Product(
     id: 0,
@@ -516,7 +515,7 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
         default:
           maxDots = 576;
       }
-      if (labelWidthMm > 0 && maxDots != null && maxDots > 0) {
+      if (labelWidthMm > 0 && maxDots > 0) {
         final fitPxPerMm = maxDots / labelWidthMm;
         // Không phóng to quá DPI gốc; chỉ thu nhỏ để khớp khổ giấy
         return fitPxPerMm < basePxPerMm ? fitPxPerMm : basePxPerMm;
@@ -974,7 +973,6 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
         onTap: () => _selectElement(el),
         onPanStart: (_) {
           _selectElement(el);
-          setState(() => _isDragging = true);
         },
         onPanUpdate: (details) {
           final deltaX = details.delta.dx / pxPerMm;
@@ -989,7 +987,6 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
             e.yMm = (e.yMm + deltaY).clamp(minY, maxY);
           });
         },
-        onPanEnd: (_) => setState(() => _isDragging = false),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
           width: width,
@@ -1514,7 +1511,7 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
                   children: [
                     Icon(Icons.view_week, size: 20),
                     SizedBox(width: 8),
-                    Text('Barcode'),
+                    Text('Mã vạch'),
                   ],
                 ),
                 value: barcodeElement.visible,
@@ -2032,7 +2029,7 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
       case LabelElementType.qr:
         return 'QR Code';
       case LabelElementType.barcode:
-        return 'Barcode';
+        return 'Mã vạch';
     }
   }
 
@@ -2204,7 +2201,7 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
   /// Nút điều hướng vị trí nhanh - di chuyển lên/xuống/trái/phải
   Widget _buildPositionNavButtons(LabelElement el, ColorScheme colorScheme) {
     const double step = 0.5; // Di chuyển 0.5mm mỗi lần bấm
-    const double bigStep = 2.0; // Di chuyển 2mm khi giữ
+    // bigStep (2.0mm) reserved for future long-press navigation
     
     Widget navButton({
       required IconData icon,
@@ -2486,7 +2483,7 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
             const SizedBox(width: 8),
             TextButton(
               onPressed: () => _updateElement(el, (e) => e.rotationDeg = 0),
-              child: const Text('Reset'),
+              child: const Text('Đặt lại'),
             ),
           ],
         ),

@@ -11,7 +11,6 @@ import '../services/user_service.dart';
 import '../widgets/validated_text_field.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
-import '../theme/app_button_styles.dart';
 import '../widgets/custom_app_bar.dart';
 import 'hr/add_custom_adjustment_dialog.dart';
 import '../widgets/responsive_wrapper.dart';
@@ -165,7 +164,7 @@ class _PayrollViewState extends State<PayrollView> {
   List<String> get _staffList {
     final s = <String>{};
     for (final a in _att) {
-      final name = (a.name ?? '').toString();
+      final name = a.name.toString();
       if (name.isNotEmpty) s.add(name);
     }
     final list = s.toList()..sort();
@@ -175,7 +174,7 @@ class _PayrollViewState extends State<PayrollView> {
   Iterable<Attendance> get _filteredAtt {
     final filter = (_selectedStaff ?? _customStaff.text).trim().toUpperCase();
     if (filter.isEmpty) return _att;
-    return _att.where((a) => (a.name ?? '').toString().toUpperCase().contains(filter));
+    return _att.where((a) => a.name.toString().toUpperCase().contains(filter));
   }
 
   double _getBase(String staff) => _basePerDay[staff] ?? 0;
@@ -189,7 +188,7 @@ class _PayrollViewState extends State<PayrollView> {
     final name = _selectedStaffName.toUpperCase();
     if (name.isEmpty) return null;
     for (final a in _att) {
-      if ((a.name ?? '').toString().toUpperCase() == name) {
+      if (a.name.toString().toUpperCase() == name) {
         return a.userId;
       }
     }
@@ -233,7 +232,7 @@ class _PayrollViewState extends State<PayrollView> {
     double hoursStd = 8.0; // default
 
     // Get work schedule from first attendance record of this staff
-    final staffAtt = _filteredAtt.where((a) => (a.name ?? '').toString().toUpperCase() == staffKey).toList();
+    final staffAtt = _filteredAtt.where((a) => a.name.toString().toUpperCase() == staffKey).toList();
     if (staffAtt.isNotEmpty) {
       final firstAtt = staffAtt.first;
       if (firstAtt.workSchedule != null && firstAtt.workSchedule!.isNotEmpty) {
@@ -263,7 +262,7 @@ class _PayrollViewState extends State<PayrollView> {
       final hrs = (outMs - inMs) / (1000 * 60 * 60);
       totalHours += hrs;
       days += 1;
-      if ((a.overtimeOn ?? 0) == 1 && hrs > hoursStd) {
+      if (a.overtimeOn == 1 && hrs > hoursStd) {
         otHours += (hrs - hoursStd);
       }
     }
@@ -384,13 +383,13 @@ class _PayrollViewState extends State<PayrollView> {
           ? ((outMs - inMs) / (1000 * 60 * 60))
           : 0.0;
       buffer.writeln([
-        a.dateKey ?? '',
-        a.name ?? '',
+        a.dateKey,
+        a.name,
         inMs == null ? '' : DateFormat('HH:mm').format(DateTime.fromMillisecondsSinceEpoch(inMs)),
         outMs == null ? '' : DateFormat('HH:mm').format(DateTime.fromMillisecondsSinceEpoch(outMs)),
         hrs.toStringAsFixed(2),
-        (a.overtimeOn ?? 0) == 1 ? 'OT' : '',
-        (a.status ?? 'pending').toString(),
+        a.overtimeOn == 1 ? 'OT' : '',
+        a.status,
       ].join(','));
     }
     buffer.writeln('');
@@ -601,9 +600,9 @@ class _PayrollViewState extends State<PayrollView> {
                         visualDensity: VisualDensity.compact,
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12),
                         leading: const Icon(Icons.calendar_today, size: 15),
-                        title: Text(a.dateKey ?? '', style: FinanceV2Theme.bodyMd),
+                        title: Text(a.dateKey, style: FinanceV2Theme.bodyMd),
                         subtitle: Text('${inMs == null ? '--' : DateFormat('HH:mm').format(DateTime.fromMillisecondsSinceEpoch(inMs))} → ${outMs == null ? '--' : DateFormat('HH:mm').format(DateTime.fromMillisecondsSinceEpoch(outMs))} • ${hrs.toStringAsFixed(1)}h', style: FinanceV2Theme.micro.copyWith(color: FinanceV2Theme.subInk)),
-                        trailing: (a.overtimeOn ?? 0) == 1 ? Text('OT', style: FinanceV2Theme.bodySm.copyWith(color: FinanceV2Theme.warn, fontWeight: FontWeight.w700)) : null,
+                        trailing: a.overtimeOn == 1 ? Text('OT', style: FinanceV2Theme.bodySm.copyWith(color: FinanceV2Theme.warn, fontWeight: FontWeight.w700)) : null,
                       );
                     }).toList(),
                   ),

@@ -29,14 +29,12 @@ class _RepairPartnerViewState extends State<RepairPartnerView> {
   List<RepairPartner> _partners = [];
   Map<int, Map<String, dynamic>> _partnerStats = {};
   bool _isLoading = true;
-  bool _isAdmin = false;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
-    _loadRole();
     _refresh();
     _subscription = EventBus().on('repair_partners_changed', _onPartnersChanged);
   }
@@ -53,16 +51,6 @@ class _RepairPartnerViewState extends State<RepairPartnerView> {
     _reloadDebounce?.cancel();
     _reloadDebounce = Timer(const Duration(milliseconds: 500), () {
       if (mounted) _refresh();
-    });
-  }
-
-  Future<void> _loadRole() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
-    final perms = await UserService.getCurrentUserPermissions();
-    if (!mounted) return;
-    setState(() {
-      _isAdmin = perms['allowViewRepairs'] ?? false;
     });
   }
 

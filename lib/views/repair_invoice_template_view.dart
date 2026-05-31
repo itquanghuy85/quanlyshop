@@ -142,7 +142,7 @@ class _RepairInvoiceTemplateViewState extends State<RepairInvoiceTemplateView> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Header:', style: TextStyle(fontWeight: FontWeight.bold)),
+                    const Text('Đầu trang:', style: TextStyle(fontWeight: FontWeight.bold)),
                     Align(
                       alignment: Alignment.centerLeft,
                       child: TextButton.icon(
@@ -185,7 +185,7 @@ class _RepairInvoiceTemplateViewState extends State<RepairInvoiceTemplateView> {
                       onChanged: (_) => _updatePreview(),
                     ),
                     const SizedBox(height: 16),
-                    const Text('Footer:', style: TextStyle(fontWeight: FontWeight.bold)),
+                    const Text('Chân trang:', style: TextStyle(fontWeight: FontWeight.bold)),
                     Align(
                       alignment: Alignment.centerLeft,
                       child: TextButton.icon(

@@ -3,7 +3,6 @@ import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../data/db_helper.dart';
 import '../models/salary_breakdown_model.dart';
-import '../models/leave_request_model.dart';
 import '../services/encryption_service.dart';
 import '../models/employee_salary_model.dart';
 import '../models/shop_deduction_settings.dart';
@@ -963,17 +962,6 @@ class SalaryCalculationService {
     }
 
     return workingDays;
-  }
-
-  /// Helper để parse JSON string thành List
-  static List<dynamic> _parseJsonList(String jsonStr) {
-    try {
-      // Simple parser for [1,2,3,4,5,6,7] format
-      final stripped = jsonStr.replaceAll('[', '').replaceAll(']', '');
-      return stripped.split(',').map((s) => int.parse(s.trim())).toList();
-    } catch (_) {
-      return [1, 2, 3, 4, 5, 6];
-    }
   }
 
   /// Convert workDays from any stored format to Dart weekday list [1..7]

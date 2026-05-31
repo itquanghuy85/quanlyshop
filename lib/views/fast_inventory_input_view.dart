@@ -5,7 +5,6 @@ import '../widgets/responsive_wrapper.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../core/utils/money_utils.dart';
 import '../controllers/fast_inventory_input_controller.dart';
-import '../models/product_model.dart';
 import '../models/shop_settings_model.dart';
 import '../services/notification_service.dart';
 import '../services/event_bus.dart';
@@ -52,23 +51,19 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView>
   );
 
   // SKU generation
-  final String _selectedGroup = 'IP';
   final TextEditingController _modelController = TextEditingController();
   final TextEditingController _infoController = TextEditingController();
   final TextEditingController _skuController = TextEditingController();
 
   // Settings
-  final String _selectedType = 'DIEN_THOAI';
   String _selectedSupplier = '';
   List<Map<String, dynamic>> _suppliers = [];
-  bool _isSaving = false;
 
   // Batch import
   final List<Map<String, dynamic>> _batchItems = [];
   bool _isBatchMode = false;
 
   // Recent products display
-  List<Product> _recentProducts = [];
   bool _showRecent = false;
   StreamSubscription? _eventBusSub;
 
@@ -76,8 +71,6 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView>
   ShopSettings? _shopSettings;
   bool get _enableSerial => _shopSettings?.enableSerial ?? true;
   String get _businessType => _shopSettings?.businessType ?? 'electronics';
-  bool get _isElectronics => _businessType == 'electronics' || _shopSettings == null;
-  
   /// Terminology động theo ngành
   BusinessTerminology get _terms => BusinessTypeHelper.instance.getTerminology(_shopSettings);
 
@@ -144,7 +137,6 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView>
       debugPrint('📱 FastInventoryInput: Loaded shop settings - businessType=${settings?.businessType}, enableSerial=${settings?.enableSerial}');
       
       final suppliers = await _controller.getSuppliers();
-      final recentProducts = await _controller.loadRecentProducts();
 
       if (mounted) {
         setState(() {
@@ -154,7 +146,6 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView>
           if (_suppliers.isNotEmpty) {
             _selectedSupplier = _suppliers.first['name'] as String;
           }
-          _recentProducts = recentProducts;
         });
       }
     } catch (e) {
@@ -235,8 +226,6 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView>
   Future<void> _saveBatch() async {
     if (_batchItems.isEmpty) return;
 
-    setState(() => _isSaving = true);
-
     try {
       // Parallel processing for better performance
       await _controller.saveBatchProducts(_batchItems);
@@ -248,28 +237,12 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView>
       );
       HapticFeedback.lightImpact();
 
-      // Parallel refresh
-      await _refreshRecentProducts();
-
       if (mounted) Navigator.of(context).pop();
     } catch (e) {
       NotificationService.showSnackBar(
         "Lỗi khi nhập batch: $e",
         color: Colors.red,
       );
-    } finally {
-      setState(() => _isSaving = false);
-    }
-  }
-
-  Future<void> _refreshRecentProducts() async {
-    try {
-      final recentProducts = await _controller.loadRecentProducts();
-      if (mounted) {
-        setState(() => _recentProducts = recentProducts);
-      }
-    } catch (e) {
-      // Silent fail for refresh
     }
   }
 

@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../widgets/responsive_wrapper.dart';
-import 'package:intl/intl.dart';
 import '../constants/product_constants.dart';
 import '../models/quick_input_code_model.dart';
 import '../services/user_service.dart';
@@ -40,11 +38,6 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
-  // Multi-Industry: Shop Settings
-  ShopSettings? _shopSettings;
-  BusinessTerminology get _terms =>
-      BusinessTypeHelper.instance.getTerminology(_shopSettings);
-
   @override
   void initState() {
     super.initState();
@@ -61,10 +54,6 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> {
     try {
       setState(() => _isLoading = true);
       shopId = await UserService.getCurrentShopId();
-
-      // Load shop settings for terminology
-      final settings = await CategoryService().getShopSettings();
-      if (mounted) _shopSettings = settings;
 
       await _loadCodes();
     } catch (e) {
@@ -205,22 +194,6 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> {
     }
   }
 
-  Future<void> _toggleActive(QuickInputCode code) async {
-    try {
-      await db.toggleQuickInputCodeActive(code.id!, !code.isActive);
-      await _loadCodes();
-      NotificationService.showSnackBar(
-        code.isActive ? 'Đã tắt mã nhập nhanh' : 'Đã bật mã nhập nhanh',
-        color: Colors.green,
-      );
-    } catch (e) {
-      NotificationService.showSnackBar(
-        'Lỗi cập nhật trạng thái: $e',
-        color: Colors.red,
-      );
-    }
-  }
-
   Future<void> _deleteCode(QuickInputCode code) async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -354,19 +327,6 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> {
       context,
       MaterialPageRoute(builder: (_) => FastStockInView(quickInputCode: code)),
     ).then((_) => _loadCodes());
-  }
-
-  void _copyCode(QuickInputCode code) {
-    final info =
-        '${code.name}\n'
-        '${code.type == 'DIEN_THOAI' ? '${code.brand ?? ''} ${code.model ?? ''}'.trim() : code.description ?? ''}\n'
-        'Giá nhập: ${code.cost != null ? NumberFormat('#,###').format(code.cost) : 'N/A'}đ\n'
-        'Giá bán: ${code.price != null ? NumberFormat('#,###').format(code.price) : 'N/A'}đ';
-    Clipboard.setData(ClipboardData(text: info));
-    NotificationService.showSnackBar(
-      'Đã sao chép thông tin',
-      color: Colors.green,
-    );
   }
 
   @override
@@ -829,90 +789,6 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> {
     );
   }
 
-  Widget _buildDetailRow(String label, String? value) {
-    if (value == null || value.isEmpty) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 100,
-            child: Text(
-              label,
-              style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPriceBox(String label, int amount, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.3)),
-      ),
-      child: Column(
-        children: [
-          Text(label, style: TextStyle(fontSize: 12, color: color)),
-          const SizedBox(height: 2),
-          Text(
-            '${NumberFormat('#,###').format(amount)}đ',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionButton({
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return Expanded(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Column(
-            children: [
-              Icon(icon, size: 18, color: color),
-              const SizedBox(height: 2),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  color: color,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 // Dialog thêm/sửa mã nhập nhanh
@@ -1213,7 +1089,7 @@ class _QuickInputCodeDialogState extends State<_QuickInputCodeDialog> {
                         hint: 'VD: IPHONE 15 PRO MAX 256GB',
                         uppercase: true,
                         customValidator: (val) =>
-                            val.isEmpty ?? true ? 'Vui lòng nhập tên' : null,
+                            val.isEmpty ? 'Vui lòng nhập tên' : null,
                       ),
                       const SizedBox(height: 16),
 

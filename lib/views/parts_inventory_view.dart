@@ -10,9 +10,7 @@ import 'dart:async';
 import '../services/event_bus.dart';
 import '../services/audit_service.dart';
 import '../services/sync_orchestrator.dart';
-import '../services/payment_intent_service.dart';
 import '../services/financial_activity_service.dart';
-import '../models/payment_intent_model.dart';
 import '../widgets/validated_text_field.dart';
 import '../widgets/currency_text_field.dart';
 import '../widgets/gradient_fab.dart';
@@ -3099,7 +3097,7 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              'Tồn kho: ${part?['quantity'] ?? 0}',
+                              'Tồn kho: ${part['quantity'] ?? 0}',
                               style: const TextStyle(
                                 fontWeight: FontWeight.w600,
                               ),
@@ -3350,7 +3348,6 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                       // Xử lý thanh toán cho nhập hàng
                       final totalCost = cost * qty;
                       if (totalCost > 0) {
-                        final user = FirebaseAuth.instance.currentUser;
                         if (paymentMethod == 'CÔNG NỢ') {
                           // Công nợ NCC → Tạo debt record + PaymentIntent (CHỜ CHI)
                           final debtFId =
@@ -3895,7 +3892,6 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
 
                     // 4. Tài chính — tạo BẢN GHI MỚI ngày hôm nay
                     if (totalCost > 0) {
-                      final user = FirebaseAuth.instance.currentUser;
                       if (paymentMethod == 'CÔNG NỢ') {
                         // Công nợ NCC
                         final debtFId =

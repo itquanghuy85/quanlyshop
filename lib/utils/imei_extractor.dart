@@ -43,9 +43,6 @@ class IMEIExtractor {
     caseSensitive: false,
   );
 
-  // Short IMEI pattern - 4-5 digits (internal code)
-  static final RegExp _shortImeiPattern = RegExp(r'^(\d{4,5})$');
-
   // Serial number patterns
   static final RegExp _serialPattern = RegExp(
     r'(?:S/?N|Serial)[:\s]*([A-Z0-9]{8,20})',
