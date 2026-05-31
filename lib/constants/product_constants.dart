@@ -435,11 +435,20 @@ class ProductConstants {
   }
 
   static bool _isPhoneProductName(String name) {
-    final n = name.toUpperCase();
-    return n.contains('IPHONE') || n.contains('SAMSUNG') || n.contains('OPPO') ||
-        n.contains('XIAOMI') || n.contains('VIVO') || n.contains('REALME') ||
-        n.contains('TECNO') || n.contains('INFINIX') || n.contains('NOKIA') ||
-        n.contains('IPAD') || n.contains('MACBOOK') || n.contains('WATCH');
+    // Use startsWith — "CƯỜNG LỰC FULL MÀN IPHONE" chứa IPHONE nhưng không phải điện thoại
+    final n = name.toUpperCase().trim();
+    return n.startsWith('IPHONE') ||
+        n.startsWith('SAMSUNG') ||
+        n.startsWith('OPPO') ||
+        n.startsWith('XIAOMI') ||
+        n.startsWith('VIVO') ||
+        n.startsWith('REALME') ||
+        n.startsWith('TECNO') ||
+        n.startsWith('INFINIX') ||
+        n.startsWith('NOKIA') ||
+        n.startsWith('IPAD') ||
+        n.startsWith('MACBOOK') ||
+        n.startsWith('APPLE WATCH');
   }
 
   static bool _isGiftItem(String name) {
