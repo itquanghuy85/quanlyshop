@@ -149,14 +149,16 @@ class _CustomerHistoryViewState extends State<CustomerHistoryView> {
 
   Future<void> _loadUnifiedHistory() async {
     setState(() => _isLoading = true);
-    final repairs = await db.getAllRepairs();
-    final sales = await db.getAllSales();
+    final repairs = _enableRepair
+        ? await db.getRepairsByPhone(widget.phone)
+        : <Repair>[];
+    final sales = await db.getSalesByPhone(widget.phone);
 
     List<Map<String, dynamic>> results = [];
 
     // Chỉ hiện lịch sử sửa chữa nếu shop hỗ trợ repair (electronics)
     if (_enableRepair) {
-      for (var r in repairs.where((item) => item.phone == widget.phone)) {
+      for (var r in repairs) {
         results.add({
           'type': 'REPAIR',
           'time': r.createdAt,
@@ -172,7 +174,7 @@ class _CustomerHistoryViewState extends State<CustomerHistoryView> {
       }
     }
 
-    for (var s in sales.where((item) => item.phone == widget.phone)) {
+    for (var s in sales) {
       results.add({
         'type': 'SALE',
         'time': s.soldAt,

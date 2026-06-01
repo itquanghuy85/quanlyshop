@@ -149,29 +149,17 @@ class _StaffSelfProfileViewState extends State<StaffSelfProfileView> {
     final emailPrefix = _email.split('@').first.toUpperCase();
     final displayName = _nameCtrl.text.trim().toUpperCase();
 
-    bool matchesStaff(String? value) {
-      if (value == null || value.isEmpty) return false;
-      final v = value.toUpperCase();
-      return v == emailPrefix || v == displayName || v.contains(emailPrefix);
-    }
+    final repairs = await _db.getRepairsByStaff(displayName, emailPrefix);
+    final sales = await _db.getSalesBySellerName(displayName);
 
-    final repairs = await _db.getAllRepairs();
-    final sales = await _db.getAllSales();
-
-    final monthlyRepairs = repairs.where((r) {
-      if (!_isTimestampInCurrentMonth(_repairActivityAt(r))) return false;
-      if (matchesStaff(r.repairedBy)) return true;
-      if ((r.repairedBy == null || r.repairedBy!.isEmpty) && r.status >= 3 && matchesStaff(r.createdBy)) {
-        return true;
-      }
-      return false;
-    }).toList()
+    final monthlyRepairs = repairs
+        .where((r) => _isTimestampInCurrentMonth(_repairActivityAt(r)))
+        .toList()
       ..sort((a, b) => _repairActivityAt(b).compareTo(_repairActivityAt(a)));
 
-    final monthlySales = sales.where((s) {
-      if (!_isTimestampInCurrentMonth(s.soldAt)) return false;
-      return matchesStaff(s.sellerName);
-    }).toList()
+    final monthlySales = sales
+        .where((s) => _isTimestampInCurrentMonth(s.soldAt))
+        .toList()
       ..sort((a, b) => b.soldAt.compareTo(a.soldAt));
 
     _monthlyRepairs = monthlyRepairs;

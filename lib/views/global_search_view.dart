@@ -115,7 +115,7 @@ class _GlobalSearchViewState extends State<GlobalSearchView> {
           return VietnameseUtils.containsVietnamese(sale.customerName, query) ||
                  sale.phone.contains(query) ||
                  VietnameseUtils.containsVietnamese(sale.productNames, query) ||
-                 sale.productImeis.contains(query);
+                 sale.allImeisForSearch.toUpperCase().contains(query.toUpperCase());
         }).toList();
         if (searchAll) {
           allResults.addAll(filtered);

@@ -74,6 +74,38 @@ class _SaleDetailViewState extends State<SaleDetailView> {
   BusinessTerminology get _terms =>
       BusinessTypeHelper.instance.getTerminology(_shopSettings);
 
+  // Chỉ cho phép sửa giá/vốn trong ngày
+  bool get _isSameDay {
+    final d = DateTime.fromMillisecondsSinceEpoch(s.soldAt);
+    final now = DateTime.now();
+    return d.year == now.year && d.month == now.month && d.day == now.day;
+  }
+
+  // Phân bổ lại unitCost trong itemSnapshotsJson theo tỉ lệ
+  void _applyNewCostToSnapshots(int newTotalCost) {
+    if (s.itemSnapshotsJson == null || s.itemSnapshotsJson!.isEmpty) return;
+    try {
+      final decoded = jsonDecode(s.itemSnapshotsJson!) as List;
+      if (decoded.isEmpty) return;
+      final oldTotal = decoded.fold<int>(0, (acc, e) {
+        final uc = (e['unitCost'] as num?)?.toInt() ?? 0;
+        final q = (e['quantity'] as num?)?.toInt() ?? 1;
+        return acc + uc * q;
+      });
+      if (oldTotal <= 0) return;
+      final updated = decoded.map((e) {
+        final item = Map<String, dynamic>.from(e as Map);
+        final uc = (item['unitCost'] as num?)?.toInt() ?? 0;
+        final q = (item['quantity'] as num?)?.toInt() ?? 1;
+        final newUc = ((uc * q) / oldTotal * newTotalCost).round() ~/ (q > 0 ? q : 1);
+        item['unitCost'] = newUc;
+        item['lineCostTotal'] = newUc * q;
+        return item;
+      }).toList();
+      s.itemSnapshotsJson = jsonEncode(updated);
+    } catch (_) {}
+  }
+
   // Theme colors cho màn hình chi tiết đơn bán hàng
   final Color _accentColor = const Color(0xFF388E3C);
   final Color _backgroundColor = const Color(0xFFF4F6FA);
@@ -704,6 +736,18 @@ class _SaleDetailViewState extends State<SaleDetailView> {
     String payment = s.paymentMethod;
     final oldPaymentMethod = s.paymentMethod; // Lưu lại để so sánh
 
+    // Giá bán + giá vốn — chỉ cho sửa trong ngày
+    final canEditMoney = _isSameDay;
+    final totalPriceCtrl = TextEditingController(
+      text: CurrencyTextField.formatDisplay(s.totalPrice),
+    );
+    final discountCtrl = TextEditingController(
+      text: CurrencyTextField.formatDisplay(s.discount),
+    );
+    final totalCostCtrl = TextEditingController(
+      text: CurrencyTextField.formatDisplay(s.totalCost),
+    );
+
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) {
@@ -740,7 +784,47 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                       labelText: _terms.specialField1Label,
                     ),
                   ),
-                  // Các trường số tiền đã bị vô hiệu hóa để bảo vệ dữ liệu tài chính
+                  // Giá bán + giá vốn — chỉ mở trong ngày, khóa qua ngày
+                  const SizedBox(height: 8),
+                  if (canEditMoney) ...[
+                    CurrencyTextField(
+                      controller: totalPriceCtrl,
+                      label: 'Giá bán',
+                      validator: (v) => MoneyUtils.validateAmount(v ?? '', min: 1, fieldName: 'Giá bán'),
+                    ),
+                    const SizedBox(height: 8),
+                    CurrencyTextField(
+                      controller: discountCtrl,
+                      label: 'Giảm giá',
+                    ),
+                    if (_canViewCostPrice) ...[
+                      const SizedBox(height: 8),
+                      CurrencyTextField(
+                        controller: totalCostCtrl,
+                        label: 'Giá vốn tổng',
+                      ),
+                    ],
+                  ] else ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.lock_outline, size: 14, color: Colors.grey.shade500),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Giá bán/vốn chỉ sửa được trong ngày',
+                            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 8),
                   DropdownButtonFormField<String>(
                     initialValue: warranty,
                     decoration: InputDecoration(
@@ -794,6 +878,20 @@ class _SaleDetailViewState extends State<SaleDetailView> {
 
     if (ok != true) return;
 
+    // Đọc giá mới trước setState để so sánh
+    final newTotalPrice = canEditMoney
+        ? CurrencyTextField.parseValue(totalPriceCtrl.text)
+        : s.totalPrice;
+    final newDiscount = canEditMoney
+        ? CurrencyTextField.parseValue(discountCtrl.text)
+        : s.discount;
+    final newTotalCost = (canEditMoney && _canViewCostPrice)
+        ? CurrencyTextField.parseValue(totalCostCtrl.text)
+        : s.totalCost;
+
+    // Cập nhật unitCost trong snapshots nếu giá vốn thay đổi
+    if (newTotalCost != s.totalCost) _applyNewCostToSnapshots(newTotalCost);
+
     setState(() {
       s.customerName = name.text.trim().toUpperCase();
       s.phone = phone.text.trim();
@@ -802,7 +900,11 @@ class _SaleDetailViewState extends State<SaleDetailView> {
         products.text.trim().toUpperCase(),
       );
       s.productImeis = imeis.text.trim().toUpperCase();
-      // Không cho phép sửa số tiền để bảo vệ dữ liệu tài chính
+      if (canEditMoney) {
+        s.totalPrice = newTotalPrice;
+        s.discount = newDiscount;
+        s.totalCost = newTotalCost;
+      }
       s.warranty = warranty;
       s.paymentMethod = payment;
       if (payment != 'TRẢ GÓP (NH)') {
@@ -836,10 +938,7 @@ class _SaleDetailViewState extends State<SaleDetailView> {
     final debtAmount = s.finalPrice;
 
     if (s.paymentMethod == 'CÔNG NỢ') {
-      final existingDebts = await db.getAllDebts();
-      final linkedDebt = existingDebts
-          .where((d) => d['linkedId'] == s.firestoreId)
-          .firstOrNull;
+      final linkedDebt = (await db.getDebtsByLinkedId(s.firestoreId ?? '')).firstOrNull;
       if (linkedDebt != null) {
         // Update existing debt
         linkedDebt['totalAmount'] = debtAmount;
@@ -898,10 +997,7 @@ class _SaleDetailViewState extends State<SaleDetailView> {
       }
     } else if (oldPaymentMethod == 'CÔNG NỢ' && payment != 'CÔNG NỢ') {
       // FIX: Chỉ đánh dấu PAID khi đổi TỪ CÔNG NỢ sang hình thức khác
-      final existingDebts = await db.getAllDebts();
-      final linkedDebt = existingDebts
-          .where((d) => d['linkedId'] == s.firestoreId)
-          .firstOrNull;
+      final linkedDebt = (await db.getDebtsByLinkedId(s.firestoreId ?? '')).firstOrNull;
       if (linkedDebt != null) {
         linkedDebt['status'] = 'PAID';
         linkedDebt['paidAmount'] = linkedDebt['totalAmount'];
@@ -1125,10 +1221,7 @@ class _SaleDetailViewState extends State<SaleDetailView> {
 
       // 2B: Xóa công nợ liên quan
       if (s.firestoreId != null) {
-        final existingDebts = await db.getAllDebts();
-        final linkedDebts = existingDebts
-            .where((d) => d['linkedId'] == s.firestoreId)
-            .toList();
+        final linkedDebts = await db.getDebtsByLinkedId(s.firestoreId ?? '');
         for (final debt in linkedDebts) {
           final debtFId = debt['firestoreId'] as String?;
           if (debtFId != null) {

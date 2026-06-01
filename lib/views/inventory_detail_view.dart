@@ -4,16 +4,18 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../data/db_helper.dart';
 import '../models/supplier_model.dart';
+import '../services/event_bus.dart';
+import '../services/sync_orchestrator.dart';
 import '../theme/app_colors.dart';
-
 import '../models/product_model.dart';
 import '../theme/app_text_styles.dart';
 import '../utils/money_utils.dart';
 import '../widgets/app_cached_image.dart';
+import '../widgets/currency_text_field.dart';
 import '../widgets/custom_app_bar.dart';
 import 'supplier_detail_view.dart';
 
-class InventoryDetailView extends StatelessWidget {
+class InventoryDetailView extends StatefulWidget {
   final Product product;
   final int? soldQty;
   final int? soldPrice;
@@ -25,10 +27,24 @@ class InventoryDetailView extends StatelessWidget {
     this.soldPrice,
   });
 
-  Future<void> _openSupplier(BuildContext context, String name) async {
+  @override
+  State<InventoryDetailView> createState() => _InventoryDetailViewState();
+}
+
+class _InventoryDetailViewState extends State<InventoryDetailView> {
+  late Product _product;
+  final _db = DBHelper();
+
+  @override
+  void initState() {
+    super.initState();
+    _product = widget.product;
+  }
+
+  Future<void> _openSupplier(String name) async {
     if (name.trim().isEmpty || name == '--') return;
-    final row = await DBHelper().getSupplierByName(name);
-    if (!context.mounted) return;
+    final row = await _db.getSupplierByName(name);
+    if (!mounted) return;
     if (row != null) {
       Navigator.push(
         context,
@@ -43,13 +59,69 @@ class InventoryDetailView extends StatelessWidget {
     }
   }
 
+  Future<void> _editCostDialog() async {
+    final ctrl = TextEditingController(
+      text: CurrencyTextField.formatDisplay(_product.cost),
+    );
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Sửa giá vốn'),
+        content: CurrencyTextField(
+          controller: ctrl,
+          label: 'Giá vốn',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Huỷ'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Lưu'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+
+    CurrencyTextField.finalizeAll();
+    final newCost = CurrencyTextField.parseValue(ctrl.text);
+    if (newCost == _product.cost) return;
+
+    _product.cost = newCost;
+    _product.isSynced = false;
+    await _db.updateProduct(_product);
+
+    if (_product.id != null) {
+      await SyncOrchestrator().enqueue(
+        entityType: SyncEntityType.product,
+        entityId: _product.id!,
+        firestoreId: _product.firestoreId,
+        operation: SyncOperation.update,
+        data: _product.toMap(),
+      );
+    }
+    EventBus().emit('products_changed');
+
+    if (mounted) {
+      setState(() {});
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Đã cập nhật giá vốn: ${MoneyUtils.formatCurrency(newCost)} đ'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final product = _product;
     final imagePath = (product.images ?? '')
         .split(',')
         .map((e) => e.trim())
         .firstWhere((e) => e.isNotEmpty, orElse: () => '');
-    // status==0 means manually marked sold; qty<=0 means no stock left
     final isSold = product.status == 0 || product.quantity <= 0;
     final isOutOfStock = product.status != 0 && product.quantity <= 0;
     final hasImage = imagePath.isNotEmpty;
@@ -65,7 +137,6 @@ class InventoryDetailView extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Image area — compact with phone placeholder when empty
             ClipRRect(
               borderRadius: BorderRadius.circular(14),
               child: SizedBox(
@@ -75,15 +146,11 @@ class InventoryDetailView extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 14),
-
-            // Product name
             Text(
               product.name,
               style: AppTextStyles.headline3.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 12),
-
-            // Status badge
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
@@ -124,8 +191,6 @@ class InventoryDetailView extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 14),
-
-            // Storage location badge
             if (hasLocation) ...[
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -166,8 +231,6 @@ class InventoryDetailView extends StatelessWidget {
               ),
               const SizedBox(height: 14),
             ],
-
-            // Info card
             Container(
               width: double.infinity,
               decoration: BoxDecoration(
@@ -192,35 +255,78 @@ class InventoryDetailView extends StatelessWidget {
                   _row('Model', (product.model ?? '').trim().isEmpty ? '--' : product.model!),
                   _divider(),
                   _row('Tồn kho', product.quantity.toString()),
-                  if (soldQty != null) ...[
+                  if (widget.soldQty != null) ...[
                     _divider(),
                     _row(
                       'Bán trong đơn này',
-                      '$soldQty cái',
+                      '${widget.soldQty} cái',
                       valueColor: Colors.blue.shade700,
                     ),
                   ],
                   _divider(),
                   _row('Giá bán', MoneyUtils.formatCurrency(product.price),
                       valueColor: Colors.green.shade700),
-                  if (soldPrice != null && soldPrice! > 0 && soldPrice != product.price) ...[
+                  if (widget.soldPrice != null &&
+                      widget.soldPrice! > 0 &&
+                      widget.soldPrice != product.price) ...[
                     _divider(),
                     _row(
                       'Giá bán trong đơn',
-                      MoneyUtils.formatCurrency(soldPrice!),
+                      MoneyUtils.formatCurrency(widget.soldPrice!),
                       valueColor: Colors.indigo.shade600,
                     ),
                   ],
                   _divider(),
-                  _row('Giá vốn', MoneyUtils.formatCurrency(product.cost),
-                      valueColor: Colors.orange.shade700),
+                  _costRow(product.cost),
                   _divider(),
-                  _supplierRow(context, product.supplier ?? ''),
+                  _supplierRow(product.supplier ?? ''),
                 ],
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  // Row giá vốn có nút sửa nhanh
+  Widget _costRow(int cost) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 110,
+            child: Text(
+              'Giá vốn',
+              style: AppTextStyles.body2.copyWith(color: AppColors.textSecondary),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              MoneyUtils.formatCurrency(cost),
+              style: AppTextStyles.body1.copyWith(
+                fontWeight: FontWeight.w600,
+                color: Colors.orange.shade700,
+              ),
+              textAlign: TextAlign.end,
+            ),
+          ),
+          const SizedBox(width: 6),
+          GestureDetector(
+            onTap: _editCostDialog,
+            child: Container(
+              padding: const EdgeInsets.all(5),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: Colors.orange.shade200),
+              ),
+              child: Icon(Icons.edit_outlined, size: 14, color: Colors.orange.shade700),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -242,20 +348,15 @@ class InventoryDetailView extends StatelessWidget {
         ),
       );
     }
-
     if (imagePath.startsWith('http://') ||
         imagePath.startsWith('https://') ||
         imagePath.startsWith('gs://')) {
       return AppCachedImage(imageUrl: imagePath, fit: BoxFit.cover);
     }
-
     if (!kIsWeb) {
       final localFile = File(imagePath);
-      if (localFile.existsSync()) {
-        return Image.file(localFile, fit: BoxFit.cover);
-      }
+      if (localFile.existsSync()) return Image.file(localFile, fit: BoxFit.cover);
     }
-
     return Container(
       color: const Color(0xFFF0F4FF),
       child: Column(
@@ -263,7 +364,8 @@ class InventoryDetailView extends StatelessWidget {
         children: [
           Icon(Icons.broken_image_outlined, size: 36, color: Colors.blueGrey.shade300),
           const SizedBox(height: 6),
-          Text('Không tải được ảnh', style: TextStyle(fontSize: 12, color: Colors.blueGrey.shade400)),
+          Text('Không tải được ảnh',
+              style: TextStyle(fontSize: 12, color: Colors.blueGrey.shade400)),
         ],
       ),
     );
@@ -298,11 +400,11 @@ class InventoryDetailView extends StatelessWidget {
     );
   }
 
-  Widget _supplierRow(BuildContext context, String supplierName) {
+  Widget _supplierRow(String supplierName) {
     final display = supplierName.trim().isEmpty ? '--' : supplierName.trim();
     final tappable = display != '--';
     return InkWell(
-      onTap: tappable ? () => _openSupplier(context, display) : null,
+      onTap: tappable ? () => _openSupplier(display) : null,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(

@@ -115,6 +115,7 @@ import '../widgets/quick_action/quick_action_bubble.dart';
 import '../widgets/quick_action/quick_action_controller.dart';
 import '../widgets/ai_command_bar.dart';
 import '../services/payment_request_service.dart';
+import '../widgets/app_cached_image.dart';
 
 class HomeView extends StatefulWidget {
   final String role;
@@ -3767,15 +3768,7 @@ class _HomeViewState extends State<HomeView>
                           'hero_staff_avatar_${FirebaseAuth.instance.currentUser?.uid ?? 'me'}',
                       child: ClipOval(
                         child: _userPhotoUrl.isNotEmpty
-                            ? Image.network(
-                                _userPhotoUrl,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => const Icon(
-                                  Icons.person_rounded,
-                                  color: Colors.white,
-                                  size: 24,
-                                ),
-                              )
+                            ? AppCachedImage(imageUrl: _userPhotoUrl, fit: BoxFit.cover)
                             : const Icon(
                                 Icons.person_rounded,
                                 color: Colors.white,

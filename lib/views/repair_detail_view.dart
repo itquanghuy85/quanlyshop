@@ -87,6 +87,15 @@ class _RepairDetailViewState extends State<RepairDetailView> {
   String? _lastModifiedBy;
   int? _lastModifiedAt;
 
+  // Chỉ cho sửa giá/vốn khi giao trong ngày; qua ngày → khóa
+  bool get _isDeliverySameDay {
+    final deliveredAt = r.deliveredAt;
+    if (deliveredAt == null || deliveredAt == 0) return true; // chưa giao → đang giao ngay bây giờ
+    final d = DateTime.fromMillisecondsSinceEpoch(deliveredAt);
+    final now = DateTime.now();
+    return d.year == now.year && d.month == now.month && d.day == now.day;
+  }
+
   // Shop settings for dynamic terminology (reserved for future multi-industry use)
   // ignore: unused_field
   ShopSettings? _shopSettings;
@@ -319,13 +328,15 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       '🛡️ [RepairDetailView] Keep local unsynced repair $firestoreId (local: $localTime, cloud: $cloudTime)',
     );
 
+    // Cloud cũ hơn local — giữ nguyên status và pendingDeliveryApproval của local.
+    // Chỉ merge các field không xung đột (lastCaredAt, repairedBy, v.v.)
+    // KHÔNG copy status/pendingDeliveryApproval từ cloud vì đó là dữ liệu stale
+    // sẽ ghi đè thay đổi local rồi sync ngược lên cloud gây mất trạng thái.
     return localRepair.copyWith(
-      status: cloudRepair.status,
-      pendingDeliveryApproval: cloudRepair.pendingDeliveryApproval,
-      requestedDeliveryPrice: cloudRepair.requestedDeliveryPrice != null
-          ? cloudRepair.requestedDeliveryPrice
-          : localRepair.requestedDeliveryPrice,
-      lastCaredAt: cloudRepair.lastCaredAt ?? localRepair.lastCaredAt,
+      requestedDeliveryPrice: cloudRepair.requestedDeliveryPrice ?? localRepair.requestedDeliveryPrice,
+      lastCaredAt: (cloudRepair.lastCaredAt ?? 0) > (localRepair.lastCaredAt ?? 0)
+          ? cloudRepair.lastCaredAt
+          : localRepair.lastCaredAt,
       finishedAt: cloudRepair.finishedAt ?? localRepair.finishedAt,
       deliveredAt: cloudRepair.deliveredAt ?? localRepair.deliveredAt,
       repairedBy: (cloudRepair.repairedBy ?? '').trim().isNotEmpty
@@ -706,7 +717,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       _canViewRevenue = canViewRevenue;
       _canViewCostPrice = canViewCostPrice;
       _isManagerLike = isManagerLike;
-      _canEditRepairOrder = isManagerLike;
+      _canEditRepairOrder = isManagerLike || perms['allowViewRepairs'] == true;
       _canEditRepairNotes = perms['allowViewRepairs'] == true; // KTV/nhân viên được ghi chú và thêm dịch vụ
       _canAddRepairImage = perms['allowViewRepairs'] == true;
       _canEditRepairFinancial = isManagerLike && canViewRevenue;
@@ -717,7 +728,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
   bool _ensureCanEditRepairOrder() {
     if (_canEditRepairOrder) return true;
     NotificationService.showSnackBar(
-      'Nhân viên không có quyền sửa đơn sửa.',
+      'Bạn không có quyền sửa thông tin đơn sửa chữa.',
       color: Colors.orange,
     );
     return false;
@@ -905,9 +916,6 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       if (newStatus != 4) _isUpdating = true;
 
       final currentStaffName = await _resolveCurrentStaffName(fallback: 'NV');
-
-    final repairsBefore = await db.getAllRepairs();
-    debugPrint('Repairs count before update: ${repairsBefore.length}');
 
     // Chỉ admin/owner mới được giao máy (status 4)
     // Nếu đơn đang chờ duyệt (pendingDeliveryApproval = true), phải duyệt trước
@@ -1192,8 +1200,6 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       }
 
       debugPrint('Repair status updated successfully');
-      final repairsAfter = await db.getAllRepairs();
-      debugPrint('Repairs count after update: ${repairsAfter.length}');
       NotificationService.showSnackBar(
         loc.statusUpdated(_getStatusText(newStatus)),
         color: AppColors.success,
@@ -1680,25 +1686,58 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  CurrencyTextField(
-                    controller: priceCtrl,
-                    label: dialogLoc.chargeCustomerVnd,
-                    validator: (v) => MoneyUtils.validateAmount(
-                      v ?? '',
-                      min: 0,
-                      fieldName: dialogLoc.chargeCustomerLabel,
+                  if (_isDeliverySameDay) ...[
+                    CurrencyTextField(
+                      controller: priceCtrl,
+                      label: dialogLoc.chargeCustomerVnd,
+                      validator: (v) => MoneyUtils.validateAmount(
+                        v ?? '',
+                        min: 0,
+                        fieldName: dialogLoc.chargeCustomerLabel,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 10),
-                  CurrencyTextField(
-                    controller: costCtrl,
-                    label: dialogLoc.partsCostVnd,
-                    validator: (v) => MoneyUtils.validateAmount(
-                      v ?? '',
-                      min: 0,
-                      fieldName: dialogLoc.partsCost,
+                    const SizedBox(height: 10),
+                    CurrencyTextField(
+                      controller: costCtrl,
+                      label: dialogLoc.partsCostVnd,
+                      validator: (v) => MoneyUtils.validateAmount(
+                        v ?? '',
+                        min: 0,
+                        fieldName: dialogLoc.partsCost,
+                      ),
                     ),
-                  ),
+                  ] else ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.lock_outline, size: 14, color: Colors.grey.shade500),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Giá bán/vốn chỉ sửa được trong ngày giao',
+                                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Thu: ${MoneyUtils.formatCurrency(r.price)} đ  •  Vốn: ${MoneyUtils.formatCurrency(r.cost)} đ',
+                                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 16),
                   Text(
                     dialogLoc.selectWarrantyNote,
@@ -2089,10 +2128,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
 
       // Update debt if payment method is debt and repair is delivered
       if (r.paymentMethod == 'CÔNG NỢ' && r.status == 4) {
-        final existingDebts = await db.getAllDebts();
-        final linkedDebt = existingDebts
-            .where((d) => d['linkedId'] == r.firestoreId)
-            .firstOrNull;
+        final linkedDebt = (await db.getDebtsByLinkedId(r.firestoreId ?? '')).firstOrNull;
         final debtAmount = r.price - r.cost; // Profit amount
         if (linkedDebt != null) {
           // Update existing debt

@@ -997,10 +997,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
 
     // 2. Xóa debt cũ nếu có
     if (oldSale.firestoreId != null) {
-      final existingDebts = await db.getAllDebts();
-      final linkedDebts = existingDebts
-          .where((d) => d['linkedId'] == oldSale.firestoreId)
-          .toList();
+      final linkedDebts = await db.getDebtsByLinkedId(oldSale.firestoreId ?? '');
       for (final linkedDebt in linkedDebts) {
         final debtFId = linkedDebt['firestoreId'] as String?;
         if (debtFId != null) {

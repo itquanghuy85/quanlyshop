@@ -4132,6 +4132,21 @@ class DBHelper {
           definition: 'TEXT',
           logScope: 'DB onOpen',
         );
+
+        // Performance indexes — added lazily so existing devices get them on next open
+        try {
+          await db.execute('CREATE INDEX IF NOT EXISTS idx_sales_shopId ON sales(shopId)');
+          await db.execute('CREATE INDEX IF NOT EXISTS idx_sales_shopId_soldAt ON sales(shopId, soldAt)');
+          await db.execute('CREATE INDEX IF NOT EXISTS idx_sales_shopId_deleted ON sales(shopId, deleted)');
+          await db.execute('CREATE INDEX IF NOT EXISTS idx_repairs_shopId ON repairs(shopId)');
+          await db.execute('CREATE INDEX IF NOT EXISTS idx_repairs_shopId_status ON repairs(shopId, status)');
+          await db.execute('CREATE INDEX IF NOT EXISTS idx_repairs_shopId_deleted ON repairs(shopId, deleted)');
+          await db.execute('CREATE INDEX IF NOT EXISTS idx_products_isSynced ON products(isSynced)');
+          await db.execute('CREATE INDEX IF NOT EXISTS idx_sales_isSynced ON sales(isSynced)');
+          await db.execute('CREATE INDEX IF NOT EXISTS idx_repairs_isSynced ON repairs(isSynced)');
+        } catch (e) {
+          debugPrint('DB onOpen: perf index creation error: $e');
+        }
       },
     );
     await _forceFixMissingColumns(db);
@@ -4359,11 +4374,12 @@ class DBHelper {
       WHERE (customerName LIKE ? OR customerName LIKE ?
         OR phone LIKE ?
         OR productNames LIKE ? OR productNames LIKE ?
-        OR productImeis LIKE ?)
+        OR productImeis LIKE ?
+        OR itemSnapshotsJson LIKE ?)
       ORDER BY soldAt DESC
       LIMIT ?
     ''',
-      [like, likeNorm, like, like, likeNorm, like, limit],
+      [like, likeNorm, like, like, likeNorm, like, like, limit],
     );
     return List.generate(maps.length, (i) => SaleOrder.fromMap(maps[i]));
   }
@@ -4438,6 +4454,120 @@ class DBHelper {
     final repairs = List.generate(maps.length, (i) => Repair.fromMap(maps[i]));
     debugPrint("DB_TRACE: getAllRepairs returned ${repairs.length} repairs");
     return repairs;
+  }
+
+  /// Lấy đơn sửa theo SĐT khách (customer_history)
+  Future<List<Repair>> getRepairsByPhone(String phone) async {
+    if (phone.isEmpty) return [];
+    final db = await database;
+    final maps = await db.query(
+      'repairs',
+      where: 'phone = ? AND (deleted = 0 OR deleted IS NULL)',
+      whereArgs: [phone],
+      orderBy: 'createdAt DESC',
+    );
+    return List.generate(maps.length, (i) => Repair.fromMap(maps[i]));
+  }
+
+  /// Lấy đơn bán theo SĐT khách (customer_history)
+  Future<List<SaleOrder>> getSalesByPhone(String phone) async {
+    if (phone.isEmpty) return [];
+    final db = await database;
+    final maps = await db.query(
+      'sales',
+      where: 'phone = ? AND (deleted = 0 OR deleted IS NULL)',
+      whereArgs: [phone],
+      orderBy: 'soldAt DESC',
+    );
+    return List.generate(maps.length, (i) => SaleOrder.fromMap(maps[i]));
+  }
+
+  /// Lấy đơn sửa theo nhân viên — khớp repairedBy HOẶC createdBy (staff_profile)
+  Future<List<Repair>> getRepairsByStaff(String name, String uid) async {
+    final db = await database;
+    final shopId = await _getScopedShopId('getRepairsByStaff');
+    final hasShop = shopId != null && shopId.isNotEmpty;
+    final shopClause = hasShop ? 'AND (shopId = ? OR shopId IS NULL)' : '';
+    final args = <dynamic>[name, uid, name, uid];
+    if (hasShop) args.add(shopId);
+    final maps = await db.rawQuery(
+      '''SELECT * FROM repairs
+         WHERE (deleted = 0 OR deleted IS NULL)
+           AND (repairedBy = ? OR repairedBy = ?
+                OR ((repairedBy IS NULL OR repairedBy = '') AND status >= 3
+                    AND (createdBy = ? OR createdBy = ?)))
+           $shopClause
+         ORDER BY createdAt DESC''',
+      args,
+    );
+    return List.generate(maps.length, (i) => Repair.fromMap(maps[i]));
+  }
+
+  /// Lấy đơn bán theo tên người bán (staff_profile)
+  Future<List<SaleOrder>> getSalesBySellerName(String name) async {
+    if (name.isEmpty) return [];
+    final db = await database;
+    final shopId = await _getScopedShopId('getSalesBySellerName');
+    String shopFilter = '';
+    final args = <dynamic>[name];
+    if (shopId != null && shopId.isNotEmpty) {
+      shopFilter = 'AND (shopId = ? OR shopId IS NULL) ';
+      args.add(shopId);
+    }
+    final maps = await db.rawQuery(
+      '''SELECT * FROM sales
+         WHERE sellerName = ?
+           $shopFilter
+           AND (deleted = 0 OR deleted IS NULL)
+         ORDER BY soldAt DESC''',
+      args,
+    );
+    return List.generate(maps.length, (i) => SaleOrder.fromMap(maps[i]));
+  }
+
+  /// Chỉ lấy bản ghi chưa sync (cho cash_closing merge với Firestore)
+  Future<List<SaleOrder>> getUnsyncedSales() async {
+    final db = await database;
+    final maps = await db.query('sales',
+        where: 'isSynced = 0 AND (deleted = 0 OR deleted IS NULL)',
+        orderBy: 'soldAt DESC');
+    return List.generate(maps.length, (i) => SaleOrder.fromMap(maps[i]));
+  }
+
+  Future<List<Repair>> getUnsyncedRepairs() async {
+    final db = await database;
+    final maps = await db.query('repairs',
+        where: 'isSynced = 0 AND (deleted = 0 OR deleted IS NULL)',
+        orderBy: 'createdAt DESC');
+    return List.generate(maps.length, (i) => Repair.fromMap(maps[i]));
+  }
+
+  Future<List<Map<String, dynamic>>> getUnsyncedExpenses() async {
+    final db = await database;
+    return db.query('expenses', where: 'isSynced = 0', orderBy: 'date DESC');
+  }
+
+  /// Chỉ lấy đơn sửa còn bảo hành (warranty != KO BH, deliveredAt trong 12 tháng qua)
+  Future<List<Repair>> getActiveWarrantyRepairs() async {
+    final shopId = await _getScopedShopId('getActiveWarrantyRepairs');
+    final db = await database;
+    final cutoff = DateTime.now().subtract(const Duration(days: 366)).millisecondsSinceEpoch;
+    final whereArgs = <dynamic>[cutoff];
+    String shopFilter = '';
+    if (shopId != null && shopId.isNotEmpty) {
+      shopFilter = 'AND (shopId = ? OR shopId IS NULL) ';
+      whereArgs.add(shopId);
+    }
+    final maps = await db.rawQuery(
+      '''SELECT * FROM repairs
+         WHERE warranty != '' AND warranty != 'KO BH'
+           AND deliveredAt IS NOT NULL AND deliveredAt > ?
+           $shopFilter
+           AND (deleted = 0 OR deleted IS NULL)
+         ORDER BY deliveredAt DESC''',
+      whereArgs,
+    );
+    return List.generate(maps.length, (i) => Repair.fromMap(maps[i]));
   }
 
   /// Get ALL repairs within a createdAt date range (all statuses)
@@ -4640,6 +4770,29 @@ class DBHelper {
     return sales;
   }
 
+  /// Chỉ lấy đơn bán còn bảo hành (warranty != KO BH, soldAt trong 12 tháng qua)
+  Future<List<SaleOrder>> getActiveWarrantySales() async {
+    final shopId = await _getScopedShopId('getActiveWarrantySales');
+    final db = await database;
+    final cutoff = DateTime.now().subtract(const Duration(days: 366)).millisecondsSinceEpoch;
+    final whereArgs = <dynamic>[cutoff];
+    String shopFilter = '';
+    if (shopId != null && shopId.isNotEmpty) {
+      shopFilter = 'AND (shopId = ? OR shopId IS NULL) ';
+      whereArgs.add(shopId);
+    }
+    final maps = await db.rawQuery(
+      '''SELECT * FROM sales
+         WHERE warranty != '' AND warranty != 'KO BH'
+           AND soldAt > ?
+           $shopFilter
+           AND (deleted = 0 OR deleted IS NULL)
+         ORDER BY soldAt DESC''',
+      whereArgs,
+    );
+    return List.generate(maps.length, (i) => SaleOrder.fromMap(maps[i]));
+  }
+
   /// Get sales within a date range (by soldAt), for financial report optimization
   Future<List<SaleOrder>> getSalesByDateRange(int startMs, int endMs) async {
     final shopId = UserService.getShopIdSync();
@@ -4724,6 +4877,13 @@ class DBHelper {
       whereArgs: [productId, '%$productId%'],
     );
     return debts;
+  }
+
+  /// Tìm nhanh debt theo linkedId (firestoreId của đơn bán/sửa) — không load toàn bộ
+  Future<List<Map<String, dynamic>>> getDebtsByLinkedId(String linkedId) async {
+    if (linkedId.isEmpty) return [];
+    final db = await database;
+    return db.query('debts', where: 'linkedId = ?', whereArgs: [linkedId]);
   }
 
   /// Soft delete công nợ - thực tế là xóa hẳn vì bảng debts không có cột deleted
@@ -10835,6 +10995,7 @@ class DBHelper {
                 SUM(totalCost) AS totalCost,
                 SUM(totalValue) AS totalValue
          FROM (
+           -- Sản phẩm liên kết bằng locationCode (trực tiếp)
            SELECT locationCode,
                   COUNT(*) AS cnt,
                   COALESCE(SUM(quantity), 0) AS totalQty,
@@ -10845,6 +11006,20 @@ class DBHelper {
              AND (deleted = 0 OR deleted IS NULL) AND status != 0
            GROUP BY locationCode
            UNION ALL
+           -- Sản phẩm liên kết bằng locationId (firestoreId của storage_location)
+           SELECT sl.code AS locationCode,
+                  COUNT(*) AS cnt,
+                  COALESCE(SUM(p.quantity), 0) AS totalQty,
+                  COALESCE(SUM(p.cost * p.quantity), 0) AS totalCost,
+                  COALESCE(SUM(p.price * p.quantity), 0) AS totalValue
+           FROM products p
+           INNER JOIN storage_locations sl ON p.locationId = sl.firestoreId
+           WHERE p.shopId = ? AND (p.locationCode IS NULL OR p.locationCode = '')
+             AND (p.deleted = 0 OR p.deleted IS NULL) AND p.status != 0
+             AND (sl.deleted = 0 OR sl.deleted IS NULL)
+           GROUP BY sl.code
+           UNION ALL
+           -- Đơn sửa đang cất máy
            SELECT storageLocationCode AS locationCode,
                   COUNT(*) AS cnt,
                   0 AS totalQty,
@@ -10856,7 +11031,7 @@ class DBHelper {
            GROUP BY storageLocationCode
          ) t
          GROUP BY locationCode''',
-      [shopId, shopId],
+      [shopId, shopId, shopId],
     );
     return {
       for (final r in rows)

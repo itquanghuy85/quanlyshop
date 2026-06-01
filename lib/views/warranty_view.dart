@@ -86,23 +86,10 @@ class _WarrantyViewState extends State<WarrantyView> {
 
   Future<void> _loadAllWarranty() async {
     setState(() => _isLoading = true);
-    final repairs = await db.getAllRepairs();
-    final sales = await db.getAllSales();
+    // Chỉ tải đơn có bảo hành còn hiệu lực (12 tháng qua), không load toàn bộ DB
+    final repairs = await db.getActiveWarrantyRepairs();
+    final sales = await db.getActiveWarrantySales();
     final now = DateTime.now();
-
-    // DEBUG: Log total counts
-    debugPrint("WARRANTY_DEBUG: Total repairs in local DB: ${repairs.length}");
-    debugPrint("WARRANTY_DEBUG: Total sales in local DB: ${sales.length}");
-    for (var r in repairs) {
-      debugPrint(
-        "WARRANTY_DEBUG: Repair - id:${r.id}, firestoreId:${r.firestoreId}, warranty:${r.warranty}, status:${r.status}, deleted:${r.deleted}, customerName:${r.customerName}",
-      );
-    }
-    for (var s in sales) {
-      debugPrint(
-        "WARRANTY_DEBUG: Sale - id:${s.id}, firestoreId:${s.firestoreId}, warranty:${s.warranty}, customerName:${s.customerName}",
-      );
-    }
 
     List<Map<String, dynamic>> results = [];
 

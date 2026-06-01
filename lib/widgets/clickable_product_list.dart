@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../theme/app_spacing.dart';
 import 'clickable_product_chip.dart';
 import 'deep_link_navigator.dart';
 
@@ -25,7 +24,7 @@ class ClickableProductList extends StatelessWidget {
       children: items
           .map(
             (item) => Padding(
-              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+              padding: const EdgeInsets.only(bottom: 4),
               child: ClickableProductChip(
                 displayName: item.displayName,
                 productId: item.productId,

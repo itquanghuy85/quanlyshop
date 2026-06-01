@@ -1139,10 +1139,6 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
 
   Future<void> _loadAllStaffData() async {
     try {
-      final allR = await db.getAllRepairs();
-      final allS = await db.getAllSales();
-      if (!mounted) return;
-
       // Staff identifier có thể là email prefix (HUY từ huy@gmail.com)
       // hoặc displayName đầy đủ - cần so sánh cả hai
       final emailPrefix = widget.email
@@ -1151,26 +1147,13 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
           .toUpperCase(); // VD: "HUY"
       final displayName = widget.name.toUpperCase(); // VD: "NGUYEN VAN HUY"
 
-      bool matchesStaff(String? value) {
-        if (value == null || value.isEmpty) return false;
-        final v = value.toUpperCase();
-        return v == emailPrefix || v == displayName || v.contains(emailPrefix);
-      }
+      final allR = await db.getRepairsByStaff(displayName, emailPrefix);
+      final allS = await db.getSalesBySellerName(displayName);
+      if (!mounted) return;
 
       setState(() {
-        _repairsCompleted = allR.where((r) {
-          // Match by repairedBy (explicitly assigned repairer)
-          if (matchesStaff(r.repairedBy)) return true;
-          // Fallback: for old repairs where repairedBy wasn't tracked,
-          // match by createdBy if repair is completed (status >= 3)
-          if ((r.repairedBy == null || r.repairedBy!.isEmpty) &&
-              r.status >= 3 &&
-              matchesStaff(r.createdBy)) {
-            return true;
-          }
-          return false;
-        }).toList();
-        _sales = allS.where((s) => matchesStaff(s.sellerName)).toList();
+        _repairsCompleted = allR;
+        _sales = allS;
       });
       debugPrint(
         'Staff data loaded: completed=${_repairsCompleted.length}, sales=${_sales.length} for $emailPrefix / $displayName',

@@ -207,7 +207,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get shopLocked => 'Cửa hàng bị khóa';
 
   @override
-  String get shopLockedMessage => 'CỬA HÀNG ĐANG BỊ SUPER ADMIN KHÓA TẠM THỜI. Mọi chức năng đều bị giới hạn cho đến khi được mở lại.';
+  String get shopLockedMessage =>
+      'CỬA HÀNG ĐANG BỊ SUPER ADMIN KHÓA TẠM THỜI. Mọi chức năng đều bị giới hạn cho đến khi được mở lại.';
 
   @override
   String get searchCustomerByPhone => 'Tìm nhanh khách theo SĐT';
@@ -438,7 +439,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get scanQRCode => 'Quét mã QR';
 
   @override
-  String get noPermissionRepair => 'Tài khoản này không được phép vào mục SỬA CHỮA. Liên hệ chủ shop để phân quyền.';
+  String get noPermissionRepair =>
+      'Tài khoản này không được phép vào mục SỬA CHỮA. Liên hệ chủ shop để phân quyền.';
 
   @override
   String get allowed => 'Có';
@@ -480,31 +482,40 @@ class AppLocalizationsVi extends AppLocalizations {
   String get debtsPermission => 'Quyền công nợ';
 
   @override
-  String get noPermissionRevenue => 'Tài khoản này không được phép xem màn DOANH THU. Liên hệ chủ shop để phân quyền.';
+  String get noPermissionRevenue =>
+      'Tài khoản này không được phép xem màn DOANH THU. Liên hệ chủ shop để phân quyền.';
 
   @override
-  String get noPermissionRevenueReport => 'Tài khoản này không được phép xem màn BÁO CÁO DOANH THU. Liên hệ chủ shop để phân quyền.';
+  String get noPermissionRevenueReport =>
+      'Tài khoản này không được phép xem màn BÁO CÁO DOANH THU. Liên hệ chủ shop để phân quyền.';
 
   @override
-  String get noPermissionSales => 'Tài khoản này không được phép vào mục BÁN HÀNG. Liên hệ chủ shop để phân quyền.';
+  String get noPermissionSales =>
+      'Tài khoản này không được phép vào mục BÁN HÀNG. Liên hệ chủ shop để phân quyền.';
 
   @override
-  String get noPermissionInventory => 'Tài khoản này không được phép vào mục KHO MÁY. Liên hệ chủ shop để phân quyền.';
+  String get noPermissionInventory =>
+      'Tài khoản này không được phép vào mục KHO MÁY. Liên hệ chủ shop để phân quyền.';
 
   @override
-  String get noPermissionCustomers => 'Tài khoản này không được phép xem HỆ THỐNG KHÁCH HÀNG. Liên hệ chủ shop để phân quyền.';
+  String get noPermissionCustomers =>
+      'Tài khoản này không được phép xem HỆ THỐNG KHÁCH HÀNG. Liên hệ chủ shop để phân quyền.';
 
   @override
-  String get noPermissionWarranty => 'Tài khoản này không được phép vào mục BẢO HÀNH. Liên hệ chủ shop để phân quyền.';
+  String get noPermissionWarranty =>
+      'Tài khoản này không được phép vào mục BẢO HÀNH. Liên hệ chủ shop để phân quyền.';
 
   @override
-  String get noPermissionChat => 'Tài khoản này không được phép sử dụng CHAT nội bộ. Liên hệ chủ shop để phân quyền.';
+  String get noPermissionChat =>
+      'Tài khoản này không được phép sử dụng CHAT nội bộ. Liên hệ chủ shop để phân quyền.';
 
   @override
-  String get noPermissionPrinter => 'Tài khoản này không được phép cấu hình MÁY IN. Liên hệ chủ shop để phân quyền.';
+  String get noPermissionPrinter =>
+      'Tài khoản này không được phép cấu hình MÁY IN. Liên hệ chủ shop để phân quyền.';
 
   @override
-  String get noPermissionCreateRepair => 'Tài khoản này không được phép tạo phiếu tiếp nhận. Liên hệ chủ shop để phân quyền.';
+  String get noPermissionCreateRepair =>
+      'Tài khoản này không được phép tạo phiếu tiếp nhận. Liên hệ chủ shop để phân quyền.';
 
   @override
   String get viewInventoryPermission => 'Quyền xem kho';
@@ -621,7 +632,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get addSupplier => 'THÊM NHÀ CUNG CẤP';
 
   @override
-  String get enterProductNameAndSupplier => 'VUI LÒNG NHẬP TÊN HÀNG VÀ CHỌN NHÀ CUNG CẤP';
+  String get enterProductNameAndSupplier =>
+      'VUI LÒNG NHẬP TÊN HÀNG VÀ CHỌN NHÀ CUNG CẤP';
 
   @override
   String get productAddedToInventory => 'ĐÃ NHẬP HÀNG VÀO KHO';
@@ -641,13 +653,15 @@ class AppLocalizationsVi extends AppLocalizations {
   String get productDeleted => 'ĐÃ XÓA SẢN PHẨM KHỎI KHO';
 
   @override
-  String get onlyAdminCanDelete => 'Chỉ tài khoản QUẢN LÝ mới được xóa hàng khỏi kho';
+  String get onlyAdminCanDelete =>
+      'Chỉ tài khoản QUẢN LÝ mới được xóa hàng khỏi kho';
 
   @override
   String get selectPrinter => 'CHỌN MÁY IN';
 
   @override
-  String get noPrintersFound => 'Không tìm thấy máy in nào. Vui lòng kết nối máy in trước.';
+  String get noPrintersFound =>
+      'Không tìm thấy máy in nào. Vui lòng kết nối máy in trước.';
 
   @override
   String get labelPrintedSuccessfully => 'ĐÃ IN TEM THÀNH CÔNG';
@@ -677,7 +691,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get saveRepairOrder => 'Lưu đơn sửa chữa';
 
   @override
-  String get noPermissionSuppliers => 'Tài khoản này không được phép xem NHÀ CUNG CẤP. Liên hệ chủ shop để phân quyền.';
+  String get noPermissionSuppliers =>
+      'Tài khoản này không được phép xem NHÀ CUNG CẤP. Liên hệ chủ shop để phân quyền.';
 
   @override
   String selectedCount(int count) {
@@ -721,7 +736,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get orderCreatedSuccessfully => 'Đã tạo đơn sửa chữa thành công!';
 
   @override
-  String get createNewOrderQuestion => 'Bạn có muốn tạo đơn sửa chữa mới không?';
+  String get createNewOrderQuestion =>
+      'Bạn có muốn tạo đơn sửa chữa mới không?';
 
   @override
   String saveOrderError(String error) {
@@ -896,7 +912,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get continueAnyway => 'VẪN TIẾP TỤC';
 
   @override
-  String get newStaffWarning => 'Vui lòng TẢI DỮ LIỆU VỀ MÁY trước, KHÔNG đồng bộ lên đám mây khi chưa có dữ liệu.';
+  String get newStaffWarning =>
+      'Vui lòng TẢI DỮ LIỆU VỀ MÁY trước, KHÔNG đồng bộ lên đám mây khi chưa có dữ liệu.';
 
   @override
   String get dataToUpload => 'Dữ liệu sẽ upload';
@@ -1019,10 +1036,12 @@ class AppLocalizationsVi extends AppLocalizations {
   String get permissionManagement => 'QUẢN LÝ PHÂN QUYỀN';
 
   @override
-  String get ownerFullAccess => 'CHỦ SHOP có toàn quyền truy cập mọi chức năng trong hệ thống';
+  String get ownerFullAccess =>
+      'CHỦ SHOP có toàn quyền truy cập mọi chức năng trong hệ thống';
 
   @override
-  String get managerFullAccess => 'QUẢN LÝ có toàn quyền truy cập mọi chức năng trong hệ thống';
+  String get managerFullAccess =>
+      'QUẢN LÝ có toàn quyền truy cập mọi chức năng trong hệ thống';
 
   @override
   String get bluetoothPrinterTest => 'KIỂM TRA MÁY IN BLUETOOTH';
@@ -1325,7 +1344,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get forgotPasswordTitle => 'Quên mật khẩu';
 
   @override
-  String get forgotPasswordDesc => 'Nhập email đã đăng ký, chúng tôi sẽ gửi link đặt lại mật khẩu.';
+  String get forgotPasswordDesc =>
+      'Nhập email đã đăng ký, chúng tôi sẽ gửi link đặt lại mật khẩu.';
 
   @override
   String get pleaseEnterValidEmail => 'Vui lòng nhập email hợp lệ';
@@ -1450,7 +1470,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get dangerWarningTitle => '⚠️ CẢNH BÁO NGUY HIỂM';
 
   @override
-  String get resetShopWarning => 'Hành động này sẽ xóa sạch 100% dữ liệu Đơn hàng, Kho, Nợ và Nhật ký của Shop trên cả Đám mây và Máy này. KHÔNG THỂ KHÔI PHỤC!';
+  String get resetShopWarning =>
+      'Hành động này sẽ xóa sạch 100% dữ liệu Đơn hàng, Kho, Nợ và Nhật ký của Shop trên cả Đám mây và Máy này. KHÔNG THỂ KHÔI PHỤC!';
 
   @override
   String resetCloudError(String error) {
@@ -1458,10 +1479,12 @@ class AppLocalizationsVi extends AppLocalizations {
   }
 
   @override
-  String get viewAndEditStaffPermissions => 'Xem và chỉnh sửa quyền truy cập của từng nhân viên';
+  String get viewAndEditStaffPermissions =>
+      'Xem và chỉnh sửa quyền truy cập của từng nhân viên';
 
   @override
-  String get resetShopAdminOnly => 'Dùng khi muốn khởi tạo lại toàn bộ dữ liệu cửa hàng (CHỈ SUPER ADMIN)';
+  String get resetShopAdminOnly =>
+      'Dùng khi muốn khởi tạo lại toàn bộ dữ liệu cửa hàng (CHỈ SUPER ADMIN)';
 
   @override
   String get syncErrorTitle => 'Lỗi đồng bộ';
@@ -1653,7 +1676,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get statusDone => 'ĐÃ XONG';
 
   @override
-  String get receiptSavedAndPrinted => 'Đã lưu và in phiếu tiếp nhận thành công!';
+  String get receiptSavedAndPrinted =>
+      'Đã lưu và in phiếu tiếp nhận thành công!';
 
   @override
   String get partnerDeleted => 'ĐÃ XÓA ĐỐI TÁC';
@@ -1730,10 +1754,12 @@ class AppLocalizationsVi extends AppLocalizations {
   String get profitFormula => '= Thu - Chi - Giá vốn';
 
   @override
-  String get featureLockedByAdmin => 'Tính năng này đã bị khóa bởi Quản trị viên (Admin).\nVui lòng liên hệ nhà phát triển để được hỗ trợ mở khóa.';
+  String get featureLockedByAdmin =>
+      'Tính năng này đã bị khóa bởi Quản trị viên (Admin).\nVui lòng liên hệ nhà phát triển để được hỗ trợ mở khóa.';
 
   @override
-  String get featureLockedByOwner => 'Bạn không có quyền truy cập tính năng này.\nVui lòng liên hệ Chủ shop để được cấp quyền.';
+  String get featureLockedByOwner =>
+      'Bạn không có quyền truy cập tính năng này.\nVui lòng liên hệ Chủ shop để được cấp quyền.';
 
   @override
   String get technicalSupport => 'HỖ TRỢ KỸ THUẬT';
@@ -1763,13 +1789,15 @@ class AppLocalizationsVi extends AppLocalizations {
   String get requestPermission => 'Yêu cầu cấp quyền';
 
   @override
-  String get contactShopOwnerOrManager => 'Liên hệ Chủ shop hoặc Quản lý của bạn';
+  String get contactShopOwnerOrManager =>
+      'Liên hệ Chủ shop hoặc Quản lý của bạn';
 
   @override
   String get requestFeatureAccess => 'Yêu cầu cấp quyền truy cập tính năng này';
 
   @override
-  String get loginAgainAfterPermission => 'Sau khi được cấp quyền, đăng nhập lại để áp dụng';
+  String get loginAgainAfterPermission =>
+      'Sau khi được cấp quyền, đăng nhập lại để áp dụng';
 
   @override
   String cannotMakeCall(String phoneNumber) {
@@ -1812,10 +1840,12 @@ class AppLocalizationsVi extends AppLocalizations {
   String get welcomeNewStaff => 'Chào mừng nhân viên mới!';
 
   @override
-  String get newStaffSyncGuide => 'Vào Cài đặt Shop → Tải dữ liệu shop để đồng bộ dữ liệu';
+  String get newStaffSyncGuide =>
+      'Vào Cài đặt Shop → Tải dữ liệu shop để đồng bộ dữ liệu';
 
   @override
-  String get downloadShopDataToStart => 'Tải dữ liệu shop về máy để bắt đầu làm việc';
+  String get downloadShopDataToStart =>
+      'Tải dữ liệu shop về máy để bắt đầu làm việc';
 
   @override
   String get downloadShopDataTitle => 'TẢI DỮ LIỆU SHOP';
@@ -1830,10 +1860,12 @@ class AppLocalizationsVi extends AppLocalizations {
   String get customersAndSuppliers => 'Khách hàng & NCC';
 
   @override
-  String get downloadOnlyThisShop => 'Chỉ tải dữ liệu của shop này, không ảnh hưởng shop khác.';
+  String get downloadOnlyThisShop =>
+      'Chỉ tải dữ liệu của shop này, không ảnh hưởng shop khác.';
 
   @override
-  String get downloadMayTakeFewMinutes => 'Quá trình có thể mất vài phút tùy lượng dữ liệu.';
+  String get downloadMayTakeFewMinutes =>
+      'Quá trình có thể mất vài phút tùy lượng dữ liệu.';
 
   @override
   String get startDownload => 'BẮT ĐẦU TẢI';
@@ -1923,13 +1955,15 @@ class AppLocalizationsVi extends AppLocalizations {
   String get saleOrderList => 'Danh sách đơn bán';
 
   @override
-  String get viewSearchTrackSales => 'Xem, tìm kiếm và theo dõi tất cả đơn bán hàng.';
+  String get viewSearchTrackSales =>
+      'Xem, tìm kiếm và theo dõi tất cả đơn bán hàng.';
 
   @override
   String get addEditViewCustomers => 'Thêm, sửa và xem thông tin khách hàng.';
 
   @override
-  String get viewProcessWarrantyRequests => 'Xem và xử lý các yêu cầu bảo hành sản phẩm.';
+  String get viewProcessWarrantyRequests =>
+      'Xem và xử lý các yêu cầu bảo hành sản phẩm.';
 
   @override
   String get repairs => 'SỬA CHỮA';
@@ -1941,7 +1975,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get repairOrderList => 'Danh sách đơn sửa';
 
   @override
-  String get viewSearchTrackRepairs => 'Xem, tìm kiếm và theo dõi tất cả đơn sửa chữa.';
+  String get viewSearchTrackRepairs =>
+      'Xem, tìm kiếm và theo dõi tất cả đơn sửa chữa.';
 
   @override
   String get holdForDetailedGuide => 'Nhấn giữ để xem hướng dẫn chi tiết';
@@ -1950,7 +1985,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get stockInNew => 'NHẬP MỚI';
 
   @override
-  String get stockInNewGuide => 'Nhập hàng vào kho với đầy đủ thông tin:\n\n✅ Hỗ trợ: Điện thoại, Phụ kiện, Linh kiện\n✅ Lưu tạm: Nhập khi chưa có đầy đủ thông tin\n✅ Xác nhận: Hàng chính thức vào kho\n\n📌 Dùng khi: Nhập hàng mới từ NCC, cần ghi đầy đủ IMEI/SKU, giá vốn, NCC...';
+  String get stockInNewGuide =>
+      'Nhập hàng vào kho với đầy đủ thông tin:\n\n✅ Hỗ trợ: Điện thoại, Phụ kiện, Linh kiện\n✅ Lưu tạm: Nhập khi chưa có đầy đủ thông tin\n✅ Xác nhận: Hàng chính thức vào kho\n\n📌 Dùng khi: Nhập hàng mới từ NCC, cần ghi đầy đủ IMEI/SKU, giá vốn, NCC...';
 
   @override
   String get fullInformation => 'Đầy đủ thông tin';
@@ -1959,13 +1995,15 @@ class AppLocalizationsVi extends AppLocalizations {
   String get quickStockIn => 'NHẬP NHANH';
 
   @override
-  String get quickStockInGuide => 'Nhập hàng siêu tốc - chỉ cần quét mã:\n\n⚡ Quét barcode/QR liên tục\n⚡ Tự động điền thông tin từ thư viện\n⚡ Phù hợp nhập số lượng lớn\n\n📌 Dùng khi: Nhập nhanh phụ kiện, linh kiện đã có sẵn mã trong hệ thống.';
+  String get quickStockInGuide =>
+      'Nhập hàng siêu tốc - chỉ cần quét mã:\n\n⚡ Quét barcode/QR liên tục\n⚡ Tự động điền thông tin từ thư viện\n⚡ Phù hợp nhập số lượng lớn\n\n📌 Dùng khi: Nhập nhanh phụ kiện, linh kiện đã có sẵn mã trong hệ thống.';
 
   @override
   String get continuousScan => 'Quét mã liên tục';
 
   @override
-  String get checkInventoryGuide => 'Kiểm tra tồn kho bằng quét mã:\n\n🔍 Quét QR/Barcode để kiểm hàng\n🔍 So sánh số lượng thực tế vs hệ thống\n🔍 Ghi nhận chênh lệch\n\n📌 Dùng khi: Kiểm kê định kỳ, đối chiếu hàng tồn.';
+  String get checkInventoryGuide =>
+      'Kiểm tra tồn kho bằng quét mã:\n\n🔍 Quét QR/Barcode để kiểm hàng\n🔍 So sánh số lượng thực tế vs hệ thống\n🔍 Ghi nhận chênh lệch\n\n📌 Dùng khi: Kiểm kê định kỳ, đối chiếu hàng tồn.';
 
   @override
   String get contactOwnerForAccess => 'Liên hệ chủ shop để được cấp quyền';
@@ -1974,28 +2012,32 @@ class AppLocalizationsVi extends AppLocalizations {
   String get compareInventory => 'Đối chiếu tồn kho';
 
   @override
-  String get pendingConfirmation => 'g chờ xác nhận nhập vào kho';
+  String get pendingConfirmation => 'chờ xác nhận nhập vào kho';
 
   @override
-  String get viewPendingStockList => 'Xem danh sách hàng nhập tạm chưa xác nhận.';
+  String get viewPendingStockList =>
+      'Xem danh sách hàng nhập tạm chưa xác nhận.';
 
   @override
   String get productList => 'Danh sách sản phẩm';
 
   @override
-  String get viewManageProducts => 'Xem và quản lý danh sách sản phẩm trong kho.';
+  String get viewManageProducts =>
+      'Xem và quản lý danh sách sản phẩm trong kho.';
 
   @override
   String get suppliersPartners => 'Nhà cung cấp - Đối tác';
 
   @override
-  String get manageSupplierPartnerDebt => 'Quản lý NCC, đối tác sửa chữa và công nợ.';
+  String get manageSupplierPartnerDebt =>
+      'Quản lý NCC, đối tác sửa chữa và công nợ.';
 
   @override
   String get quickInputCodeList => 'Danh sách mã nhập nhanh';
 
   @override
-  String get viewManageQuickInputCodes => 'Xem và quản lý danh sách mã nhập nhanh đã tạo.';
+  String get viewManageQuickInputCodes =>
+      'Xem và quản lý danh sách mã nhập nhanh đã tạo.';
 
   @override
   String get contactOwnerForPermission => 'Liên hệ chủ shop để được cấp quyền';
@@ -2022,13 +2064,15 @@ class AppLocalizationsVi extends AppLocalizations {
   String get reports => 'BÁO CÁO';
 
   @override
-  String get viewAllStaffAttendance => 'Xem chấm công tất cả nhân viên theo ngày/tháng.';
+  String get viewAllStaffAttendance =>
+      'Xem chấm công tất cả nhân viên theo ngày/tháng.';
 
   @override
   String get personalAttendance => 'Chấm công cá nhân';
 
   @override
-  String get checkInOutAndHistory => 'Check-in/out và xem lịch sử chấm công cá nhân.';
+  String get checkInOutAndHistory =>
+      'Check-in/out và xem lịch sử chấm công cá nhân.';
 
   @override
   String get salaryGuideTitle => 'HƯỚNG DẪN TÍNH LƯƠNG';
@@ -2076,16 +2120,19 @@ class AppLocalizationsVi extends AppLocalizations {
   String get trackAllFinancialActivities => 'Theo dõi mọi hoạt động thu chi.';
 
   @override
-  String get shopInfoLogoLocationMembers => 'Thông tin, logo, vị trí và quản lý thành viên shop.';
+  String get shopInfoLogoLocationMembers =>
+      'Thông tin, logo, vị trí và quản lý thành viên shop.';
 
   @override
-  String get configureNotificationSettings => 'Cấu hình cài đặt thông báo và cảnh báo.';
+  String get configureNotificationSettings =>
+      'Cấu hình cài đặt thông báo và cảnh báo.';
 
   @override
   String get designPrintTemplates => 'Thiết kế mẫu in cho máy in nhiệt.';
 
   @override
-  String get manageSystemForSuperAdmin => 'Quản lý toàn bộ hệ thống cho admin cấp cao.';
+  String get manageSystemForSuperAdmin =>
+      'Quản lý toàn bộ hệ thống cho admin cấp cao.';
 
   @override
   String get developerAndAppInfo => 'Thông tin về nhà phát triển và ứng dụng.';
@@ -2129,10 +2176,12 @@ class AppLocalizationsVi extends AppLocalizations {
   String get fromCloudToThisDevice => 'từ đám mây về máy này.';
 
   @override
-  String get onlyDownloadThisShopData => 'Chỉ tải dữ liệu của shop này, không ảnh hưởng shop khác.';
+  String get onlyDownloadThisShopData =>
+      'Chỉ tải dữ liệu của shop này, không ảnh hưởng shop khác.';
 
   @override
-  String get processMayTakeFewMinutes => 'Quá trình có thể mất vài phút tùy lượng dữ liệu.';
+  String get processMayTakeFewMinutes =>
+      'Quá trình có thể mất vài phút tùy lượng dữ liệu.';
 
   @override
   String get downloadSuccess => 'Đã tải xong dữ liệu shop!';
@@ -2223,7 +2272,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get howToGetInviteCode => 'HƯỚNG DẪN LẤY MÃ MỜI';
 
   @override
-  String get joinShopInstructions => 'Để tham gia shop, vui lòng yêu cầu chủ shop thực hiện các bước sau:';
+  String get joinShopInstructions =>
+      'Để tham gia shop, vui lòng yêu cầu chủ shop thực hiện các bước sau:';
 
   @override
   String get storeOwnerLogin => 'Chủ shop đăng nhập vào ứng dụng';
@@ -2235,13 +2285,16 @@ class AppLocalizationsVi extends AppLocalizations {
   String get selectEmployeeList => 'Chọn \'Danh sách nhân viên\'';
 
   @override
-  String get selectRegisterEmployee => 'Chọn đăng ký tài khoản thuộc shop nhân viên';
+  String get selectRegisterEmployee =>
+      'Chọn đăng ký tài khoản thuộc shop nhân viên';
 
   @override
-  String get ownerProvidesCredentials => 'Chủ shop cung cấp tài khoản và mật khẩu cho bạn';
+  String get ownerProvidesCredentials =>
+      'Chủ shop cung cấp tài khoản và mật khẩu cho bạn';
 
   @override
-  String get loginWithCredentials => 'Sau khi có tài khoản và mật khẩu bạn có thể đăng nhập và tham gia shop.';
+  String get loginWithCredentials =>
+      'Sau khi có tài khoản và mật khẩu bạn có thể đăng nhập và tham gia shop.';
 
   @override
   String get register => 'ĐĂNG KÝ';
@@ -2262,7 +2315,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get enableBluetoothToScan => 'Bật Bluetooth để quét máy in';
 
   @override
-  String get noDevicesFound => 'Không tìm thấy thiết bị. Ghép đôi trước trong cài đặt Bluetooth.';
+  String get noDevicesFound =>
+      'Không tìm thấy thiết bị. Ghép đôi trước trong cài đặt Bluetooth.';
 
   @override
   String bluetoothScanError(String error) {
@@ -2408,7 +2462,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get needMoreHelp => 'Cần hỗ trợ thêm?';
 
   @override
-  String get supportTeamReady => 'Nếu bạn không tìm thấy câu trả lời, đội ngũ hỗ trợ sẵn sàng giúp đỡ.';
+  String get supportTeamReady =>
+      'Nếu bạn không tìm thấy câu trả lời, đội ngũ hỗ trợ sẵn sàng giúp đỡ.';
 
   @override
   String get supportEmail => 'support@huluca.com';
@@ -2461,61 +2516,72 @@ class AppLocalizationsVi extends AppLocalizations {
   String get welcomeToShopManager => 'Chào mừng đến với Shop Manager';
 
   @override
-  String get welcomeDesc => 'Giải pháp quản lý cửa hàng đa ngành: Điện tử, Thực phẩm, Thời trang & nhiều hơn nữa. Dễ sử dụng, mạnh mẽ và hiệu quả cho mọi nhu cầu kinh doanh.';
+  String get welcomeDesc =>
+      'Giải pháp quản lý cửa hàng đa ngành: Điện tử, Thực phẩm, Thời trang & nhiều hơn nữa. Dễ sử dụng, mạnh mẽ và hiệu quả cho mọi nhu cầu kinh doanh.';
 
   @override
   String get professionalSalesManagement => 'Quản lý bán hàng chuyên nghiệp';
 
   @override
-  String get salesDesc => 'Tạo đơn bán hàng nhanh chóng, theo dõi doanh thu, quản lý khách hàng và bảo hành sản phẩm một cách dễ dàng.';
+  String get salesDesc =>
+      'Tạo đơn bán hàng nhanh chóng, theo dõi doanh thu, quản lý khách hàng và bảo hành sản phẩm một cách dễ dàng.';
 
   @override
   String get repairAndWarranty => 'Sửa chữa & Bảo hành';
 
   @override
-  String get repairDesc => 'Theo dõi tiến độ sửa chữa, quản lý linh kiện, cập nhật trạng thái đơn hàng và xử lý bảo hành hiệu quả.';
+  String get repairDesc =>
+      'Theo dõi tiến độ sửa chữa, quản lý linh kiện, cập nhật trạng thái đơn hàng và xử lý bảo hành hiệu quả.';
 
   @override
   String get smartInventoryManagement => 'Quản lý kho thông minh';
 
   @override
-  String get inventoryDesc => 'Nhập kho siêu tốc bằng mã QR và IMEI. Kiểm soát hàng hóa chính xác 100% với hệ thống kiểm kho tự động.';
+  String get inventoryDesc =>
+      'Nhập kho siêu tốc bằng mã QR và IMEI. Kiểm soát hàng hóa chính xác 100% với hệ thống kiểm kho tự động.';
 
   @override
   String get staffAndAttendance => 'Nhân sự & Chấm công';
 
   @override
-  String get staffDesc => 'Quản lý nhân viên, theo dõi chấm công bằng selfie, tính lương và đánh giá hiệu suất làm việc.';
+  String get staffDesc =>
+      'Quản lý nhân viên, theo dõi chấm công bằng selfie, tính lương và đánh giá hiệu suất làm việc.';
 
   @override
   String get financeAndReports => 'Tài chính & Báo cáo';
 
   @override
-  String get financeDesc => 'Xem báo cáo doanh thu chi tiết, quản lý chi phí, theo dõi công nợ và phân tích tài chính toàn diện.';
+  String get financeDesc =>
+      'Xem báo cáo doanh thu chi tiết, quản lý chi phí, theo dõi công nợ và phân tích tài chính toàn diện.';
 
   @override
   String get internalChatAndNotifications => 'Chat nội bộ & Thông báo';
 
   @override
-  String get chatDesc => 'Giao tiếp với nhân viên real-time, nhận thông báo tức thì và quản lý thông tin chung của cửa hàng.';
+  String get chatDesc =>
+      'Giao tiếp với nhân viên real-time, nhận thông báo tức thì và quản lý thông tin chung của cửa hàng.';
 
   @override
-  String get printReceiptsAndDeviceConnection => 'In hóa đơn & Kết nối thiết bị';
+  String get printReceiptsAndDeviceConnection =>
+      'In hóa đơn & Kết nối thiết bị';
 
   @override
-  String get printDesc => 'Kết nối máy in nhiệt Bluetooth/WiFi. In tem nhãn, hóa đơn chuyên nghiệp chỉ với 1 chạm.';
+  String get printDesc =>
+      'Kết nối máy in nhiệt Bluetooth/WiFi. In tem nhãn, hóa đơn chuyên nghiệp chỉ với 1 chạm.';
 
   @override
   String get cloudSync247 => 'Đồng bộ đám mây 24/7';
 
   @override
-  String get cloudDesc => 'Dữ liệu luôn an toàn và đồng bộ tức thì giữa tất cả các máy. Quản trị shop từ xa mọi lúc mọi nơi.';
+  String get cloudDesc =>
+      'Dữ liệu luôn an toàn và đồng bộ tức thì giữa tất cả các máy. Quản trị shop từ xa mọi lúc mọi nơi.';
 
   @override
   String get startJourney => 'Bắt đầu hành trình';
 
   @override
-  String get startDesc => 'Khám phá tất cả tính năng và quản lý cửa hàng của bạn một cách hiệu quả. Chúc bạn thành công!';
+  String get startDesc =>
+      'Khám phá tất cả tính năng và quản lý cửa hàng của bạn một cách hiệu quả. Chúc bạn thành công!';
 
   @override
   String get hulucaShop => 'HULUCA SHOP';
@@ -2527,13 +2593,15 @@ class AppLocalizationsVi extends AppLocalizations {
   String get repairManagement => 'Quản lý sửa chữa';
 
   @override
-  String get repairManagementDesc => 'Theo dõi đơn sửa chữa từ nhận máy đến giao máy';
+  String get repairManagementDesc =>
+      'Theo dõi đơn sửa chữa từ nhận máy đến giao máy';
 
   @override
   String get inventoryManagement => 'Quản lý kho hàng';
 
   @override
-  String get inventoryManagementDesc => 'Nhập hàng, xuất kho, kiểm kê linh kiện';
+  String get inventoryManagementDesc =>
+      'Nhập hàng, xuất kho, kiểm kê linh kiện';
 
   @override
   String get salesAndDebt => 'Bán hàng & Công nợ';
@@ -2545,13 +2613,15 @@ class AppLocalizationsVi extends AppLocalizations {
   String get supplierAndPartnerManagement => 'Quản lý NCC & Đối tác';
 
   @override
-  String get supplierAndPartnerManagementDesc => 'Theo dõi công nợ nhà cung cấp và đối tác';
+  String get supplierAndPartnerManagementDesc =>
+      'Theo dõi công nợ nhà cung cấp và đối tác';
 
   @override
   String get reportsAndStatistics => 'Báo cáo thống kê';
 
   @override
-  String get reportsAndStatisticsDesc => 'Doanh thu, lợi nhuận, tồn kho theo thời gian';
+  String get reportsAndStatisticsDesc =>
+      'Doanh thu, lợi nhuận, tồn kho theo thời gian';
 
   @override
   String get cloudSync => 'Đồng bộ Cloud';
@@ -2569,37 +2639,43 @@ class AppLocalizationsVi extends AppLocalizations {
   String get accessSalaryTable => 'Truy cập bảng lương';
 
   @override
-  String get accessSalaryDesc => 'Vào tab Nhân sự → Nhấn \"LƯƠNG Tính lương\" để xem bảng lương toàn bộ nhân viên.';
+  String get accessSalaryDesc =>
+      'Vào tab Nhân sự → Nhấn \"LƯƠNG Tính lương\" để xem bảng lương toàn bộ nhân viên.';
 
   @override
   String get salarySettings => 'Cài đặt lương';
 
   @override
-  String get salarySettingsDesc => '• Cài đặt mặc định: Icon ⚙️ → Tab \"MẶC ĐỊNH\"\n• Cài đặt riêng: Tab \"NHÂN VIÊN\" → Chọn NV → \"Cài đặt riêng\"';
+  String get salarySettingsDesc =>
+      '• Cài đặt mặc định: Icon ⚙️ → Tab \"MẶC ĐỊNH\"\n• Cài đặt riêng: Tab \"NHÂN VIÊN\" → Chọn NV → \"Cài đặt riêng\"';
 
   @override
   String get salaryComponents => 'Các thành phần lương';
 
   @override
-  String get salaryComponentsDesc => '• Lương cơ bản (tháng/ngày/giờ)\n• Hoa hồng bán hàng (% hoặc cố định)\n• Hoa hồng sửa chữa\n• Phụ cấp (đi lại, ăn trưa, điện thoại...)\n• Tăng ca OT (hệ số 150%, 200%...)';
+  String get salaryComponentsDesc =>
+      '• Lương cơ bản (tháng/ngày/giờ)\n• Hoa hồng bán hàng (% hoặc cố định)\n• Hoa hồng sửa chữa\n• Phụ cấp (đi lại, ăn trưa, điện thoại...)\n• Tăng ca OT (hệ số 150%, 200%...)';
 
   @override
   String get viewDetails => 'Xem chi tiết';
 
   @override
-  String get viewDetailsDesc => 'Nhấn vào tên nhân viên để xem:\n• THU NHẬP: Lương + Hoa hồng + Phụ cấp + Thưởng + OT\n• KHẤU TRỪ: Thuế TNCN + BHXH + BHYT + BHTN\n• THỰC LĨNH: Tổng thu nhập - Tổng khấu trừ';
+  String get viewDetailsDesc =>
+      'Nhấn vào tên nhân viên để xem:\n• THU NHẬP: Lương + Hoa hồng + Phụ cấp + Thưởng + OT\n• KHẤU TRỪ: Thuế TNCN + BHXH + BHYT + BHTN\n• THỰC LĨNH: Tổng thu nhập - Tổng khấu trừ';
 
   @override
   String get printSalarySlip => 'In phiếu lương';
 
   @override
-  String get printSalaryDesc => '• In tổng hợp: Icon 🖨️ → \"In bảng lương tổng hợp\"\n• In cá nhân: Mở chi tiết NV → \"In phiếu lương\"';
+  String get printSalaryDesc =>
+      '• In tổng hợp: Icon 🖨️ → \"In bảng lương tổng hợp\"\n• In cá nhân: Mở chi tiết NV → \"In phiếu lương\"';
 
   @override
   String get taxAndInsurance => 'Thuế & Bảo hiểm';
 
   @override
-  String get taxAndInsuranceDesc => 'Icon 💳 \"Cài đặt Khấu trừ/Thuế\":\n• Giảm trừ cá nhân: 11 triệu\n• BHXH 8%, BHYT 1.5%, BHTN 1%';
+  String get taxAndInsuranceDesc =>
+      'Icon 💳 \"Cài đặt Khấu trừ/Thuế\":\n• Giảm trừ cá nhân: 11 triệu\n• BHXH 8%, BHYT 1.5%, BHTN 1%';
 
   @override
   String get understood => 'ĐÃ HIỂU';
@@ -2611,10 +2687,12 @@ class AppLocalizationsVi extends AppLocalizations {
   String get staffListLabel => 'Danh sách\nNhân viên';
 
   @override
-  String get viewAttendanceAllStaff => 'Xem chấm công tất cả nhân viên theo ngày/tháng.';
+  String get viewAttendanceAllStaff =>
+      'Xem chấm công tất cả nhân viên theo ngày/tháng.';
 
   @override
-  String get personalAttendanceDescription => 'Check-in/out và xem lịch sử chấm công cá nhân.';
+  String get personalAttendanceDescription =>
+      'Check-in/out và xem lịch sử chấm công cá nhân.';
 
   @override
   String get usageGuide => 'Hướng dẫn sử dụng';
@@ -2632,7 +2710,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get expenseManagement => 'Quản lý chi phí';
 
   @override
-  String get addTrackShopExpenses => 'Thêm và theo dõi các khoản chi phí của cửa hàng.';
+  String get addTrackShopExpenses =>
+      'Thêm và theo dõi các khoản chi phí của cửa hàng.';
 
   @override
   String get debtManagementInOut => 'Quản lý nợ (Thu/Chi)';
@@ -2650,7 +2729,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get financialActivityLog => 'Nhật ký tài chính';
 
   @override
-  String get trackAllIncomeExpenseActivities => 'Theo dõi mọi hoạt động thu chi.';
+  String get trackAllIncomeExpenseActivities =>
+      'Theo dõi mọi hoạt động thu chi.';
 
   @override
   String get todayIncome => 'THU HÔM NAY';
@@ -2677,28 +2757,33 @@ class AppLocalizationsVi extends AppLocalizations {
   String get shopSettings => 'Cài đặt cửa hàng';
 
   @override
-  String get shopSettingsDescription => 'Thông tin, logo, vị trí và quản lý thành viên shop.';
+  String get shopSettingsDescription =>
+      'Thông tin, logo, vị trí và quản lý thành viên shop.';
 
   @override
   String get notifications => 'Thông báo';
 
   @override
-  String get notificationSettingsDescription => 'Cấu hình cài đặt thông báo và cảnh báo.';
+  String get notificationSettingsDescription =>
+      'Cấu hình cài đặt thông báo và cảnh báo.';
 
   @override
   String get printer => 'Máy in';
 
   @override
-  String get printerSettingsDescription => 'Cài đặt kết nối và thiết kế mẫu in.';
+  String get printerSettingsDescription =>
+      'Cài đặt kết nối và thiết kế mẫu in.';
 
   @override
   String get adminCenter => 'Trung tâm Admin';
 
   @override
-  String get adminCenterDescription => 'Quản lý toàn bộ hệ thống cho admin cấp cao.';
+  String get adminCenterDescription =>
+      'Quản lý toàn bộ hệ thống cho admin cấp cao.';
 
   @override
-  String get aboutDeveloperDescription => 'Thông tin về nhà phát triển và ứng dụng.';
+  String get aboutDeveloperDescription =>
+      'Thông tin về nhà phát triển và ứng dụng.';
 
   @override
   String get logout => 'ĐĂNG XUẤT';
@@ -2710,7 +2795,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get logoutConfirmTitle => 'Đăng xuất?';
 
   @override
-  String get logoutConfirmMessage => 'Bạn có chắc muốn đăng xuất khỏi tài khoản?';
+  String get logoutConfirmMessage =>
+      'Bạn có chắc muốn đăng xuất khỏi tài khoản?';
 
   @override
   String get needSyncData => '⚠️ Cần đồng bộ dữ liệu';
@@ -2745,7 +2831,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get userGuide => 'Hướng dẫn sử dụng';
 
   @override
-  String get viewDetailedGuideForEachFeature => 'Xem hướng dẫn chi tiết từng tính năng trong app';
+  String get viewDetailedGuideForEachFeature =>
+      'Xem hướng dẫn chi tiết từng tính năng trong app';
 
   @override
   String get warrantyReminder => 'NHẮC LỊCH BẢO HÀNH';
@@ -2784,7 +2871,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get invalidEmailAddress => 'Địa chỉ email không đúng định dạng.';
 
   @override
-  String get networkError => 'Lỗi kết nối mạng. Vui lòng kiểm tra internet và thử lại.';
+  String get networkError =>
+      'Lỗi kết nối mạng. Vui lòng kiểm tra internet và thử lại.';
 
   @override
   String get tooManyRequests => 'Quá nhiều yêu cầu. Vui lòng thử lại sau.';
@@ -2796,13 +2884,15 @@ class AppLocalizationsVi extends AppLocalizations {
   String get pleaseEnterFullName => 'Vui lòng nhập họ và tên.';
 
   @override
-  String get pleaseEnterRequiredFields => 'Vui lòng điền các thông tin bắt buộc.';
+  String get pleaseEnterRequiredFields =>
+      'Vui lòng điền các thông tin bắt buộc.';
 
   @override
   String get passwordMismatch => 'Mật khẩu xác nhận không khớp.';
 
   @override
-  String get invalidOrExpiredInviteCode => 'Mã mời không chính xác hoặc đã hết hạn.';
+  String get invalidOrExpiredInviteCode =>
+      'Mã mời không chính xác hoặc đã hết hạn.';
 
   @override
   String get loadingShopData => 'Đang tải dữ liệu shop...';
@@ -2818,13 +2908,15 @@ class AppLocalizationsVi extends AppLocalizations {
   }
 
   @override
-  String get onlySuperAdminCanDelete => 'CHỈ SUPER ADMIN MỚI ĐƯỢC XÓA DỮ LIỆU SHOP!';
+  String get onlySuperAdminCanDelete =>
+      'CHỈ SUPER ADMIN MỚI ĐƯỢC XÓA DỮ LIỆU SHOP!';
 
   @override
   String get dangerWarning => '⚠️ CẢNH BÁO NGUY HIỂM';
 
   @override
-  String get deleteAllDataWarning => 'Hành động này sẽ xóa sạch 100% dữ liệu Đơn hàng, Kho, Nợ và Nhật ký của Shop trên cả Đám mây và Máy này. KHÔNG THỂ KHÔI PHỤC!';
+  String get deleteAllDataWarning =>
+      'Hành động này sẽ xóa sạch 100% dữ liệu Đơn hàng, Kho, Nợ và Nhật ký của Shop trên cả Đám mây và Máy này. KHÔNG THỂ KHÔI PHỤC!';
 
   @override
   String get typeToConfirm => 'Nhập chữ \'XOA HET\' để xác nhận:';
@@ -2850,7 +2942,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get userGuideTitle => 'Hướng dẫn sử dụng';
 
   @override
-  String get userGuideDesc => 'Hướng dẫn chi tiết từng bước cho mọi tính năng trong app.';
+  String get userGuideDesc =>
+      'Hướng dẫn chi tiết từng bước cho mọi tính năng trong app.';
 
   @override
   String get inventoryFeature => '📦 Kho hàng';
@@ -2871,7 +2964,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get resetGuidesDesc => 'Reset để hiển thị lại các hướng dẫn lần đầu';
 
   @override
-  String get guidesReset => 'Đã reset! Hướng dẫn sẽ hiển thị lại khi vào các màn hình.';
+  String get guidesReset =>
+      'Đã reset! Hướng dẫn sẽ hiển thị lại khi vào các màn hình.';
 
   @override
   String get changedToVietnamese => 'Đã chuyển sang Tiếng Việt';
@@ -3038,7 +3132,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get walkInCustomer => 'Khách vãng lai (không lưu danh bạ)';
 
   @override
-  String get walkInCustomerDesc => 'Tên/SĐT chỉ lưu trên phiếu, không bắt buộc SĐT';
+  String get walkInCustomerDesc =>
+      'Tên/SĐT chỉ lưu trên phiếu, không bắt buộc SĐT';
 
   @override
   String get saveToContactsDesc => 'Nhập SĐT để lưu khách vào danh bạ';
@@ -3056,7 +3151,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get selectCustomer => 'Chọn khách';
 
   @override
-  String get todayClosedNoRepair => '❌ Ngày hôm nay đã chốt quỹ! Không thể tạo phiếu sửa mới.';
+  String get todayClosedNoRepair =>
+      '❌ Ngày hôm nay đã chốt quỹ! Không thể tạo phiếu sửa mới.';
 
   @override
   String get selectCustomerTitle => 'CHỌN KHÁCH HÀNG';
@@ -3119,7 +3215,12 @@ class AppLocalizationsVi extends AppLocalizations {
   String get statusDelivered => 'ĐÃ GIAO';
 
   @override
-  String deletedRepairDesc(String model, String customer, String phone, String partsInfo) {
+  String deletedRepairDesc(
+    String model,
+    String customer,
+    String phone,
+    String partsInfo,
+  ) {
     return 'Đã xóa đơn sửa $model - $customer - $phone$partsInfo';
   }
 
@@ -3167,7 +3268,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get deleteRepairAction => 'XÓA ĐƠN SỬA';
 
   @override
-  String get orderPendingApproval => 'Đơn đang chờ quản lý/chủ shop duyệt giao máy';
+  String get orderPendingApproval =>
+      'Đơn đang chờ quản lý/chủ shop duyệt giao máy';
 
   @override
   String deliveredDevice(String model, String customer, String warranty) {
@@ -3175,7 +3277,12 @@ class AppLocalizationsVi extends AppLocalizations {
   }
 
   @override
-  String repairOrderShare(String customer, String phone, String model, String price) {
+  String repairOrderShare(
+    String customer,
+    String phone,
+    String model,
+    String price,
+  ) {
     return 'ĐƠN SỬA - $customer - $phone - $model - $price';
   }
 
@@ -3185,7 +3292,8 @@ class AppLocalizationsVi extends AppLocalizations {
   }
 
   @override
-  String get orderWillBeSentForApproval => 'Đơn sẽ được gửi cho quản lý duyệt trước khi hoàn tất giao máy';
+  String get orderWillBeSentForApproval =>
+      'Đơn sẽ được gửi cho quản lý duyệt trước khi hoàn tất giao máy';
 
   @override
   String get sentDeliveryApprovalRequest => 'Đã gửi yêu cầu duyệt giao máy';
@@ -3199,7 +3307,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get approvedAndCompletedDelivery => 'Đã duyệt và hoàn tất giao máy';
 
   @override
-  String get rejectedBackToRepairDone => 'Đã từ chối - đơn quay lại trạng thái Sửa xong';
+  String get rejectedBackToRepairDone =>
+      'Đã từ chối - đơn quay lại trạng thái Sửa xong';
 
   @override
   String get editRepairAction => 'SỬA ĐƠN SỬA';
@@ -3265,7 +3374,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get orderAlreadyHasParts => 'Đơn này đã có phụ tùng:';
 
   @override
-  String get partsWillBeAddedAndDeducted => 'Nếu tiếp tục chọn, phụ tùng mới sẽ được THÊM VÀO và TRỪ KHO ngay lập tức.\n\nBạn có muốn tiếp tục không?';
+  String get partsWillBeAddedAndDeducted =>
+      'Nếu tiếp tục chọn, phụ tùng mới sẽ được THÊM VÀO và TRỪ KHO ngay lập tức.\n\nBạn có muốn tiếp tục không?';
 
   @override
   String get continueAddMore => 'TIẾP TỤC CHỌN THÊM';
@@ -3434,7 +3544,8 @@ class AppLocalizationsVi extends AppLocalizations {
   }
 
   @override
-  String get goToInventoryAddParts => 'Vào Kho → Nhập SP → Chọn loại \'LINH KIỆN\'';
+  String get goToInventoryAddParts =>
+      'Vào Kho → Nhập SP → Chọn loại \'LINH KIỆN\'';
 
   @override
   String addedPartsFromInventoryMsg(String parts) {
@@ -3508,7 +3619,11 @@ class AppLocalizationsVi extends AppLocalizations {
   String get notifRequestDeliveryApproval => '📋 YÊU CẦU DUYỆT GIAO MÁY';
 
   @override
-  String chatRequestDeliveryApproval(String model, String customer, String price) {
+  String chatRequestDeliveryApproval(
+    String model,
+    String customer,
+    String price,
+  ) {
     return '📋 YÊU CẦU DUYỆT GIAO: $model - $customer - $priceđ';
   }
 
@@ -3528,10 +3643,12 @@ class AppLocalizationsVi extends AppLocalizations {
   String get repairProcessNotes => 'Ghi chú quá trình sửa chữa:';
 
   @override
-  String get techNotesHint => 'VD: KT thay IC nguồn, sàng main, thay cáp sạc...';
+  String get techNotesHint =>
+      'VD: KT thay IC nguồn, sàng main, thay cáp sạc...';
 
   @override
-  String get trackRepairProgress => 'Theo dõi tiến độ sửa chữa và cập nhật trạng thái.';
+  String get trackRepairProgress =>
+      'Theo dõi tiến độ sửa chữa và cập nhật trạng thái.';
 
   @override
   String get repairOrderDetail => 'CHI TIẾT ĐƠN SỬA';
@@ -3616,10 +3733,12 @@ class AppLocalizationsVi extends AppLocalizations {
   }
 
   @override
-  String get selectWarrantyNote => 'Chọn bảo hành (có thể đổi trước khi duyệt):';
+  String get selectWarrantyNote =>
+      'Chọn bảo hành (có thể đổi trước khi duyệt):';
 
   @override
-  String get confirmApproveDelivery => 'Xác nhận duyệt giao máy và hoàn tất giao dịch?';
+  String get confirmApproveDelivery =>
+      'Xác nhận duyệt giao máy và hoàn tất giao dịch?';
 
   @override
   String get reject => 'TỪ CHỐI';
@@ -3639,7 +3758,15 @@ class AppLocalizationsVi extends AppLocalizations {
   String get approve => 'DUYỆT';
 
   @override
-  String shareRepairReceipt(String shopName, String model, String customerName, String phone, String issue, String warranty, String total) {
+  String shareRepairReceipt(
+    String shopName,
+    String model,
+    String customerName,
+    String phone,
+    String issue,
+    String warranty,
+    String total,
+  ) {
     return '🌟 PHIẾU SỬA CHỮA/BẢO HÀNH 🌟\n----------------------------\nShop: $shopName\nModel: $model\nKhách: $customerName - $phone\nLỗi: $issue\nBảo hành: $warranty\nTổng cộng: $total\n----------------------------\nCảm ơn quý khách đã tin tưởng!';
   }
 
@@ -3655,7 +3782,12 @@ class AppLocalizationsVi extends AppLocalizations {
   }
 
   @override
-  String repairOrderSummary(String customerName, String phone, String model, String total) {
+  String repairOrderSummary(
+    String customerName,
+    String phone,
+    String model,
+    String total,
+  ) {
     return 'ĐƠN SỬA - $customerName - $phone - $model - $total';
   }
 
@@ -3768,7 +3900,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get invoiceHeaderHint => 'HEADER HÓA ĐƠN';
 
   @override
-  String get bodyLabelWithPlaceholders => 'Body (sử dụng placeholders như customerName, total):';
+  String get bodyLabelWithPlaceholders =>
+      'Body (sử dụng placeholders như customerName, total):';
 
   @override
   String get invoiceBodyHint => 'NỘI DUNG CHÍNH';
@@ -3879,7 +4012,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get noStaffFoundMsg => 'Chưa có nhân viên nào';
 
   @override
-  String get addStaffFirstHint => 'Vui lòng thêm nhân viên trong phần\n\"Quản lý nhân sự\" trước';
+  String get addStaffFirstHint =>
+      'Vui lòng thêm nhân viên trong phần\n\"Quản lý nhân sự\" trước';
 
   @override
   String get salarySettingsLabel => 'Cài đặt lương';
@@ -3925,7 +4059,8 @@ class AppLocalizationsVi extends AppLocalizations {
   }
 
   @override
-  String get noStaffHint => 'Chưa có nhân viên. Nhấn \"Tải lại\" phía dưới hoặc thêm nhân viên trong Quản lý nhân sự.';
+  String get noStaffHint =>
+      'Chưa có nhân viên. Nhấn \"Tải lại\" phía dưới hoặc thêm nhân viên trong Quản lý nhân sự.';
 
   @override
   String staffScheduleFor(String name) {
@@ -4005,7 +4140,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get checkOutTimeLabel => 'Check-out:';
 
   @override
-  String get selectStaffForAttendance => 'Vui lòng chọn nhân viên để xem thông tin chấm công';
+  String get selectStaffForAttendance =>
+      'Vui lòng chọn nhân viên để xem thông tin chấm công';
 
   @override
   String get aboutDeveloper => 'Về nhà phát triển';
@@ -4014,7 +4150,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get hulucaStoreDongNai => 'HULUCA STORE ĐỒNG NAI';
 
   @override
-  String get professionalStoreManagementApp => 'Ứng dụng quản lý cửa hàng chuyên nghiệp';
+  String get professionalStoreManagementApp =>
+      'Ứng dụng quản lý cửa hàng chuyên nghiệp';
 
   @override
   String get developerAndDesigner => 'Phát triển & Thiết kế';
@@ -4026,7 +4163,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get dongNai => 'ĐỒNG NAI';
 
   @override
-  String get professionalPhoneRepairShop => 'Giải pháp quản lý cửa hàng chuyên nghiệp';
+  String get professionalPhoneRepairShop =>
+      'Giải pháp quản lý cửa hàng chuyên nghiệp';
 
   @override
   String get hotlineAndZalo => 'Hotline & Zalo';
@@ -4040,7 +4178,8 @@ class AppLocalizationsVi extends AppLocalizations {
   }
 
   @override
-  String get appFullDescription => 'Ứng dụng quản lý cửa hàng đa ngành toàn diện: hỗ trợ điện tử (IMEI, bảo hành), thực phẩm (HSD), thời trang (biến thể size/màu) với đồng bộ thời gian thực.';
+  String get appFullDescription =>
+      'Ứng dụng quản lý cửa hàng đa ngành toàn diện: hỗ trợ điện tử (IMEI, bảo hành), thực phẩm (HSD), thời trang (biến thể size/màu) với đồng bộ thời gian thực.';
 
   @override
   String get attendanceTracking => 'QUẢN LÝ CHẤM CÔNG';
@@ -4172,7 +4311,8 @@ class AppLocalizationsVi extends AppLocalizations {
   }
 
   @override
-  String get ownerPasswordRequired => 'Chỉ chủ cửa hàng mới được thực hiện thao tác này.\nNhập mật khẩu tài khoản để xác nhận:';
+  String get ownerPasswordRequired =>
+      'Chỉ chủ cửa hàng mới được thực hiện thao tác này.\nNhập mật khẩu tài khoản để xác nhận:';
 
   @override
   String get pleaseLoginAgain => 'Vui lòng đăng nhập lại';
@@ -4275,25 +4415,29 @@ class AppLocalizationsVi extends AppLocalizations {
   String get checklistTitle => '📋 Danh sách kiểm';
 
   @override
-  String get checklistDescription => 'Hệ thống hiển thị tất cả sản phẩm tồn kho. Quét mã QR của từng sản phẩm để đánh dấu đã kiểm.';
+  String get checklistDescription =>
+      'Hệ thống hiển thị tất cả sản phẩm tồn kho. Quét mã QR của từng sản phẩm để đánh dấu đã kiểm.';
 
   @override
   String get scanImeiBarcode => '📷 Quét IMEI/Barcode';
 
   @override
-  String get scanInstructions => 'Nhấn \"Bắt đầu quét\" và hướng camera vào mã QR/barcode để bắt đầu kiểm.';
+  String get scanInstructions =>
+      'Nhấn \"Bắt đầu quét\" và hướng camera vào mã QR/barcode để bắt đầu kiểm.';
 
   @override
   String get checkedVsMissing => '✅ Đã kiểm vs ❌ Thiếu';
 
   @override
-  String get checkStatusDescription => 'Xanh = đã quét và tìm thấy. Đỏ = chưa quét. Báo cáo hiển thị đã kiểm vs thiếu.';
+  String get checkStatusDescription =>
+      'Xanh = đã quét và tìm thấy. Đỏ = chưa quét. Báo cáo hiển thị đã kiểm vs thiếu.';
 
   @override
   String get inventoryReport => '📊 Báo cáo kiểm kê';
 
   @override
-  String get reportDescription => 'Sau khi quét, xem báo cáo tổng kết để biết hàng thiếu và thừa.';
+  String get reportDescription =>
+      'Sau khi quét, xem báo cáo tổng kết để biết hàng thiếu và thừa.';
 
   @override
   String errorLoadingInventory(String error) {
@@ -4319,7 +4463,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get specialProductsCheck => 'Sản phẩm đặc biệt cần kiểm riêng';
 
   @override
-  String get duplicateScanWarning => 'Đã quét mã này gần đây! Đợi 3 giây trước khi quét lại';
+  String get duplicateScanWarning =>
+      'Đã quét mã này gần đây! Đợi 3 giây trước khi quét lại';
 
   @override
   String get phoneMissingImei => 'Mã QR điện thoại thiếu IMEI';
@@ -4369,7 +4514,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get vibrateOnScan => 'Rung thiết bị khi quét';
 
   @override
-  String get scanTips => 'Mẹo: Giữ khoảng cách 20-30cm từ mã QR để có kết quả tốt nhất';
+  String get scanTips =>
+      'Mẹo: Giữ khoảng cách 20-30cm từ mã QR để có kết quả tốt nhất';
 
   @override
   String get closeButton => 'ĐÓNG';
@@ -4420,7 +4566,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get pressToStartScan => 'Nhấn nút quét để bắt đầu kiểm kê';
 
   @override
-  String get scanInstructionsShort => 'Điện thoại: quét IMEI\nPhụ kiện: quét từng món';
+  String get scanInstructionsShort =>
+      'Điện thoại: quét IMEI\nPhụ kiện: quét từng món';
 
   @override
   String get processingLabel => 'Đang xử lý...';
@@ -4503,13 +4650,15 @@ class AppLocalizationsVi extends AppLocalizations {
   String get formulaExample => 'price + 500000 hoặc price * 1.05';
 
   @override
-  String get formulaHint => 'VD: \"price + 500000\" = Giá bán + 500k cho giá có phụ kiện';
+  String get formulaHint =>
+      'VD: \"price + 500000\" = Giá bán + 500k cho giá có phụ kiện';
 
   @override
   String get fixedLabelContent => 'Nội dung cố định trên tem';
 
   @override
-  String get fixedLabelContentHint => 'Các dòng chữ này sẽ hiển thị mặc định trên tất cả tem';
+  String get fixedLabelContentHint =>
+      'Các dòng chữ này sẽ hiển thị mặc định trên tất cả tem';
 
   @override
   String get line1Label => 'Dòng 1';
@@ -4719,7 +4868,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get barcodeOption => 'Barcode';
 
   @override
-  String get designInstructions => '👆 Chạm vào phần tử trên mẫu để chỉnh sửa...';
+  String get designInstructions =>
+      '👆 Chạm vào phần tử trên mẫu để chỉnh sửa...';
 
   @override
   String get zoomPreviewLabel => 'Phóng to xem trước:';
@@ -4767,7 +4917,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get suggestionsLabel => 'Gợi ý';
 
   @override
-  String get feedbackContact => 'Có góp ý tính năng? Liên hệ support@huluca.com';
+  String get feedbackContact =>
+      'Có góp ý tính năng? Liên hệ support@huluca.com';
 
   @override
   String get feedbackSupport => 'Góp ý / Hỗ trợ';
@@ -4795,7 +4946,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get quickGuideDescription => 'Chọn chủ đề hoặc nhập từ khóa...';
 
   @override
-  String get contentStandard => 'Tất cả nội dung được chuẩn bị theo tiêu chuẩn Shopmanager.';
+  String get contentStandard =>
+      'Tất cả nội dung được chuẩn bị theo tiêu chuẩn Shopmanager.';
 
   @override
   String forRoleLabel(String role) {
@@ -4831,7 +4983,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get relatedLabel => 'Liên quan';
 
   @override
-  String get needHelpLabel => 'Cần trợ giúp? Liên hệ đội hỗ trợ: support@huluca.com';
+  String get needHelpLabel =>
+      'Cần trợ giúp? Liên hệ đội hỗ trợ: support@huluca.com';
 
   @override
   String get understoodGuide => 'Tôi đã hiểu hướng dẫn này';
@@ -4849,7 +5002,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get contactSupportLabel => 'Liên hệ hỗ trợ';
 
   @override
-  String get sendEmailForHelp => 'Gửi email đến support@huluca.com để được hỗ trợ nhanh.';
+  String get sendEmailForHelp =>
+      'Gửi email đến support@huluca.com để được hỗ trợ nhanh.';
 
   @override
   String get suggestImprovementLabel => 'Góp ý cải thiện';
@@ -4870,7 +5024,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get needMoreHelpLabel => 'Cần thêm trợ giúp?';
 
   @override
-  String get hulucaTeamSupport => 'Đội ngũ Huluca sẵn sàng hỗ trợ qua email, Zalo hoặc đào tạo trực tiếp.';
+  String get hulucaTeamSupport =>
+      'Đội ngũ Huluca sẵn sàng hỗ trợ qua email, Zalo hoặc đào tạo trực tiếp.';
 
   @override
   String get emailSupportLabel => 'Email support@huluca.com';
@@ -4888,7 +5043,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get scheduleTrainingLabel => 'Đặt lịch đào tạo';
 
   @override
-  String get scheduleTrainingThisWeek => 'Đặt lịch đào tạo trực tuyến tuần này.';
+  String get scheduleTrainingThisWeek =>
+      'Đặt lịch đào tạo trực tuyến tuần này.';
 
   @override
   String get history => 'Lịch sử';
@@ -5393,10 +5549,12 @@ class AppLocalizationsVi extends AppLocalizations {
   String get parsedRepairOrderFilled => 'Đã nhận diện và điền đơn sửa.';
 
   @override
-  String get orderSavedUploadingImages => 'Đơn đã lưu. Đang tải ảnh lên hệ thống, vui lòng không thoát ứng dụng.';
+  String get orderSavedUploadingImages =>
+      'Đơn đã lưu. Đang tải ảnh lên hệ thống, vui lòng không thoát ứng dụng.';
 
   @override
-  String get uploadingImagesToSystem => 'Đang tải ảnh lên hệ thống, vui lòng không thoát ứng dụng.';
+  String get uploadingImagesToSystem =>
+      'Đang tải ảnh lên hệ thống, vui lòng không thoát ứng dụng.';
 
   @override
   String get searchPartner => 'Tìm đối tác';
@@ -5414,7 +5572,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get hideDetails => 'Ẩn bớt';
 
   @override
-  String get showMoreDetails => 'Thêm chi tiết (bảo mật, ngoại quan, phụ kiện, ảnh)';
+  String get showMoreDetails =>
+      'Thêm chi tiết (bảo mật, ngoại quan, phụ kiện, ảnh)';
 
   @override
   String get customerOwesDebt => 'Còn nợ';
@@ -5510,7 +5669,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get confirmBankTransfer => 'Xác nhận đã CK cho ngân hàng';
 
   @override
-  String get bankTransferNoteMsg => 'Khoản CK cho ngân hàng sẽ được ghi vào sổ quỹ.\nSau khi xác nhận, hãy gửi ảnh chụp màn hình CK để lưu bằng chứng.';
+  String get bankTransferNoteMsg =>
+      'Khoản CK cho ngân hàng sẽ được ghi vào sổ quỹ.\nSau khi xác nhận, hãy gửi ảnh chụp màn hình CK để lưu bằng chứng.';
 
   @override
   String get confirmedBankTransfer => 'Đã CK cho NH ✓';
@@ -5519,16 +5679,20 @@ class AppLocalizationsVi extends AppLocalizations {
   String get rejectRequest => 'Từ chối yêu cầu';
 
   @override
-  String get selectProofImageHint => '💡 Chọn ảnh CK ngân hàng để gửi bằng chứng';
+  String get selectProofImageHint =>
+      '💡 Chọn ảnh CK ngân hàng để gửi bằng chứng';
 
   @override
-  String get selectRequestToSendImage => 'Chọn yêu cầu để gửi ảnh CK ngân hàng...';
+  String get selectRequestToSendImage =>
+      'Chọn yêu cầu để gửi ảnh CK ngân hàng...';
 
   @override
-  String get selectRequestForBankImage => 'Chọn yêu cầu để gửi ảnh CK ngân hàng';
+  String get selectRequestForBankImage =>
+      'Chọn yêu cầu để gửi ảnh CK ngân hàng';
 
   @override
-  String get uploadingProofImages => 'Đang tải ảnh minh chứng lên hệ thống, vui lòng không thoát ứng dụng.';
+  String get uploadingProofImages =>
+      'Đang tải ảnh minh chứng lên hệ thống, vui lòng không thoát ứng dụng.';
 
   @override
   String get sendPaymentRequest => 'Gửi yêu cầu đóng tiền';
@@ -5612,7 +5776,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get adminAuthPin => 'Xác thực PIN';
 
   @override
-  String get adminEnterPinForDangerous => 'Nhập PIN Super Admin để tiếp tục thao tác nguy hiểm.';
+  String get adminEnterPinForDangerous =>
+      'Nhập PIN Super Admin để tiếp tục thao tác nguy hiểm.';
 
   @override
   String get adminPinHint => 'PIN (4-6 số)';
@@ -5633,16 +5798,19 @@ class AppLocalizationsVi extends AppLocalizations {
   String get adminExitConsole => 'Thoát Console?';
 
   @override
-  String get adminExitConsoleConfirm => 'Bạn có chắc muốn thoát khỏi Super Admin Console?';
+  String get adminExitConsoleConfirm =>
+      'Bạn có chắc muốn thoát khỏi Super Admin Console?';
 
   @override
   String get adminStayHere => 'Ở lại';
 
   @override
-  String get adminLogoutConfirmMsg => 'Bạn có chắc muốn đăng xuất khỏi Super Admin Console?';
+  String get adminLogoutConfirmMsg =>
+      'Bạn có chắc muốn đăng xuất khỏi Super Admin Console?';
 
   @override
-  String get adminNoAccess => 'Bạn không có quyền truy cập Super Admin Console.';
+  String get adminNoAccess =>
+      'Bạn không có quyền truy cập Super Admin Console.';
 
   @override
   String get adminReload => 'Tải lại';
@@ -5758,7 +5926,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get adminPermissionPanel => 'Permission Panel';
 
   @override
-  String get adminPermissionPanelSubtitle => 'Chuẩn role-based baseline cho owner/manager/staff. Các khóa cấp shop sẽ override tại runtime.';
+  String get adminPermissionPanelSubtitle =>
+      'Chuẩn role-based baseline cho owner/manager/staff. Các khóa cấp shop sẽ override tại runtime.';
 
   @override
   String get adminNoAuditLogs => 'Không có audit logs phù hợp.';
@@ -5776,7 +5945,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get adminSyncClaims => 'Sync custom claims';
 
   @override
-  String get adminSyncClaimsDesc => 'Đồng bộ claims cho toàn bộ user khi thay đổi rules/roles.';
+  String get adminSyncClaimsDesc =>
+      'Đồng bộ claims cho toàn bộ user khi thay đổi rules/roles.';
 
   @override
   String get adminSyncClaimsSuccess => 'Sync claims thành công.';
@@ -5790,13 +5960,15 @@ class AppLocalizationsVi extends AppLocalizations {
   String get adminPinSecurity => 'Bảo mật PIN';
 
   @override
-  String get adminPinSecurityDesc => 'Bảo vệ Console bằng mã PIN khi session hết hạn';
+  String get adminPinSecurityDesc =>
+      'Bảo vệ Console bằng mã PIN khi session hết hạn';
 
   @override
   String get adminPinEnabled => 'Mã PIN đã bật';
 
   @override
-  String get adminPinEnabledDesc => 'Yêu cầu PIN khi session hết hạn (30 phút idle)';
+  String get adminPinEnabledDesc =>
+      'Yêu cầu PIN khi session hết hạn (30 phút idle)';
 
   @override
   String get adminPinNotSetup => 'Chưa thiết lập PIN';
@@ -5844,7 +6016,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get adminCurrentPin => 'Mã PIN hiện tại';
 
   @override
-  String get adminEnterCurrentPinToDisable => 'Nhập PIN hiện tại để xác nhận tắt:';
+  String get adminEnterCurrentPinToDisable =>
+      'Nhập PIN hiện tại để xác nhận tắt:';
 
   @override
   String get adminCurrentPinWrong => 'Mã PIN không đúng';
@@ -5859,7 +6032,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get adminSendSystemNotification => 'Gửi Thông Báo Hệ Thống';
 
   @override
-  String get adminSendToAllUsersDesc => 'Gửi tới TẤT CẢ người dùng qua dialog + push.';
+  String get adminSendToAllUsersDesc =>
+      'Gửi tới TẤT CẢ người dùng qua dialog + push.';
 
   @override
   String get adminNotificationType => 'Loại thông báo';
@@ -5898,7 +6072,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get adminExpired => 'Hết hạn';
 
   @override
-  String get adminDangerZoneSubtitle => 'Mọi thao tác tại đây đều yêu cầu xác thực PIN và được ghi audit log.';
+  String get adminDangerZoneSubtitle =>
+      'Mọi thao tác tại đây đều yêu cầu xác thực PIN và được ghi audit log.';
 
   @override
   String get adminSelectDataToDelete => 'Chọn dữ liệu cần xóa';
@@ -5926,25 +6101,30 @@ class AppLocalizationsVi extends AppLocalizations {
   String get adminWillDeletePermanently => 'Sẽ XÓA VĨNH VIỄN:';
 
   @override
-  String get adminDeleteFirebaseAuth => '• Tài khoản Firebase Auth (mất đăng nhập)';
+  String get adminDeleteFirebaseAuth =>
+      '• Tài khoản Firebase Auth (mất đăng nhập)';
 
   @override
   String get adminDeleteUserProfile => '• Hồ sơ user trong Firestore';
 
   @override
-  String get adminDeleteUserOrders => '• Đơn sửa, bán hàng, chi phí do user tạo';
+  String get adminDeleteUserOrders =>
+      '• Đơn sửa, bán hàng, chi phí do user tạo';
 
   @override
-  String get adminDeleteUserAttendance => '• Dữ liệu chấm công, thông báo của user';
+  String get adminDeleteUserAttendance =>
+      '• Dữ liệu chấm công, thông báo của user';
 
   @override
-  String get adminShopDataNotDeleted => '⚠️ Dữ liệu shop (kho, khách hàng...) KHÔNG bị xóa.';
+  String get adminShopDataNotDeleted =>
+      '⚠️ Dữ liệu shop (kho, khách hàng...) KHÔNG bị xóa.';
 
   @override
   String get adminOnlyDeleteProfile => 'Chỉ xóa hồ sơ user trong Firestore.';
 
   @override
-  String get adminAuthStillExists => 'Tài khoản Firebase Auth vẫn còn — user vẫn có thể đăng nhập nhưng mất liên kết shop.';
+  String get adminAuthStillExists =>
+      'Tài khoản Firebase Auth vẫn còn — user vẫn có thể đăng nhập nhưng mất liên kết shop.';
 
   @override
   String get adminDeletingData => 'Đang xóa dữ liệu...';
@@ -6000,10 +6180,12 @@ class AppLocalizationsVi extends AppLocalizations {
   String get permissionManagementTitle => 'QUẢN LÝ PHÂN QUYỀN';
 
   @override
-  String get noPermissionManagementScreen => 'Bạn không có quyền truy cập\nmàn hình quản lý phân quyền';
+  String get noPermissionManagementScreen =>
+      'Bạn không có quyền truy cập\nmàn hình quản lý phân quyền';
 
   @override
-  String get noStaffInShop => 'Chưa có nhân viên nào trong shop\nMời nhân viên qua mã QR trước';
+  String get noStaffInShop =>
+      'Chưa có nhân viên nào trong shop\nMời nhân viên qua mã QR trước';
 
   @override
   String get noEmailYet => 'Chưa có email';
@@ -6110,7 +6292,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get newOrderNotif => 'Đơn hàng mới';
 
   @override
-  String get newOrderNotifDesc => 'Thông báo khi có khách hàng tạo đơn hàng mới';
+  String get newOrderNotifDesc =>
+      'Thông báo khi có khách hàng tạo đơn hàng mới';
 
   @override
   String get paymentNotif => 'Thanh toán';
@@ -6152,16 +6335,20 @@ class AppLocalizationsVi extends AppLocalizations {
   String get notifTokenMissing => 'Chưa có token';
 
   @override
-  String get notifFullyWorking => 'Đã cấp quyền thông báo. Bạn sẽ nhận được thông báo push.';
+  String get notifFullyWorking =>
+      'Đã cấp quyền thông báo. Bạn sẽ nhận được thông báo push.';
 
   @override
-  String get notifNeedPermission => 'Cần cấp quyền thông báo để nhận thông báo push.';
+  String get notifNeedPermission =>
+      'Cần cấp quyền thông báo để nhận thông báo push.';
 
   @override
-  String get notifNeedPermissionIos => 'Cần cấp quyền thông báo để nhận thông báo push.\nNếu đã bật trong Cài đặt iOS, hãy nhấn \"Làm mới FCM Token\".';
+  String get notifNeedPermissionIos =>
+      'Cần cấp quyền thông báo để nhận thông báo push.\nNếu đã bật trong Cài đặt iOS, hãy nhấn \"Làm mới FCM Token\".';
 
   @override
-  String get notifPermissionButNoToken => 'Đã cấp quyền nhưng chưa có FCM Token. Nhấn \"Làm mới FCM Token\" bên dưới.';
+  String get notifPermissionButNoToken =>
+      'Đã cấp quyền nhưng chưa có FCM Token. Nhấn \"Làm mới FCM Token\" bên dưới.';
 
   @override
   String get grantPermission => 'Cấp quyền';
@@ -6170,7 +6357,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get yourRoleColon => 'Vai trò của bạn:';
 
   @override
-  String get roleBasedNotifNote => 'Một số loại thông báo chỉ dành cho vai trò nhất định để đảm bảo bảo mật và tránh spam.';
+  String get roleBasedNotifNote =>
+      'Một số loại thông báo chỉ dành cho vai trò nhất định để đảm bảo bảo mật và tránh spam.';
 
   @override
   String get notifUnavailableForRole => 'Không khả dụng cho vai trò hiện tại';
@@ -6185,7 +6373,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get notifGrantPermissionTitle => 'Cấp quyền thông báo';
 
   @override
-  String get notifGrantPermissionContent => 'Ứng dụng cần quyền thông báo để gửi thông báo quan trọng. Vui lòng bật quyền trong cài đặt hệ thống.';
+  String get notifGrantPermissionContent =>
+      'Ứng dụng cần quyền thông báo để gửi thông báo quan trọng. Vui lòng bật quyền trong cài đặt hệ thống.';
 
   @override
   String get openSettings => 'Mở cài đặt';
@@ -6203,7 +6392,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get notifPermissionNeeded => 'Cần cấp quyền để nhận thông báo';
 
   @override
-  String get testNotifContent => 'Đây là thông báo test từ hệ thống push notification. Nếu bạn thấy thông báo này, hệ thống đang hoạt động bình thường!';
+  String get testNotifContent =>
+      'Đây là thông báo test từ hệ thống push notification. Nếu bạn thấy thông báo này, hệ thống đang hoạt động bình thường!';
 
   @override
   String get testNotifSent => 'Đã gửi thông báo test!';
@@ -6220,7 +6410,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get refreshTokenSuccess => '✅ Đã làm mới FCM token thành công!';
 
   @override
-  String get refreshTokenFailed => '❌ Không thể làm mới FCM token. Thử lại sau.';
+  String get refreshTokenFailed =>
+      '❌ Không thể làm mới FCM token. Thử lại sau.';
 
   @override
   String refreshTokenError(String error) {
@@ -6231,7 +6422,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get notifInfoTitle => 'THÔNG TIN THÔNG BÁO';
 
   @override
-  String get notifInfoContent => '• Thông báo được gửi dựa trên vai trò của bạn\n• Admin & Owner nhận tất cả thông báo\n• Manager & Technician nhận thông báo quan trọng\n• Employee chỉ nhận thông báo cá nhân';
+  String get notifInfoContent =>
+      '• Thông báo được gửi dựa trên vai trò của bạn\n• Admin & Owner nhận tất cả thông báo\n• Manager & Technician nhận thông báo quan trọng\n• Employee chỉ nhận thông báo cá nhân';
 
   @override
   String get backupRestoreTitle => 'Sao lưu & Khôi phục';
@@ -6261,7 +6453,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get restoreFromFileSection => 'Khôi phục từ file';
 
   @override
-  String get selectDbFileDesc => 'Chọn file .db đã sao lưu trước đó để khôi phục.';
+  String get selectDbFileDesc =>
+      'Chọn file .db đã sao lưu trước đó để khôi phục.';
 
   @override
   String get selectDbFile => 'Chọn file .db';
@@ -6273,10 +6466,12 @@ class AppLocalizationsVi extends AppLocalizations {
   String get restoreSuccessTitle => 'Khôi phục thành công';
 
   @override
-  String get restoreSuccessContent => 'Đã khôi phục dữ liệu. Vui lòng khởi động lại ứng dụng để áp dụng thay đổi.';
+  String get restoreSuccessContent =>
+      'Đã khôi phục dữ liệu. Vui lòng khởi động lại ứng dụng để áp dụng thay đổi.';
 
   @override
-  String get firestoreInfoCard => 'Sao lưu Firestore lưu từng collection thành file JSON riêng. Bạn có thể chọn mục nào cần sao lưu hoặc khôi phục.';
+  String get firestoreInfoCard =>
+      'Sao lưu Firestore lưu từng collection thành file JSON riêng. Bạn có thể chọn mục nào cần sao lưu hoặc khôi phục.';
 
   @override
   String get backupFirestoreSection => 'Sao lưu Firestore';
@@ -6323,7 +6518,8 @@ class AppLocalizationsVi extends AppLocalizations {
   }
 
   @override
-  String get restoringSqliteFromCloud => 'Khôi phục SQLite từ cloud đang phát triển.';
+  String get restoringSqliteFromCloud =>
+      'Khôi phục SQLite từ cloud đang phát triển.';
 
   @override
   String get notInBackupLabel => 'Không có trong bản sao lưu này';
@@ -6373,25 +6569,29 @@ class AppLocalizationsVi extends AppLocalizations {
   String get saleListGuide1Title => '🛒 Danh sách hóa đơn';
 
   @override
-  String get saleListGuide1Desc => 'Xem tất cả hóa đơn bán hàng theo ngày/tuần/tháng. Tổng doanh thu hiển thị ngay phía trên.';
+  String get saleListGuide1Desc =>
+      'Xem tất cả hóa đơn bán hàng theo ngày/tuần/tháng. Tổng doanh thu hiển thị ngay phía trên.';
 
   @override
   String get saleListGuide2Title => '🔍 Tìm kiếm';
 
   @override
-  String get saleListGuide2Desc => 'Tìm hóa đơn theo tên khách hàng, tên sản phẩm hoặc mã hóa đơn.';
+  String get saleListGuide2Desc =>
+      'Tìm hóa đơn theo tên khách hàng, tên sản phẩm hoặc mã hóa đơn.';
 
   @override
   String get saleListGuide3Title => '📄 Xem chi tiết & in lại';
 
   @override
-  String get saleListGuide3Desc => 'Nhấn vào hóa đơn để xem chi tiết, in lại biên lai hoặc tạo phiếu đổi trả.';
+  String get saleListGuide3Desc =>
+      'Nhấn vào hóa đơn để xem chi tiết, in lại biên lai hoặc tạo phiếu đổi trả.';
 
   @override
   String get saleListGuide4Title => '💳 Trạng thái thanh toán';
 
   @override
-  String get saleListGuide4Desc => 'Biết ngay hóa đơn nào đã thanh toán, đang chờ thanh toán hay ghi nợ.';
+  String get saleListGuide4Desc =>
+      'Biết ngay hóa đơn nào đã thanh toán, đang chờ thanh toán hay ghi nợ.';
 
   @override
   String get saleListFilterTitle => 'BỘ LỌC';
@@ -6555,7 +6755,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get printInvoiceSuccess => 'Đã in hóa đơn thành công!';
 
   @override
-  String get printInvoiceFailed => 'In thất bại! Vui lòng kiểm tra cài đặt máy in.';
+  String get printInvoiceFailed =>
+      'In thất bại! Vui lòng kiểm tra cài đặt máy in.';
 
   @override
   String printErrorMsg(String error) {
@@ -6788,10 +6989,12 @@ class AppLocalizationsVi extends AppLocalizations {
   String get smsAppOpened => 'ĐÃ MỞ ỨNG DỤNG NHẮN TIN (nội dung đã copy sẵn).';
 
   @override
-  String get smsAppCannotOpen => 'KHÔNG MỞ ĐƯỢC ỨNG DỤNG NHẮN TIN, anh/chị dán nội dung vào Zalo/SMS giúp em.';
+  String get smsAppCannotOpen =>
+      'KHÔNG MỞ ĐƯỢC ỨNG DỤNG NHẮN TIN, anh/chị dán nội dung vào Zalo/SMS giúp em.';
 
   @override
-  String get smsSendError => 'LỖI KHI GỬI TIN NHẮN, nhưng nội dung đã được copy sẵn.';
+  String get smsSendError =>
+      'LỖI KHI GỬI TIN NHẮN, nhưng nội dung đã được copy sẵn.';
 
   @override
   String get debtManagementTitle => 'DEBT MANAGEMENT';
@@ -6868,7 +7071,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get noPartnerDebt => 'No partner debts';
 
   @override
-  String get partnerDebtManageGuide => 'Manage partners at: Settings › Partner Management';
+  String get partnerDebtManageGuide =>
+      'Manage partners at: Settings › Partner Management';
 
   @override
   String get totalPartnerRepairDebt => 'TOTAL REPAIR PARTNER DEBT';
@@ -7022,10 +7226,12 @@ class AppLocalizationsVi extends AppLocalizations {
   }
 
   @override
-  String get closedTodayDebt => '❌ Today is closed! Cannot collect debt payment.';
+  String get closedTodayDebt =>
+      '❌ Today is closed! Cannot collect debt payment.';
 
   @override
-  String get closedTodayCreateDebt => '❌ Today is closed! Cannot create new debt.';
+  String get closedTodayCreateDebt =>
+      '❌ Today is closed! Cannot create new debt.';
 
   @override
   String get createCustomerDebtTooltip => 'Create customer debt';
@@ -7102,7 +7308,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get confirmDeleteButton => 'XÁC NHẬN XÓA';
 
   @override
-  String get cannotDeletePurchaseExpense => 'Không thể xóa chi phí từ đơn nhập hàng!';
+  String get cannotDeletePurchaseExpense =>
+      'Không thể xóa chi phí từ đơn nhập hàng!';
 
   @override
   String get wrongPasswordCannotDelete => 'Mật khẩu không đúng! Không thể xóa.';
@@ -7114,10 +7321,12 @@ class AppLocalizationsVi extends AppLocalizations {
   String get deletedExpenseSuccess => 'Đã xóa chi phí thành công';
 
   @override
-  String get closedTodayExpense => '❌ Ngày hôm nay đã chốt quỹ! Không thể thêm chi phí mới.';
+  String get closedTodayExpense =>
+      '❌ Ngày hôm nay đã chốt quỹ! Không thể thêm chi phí mới.';
 
   @override
-  String get closedTodayIncome => '❌ Ngày hôm nay đã chốt quỹ! Không thể thêm thu phát sinh mới.';
+  String get closedTodayIncome =>
+      '❌ Ngày hôm nay đã chốt quỹ! Không thể thêm thu phát sinh mới.';
 
   @override
   String get writeExpensesTitle => 'GHI CHÉP CHI PHÍ';
@@ -7196,7 +7405,8 @@ class AppLocalizationsVi extends AppLocalizations {
   }
 
   @override
-  String get webNotAvailableMessage => 'Tính năng này không khả dụng trên trình duyệt web.\nVui lòng sử dụng ứng dụng di động.';
+  String get webNotAvailableMessage =>
+      'Tính năng này không khả dụng trên trình duyệt web.\nVui lòng sử dụng ứng dụng di động.';
 
   @override
   String get noNameLabel => 'Không tên';
@@ -7213,31 +7423,36 @@ class AppLocalizationsVi extends AppLocalizations {
   String get expenseTypeLabel => 'chi phí';
 
   @override
-  String get noPermissionFeature => 'Bạn không có quyền truy cập tính năng này.';
+  String get noPermissionFeature =>
+      'Bạn không có quyền truy cập tính năng này.';
 
   @override
   String get expenseGuideStep1Title => '💸 Ghi nhận Thu & Chi';
 
   @override
-  String get expenseGuideStep1Desc => 'Ghi lại các khoản thu nhập ngoài bán hàng (THU) và chi phí vận hành (CHI) của cửa hàng.';
+  String get expenseGuideStep1Desc =>
+      'Ghi lại các khoản thu nhập ngoài bán hàng (THU) và chi phí vận hành (CHI) của cửa hàng.';
 
   @override
   String get expenseGuideStep2Title => '📂 Phân loại chi phí';
 
   @override
-  String get expenseGuideStep2Desc => 'Phân biệt chi phí cửa hàng (điện, nước, mặt bằng) và chi phí cá nhân để báo cáo chính xác.';
+  String get expenseGuideStep2Desc =>
+      'Phân biệt chi phí cửa hàng (điện, nước, mặt bằng) và chi phí cá nhân để báo cáo chính xác.';
 
   @override
   String get expenseGuideStep3Title => '📅 Lọc theo thời gian';
 
   @override
-  String get expenseGuideStep3Desc => 'Xem thu chi theo ngày, tuần hoặc tháng để kiểm soát dòng tiền hiệu quả.';
+  String get expenseGuideStep3Desc =>
+      'Xem thu chi theo ngày, tuần hoặc tháng để kiểm soát dòng tiền hiệu quả.';
 
   @override
   String get expenseGuideStep4Title => '📊 Biểu đồ tổng hợp';
 
   @override
-  String get expenseGuideStep4Desc => 'Theo dõi xu hướng thu chi bằng biểu đồ trực quan, phát hiện khoản chi bất thường.';
+  String get expenseGuideStep4Desc =>
+      'Theo dõi xu hướng thu chi bằng biểu đồ trực quan, phát hiện khoản chi bất thường.';
 
   @override
   String get expenseCatIncidental => 'Phát sinh';
@@ -7283,28 +7498,33 @@ class AppLocalizationsVi extends AppLocalizations {
   String get debtGuideStep1Title2Types => '📊 2 loại công nợ';
 
   @override
-  String get debtGuideStep1Desc3Types => 'KHÁCH NỢ (khách chưa TT), NỢ NCC (nợ nhà cung cấp), NỢ ĐỐI TÁC (nợ thợ sửa ngoài).';
+  String get debtGuideStep1Desc3Types =>
+      'KHÁCH NỢ (khách chưa TT), NỢ NCC (nợ nhà cung cấp), NỢ ĐỐI TÁC (nợ thợ sửa ngoài).';
 
   @override
-  String get debtGuideStep1Desc2Types => 'KHÁCH NỢ (khách chưa TT), NỢ NCC (nợ nhà cung cấp).';
+  String get debtGuideStep1Desc2Types =>
+      'KHÁCH NỢ (khách chưa TT), NỢ NCC (nợ nhà cung cấp).';
 
   @override
   String get debtGuideStep2Title => '💰 Ghi nhận thanh toán';
 
   @override
-  String get debtGuideStep2Desc => 'Nhấn vào khoản nợ để xem chi tiết và ghi nhận thanh toán từng phần hoặc toàn bộ.';
+  String get debtGuideStep2Desc =>
+      'Nhấn vào khoản nợ để xem chi tiết và ghi nhận thanh toán từng phần hoặc toàn bộ.';
 
   @override
   String get debtGuideStep3Title => '📅 Theo dõi hạn nợ';
 
   @override
-  String get debtGuideStep3Desc => 'Nợ quá hạn sẽ được highlight đỏ. Báo cáo tổng hợp giúp theo dõi dòng tiền.';
+  String get debtGuideStep3Desc =>
+      'Nợ quá hạn sẽ được highlight đỏ. Báo cáo tổng hợp giúp theo dõi dòng tiền.';
 
   @override
   String get debtGuideStep4Title => '🔄 Tự động tạo nợ';
 
   @override
-  String get debtGuideStep4Desc => 'Khi bán hàng/nhập kho chọn "CÔNG NỢ", hệ thống tự tạo khoản nợ tương ứng.';
+  String get debtGuideStep4Desc =>
+      'Khi bán hàng/nhập kho chọn "CÔNG NỢ", hệ thống tự tạo khoản nợ tương ứng.';
 
   @override
   String get debtCollectFieldName => 'Số tiền thu';
@@ -7436,19 +7656,24 @@ class AppLocalizationsVi extends AppLocalizations {
   String get backupGuideTitle => 'Hướng dẫn sao lưu & khôi phục';
 
   @override
-  String get backupGuideStep1 => '1. SQLite (offline): dùng khi cần sao lưu/khôi phục toàn bộ file dữ liệu tại máy.';
+  String get backupGuideStep1 =>
+      '1. SQLite (offline): dùng khi cần sao lưu/khôi phục toàn bộ file dữ liệu tại máy.';
 
   @override
-  String get backupGuideStep2 => '2. Firestore (online): cho phép sao lưu/khôi phục theo từng mục (đơn sửa, đơn bán, kho, công nợ...).';
+  String get backupGuideStep2 =>
+      '2. Firestore (online): cho phép sao lưu/khôi phục theo từng mục (đơn sửa, đơn bán, kho, công nợ...).';
 
   @override
-  String get backupGuideStep3 => '3. Khuyến nghị: sao lưu lên Cloud định kỳ mỗi ngày và trước khi cập nhật ứng dụng.';
+  String get backupGuideStep3 =>
+      '3. Khuyến nghị: sao lưu lên Cloud định kỳ mỗi ngày và trước khi cập nhật ứng dụng.';
 
   @override
-  String get backupGuideStep4 => '4. Restore SQLite có 2 kiểu: khôi phục nguyên bản cho cùng shop, hoặc chuyển dữ liệu sang shop hiện tại bằng cách đổi shopId.';
+  String get backupGuideStep4 =>
+      '4. Restore SQLite có 2 kiểu: khôi phục nguyên bản cho cùng shop, hoặc chuyển dữ liệu sang shop hiện tại bằng cách đổi shopId.';
 
   @override
-  String get backupGuideStep5 => '5. Nếu khôi phục vào shop khác mà không đổi shopId thì dữ liệu vẫn thuộc shop cũ nên app sẽ không hiển thị đúng.';
+  String get backupGuideStep5 =>
+      '5. Nếu khôi phục vào shop khác mà không đổi shopId thì dữ liệu vẫn thuộc shop cũ nên app sẽ không hiển thị đúng.';
 
   @override
   String get backupRestoreBtn => 'Khôi phục';
@@ -7505,16 +7730,19 @@ class AppLocalizationsVi extends AppLocalizations {
   String get backupCleanOldTitle => 'Dọn backup cũ';
 
   @override
-  String get backupFirestoreInfoText => 'Sao lưu Firestore lưu từng collection thành file JSON riêng. Bạn có thể chọn mục nào cần sao lưu hoặc khôi phục.';
+  String get backupFirestoreInfoText =>
+      'Sao lưu Firestore lưu từng collection thành file JSON riêng. Bạn có thể chọn mục nào cần sao lưu hoặc khôi phục.';
 
   @override
   String get backupRestoreByItemTitle => 'Khôi phục theo từng mục';
 
   @override
-  String get backupRestoreByItemDesc1 => 'Bạn có thể chọn chính xác từng nhóm dữ liệu khi khôi phục (VD: chỉ Đơn sửa, chỉ Kho, chỉ Công nợ).';
+  String get backupRestoreByItemDesc1 =>
+      'Bạn có thể chọn chính xác từng nhóm dữ liệu khi khôi phục (VD: chỉ Đơn sửa, chỉ Kho, chỉ Công nợ).';
 
   @override
-  String get backupRestoreByItemDesc2 => 'Hệ thống chỉ ghi đè các mục bạn chọn, không ảnh hưởng các mục còn lại.';
+  String get backupRestoreByItemDesc2 =>
+      'Hệ thống chỉ ghi đè các mục bạn chọn, không ảnh hưởng các mục còn lại.';
 
   @override
   String get backupFirestoreSectionTitle => 'Sao lưu Firestore';
@@ -7532,37 +7760,46 @@ class AppLocalizationsVi extends AppLocalizations {
   String backupSavedPathLabel(String fileName) => 'Đã lưu: $fileName';
 
   @override
-  String get backupNoLocalBackupsHint => 'Chưa có bản sao lưu cục bộ nào. Hãy bấm "Lưu file .db vào máy" ở trên.';
+  String get backupNoLocalBackupsHint =>
+      'Chưa có bản sao lưu cục bộ nào. Hãy bấm "Lưu file .db vào máy" ở trên.';
 
   @override
   String get backupNoCloudBackups => 'Chưa có bản sao lưu nào.';
 
   @override
-  String get backupRestoreFileHint => 'Chọn file .db đã sao lưu trước đó để khôi phục.';
+  String get backupRestoreFileHint =>
+      'Chọn file .db đã sao lưu trước đó để khôi phục.';
 
   @override
-  String get backupDeleteSelectiveHint => 'Xóa vĩnh viễn dữ liệu cục bộ khỏi thiết bị này. Nên sao lưu trước khi xóa.';
+  String get backupDeleteSelectiveHint =>
+      'Xóa vĩnh viễn dữ liệu cục bộ khỏi thiết bị này. Nên sao lưu trước khi xóa.';
 
   @override
-  String get backupCleanOldHint => 'Xóa các file backup cục bộ cũ hơn số ngày bạn chọn.';
+  String get backupCleanOldHint =>
+      'Xóa các file backup cục bộ cũ hơn số ngày bạn chọn.';
 
   @override
-  String get backupQuickGuideOffline => '• Sao lưu offline: bấm "Lưu file .db vào máy" để tạo bản backup cục bộ.';
+  String get backupQuickGuideOffline =>
+      '• Sao lưu offline: bấm "Lưu file .db vào máy" để tạo bản backup cục bộ.';
 
   @override
-  String get backupQuickGuideShare => '• Chia sẻ backup: dùng nút "Chia sẻ" trong danh sách backup cục bộ.';
+  String get backupQuickGuideShare =>
+      '• Chia sẻ backup: dùng nút "Chia sẻ" trong danh sách backup cục bộ.';
 
   @override
-  String get backupQuickGuideRestoreOffline => '• Khôi phục offline: chọn từ danh sách backup cục bộ hoặc file .db.';
+  String get backupQuickGuideRestoreOffline =>
+      '• Khôi phục offline: chọn từ danh sách backup cục bộ hoặc file .db.';
 
   @override
-  String get backupQuickGuideRestoreOnline => '• Khôi phục online: chọn một bản SQLite trên Cloud và bấm "Khôi phục".';
+  String get backupQuickGuideRestoreOnline =>
+      '• Khôi phục online: chọn một bản SQLite trên Cloud và bấm "Khôi phục".';
 
   @override
   String backupCannotLoad(String error) => 'Không thể tải backup: $error';
 
   @override
-  String get backupSavedLocally => 'Đã lưu bản sao SQLite vào máy. Bạn có thể chia sẻ từ danh sách backup cục bộ.';
+  String get backupSavedLocally =>
+      'Đã lưu bản sao SQLite vào máy. Bạn có thể chia sẻ từ danh sách backup cục bộ.';
 
   @override
   String backupExportError(String error) => 'Lỗi xuất file: $error';
@@ -7574,7 +7811,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String backupDeletedLocalName(String name) => 'Đã xóa backup cục bộ $name.';
 
   @override
-  String backupDeleteLocalError(String error) => 'Lỗi xóa backup cục bộ: $error';
+  String backupDeleteLocalError(String error) =>
+      'Lỗi xóa backup cục bộ: $error';
 
   @override
   String get backupCloudSuccess => 'Sao lưu SQLite lên Cloud thành công!';
@@ -7586,10 +7824,15 @@ class AppLocalizationsVi extends AppLocalizations {
   String backupRestoreErrorMsg(String error) => 'Lỗi khôi phục: $error';
 
   @override
-  String backupRestoreLocalErrorMsg(String error) => 'Lỗi khôi phục cục bộ: $error';
+  String backupRestoreLocalErrorMsg(String error) =>
+      'Lỗi khôi phục cục bộ: $error';
 
   @override
-  String backupDeleteSuccessWithCloud(int localRows, int cloudRows, String label) =>
+  String backupDeleteSuccessWithCloud(
+    int localRows,
+    int cloudRows,
+    String label,
+  ) =>
       'Đã xóa local $localRows bản ghi và cloud $cloudRows bản ghi ($label). Khởi động lại app để áp dụng.';
 
   @override
@@ -7603,7 +7846,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String backupFirestoreError(String error) => 'Lỗi sao lưu Firestore: $error';
 
   @override
-  String backupRestoreSuccessMsg(int count) => 'Khôi phục thành công ($count mục)!';
+  String backupRestoreSuccessMsg(int count) =>
+      'Khôi phục thành công ($count mục)!';
 
   @override
   String backupRestoreFirestoreError(String error) => 'Lỗi khôi phục: $error';
@@ -7628,7 +7872,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get backupDeleteLocalTitle => 'Xóa bản sao lưu cục bộ?';
 
   @override
-  String backupDeleteLocalContent(String name) => 'Bạn có chắc muốn xóa file "$name"?';
+  String backupDeleteLocalContent(String name) =>
+      'Bạn có chắc muốn xóa file "$name"?';
 
   @override
   String get backupDeleteCloudTitle => 'Xóa bản sao lưu Cloud?';
@@ -7681,7 +7926,8 @@ class AppLocalizationsVi extends AppLocalizations {
       'Dữ liệu sẽ bị xóa vĩnh viễn khỏi thiết bị này.\n\nNên sao lưu trước khi xóa để tránh mất dữ liệu quan trọng.';
 
   @override
-  String get backupDeleteCloudTooLabel => 'Xóa luôn dữ liệu Cloud của shop hiện tại';
+  String get backupDeleteCloudTooLabel =>
+      'Xóa luôn dữ liệu Cloud của shop hiện tại';
 
   @override
   String get backupDeleteCloudTooSubtitle =>
@@ -7712,7 +7958,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get backupLocalRestoreTitle => 'Khôi phục SQLite cục bộ';
 
   @override
-  String get backupLocalRestoreContent => 'Dữ liệu hiện tại sẽ bị ghi đè bởi bản backup này. Tiếp tục?';
+  String get backupLocalRestoreContent =>
+      'Dữ liệu hiện tại sẽ bị ghi đè bởi bản backup này. Tiếp tục?';
 
   @override
   String backupRestoredLocalWithTransfer(int count) =>
@@ -7805,7 +8052,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get inventoryManageTotalTitle => 'QUẢN LÝ KHO TỔNG';
 
   @override
-  String get inventoryNoAccessMsg => 'Bạn không có quyền truy cập\nmàn hình quản lý kho';
+  String get inventoryNoAccessMsg =>
+      'Bạn không có quyền truy cập\nmàn hình quản lý kho';
 
   @override
   String inventoryUnsyncedNote(int count) => '$count chưa đồng bộ';
@@ -7928,13 +8176,15 @@ class AppLocalizationsVi extends AppLocalizations {
   String get inventoryStockingIn => 'Đang nhập kho...';
 
   @override
-  String get inventoryNoSupplierFoundError => 'Không tìm thấy nhà cung cấp hợp lệ cho sản phẩm này. Vui lòng cập nhật NCC rồi nhập lại.';
+  String get inventoryNoSupplierFoundError =>
+      'Không tìm thấy nhà cung cấp hợp lệ cho sản phẩm này. Vui lòng cập nhật NCC rồi nhập lại.';
 
   @override
   String get inventoryCreateEntryError => 'Lỗi tạo phiếu nhập kho';
 
   @override
-  String inventoryStockInSuccess(int qty, String name) => 'Đã nhập thêm $qty $name vào kho';
+  String inventoryStockInSuccess(int qty, String name) =>
+      'Đã nhập thêm $qty $name vào kho';
 
   @override
   String get inventoryConfirmEntryError => 'Lỗi xác nhận phiếu nhập kho';
@@ -7955,7 +8205,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get inventorySoftDeleteWarning => '⚠️ LƯU Ý QUAN TRỌNG:';
 
   @override
-  String get inventorySoftDeleteDesc => '• Đây là XÓA MỀM – chỉ ẩn khỏi danh sách kho\n• KHÔNG ảnh hưởng doanh thu, công nợ, lịch sử nhập\n• Mọi số liệu tài chính khác GIỮ NGUYÊN';
+  String get inventorySoftDeleteDesc =>
+      '• Đây là XÓA MỀM – chỉ ẩn khỏi danh sách kho\n• KHÔNG ảnh hưởng doanh thu, công nợ, lịch sử nhập\n• Mọi số liệu tài chính khác GIỮ NGUYÊN';
 
   @override
   String get inventoryDeleteReasonLabel => 'Lý do xóa (tùy chọn)';
@@ -7976,10 +8227,12 @@ class AppLocalizationsVi extends AppLocalizations {
   String get inventoryHideFromWarehouse => 'ẨN KHỎI KHO';
 
   @override
-  String inventoryHideSuccess(String product, String name) => 'Đã ẩn $product khỏi kho: $name';
+  String inventoryHideSuccess(String product, String name) =>
+      'Đã ẩn $product khỏi kho: $name';
 
   @override
-  String inventoryHideError(String product, String error) => 'Lỗi xóa $product: $error';
+  String inventoryHideError(String product, String error) =>
+      'Lỗi xóa $product: $error';
 
   @override
   String get inventoryEmptyFiltered => 'Không tìm thấy sản phẩm';
@@ -7991,16 +8244,19 @@ class AppLocalizationsVi extends AppLocalizations {
   String get inventoryEmptyFilteredSub => 'Thử bỏ bộ lọc hoặc tìm từ khóa khác';
 
   @override
-  String get inventoryEmptyOutOfStockSub => 'Bật "Hết hàng" để xem sản phẩm đã hết';
+  String get inventoryEmptyOutOfStockSub =>
+      'Bật "Hết hàng" để xem sản phẩm đã hết';
 
   @override
   String get inventoryConfirmDeleteTitle => 'XÁC NHẬN XÓA';
 
   @override
-  String inventoryConfirmDeleteContent(int count) => 'Bạn có chắc chắn muốn xóa $count mặt hàng đã chọn không?';
+  String inventoryConfirmDeleteContent(int count) =>
+      'Bạn có chắc chắn muốn xóa $count mặt hàng đã chọn không?';
 
   @override
-  String get inventoryEnterPasswordToDelete => 'Nhập mật khẩu tài khoản để xóa:';
+  String get inventoryEnterPasswordToDelete =>
+      'Nhập mật khẩu tài khoản để xóa:';
 
   @override
   String get inventoryAccountPasswordLabel => 'Mật khẩu tài khoản';
@@ -8033,7 +8289,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String inventorySelectedCount(int count) => 'ĐÃ CHỌN $count';
 
   @override
-  String inventoryShownCount(int count, String product) => 'Đã hiển thị $count $product';
+  String inventoryShownCount(int count, String product) =>
+      'Đã hiển thị $count $product';
 
   @override
   String get inventoryDisplayOrTotal => 'HIỂN THỊ / TỔNG';
@@ -8081,7 +8338,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get inventorySelectSupplierError => 'Vui lòng chọn nhà cung cấp!';
 
   @override
-  String get inventoryConfirmCostSuccess => 'Đã xác nhận giá và chuyển sang Kho Chính!';
+  String get inventoryConfirmCostSuccess =>
+      'Đã xác nhận giá và chuyển sang Kho Chính!';
 
   @override
   String get inventorySelectSupplierFirst => 'Vui lòng chọn Nhà cung cấp!';
@@ -8090,7 +8348,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get inventoryCostChangeTitle => 'Cảnh báo thay đổi giá vốn';
 
   @override
-  String get inventoryCostChangeMessage => 'Sản phẩm này đã được lưu vào kho. Sửa giá vốn sẽ không ảnh hưởng các đơn cũ nhưng có thể làm sai báo cáo lãi gộp. Bạn có chắc muốn tiếp tục?';
+  String get inventoryCostChangeMessage =>
+      'Sản phẩm này đã được lưu vào kho. Sửa giá vốn sẽ không ảnh hưởng các đơn cũ nhưng có thể làm sai báo cáo lãi gộp. Bạn có chắc muốn tiếp tục?';
 
   @override
   String get inventoryUpdateSuccess => 'CẬP NHẬT THÀNH CÔNG';
@@ -8189,7 +8448,8 @@ class AppLocalizationsVi extends AppLocalizations {
   String get inventoryExportProducts => 'Xuất kho hàng';
 
   @override
-  String inventorySearchHint(String product, String category, String field) => 'Nhập $product, $category hoặc $field...';
+  String inventorySearchHint(String product, String category, String field) =>
+      'Nhập $product, $category hoặc $field...';
 
   @override
   String inventoryHideProductTitle(String product) => 'ẨN $product (KHO)';

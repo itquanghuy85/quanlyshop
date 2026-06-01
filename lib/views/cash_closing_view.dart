@@ -418,8 +418,8 @@ class _CashClosingViewState extends State<CashClosingView>
       // Dedup by firestoreId để tránh trùng lặp
       // ═══════════════════════════════════════════════════════════════════
 
-      // Merge sales
-      final localSales = await db.getAllSales();
+      // Merge — chỉ lấy bản ghi chưa sync để bù vào Firestore (tránh load toàn bộ DB)
+      final localSales = await db.getUnsyncedSales();
       final seenSaleIds = sales
           .map((s) => s.firestoreId)
           .whereType<String>()
@@ -432,8 +432,7 @@ class _CashClosingViewState extends State<CashClosingView>
         }
       }
 
-      // Merge repairs
-      final localRepairs = await db.getAllRepairs();
+      final localRepairs = await db.getUnsyncedRepairs();
       final seenRepairIds = repairs
           .map((r) => r.firestoreId)
           .whereType<String>()
@@ -446,8 +445,7 @@ class _CashClosingViewState extends State<CashClosingView>
         }
       }
 
-      // Merge expenses
-      final localExpenses = await db.getAllExpenses();
+      final localExpenses = await db.getUnsyncedExpenses();
       final seenExpenseIds = expenses
           .map((e) => e['firestoreId'])
           .whereType<String>()
@@ -575,11 +573,16 @@ class _CashClosingViewState extends State<CashClosingView>
     }
   }
 
-  /// Fallback: Load từ local DB khi offline
+  /// Fallback: Load từ local DB khi offline — chỉ lấy dữ liệu trong ngày/khoảng được chọn
   Future<void> _loadAllDataFromLocalDB() async {
-    final sales = await db.getAllSales();
-    final repairs = await db.getAllRepairs();
-    final expenses = await db.getAllExpenses();
+    final startMs = DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day)
+        .millisecondsSinceEpoch;
+    final endDate = _txEndDate ?? _selectedDate;
+    final endMs = DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59)
+        .millisecondsSinceEpoch;
+    final sales = await db.getSalesByDateRange(startMs, endMs);
+    final repairs = await db.getRepairsByCreatedAtRange(startMs, endMs);
+    final expenses = await db.getExpensesByDateRange(startMs, endMs);
     final debtPayments = await db.getAllDebtPaymentsWithDetails();
     // Đọc supplier_import_history từ local DB (SyncService đã sync Firestore → local)
     final supplierImports = await db.getAllSupplierImportHistory();

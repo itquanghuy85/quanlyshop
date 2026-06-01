@@ -113,7 +113,7 @@ class SaleOrder {
         if (decoded is List) {
           for (final item in decoded) {
             if (item is Map) {
-              final imei = item['imei']?.toString() ?? '';
+              final imei = (item['productImei'] ?? item['imei'])?.toString() ?? '';
               if (imei.isNotEmpty) {
                 if (buf.isNotEmpty) buf.write(',');
                 buf.write(imei);

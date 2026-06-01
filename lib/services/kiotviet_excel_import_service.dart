@@ -637,6 +637,9 @@ class KiotVietExcelImportService {
                 if (imei.isNotEmpty && curImei.isEmpty) upd['imei'] = imei;
                 final curPrice = (prod['price'] as num?)?.toInt() ?? 0;
                 if (unitPrice > 0 && curPrice == 0) upd['price'] = unitPrice;
+                // Đánh dấu nguồn KiotViet nếu description chưa có
+                final curDesc = (prod['description'] as String?) ?? '';
+                if (!curDesc.contains('KV')) upd['description'] = curDesc.isNotEmpty ? '$curDesc · KV' : 'KV';
                 if (upd.isNotEmpty) {
                   upd['updatedAt'] = DateTime.now().millisecondsSinceEpoch;
                   upd['isSynced'] = 0;
@@ -784,9 +787,9 @@ class KiotVietExcelImportService {
           final address = _at(row, 5);
           final email = _at(row, 13);
           final rawNotes = _at(row, 16);
-          final notes = rawNotes.contains('@')
-              ? null
-              : (rawNotes.isNotEmpty ? rawNotes : null);
+          final cleanNote = rawNotes.contains('@') ? '' : rawNotes.trim();
+          // Đánh dấu nguồn KiotViet để phân biệt với khách tạo trong app
+          final notes = cleanNote.isNotEmpty ? 'KV · $cleanNote' : 'KV';
           final createdAt = _datetimeMs(row, 18);       // datetime precision
           final lastVisitAt = _datetimeMs(row, 19);     // Ngày giao dịch cuối
           final totalSpent = _int(row, 21);

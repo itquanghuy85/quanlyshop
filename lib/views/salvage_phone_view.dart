@@ -13,6 +13,7 @@ import '../services/storage_service.dart';
 import '../services/user_service.dart';
 import '../utils/money_utils.dart';
 import '../utils/vietnamese_utils.dart';
+import '../widgets/app_cached_image.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 import '../widgets/custom_app_bar.dart';
@@ -492,25 +493,7 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
     }
     return ClipRRect(
       borderRadius: BorderRadius.circular(8),
-      child: Image.network(
-        imgs.first,
-        width: 40,
-        height: 40,
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: Colors.grey.shade100,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(
-            Icons.broken_image,
-            color: Colors.grey.shade400,
-            size: 22,
-          ),
-        ),
-      ),
+      child: AppCachedImage(imageUrl: imgs.first, width: 40, height: 40, fit: BoxFit.cover),
     );
   }
 
@@ -632,18 +615,7 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
                               onTap: () => _viewImage(p.imageList[i]),
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(10),
-                                child: Image.network(
-                                  p.imageList[i],
-                                  width: 120,
-                                  height: 120,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => Container(
-                                    width: 120,
-                                    height: 120,
-                                    color: Colors.grey.shade200,
-                                    child: const Icon(Icons.broken_image),
-                                  ),
-                                ),
+                                child: AppCachedImage(imageUrl: p.imageList[i], width: 120, height: 120, fit: BoxFit.cover),
                               ),
                             ),
                           );
@@ -757,12 +729,7 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
         child: GestureDetector(
           onTap: () => Navigator.of(context).pop(),
           child: InteractiveViewer(
-            child: Image.network(
-              url,
-              fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) =>
-                  const Center(child: Icon(Icons.broken_image, size: 64)),
-            ),
+            child: AppCachedImage(imageUrl: url, fit: BoxFit.contain),
           ),
         ),
       ),
@@ -1169,18 +1136,7 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
                       children: [
                         ClipRRect(
                           borderRadius: BorderRadius.circular(8),
-                          child: Image.network(
-                            entry.value,
-                            width: 80,
-                            height: 80,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Container(
-                              width: 80,
-                              height: 80,
-                              color: Colors.grey.shade200,
-                              child: const Icon(Icons.broken_image, size: 24),
-                            ),
-                          ),
+                          child: AppCachedImage(imageUrl: entry.value, width: 80, height: 80, fit: BoxFit.cover),
                         ),
                         Positioned(
                           top: 2,

@@ -172,12 +172,22 @@ class _SupplierDetailViewState extends State<SupplierDetailView> with TickerProv
   // Fallback to import_orders when no manual debts recorded
   bool get _useImportOrdersForDebt => _debts.isEmpty && _importOrders.isNotEmpty;
   int get _totalDebt => _useImportOrdersForDebt
-      ? _importOrders.fold(0, (s, o) => s + (o['totalAmount'] as int? ?? 0))
-      : _debts.fold(0, (s, d) => s + (d['totalAmount'] as int? ?? 0));
+      ? _importOrders.fold(0, (acc, o) => acc + (o['totalAmount'] as int? ?? 0))
+      : _debts.fold(0, (acc, d) => acc + (d['totalAmount'] as int? ?? 0));
   int get _paidDebt => _useImportOrdersForDebt
-      ? _importOrders.fold(0, (s, o) => s + (o['paidAmount'] as int? ?? 0))
-      : _debts.fold(0, (s, d) => s + (d['paidAmount'] as int? ?? 0));
+      ? _importOrders.fold(0, (acc, o) => acc + (o['paidAmount'] as int? ?? 0))
+      : _debts.fold(0, (acc, d) => acc + (d['paidAmount'] as int? ?? 0));
   int get _remainDebt => _totalDebt - _paidDebt;
+
+  // Parse nợ KiotViet từ note (vd: "KV:ABC | Nợ KV: 160000đ")
+  bool get _isKvSupplier => (widget.supplier.note ?? '').contains('KV:');
+  int get _kvDebtFromNote {
+    final note = widget.supplier.note ?? '';
+    final match = RegExp(r'N[oợ]\s*KV\s*:\s*([\d.,]+)', caseSensitive: false).firstMatch(note);
+    if (match == null) return 0;
+    final numStr = (match.group(1) ?? '0').replaceAll('.', '').replaceAll(',', '');
+    return int.tryParse(numStr) ?? 0;
+  }
 
   Future<void> _editSupplier() async {
     await Navigator.push(
@@ -393,7 +403,46 @@ class _SupplierDetailViewState extends State<SupplierDetailView> with TickerProv
     final hasDebt = _debts.isNotEmpty;
 
     if (!hasKv && !hasOld && !hasDebt) {
-      return Center(child: Text('Chưa có lịch sử nhập', style: AppTextStyles.body1));
+      return ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          if (_isKvSupplier) ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.blue.shade200),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.info_outline, size: 18, color: Colors.blue.shade600),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Nhà cung cấp từ KiotViet',
+                          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue.shade700),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Chưa có phiếu nhập hàng được đồng bộ từ KiotViet. '
+                          'Import file "Phiếu nhập hàng" từ KiotViet để xem lịch sử.',
+                          style: TextStyle(fontSize: 12, color: Colors.blue.shade600),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ] else
+            Center(child: Text('Chưa có lịch sử nhập', style: AppTextStyles.body1)),
+        ],
+      );
     }
 
     final items = <Widget>[];
@@ -579,11 +628,37 @@ class _SupplierDetailViewState extends State<SupplierDetailView> with TickerProv
                   ),
               ] else ...[
                 ..._debts.map((d) => _debtTile(d)),
-                if (_debts.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Text('Không có khoản nợ', style: AppTextStyles.caption),
-                  ),
+                if (_debts.isEmpty) ...[
+                  if (_isKvSupplier && _kvDebtFromNote > 0)
+                    Card(
+                      margin: const EdgeInsets.only(bottom: 6),
+                      color: Colors.orange.shade50,
+                      child: ListTile(
+                        leading: Icon(Icons.receipt_long_outlined, color: Colors.orange.shade700),
+                        title: Text(
+                          'Nợ từ KiotViet',
+                          style: AppTextStyles.body1.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Text(
+                          'Số dư nợ lấy từ file nhà cung cấp KiotViet. '
+                          'Chưa được ghi nhận trong hệ thống.',
+                          style: AppTextStyles.caption,
+                        ),
+                        trailing: Text(
+                          '${MoneyUtils.formatCompactCurrency(_kvDebtFromNote)}đ',
+                          style: AppTextStyles.body1.copyWith(
+                            color: Colors.red.shade700,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    )
+                  else
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Text('Không có khoản nợ', style: AppTextStyles.caption),
+                    ),
+                ],
               ],
               const SizedBox(height: 12),
               Text('Thanh toán đã ghi nhận', style: AppTextStyles.headline6),

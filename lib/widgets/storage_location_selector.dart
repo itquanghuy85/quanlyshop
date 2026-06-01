@@ -39,12 +39,23 @@ class _StorageLocationSelectorState extends State<StorageLocationSelector> {
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
-      final shopId =
-          widget.shopId ?? await UserService.getCurrentShopId() ?? '';
-      final db = DBHelper();
-      final locs = await db.getStorageLocations(shopId, activeOnly: true);
-      if (mounted) setState(() => _locations = locs);
-    } finally {
+      // Ưu tiên shopId được truyền vào, fallback lần lượt async → sync cache
+      var shopId = widget.shopId;
+      if ((shopId ?? '').isEmpty) {
+        shopId = await UserService.getCurrentShopId();
+      }
+      if ((shopId ?? '').isEmpty) {
+        shopId = UserService.getShopIdSync();
+      }
+      if ((shopId ?? '').isEmpty) {
+        // shopId chưa sẵn sàng — không query để tránh trả về rỗng sai
+        if (mounted) setState(() => _loading = false);
+        return;
+      }
+      final locs = await DBHelper().getStorageLocations(shopId!, activeOnly: true);
+      if (mounted) setState(() { _locations = locs; _loading = false; });
+    } catch (e) {
+      debugPrint('StorageLocationSelector._load error: $e');
       if (mounted) setState(() => _loading = false);
     }
   }

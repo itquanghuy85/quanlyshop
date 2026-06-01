@@ -1250,6 +1250,34 @@ class SyncService {
       }, onError: (e) => debugPrint("Sync error in shops/$shopId: $e"));
       _subscriptions.add(shopSub);
 
+      // 8. Đồng bộ STORAGE_LOCATIONS — cần sớm vì picker vị trí dùng ngay
+      try {
+        _subscribeToCollection(
+          collection: 'storage_locations',
+          shopId: shopId,
+          permissions: permissions,
+          role: role,
+          isSuperAdmin: isSuperAdmin,
+          onChanged: (data, docId) async {
+            try {
+              final db = DBHelper();
+              if (data['deleted'] == true) {
+                await db.deleteStorageLocationByFirestoreId(docId);
+              } else {
+                data['firestoreId'] = docId;
+                _convertTimestampFields(data);
+                await db.upsertStorageLocationFromMap(data);
+              }
+            } catch (e) {
+              debugPrint("Lỗi sync storage_location $docId: $e");
+            }
+          },
+          onBatchDone: onDataChanged,
+        );
+      } catch (e) {
+        debugPrint("Lỗi khởi tạo storage_locations sync (critical): $e");
+      }
+
       // ═══════════════════════════════════════════════════════════════════════
       // CRITICAL subscriptions done — mark as initialized so UI can proceed
       // ═══════════════════════════════════════════════════════════════════════
@@ -2281,33 +2309,7 @@ class SyncService {
       debugPrint("Lỗi khởi tạo salvage_phones sync: $e");
     }
 
-    // Storage locations
-    try {
-      _subscribeToCollection(
-        collection: 'storage_locations',
-        shopId: shopId,
-        permissions: permissions,
-        role: role,
-        isSuperAdmin: isSuperAdmin,
-        onChanged: (data, docId) async {
-          try {
-            final db = DBHelper();
-            if (data['deleted'] == true) {
-              await db.deleteStorageLocationByFirestoreId(docId);
-            } else {
-              data['firestoreId'] = docId;
-              _convertTimestampFields(data);
-              await db.upsertStorageLocationFromMap(data);
-            }
-          } catch (e) {
-            debugPrint("Lỗi sync storage_location $docId: $e");
-          }
-        },
-        onBatchDone: onDataChanged,
-      );
-    } catch (e) {
-      debugPrint("Lỗi khởi tạo storage_locations sync: $e");
-    }
+    // storage_locations đã được đồng bộ trong critical section — không cần lại ở đây
 
     PerfMonitor.stop('deferredSync');
     debugPrint(

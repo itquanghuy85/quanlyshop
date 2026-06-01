@@ -814,7 +814,7 @@
   "checkInventoryGuide": "Kiểm tra tồn kho bằng quét mã:\n\n🔍 Quét QR/Barcode để kiểm hàng\n🔍 So sánh số lượng thực tế vs hệ thống\n🔍 Ghi nhận chênh lệch\n\n📌 Dùng khi: Kiểm kê định kỳ, đối chiếu hàng tồn.",
   "contactOwnerForAccess": "Liên hệ chủ shop để được cấp quyền",
   "compareInventory": "Đối chiếu tồn kho",
-  "pendingConfirmation": "g chờ xác nhận nhập vào kho",
+  "pendingConfirmation": "chờ xác nhận nhập vào kho",
   "viewPendingStockList": "Xem danh sách hàng nhập tạm chưa xác nhận.",
   "productList": "Danh sách sản phẩm",
   "viewManageProducts": "Xem và quản lý danh sách sản phẩm trong kho.",
@@ -3005,7 +3005,6 @@
       }
     }
   },
-
   "saleListSearchHint": "Tìm theo tên khách, {productLabel} hoặc {codeLabel}...",
   "@saleListSearchHint": {
     "description": "Search hint in sale list with dynamic product and code labels",
@@ -3259,681 +3258,1140 @@
       }
     }
   },
-
   "saleDetailTitle": "CHI TIẾT ĐƠN BÁN",
-  "@saleDetailTitle": { "description": "AppBar title for sale detail screen" },
-
+  "@saleDetailTitle": {
+    "description": "AppBar title for sale detail screen"
+  },
   "needManagerLogin": "CẦN ĐĂNG NHẬP TÀI KHOẢN QUẢN LÝ",
-  "@needManagerLogin": { "description": "Snackbar when manager auth fails - not logged in" },
-
+  "@needManagerLogin": {
+    "description": "Snackbar when manager auth fails - not logged in"
+  },
   "onlyManagerCanEdit": "Chỉ tài khoản quản lý mới được sửa/xóa",
-  "@onlyManagerCanEdit": { "description": "Snackbar when user lacks manager permission" },
-
+  "@onlyManagerCanEdit": {
+    "description": "Snackbar when user lacks manager permission"
+  },
   "managerAuthTitle": "XÁC THỰC QUẢN LÝ",
-  "@managerAuthTitle": { "description": "Title for manager password dialog" },
-
+  "@managerAuthTitle": {
+    "description": "Title for manager password dialog"
+  },
   "managerPasswordLabel": "Mật khẩu quản lý",
-  "@managerPasswordLabel": { "description": "Label for manager password field" },
-
+  "@managerPasswordLabel": {
+    "description": "Label for manager password field"
+  },
   "editUnlocked": "ĐÃ MỞ KHÓA CHỈNH SỬA",
-  "@editUnlocked": { "description": "Snackbar after manager successfully reauthenticated" },
-
+  "@editUnlocked": {
+    "description": "Snackbar after manager successfully reauthenticated"
+  },
   "wrongManagerPassword": "Sai mật khẩu quản lý",
-  "@wrongManagerPassword": { "description": "Snackbar when manager password is incorrect" },
-
+  "@wrongManagerPassword": {
+    "description": "Snackbar when manager password is incorrect"
+  },
   "printInvoiceSuccess": "Đã in hóa đơn thành công!",
-  "@printInvoiceSuccess": { "description": "Snackbar when receipt print succeeds" },
-
+  "@printInvoiceSuccess": {
+    "description": "Snackbar when receipt print succeeds"
+  },
   "printInvoiceFailed": "In thất bại! Vui lòng kiểm tra cài đặt máy in.",
-  "@printInvoiceFailed": { "description": "Snackbar when receipt print fails" },
-
+  "@printInvoiceFailed": {
+    "description": "Snackbar when receipt print fails"
+  },
   "printErrorMsg": "Lỗi khi in: {error}",
   "@printErrorMsg": {
     "description": "Snackbar when print throws an exception",
-    "placeholders": { "error": { "type": "String" } }
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
   },
-
   "receiveBankTitle": "NHẬN TIỀN TỪ NGÂN HÀNG",
-  "@receiveBankTitle": { "description": "Title for settlement/bank-receive bottom sheet" },
-
+  "@receiveBankTitle": {
+    "description": "Title for settlement/bank-receive bottom sheet"
+  },
   "receivedAmountLabel": "Số tiền nhận (VNĐ)",
-  "@receivedAmountLabel": { "description": "Label for settlement amount field" },
-
+  "@receivedAmountLabel": {
+    "description": "Label for settlement amount field"
+  },
   "receivedAmountField": "Số tiền nhận",
-  "@receivedAmountField": { "description": "fieldName used in validateAmount for settlement" },
-
+  "@receivedAmountField": {
+    "description": "fieldName used in validateAmount for settlement"
+  },
   "bankFeeLabel": "Phí NH giữ lại (VNĐ)",
-  "@bankFeeLabel": { "description": "Label for bank fee field in settlement sheet" },
-
+  "@bankFeeLabel": {
+    "description": "Label for bank fee field in settlement sheet"
+  },
   "bankFeeField": "Phí NH",
-  "@bankFeeField": { "description": "fieldName used in validateAmount for bank fee" },
-
+  "@bankFeeField": {
+    "description": "fieldName used in validateAmount for bank fee"
+  },
   "bankReceivedConfirmed": "ĐÃ GHI NHẬN TIỀN NGÂN HÀNG CHUYỂN",
-  "@bankReceivedConfirmed": { "description": "Snackbar after bank settlement is saved" },
-
+  "@bankReceivedConfirmed": {
+    "description": "Snackbar after bank settlement is saved"
+  },
   "editSaleTitle": "SỬA ĐƠN BÁN",
-  "@editSaleTitle": { "description": "Title for edit sale dialog" },
-
+  "@editSaleTitle": {
+    "description": "Title for edit sale dialog"
+  },
   "customerNameFieldLabel": "Tên khách",
-  "@customerNameFieldLabel": { "description": "Label for customer name in edit sale dialog" },
-
+  "@customerNameFieldLabel": {
+    "description": "Label for customer name in edit sale dialog"
+  },
   "enterCustomerNameHint": "Nhập tên khách",
-  "@enterCustomerNameHint": { "description": "Validation message when customer name is empty" },
-
+  "@enterCustomerNameHint": {
+    "description": "Validation message when customer name is empty"
+  },
   "phoneFieldLabel": "SĐT",
-  "@phoneFieldLabel": { "description": "Label for phone field in edit sale dialog" },
-
+  "@phoneFieldLabel": {
+    "description": "Label for phone field in edit sale dialog"
+  },
   "addressFieldLabel": "Địa chỉ",
-  "@addressFieldLabel": { "description": "Label for address field in edit sale dialog" },
-
+  "@addressFieldLabel": {
+    "description": "Label for address field in edit sale dialog"
+  },
   "paymentMethodFieldLabel": "Hình thức",
-  "@paymentMethodFieldLabel": { "description": "Label for payment method dropdown" },
-
+  "@paymentMethodFieldLabel": {
+    "description": "Label for payment method dropdown"
+  },
   "notesFieldLabel": "Ghi chú",
-  "@notesFieldLabel": { "description": "Label for notes text field" },
-
+  "@notesFieldLabel": {
+    "description": "Label for notes text field"
+  },
   "saveLabel": "LƯU",
-  "@saveLabel": { "description": "Save button label in dialogs" },
-
+  "@saveLabel": {
+    "description": "Save button label in dialogs"
+  },
   "saleUpdated": "Đã cập nhật thông tin đơn hàng",
-  "@saleUpdated": { "description": "Snackbar after sale is edited and saved" },
-
+  "@saleUpdated": {
+    "description": "Snackbar after sale is edited and saved"
+  },
   "deleteSaleTitle": "XÓA ĐƠN BÁN",
-  "@deleteSaleTitle": { "description": "Title for delete-sale confirmation dialog" },
-
+  "@deleteSaleTitle": {
+    "description": "Title for delete-sale confirmation dialog"
+  },
   "saleOrderItem": "Đơn hàng: {name}",
   "@saleOrderItem": {
     "description": "Shows product names of the sale order being deleted",
-    "placeholders": { "name": { "type": "String" } }
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
   },
-
   "saleOrderValue": "Giá trị: {amount}đ",
   "@saleOrderValue": {
     "description": "Shows sale order value in delete confirmation",
-    "placeholders": { "amount": { "type": "String" } }
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
   },
-
   "systemWillAutoLabel": "Hệ thống sẽ tự động:",
-  "@systemWillAutoLabel": { "description": "Header for auto-action list in delete confirmation" },
-
+  "@systemWillAutoLabel": {
+    "description": "Header for auto-action list in delete confirmation"
+  },
   "restoreStockQty": "Khôi phục số lượng kho",
-  "@restoreStockQty": { "description": "Auto-action: restore inventory when sale deleted" },
-
+  "@restoreStockQty": {
+    "description": "Auto-action: restore inventory when sale deleted"
+  },
   "deleteLinkedDebt": "Xóa công nợ liên quan",
-  "@deleteLinkedDebt": { "description": "Auto-action: remove linked debt record" },
-
+  "@deleteLinkedDebt": {
+    "description": "Auto-action: remove linked debt record"
+  },
   "deletePaymentRecord": "Xóa bản ghi thanh toán",
-  "@deletePaymentRecord": { "description": "Auto-action: remove payment intent" },
-
+  "@deletePaymentRecord": {
+    "description": "Auto-action: remove payment intent"
+  },
   "updateCustomerSpend": "Cập nhật lại chi tiêu KH",
-  "@updateCustomerSpend": { "description": "Auto-action: revert customer total spent" },
-
+  "@updateCustomerSpend": {
+    "description": "Auto-action: revert customer total spent"
+  },
   "cannotUndoWarning": "⚠️ Hành động này không thể hoàn tác!",
-  "@cannotUndoWarning": { "description": "Warning text in delete confirmation dialog" },
-
+  "@cannotUndoWarning": {
+    "description": "Warning text in delete confirmation dialog"
+  },
   "deleteSaleButton": "XÓA ĐƠN",
-  "@deleteSaleButton": { "description": "Confirm delete button in delete sale dialog" },
-
+  "@deleteSaleButton": {
+    "description": "Confirm delete button in delete sale dialog"
+  },
   "saleDeletedMsg": "Đã xóa đơn bán{inventoryInfo}{debtInfo}",
   "@saleDeletedMsg": {
     "description": "Snackbar after sale deleted with optional inventory/debt info appended",
     "placeholders": {
-      "inventoryInfo": { "type": "String" },
-      "debtInfo": { "type": "String" }
+      "inventoryInfo": {
+        "type": "String"
+      },
+      "debtInfo": {
+        "type": "String"
+      }
     }
   },
-
   "saleDeleteError": "Lỗi xóa đơn bán: {error}",
   "@saleDeleteError": {
     "description": "Snackbar when deleting sale fails",
-    "placeholders": { "error": { "type": "String" } }
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
   },
-
   "editSaleTooltip": "Sửa thông tin đơn",
-  "@editSaleTooltip": { "description": "Tooltip for the edit icon button in AppBar" },
-
+  "@editSaleTooltip": {
+    "description": "Tooltip for the edit icon button in AppBar"
+  },
   "previewInvoiceLabel": "Xem trước",
-  "@previewInvoiceLabel": { "description": "Bottom action label for invoice preview" },
-
+  "@previewInvoiceLabel": {
+    "description": "Bottom action label for invoice preview"
+  },
   "printInvoiceLabel": "In",
-  "@printInvoiceLabel": { "description": "Bottom action label for print button" },
-
+  "@printInvoiceLabel": {
+    "description": "Bottom action label for print button"
+  },
   "returnAllLabel": "Đã trả hết",
-  "@returnAllLabel": { "description": "Bottom action label when all items are returned" },
-
+  "@returnAllLabel": {
+    "description": "Bottom action label when all items are returned"
+  },
   "returnGoodsLabel": "Trả hàng",
-  "@returnGoodsLabel": { "description": "Bottom action label to initiate a return" },
-
+  "@returnGoodsLabel": {
+    "description": "Bottom action label to initiate a return"
+  },
   "returnSuccessMsg": "Trả hàng thành công!",
-  "@returnSuccessMsg": { "description": "Snackbar after sales return is created" },
-
+  "@returnSuccessMsg": {
+    "description": "Snackbar after sales return is created"
+  },
   "printTemplateLabel": "Mẫu in",
-  "@printTemplateLabel": { "description": "Bottom action label for invoice template" },
-
+  "@printTemplateLabel": {
+    "description": "Bottom action label for invoice template"
+  },
   "updateSettlementBtn": "CẬP NHẬT TẤT TOÁN (còn {amount})",
   "@updateSettlementBtn": {
     "description": "Button label when settlement has been partially received",
-    "placeholders": { "amount": { "type": "String" } }
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
   },
-
   "returnedFullLabel": "ĐÃ TRẢ TOÀN BỘ — {amount}",
   "@returnedFullLabel": {
     "description": "Return indicator when all items returned",
-    "placeholders": { "amount": { "type": "String" } }
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
   },
-
   "returnedPartialLabel": "ĐÃ TRẢ 1 PHẦN — {amount} ({count} lần)",
   "@returnedPartialLabel": {
     "description": "Return indicator when partially returned",
     "placeholders": {
-      "amount": { "type": "String" },
-      "count": { "type": "int" }
+      "amount": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
     }
   },
-
   "sectionTransaction": "GIAO DỊCH",
-  "@sectionTransaction": { "description": "Card header for the main transaction section" },
-
+  "@sectionTransaction": {
+    "description": "Card header for the main transaction section"
+  },
   "itemAddress": "Địa chỉ",
-  "@itemAddress": { "description": "Row label: customer address" },
-
+  "@itemAddress": {
+    "description": "Row label: customer address"
+  },
   "openProductDetailTooltip": "Mở chi tiết sản phẩm từ đơn bán",
-  "@openProductDetailTooltip": { "description": "Tooltip on clickable product list" },
-
+  "@openProductDetailTooltip": {
+    "description": "Tooltip on clickable product list"
+  },
   "itemWarranty": "Bảo hành",
-  "@itemWarranty": { "description": "Row label: warranty period" },
-
+  "@itemWarranty": {
+    "description": "Row label: warranty period"
+  },
   "itemTime": "Thời gian",
-  "@itemTime": { "description": "Row label: sale date and time" },
-
+  "@itemTime": {
+    "description": "Row label: sale date and time"
+  },
   "itemPaymentMethod": "Hình thức",
-  "@itemPaymentMethod": { "description": "Row label: payment method" },
-
+  "@itemPaymentMethod": {
+    "description": "Row label: payment method"
+  },
   "itemCash": "💵 Tiền mặt",
-  "@itemCash": { "description": "Row label: cash portion in combined payment" },
-
+  "@itemCash": {
+    "description": "Row label: cash portion in combined payment"
+  },
   "itemTransfer": "🏦 Chuyển khoản",
-  "@itemTransfer": { "description": "Row label: bank transfer portion in combined payment" },
-
+  "@itemTransfer": {
+    "description": "Row label: bank transfer portion in combined payment"
+  },
   "itemNotes": "Ghi chú",
-  "@itemNotes": { "description": "Row label: order notes" },
-
+  "@itemNotes": {
+    "description": "Row label: order notes"
+  },
   "itemDiscount": "Giảm giá",
-  "@itemDiscount": { "description": "Row label: discount amount" },
-
+  "@itemDiscount": {
+    "description": "Row label: discount amount"
+  },
   "itemTotal": "Tổng tiền",
-  "@itemTotal": { "description": "Row label: total (final price)" },
-
+  "@itemTotal": {
+    "description": "Row label: total (final price)"
+  },
   "itemCostPrice": "Giá vốn",
-  "@itemCostPrice": { "description": "Row label: product cost (visible to managers)" },
-
+  "@itemCostPrice": {
+    "description": "Row label: product cost (visible to managers)"
+  },
   "itemProfit": "Lợi nhuận",
-  "@itemProfit": { "description": "Row label: profit (final - cost)" },
-
+  "@itemProfit": {
+    "description": "Row label: profit (final - cost)"
+  },
   "sectionInstallment": "TRẢ GÓP - NGÂN HÀNG",
-  "@sectionInstallment": { "description": "Card header for bank installment section" },
-
+  "@sectionInstallment": {
+    "description": "Card header for bank installment section"
+  },
   "installmentDownPayment": "Down payment",
-  "@installmentDownPayment": { "description": "Row label: down payment" },
-
+  "@installmentDownPayment": {
+    "description": "Row label: down payment"
+  },
   "installmentBank1": "NH 1 giải ngân",
-  "@installmentBank1": { "description": "Row label: bank 1 name" },
-
+  "@installmentBank1": {
+    "description": "Row label: bank 1 name"
+  },
   "installmentAmount1": "Số tiền NH 1",
-  "@installmentAmount1": { "description": "Row label: bank 1 loan amount" },
-
+  "@installmentAmount1": {
+    "description": "Row label: bank 1 loan amount"
+  },
   "installmentBank2": "NH 2 giải ngân",
-  "@installmentBank2": { "description": "Row label: bank 2 name" },
-
+  "@installmentBank2": {
+    "description": "Row label: bank 2 name"
+  },
   "installmentAmount2": "Số tiền NH 2",
-  "@installmentAmount2": { "description": "Row label: bank 2 loan amount" },
-
+  "@installmentAmount2": {
+    "description": "Row label: bank 2 loan amount"
+  },
   "installmentTotalLoan": "Tổng vay NH",
-  "@installmentTotalLoan": { "description": "Row label: total loan from all banks" },
-
+  "@installmentTotalLoan": {
+    "description": "Row label: total loan from all banks"
+  },
   "installmentExpectedDate": "Ngày dự kiến",
-  "@installmentExpectedDate": { "description": "Row label: planned settlement date" },
-
+  "@installmentExpectedDate": {
+    "description": "Row label: planned settlement date"
+  },
   "installmentFileCode": "Mã hồ sơ",
-  "@installmentFileCode": { "description": "Row label: settlement code/file number" },
-
+  "@installmentFileCode": {
+    "description": "Row label: settlement code/file number"
+  },
   "installmentNotes": "Ghi chú",
-  "@installmentNotes": { "description": "Row label: settlement notes" },
-
+  "@installmentNotes": {
+    "description": "Row label: settlement notes"
+  },
   "installmentSettlement": "Tất toán",
-  "@installmentSettlement": { "description": "Row label: settlement status" },
-
+  "@installmentSettlement": {
+    "description": "Row label: settlement status"
+  },
   "settlementNotReceived": "Chưa nhận",
-  "@settlementNotReceived": { "description": "Settlement status when nothing received yet" },
-
+  "@settlementNotReceived": {
+    "description": "Settlement status when nothing received yet"
+  },
   "settlementFullyReceived": "Đã nhận đủ {date}",
   "@settlementFullyReceived": {
     "description": "Settlement status when fully received",
-    "placeholders": { "date": { "type": "String" } }
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
   },
-
   "settlementPartialReceived": "Đã nhận {received} / {total}",
   "@settlementPartialReceived": {
     "description": "Settlement status when partially received",
     "placeholders": {
-      "received": { "type": "String" },
-      "total": { "type": "String" }
+      "received": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
     }
   },
-
   "installmentBankFee": "Phí NH",
-  "@installmentBankFee": { "description": "Row label: bank fee deducted from settlement" },
-
+  "@installmentBankFee": {
+    "description": "Row label: bank fee deducted from settlement"
+  },
   "staffItemLabel": "Nhân viên",
-  "@staffItemLabel": { "description": "Row label: seller/staff name" },
-
+  "@staffItemLabel": {
+    "description": "Row label: seller/staff name"
+  },
   "chatPinnedSale": "ĐÃ GIM ĐƠN BÁN VÀO CHAT NỘI BỘ",
-  "@chatPinnedSale": { "description": "Snackbar after sale is shared to group chat" },
-
+  "@chatPinnedSale": {
+    "description": "Snackbar after sale is shared to group chat"
+  },
   "noCustomerPhone": "KHÔNG CÓ SỐ ĐIỆN THOẠI KHÁCH",
-  "@noCustomerPhone": { "description": "Snackbar when trying to SMS but customer has no phone" },
-
+  "@noCustomerPhone": {
+    "description": "Snackbar when trying to SMS but customer has no phone"
+  },
   "smsAppOpened": "ĐÃ MỞ ỨNG DỤNG NHẮN TIN (nội dung đã copy sẵn).",
-  "@smsAppOpened": { "description": "Snackbar after SMS app is launched successfully" },
-
+  "@smsAppOpened": {
+    "description": "Snackbar after SMS app is launched successfully"
+  },
   "smsAppCannotOpen": "KHÔNG MỞ ĐƯỢC ỨNG DỤNG NHẮN TIN, anh/chị dán nội dung vào Zalo/SMS giúp em.",
-  "@smsAppCannotOpen": { "description": "Snackbar when SMS app cannot be launched" },
-
+  "@smsAppCannotOpen": {
+    "description": "Snackbar when SMS app cannot be launched"
+  },
   "smsSendError": "LỖI KHI GỬI TIN NHẮN, nhưng nội dung đã được copy sẵn.",
-  "@smsSendError": { "description": "Snackbar when SMS launch throws an exception" },
-
+  "@smsSendError": {
+    "description": "Snackbar when SMS launch throws an exception"
+  },
   "debtManagementTitle": "QUẢN LÝ CÔNG NỢ",
-  "@debtManagementTitle": { "description": "Title for debt management screen" },
+  "@debtManagementTitle": {
+    "description": "Title for debt management screen"
+  },
   "activeDebtsCount": "{count} khoản nợ còn",
   "@activeDebtsCount": {
     "description": "Subtitle showing count of active debts",
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "tabCustomer": "KHÁCH",
-  "@tabCustomer": { "description": "Tab label for customer debts" },
+  "@tabCustomer": {
+    "description": "Tab label for customer debts"
+  },
   "tabSupplier": "NCC",
-  "@tabSupplier": { "description": "Tab label for supplier debts" },
+  "@tabSupplier": {
+    "description": "Tab label for supplier debts"
+  },
   "tabPartner": "ĐỐI TÁC",
-  "@tabPartner": { "description": "Tab label for repair partner debts" },
+  "@tabPartner": {
+    "description": "Tab label for repair partner debts"
+  },
   "tabOther": "KHÁC",
-  "@tabOther": { "description": "Tab label for other debts" },
+  "@tabOther": {
+    "description": "Tab label for other debts"
+  },
   "syncWithFirebase": "Đồng bộ với Firebase",
-  "@syncWithFirebase": { "description": "Tooltip for sync button" },
+  "@syncWithFirebase": {
+    "description": "Tooltip for sync button"
+  },
   "exportExcelDebt": "Xuất Excel công nợ",
-  "@exportExcelDebt": { "description": "Tooltip for export debt excel button" },
+  "@exportExcelDebt": {
+    "description": "Tooltip for export debt excel button"
+  },
   "exportDebtTitle": "Xuất công nợ",
-  "@exportDebtTitle": { "description": "Title for export debt dialog" },
+  "@exportDebtTitle": {
+    "description": "Title for export debt dialog"
+  },
   "syncedStatus": "Đã đồng bộ",
-  "@syncedStatus": { "description": "Sync status: synced" },
+  "@syncedStatus": {
+    "description": "Sync status: synced"
+  },
   "syncingStatus": "Đang đồng bộ...",
-  "@syncingStatus": { "description": "Sync status: syncing" },
+  "@syncingStatus": {
+    "description": "Sync status: syncing"
+  },
   "syncErrorStatus": "Lỗi đồng bộ",
-  "@syncErrorStatus": { "description": "Sync status: error" },
+  "@syncErrorStatus": {
+    "description": "Sync status: error"
+  },
   "searchNamePhone": "Tìm kiếm tên, SĐT...",
-  "@searchNamePhone": { "description": "Hint text for debt search field" },
+  "@searchNamePhone": {
+    "description": "Hint text for debt search field"
+  },
   "filterPaid": "Đã trả",
-  "@filterPaid": { "description": "Filter chip label to show paid debts" },
+  "@filterPaid": {
+    "description": "Filter chip label to show paid debts"
+  },
   "debtReceivable": "Phải thu",
-  "@debtReceivable": { "description": "Label for receivable debt (customer owes)" },
+  "@debtReceivable": {
+    "description": "Label for receivable debt (customer owes)"
+  },
   "debtPayable": "Phải trả",
-  "@debtPayable": { "description": "Label for payable debt (shop owes)" },
+  "@debtPayable": {
+    "description": "Label for payable debt (shop owes)"
+  },
   "overdueDebts": "Quá hạn",
-  "@overdueDebts": { "description": "KPI chip label for overdue debts" },
+  "@overdueDebts": {
+    "description": "KPI chip label for overdue debts"
+  },
   "needsHandling": "Cần xử lý",
-  "@needsHandling": { "description": "KPI chip label for debts needing attention" },
+  "@needsHandling": {
+    "description": "KPI chip label for debts needing attention"
+  },
   "noDebtFound": "Không tìm thấy kết quả",
-  "@noDebtFound": { "description": "Empty state when search finds nothing" },
+  "@noDebtFound": {
+    "description": "Empty state when search finds nothing"
+  },
   "noDebtYet": "Chưa có khoản nợ nào",
-  "@noDebtYet": { "description": "Empty state when no debts exist" },
+  "@noDebtYet": {
+    "description": "Empty state when no debts exist"
+  },
   "trySearchOther": "Thử tìm tên hoặc số điện thoại khác",
-  "@trySearchOther": { "description": "Hint when search has no results" },
+  "@trySearchOther": {
+    "description": "Hint when search has no results"
+  },
   "showPaidToSeeHistory": "Bật \"Đã trả\" để xem lịch sử",
-  "@showPaidToSeeHistory": { "description": "Hint to enable paid filter" },
+  "@showPaidToSeeHistory": {
+    "description": "Hint to enable paid filter"
+  },
   "totalRemainingDebt": "TỔNG NỢ CÒN LẠI",
-  "@totalRemainingDebt": { "description": "Summary header for total remaining debt" },
+  "@totalRemainingDebt": {
+    "description": "Summary header for total remaining debt"
+  },
   "noPartnerDebt": "Không có công nợ đối tác",
-  "@noPartnerDebt": { "description": "Empty state for partner debts tab" },
+  "@noPartnerDebt": {
+    "description": "Empty state for partner debts tab"
+  },
   "partnerDebtManageGuide": "Quản lý đối tác tại: Cài đặt › Quản lý đối tác",
-  "@partnerDebtManageGuide": { "description": "Guide for managing partners" },
+  "@partnerDebtManageGuide": {
+    "description": "Guide for managing partners"
+  },
   "totalPartnerRepairDebt": "TỔNG NỢ ĐỐI TÁC SỬA CHỮA",
-  "@totalPartnerRepairDebt": { "description": "Summary header for partner repair debt" },
+  "@totalPartnerRepairDebt": {
+    "description": "Summary header for partner repair debt"
+  },
   "paymentHistoryTitle": "LỊCH SỬ THANH TOÁN",
-  "@paymentHistoryTitle": { "description": "Title of payment history bottom sheet" },
+  "@paymentHistoryTitle": {
+    "description": "Title of payment history bottom sheet"
+  },
   "noPaymentHistory": "Chưa có lịch sử trả nợ",
-  "@noPaymentHistory": { "description": "Empty state for payment history" },
+  "@noPaymentHistory": {
+    "description": "Empty state for payment history"
+  },
   "payDebtButton": "THANH TOÁN NỢ",
-  "@payDebtButton": { "description": "Button label to pay debt" },
+  "@payDebtButton": {
+    "description": "Button label to pay debt"
+  },
   "collectDebtTitle": "THU NỢ KHÁCH",
-  "@collectDebtTitle": { "description": "Title for collecting customer debt" },
+  "@collectDebtTitle": {
+    "description": "Title for collecting customer debt"
+  },
   "payDebtTitle": "THANH TOÁN NỢ",
-  "@payDebtTitle": { "description": "Title for paying a debt" },
+  "@payDebtTitle": {
+    "description": "Title for paying a debt"
+  },
   "totalDebtLabel": "Tổng nợ",
-  "@totalDebtLabel": { "description": "Label for total debt amount" },
+  "@totalDebtLabel": {
+    "description": "Label for total debt amount"
+  },
   "paidAmountLabel": "Đã trả",
-  "@paidAmountLabel": { "description": "Label for paid amount" },
+  "@paidAmountLabel": {
+    "description": "Label for paid amount"
+  },
   "remainingLabel": "Còn lại",
-  "@remainingLabel": { "description": "Label for remaining amount" },
+  "@remainingLabel": {
+    "description": "Label for remaining amount"
+  },
   "collectAmountVnd": "SỐ TIỀN THU (VNĐ)",
-  "@collectAmountVnd": { "description": "Label for collect amount input" },
+  "@collectAmountVnd": {
+    "description": "Label for collect amount input"
+  },
   "payAmountVnd": "SỐ TIỀN THANH TOÁN (VNĐ)",
-  "@payAmountVnd": { "description": "Label for pay amount input" },
+  "@payAmountVnd": {
+    "description": "Label for pay amount input"
+  },
   "payWithLabel": "THANH TOÁN BẰNG",
-  "@payWithLabel": { "description": "Label for payment method selection" },
+  "@payWithLabel": {
+    "description": "Label for payment method selection"
+  },
   "cancelButton": "HỦY",
-  "@cancelButton": { "description": "Cancel button label" },
+  "@cancelButton": {
+    "description": "Cancel button label"
+  },
   "confirmPayButton": "XÁC NHẬN",
-  "@confirmPayButton": { "description": "Confirm payment button" },
+  "@confirmPayButton": {
+    "description": "Confirm payment button"
+  },
   "createOtherDebtTitle": "TẠO CÔNG NỢ KHÁC",
-  "@createOtherDebtTitle": { "description": "Title for creating other debt" },
+  "@createOtherDebtTitle": {
+    "description": "Title for creating other debt"
+  },
   "debtorNameLabel": "Tên người nợ",
-  "@debtorNameLabel": { "description": "Label for debtor name field" },
+  "@debtorNameLabel": {
+    "description": "Label for debtor name field"
+  },
   "pleaseEnterDebtorName": "Vui lòng nhập tên người nợ",
-  "@pleaseEnterDebtorName": { "description": "Validation message for debtor name" },
+  "@pleaseEnterDebtorName": {
+    "description": "Validation message for debtor name"
+  },
   "debtAmountVnd": "Số tiền nợ (VNĐ)",
-  "@debtAmountVnd": { "description": "Label for debt amount field" },
+  "@debtAmountVnd": {
+    "description": "Label for debt amount field"
+  },
   "debtFormTypeLabel": "Hình thức nợ:",
-  "@debtFormTypeLabel": { "description": "Label for debt type selection" },
+  "@debtFormTypeLabel": {
+    "description": "Label for debt type selection"
+  },
   "receivableDebt": "NỢ PHẢI THU",
-  "@receivableDebt": { "description": "Debt type: receivable" },
+  "@receivableDebt": {
+    "description": "Debt type: receivable"
+  },
   "payableDebt": "NỢ PHẢI TRẢ",
-  "@payableDebt": { "description": "Debt type: payable" },
+  "@payableDebt": {
+    "description": "Debt type: payable"
+  },
   "customerOwesShop": "(Khách nợ shop)",
-  "@customerOwesShop": { "description": "Subtitle for receivable debt type" },
+  "@customerOwesShop": {
+    "description": "Subtitle for receivable debt type"
+  },
   "shopOwesOther": "(Shop nợ người khác)",
-  "@shopOwesOther": { "description": "Subtitle for payable debt type" },
+  "@shopOwesOther": {
+    "description": "Subtitle for payable debt type"
+  },
   "createButton": "TẠO",
-  "@createButton": { "description": "Create button label" },
+  "@createButton": {
+    "description": "Create button label"
+  },
   "debtCreated": "Đã tạo công nợ mới",
-  "@debtCreated": { "description": "Snackbar after creating a debt" },
+  "@debtCreated": {
+    "description": "Snackbar after creating a debt"
+  },
   "createReceivableDebtTitle": "TẠO NỢ PHẢI THU",
-  "@createReceivableDebtTitle": { "description": "Title for creating receivable debt" },
+  "@createReceivableDebtTitle": {
+    "description": "Title for creating receivable debt"
+  },
   "pleaseEnterCustomerNameDebt": "Vui lòng nhập tên khách hàng",
-  "@pleaseEnterCustomerNameDebt": { "description": "Validation for customer name in debt form" },
+  "@pleaseEnterCustomerNameDebt": {
+    "description": "Validation for customer name in debt form"
+  },
   "customerDebtCreated": "Đã tạo nợ khách hàng!",
-  "@customerDebtCreated": { "description": "Snackbar after creating customer debt" },
+  "@customerDebtCreated": {
+    "description": "Snackbar after creating customer debt"
+  },
   "createDebtError": "Lỗi tạo nợ: {error}",
   "@createDebtError": {
     "description": "Error message when creating debt fails",
-    "placeholders": { "error": { "type": "String" } }
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
   },
   "createPayableDebtTitle": "TẠO NỢ PHẢI TRẢ",
-  "@createPayableDebtTitle": { "description": "Title for creating payable debt" },
+  "@createPayableDebtTitle": {
+    "description": "Title for creating payable debt"
+  },
   "supplierNameLabel": "Tên nhà cung cấp",
-  "@supplierNameLabel": { "description": "Label for supplier name field" },
+  "@supplierNameLabel": {
+    "description": "Label for supplier name field"
+  },
   "pleaseEnterSupplierNameDebt": "Vui lòng nhập tên nhà cung cấp",
-  "@pleaseEnterSupplierNameDebt": { "description": "Validation for supplier name in debt form" },
+  "@pleaseEnterSupplierNameDebt": {
+    "description": "Validation for supplier name in debt form"
+  },
   "supplierDebtCreated": "Đã tạo nợ nhà cung cấp!",
-  "@supplierDebtCreated": { "description": "Snackbar after creating supplier debt" },
+  "@supplierDebtCreated": {
+    "description": "Snackbar after creating supplier debt"
+  },
   "noDebtAnywhere": "Không có công nợ nào",
-  "@noDebtAnywhere": { "description": "Empty state when no other debts" },
+  "@noDebtAnywhere": {
+    "description": "Empty state when no other debts"
+  },
   "collectDebtAction": "Thu nợ",
-  "@collectDebtAction": { "description": "Button to collect customer debt" },
+  "@collectDebtAction": {
+    "description": "Button to collect customer debt"
+  },
   "payDebtAction": "Thanh toán nợ",
-  "@payDebtAction": { "description": "Button to pay a debt" },
+  "@payDebtAction": {
+    "description": "Button to pay a debt"
+  },
   "historyButton": "Lịch sử",
-  "@historyButton": { "description": "Button to view debt history" },
+  "@historyButton": {
+    "description": "Button to view debt history"
+  },
   "returnDebtAction": "Trả nợ",
-  "@returnDebtAction": { "description": "Button to repay a debt" },
+  "@returnDebtAction": {
+    "description": "Button to repay a debt"
+  },
   "partnerRepairType": "Đối tác sửa chữa",
-  "@partnerRepairType": { "description": "Chip label for repair partner debt type" },
+  "@partnerRepairType": {
+    "description": "Chip label for repair partner debt type"
+  },
   "manualSource": "Thủ công",
-  "@manualSource": { "description": "Source label: manual" },
+  "@manualSource": {
+    "description": "Source label: manual"
+  },
   "autoSource": "Tự động",
-  "@autoSource": { "description": "Source label: automatic" },
+  "@autoSource": {
+    "description": "Source label: automatic"
+  },
   "totalFeeLabel": "Tổng phí",
-  "@totalFeeLabel": { "description": "Label for total fee amount" },
+  "@totalFeeLabel": {
+    "description": "Label for total fee amount"
+  },
   "remainingDebtLabel": "Còn nợ",
-  "@remainingDebtLabel": { "description": "Label for remaining debt amount" },
+  "@remainingDebtLabel": {
+    "description": "Label for remaining debt amount"
+  },
   "paymentAction": "Thanh toán",
-  "@paymentAction": { "description": "Action button label to make payment" },
+  "@paymentAction": {
+    "description": "Action button label to make payment"
+  },
   "overdueCountDays": "{count} quá hạn >60 ngày",
   "@overdueCountDays": {
     "description": "Urgency chip: very overdue count",
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "urgentCountDays": "{count} cần chú ý >30 ngày",
   "@urgentCountDays": {
     "description": "Urgency chip: urgent count",
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "partnerNotInSystem": "Đối tác \"{name}\" không còn trong hệ thống nhưng khoản nợ vẫn được giữ lại.",
   "@partnerNotInSystem": {
     "description": "Message when partner is missing but debt remains",
-    "placeholders": { "name": { "type": "String" } }
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
   },
   "partnerDebtNotFound": "Không tìm thấy đối tác \"{name}\". Khoản nợ vẫn còn trong danh sách.",
   "@partnerDebtNotFound": {
     "description": "Message when partner cannot be found",
-    "placeholders": { "name": { "type": "String" } }
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
   },
   "closedTodayDebt": "❌ Ngày hôm nay đã chốt quỹ! Không thể thu tiền trả nợ.",
-  "@closedTodayDebt": { "description": "Error when trying to pay debt on closed day" },
+  "@closedTodayDebt": {
+    "description": "Error when trying to pay debt on closed day"
+  },
   "closedTodayCreateDebt": "❌ Ngày hôm nay đã chốt quỹ! Không thể tạo công nợ mới.",
-  "@closedTodayCreateDebt": { "description": "Error when trying to create debt on closed day" },
+  "@closedTodayCreateDebt": {
+    "description": "Error when trying to create debt on closed day"
+  },
   "createCustomerDebtTooltip": "Tạo nợ khách hàng",
-  "@createCustomerDebtTooltip": { "description": "FAB tooltip for customer tab" },
+  "@createCustomerDebtTooltip": {
+    "description": "FAB tooltip for customer tab"
+  },
   "createSupplierDebtTooltip": "Tạo nợ nhà cung cấp",
-  "@createSupplierDebtTooltip": { "description": "FAB tooltip for supplier tab" },
+  "@createSupplierDebtTooltip": {
+    "description": "FAB tooltip for supplier tab"
+  },
   "createOtherDebtTooltip": "Tạo công nợ khác",
-  "@createOtherDebtTooltip": { "description": "FAB tooltip for other tab" },
+  "@createOtherDebtTooltip": {
+    "description": "FAB tooltip for other tab"
+  },
   "partnerNotInSystemTooltip": "Đối tác không còn trong hệ thống",
-  "@partnerNotInSystemTooltip": { "description": "Tooltip for missing partner icon" },
+  "@partnerNotInSystemTooltip": {
+    "description": "Tooltip for missing partner icon"
+  },
   "overdueDaysLabel": "Quá hạn {days} ngày",
   "@overdueDaysLabel": {
     "description": "Chip label for very overdue debt",
-    "placeholders": { "days": { "type": "int" } }
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
   },
   "daysLabel": "{days} ngày",
   "@daysLabel": {
     "description": "Chip label for urgent debt days count",
-    "placeholders": { "days": { "type": "int" } }
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
   },
   "paidFullLabel": "✓ Đã trả hết",
-  "@paidFullLabel": { "description": "Chip label when debt is fully paid" },
+  "@paidFullLabel": {
+    "description": "Chip label when debt is fully paid"
+  },
   "ordersCountLabel": "{count} đơn",
   "@ordersCountLabel": {
     "description": "Badge showing number of repair orders",
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
-
   "expenseManagementTitle": "QUẢN LÝ CHI PHÍ",
-  "@expenseManagementTitle": { "description": "Title for expense management screen" },
+  "@expenseManagementTitle": {
+    "description": "Title for expense management screen"
+  },
   "incomeManagementTitle": "THU PHÁT SINH",
-  "@incomeManagementTitle": { "description": "Title for income management screen" },
+  "@incomeManagementTitle": {
+    "description": "Title for income management screen"
+  },
   "expenseCountSubtitle": "{count} khoản chi",
   "@expenseCountSubtitle": {
     "description": "Subtitle showing expense count",
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "incomeCountSubtitle": "{count} khoản thu",
   "@incomeCountSubtitle": {
     "description": "Subtitle showing income count",
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "exportExcelIncomeExpense": "Xuất Excel thu chi",
-  "@exportExcelIncomeExpense": { "description": "Tooltip for export income/expense excel" },
+  "@exportExcelIncomeExpense": {
+    "description": "Tooltip for export income/expense excel"
+  },
   "exportIncomeExpenseTitle": "Xuất thu chi",
-  "@exportIncomeExpenseTitle": { "description": "Title for export income/expense dialog" },
+  "@exportIncomeExpenseTitle": {
+    "description": "Title for export income/expense dialog"
+  },
   "confirmDeleteIncome": "XÁC NHẬN XÓA KHOẢN THU",
-  "@confirmDeleteIncome": { "description": "Title for delete income dialog" },
+  "@confirmDeleteIncome": {
+    "description": "Title for delete income dialog"
+  },
   "confirmDeleteExpenseTitle": "XÁC NHẬN XÓA CHI PHÍ",
-  "@confirmDeleteExpenseTitle": { "description": "Title for delete expense dialog" },
+  "@confirmDeleteExpenseTitle": {
+    "description": "Title for delete expense dialog"
+  },
   "deleteIncomeContent": "Bạn đang xóa khoản thu: {title}\nSố tiền: {amount}",
   "@deleteIncomeContent": {
     "description": "Content for delete income confirmation",
     "placeholders": {
-      "title": { "type": "String" },
-      "amount": { "type": "String" }
+      "title": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      }
     }
   },
   "deleteExpenseContent": "Bạn đang xóa khoản chi: {title}\nSố tiền: {amount}",
   "@deleteExpenseContent": {
     "description": "Content for delete expense confirmation",
     "placeholders": {
-      "title": { "type": "String" },
-      "amount": { "type": "String" }
+      "title": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      }
     }
   },
   "enterPasswordToDeleteLabel": "Nhập mật khẩu tài khoản để xóa",
-  "@enterPasswordToDeleteLabel": { "description": "Label for password field in delete dialog" },
+  "@enterPasswordToDeleteLabel": {
+    "description": "Label for password field in delete dialog"
+  },
   "confirmDeleteButton": "XÁC NHẬN XÓA",
-  "@confirmDeleteButton": { "description": "Button to confirm deletion" },
+  "@confirmDeleteButton": {
+    "description": "Button to confirm deletion"
+  },
   "cannotDeletePurchaseExpense": "Không thể xóa chi phí từ đơn nhập hàng!",
-  "@cannotDeletePurchaseExpense": { "description": "Error when trying to delete purchase expense" },
+  "@cannotDeletePurchaseExpense": {
+    "description": "Error when trying to delete purchase expense"
+  },
   "wrongPasswordCannotDelete": "Mật khẩu không đúng! Không thể xóa.",
-  "@wrongPasswordCannotDelete": { "description": "Error when password is wrong during delete" },
+  "@wrongPasswordCannotDelete": {
+    "description": "Error when password is wrong during delete"
+  },
   "deletedIncomeSuccess": "Đã xóa khoản thu thành công",
-  "@deletedIncomeSuccess": { "description": "Snackbar after deleting income" },
+  "@deletedIncomeSuccess": {
+    "description": "Snackbar after deleting income"
+  },
   "deletedExpenseSuccess": "Đã xóa chi phí thành công",
-  "@deletedExpenseSuccess": { "description": "Snackbar after deleting expense" },
+  "@deletedExpenseSuccess": {
+    "description": "Snackbar after deleting expense"
+  },
   "closedTodayExpense": "❌ Ngày hôm nay đã chốt quỹ! Không thể thêm chi phí mới.",
-  "@closedTodayExpense": { "description": "Error when adding expense on closed day" },
+  "@closedTodayExpense": {
+    "description": "Error when adding expense on closed day"
+  },
   "closedTodayIncome": "❌ Ngày hôm nay đã chốt quỹ! Không thể thêm thu phát sinh mới.",
-  "@closedTodayIncome": { "description": "Error when adding income on closed day" },
+  "@closedTodayIncome": {
+    "description": "Error when adding income on closed day"
+  },
   "writeExpensesTitle": "GHI CHÉP CHI PHÍ",
-  "@writeExpensesTitle": { "description": "Title of add expense bottom sheet" },
+  "@writeExpensesTitle": {
+    "description": "Title of add expense bottom sheet"
+  },
   "categoryLabel": "PHÂN LOẠI",
-  "@categoryLabel": { "description": "Section label for expense category" },
+  "@categoryLabel": {
+    "description": "Section label for expense category"
+  },
   "expenseContentRequired": "Nội dung chi *",
-  "@expenseContentRequired": { "description": "Label for expense content field" },
+  "@expenseContentRequired": {
+    "description": "Label for expense content field"
+  },
   "pleaseEnterExpenseContent": "Vui lòng nhập nội dung chi",
-  "@pleaseEnterExpenseContent": { "description": "Validation message for expense content" },
+  "@pleaseEnterExpenseContent": {
+    "description": "Validation message for expense content"
+  },
   "amountVndRequired": "Số tiền (VNĐ) *",
-  "@amountVndRequired": { "description": "Label for amount field" },
+  "@amountVndRequired": {
+    "description": "Label for amount field"
+  },
   "extraNoteLabel": "Ghi chú thêm",
-  "@extraNoteLabel": { "description": "Label for extra note field" },
+  "@extraNoteLabel": {
+    "description": "Label for extra note field"
+  },
   "expenseScopeLabel": "PHẠM VI CHI",
-  "@expenseScopeLabel": { "description": "Section label for expense scope" },
+  "@expenseScopeLabel": {
+    "description": "Section label for expense scope"
+  },
   "saveExpenseButton": "LƯU CHI PHÍ",
-  "@saveExpenseButton": { "description": "Button label to save expense" },
+  "@saveExpenseButton": {
+    "description": "Button label to save expense"
+  },
   "savedExpense": "Đã lưu chi phí!",
-  "@savedExpense": { "description": "Snackbar after saving expense" },
+  "@savedExpense": {
+    "description": "Snackbar after saving expense"
+  },
   "writeIncomeTitle": "GHI CHÉP THU PHÁT SINH",
-  "@writeIncomeTitle": { "description": "Title of add income bottom sheet" },
+  "@writeIncomeTitle": {
+    "description": "Title of add income bottom sheet"
+  },
   "incomeContentRequired": "Nội dung thu *",
-  "@incomeContentRequired": { "description": "Label for income content field" },
+  "@incomeContentRequired": {
+    "description": "Label for income content field"
+  },
   "pleaseEnterIncomeContent": "Vui lòng nhập nội dung thu",
-  "@pleaseEnterIncomeContent": { "description": "Validation message for income content" },
+  "@pleaseEnterIncomeContent": {
+    "description": "Validation message for income content"
+  },
   "incomeScopeLabel": "PHẠM VI",
-  "@incomeScopeLabel": { "description": "Section label for income scope" },
+  "@incomeScopeLabel": {
+    "description": "Section label for income scope"
+  },
   "saveIncomeButton": "LƯU KHOẢN THU",
-  "@saveIncomeButton": { "description": "Button label to save income" },
+  "@saveIncomeButton": {
+    "description": "Button label to save income"
+  },
   "savedIncome": "Đã lưu thu phát sinh!",
-  "@savedIncome": { "description": "Snackbar after saving income" },
+  "@savedIncome": {
+    "description": "Snackbar after saving income"
+  },
   "newExpenseFab": "Chi phí mới",
-  "@newExpenseFab": { "description": "FAB label for adding expense" },
+  "@newExpenseFab": {
+    "description": "FAB label for adding expense"
+  },
   "newIncomeFab": "Thu phát sinh",
-  "@newIncomeFab": { "description": "FAB label for adding income" },
+  "@newIncomeFab": {
+    "description": "FAB label for adding income"
+  },
   "totalIncomeLabel": "Tổng thu phát sinh",
-  "@totalIncomeLabel": { "description": "Label for total income amount" },
+  "@totalIncomeLabel": {
+    "description": "Label for total income amount"
+  },
   "totalExpenseLabel": "Tổng chi",
-  "@totalExpenseLabel": { "description": "Label for total expense amount" },
+  "@totalExpenseLabel": {
+    "description": "Label for total expense amount"
+  },
   "todayPeriod": "HÔM NAY",
-  "@todayPeriod": { "description": "Period label for today" },
+  "@todayPeriod": {
+    "description": "Period label for today"
+  },
   "thisWeekPeriod": "TUẦN NÀY",
-  "@thisWeekPeriod": { "description": "Period label for this week" },
+  "@thisWeekPeriod": {
+    "description": "Period label for this week"
+  },
   "thisMonthPeriod": "THÁNG NÀY",
-  "@thisMonthPeriod": { "description": "Period label for this month" },
+  "@thisMonthPeriod": {
+    "description": "Period label for this month"
+  },
   "noExpenseInPeriod": "Không có chi phí nào trong {period} này",
   "@noExpenseInPeriod": {
     "description": "Empty state for no expenses in period",
-    "placeholders": { "period": { "type": "String" } }
+    "placeholders": {
+      "period": {
+        "type": "String"
+      }
+    }
   },
   "noIncomeInPeriod": "Không có khoản thu phát sinh nào trong {period} này",
   "@noIncomeInPeriod": {
     "description": "Empty state for no income in period",
-    "placeholders": { "period": { "type": "String" } }
+    "placeholders": {
+      "period": {
+        "type": "String"
+      }
+    }
   },
   "webNotAvailableMessage": "Tính năng này không khả dụng trên trình duyệt web.\nVui lòng sử dụng ứng dụng di động.",
-  "@webNotAvailableMessage": { "description": "Message when feature not available on web" },
+  "@webNotAvailableMessage": {
+    "description": "Message when feature not available on web"
+  },
   "noNameLabel": "Không tên",
-  "@noNameLabel": { "description": "Fallback label when no name available" },
+  "@noNameLabel": {
+    "description": "Fallback label when no name available"
+  },
   "closedDayCannotDelete": "❌ Ngày {date} đã chốt quỹ! Không thể xóa {label}.",
   "@closedDayCannotDelete": {
     "description": "Error when trying to delete on a closed day",
     "placeholders": {
-      "date": { "type": "String" },
-      "label": { "type": "String" }
+      "date": {
+        "type": "String"
+      },
+      "label": {
+        "type": "String"
+      }
     }
   },
   "incomeTypeLabel": "thu phát sinh",
-  "@incomeTypeLabel": { "description": "Label for income type (used in delete messages)" },
+  "@incomeTypeLabel": {
+    "description": "Label for income type (used in delete messages)"
+  },
   "expenseTypeLabel": "chi phí",
-  "@expenseTypeLabel": { "description": "Label for expense type (used in delete messages)" },
-
+  "@expenseTypeLabel": {
+    "description": "Label for expense type (used in delete messages)"
+  },
   "noPermissionFeature": "Bạn không có quyền truy cập tính năng này.",
-  "@noPermissionFeature": { "description": "Generic no-permission message for a feature" },
+  "@noPermissionFeature": {
+    "description": "Generic no-permission message for a feature"
+  },
   "expenseGuideStep1Title": "💸 Ghi nhận Thu & Chi",
-  "@expenseGuideStep1Title": { "description": "Guide step 1 title for expense view" },
+  "@expenseGuideStep1Title": {
+    "description": "Guide step 1 title for expense view"
+  },
   "expenseGuideStep1Desc": "Ghi lại các khoản thu nhập ngoài bán hàng (THU) và chi phí vận hành (CHI) của cửa hàng.",
-  "@expenseGuideStep1Desc": { "description": "Guide step 1 description for expense view" },
+  "@expenseGuideStep1Desc": {
+    "description": "Guide step 1 description for expense view"
+  },
   "expenseGuideStep2Title": "📂 Phân loại chi phí",
-  "@expenseGuideStep2Title": { "description": "Guide step 2 title for expense view" },
+  "@expenseGuideStep2Title": {
+    "description": "Guide step 2 title for expense view"
+  },
   "expenseGuideStep2Desc": "Phân biệt chi phí cửa hàng (điện, nước, mặt bằng) và chi phí cá nhân để báo cáo chính xác.",
-  "@expenseGuideStep2Desc": { "description": "Guide step 2 description for expense view" },
+  "@expenseGuideStep2Desc": {
+    "description": "Guide step 2 description for expense view"
+  },
   "expenseGuideStep3Title": "📅 Lọc theo thời gian",
-  "@expenseGuideStep3Title": { "description": "Guide step 3 title for expense view" },
+  "@expenseGuideStep3Title": {
+    "description": "Guide step 3 title for expense view"
+  },
   "expenseGuideStep3Desc": "Xem thu chi theo ngày, tuần hoặc tháng để kiểm soát dòng tiền hiệu quả.",
-  "@expenseGuideStep3Desc": { "description": "Guide step 3 description for expense view" },
+  "@expenseGuideStep3Desc": {
+    "description": "Guide step 3 description for expense view"
+  },
   "expenseGuideStep4Title": "📊 Biểu đồ tổng hợp",
-  "@expenseGuideStep4Title": { "description": "Guide step 4 title for expense view" },
+  "@expenseGuideStep4Title": {
+    "description": "Guide step 4 title for expense view"
+  },
   "expenseGuideStep4Desc": "Theo dõi xu hướng thu chi bằng biểu đồ trực quan, phát hiện khoản chi bất thường.",
-  "@expenseGuideStep4Desc": { "description": "Guide step 4 description for expense view" },
+  "@expenseGuideStep4Desc": {
+    "description": "Guide step 4 description for expense view"
+  },
   "expenseCatIncidental": "Phát sinh",
-  "@expenseCatIncidental": { "description": "Category label: incidental expense/income" },
+  "@expenseCatIncidental": {
+    "description": "Category label: incidental expense/income"
+  },
   "expenseCatService": "Dịch vụ",
-  "@expenseCatService": { "description": "Category label: service income" },
+  "@expenseCatService": {
+    "description": "Category label: service income"
+  },
   "expenseCatRefund": "Hoàn tiền",
-  "@expenseCatRefund": { "description": "Category label: refund income" },
+  "@expenseCatRefund": {
+    "description": "Category label: refund income"
+  },
   "expenseCatFixed": "Cố định",
-  "@expenseCatFixed": { "description": "Category label: fixed expense" },
+  "@expenseCatFixed": {
+    "description": "Category label: fixed expense"
+  },
   "expenseCatStockIn": "Nhập hàng",
-  "@expenseCatStockIn": { "description": "Category label: stock-in expense" },
+  "@expenseCatStockIn": {
+    "description": "Category label: stock-in expense"
+  },
   "expenseScopePersonal": "CÁ NHÂN",
-  "@expenseScopePersonal": { "description": "Scope chip label: personal (ca nhan)" },
+  "@expenseScopePersonal": {
+    "description": "Scope chip label: personal (ca nhan)"
+  },
   "expenseScopeAll": "TẤT CẢ",
-  "@expenseScopeAll": { "description": "Scope filter chip label: all" },
-
+  "@expenseScopeAll": {
+    "description": "Scope filter chip label: all"
+  },
   "debtPartnerDefaultName": "Đối tác {index}",
   "@debtPartnerDefaultName": {
     "description": "Default partner name when actual name is unavailable",
-    "placeholders": { "index": { "type": "int" } }
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
   },
   "debtGenericError": "Lỗi: {error}",
   "@debtGenericError": {
     "description": "Generic error with message",
-    "placeholders": { "error": { "type": "String" } }
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
   },
   "debtPaymentGenericError": "Có lỗi xảy ra",
-  "@debtPaymentGenericError": { "description": "Generic error message for payment failure" },
+  "@debtPaymentGenericError": {
+    "description": "Generic error message for payment failure"
+  },
   "debtGuideTitle": "Quản Lý Công Nợ",
-  "@debtGuideTitle": { "description": "Title for debt management first-time guide" },
+  "@debtGuideTitle": {
+    "description": "Title for debt management first-time guide"
+  },
   "debtGuideStep1Title3Types": "📊 3 loại công nợ",
-  "@debtGuideStep1Title3Types": { "description": "Guide step 1 title: 3 debt types" },
+  "@debtGuideStep1Title3Types": {
+    "description": "Guide step 1 title: 3 debt types"
+  },
   "debtGuideStep1Title2Types": "📊 2 loại công nợ",
-  "@debtGuideStep1Title2Types": { "description": "Guide step 1 title: 2 debt types" },
+  "@debtGuideStep1Title2Types": {
+    "description": "Guide step 1 title: 2 debt types"
+  },
   "debtGuideStep1Desc3Types": "KHÁCH NỢ (khách chưa TT), NỢ NCC (nợ nhà cung cấp), NỢ ĐỐI TÁC (nợ thợ sửa ngoài).",
-  "@debtGuideStep1Desc3Types": { "description": "Guide step 1 description: 3 debt types" },
+  "@debtGuideStep1Desc3Types": {
+    "description": "Guide step 1 description: 3 debt types"
+  },
   "debtGuideStep1Desc2Types": "KHÁCH NỢ (khách chưa TT), NỢ NCC (nợ nhà cung cấp).",
-  "@debtGuideStep1Desc2Types": { "description": "Guide step 1 description: 2 debt types" },
+  "@debtGuideStep1Desc2Types": {
+    "description": "Guide step 1 description: 2 debt types"
+  },
   "debtGuideStep2Title": "💰 Ghi nhận thanh toán",
-  "@debtGuideStep2Title": { "description": "Guide step 2 title: record payment" },
+  "@debtGuideStep2Title": {
+    "description": "Guide step 2 title: record payment"
+  },
   "debtGuideStep2Desc": "Nhấn vào khoản nợ để xem chi tiết và ghi nhận thanh toán từng phần hoặc toàn bộ.",
-  "@debtGuideStep2Desc": { "description": "Guide step 2 description" },
+  "@debtGuideStep2Desc": {
+    "description": "Guide step 2 description"
+  },
   "debtGuideStep3Title": "📅 Theo dõi hạn nợ",
-  "@debtGuideStep3Title": { "description": "Guide step 3 title: track due dates" },
+  "@debtGuideStep3Title": {
+    "description": "Guide step 3 title: track due dates"
+  },
   "debtGuideStep3Desc": "Nợ quá hạn sẽ được highlight đỏ. Báo cáo tổng hợp giúp theo dõi dòng tiền.",
-  "@debtGuideStep3Desc": { "description": "Guide step 3 description" },
+  "@debtGuideStep3Desc": {
+    "description": "Guide step 3 description"
+  },
   "debtGuideStep4Title": "🔄 Tự động tạo nợ",
-  "@debtGuideStep4Title": { "description": "Guide step 4 title: auto-create debts" },
+  "@debtGuideStep4Title": {
+    "description": "Guide step 4 title: auto-create debts"
+  },
   "debtGuideStep4Desc": "Khi bán hàng/nhập kho chọn \"CÔNG NỢ\", hệ thống tự tạo khoản nợ tương ứng.",
-  "@debtGuideStep4Desc": { "description": "Guide step 4 description" },
+  "@debtGuideStep4Desc": {
+    "description": "Guide step 4 description"
+  },
   "debtCollectFieldName": "Số tiền thu",
-  "@debtCollectFieldName": { "description": "Field name for collection amount validator" },
+  "@debtCollectFieldName": {
+    "description": "Field name for collection amount validator"
+  },
   "debtPayFieldName": "Số tiền thanh toán",
-  "@debtPayFieldName": { "description": "Field name for payment amount validator" },
+  "@debtPayFieldName": {
+    "description": "Field name for payment amount validator"
+  },
   "debtAmountFieldName": "Số tiền nợ",
-  "@debtAmountFieldName": { "description": "Field name for debt amount validator" },
+  "@debtAmountFieldName": {
+    "description": "Field name for debt amount validator"
+  },
   "backupGroupOperations": "Vận hành",
   "@backupGroupOperations": {},
   "backupGroupWarehouse": "Kho & Sản phẩm",
@@ -4078,7 +4536,11 @@
   "@backupProcessing": {},
   "backupSavedPathLabel": "Đã lưu: {fileName}",
   "@backupSavedPathLabel": {
-    "placeholders": { "fileName": { "type": "String" } }
+    "placeholders": {
+      "fileName": {
+        "type": "String"
+      }
+    }
   },
   "backupNoLocalBackupsHint": "Chưa có bản sao lưu cục bộ nào. Hãy bấm \"Lưu file .db vào máy\" ở trên.",
   "@backupNoLocalBackupsHint": {},
@@ -4100,25 +4562,45 @@
   "@backupQuickGuideRestoreOnline": {},
   "backupCannotLoad": "Không thể tải backup: {error}",
   "@backupCannotLoad": {
-    "placeholders": { "error": { "type": "String" } }
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
   },
   "backupSavedLocally": "Đã lưu bản sao SQLite vào máy. Bạn có thể chia sẻ từ danh sách backup cục bộ.",
   "@backupSavedLocally": {},
   "backupExportError": "Lỗi xuất file: {error}",
   "@backupExportError": {
-    "placeholders": { "error": { "type": "String" } }
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
   },
   "backupShareFileError": "Lỗi chia sẻ file: {error}",
   "@backupShareFileError": {
-    "placeholders": { "error": { "type": "String" } }
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
   },
   "backupDeletedLocalName": "Đã xóa backup cục bộ {name}.",
   "@backupDeletedLocalName": {
-    "placeholders": { "name": { "type": "String" } }
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
   },
   "backupDeleteLocalError": "Lỗi xóa backup cục bộ: {error}",
   "@backupDeleteLocalError": {
-    "placeholders": { "error": { "type": "String" } }
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
   },
   "backupCloudSuccess": "Sao lưu SQLite lên Cloud thành công!",
   "@backupCloudSuccess": {},
@@ -4126,69 +4608,123 @@
   "@backupDeletedCloud": {},
   "backupRestoreErrorMsg": "Lỗi khôi phục: {error}",
   "@backupRestoreErrorMsg": {
-    "placeholders": { "error": { "type": "String" } }
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
   },
   "backupRestoreLocalErrorMsg": "Lỗi khôi phục cục bộ: {error}",
   "@backupRestoreLocalErrorMsg": {
-    "placeholders": { "error": { "type": "String" } }
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
   },
   "backupDeleteSuccessWithCloud": "Đã xóa local {localRows} bản ghi và cloud {cloudRows} bản ghi ({label}). Khởi động lại app để áp dụng.",
   "@backupDeleteSuccessWithCloud": {
     "placeholders": {
-      "localRows": { "type": "int" },
-      "cloudRows": { "type": "int" },
-      "label": { "type": "String" }
+      "localRows": {
+        "type": "int"
+      },
+      "cloudRows": {
+        "type": "int"
+      },
+      "label": {
+        "type": "String"
+      }
     }
   },
   "backupDeleteSuccessLocalOnly": "Đã xóa {localRows} bản ghi local ({label}). Nếu Cloud còn dữ liệu, app có thể sync lại.",
   "@backupDeleteSuccessLocalOnly": {
     "placeholders": {
-      "localRows": { "type": "int" },
-      "label": { "type": "String" }
+      "localRows": {
+        "type": "int"
+      },
+      "label": {
+        "type": "String"
+      }
     }
   },
   "backupDeleteErrorMsg": "Lỗi xóa: {error}",
   "@backupDeleteErrorMsg": {
-    "placeholders": { "error": { "type": "String" } }
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
   },
   "backupFirestoreError": "Lỗi sao lưu Firestore: {error}",
   "@backupFirestoreError": {
-    "placeholders": { "error": { "type": "String" } }
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
   },
   "backupRestoreSuccessMsg": "Khôi phục thành công ({count} mục)!",
   "@backupRestoreSuccessMsg": {
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "backupRestoreFirestoreError": "Lỗi khôi phục: {error}",
   "@backupRestoreFirestoreError": {
-    "placeholders": { "error": { "type": "String" } }
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
   },
   "backupDeletedSet": "Đã xóa bản sao lưu.",
   "@backupDeletedSet": {},
   "backupDeleteSetErrorMsg": "Lỗi xóa: {error}",
   "@backupDeleteSetErrorMsg": {
-    "placeholders": { "error": { "type": "String" } }
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
   },
   "backupNoOldFiles": "Không có backup nào cũ hơn {days} ngày.",
   "@backupNoOldFiles": {
-    "placeholders": { "days": { "type": "int" } }
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
   },
   "backupDeletedOldFiles": "Đã xóa {count} file backup cũ hơn {days} ngày.",
   "@backupDeletedOldFiles": {
     "placeholders": {
-      "count": { "type": "int" },
-      "days": { "type": "int" }
+      "count": {
+        "type": "int"
+      },
+      "days": {
+        "type": "int"
+      }
     }
   },
   "backupCleanError": "Lỗi dọn backup: {error}",
   "@backupCleanError": {
-    "placeholders": { "error": { "type": "String" } }
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
   },
   "backupDeleteLocalTitle": "Xóa bản sao lưu cục bộ?",
   "@backupDeleteLocalTitle": {},
   "backupDeleteLocalContent": "Bạn có chắc muốn xóa file \"{name}\"?",
   "@backupDeleteLocalContent": {
-    "placeholders": { "name": { "type": "String" } }
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
   },
   "backupDeleteCloudTitle": "Xóa bản sao lưu Cloud?",
   "@backupDeleteCloudTitle": {},
@@ -4200,7 +4736,11 @@
   "@backupRestoreCloudTitle": {},
   "backupRestoreCloudContent": "Bạn sắp khôi phục từ bản sao lưu:\n{fileName}\n\nDữ liệu hiện tại trên máy sẽ bị ghi đè. Tiếp tục?",
   "@backupRestoreCloudContent": {
-    "placeholders": { "fileName": { "type": "String" } }
+    "placeholders": {
+      "fileName": {
+        "type": "String"
+      }
+    }
   },
   "backupChooseRestoreTypeTip": "Khôi phục nguyên bản sẽ giữ nguyên shopId cũ.\n\nNếu muốn đưa dữ liệu vào shop hiện tại, chọn phương án chuyển shopId.",
   "@backupChooseRestoreTypeTip": {},
@@ -4210,23 +4750,43 @@
   "@backupRestoreSuccessTitle": {},
   "backupRestoredWithTransfer": "Đã khôi phục {count} mục và chuyển vào shop hiện tại. Vui lòng khởi động lại ứng dụng để áp dụng thay đổi.",
   "@backupRestoredWithTransfer": {
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "backupRestoredNoTransfer": "Đã khôi phục {count} mục dữ liệu. Vui lòng khởi động lại ứng dụng để áp dụng thay đổi.",
   "@backupRestoredNoTransfer": {
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "backupRestoredCloudWithTransfer": "Đã khôi phục {count} mục từ Cloud và chuyển vào shop hiện tại. Vui lòng khởi động lại ứng dụng.",
   "@backupRestoredCloudWithTransfer": {
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "backupRestoredCloudNoTransfer": "Đã khôi phục {count} mục từ Cloud. Vui lòng khởi động lại ứng dụng để áp dụng dữ liệu mới.",
   "@backupRestoredCloudNoTransfer": {
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "backupDeleteWarningTitle": "Xóa: {label}?",
   "@backupDeleteWarningTitle": {
-    "placeholders": { "label": { "type": "String" } }
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
   },
   "backupDeleteWarningContent": "Dữ liệu sẽ bị xóa vĩnh viễn khỏi thiết bị này.\n\nNên sao lưu trước khi xóa để tránh mất dữ liệu quan trọng.",
   "@backupDeleteWarningContent": {},
@@ -4254,35 +4814,57 @@
   "@backupLocalRestoreContent": {},
   "backupRestoredLocalWithTransfer": "Đã khôi phục {count} mục và chuyển vào shop hiện tại. Vui lòng khởi động lại ứng dụng.",
   "@backupRestoredLocalWithTransfer": {
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "backupRestoredLocalNoTransfer": "Đã khôi phục {count} mục từ bản backup cục bộ. Vui lòng khởi động lại ứng dụng.",
   "@backupRestoredLocalNoTransfer": {
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "backupConfirmRestoreTitle": "Xác nhận khôi phục",
   "@backupConfirmRestoreTitle": {},
   "backupConfirmRestoreContent": "Dữ liệu hiện tại của {count} mục sẽ bị ghi đè bởi bản sao lưu ngày {date}.\n\nTiếp tục?",
   "@backupConfirmRestoreContent": {
     "placeholders": {
-      "count": { "type": "int" },
-      "date": { "type": "String" }
+      "count": {
+        "type": "int"
+      },
+      "date": {
+        "type": "String"
+      }
     }
   },
   "backupDeleteSetTitle": "Xóa bản sao lưu?",
   "@backupDeleteSetTitle": {},
   "backupDeleteSetContent": "Xóa bản sao lưu ngày {date}?",
   "@backupDeleteSetContent": {
-    "placeholders": { "date": { "type": "String" } }
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
   },
   "backupPreparingMsg": "Đang chuẩn bị...",
   "@backupPreparingMsg": {},
   "backupBackingUpItem": "Đang sao lưu {item} ({done}/{total})...",
   "@backupBackingUpItem": {
     "placeholders": {
-      "item": { "type": "String" },
-      "done": { "type": "int" },
-      "total": { "type": "int" }
+      "item": {
+        "type": "String"
+      },
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
     }
   },
   "backupRestoringMsg": "Đang khôi phục...",
@@ -4291,7 +4873,11 @@
   "@backupSelectDataBackup": {},
   "backupSelectedCountLabel": "{count} mục đã chọn",
   "@backupSelectedCountLabel": {
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "backupNotAvailable": "Không có trong bản sao lưu này",
   "@backupNotAvailable": {},
@@ -4299,21 +4885,37 @@
   "@backupStorageRulesTitle": {},
   "backupCloudPermissionError": "{action} Cloud thất bại: tài khoản chưa có quyền Firebase Storage cho db_backups.",
   "@backupCloudPermissionError": {
-    "placeholders": { "action": { "type": "String" } }
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
   },
   "backupCloudNotFoundError": "{action} Cloud thất bại: không tìm thấy file backup trên Cloud.",
   "@backupCloudNotFoundError": {
-    "placeholders": { "action": { "type": "String" } }
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
   },
   "backupCloudAuthError": "{action} Cloud thất bại: phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.",
   "@backupCloudAuthError": {
-    "placeholders": { "action": { "type": "String" } }
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
   },
   "backupCloudGenericError": "{action} Cloud thất bại: {error}",
   "@backupCloudGenericError": {
     "placeholders": {
-      "action": { "type": "String" },
-      "error": { "type": "String" }
+      "action": {
+        "type": "String"
+      },
+      "error": {
+        "type": "String"
+      }
     }
   },
   "backupPresetInventoryCash": "Kiểm kê & Chốt ca",
@@ -4340,7 +4942,11 @@
   "@inventoryNoAccessMsg": {},
   "inventoryUnsyncedNote": "{count} chưa đồng bộ",
   "@inventoryUnsyncedNote": {
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "inventoryInStockLabel": "CÒN HÀNG",
   "@inventoryInStockLabel": {},
@@ -4350,7 +4956,11 @@
   "@inventoryTempStockBanner": {},
   "inventoryExpectedSupplier": "NCC dự kiến: {supplier}",
   "@inventoryExpectedSupplier": {
-    "placeholders": { "supplier": { "type": "String" } }
+    "placeholders": {
+      "supplier": {
+        "type": "String"
+      }
+    }
   },
   "inventoryStockQty": "SL tồn kho",
   "@inventoryStockQty": {},
@@ -4392,7 +5002,11 @@
   "@inventorySellAction": {},
   "inventoryStockMoreAction": "NHẬP THÊM ({count})",
   "@inventoryStockMoreAction": {
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "inventoryDeleteAction": "XÓA",
   "@inventoryDeleteAction": {},
@@ -4400,11 +5014,19 @@
   "@inventoryRestockTitle": {},
   "inventoryCurrentStockNote": "Tồn kho hiện tại: {qty}",
   "@inventoryCurrentStockNote": {
-    "placeholders": { "qty": { "type": "int" } }
+    "placeholders": {
+      "qty": {
+        "type": "int"
+      }
+    }
   },
   "inventoryCurrentCostNote": "Giá vốn hiện tại: {price}",
   "@inventoryCurrentCostNote": {
-    "placeholders": { "price": { "type": "String" } }
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
   },
   "inventoryRestockQtyLabel": "Số lượng nhập thêm",
   "@inventoryRestockQtyLabel": {},
@@ -4412,7 +5034,11 @@
   "@inventoryRestockPriceLabel": {},
   "inventoryWeightedCostNote": "Giá vốn sau nhập: {price}",
   "@inventoryWeightedCostNote": {
-    "placeholders": { "price": { "type": "String" } }
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
   },
   "inventoryPaymentMethodLabel": "Phương thức thanh toán",
   "@inventoryPaymentMethodLabel": {},
@@ -4437,15 +5063,23 @@
   "inventoryStockInSuccess": "Đã nhập thêm {qty} {name} vào kho",
   "@inventoryStockInSuccess": {
     "placeholders": {
-      "qty": { "type": "int" },
-      "name": { "type": "String" }
+      "qty": {
+        "type": "int"
+      },
+      "name": {
+        "type": "String"
+      }
     }
   },
   "inventoryConfirmEntryError": "Lỗi xác nhận phiếu nhập kho",
   "@inventoryConfirmEntryError": {},
   "inventoryErrorMsg": "Lỗi: {error}",
   "@inventoryErrorMsg": {
-    "placeholders": { "error": { "type": "String" } }
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
   },
   "inventoryEditOption": "Chỉnh sửa",
   "@inventoryEditOption": {},
@@ -4453,7 +5087,11 @@
   "@inventoryHideOption": {},
   "inventoryCostPriceNote": "Giá vốn: {price}",
   "@inventoryCostPriceNote": {
-    "placeholders": { "price": { "type": "String" } }
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
   },
   "inventorySoftDeleteWarning": "⚠️ LƯU Ý QUAN TRỌNG:",
   "@inventorySoftDeleteWarning": {},
@@ -4474,15 +5112,23 @@
   "inventoryHideSuccess": "Đã ẩn {product} khỏi kho: {name}",
   "@inventoryHideSuccess": {
     "placeholders": {
-      "product": { "type": "String" },
-      "name": { "type": "String" }
+      "product": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
     }
   },
   "inventoryHideError": "Lỗi xóa {product}: {error}",
   "@inventoryHideError": {
     "placeholders": {
-      "product": { "type": "String" },
-      "error": { "type": "String" }
+      "product": {
+        "type": "String"
+      },
+      "error": {
+        "type": "String"
+      }
     }
   },
   "inventoryEmptyFiltered": "Không tìm thấy sản phẩm",
@@ -4497,7 +5143,11 @@
   "@inventoryConfirmDeleteTitle": {},
   "inventoryConfirmDeleteContent": "Bạn có chắc chắn muốn xóa {count} mặt hàng đã chọn không?",
   "@inventoryConfirmDeleteContent": {
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "inventoryEnterPasswordToDelete": "Nhập mật khẩu tài khoản để xóa:",
   "@inventoryEnterPasswordToDelete": {},
@@ -4513,7 +5163,11 @@
   "@inventoryStockInTooltip": {},
   "inventorySearchWithQuery": "Tìm kiếm: \"{query}\"",
   "@inventorySearchWithQuery": {
-    "placeholders": { "query": { "type": "String" } }
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
   },
   "inventoryMoreTooltip": "Thêm",
   "@inventoryMoreTooltip": {},
@@ -4523,13 +5177,21 @@
   "@inventoryPrintLabelsMenu": {},
   "inventorySelectedCount": "ĐÃ CHỌN {count}",
   "@inventorySelectedCount": {
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "inventoryShownCount": "Đã hiển thị {count} {product}",
   "@inventoryShownCount": {
     "placeholders": {
-      "count": { "type": "int" },
-      "product": { "type": "String" }
+      "count": {
+        "type": "int"
+      },
+      "product": {
+        "type": "String"
+      }
     }
   },
   "inventoryDisplayOrTotal": "HIỂN THỊ / TỔNG",
@@ -4630,7 +5292,11 @@
   "@inventoryStatusUnknown": {},
   "inventorySearchProduct": "Tìm {product}",
   "@inventorySearchProduct": {
-    "placeholders": { "product": { "type": "String" } }
+    "placeholders": {
+      "product": {
+        "type": "String"
+      }
+    }
   },
   "inventoryExportParts": "Xuất kho linh kiện",
   "@inventoryExportParts": {},
@@ -4639,14 +5305,24 @@
   "inventorySearchHint": "Nhập {product}, {category} hoặc {field}...",
   "@inventorySearchHint": {
     "placeholders": {
-      "product": { "type": "String" },
-      "category": { "type": "String" },
-      "field": { "type": "String" }
+      "product": {
+        "type": "String"
+      },
+      "category": {
+        "type": "String"
+      },
+      "field": {
+        "type": "String"
+      }
     }
   },
   "inventoryHideProductTitle": "ẨN {product} (KHO)",
   "@inventoryHideProductTitle": {
-    "placeholders": { "product": { "type": "String" } }
+    "placeholders": {
+      "product": {
+        "type": "String"
+      }
+    }
   },
   "inventorySearchTooltip": "Tìm kiếm",
   "@inventorySearchTooltip": {},
@@ -4654,15 +5330,27 @@
   "@inventoryExportExcelMenu": {},
   "inventoryCapitalChip": "Vốn {price}đ",
   "@inventoryCapitalChip": {
-    "placeholders": { "price": { "type": "String" } }
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
   },
   "inventoryEditProductTitle": "CHỈNH SỬA {label}",
   "@inventoryEditProductTitle": {
-    "placeholders": { "label": { "type": "String" } }
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
   },
   "inventoryProductNameLabel": "Tên {label}",
   "@inventoryProductNameLabel": {
-    "placeholders": { "label": { "type": "String" } }
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
   },
   "inventoryConfirmBtn": "XÁC NHẬN",
   "@inventoryConfirmBtn": {},

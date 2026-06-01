@@ -73,6 +73,7 @@ class _SaleListViewState extends State<SaleListView> {
   StreamSubscription<String>? _saleChangedSub;
   StreamSubscription<String>? _saleReturnSub;
   Timer? _saleRefreshDebounce;
+  Timer? _searchDebounce;
 
   // Multi-Industry: Shop Settings
   ShopSettings? _shopSettings;
@@ -151,6 +152,7 @@ class _SaleListViewState extends State<SaleListView> {
     _saleChangedSub?.cancel();
     _saleReturnSub?.cancel();
     _saleRefreshDebounce?.cancel();
+    _searchDebounce?.cancel();
     _searchController.dispose();
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
@@ -810,7 +812,12 @@ class _SaleListViewState extends State<SaleListView> {
             color: Colors.white,
             child: TextField(
               controller: _searchController,
-              onChanged: (v) => setState(() => _search = v),
+              onChanged: (v) {
+                _searchDebounce?.cancel();
+                _searchDebounce = Timer(const Duration(milliseconds: 200), () {
+                  if (mounted) setState(() => _search = v);
+                });
+              },
               style: TextStyle(fontSize: AppTextStyles.headline5.fontSize),
               decoration: InputDecoration(
                 hintText: l10n.saleListSearchHint(
@@ -1016,16 +1023,12 @@ class _SaleListViewState extends State<SaleListView> {
                               final paidAmount = (s.finalPrice - remain).clamp(0, s.finalPrice);
 
                               return Card(
-                                margin: const EdgeInsets.only(bottom: 6),
+                                margin: const EdgeInsets.only(bottom: 5),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(10),
-                                  side: BorderSide(
-                                    color: borderColor,
-                                    width: 1,
-                                  ),
+                                  side: BorderSide(color: borderColor, width: 1),
                                 ),
-                                elevation: 0.5,
-                                shadowColor: accentColor.withValues(alpha: 0.15),
+                                elevation: 0,
                                 color: Colors.white,
                                 child: InkWell(
                                   onTap: () {
@@ -1044,97 +1047,99 @@ class _SaleListViewState extends State<SaleListView> {
                                   borderRadius: BorderRadius.circular(10),
                                   child: IntrinsicHeight(
                                     child: Row(
-                                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                                    children: [
-                                      // Left accent bar
-                                      Container(
-                                        width: 4,
-                                        decoration: BoxDecoration(
-                                          color: accentColor,
-                                          borderRadius: const BorderRadius.only(
-                                            topLeft: Radius.circular(10),
-                                            bottomLeft: Radius.circular(10),
+                                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                                      children: [
+                                        // Accent bar
+                                        Container(
+                                          width: 5,
+                                          decoration: BoxDecoration(
+                                            color: accentColor,
+                                            borderRadius: const BorderRadius.only(
+                                              topLeft: Radius.circular(10),
+                                              bottomLeft: Radius.circular(10),
+                                            ),
                                           ),
                                         ),
-                                      ),
-                                      // Content
-                                      Expanded(
-                                        child: Padding(
-                                          padding: const EdgeInsets.fromLTRB(8, 7, 8, 7),
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              // ROW 1: Index + Product name + Status badge
-                                              Row(
-                                                crossAxisAlignment: CrossAxisAlignment.center,
-                                                children: [
-                                                  Container(
-                                                    width: 18,
-                                                    height: 16,
-                                                    margin: const EdgeInsets.only(right: 5),
-                                                    decoration: BoxDecoration(
-                                                      color: AppColors.primary.withOpacity(0.1),
-                                                      borderRadius: BorderRadius.circular(3),
-                                                    ),
-                                                    child: Center(
-                                                      child: Text(
-                                                        '$index',
-                                                        style: const TextStyle(
-                                                          fontSize: 9,
-                                                          fontWeight: FontWeight.bold,
-                                                          color: AppColors.primary,
+                                        // Content
+                                        Expanded(
+                                          child: Padding(
+                                            padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                // ROW 1: Index · Product · Status badge
+                                                Row(
+                                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                                  children: [
+                                                    Container(
+                                                      constraints: const BoxConstraints(minWidth: 20),
+                                                      height: 17,
+                                                      margin: const EdgeInsets.only(right: 6),
+                                                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                                                      decoration: BoxDecoration(
+                                                        color: AppColors.primary.withValues(alpha: 0.1),
+                                                        borderRadius: BorderRadius.circular(4),
+                                                      ),
+                                                      child: Center(
+                                                        child: Text(
+                                                          '$index',
+                                                          style: const TextStyle(
+                                                            fontSize: 10,
+                                                            fontWeight: FontWeight.bold,
+                                                            color: AppColors.primary,
+                                                          ),
                                                         ),
                                                       ),
                                                     ),
-                                                  ),
-                                                  Expanded(
-                                                    child: Text(
-                                                      s.productNamesDisplay,
-                                                      style: const TextStyle(
-                                                        fontSize: 13,
-                                                        fontWeight: FontWeight.bold,
-                                                        color: Color(0xFF0F172A),
-                                                      ),
-                                                      maxLines: 1,
-                                                      overflow: TextOverflow.ellipsis,
-                                                    ),
-                                                  ),
-                                                  const SizedBox(width: 6),
-                                                  // Status badge
-                                                  Container(
-                                                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                                                    decoration: BoxDecoration(
-                                                      color: accentColor,
-                                                      borderRadius: BorderRadius.circular(4),
-                                                    ),
-                                                    child: Text(
-                                                      isFullyReturned
-                                                          ? l10n.saleListStatusReturned
-                                                          : (isInstallment && !hasBankSettlement)
-                                                          ? l10n.saleListStatusBankPending
-                                                          : (isPaid ? l10n.saleListStatusCollected : l10n.saleListStatusHasDebt),
-                                                      style: const TextStyle(
-                                                        color: Colors.white,
-                                                        fontSize: 9,
-                                                        fontWeight: FontWeight.bold,
+                                                    Expanded(
+                                                      child: Text(
+                                                        s.productNamesDisplay,
+                                                        style: const TextStyle(
+                                                          fontSize: 13.5,
+                                                          fontWeight: FontWeight.w700,
+                                                          color: Color(0xFF0F172A),
+                                                          letterSpacing: -0.2,
+                                                        ),
+                                                        maxLines: 1,
+                                                        overflow: TextOverflow.ellipsis,
                                                       ),
                                                     ),
-                                                  ),
-                                                ],
-                                              ),
-                                              // ROW 2: Customer + Date
-                                              Padding(
-                                                padding: const EdgeInsets.only(top: 2),
-                                                child: Row(
+                                                    const SizedBox(width: 6),
+                                                    Container(
+                                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                      decoration: BoxDecoration(
+                                                        color: accentColor,
+                                                        borderRadius: BorderRadius.circular(5),
+                                                      ),
+                                                      child: Text(
+                                                        isFullyReturned
+                                                            ? l10n.saleListStatusReturned
+                                                            : (isInstallment && !hasBankSettlement)
+                                                            ? l10n.saleListStatusBankPending
+                                                            : (isPaid ? l10n.saleListStatusCollected : l10n.saleListStatusHasDebt),
+                                                        style: const TextStyle(
+                                                          color: Colors.white,
+                                                          fontSize: 10,
+                                                          fontWeight: FontWeight.w700,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                                const SizedBox(height: 4),
+                                                // ROW 2: Customer · Seller · Date
+                                                Row(
                                                   children: [
                                                     if (s.customerName.isNotEmpty) ...[
-                                                      const Icon(Icons.person_outline, size: 10, color: Color(0xFF64748B)),
-                                                      const SizedBox(width: 2),
+                                                      const Icon(Icons.person_outline, size: 11, color: Color(0xFF475569)),
+                                                      const SizedBox(width: 3),
                                                       Expanded(
                                                         child: Text(
-                                                          s.customerName,
-                                                          style: const TextStyle(fontSize: 10, color: Color(0xFF64748B)),
+                                                          s.sellerName.isNotEmpty
+                                                              ? '${s.customerName}  ·  ${s.sellerName}'
+                                                              : s.customerName,
+                                                          style: const TextStyle(fontSize: 11, color: Color(0xFF475569)),
                                                           maxLines: 1,
                                                           overflow: TextOverflow.ellipsis,
                                                         ),
@@ -1143,140 +1148,120 @@ class _SaleListViewState extends State<SaleListView> {
                                                       GestureDetector(
                                                         onTap: () => _addCustomerToSale(s),
                                                         child: Container(
-                                                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                                           decoration: BoxDecoration(
                                                             color: Colors.orange.shade50,
                                                             borderRadius: BorderRadius.circular(8),
+                                                            border: Border.all(color: Colors.orange.shade200),
                                                           ),
                                                           child: Row(
                                                             mainAxisSize: MainAxisSize.min,
                                                             children: [
-                                                              Icon(Icons.person_add_outlined, size: 9, color: Colors.orange.shade700),
-                                                              const SizedBox(width: 2),
-                                                              Text('Thêm khách', style: TextStyle(fontSize: 9, color: Colors.orange.shade700, fontWeight: FontWeight.w600)),
+                                                              Icon(Icons.person_add_outlined, size: 10, color: Colors.orange.shade700),
+                                                              const SizedBox(width: 3),
+                                                              Text('Thêm khách', style: TextStyle(fontSize: 10, color: Colors.orange.shade700, fontWeight: FontWeight.w600)),
                                                             ],
                                                           ),
                                                         ),
                                                       ),
                                                       const Spacer(),
                                                     ],
+                                                    const SizedBox(width: 6),
                                                     Text(
                                                       date,
-                                                      style: TextStyle(fontSize: 9, color: Colors.grey.shade500),
+                                                      style: const TextStyle(fontSize: 10, color: Color(0xFF94A3B8)),
                                                     ),
                                                   ],
                                                 ),
-                                              ),
-                                              const SizedBox(height: 5),
-                                              // ROW 3: Cash – collected / debt
-                                              if (s.finalPrice > 0)
-                                                _saleInfoRow(
-                                                  left: _saleChip(
-                                                    l10n.saleListChipPaid,
-                                                    MoneyUtils.formatCompactCurrency(paidAmount),
-                                                    const Color(0xFF0369A1),
-                                                    const Color(0xFFE0F2FE),
+                                                const SizedBox(height: 6),
+                                                // ROW 3: Đã thu / Nợ
+                                                if (s.finalPrice > 0)
+                                                  _saleInfoRow(
+                                                    left: _saleChip(
+                                                      l10n.saleListChipPaid,
+                                                      MoneyUtils.formatCompactCurrency(paidAmount),
+                                                      const Color(0xFF0369A1),
+                                                      const Color(0xFFE0F2FE),
+                                                    ),
+                                                    right: remain > 0
+                                                        ? _saleChip(
+                                                            l10n.saleListChipDebt,
+                                                            MoneyUtils.formatCompactCurrency(remain),
+                                                            const Color(0xFFB45309),
+                                                            const Color(0xFFFEF3C7),
+                                                          )
+                                                        : null,
                                                   ),
-                                                  right: remain > 0
+                                                const SizedBox(height: 3),
+                                                // ROW 4: Bán / Vốn
+                                                _saleInfoRow(
+                                                  left: s.finalPrice > 0
                                                       ? _saleChip(
-                                                          l10n.saleListChipDebt,
-                                                          MoneyUtils.formatCompactCurrency(remain),
-                                                          const Color(0xFFB45309),
-                                                          const Color(0xFFFEF3C7),
+                                                          l10n.saleListChipSale,
+                                                          MoneyUtils.formatCompactCurrency(s.finalPrice),
+                                                          const Color(0xFF374151),
+                                                          const Color(0xFFF1F5F9),
+                                                        )
+                                                      : null,
+                                                  right: (_canViewCostPrice && s.totalCost > 0)
+                                                      ? _saleChip(
+                                                          l10n.saleListChipCost,
+                                                          MoneyUtils.formatCompactCurrency(s.totalCost),
+                                                          const Color(0xFF6B7280),
+                                                          const Color(0xFFF8FAFC),
                                                         )
                                                       : null,
                                                 ),
-                                              const SizedBox(height: 3),
-                                              // ROW 4: Value – sale / cost
-                                              _saleInfoRow(
-                                                left: s.finalPrice > 0
-                                                    ? _saleChip(
-                                                        l10n.saleListChipSale,
-                                                        MoneyUtils.formatCompactCurrency(s.finalPrice),
-                                                        const Color(0xFF374151),
-                                                        const Color(0xFFF3F4F6),
-                                                      )
-                                                    : null,
-                                                right: (_canViewCostPrice && s.totalCost > 0)
-                                                    ? _saleChip(
-                                                        l10n.saleListChipCost,
-                                                        MoneyUtils.formatCompactCurrency(s.totalCost),
-                                                        const Color(0xFF6B7280),
-                                                        const Color(0xFFF9FAFB),
-                                                      )
-                                                    : null,
-                                              ),
-                                              // ROW 5: Profit / Loss
-                                              if (_canViewCostPrice && s.totalCost > 0 && s.finalPrice > 0)
-                                                Builder(builder: (ctx) {
-                                                  final profit = s.finalPrice - s.totalCost;
-                                                  final isGain = profit >= 0;
-                                                  return Padding(
+                                                // ROW 5: Lãi / Lỗ
+                                                if (_canViewCostPrice && s.totalCost > 0 && s.finalPrice > 0)
+                                                  Builder(builder: (ctx) {
+                                                    final profit = s.finalPrice - s.totalCost;
+                                                    final isGain = profit >= 0;
+                                                    return Padding(
+                                                      padding: const EdgeInsets.only(top: 3),
+                                                      child: _saleChip(
+                                                        isGain ? l10n.saleListChipProfit : l10n.saleListChipLoss,
+                                                        (isGain ? '+' : '') + MoneyUtils.formatCompactCurrency(profit.abs()),
+                                                        isGain ? const Color(0xFF15803D) : const Color(0xFFDC2626),
+                                                        isGain ? const Color(0xFFDCFCE7) : const Color(0xFFFEE2E2),
+                                                      ),
+                                                    );
+                                                  }),
+                                                // ROW 6: Return info (amber)
+                                                if (returnInfo != null)
+                                                  Padding(
                                                     padding: const EdgeInsets.only(top: 3),
                                                     child: _saleChip(
-                                                      isGain ? l10n.saleListChipProfit : l10n.saleListChipLoss,
-                                                      (isGain ? '+' : '-') + MoneyUtils.formatCompactCurrency(profit.abs()),
-                                                      isGain ? const Color(0xFF15803D) : const Color(0xFFDC2626),
-                                                      isGain ? const Color(0xFFDCFCE7) : const Color(0xFFFEE2E2),
+                                                      isFullyReturned ? l10n.saleListReturnFull : l10n.saleListReturnPartial,
+                                                      isFullyReturned
+                                                          ? MoneyUtils.formatCompactCurrency(returnInfo.totalReturnedAmount)
+                                                          : l10n.saleListReturnTimesCount(
+                                                              MoneyUtils.formatCompactCurrency(returnInfo.totalReturnedAmount),
+                                                              returnInfo.returnCount,
+                                                            ),
+                                                      isFullyReturned ? Colors.grey.shade600 : Colors.orange.shade800,
+                                                      isFullyReturned ? Colors.grey.shade100 : Colors.orange.shade50,
                                                     ),
-                                                  );
-                                                }),
-                                              // ROW 6: Return info
-                                              if (returnInfo != null)
-                                                Padding(
-                                                  padding: const EdgeInsets.only(top: 3),
-                                                  child: _saleChip(
-                                                    isFullyReturned ? l10n.saleListReturnFull : l10n.saleListReturnPartial,
-                                                    isFullyReturned
-                                                        ? MoneyUtils.formatCompactCurrency(returnInfo.totalReturnedAmount)
-                                                        : l10n.saleListReturnTimesCount(
-                                                            MoneyUtils.formatCompactCurrency(returnInfo.totalReturnedAmount),
-                                                            returnInfo.returnCount,
-                                                          ),
-                                                    Colors.grey.shade700,
-                                                    Colors.grey.shade100,
                                                   ),
-                                                ),
-                                              // ROW 7: Installment note
-                                              if (isInstallment)
-                                                Padding(
-                                                  padding: const EdgeInsets.only(top: 3),
-                                                  child: _saleChip(
-                                                    l10n.saleListInstallmentLabel,
-                                                    hasBankSettlement
-                                                        ? l10n.saleListBankReceivedAmount(MoneyUtils.formatCompactCurrency(s.settlementAmount))
-                                                        : l10n.saleListBankNotReceived,
-                                                    hasBankSettlement ? const Color(0xFF0369A1) : const Color(0xFF92400E),
-                                                    hasBankSettlement ? const Color(0xFFE0F2FE) : const Color(0xFFFEF3C7),
+                                                // ROW 7: Trả góp
+                                                if (isInstallment)
+                                                  Padding(
+                                                    padding: const EdgeInsets.only(top: 3),
+                                                    child: _saleChip(
+                                                      l10n.saleListInstallmentLabel,
+                                                      hasBankSettlement
+                                                          ? l10n.saleListBankReceivedAmount(MoneyUtils.formatCompactCurrency(s.settlementAmount))
+                                                          : l10n.saleListBankNotReceived,
+                                                      hasBankSettlement ? const Color(0xFF0369A1) : const Color(0xFF92400E),
+                                                      hasBankSettlement ? const Color(0xFFE0F2FE) : const Color(0xFFFEF3C7),
+                                                    ),
                                                   ),
-                                                ),
-                                              // Seller name (small)
-                                              if (s.sellerName.isNotEmpty)
-                                                Padding(
-                                                  padding: const EdgeInsets.only(top: 2),
-                                                  child: Text(
-                                                    s.sellerName,
-                                                    style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
-                                                  ),
-                                                ),
-                                              // Long-press hint (only when not fully returned)
-                                              if (!isFullyReturned)
-                                                Padding(
-                                                  padding: const EdgeInsets.only(top: 3),
-                                                  child: Row(
-                                                    children: [
-                                                      Icon(Icons.touch_app, size: 9, color: Colors.grey.shade400),
-                                                      const SizedBox(width: 2),
-                                                      Text(l10n.saleListHoldToReturn, style: TextStyle(fontSize: 9, color: Colors.grey.shade400)),
-                                                    ],
-                                                  ),
-                                                ),
-                                            ],
+                                              ],
+                                            ),
                                           ),
                                         ),
-                                      ),
-                                    ],
-                                  ),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               );
@@ -1304,7 +1289,7 @@ class _SaleListViewState extends State<SaleListView> {
               text: '$label: ',
               style: TextStyle(
                 fontSize: 10,
-                color: textColor.withOpacity(0.75),
+                color: textColor.withValues(alpha: 0.75),
                 fontWeight: FontWeight.w500,
               ),
             ),
