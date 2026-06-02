@@ -3201,69 +3201,227 @@ class _RepairDetailViewState extends State<RepairDetailView> {
 
   /// Show popup asking whether to record parts cost in cash fund
   Future<void> _showCostFundRecordingPopup(int costAmount) async {
-    final fundResult = await showDialog<String>(
+    // Load suppliers + try auto-fill from linked debts
+    final suppliers = await db.getSuppliers();
+    String? autoSupplierName;
+    try {
+      final fid = r.firestoreId ?? '';
+      if (fid.isNotEmpty) {
+        final rows = await (await db.database).query(
+          'debts',
+          where: "linkedId = ? AND type = 'SHOP_OWES' AND (deleted IS NULL OR deleted = 0)",
+          whereArgs: [fid],
+          limit: 1,
+        );
+        if (rows.isNotEmpty) autoSupplierName = rows.first['personName'] as String?;
+      }
+    } catch (_) {}
+
+    if (!mounted) return;
+
+    // Dialog state
+    String? selName = autoSupplierName;
+
+    final result = await showDialog<Map<String, dynamic>?>(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: const Text('GHI VÀO SỔ QUỸ?'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Chi phí vốn linh kiện: ${MoneyUtils.formatVND(costAmount)}',
-              style: const TextStyle(fontWeight: FontWeight.bold),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setS) {
+          final selSupplier = selName != null
+              ? suppliers.cast<Map<String, dynamic>>().where((s) => s['name'] == selName).firstOrNull
+              : null;
+          final hasSupplier = selSupplier != null;
+
+          return AlertDialog(
+            title: const Text('GHI VÀO SỔ QUỸ?',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Chi phí vốn linh kiện: ${MoneyUtils.formatVND(costAmount)}',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                  const SizedBox(height: 4),
+                  const Text(
+                      'Ghi chi phí này vào sổ quỹ để cập nhật biến động quỹ tiền mặt / ngân hàng?',
+                      style: TextStyle(fontSize: 13, color: Colors.grey)),
+                  const Divider(height: 20),
+                  const Text('Nhà cung cấp',
+                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                  const SizedBox(height: 6),
+                  DropdownButtonFormField<String?>(
+                    value: selName,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      prefixIcon: Icon(Icons.store, size: 18),
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    ),
+                    hint: const Text('Không chọn NCC', style: TextStyle(fontSize: 13)),
+                    items: [
+                      const DropdownMenuItem<String?>(
+                          value: null, child: Text('— Không chọn NCC —')),
+                      ...suppliers.map((s) {
+                        final name = (s['name'] as String?) ?? '';
+                        return DropdownMenuItem<String?>(
+                          value: name,
+                          child: Text(name,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(fontSize: 13)),
+                        );
+                      }),
+                    ],
+                    onChanged: (v) => setS(() => selName = v),
+                  ),
+                  if (hasSupplier) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.orange.shade200),
+                      ),
+                      child: Row(children: [
+                        const Icon(Icons.info_outline, size: 14, color: Colors.orange),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            'Chọn "Nợ NCC" để ghi công nợ cho $selName',
+                            style: const TextStyle(fontSize: 12, color: Colors.orange),
+                          ),
+                        ),
+                      ]),
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+                  // Action buttons inline for full layout control
+                  Row(children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx, null),
+                      child: const Text('Không ghi',
+                          style: TextStyle(color: Colors.grey, fontSize: 13)),
+                    ),
+                    const Spacer(),
+                    if (hasSupplier) ...[
+                      ElevatedButton.icon(
+                        onPressed: () => Navigator.pop(
+                            ctx, {'method': 'CÔNG NỢ', 'name': selName, 'supplier': selSupplier}),
+                        icon: const Icon(Icons.receipt_long, size: 14),
+                        label: const Text('Nợ NCC', style: TextStyle(fontSize: 12)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orange,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                    ],
+                    ElevatedButton.icon(
+                      onPressed: () => Navigator.pop(
+                          ctx, {'method': 'CHUYỂN KHOẢN', 'name': selName, 'supplier': selSupplier}),
+                      icon: const Icon(Icons.account_balance, size: 14),
+                      label: const Text('CK', style: TextStyle(fontSize: 12)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    ElevatedButton.icon(
+                      onPressed: () => Navigator.pop(
+                          ctx, {'method': 'TIỀN MẶT', 'name': selName, 'supplier': selSupplier}),
+                      icon: const Icon(Icons.payments, size: 14),
+                      label: const Text('TM', style: TextStyle(fontSize: 12)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      ),
+                    ),
+                  ]),
+                ],
+              ),
             ),
-            const SizedBox(height: 8),
-            const Text(
-              'Ghi chi phí này vào sổ quỹ để cập nhật biến động quỹ tiền mặt / ngân hàng?',
-              style: TextStyle(fontSize: 14, color: Colors.grey),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, 'SKIP'),
-            child: const Text('Không ghi'),
-          ),
-          ElevatedButton.icon(
-            onPressed: () => Navigator.pop(ctx, 'CHUYỂN KHOẢN'),
-            icon: const Icon(Icons.account_balance, size: 18),
-            label: const Text('Chuyển khoản'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue,
-              foregroundColor: Colors.white,
-            ),
-          ),
-          ElevatedButton.icon(
-            onPressed: () => Navigator.pop(ctx, 'TIỀN MẶT'),
-            icon: const Icon(Icons.payments, size: 18),
-            label: const Text('Tiền mặt'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-              foregroundColor: Colors.white,
-            ),
-          ),
-        ],
+            // Remove default actions — buttons are in content
+            actions: const [],
+            actionsPadding: EdgeInsets.zero,
+          );
+        },
       ),
     );
 
-    if (fundResult != null && fundResult != 'SKIP') {
+    if (result == null) {
       setState(() {
-        r.costRecordedInFund = true;
-        r.costPaymentMethod = fundResult;
+        r.costRecordedInFund = false;
+        r.costPaymentMethod = null;
+        r.costRecordedAt = null;
+        r.costRecordedAmount = 0;
+      });
+      return;
+    }
+
+    final method = result['method'] as String;
+    final supplierName = result['name'] as String?;
+    final supplierMap = result['supplier'] as Map<String, dynamic>?;
+
+    if (method == 'CÔNG NỢ') {
+      setState(() {
+        r.costRecordedInFund = false;
+        r.costPaymentMethod = 'CÔNG NỢ';
         r.costRecordedAt = DateTime.now().millisecondsSinceEpoch;
         r.costRecordedAmount = costAmount;
       });
-      // Log the cost outflow to financial activities with the chosen payment method
+      // Tạo bản ghi công nợ NCC
+      try {
+        final shopId = await UserService.getCurrentShopId();
+        if (shopId != null) {
+          final now = DateTime.now().millisecondsSinceEpoch;
+          await db.insertDebt({
+            'firestoreId': 'debt_repair_${r.firestoreId ?? r.id}_$now',
+            'shopId': shopId,
+            'personName': supplierName ?? 'NCC không rõ',
+            'phone': supplierMap?['phone'] as String? ?? '',
+            'totalAmount': costAmount,
+            'paidAmount': 0,
+            'type': 'SHOP_OWES',
+            'status': 'UNPAID',
+            'note': 'Vốn linh kiện: ${r.customerName} (${r.model})'
+                '${(r.partsUsed ?? '').isNotEmpty ? " — ${r.partsUsed}" : ""}',
+            'linkedId': r.firestoreId ?? r.id?.toString() ?? '',
+            'isSynced': 0,
+            'deleted': 0,
+            'createdAt': now,
+            'updatedAt': now,
+          });
+          EventBus().emit('debts_changed');
+        }
+      } catch (e) {
+        debugPrint('Tạo công nợ NCC thất bại: $e');
+      }
+      NotificationService.showSnackBar(
+        'Đã ghi công nợ ${MoneyUtils.formatVND(costAmount)} cho ${supplierName ?? "NCC"}',
+        color: Colors.orange,
+      );
+    } else {
+      // TIỀN MẶT / CHUYỂN KHOẢN
+      setState(() {
+        r.costRecordedInFund = true;
+        r.costPaymentMethod = method;
+        r.costRecordedAt = DateTime.now().millisecondsSinceEpoch;
+        r.costRecordedAmount = costAmount;
+      });
       await FinancialActivityService.logCustomActivity(
         activityType: 'PARTS_COST',
         amount: costAmount,
         direction: 'OUT',
-        paymentMethod: fundResult,
+        paymentMethod: method,
         title: 'Giá vốn linh kiện: ${r.customerName} (${r.model})',
-        description:
-            'Đơn #${r.firestoreId ?? r.id} — Linh kiện: ${r.partsUsed}',
+        description: 'Đơn #${r.firestoreId ?? r.id} — LK: ${r.partsUsed}'
+            '${supplierName != null ? " — NCC: $supplierName" : ""}',
         customerName: r.customerName,
         phone: r.phone,
         productInfo: r.model,
@@ -3271,16 +3429,10 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         referenceId: r.firestoreId ?? r.id?.toString() ?? '',
       );
       NotificationService.showSnackBar(
-        'Đã ghi ${MoneyUtils.formatVND(costAmount)} vào sổ quỹ ($fundResult)',
+        'Đã ghi ${MoneyUtils.formatVND(costAmount)} vào sổ quỹ ($method)'
+            '${supplierName != null ? " — NCC: $supplierName" : ""}',
         color: Colors.green,
       );
-    } else {
-      setState(() {
-        r.costRecordedInFund = false;
-        r.costPaymentMethod = null;
-        r.costRecordedAt = null;
-        r.costRecordedAmount = 0;
-      });
     }
   }
 

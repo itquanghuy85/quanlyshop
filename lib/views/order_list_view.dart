@@ -1029,50 +1029,136 @@ class OrderListViewState extends State<OrderListView> {
   Future<void> _addCustomerToRepair(Repair r) async {
     final phoneCtrl = TextEditingController(text: r.phone);
     final nameCtrl = TextEditingController(text: r.customerName);
+    final searchCtrl = TextEditingController();
+    List<Map<String, dynamic>> searchResults = [];
+    Timer? searchTimer;
 
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.person_add, size: 20),
-            SizedBox(width: 8),
-            Text('Thêm thông tin khách hàng', style: TextStyle(fontSize: 16)),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: phoneCtrl,
-              keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(
-                labelText: 'Số điện thoại',
-                prefixIcon: Icon(Icons.phone),
-                border: OutlineInputBorder(),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setS) {
+          void doSearch(String q) {
+            searchTimer?.cancel();
+            if (q.trim().length < 2) {
+              setS(() => searchResults = []);
+              return;
+            }
+            searchTimer = Timer(const Duration(milliseconds: 300), () async {
+              final shopId = await UserService.getCurrentShopId();
+              final results = await db.searchCustomers(q.trim(), shopId);
+              if (ctx.mounted) setS(() => searchResults = results.take(5).toList());
+            });
+          }
+
+          return AlertDialog(
+            title: const Row(
+              children: [
+                Icon(Icons.person_add, size: 20),
+                SizedBox(width: 8),
+                Text('Thêm thông tin khách hàng', style: TextStyle(fontSize: 16)),
+              ],
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Search field
+                  TextField(
+                    controller: searchCtrl,
+                    decoration: InputDecoration(
+                      hintText: 'Tìm khách hàng cũ (SĐT hoặc tên)...',
+                      prefixIcon: const Icon(Icons.search, size: 18),
+                      border: const OutlineInputBorder(),
+                      isDense: true,
+                      filled: true,
+                      fillColor: Colors.grey.shade100,
+                    ),
+                    onChanged: doSearch,
+                  ),
+                  // Search results
+                  if (searchResults.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Container(
+                      constraints: const BoxConstraints(maxHeight: 160),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.blue.shade200),
+                        borderRadius: BorderRadius.circular(8),
+                        color: Colors.blue.shade50,
+                      ),
+                      child: ListView.separated(
+                        shrinkWrap: true,
+                        padding: EdgeInsets.zero,
+                        itemCount: searchResults.length,
+                        separatorBuilder: (_, __) => Divider(height: 1, color: Colors.blue.shade100),
+                        itemBuilder: (_, i) {
+                          final c = searchResults[i];
+                          final cName = (c['name'] as String?) ?? '';
+                          final cPhone = (c['phone'] as String?) ?? '';
+                          return ListTile(
+                            dense: true,
+                            leading: CircleAvatar(
+                              radius: 14,
+                              backgroundColor: Colors.blue.shade100,
+                              child: Text(
+                                cName.isNotEmpty ? cName[0] : '?',
+                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            title: Text(cName, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                            subtitle: Text(cPhone, style: const TextStyle(fontSize: 12)),
+                            trailing: const Icon(Icons.arrow_forward_ios, size: 12),
+                            onTap: () {
+                              phoneCtrl.text = cPhone;
+                              nameCtrl.text = cName;
+                              searchCtrl.clear();
+                              setS(() => searchResults = []);
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                  const Divider(height: 20),
+                  // Phone field
+                  TextField(
+                    controller: phoneCtrl,
+                    keyboardType: TextInputType.phone,
+                    decoration: const InputDecoration(
+                      labelText: 'Số điện thoại',
+                      prefixIcon: Icon(Icons.phone),
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  // Name field
+                  TextField(
+                    controller: nameCtrl,
+                    textCapitalization: TextCapitalization.characters,
+                    decoration: const InputDecoration(
+                      labelText: 'Tên khách hàng',
+                      prefixIcon: Icon(Icons.person),
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: nameCtrl,
-              textCapitalization: TextCapitalization.characters,
-              decoration: const InputDecoration(
-                labelText: 'Tên khách hàng',
-                prefixIcon: Icon(Icons.person),
-                border: OutlineInputBorder(),
+            actions: [
+              TextButton(
+                onPressed: () { searchTimer?.cancel(); Navigator.pop(ctx, false); },
+                child: const Text('Hủy'),
               ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Hủy')),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Lưu'),
-          ),
-        ],
+              FilledButton(
+                onPressed: () { searchTimer?.cancel(); Navigator.pop(ctx, true); },
+                child: const Text('Lưu'),
+              ),
+            ],
+          );
+        },
       ),
     );
+    searchTimer?.cancel();
 
     if (confirmed != true || !mounted) return;
 
