@@ -3282,44 +3282,8 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                     if (!ctx.mounted) return;
                     final picked = await showDialog<String?>(
                       context: ctx,
-                      builder: (ctx2) => AlertDialog(
-                        title: const Text('Chọn nhà cung cấp'),
-                        content: SizedBox(
-                          width: 280,
-                          height: 300,
-                          child: ListView.builder(
-                            itemCount: suppliers.length + 1,
-                            itemBuilder: (_, i) {
-                              if (i == 0) {
-                                return ListTile(
-                                  dense: true,
-                                  title: const Text(
-                                      '— Không chọn NCC —'),
-                                  selected: selName == null,
-                                  onTap: () =>
-                                      Navigator.pop(ctx2, ''),
-                                );
-                              }
-                              final name =
-                                  (suppliers[i - 1]['name'] as String?) ??
-                                      '';
-                              return ListTile(
-                                dense: true,
-                                title: Text(name),
-                                selected: selName == name,
-                                onTap: () =>
-                                    Navigator.pop(ctx2, name),
-                              );
-                            },
-                          ),
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () =>
-                                Navigator.pop(ctx2, null),
-                            child: const Text('Đóng'),
-                          ),
-                        ],
+                      builder: (_) => _SupplierPickerDialog(
+                        initialSelection: selName,
                       ),
                     );
                     if (picked != null) {
@@ -6592,6 +6556,176 @@ class _PartsPaymentDialogState extends State<_PartsPaymentDialog> {
           ],
         ),
       ),
+    );
+  }
+}
+
+// Supplier picker với search + phân trang cho popup GHI VÀO SỔ QUỬ
+class _SupplierPickerDialog extends StatefulWidget {
+  final String? initialSelection;
+  const _SupplierPickerDialog({this.initialSelection});
+
+  @override
+  State<_SupplierPickerDialog> createState() => _SupplierPickerDialogState();
+}
+
+class _SupplierPickerDialogState extends State<_SupplierPickerDialog> {
+  final _searchCtrl = TextEditingController();
+  final _scrollCtrl = ScrollController();
+  final _db = DBHelper();
+
+  List<Map<String, dynamic>> _items = [];
+  bool _loading = true;
+  bool _hasMore = false;
+  String? _cursor;
+  String _query = '';
+
+  static const _pageSize = 20;
+
+  @override
+  void initState() {
+    super.initState();
+    _load(reset: true);
+    _scrollCtrl.addListener(() {
+      if (_scrollCtrl.position.pixels >=
+              _scrollCtrl.position.maxScrollExtent - 80 &&
+          _hasMore &&
+          !_loading) {
+        _load();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    _scrollCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load({bool reset = false}) async {
+    if (_loading && !reset) return;
+    setState(() => _loading = true);
+    try {
+      final page = await _db.getSuppliersPage(
+        search: _query.isEmpty ? null : _query,
+        cursorName: reset ? null : _cursor,
+        limit: _pageSize,
+      );
+      setState(() {
+        if (reset) {
+          _items = page.items;
+        } else {
+          _items = [..._items, ...page.items];
+        }
+        _hasMore = page.items.length == _pageSize;
+        _cursor = page.items.isNotEmpty
+            ? (page.items.last['name'] as String?)
+            : null;
+        _loading = false;
+      });
+    } catch (_) {
+      setState(() => _loading = false);
+    }
+  }
+
+  void _onSearch(String q) {
+    _query = q.trim();
+    _cursor = null;
+    _load(reset: true);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Chọn nhà cung cấp'),
+      contentPadding: const EdgeInsets.fromLTRB(0, 12, 0, 0),
+      content: SizedBox(
+        width: 320,
+        height: 400,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: TextField(
+                controller: _searchCtrl,
+                autofocus: false,
+                decoration: InputDecoration(
+                  hintText: 'Tìm tên, SĐT...',
+                  prefixIcon: const Icon(Icons.search, size: 18),
+                  suffixIcon: _query.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear, size: 16),
+                          onPressed: () {
+                            _searchCtrl.clear();
+                            _onSearch('');
+                          },
+                        )
+                      : null,
+                  isDense: true,
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 8),
+                ),
+                onChanged: _onSearch,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: ListView.builder(
+                controller: _scrollCtrl,
+                itemCount: _items.length + 1 + (_loading ? 1 : 0),
+                itemBuilder: (_, i) {
+                  if (i == 0) {
+                    return ListTile(
+                      dense: true,
+                      leading: const Icon(Icons.clear, size: 16,
+                          color: Colors.grey),
+                      title: const Text('— Không chọn NCC —',
+                          style: TextStyle(color: Colors.grey)),
+                      selected: widget.initialSelection == null,
+                      onTap: () => Navigator.pop(context, ''),
+                    );
+                  }
+                  if (i == _items.length + 1) {
+                    return _loading
+                        ? const Padding(
+                            padding: EdgeInsets.all(16),
+                            child: Center(
+                                child: SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2),
+                            )),
+                          )
+                        : const SizedBox.shrink();
+                  }
+                  final s = _items[i - 1];
+                  final name = (s['name'] as String?) ?? '';
+                  final phone = (s['phone'] as String?) ?? '';
+                  return ListTile(
+                    dense: true,
+                    title: Text(name),
+                    subtitle: phone.isNotEmpty ? Text(phone) : null,
+                    selected: widget.initialSelection == name,
+                    selectedTileColor:
+                        Colors.blue.withValues(alpha: 0.08),
+                    onTap: () => Navigator.pop(context, name),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, null),
+          child: const Text('Đóng'),
+        ),
+      ],
     );
   }
 }
