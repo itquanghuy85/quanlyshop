@@ -3286,13 +3286,13 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                     const Text('Nhà cung cấp',
                         style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
                     const SizedBox(height: 6),
-                    // Supplier picker button — opens paginated bottom sheet
+                    // Supplier picker button — opens paginated bottom sheet.
+                    // Must use State's context + useRootNavigator so sheet appears
+                    // above this dialog, not behind it.
                     InkWell(
                       onTap: () async {
-                        final picked = await showSupplierPickerSheet(ctx);
-                        // picked == null means "Không chọn NCC" was tapped,
-                        // picked is absent (sheet dismissed) when user swipes down.
-                        setS(() => selSupplier = picked);
+                        final picked = await showSupplierPickerSheet(context);
+                        if (mounted) setS(() => selSupplier = picked);
                       },
                       borderRadius: BorderRadius.circular(8),
                       child: Container(

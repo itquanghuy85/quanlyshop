@@ -9,6 +9,7 @@ Future<Map<String, dynamic>?> showSupplierPickerSheet(BuildContext context) {
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
+    useRootNavigator: true, // appear above dialogs
     backgroundColor: Colors.transparent,
     builder: (_) => const _SupplierPickerSheet(),
   );
