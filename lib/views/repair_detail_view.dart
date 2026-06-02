@@ -3222,20 +3222,18 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       }
     } catch (_) {}
 
-    // Load first 50 NCC (id/name/phone only) — fast SQLite, no Firestore
-    List<Map<String, dynamic>> supplierList = [];
+    // Load at most 50 NCC (id/name/phone) — fast SQLite, replaces getSuppliers() (all)
+    List<Map<String, dynamic>> suppliers = [];
     try {
       final page = await db.getSuppliersPage(limit: 50);
-      supplierList = page.items;
-    } catch (_) {}
+      suppliers = page.items;
+    } catch (_) {
+      suppliers = await db.getSuppliers();
+    }
 
     if (!mounted) return;
 
-    // State
     String? selName = autoSupplierName;
-    final searchCtrl = TextEditingController();
-    List<Map<String, dynamic>> filtered = List.of(supplierList);
-    Timer? searchTimer;
 
     final result = await showDialog<Map<String, dynamic>?>(
       context: context,
@@ -3243,167 +3241,66 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) {
           final selSupplier = selName != null
-              ? supplierList.where((s) => s['name'] == selName).firstOrNull
+              ? suppliers
+                  .cast<Map<String, dynamic>>()
+                  .where((s) => s['name'] == selName)
+                  .firstOrNull
               : null;
           final hasSupplier = selSupplier != null;
 
-          void doFilter(String q) {
-            searchTimer?.cancel();
-            searchTimer = Timer(const Duration(milliseconds: 250), () async {
-              if (q.trim().isEmpty) {
-                try { setS(() => filtered = List.of(supplierList)); } catch (_) {}
-                return;
-              }
-              try {
-                final page = await db.getSuppliersPage(search: q.trim(), limit: 30);
-                try { setS(() => filtered = page.items); } catch (_) {}
-              } catch (_) {}
-            });
-          }
-
           return AlertDialog(
-            title: const Text(
-              'GHI VÀO SỔ QUỸ?',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
+            title: const Text('GHI VÀO SỔ QUỸ?',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // ── Chi phí vốn ──
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.shade50,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(children: [
-                      const Icon(Icons.price_check, size: 18, color: Colors.blue),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Chi phí vốn: ${MoneyUtils.formatVND(costAmount)}',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                        ),
-                      ),
-                    ]),
+                  Text(
+                    'Chi phí vốn linh kiện: ${MoneyUtils.formatVND(costAmount)}',
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 15),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 4),
                   const Text(
-                    'Ghi vào sổ quỹ để cập nhật biến động tiền mặt / ngân hàng?',
-                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                    'Ghi chi phí này vào sổ quỹ để cập nhật biến động quỹ tiền mặt / ngân hàng?',
+                    style: TextStyle(fontSize: 13, color: Colors.grey),
                   ),
                   const Divider(height: 20),
-
-                  // ── NCC header ──
-                  const Text(
-                    'Nhà cung cấp (tùy chọn)',
-                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-                  ),
+                  const Text('Nhà cung cấp',
+                      style: TextStyle(
+                          fontWeight: FontWeight.w600, fontSize: 13)),
                   const SizedBox(height: 6),
-
-                  // ── NCC đã chọn hoặc ô tìm kiếm ──
-                  if (selName != null)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.shade50,
-                        border: Border.all(color: Colors.blue.shade200),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Row(children: [
-                        const Icon(Icons.store, size: 16, color: Colors.blue),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            selName!,
-                            style: const TextStyle(
-                                fontSize: 13, fontWeight: FontWeight.w600),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        GestureDetector(
-                          onTap: () {
-                            searchTimer?.cancel();
-                            searchCtrl.clear();
-                            setS(() {
-                              selName = null;
-                              filtered = List.of(supplierList);
-                            });
-                          },
-                          child: const Icon(Icons.close,
-                              size: 16, color: Colors.grey),
-                        ),
-                      ]),
-                    )
-                  else
-                    TextField(
-                      controller: searchCtrl,
-                      decoration: const InputDecoration(
-                        hintText: 'Tìm NCC theo tên, SĐT...',
-                        prefixIcon: Icon(Icons.search, size: 18),
-                        border: OutlineInputBorder(),
-                        isDense: true,
-                        contentPadding: EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 8),
-                      ),
-                      onChanged: doFilter,
+                  DropdownButtonFormField<String?>(
+                    value: selName,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      prefixIcon: Icon(Icons.store, size: 18),
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                      contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 10),
                     ),
-
-                  // ── NCC list (chỉ hiện khi chưa chọn) ──
-                  if (selName == null && filtered.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    for (final s in filtered.take(8))
-                      InkWell(
-                        onTap: () {
-                          searchTimer?.cancel();
-                          searchCtrl.clear();
-                          setS(() {
-                            selName = s['name'] as String?;
-                            filtered = List.of(supplierList);
-                          });
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 5),
-                          child: Row(children: [
-                            CircleAvatar(
-                              radius: 13,
-                              backgroundColor: Colors.blue.shade50,
-                              child: Text(
-                                ((s['name'] as String?) ?? '?').isNotEmpty
-                                    ? ((s['name'] as String?) ?? '?')[0]
-                                    : '?',
-                                style: TextStyle(
-                                    fontSize: 11,
-                                    color: Colors.blue.shade700,
-                                    fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                (s['name'] as String?) ?? '',
-                                style: const TextStyle(
-                                    fontSize: 13, fontWeight: FontWeight.w600),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            if ((s['phone'] as String? ?? '').isNotEmpty)
-                              Text(
-                                s['phone'] as String,
-                                style: TextStyle(
-                                    fontSize: 11, color: Colors.grey.shade500),
-                              ),
-                          ]),
-                        ),
-                      ),
-                  ],
-
-                  // ── Nợ NCC hint ──
+                    hint: const Text('Không chọn NCC',
+                        style: TextStyle(fontSize: 13)),
+                    items: [
+                      const DropdownMenuItem<String?>(
+                          value: null,
+                          child: Text('— Không chọn NCC —')),
+                      ...suppliers.map((s) {
+                        final name = (s['name'] as String?) ?? '';
+                        return DropdownMenuItem<String?>(
+                          value: name,
+                          child: Text(name,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(fontSize: 13)),
+                        );
+                      }),
+                    ],
+                    onChanged: (v) => setS(() => selName = v),
+                  ),
                   if (hasSupplier) ...[
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 6),
@@ -3426,32 +3323,22 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                       ]),
                     ),
                   ],
-
                   const SizedBox(height: 16),
-
-                  // ── Action buttons — LUÔN HIỆN ──
                   Row(children: [
                     TextButton(
-                      onPressed: () {
-                        searchTimer?.cancel();
-                        Navigator.pop(ctx, null);
-                      },
-                      child: const Text(
-                        'Không ghi',
-                        style: TextStyle(color: Colors.grey, fontSize: 13),
-                      ),
+                      onPressed: () => Navigator.pop(ctx, null),
+                      child: const Text('Không ghi',
+                          style:
+                              TextStyle(color: Colors.grey, fontSize: 13)),
                     ),
                     const Spacer(),
                     if (hasSupplier) ...[
                       ElevatedButton.icon(
-                        onPressed: () {
-                          searchTimer?.cancel();
-                          Navigator.pop(ctx, {
-                            'method': 'CÔNG NỢ',
-                            'name': selName,
-                            'supplier': selSupplier,
-                          });
-                        },
+                        onPressed: () => Navigator.pop(ctx, {
+                          'method': 'CÔNG NỢ',
+                          'name': selName,
+                          'supplier': selSupplier,
+                        }),
                         icon: const Icon(Icons.receipt_long, size: 14),
                         label: const Text('Nợ NCC',
                             style: TextStyle(fontSize: 12)),
@@ -3465,16 +3352,14 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                       const SizedBox(width: 6),
                     ],
                     ElevatedButton.icon(
-                      onPressed: () {
-                        searchTimer?.cancel();
-                        Navigator.pop(ctx, {
-                          'method': 'CHUYỂN KHOẢN',
-                          'name': selName,
-                          'supplier': selSupplier,
-                        });
-                      },
+                      onPressed: () => Navigator.pop(ctx, {
+                        'method': 'CHUYỂN KHOẢN',
+                        'name': selName,
+                        'supplier': selSupplier,
+                      }),
                       icon: const Icon(Icons.account_balance, size: 14),
-                      label: const Text('CK', style: TextStyle(fontSize: 12)),
+                      label:
+                          const Text('CK', style: TextStyle(fontSize: 12)),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue,
                         foregroundColor: Colors.white,
@@ -3484,16 +3369,14 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                     ),
                     const SizedBox(width: 6),
                     ElevatedButton.icon(
-                      onPressed: () {
-                        searchTimer?.cancel();
-                        Navigator.pop(ctx, {
-                          'method': 'TIỀN MẶT',
-                          'name': selName,
-                          'supplier': selSupplier,
-                        });
-                      },
+                      onPressed: () => Navigator.pop(ctx, {
+                        'method': 'TIỀN MẶT',
+                        'name': selName,
+                        'supplier': selSupplier,
+                      }),
                       icon: const Icon(Icons.payments, size: 14),
-                      label: const Text('TM', style: TextStyle(fontSize: 12)),
+                      label:
+                          const Text('TM', style: TextStyle(fontSize: 12)),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green,
                         foregroundColor: Colors.white,
@@ -3511,8 +3394,6 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         },
       ),
     );
-    searchTimer?.cancel();
-    searchCtrl.dispose();
 
     if (result == null) {
       setState(() {
