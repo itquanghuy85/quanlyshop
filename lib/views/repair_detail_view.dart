@@ -117,8 +117,21 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     _checkPermission();
     _loadShopInfo();
     _loadPartners();
+    unawaited(_loadFreshRepairFromDb());
     unawaited(_startRepairRealtimeListener(forceRestart: true));
     unawaited(_loadLastModifierInfo());
+  }
+
+  /// Load bản mới nhất từ local DB để tránh hiển thị stale data từ list
+  Future<void> _loadFreshRepairFromDb() async {
+    try {
+      Repair? fresh;
+      if (r.id != null) fresh = await db.getRepairById(r.id!);
+      fresh ??= r.firestoreId != null ? await db.getRepairByFirestoreId(r.firestoreId!) : null;
+      if (fresh != null && mounted) setState(() => r = fresh!);
+    } catch (e) {
+      debugPrint('_loadFreshRepairFromDb error: $e');
+    }
   }
 
   Future<void> _startRepairRealtimeListener({bool forceRestart = false}) async {

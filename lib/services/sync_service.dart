@@ -700,7 +700,17 @@ class SyncService {
     }
 
     // Nếu local đã sync (không có thay đổi pending) → accept cloud
+    // Ngoại lệ: repairs — so sánh timestamp để tránh overwrite status mới bằng cloud cũ
     if (localIsSynced) {
+      if (collection == 'repairs' && cloudTime > 0 && localUpdatedAt > 0) {
+        const toleranceMs = 3000;
+        if (localUpdatedAt > cloudTime + toleranceMs) {
+          debugPrint(
+            '🔒 SYNC: repairs/$firestoreId - Local mới hơn cloud dù isSynced=true, skip (local: $localUpdatedAt, cloud: $cloudTime)',
+          );
+          return false;
+        }
+      }
       debugPrint(
         '✅ SYNC: $collection/$firestoreId - Local đã sync, accept cloud',
       );
