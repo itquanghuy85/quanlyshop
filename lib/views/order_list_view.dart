@@ -131,11 +131,12 @@ class OrderListViewState extends State<OrderListView> {
     unawaited(_startRealtimeRepairsListener(forceRestart: true));
     WidgetsBinding.instance.addPostFrameCallback((_) => _showFirstTimeGuide());
 
-    // Chỉ rebind listener khi đổi shop hoặc refresh dữ liệu tổng.
+    // Chỉ rebind listener khi đổi shop — dataRefresh không cần restart vì
+    // watchRepairsByShop đã nhận live updates, restart chỉ tốn thêm Firestore reads.
     _eventSubscription = EventBus().stream.listen((event) {
       if (!mounted) return;
 
-      if (event == EventBus.shopChanged || event == EventBus.dataRefresh) {
+      if (event == EventBus.shopChanged) {
         unawaited(_startRealtimeRepairsListener(forceRestart: true));
         return;
       }
@@ -1029,10 +1030,12 @@ class OrderListViewState extends State<OrderListView> {
   Future<void> _addCustomerToRepair(Repair r) async {
     final phoneCtrl = TextEditingController(text: r.phone);
     final nameCtrl = TextEditingController(text: r.customerName);
+    final addressCtrl = TextEditingController(text: r.address);
+    final notesCtrl = TextEditingController(text: r.notes ?? '');
     final searchCtrl = TextEditingController();
     List<Map<String, dynamic>> searchResults = [];
     Timer? searchTimer;
-    // Load shopId trước để tránh await trong Timer callback (ctx.mounted issue)
+    bool dialogActive = true;
     final shopId = await UserService.getCurrentShopId();
 
     if (!mounted) return;
@@ -1048,9 +1051,73 @@ class OrderListViewState extends State<OrderListView> {
               return;
             }
             searchTimer = Timer(const Duration(milliseconds: 300), () async {
+              if (!dialogActive) return;
               final results = await db.searchCustomers(q.trim(), shopId);
+              if (!dialogActive) return;
               try { setS(() => searchResults = results.take(6).toList()); } catch (_) {}
             });
+          }
+
+          // Build search result tiles as Column (tránh ListView lồng trong SingleChildScrollView)
+          Widget buildSearchResults() {
+            return Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.blue.shade200),
+                borderRadius: BorderRadius.circular(8),
+                color: Colors.blue.shade50,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: searchResults.asMap().entries.map((entry) {
+                  final i = entry.key;
+                  final c = entry.value;
+                  final cName = (c['name'] as String?) ?? '';
+                  final cPhone = (c['phone'] as String?) ?? '';
+                  final cAddress = (c['address'] as String?) ?? '';
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (i > 0) Divider(height: 1, color: Colors.blue.shade100),
+                      InkWell(
+                        onTap: () {
+                          phoneCtrl.text = cPhone;
+                          nameCtrl.text = cName;
+                          if (cAddress.isNotEmpty) addressCtrl.text = cAddress;
+                          searchCtrl.clear();
+                          setS(() => searchResults = []);
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          child: Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 14,
+                                backgroundColor: Colors.blue.shade100,
+                                child: Text(
+                                  cName.isNotEmpty ? cName[0] : '?',
+                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(cName, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                                    Text(cPhone, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                                  ],
+                                ),
+                              ),
+                              const Icon(Icons.arrow_forward_ios, size: 12, color: Colors.grey),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                }).toList(),
+              ),
+            );
           }
 
           return AlertDialog(
@@ -1058,102 +1125,91 @@ class OrderListViewState extends State<OrderListView> {
               children: [
                 Icon(Icons.person_add, size: 20),
                 SizedBox(width: 8),
-                Text('Thêm thông tin khách hàng', style: TextStyle(fontSize: 16)),
+                Flexible(child: Text('Thêm thông tin khách hàng', style: TextStyle(fontSize: 16))),
               ],
             ),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Search field
-                  TextField(
-                    controller: searchCtrl,
-                    decoration: InputDecoration(
-                      hintText: 'Tìm khách hàng cũ (SĐT hoặc tên)...',
-                      prefixIcon: const Icon(Icons.search, size: 18),
-                      border: const OutlineInputBorder(),
-                      isDense: true,
-                      filled: true,
-                      fillColor: Colors.grey.shade100,
-                    ),
-                    onChanged: doSearch,
-                  ),
-                  // Search results
-                  if (searchResults.isNotEmpty) ...[
-                    const SizedBox(height: 6),
-                    Container(
-                      constraints: const BoxConstraints(maxHeight: 160),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.blue.shade200),
-                        borderRadius: BorderRadius.circular(8),
-                        color: Colors.blue.shade50,
+            content: SizedBox(
+              width: double.maxFinite,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextField(
+                      controller: searchCtrl,
+                      decoration: InputDecoration(
+                        hintText: 'Tìm khách hàng cũ (SĐT hoặc tên)...',
+                        prefixIcon: const Icon(Icons.search, size: 18),
+                        border: const OutlineInputBorder(),
+                        isDense: true,
+                        filled: true,
+                        fillColor: Colors.grey.shade100,
                       ),
-                      child: ListView.separated(
-                        shrinkWrap: true,
-                        padding: EdgeInsets.zero,
-                        itemCount: searchResults.length,
-                        separatorBuilder: (_, __) => Divider(height: 1, color: Colors.blue.shade100),
-                        itemBuilder: (_, i) {
-                          final c = searchResults[i];
-                          final cName = (c['name'] as String?) ?? '';
-                          final cPhone = (c['phone'] as String?) ?? '';
-                          return ListTile(
-                            dense: true,
-                            leading: CircleAvatar(
-                              radius: 14,
-                              backgroundColor: Colors.blue.shade100,
-                              child: Text(
-                                cName.isNotEmpty ? cName[0] : '?',
-                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                            title: Text(cName, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                            subtitle: Text(cPhone, style: const TextStyle(fontSize: 12)),
-                            trailing: const Icon(Icons.arrow_forward_ios, size: 12),
-                            onTap: () {
-                              phoneCtrl.text = cPhone;
-                              nameCtrl.text = cName;
-                              searchCtrl.clear();
-                              setS(() => searchResults = []);
-                            },
-                          );
-                        },
+                      onChanged: doSearch,
+                    ),
+                    if (searchResults.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      buildSearchResults(),
+                    ],
+                    const Divider(height: 20),
+                    TextField(
+                      controller: phoneCtrl,
+                      keyboardType: TextInputType.phone,
+                      decoration: const InputDecoration(
+                        labelText: 'Số điện thoại',
+                        prefixIcon: Icon(Icons.phone),
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: nameCtrl,
+                      textCapitalization: TextCapitalization.characters,
+                      decoration: const InputDecoration(
+                        labelText: 'Tên khách hàng',
+                        prefixIcon: Icon(Icons.person),
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: addressCtrl,
+                      textCapitalization: TextCapitalization.words,
+                      decoration: const InputDecoration(
+                        labelText: 'Địa chỉ (tùy chọn)',
+                        prefixIcon: Icon(Icons.location_on_outlined),
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: notesCtrl,
+                      maxLines: 2,
+                      decoration: const InputDecoration(
+                        labelText: 'Ghi chú (tùy chọn)',
+                        prefixIcon: Icon(Icons.note_outlined),
+                        border: OutlineInputBorder(),
                       ),
                     ),
                   ],
-                  const Divider(height: 20),
-                  // Phone field
-                  TextField(
-                    controller: phoneCtrl,
-                    keyboardType: TextInputType.phone,
-                    decoration: const InputDecoration(
-                      labelText: 'Số điện thoại',
-                      prefixIcon: Icon(Icons.phone),
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  // Name field
-                  TextField(
-                    controller: nameCtrl,
-                    textCapitalization: TextCapitalization.characters,
-                    decoration: const InputDecoration(
-                      labelText: 'Tên khách hàng',
-                      prefixIcon: Icon(Icons.person),
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
             actions: [
               TextButton(
-                onPressed: () { searchTimer?.cancel(); Navigator.pop(ctx, false); },
+                onPressed: () {
+                  dialogActive = false;
+                  searchTimer?.cancel();
+                  Navigator.pop(ctx, false);
+                },
                 child: const Text('Hủy'),
               ),
               FilledButton(
-                onPressed: () { searchTimer?.cancel(); Navigator.pop(ctx, true); },
+                onPressed: () {
+                  dialogActive = false;
+                  searchTimer?.cancel();
+                  Navigator.pop(ctx, true);
+                },
                 child: const Text('Lưu'),
               ),
             ],
@@ -1161,12 +1217,23 @@ class OrderListViewState extends State<OrderListView> {
         },
       ),
     );
+    dialogActive = false;
     searchTimer?.cancel();
-
-    if (confirmed != true || !mounted) return;
-
+    // Read values before deferring disposal (dialog close animation not yet complete)
     final newPhone = phoneCtrl.text.trim();
     final newName = nameCtrl.text.trim().toUpperCase();
+    final newAddress = addressCtrl.text.trim();
+    final newNotes = notesCtrl.text.trim();
+    // Defer dispose to let dialog widgets fully detach before notifying listeners
+    Future.delayed(Duration.zero, () {
+      phoneCtrl.dispose();
+      nameCtrl.dispose();
+      addressCtrl.dispose();
+      notesCtrl.dispose();
+      searchCtrl.dispose();
+    });
+
+    if (confirmed != true || !mounted) return;
 
     if (newPhone.isEmpty && newName.isEmpty) return;
 
@@ -1175,6 +1242,8 @@ class OrderListViewState extends State<OrderListView> {
       final updatedRepair = r.copyWith(
         customerName: newName,
         phone: newPhone,
+        address: newAddress.isNotEmpty ? newAddress : r.address,
+        notes: newNotes.isNotEmpty ? newNotes : r.notes,
         isWalkIn: newPhone.isEmpty && newName.isEmpty,
       );
       await db.upsertRepair(updatedRepair);
@@ -1183,6 +1252,8 @@ class OrderListViewState extends State<OrderListView> {
         final encData = EncryptionService.encryptMap({
           'customerName': newName,
           'phone': newPhone,
+          if (newAddress.isNotEmpty) 'address': newAddress,
+          if (newNotes.isNotEmpty) 'notes': newNotes,
           'isWalkIn': newPhone.isEmpty && newName.isEmpty,
           'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
         });

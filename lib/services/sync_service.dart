@@ -167,7 +167,7 @@ class SyncService {
   static DateTime? _lastSyncAllToCloudAt;
   static const _syncAllToCloudCooldown = Duration(seconds: 12);
   static const int _collectionPollLimit = 20;
-  static const Duration _collectionRefreshCooldown = Duration(seconds: 5);
+  static const Duration _collectionRefreshCooldown = Duration(seconds: 30);
   static const Duration _cloudReadTimeout = Duration(seconds: 20);
   static const Duration _cloudReadLogCooldown = Duration(seconds: 15);
   static DateTime? _lastCloudReadTimeoutLogAt;

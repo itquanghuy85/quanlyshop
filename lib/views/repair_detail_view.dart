@@ -46,6 +46,7 @@ import '../services/event_bus.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 import '../widgets/app_cached_image.dart';
+import '../widgets/supplier_picker_sheet.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'inventory_view.dart';
 import 'repair_partner_view.dart';
@@ -1223,6 +1224,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         // Await sync so indicator turns green after status change
         try {
           await SyncOrchestrator().syncAll();
+          if (mounted) setState(() => r.isSynced = true);
         } catch (_) {}
       }
 
@@ -1564,6 +1566,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         // Await sync để tránh trạng thái pending kéo dài (nút sync vàng).
         try {
           await SyncOrchestrator().syncAll();
+          if (mounted) setState(() => r.isSynced = true);
         } catch (_) {}
         // FIX: Also trigger targeted repair sync for reliability
         // ignore: unawaited_futures
@@ -1955,6 +1958,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         // Await sync để tránh trạng thái pending kéo dài (nút sync vàng).
         try {
           await SyncOrchestrator().syncAll();
+          if (mounted) setState(() => r.isSynced = true);
         } catch (_) {}
         // FIX: Also trigger targeted repair sync for reliability
         // ignore: unawaited_futures
@@ -2076,6 +2080,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         // Await sync để tránh trạng thái pending kéo dài (nút sync vàng).
         try {
           await SyncOrchestrator().syncAll();
+          if (mounted) setState(() => r.isSynced = true);
         } catch (_) {}
         // FIX: Also trigger targeted repair sync for reliability
         // ignore: unawaited_futures
@@ -2150,6 +2155,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         // Await sync so indicator turns green after save
         try {
           await SyncOrchestrator().syncAll();
+          if (mounted) setState(() => r.isSynced = true);
         } catch (_) {}
       }
 
@@ -2420,6 +2426,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
           );
           try {
             await SyncOrchestrator().syncAll();
+            if (mounted) setState(() => r.isSynced = true);
           } catch (_) {}
           // ignore: unawaited_futures
           SyncService.syncRepairData();
@@ -2609,6 +2616,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         );
         try {
           await SyncOrchestrator().syncAll();
+          if (mounted) setState(() => r.isSynced = true);
         } catch (_) {}
         // ignore: unawaited_futures
         SyncService.syncRepairData();
@@ -2790,6 +2798,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       );
       try {
         await SyncOrchestrator().syncAll();
+        if (mounted) setState(() => r.isSynced = true);
       } catch (_) {}
     }
 
@@ -2948,6 +2957,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       );
       try {
         await SyncOrchestrator().syncAll();
+        if (mounted) setState(() => r.isSynced = true);
       } catch (_) {}
     }
 
@@ -3201,14 +3211,15 @@ class _RepairDetailViewState extends State<RepairDetailView> {
 
   /// Show popup asking whether to record parts cost in cash fund
   Future<void> _showCostFundRecordingPopup(int costAmount) async {
-    // Load suppliers + try auto-fill from linked debts
-    final suppliers = await db.getSuppliers();
+    // Only fetch the auto-fill supplier name from linked debts (fast single-row query).
+    // Full supplier list is NOT loaded here — picker uses cursor pagination.
     String? autoSupplierName;
     try {
       final fid = r.firestoreId ?? '';
       if (fid.isNotEmpty) {
         final rows = await (await db.database).query(
           'debts',
+          columns: ['personName'],
           where: "linkedId = ? AND type = 'SHOP_OWES' AND (deleted IS NULL OR deleted = 0)",
           whereArgs: [fid],
           limit: 1,
@@ -3219,134 +3230,174 @@ class _RepairDetailViewState extends State<RepairDetailView> {
 
     if (!mounted) return;
 
-    // Dialog state
-    String? selName = autoSupplierName;
+    // Pre-fetch the auto-fill supplier record (id+name+phone only) if we have a name
+    Map<String, dynamic>? autoSupplier;
+    if (autoSupplierName != null) {
+      try {
+        final found = await db.getSupplierByName(autoSupplierName);
+        if (found != null) {
+          autoSupplier = {'id': found['id'], 'name': found['name'], 'phone': found['phone']};
+        }
+      } catch (_) {}
+    }
+
+    if (!mounted) return;
+
+    Map<String, dynamic>? selSupplier = autoSupplier;
 
     final result = await showDialog<Map<String, dynamic>?>(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) {
-          final selSupplier = selName != null
-              ? suppliers.cast<Map<String, dynamic>>().where((s) => s['name'] == selName).firstOrNull
-              : null;
+          final selName = (selSupplier?['name'] as String?) ?? '';
           final hasSupplier = selSupplier != null;
 
           return AlertDialog(
             title: const Text('GHI VÀO SỔ QUỸ?',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Chi phí vốn linh kiện: ${MoneyUtils.formatVND(costAmount)}',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                  const SizedBox(height: 4),
-                  const Text(
-                      'Ghi chi phí này vào sổ quỹ để cập nhật biến động quỹ tiền mặt / ngân hàng?',
-                      style: TextStyle(fontSize: 13, color: Colors.grey)),
-                  const Divider(height: 20),
-                  const Text('Nhà cung cấp',
-                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                  const SizedBox(height: 6),
-                  DropdownButtonFormField<String?>(
-                    value: selName,
-                    isExpanded: true,
-                    decoration: const InputDecoration(
-                      prefixIcon: Icon(Icons.store, size: 18),
-                      border: OutlineInputBorder(),
-                      isDense: true,
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    ),
-                    hint: const Text('Không chọn NCC', style: TextStyle(fontSize: 13)),
-                    items: [
-                      const DropdownMenuItem<String?>(
-                          value: null, child: Text('— Không chọn NCC —')),
-                      ...suppliers.map((s) {
-                        final name = (s['name'] as String?) ?? '';
-                        return DropdownMenuItem<String?>(
-                          value: name,
-                          child: Text(name,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontSize: 13)),
-                        );
-                      }),
-                    ],
-                    onChanged: (v) => setS(() => selName = v),
-                  ),
-                  if (hasSupplier) ...[
-                    const SizedBox(height: 8),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Cost info
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: Colors.orange.shade50,
+                        color: Colors.blue.shade50,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.orange.shade200),
                       ),
                       child: Row(children: [
-                        const Icon(Icons.info_outline, size: 14, color: Colors.orange),
-                        const SizedBox(width: 6),
+                        const Icon(Icons.price_check, size: 18, color: Colors.blue),
+                        const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'Chọn "Nợ NCC" để ghi công nợ cho $selName',
-                            style: const TextStyle(fontSize: 12, color: Colors.orange),
+                            'Chi phí vốn: ${MoneyUtils.formatVND(costAmount)}',
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                           ),
                         ),
                       ]),
                     ),
-                  ],
-                  const SizedBox(height: 16),
-                  // Action buttons inline for full layout control
-                  Row(children: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(ctx, null),
-                      child: const Text('Không ghi',
-                          style: TextStyle(color: Colors.grey, fontSize: 13)),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Ghi vào sổ quỹ để cập nhật biến động tiền mặt / ngân hàng?',
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
                     ),
-                    const Spacer(),
+                    const Divider(height: 20),
+                    const Text('Nhà cung cấp',
+                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                    const SizedBox(height: 6),
+                    // Supplier picker button — opens paginated bottom sheet
+                    InkWell(
+                      onTap: () async {
+                        final picked = await showSupplierPickerSheet(ctx);
+                        // picked == null means "Không chọn NCC" was tapped,
+                        // picked is absent (sheet dismissed) when user swipes down.
+                        setS(() => selSupplier = picked);
+                      },
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey.shade400),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(children: [
+                          Icon(Icons.store_rounded, size: 18,
+                              color: hasSupplier ? Colors.blue : Colors.grey),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              hasSupplier ? selName : '— Không chọn NCC —',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: hasSupplier ? Colors.black87 : Colors.grey,
+                                fontWeight: hasSupplier
+                                    ? FontWeight.w600
+                                    : FontWeight.normal,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          Icon(Icons.arrow_drop_down, color: Colors.grey.shade600),
+                        ]),
+                      ),
+                    ),
                     if (hasSupplier) ...[
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.orange.shade200),
+                        ),
+                        child: Row(children: [
+                          const Icon(Icons.info_outline, size: 14, color: Colors.orange),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              'Chọn "Nợ NCC" để ghi công nợ cho $selName',
+                              style: const TextStyle(fontSize: 12, color: Colors.orange),
+                            ),
+                          ),
+                        ]),
+                      ),
+                    ],
+                    const SizedBox(height: 16),
+                    // Action buttons
+                    Row(children: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, null),
+                        child: const Text('Không ghi',
+                            style: TextStyle(color: Colors.grey, fontSize: 13)),
+                      ),
+                      const Spacer(),
+                      if (hasSupplier) ...[
+                        ElevatedButton.icon(
+                          onPressed: () => Navigator.pop(ctx,
+                              {'method': 'CÔNG NỢ', 'name': selName, 'supplier': selSupplier}),
+                          icon: const Icon(Icons.receipt_long, size: 14),
+                          label: const Text('Nợ NCC', style: TextStyle(fontSize: 12)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.orange,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                      ],
                       ElevatedButton.icon(
-                        onPressed: () => Navigator.pop(
-                            ctx, {'method': 'CÔNG NỢ', 'name': selName, 'supplier': selSupplier}),
-                        icon: const Icon(Icons.receipt_long, size: 14),
-                        label: const Text('Nợ NCC', style: TextStyle(fontSize: 12)),
+                        onPressed: () => Navigator.pop(ctx,
+                            {'method': 'CHUYỂN KHOẢN', 'name': selName, 'supplier': selSupplier}),
+                        icon: const Icon(Icons.account_balance, size: 14),
+                        label: const Text('CK', style: TextStyle(fontSize: 12)),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.orange,
+                          backgroundColor: Colors.blue,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                         ),
                       ),
                       const SizedBox(width: 6),
-                    ],
-                    ElevatedButton.icon(
-                      onPressed: () => Navigator.pop(
-                          ctx, {'method': 'CHUYỂN KHOẢN', 'name': selName, 'supplier': selSupplier}),
-                      icon: const Icon(Icons.account_balance, size: 14),
-                      label: const Text('CK', style: TextStyle(fontSize: 12)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      ElevatedButton.icon(
+                        onPressed: () => Navigator.pop(ctx,
+                            {'method': 'TIỀN MẶT', 'name': selName, 'supplier': selSupplier}),
+                        icon: const Icon(Icons.payments, size: 14),
+                        label: const Text('TM', style: TextStyle(fontSize: 12)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 6),
-                    ElevatedButton.icon(
-                      onPressed: () => Navigator.pop(
-                          ctx, {'method': 'TIỀN MẶT', 'name': selName, 'supplier': selSupplier}),
-                      icon: const Icon(Icons.payments, size: 14),
-                      label: const Text('TM', style: TextStyle(fontSize: 12)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                      ),
-                    ),
-                  ]),
-                ],
+                    ]),
+                  ],
+                ),
               ),
             ),
-            // Remove default actions — buttons are in content
             actions: const [],
             actionsPadding: EdgeInsets.zero,
           );
@@ -3525,11 +3576,13 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         );
       },
     );
+    final notesText = notesC.text.trim();
+    notesC.dispose();
     if (result == true) {
       setState(() {
-        r.notes = notesC.text.trim().isEmpty ? null : notesC.text.trim();
+        r.notes = notesText.isEmpty ? null : notesText;
       });
-      _saveData();
+      await _saveData();
       NotificationService.showSnackBar(
         loc.savedTechnicianNotes,
         color: Colors.green,
@@ -3800,16 +3853,31 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     );
 
     customerSearchTimer?.cancel();
+    final vals = (
+      name: nameC.text.trim(),
+      phone: phoneC.text.trim(),
+      model: modelC.text.trim(),
+      issue: issueC.text.trim(),
+      acc: accC.text.trim(),
+      warranty: warrantyC.text.trim(),
+      address: addressC.text.trim(),
+      notes: notesC.text.trim(),
+    );
+    Future.delayed(Duration.zero, () {
+      nameC.dispose(); phoneC.dispose(); modelC.dispose(); issueC.dispose();
+      accC.dispose(); warrantyC.dispose(); addressC.dispose();
+      notesC.dispose(); searchC.dispose();
+    });
     if (confirmed == true) {
       setState(() {
-        r.customerName = nameC.text.trim().toUpperCase();
-        r.phone = phoneC.text.trim();
-        r.model = modelC.text.trim().toUpperCase();
-        r.issue = issueC.text.trim().toUpperCase();
-        r.accessories = accC.text.trim().toUpperCase();
-        r.warranty = warrantyC.text.trim().toUpperCase();
-        r.address = addressC.text.trim().toUpperCase();
-        r.notes = notesC.text.trim().isNotEmpty ? notesC.text.trim() : null;
+        r.customerName = vals.name.toUpperCase();
+        r.phone = vals.phone;
+        r.model = vals.model.toUpperCase();
+        r.issue = vals.issue.toUpperCase();
+        r.accessories = vals.acc.toUpperCase();
+        r.warranty = vals.warranty.toUpperCase();
+        r.address = vals.address.toUpperCase();
+        r.notes = vals.notes.isNotEmpty ? vals.notes : null;
       });
       await _saveData();
     }

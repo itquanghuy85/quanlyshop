@@ -5802,6 +5802,106 @@ class DBHelper {
     return res;
   }
 
+  /// Cursor-based paginated supplier list — only fetches id, name, phone.
+  /// [search] filters by name or phone (LIKE, case-insensitive).
+  /// [cursorName] is the last name seen on the previous page (for cursor pagination).
+  /// Returns items + total count (total only computed on first page when cursorName is null).
+  Future<({List<Map<String, dynamic>> items, int total})> getSuppliersPage({
+    String? search,
+    String? cursorName,
+    int limit = 30,
+  }) async {
+    final db = await database;
+    final shopId = await _getScopedShopId('getSuppliersPage');
+    if (shopId == null) return (items: <Map<String, dynamic>>[], total: 0);
+
+    final whereParts = <String>['shopId = ?', '(deleted = 0 OR deleted IS NULL)'];
+    final whereArgs = <dynamic>[shopId];
+
+    final q = search?.trim() ?? '';
+    if (q.isNotEmpty) {
+      whereParts.add('(UPPER(name) LIKE ? OR phone LIKE ? OR UPPER(code) LIKE ?)');
+      final upper = '%${q.toUpperCase()}%';
+      whereArgs.addAll([upper, '%$q%', upper]);
+    }
+
+    if (cursorName != null && q.isEmpty) {
+      whereParts.add('name > ?');
+      whereArgs.add(cursorName);
+    }
+
+    final where = whereParts.join(' AND ');
+
+    final items = await db.query(
+      'suppliers',
+      columns: ['id', 'name', 'phone'],
+      where: where,
+      whereArgs: whereArgs,
+      orderBy: 'name ASC',
+      limit: limit,
+    );
+
+    int total = 0;
+    if (cursorName == null) {
+      final countArgs = <dynamic>[shopId];
+      final countParts = <String>['shopId = ?', '(deleted = 0 OR deleted IS NULL)'];
+      if (q.isNotEmpty) {
+        countParts.add('(UPPER(name) LIKE ? OR phone LIKE ? OR UPPER(code) LIKE ?)');
+        final upper = '%${q.toUpperCase()}%';
+        countArgs.addAll([upper, '%$q%', upper]);
+      }
+      final countRes = await db.rawQuery(
+        'SELECT COUNT(*) as c FROM suppliers WHERE ${countParts.join(' AND ')}',
+        countArgs,
+      );
+      total = (countRes.first['c'] as int?) ?? 0;
+    }
+
+    return (
+      items: items.map((e) => Map<String, dynamic>.from(e)).toList(),
+      total: total,
+    );
+  }
+
+  /// Returns recently-used suppliers (by name, from debts table) — only id, name, phone.
+  Future<List<Map<String, dynamic>>> getRecentSuppliersForPicker({int limit = 5}) async {
+    final db = await database;
+    final shopId = await _getScopedShopId('getRecentSuppliersForPicker');
+    if (shopId == null) return [];
+
+    final recentRows = await db.rawQuery('''
+      SELECT personName, MAX(createdAt) as lastUsed
+      FROM debts
+      WHERE shopId = ? AND type = 'SHOP_OWES' AND (deleted IS NULL OR deleted = 0)
+        AND personName IS NOT NULL AND personName != ''
+      GROUP BY personName
+      ORDER BY lastUsed DESC
+      LIMIT ?
+    ''', [shopId, limit]);
+
+    if (recentRows.isEmpty) return [];
+
+    final names = recentRows
+        .map((r) => r['personName'] as String?)
+        .whereType<String>()
+        .toList();
+
+    final placeholders = names.map((_) => '?').join(',');
+    final rows = await db.rawQuery('''
+      SELECT id, name, phone FROM suppliers
+      WHERE shopId = ? AND name IN ($placeholders)
+        AND (deleted = 0 OR deleted IS NULL)
+      ORDER BY name ASC
+    ''', [shopId, ...names]);
+
+    // Preserve recency order from debts query
+    final nameOrder = {for (var i = 0; i < names.length; i++) names[i]: i};
+    final sorted = rows.map((e) => Map<String, dynamic>.from(e)).toList()
+      ..sort((a, b) => (nameOrder[a['name']] ?? 99).compareTo(nameOrder[b['name']] ?? 99));
+
+    return sorted;
+  }
+
   /// Find a single supplier by name (case-insensitive) in the current shop.
   Future<Map<String, dynamic>?> getSupplierByName(String name) async {
     final db = await database;
