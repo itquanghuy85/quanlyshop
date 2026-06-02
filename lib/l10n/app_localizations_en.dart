@@ -7304,7 +7304,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get debtGuideStep4Title => '🔄 Auto-create debts';
 
   @override
-  String get debtGuideStep4Desc => 'When selling/stocking and selecting "DEBT", the system automatically creates a corresponding debt record.';
+  String get debtGuideStep4Desc => 'When selling/stocking and selecting \"DEBT\", the system automatically creates a corresponding debt record.';
 
   @override
   String get debtCollectFieldName => 'Collection amount';
@@ -7529,10 +7529,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get backupProcessing => 'Processing...';
 
   @override
-  String backupSavedPathLabel(String fileName) => 'Saved: $fileName';
+  String backupSavedPathLabel(String fileName) {
+    return 'Saved: $fileName';
+  }
 
   @override
-  String get backupNoLocalBackupsHint => 'No local backups yet. Tap "Save .db file to device" above.';
+  String get backupNoLocalBackupsHint => 'No local backups yet. Tap \"Save .db file to device\" above.';
 
   @override
   String get backupNoCloudBackups => 'No backups yet.';
@@ -7547,34 +7549,44 @@ class AppLocalizationsEn extends AppLocalizations {
   String get backupCleanOldHint => 'Delete local backup files older than selected number of days.';
 
   @override
-  String get backupQuickGuideOffline => '• Offline backup: tap "Save .db file to device" to create a local backup.';
+  String get backupQuickGuideOffline => '• Offline backup: tap \"Save .db file to device\" to create a local backup.';
 
   @override
-  String get backupQuickGuideShare => '• Share backup: use the "Share" button in the local backup list.';
+  String get backupQuickGuideShare => '• Share backup: use the \"Share\" button in the local backup list.';
 
   @override
   String get backupQuickGuideRestoreOffline => '• Offline restore: select from local backup list or .db file.';
 
   @override
-  String get backupQuickGuideRestoreOnline => '• Online restore: select a Cloud SQLite backup and tap "Restore".';
+  String get backupQuickGuideRestoreOnline => '• Online restore: select a Cloud SQLite backup and tap \"Restore\".';
 
   @override
-  String backupCannotLoad(String error) => 'Cannot load backup: $error';
+  String backupCannotLoad(String error) {
+    return 'Cannot load backup: $error';
+  }
 
   @override
   String get backupSavedLocally => 'SQLite backup saved to device. Share from local backup list.';
 
   @override
-  String backupExportError(String error) => 'Export error: $error';
+  String backupExportError(String error) {
+    return 'Export error: $error';
+  }
 
   @override
-  String backupShareFileError(String error) => 'Share error: $error';
+  String backupShareFileError(String error) {
+    return 'Share error: $error';
+  }
 
   @override
-  String backupDeletedLocalName(String name) => 'Deleted local backup $name.';
+  String backupDeletedLocalName(String name) {
+    return 'Deleted local backup $name.';
+  }
 
   @override
-  String backupDeleteLocalError(String error) => 'Error deleting local backup: $error';
+  String backupDeleteLocalError(String error) {
+    return 'Error deleting local backup: $error';
+  }
 
   @override
   String get backupCloudSuccess => 'SQLite backup to Cloud successful!';
@@ -7583,52 +7595,75 @@ class AppLocalizationsEn extends AppLocalizations {
   String get backupDeletedCloud => 'Cloud backup deleted.';
 
   @override
-  String backupRestoreErrorMsg(String error) => 'Restore error: $error';
+  String backupRestoreErrorMsg(String error) {
+    return 'Restore error: $error';
+  }
 
   @override
-  String backupRestoreLocalErrorMsg(String error) => 'Local restore error: $error';
+  String backupRestoreLocalErrorMsg(String error) {
+    return 'Local restore error: $error';
+  }
 
   @override
-  String backupDeleteSuccessWithCloud(int localRows, int cloudRows, String label) =>
-      'Deleted local $localRows records and cloud $cloudRows records ($label). Restart app to apply.';
+  String backupDeleteSuccessWithCloud(int localRows, int cloudRows, String label) {
+    return 'Deleted local $localRows records and cloud $cloudRows records ($label). Restart app to apply.';
+  }
 
   @override
-  String backupDeleteSuccessLocalOnly(int localRows, String label) =>
-      'Deleted $localRows local records ($label). If Cloud still has data, app may sync again.';
+  String backupDeleteSuccessLocalOnly(int localRows, String label) {
+    return 'Deleted $localRows local records ($label). If Cloud still has data, app may sync again.';
+  }
 
   @override
-  String backupDeleteErrorMsg(String error) => 'Delete error: $error';
+  String backupDeleteErrorMsg(String error) {
+    return 'Delete error: $error';
+  }
 
   @override
-  String backupFirestoreError(String error) => 'Firestore backup error: $error';
+  String backupFirestoreError(String error) {
+    return 'Firestore backup error: $error';
+  }
 
   @override
-  String backupRestoreSuccessMsg(int count) => 'Restore successful ($count items)!';
+  String backupRestoreSuccessMsg(int count) {
+    return 'Restore successful ($count items)!';
+  }
 
   @override
-  String backupRestoreFirestoreError(String error) => 'Restore error: $error';
+  String backupRestoreFirestoreError(String error) {
+    return 'Restore error: $error';
+  }
 
   @override
   String get backupDeletedSet => 'Backup deleted.';
 
   @override
-  String backupDeleteSetErrorMsg(String error) => 'Delete error: $error';
+  String backupDeleteSetErrorMsg(String error) {
+    return 'Delete error: $error';
+  }
 
   @override
-  String backupNoOldFiles(int days) => 'No backups older than $days days.';
+  String backupNoOldFiles(int days) {
+    return 'No backups older than $days days.';
+  }
 
   @override
-  String backupDeletedOldFiles(int count, int days) =>
-      'Deleted $count backup files older than $days days.';
+  String backupDeletedOldFiles(int count, int days) {
+    return 'Deleted $count backup files older than $days days.';
+  }
 
   @override
-  String backupCleanError(String error) => 'Backup cleanup error: $error';
+  String backupCleanError(String error) {
+    return 'Backup cleanup error: $error';
+  }
 
   @override
   String get backupDeleteLocalTitle => 'Delete local backup?';
 
   @override
-  String backupDeleteLocalContent(String name) => 'Are you sure you want to delete file "$name"?';
+  String backupDeleteLocalContent(String name) {
+    return 'Are you sure you want to delete file \"$name\"?';
+  }
 
   @override
   String get backupDeleteCloudTitle => 'Delete Cloud backup?';
@@ -7637,19 +7672,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get backupChooseRestoreType => 'Choose restore type';
 
   @override
-  String get backupRestoreOriginalDesc =>
-      'Restore original: keep data from backed-up shop.\n\nTransfer to current shop: remap shopId so data appears in logged-in shop.';
+  String get backupRestoreOriginalDesc => 'Restore original: keep data from backed-up shop.\n\nTransfer to current shop: remap shopId so data appears in logged-in shop.';
 
   @override
   String get backupRestoreCloudTitle => 'Restore SQLite from Cloud';
 
   @override
-  String backupRestoreCloudContent(String fileName) =>
-      'You are about to restore from backup:\n$fileName\n\nCurrent data on device will be overwritten. Continue?';
+  String backupRestoreCloudContent(String fileName) {
+    return 'You are about to restore from backup:\n$fileName\n\nCurrent data on device will be overwritten. Continue?';
+  }
 
   @override
-  String get backupChooseRestoreTypeTip =>
-      'Restore original will keep the old shopId.\n\nTo bring data to current shop, choose the shopId transfer option.';
+  String get backupChooseRestoreTypeTip => 'Restore original will keep the old shopId.\n\nTo bring data to current shop, choose the shopId transfer option.';
 
   @override
   String get backupSelectDataSqlite => 'Select data to restore (SQLite)';
@@ -7658,34 +7692,38 @@ class AppLocalizationsEn extends AppLocalizations {
   String get backupRestoreSuccessTitle => 'Restore successful';
 
   @override
-  String backupRestoredWithTransfer(int count) =>
-      'Restored $count items and transferred to current shop. Please restart the app to apply changes.';
+  String backupRestoredWithTransfer(int count) {
+    return 'Restored $count items and transferred to current shop. Please restart the app to apply changes.';
+  }
 
   @override
-  String backupRestoredNoTransfer(int count) =>
-      'Restored $count items. Please restart the app to apply changes.';
+  String backupRestoredNoTransfer(int count) {
+    return 'Restored $count items. Please restart the app to apply changes.';
+  }
 
   @override
-  String backupRestoredCloudWithTransfer(int count) =>
-      'Restored $count items from Cloud and transferred to current shop. Please restart the app.';
+  String backupRestoredCloudWithTransfer(int count) {
+    return 'Restored $count items from Cloud and transferred to current shop. Please restart the app.';
+  }
 
   @override
-  String backupRestoredCloudNoTransfer(int count) =>
-      'Restored $count items from Cloud. Please restart the app to apply new data.';
+  String backupRestoredCloudNoTransfer(int count) {
+    return 'Restored $count items from Cloud. Please restart the app to apply new data.';
+  }
 
   @override
-  String backupDeleteWarningTitle(String label) => 'Delete: $label?';
+  String backupDeleteWarningTitle(String label) {
+    return 'Delete: $label?';
+  }
 
   @override
-  String get backupDeleteWarningContent =>
-      'Data will be permanently deleted from this device.\n\nRecommend backing up before deleting to avoid data loss.';
+  String get backupDeleteWarningContent => 'Data will be permanently deleted from this device.\n\nRecommend backing up before deleting to avoid data loss.';
 
   @override
   String get backupDeleteCloudTooLabel => 'Also delete Cloud data for current shop';
 
   @override
-  String get backupDeleteCloudTooSubtitle =>
-      'If not selected, Cloud data may sync back to device after local deletion.';
+  String get backupDeleteCloudTooSubtitle => 'If not selected, Cloud data may sync back to device after local deletion.';
 
   @override
   String get backupDeleteForever => 'Delete permanently';
@@ -7715,29 +7753,38 @@ class AppLocalizationsEn extends AppLocalizations {
   String get backupLocalRestoreContent => 'Current data will be overwritten by this backup. Continue?';
 
   @override
-  String backupRestoredLocalWithTransfer(int count) =>
-      'Restored $count items and transferred to current shop. Please restart the app.';
+  String backupRestoredLocalWithTransfer(int count) {
+    return 'Restored $count items and transferred to current shop. Please restart the app.';
+  }
 
   @override
-  String backupRestoredLocalNoTransfer(int count) =>
-      'Restored $count items from local backup. Please restart the app.';
+  String backupRestoredLocalNoTransfer(int count) {
+    return 'Restored $count items from local backup. Please restart the app.';
+  }
 
   @override
-  String backupConfirmRestoreContent(int count, String date) =>
-      'Current data of $count items will be overwritten by backup from $date.\n\nContinue?';
+  String get backupConfirmRestoreTitle => 'Confirm restore';
+
+  @override
+  String backupConfirmRestoreContent(int count, String date) {
+    return 'Current data of $count items will be overwritten by backup from $date.\n\nContinue?';
+  }
 
   @override
   String get backupDeleteSetTitle => 'Delete backup?';
 
   @override
-  String backupDeleteSetContent(String date) => 'Delete backup from $date?';
+  String backupDeleteSetContent(String date) {
+    return 'Delete backup from $date?';
+  }
 
   @override
   String get backupPreparingMsg => 'Preparing...';
 
   @override
-  String backupBackingUpItem(String item, int done, int total) =>
-      'Backing up $item ($done/$total)...';
+  String backupBackingUpItem(String item, int done, int total) {
+    return 'Backing up $item ($done/$total)...';
+  }
 
   @override
   String get backupRestoringMsg => 'Restoring...';
@@ -7746,7 +7793,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get backupSelectDataBackup => 'Select data to backup';
 
   @override
-  String backupSelectedCountLabel(int count) => '$count items selected';
+  String backupSelectedCountLabel(int count) {
+    return '$count items selected';
+  }
 
   @override
   String get backupNotAvailable => 'Not in this backup';
@@ -7755,20 +7804,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get backupStorageRulesTitle => 'Firebase Storage Rules configuration needed';
 
   @override
-  String backupCloudPermissionError(String action) =>
-      '$action Cloud failed: account does not have Firebase Storage permission for db_backups.';
+  String backupCloudPermissionError(String action) {
+    return '$action Cloud failed: account does not have Firebase Storage permission for db_backups.';
+  }
 
   @override
-  String backupCloudNotFoundError(String action) =>
-      '$action Cloud failed: backup file not found on Cloud.';
+  String backupCloudNotFoundError(String action) {
+    return '$action Cloud failed: backup file not found on Cloud.';
+  }
 
   @override
-  String backupCloudAuthError(String action) =>
-      '$action Cloud failed: session expired, please login again.';
+  String backupCloudAuthError(String action) {
+    return '$action Cloud failed: session expired, please login again.';
+  }
 
   @override
-  String backupCloudGenericError(String action, String error) =>
-      '$action Cloud failed: $error';
+  String backupCloudGenericError(String action, String error) {
+    return '$action Cloud failed: $error';
+  }
 
   @override
   String get backupPresetInventoryCash => 'Inventory & Cash Closing';
@@ -7795,20 +7848,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get backupPresetSystemLog => 'System Logs';
 
   @override
-  String get backupConfirmRestoreTitle => 'Confirm restore';
-
-  // Inventory view keys
-  @override
   String get inventoryManageTitle => 'WAREHOUSE';
 
   @override
   String get inventoryManageTotalTitle => 'WAREHOUSE MANAGEMENT';
 
   @override
-  String get inventoryNoAccessMsg => "You don't have access\nto warehouse management";
+  String get inventoryNoAccessMsg => 'You don\'t have access\nto warehouse management';
 
   @override
-  String inventoryUnsyncedNote(int count) => '$count unsynced';
+  String inventoryUnsyncedNote(int count) {
+    return '$count unsynced';
+  }
 
   @override
   String get inventoryInStockLabel => 'IN STOCK';
@@ -7820,7 +7871,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inventoryTempStockBanner => 'TEMP STOCK – Waiting for price confirmation';
 
   @override
-  String inventoryExpectedSupplier(String supplier) => 'Expected supplier: $supplier';
+  String inventoryExpectedSupplier(String supplier) {
+    return 'Expected supplier: $supplier';
+  }
 
   @override
   String get inventoryStockQty => 'Stock qty';
@@ -7880,7 +7933,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inventorySellAction => 'SELL';
 
   @override
-  String inventoryStockMoreAction(int count) => 'RESTOCK ($count)';
+  String inventoryStockMoreAction(int count) {
+    return 'RESTOCK ($count)';
+  }
 
   @override
   String get inventoryDeleteAction => 'DELETE';
@@ -7889,10 +7944,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inventoryRestockTitle => 'RESTOCK';
 
   @override
-  String inventoryCurrentStockNote(int qty) => 'Current stock: $qty';
+  String inventoryCurrentStockNote(int qty) {
+    return 'Current stock: $qty';
+  }
 
   @override
-  String inventoryCurrentCostNote(String price) => 'Current cost price: $price';
+  String inventoryCurrentCostNote(String price) {
+    return 'Current cost price: $price';
+  }
 
   @override
   String get inventoryRestockQtyLabel => 'Additional quantity';
@@ -7901,7 +7960,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inventoryRestockPriceLabel => 'Purchase price (VND)';
 
   @override
-  String inventoryWeightedCostNote(String price) => 'Weighted cost after restock: $price';
+  String inventoryWeightedCostNote(String price) {
+    return 'Weighted cost after restock: $price';
+  }
 
   @override
   String get inventoryPaymentMethodLabel => 'Payment method';
@@ -7934,13 +7995,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inventoryCreateEntryError => 'Error creating stock-in entry';
 
   @override
-  String inventoryStockInSuccess(int qty, String name) => 'Added $qty $name to warehouse';
+  String inventoryStockInSuccess(int qty, String name) {
+    return 'Added $qty $name to warehouse';
+  }
 
   @override
   String get inventoryConfirmEntryError => 'Error confirming stock-in entry';
 
   @override
-  String inventoryErrorMsg(String error) => 'Error: $error';
+  String inventoryErrorMsg(String error) {
+    return 'Error: $error';
+  }
 
   @override
   String get inventoryEditOption => 'Edit';
@@ -7949,7 +8014,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inventoryHideOption => 'Hide from warehouse';
 
   @override
-  String inventoryCostPriceNote(String price) => 'Cost price: $price';
+  String inventoryCostPriceNote(String price) {
+    return 'Cost price: $price';
+  }
 
   @override
   String get inventorySoftDeleteWarning => '⚠️ IMPORTANT NOTE:';
@@ -7976,10 +8043,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inventoryHideFromWarehouse => 'HIDE FROM WAREHOUSE';
 
   @override
-  String inventoryHideSuccess(String product, String name) => 'Hidden $product from warehouse: $name';
+  String inventoryHideSuccess(String product, String name) {
+    return 'Hidden $product from warehouse: $name';
+  }
 
   @override
-  String inventoryHideError(String product, String error) => 'Error hiding $product: $error';
+  String inventoryHideError(String product, String error) {
+    return 'Error hiding $product: $error';
+  }
 
   @override
   String get inventoryEmptyFiltered => 'No products found';
@@ -7991,13 +8062,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inventoryEmptyFilteredSub => 'Try removing filters or search for another keyword';
 
   @override
-  String get inventoryEmptyOutOfStockSub => 'Enable "Out of stock" to see out-of-stock products';
+  String get inventoryEmptyOutOfStockSub => 'Enable \"Out of stock\" to see out-of-stock products';
 
   @override
   String get inventoryConfirmDeleteTitle => 'CONFIRM DELETE';
 
   @override
-  String inventoryConfirmDeleteContent(int count) => 'Are you sure you want to delete $count items?';
+  String inventoryConfirmDeleteContent(int count) {
+    return 'Are you sure you want to delete $count items?';
+  }
 
   @override
   String get inventoryEnterPasswordToDelete => 'Enter account password to delete:';
@@ -8018,7 +8091,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inventoryStockInTooltip => 'Stock in';
 
   @override
-  String inventorySearchWithQuery(String query) => 'Search: "$query"';
+  String inventorySearchWithQuery(String query) {
+    return 'Search: \"$query\"';
+  }
 
   @override
   String get inventoryMoreTooltip => 'More';
@@ -8030,10 +8105,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inventoryPrintLabelsMenu => 'Print labels';
 
   @override
-  String inventorySelectedCount(int count) => 'SELECTED $count';
+  String inventorySelectedCount(int count) {
+    return 'SELECTED $count';
+  }
 
   @override
-  String inventoryShownCount(int count, String product) => 'Showing $count $product';
+  String inventoryShownCount(int count, String product) {
+    return 'Showing $count $product';
+  }
 
   @override
   String get inventoryDisplayOrTotal => 'SHOWING / TOTAL';
@@ -8180,7 +8259,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inventoryStatusUnknown => 'Unknown';
 
   @override
-  String inventorySearchProduct(String product) => 'Find $product';
+  String inventorySearchProduct(String product) {
+    return 'Find $product';
+  }
 
   @override
   String get inventoryExportParts => 'Export parts warehouse';
@@ -8189,10 +8270,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inventoryExportProducts => 'Export product warehouse';
 
   @override
-  String inventorySearchHint(String product, String category, String field) => 'Enter $product, $category or $field...';
+  String inventorySearchHint(String product, String category, String field) {
+    return 'Enter $product, $category or $field...';
+  }
 
   @override
-  String inventoryHideProductTitle(String product) => 'HIDE $product (WAREHOUSE)';
+  String inventoryHideProductTitle(String product) {
+    return 'HIDE $product (WAREHOUSE)';
+  }
 
   @override
   String get inventorySearchTooltip => 'Search';
@@ -8201,13 +8286,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inventoryExportExcelMenu => 'Export Excel';
 
   @override
-  String inventoryCapitalChip(String price) => 'Capital ${price}đ';
+  String inventoryCapitalChip(String price) {
+    return 'Capital $priceđ';
+  }
 
   @override
-  String inventoryEditProductTitle(String label) => 'EDIT $label';
+  String inventoryEditProductTitle(String label) {
+    return 'EDIT $label';
+  }
 
   @override
-  String inventoryProductNameLabel(String label) => '$label name';
+  String inventoryProductNameLabel(String label) {
+    return '$label name';
+  }
 
   @override
   String get inventoryConfirmBtn => 'CONFIRM';

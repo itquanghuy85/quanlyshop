@@ -13823,7 +13823,7 @@ abstract class AppLocalizations {
   /// **'Stock in'**
   String get expenseCatStockIn;
 
-  /// Scope chip label: personal
+  /// Scope chip label: personal (ca nhan)
   ///
   /// In en, this message translates to:
   /// **'PERSONAL'**
@@ -13916,7 +13916,7 @@ abstract class AppLocalizations {
   /// Guide step 4 description
   ///
   /// In en, this message translates to:
-  /// **'When selling/stocking and selecting "DEBT", the system automatically creates a corresponding debt record.'**
+  /// **'When selling/stocking and selecting \"DEBT\", the system automatically creates a corresponding debt record.'**
   String get debtGuideStep4Desc;
 
   /// Field name for collection amount validator
@@ -13937,308 +13937,1780 @@ abstract class AppLocalizations {
   /// **'Debt amount'**
   String get debtAmountFieldName;
 
+  /// No description provided for @backupGroupOperations.
+  ///
+  /// In en, this message translates to:
+  /// **'Operations'**
   String get backupGroupOperations;
-  String get backupGroupWarehouse;
-  String get backupGroupFinance;
-  String get backupGroupHr;
-  String get backupGroupCrm;
-  String get backupGroupSystem;
-  String get backupColRepairs;
-  String get backupColRepairParts;
-  String get backupColRepairPartners;
-  String get backupColPartnerHistory;
-  String get backupColSales;
-  String get backupColInventoryChecks;
-  String get backupColCashClosings;
-  String get backupColProducts;
-  String get backupColSalvagePhones;
-  String get backupColStorageLocations;
-  String get backupColSuppliers;
-  String get backupColPurchaseOrders;
-  String get backupColImportOrders;
-  String get backupColSupplierImportHistory;
-  String get backupColQuickInputCodes;
-  String get backupColDebts;
-  String get backupColDebtPayments;
-  String get backupColExpenses;
-  String get backupColPaymentIntents;
-  String get backupColPaymentRequests;
-  String get backupColSupplierPayments;
-  String get backupColRepairPartnerPayments;
-  String get backupColAttendance;
-  String get backupColPayrollSettings;
-  String get backupColWorkSchedules;
-  String get backupColCustomers;
-  String get backupColChats;
-  String get backupColAuditLogs;
-  String get backupOptionsTooltip;
-  String get backupOpenSqliteTab;
-  String get backupOpenFirestoreTab;
-  String get backupSqliteTabLabel;
-  String get backupFirestoreTabLabel;
-  String get backupGuideTitle;
-  String get backupGuideStep1;
-  String get backupGuideStep2;
-  String get backupGuideStep3;
-  String get backupGuideStep4;
-  String get backupGuideStep5;
-  String get backupRestoreBtn;
-  String get backupRestoreOriginalBtn;
-  String get backupTransferToCurrentShop;
-  String get backupSaveToDevice;
-  String get backupShareLatest;
-  String get backupSelectAndBackup;
-  String get backupSelectFile;
-  String get backupSelectCustomItems;
-  String get backupCleanOldBtn;
-  String get backupUploadToCloud;
-  String get backupBackupLabel;
-  String get backupSqliteSectionTitle;
-  String get backupLocalListTitle;
-  String get backupQuickGuideTitle;
-  String get backupCloudListTitle;
-  String get backupRestoreFromFileTitle;
-  String get backupDeleteSelectiveTitle;
-  String get backupCleanOldTitle;
-  String get backupFirestoreInfoText;
-  String get backupRestoreByItemTitle;
-  String get backupRestoreByItemDesc1;
-  String get backupRestoreByItemDesc2;
-  String get backupFirestoreSectionTitle;
-  String get backupFirestoreListTitle;
-  String get backupNoFirestoreBackups;
-  String get backupProcessing;
-  String backupSavedPathLabel(String fileName);
-  String get backupNoLocalBackupsHint;
-  String get backupNoCloudBackups;
-  String get backupRestoreFileHint;
-  String get backupDeleteSelectiveHint;
-  String get backupCleanOldHint;
-  String get backupQuickGuideOffline;
-  String get backupQuickGuideShare;
-  String get backupQuickGuideRestoreOffline;
-  String get backupQuickGuideRestoreOnline;
-  String backupCannotLoad(String error);
-  String get backupSavedLocally;
-  String backupExportError(String error);
-  String backupShareFileError(String error);
-  String backupDeletedLocalName(String name);
-  String backupDeleteLocalError(String error);
-  String get backupCloudSuccess;
-  String get backupDeletedCloud;
-  String backupRestoreErrorMsg(String error);
-  String backupRestoreLocalErrorMsg(String error);
-  String backupDeleteSuccessWithCloud(int localRows, int cloudRows, String label);
-  String backupDeleteSuccessLocalOnly(int localRows, String label);
-  String backupDeleteErrorMsg(String error);
-  String backupFirestoreError(String error);
-  String backupRestoreSuccessMsg(int count);
-  String backupRestoreFirestoreError(String error);
-  String get backupDeletedSet;
-  String backupDeleteSetErrorMsg(String error);
-  String backupNoOldFiles(int days);
-  String backupDeletedOldFiles(int count, int days);
-  String backupCleanError(String error);
-  String get backupDeleteLocalTitle;
-  String backupDeleteLocalContent(String name);
-  String get backupDeleteCloudTitle;
-  String get backupChooseRestoreType;
-  String get backupRestoreOriginalDesc;
-  String get backupRestoreCloudTitle;
-  String backupRestoreCloudContent(String fileName);
-  String get backupChooseRestoreTypeTip;
-  String get backupSelectDataSqlite;
-  String get backupRestoreSuccessTitle;
-  String backupRestoredWithTransfer(int count);
-  String backupRestoredNoTransfer(int count);
-  String backupRestoredCloudWithTransfer(int count);
-  String backupRestoredCloudNoTransfer(int count);
-  String backupDeleteWarningTitle(String label);
-  String get backupDeleteWarningContent;
-  String get backupDeleteCloudTooLabel;
-  String get backupDeleteCloudTooSubtitle;
-  String get backupDeleteForever;
-  String get backupSelectDataToDelete;
-  String get backupKeepDaysTitle;
-  String get backupKeep30Days;
-  String get backupKeep60Days;
-  String get backupKeep90Days;
-  String get backupKeep180Days;
-  String get backupLocalRestoreTitle;
-  String get backupLocalRestoreContent;
-  String backupRestoredLocalWithTransfer(int count);
-  String backupRestoredLocalNoTransfer(int count);
-  String backupConfirmRestoreContent(int count, String date);
-  String get backupDeleteSetTitle;
-  String backupDeleteSetContent(String date);
-  String get backupPreparingMsg;
-  String backupBackingUpItem(String item, int done, int total);
-  String get backupRestoringMsg;
-  String get backupSelectDataBackup;
-  String backupSelectedCountLabel(int count);
-  String get backupNotAvailable;
-  String get backupStorageRulesTitle;
-  String backupCloudPermissionError(String action);
-  String backupCloudNotFoundError(String action);
-  String backupCloudAuthError(String action);
-  String backupCloudGenericError(String action, String error);
-  String get backupPresetInventoryCash;
-  String get backupPresetAccessoriesProducts;
-  String get backupPresetRepairParts;
-  String get backupPresetSupplierImport;
-  String get backupPresetPayments;
-  String get backupPresetOther;
-  String get backupPresetHr;
-  String get backupPresetSystemLog;
 
-  /// Title for the confirm-restore dialog in backup/restore view
+  /// No description provided for @backupGroupWarehouse.
+  ///
+  /// In en, this message translates to:
+  /// **'Warehouse & Products'**
+  String get backupGroupWarehouse;
+
+  /// No description provided for @backupGroupFinance.
+  ///
+  /// In en, this message translates to:
+  /// **'Finance'**
+  String get backupGroupFinance;
+
+  /// No description provided for @backupGroupHr.
+  ///
+  /// In en, this message translates to:
+  /// **'HR & Staff'**
+  String get backupGroupHr;
+
+  /// No description provided for @backupGroupCrm.
+  ///
+  /// In en, this message translates to:
+  /// **'Customer Relations'**
+  String get backupGroupCrm;
+
+  /// No description provided for @backupGroupSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'System'**
+  String get backupGroupSystem;
+
+  /// No description provided for @backupColRepairs.
+  ///
+  /// In en, this message translates to:
+  /// **'Repair Orders'**
+  String get backupColRepairs;
+
+  /// No description provided for @backupColRepairParts.
+  ///
+  /// In en, this message translates to:
+  /// **'Repair Parts Warehouse'**
+  String get backupColRepairParts;
+
+  /// No description provided for @backupColRepairPartners.
+  ///
+  /// In en, this message translates to:
+  /// **'Repair Partners'**
+  String get backupColRepairPartners;
+
+  /// No description provided for @backupColPartnerHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Partner Send History'**
+  String get backupColPartnerHistory;
+
+  /// No description provided for @backupColSales.
+  ///
+  /// In en, this message translates to:
+  /// **'Sale Orders'**
+  String get backupColSales;
+
+  /// No description provided for @backupColInventoryChecks.
+  ///
+  /// In en, this message translates to:
+  /// **'Inventory Checks'**
+  String get backupColInventoryChecks;
+
+  /// No description provided for @backupColCashClosings.
+  ///
+  /// In en, this message translates to:
+  /// **'Cash Closings'**
+  String get backupColCashClosings;
+
+  /// No description provided for @backupColProducts.
+  ///
+  /// In en, this message translates to:
+  /// **'Products / Warehouse'**
+  String get backupColProducts;
+
+  /// No description provided for @backupColSalvagePhones.
+  ///
+  /// In en, this message translates to:
+  /// **'Salvage Phones'**
+  String get backupColSalvagePhones;
+
+  /// No description provided for @backupColStorageLocations.
+  ///
+  /// In en, this message translates to:
+  /// **'Storage Locations'**
+  String get backupColStorageLocations;
+
+  /// No description provided for @backupColSuppliers.
+  ///
+  /// In en, this message translates to:
+  /// **'Suppliers'**
+  String get backupColSuppliers;
+
+  /// No description provided for @backupColPurchaseOrders.
+  ///
+  /// In en, this message translates to:
+  /// **'Purchase Orders'**
+  String get backupColPurchaseOrders;
+
+  /// No description provided for @backupColImportOrders.
+  ///
+  /// In en, this message translates to:
+  /// **'Stock-in Orders'**
+  String get backupColImportOrders;
+
+  /// No description provided for @backupColSupplierImportHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Supplier Import History'**
+  String get backupColSupplierImportHistory;
+
+  /// No description provided for @backupColQuickInputCodes.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick Input Codes'**
+  String get backupColQuickInputCodes;
+
+  /// No description provided for @backupColDebts.
+  ///
+  /// In en, this message translates to:
+  /// **'Debts'**
+  String get backupColDebts;
+
+  /// No description provided for @backupColDebtPayments.
+  ///
+  /// In en, this message translates to:
+  /// **'Debt Payments'**
+  String get backupColDebtPayments;
+
+  /// No description provided for @backupColExpenses.
+  ///
+  /// In en, this message translates to:
+  /// **'Expenses'**
+  String get backupColExpenses;
+
+  /// No description provided for @backupColPaymentIntents.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment Requests'**
+  String get backupColPaymentIntents;
+
+  /// No description provided for @backupColPaymentRequests.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment Dues'**
+  String get backupColPaymentRequests;
+
+  /// No description provided for @backupColSupplierPayments.
+  ///
+  /// In en, this message translates to:
+  /// **'Supplier Payments'**
+  String get backupColSupplierPayments;
+
+  /// No description provided for @backupColRepairPartnerPayments.
+  ///
+  /// In en, this message translates to:
+  /// **'Repair Partner Payments'**
+  String get backupColRepairPartnerPayments;
+
+  /// No description provided for @backupColAttendance.
+  ///
+  /// In en, this message translates to:
+  /// **'Attendance'**
+  String get backupColAttendance;
+
+  /// No description provided for @backupColPayrollSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Payroll Settings'**
+  String get backupColPayrollSettings;
+
+  /// No description provided for @backupColWorkSchedules.
+  ///
+  /// In en, this message translates to:
+  /// **'Work Schedules'**
+  String get backupColWorkSchedules;
+
+  /// No description provided for @backupColCustomers.
+  ///
+  /// In en, this message translates to:
+  /// **'Customers'**
+  String get backupColCustomers;
+
+  /// No description provided for @backupColChats.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat Messages'**
+  String get backupColChats;
+
+  /// No description provided for @backupColAuditLogs.
+  ///
+  /// In en, this message translates to:
+  /// **'Audit Logs'**
+  String get backupColAuditLogs;
+
+  /// No description provided for @backupOptionsTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Options'**
+  String get backupOptionsTooltip;
+
+  /// No description provided for @backupOpenSqliteTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Open SQLite tab'**
+  String get backupOpenSqliteTab;
+
+  /// No description provided for @backupOpenFirestoreTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Firestore tab'**
+  String get backupOpenFirestoreTab;
+
+  /// No description provided for @backupSqliteTabLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'SQLite (file .db)'**
+  String get backupSqliteTabLabel;
+
+  /// No description provided for @backupFirestoreTabLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Firestore (cloud)'**
+  String get backupFirestoreTabLabel;
+
+  /// No description provided for @backupGuideTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup & Restore Guide'**
+  String get backupGuideTitle;
+
+  /// No description provided for @backupGuideStep1.
+  ///
+  /// In en, this message translates to:
+  /// **'1. SQLite (offline): use for backing up/restoring the entire data file on device.'**
+  String get backupGuideStep1;
+
+  /// No description provided for @backupGuideStep2.
+  ///
+  /// In en, this message translates to:
+  /// **'2. Firestore (online): allows backup/restore by section (repair orders, sales, warehouse, debts...).'**
+  String get backupGuideStep2;
+
+  /// No description provided for @backupGuideStep3.
+  ///
+  /// In en, this message translates to:
+  /// **'3. Recommended: backup to Cloud daily and before app updates.'**
+  String get backupGuideStep3;
+
+  /// No description provided for @backupGuideStep4.
+  ///
+  /// In en, this message translates to:
+  /// **'4. SQLite Restore has 2 modes: restore original for same shop, or transfer data to current shop by remapping shopId.'**
+  String get backupGuideStep4;
+
+  /// No description provided for @backupGuideStep5.
+  ///
+  /// In en, this message translates to:
+  /// **'5. If restoring to a different shop without remapping shopId, data still belongs to old shop and app will not display correctly.'**
+  String get backupGuideStep5;
+
+  /// No description provided for @backupRestoreBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore'**
+  String get backupRestoreBtn;
+
+  /// No description provided for @backupRestoreOriginalBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore original'**
+  String get backupRestoreOriginalBtn;
+
+  /// No description provided for @backupTransferToCurrentShop.
+  ///
+  /// In en, this message translates to:
+  /// **'Transfer to current shop'**
+  String get backupTransferToCurrentShop;
+
+  /// No description provided for @backupSaveToDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Save .db file to device'**
+  String get backupSaveToDevice;
+
+  /// No description provided for @backupShareLatest.
+  ///
+  /// In en, this message translates to:
+  /// **'Share latest backup'**
+  String get backupShareLatest;
+
+  /// No description provided for @backupSelectAndBackup.
+  ///
+  /// In en, this message translates to:
+  /// **'Select items & Backup to Cloud'**
+  String get backupSelectAndBackup;
+
+  /// No description provided for @backupSelectFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Select .db file'**
+  String get backupSelectFile;
+
+  /// No description provided for @backupSelectCustomItems.
+  ///
+  /// In en, this message translates to:
+  /// **'Select custom items...'**
+  String get backupSelectCustomItems;
+
+  /// No description provided for @backupCleanOldBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Clean old backups...'**
+  String get backupCleanOldBtn;
+
+  /// No description provided for @backupUploadToCloud.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup to Cloud'**
+  String get backupUploadToCloud;
+
+  /// No description provided for @backupBackupLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup'**
+  String get backupBackupLabel;
+
+  /// No description provided for @backupSqliteSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup SQLite'**
+  String get backupSqliteSectionTitle;
+
+  /// No description provided for @backupLocalListTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Local SQLite Backups'**
+  String get backupLocalListTitle;
+
+  /// No description provided for @backupQuickGuideTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick guide'**
+  String get backupQuickGuideTitle;
+
+  /// No description provided for @backupCloudListTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cloud SQLite Backups'**
+  String get backupCloudListTitle;
+
+  /// No description provided for @backupRestoreFromFileTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore from file'**
+  String get backupRestoreFromFileTitle;
+
+  /// No description provided for @backupDeleteSelectiveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete selective data'**
+  String get backupDeleteSelectiveTitle;
+
+  /// No description provided for @backupCleanOldTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Clean old backups'**
+  String get backupCleanOldTitle;
+
+  /// No description provided for @backupFirestoreInfoText.
+  ///
+  /// In en, this message translates to:
+  /// **'Firestore backup saves each collection as a separate JSON file. You can select which items to backup or restore.'**
+  String get backupFirestoreInfoText;
+
+  /// No description provided for @backupRestoreByItemTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore by item'**
+  String get backupRestoreByItemTitle;
+
+  /// No description provided for @backupRestoreByItemDesc1.
+  ///
+  /// In en, this message translates to:
+  /// **'You can select exactly which data groups to restore (e.g., only Repair Orders, only Warehouse, only Debts).'**
+  String get backupRestoreByItemDesc1;
+
+  /// No description provided for @backupRestoreByItemDesc2.
+  ///
+  /// In en, this message translates to:
+  /// **'System only overwrites selected items, does not affect remaining items.'**
+  String get backupRestoreByItemDesc2;
+
+  /// No description provided for @backupFirestoreSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup Firestore'**
+  String get backupFirestoreSectionTitle;
+
+  /// No description provided for @backupFirestoreListTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Firestore Backups'**
+  String get backupFirestoreListTitle;
+
+  /// No description provided for @backupNoFirestoreBackups.
+  ///
+  /// In en, this message translates to:
+  /// **'No Firestore backups yet.'**
+  String get backupNoFirestoreBackups;
+
+  /// No description provided for @backupProcessing.
+  ///
+  /// In en, this message translates to:
+  /// **'Processing...'**
+  String get backupProcessing;
+
+  /// No description provided for @backupSavedPathLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved: {fileName}'**
+  String backupSavedPathLabel(String fileName);
+
+  /// No description provided for @backupNoLocalBackupsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'No local backups yet. Tap \"Save .db file to device\" above.'**
+  String get backupNoLocalBackupsHint;
+
+  /// No description provided for @backupNoCloudBackups.
+  ///
+  /// In en, this message translates to:
+  /// **'No backups yet.'**
+  String get backupNoCloudBackups;
+
+  /// No description provided for @backupRestoreFileHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a previously backed-up .db file to restore.'**
+  String get backupRestoreFileHint;
+
+  /// No description provided for @backupDeleteSelectiveHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Permanently delete local data from this device. Backup before deleting.'**
+  String get backupDeleteSelectiveHint;
+
+  /// No description provided for @backupCleanOldHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete local backup files older than selected number of days.'**
+  String get backupCleanOldHint;
+
+  /// No description provided for @backupQuickGuideOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'• Offline backup: tap \"Save .db file to device\" to create a local backup.'**
+  String get backupQuickGuideOffline;
+
+  /// No description provided for @backupQuickGuideShare.
+  ///
+  /// In en, this message translates to:
+  /// **'• Share backup: use the \"Share\" button in the local backup list.'**
+  String get backupQuickGuideShare;
+
+  /// No description provided for @backupQuickGuideRestoreOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'• Offline restore: select from local backup list or .db file.'**
+  String get backupQuickGuideRestoreOffline;
+
+  /// No description provided for @backupQuickGuideRestoreOnline.
+  ///
+  /// In en, this message translates to:
+  /// **'• Online restore: select a Cloud SQLite backup and tap \"Restore\".'**
+  String get backupQuickGuideRestoreOnline;
+
+  /// No description provided for @backupCannotLoad.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot load backup: {error}'**
+  String backupCannotLoad(String error);
+
+  /// No description provided for @backupSavedLocally.
+  ///
+  /// In en, this message translates to:
+  /// **'SQLite backup saved to device. Share from local backup list.'**
+  String get backupSavedLocally;
+
+  /// No description provided for @backupExportError.
+  ///
+  /// In en, this message translates to:
+  /// **'Export error: {error}'**
+  String backupExportError(String error);
+
+  /// No description provided for @backupShareFileError.
+  ///
+  /// In en, this message translates to:
+  /// **'Share error: {error}'**
+  String backupShareFileError(String error);
+
+  /// No description provided for @backupDeletedLocalName.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted local backup {name}.'**
+  String backupDeletedLocalName(String name);
+
+  /// No description provided for @backupDeleteLocalError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error deleting local backup: {error}'**
+  String backupDeleteLocalError(String error);
+
+  /// No description provided for @backupCloudSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'SQLite backup to Cloud successful!'**
+  String get backupCloudSuccess;
+
+  /// No description provided for @backupDeletedCloud.
+  ///
+  /// In en, this message translates to:
+  /// **'Cloud backup deleted.'**
+  String get backupDeletedCloud;
+
+  /// No description provided for @backupRestoreErrorMsg.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore error: {error}'**
+  String backupRestoreErrorMsg(String error);
+
+  /// No description provided for @backupRestoreLocalErrorMsg.
+  ///
+  /// In en, this message translates to:
+  /// **'Local restore error: {error}'**
+  String backupRestoreLocalErrorMsg(String error);
+
+  /// No description provided for @backupDeleteSuccessWithCloud.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted local {localRows} records and cloud {cloudRows} records ({label}). Restart app to apply.'**
+  String backupDeleteSuccessWithCloud(int localRows, int cloudRows, String label);
+
+  /// No description provided for @backupDeleteSuccessLocalOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted {localRows} local records ({label}). If Cloud still has data, app may sync again.'**
+  String backupDeleteSuccessLocalOnly(int localRows, String label);
+
+  /// No description provided for @backupDeleteErrorMsg.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete error: {error}'**
+  String backupDeleteErrorMsg(String error);
+
+  /// No description provided for @backupFirestoreError.
+  ///
+  /// In en, this message translates to:
+  /// **'Firestore backup error: {error}'**
+  String backupFirestoreError(String error);
+
+  /// No description provided for @backupRestoreSuccessMsg.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore successful ({count} items)!'**
+  String backupRestoreSuccessMsg(int count);
+
+  /// No description provided for @backupRestoreFirestoreError.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore error: {error}'**
+  String backupRestoreFirestoreError(String error);
+
+  /// No description provided for @backupDeletedSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup deleted.'**
+  String get backupDeletedSet;
+
+  /// No description provided for @backupDeleteSetErrorMsg.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete error: {error}'**
+  String backupDeleteSetErrorMsg(String error);
+
+  /// No description provided for @backupNoOldFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'No backups older than {days} days.'**
+  String backupNoOldFiles(int days);
+
+  /// No description provided for @backupDeletedOldFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted {count} backup files older than {days} days.'**
+  String backupDeletedOldFiles(int count, int days);
+
+  /// No description provided for @backupCleanError.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup cleanup error: {error}'**
+  String backupCleanError(String error);
+
+  /// No description provided for @backupDeleteLocalTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete local backup?'**
+  String get backupDeleteLocalTitle;
+
+  /// No description provided for @backupDeleteLocalContent.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete file \"{name}\"?'**
+  String backupDeleteLocalContent(String name);
+
+  /// No description provided for @backupDeleteCloudTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Cloud backup?'**
+  String get backupDeleteCloudTitle;
+
+  /// No description provided for @backupChooseRestoreType.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose restore type'**
+  String get backupChooseRestoreType;
+
+  /// No description provided for @backupRestoreOriginalDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore original: keep data from backed-up shop.\n\nTransfer to current shop: remap shopId so data appears in logged-in shop.'**
+  String get backupRestoreOriginalDesc;
+
+  /// No description provided for @backupRestoreCloudTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore SQLite from Cloud'**
+  String get backupRestoreCloudTitle;
+
+  /// No description provided for @backupRestoreCloudContent.
+  ///
+  /// In en, this message translates to:
+  /// **'You are about to restore from backup:\n{fileName}\n\nCurrent data on device will be overwritten. Continue?'**
+  String backupRestoreCloudContent(String fileName);
+
+  /// No description provided for @backupChooseRestoreTypeTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore original will keep the old shopId.\n\nTo bring data to current shop, choose the shopId transfer option.'**
+  String get backupChooseRestoreTypeTip;
+
+  /// No description provided for @backupSelectDataSqlite.
+  ///
+  /// In en, this message translates to:
+  /// **'Select data to restore (SQLite)'**
+  String get backupSelectDataSqlite;
+
+  /// No description provided for @backupRestoreSuccessTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore successful'**
+  String get backupRestoreSuccessTitle;
+
+  /// No description provided for @backupRestoredWithTransfer.
+  ///
+  /// In en, this message translates to:
+  /// **'Restored {count} items and transferred to current shop. Please restart the app to apply changes.'**
+  String backupRestoredWithTransfer(int count);
+
+  /// No description provided for @backupRestoredNoTransfer.
+  ///
+  /// In en, this message translates to:
+  /// **'Restored {count} items. Please restart the app to apply changes.'**
+  String backupRestoredNoTransfer(int count);
+
+  /// No description provided for @backupRestoredCloudWithTransfer.
+  ///
+  /// In en, this message translates to:
+  /// **'Restored {count} items from Cloud and transferred to current shop. Please restart the app.'**
+  String backupRestoredCloudWithTransfer(int count);
+
+  /// No description provided for @backupRestoredCloudNoTransfer.
+  ///
+  /// In en, this message translates to:
+  /// **'Restored {count} items from Cloud. Please restart the app to apply new data.'**
+  String backupRestoredCloudNoTransfer(int count);
+
+  /// No description provided for @backupDeleteWarningTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete: {label}?'**
+  String backupDeleteWarningTitle(String label);
+
+  /// No description provided for @backupDeleteWarningContent.
+  ///
+  /// In en, this message translates to:
+  /// **'Data will be permanently deleted from this device.\n\nRecommend backing up before deleting to avoid data loss.'**
+  String get backupDeleteWarningContent;
+
+  /// No description provided for @backupDeleteCloudTooLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Also delete Cloud data for current shop'**
+  String get backupDeleteCloudTooLabel;
+
+  /// No description provided for @backupDeleteCloudTooSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'If not selected, Cloud data may sync back to device after local deletion.'**
+  String get backupDeleteCloudTooSubtitle;
+
+  /// No description provided for @backupDeleteForever.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete permanently'**
+  String get backupDeleteForever;
+
+  /// No description provided for @backupSelectDataToDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Select data to delete'**
+  String get backupSelectDataToDelete;
+
+  /// No description provided for @backupKeepDaysTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'How many recent days of backup to keep?'**
+  String get backupKeepDaysTitle;
+
+  /// No description provided for @backupKeep30Days.
+  ///
+  /// In en, this message translates to:
+  /// **'30 days — delete backups older than 1 month'**
+  String get backupKeep30Days;
+
+  /// No description provided for @backupKeep60Days.
+  ///
+  /// In en, this message translates to:
+  /// **'60 days — delete backups older than 2 months'**
+  String get backupKeep60Days;
+
+  /// No description provided for @backupKeep90Days.
+  ///
+  /// In en, this message translates to:
+  /// **'90 days — delete backups older than 3 months'**
+  String get backupKeep90Days;
+
+  /// No description provided for @backupKeep180Days.
+  ///
+  /// In en, this message translates to:
+  /// **'180 days — delete backups older than 6 months'**
+  String get backupKeep180Days;
+
+  /// No description provided for @backupLocalRestoreTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore local SQLite'**
+  String get backupLocalRestoreTitle;
+
+  /// No description provided for @backupLocalRestoreContent.
+  ///
+  /// In en, this message translates to:
+  /// **'Current data will be overwritten by this backup. Continue?'**
+  String get backupLocalRestoreContent;
+
+  /// No description provided for @backupRestoredLocalWithTransfer.
+  ///
+  /// In en, this message translates to:
+  /// **'Restored {count} items and transferred to current shop. Please restart the app.'**
+  String backupRestoredLocalWithTransfer(int count);
+
+  /// No description provided for @backupRestoredLocalNoTransfer.
+  ///
+  /// In en, this message translates to:
+  /// **'Restored {count} items from local backup. Please restart the app.'**
+  String backupRestoredLocalNoTransfer(int count);
+
+  /// No description provided for @backupConfirmRestoreTitle.
   ///
   /// In en, this message translates to:
   /// **'Confirm restore'**
   String get backupConfirmRestoreTitle;
 
-  // Inventory view keys
+  /// No description provided for @backupConfirmRestoreContent.
+  ///
+  /// In en, this message translates to:
+  /// **'Current data of {count} items will be overwritten by backup from {date}.\n\nContinue?'**
+  String backupConfirmRestoreContent(int count, String date);
+
+  /// No description provided for @backupDeleteSetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete backup?'**
+  String get backupDeleteSetTitle;
+
+  /// No description provided for @backupDeleteSetContent.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete backup from {date}?'**
+  String backupDeleteSetContent(String date);
+
+  /// No description provided for @backupPreparingMsg.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing...'**
+  String get backupPreparingMsg;
+
+  /// No description provided for @backupBackingUpItem.
+  ///
+  /// In en, this message translates to:
+  /// **'Backing up {item} ({done}/{total})...'**
+  String backupBackingUpItem(String item, int done, int total);
+
+  /// No description provided for @backupRestoringMsg.
+  ///
+  /// In en, this message translates to:
+  /// **'Restoring...'**
+  String get backupRestoringMsg;
+
+  /// No description provided for @backupSelectDataBackup.
+  ///
+  /// In en, this message translates to:
+  /// **'Select data to backup'**
+  String get backupSelectDataBackup;
+
+  /// No description provided for @backupSelectedCountLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} items selected'**
+  String backupSelectedCountLabel(int count);
+
+  /// No description provided for @backupNotAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Not in this backup'**
+  String get backupNotAvailable;
+
+  /// No description provided for @backupStorageRulesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Firebase Storage Rules configuration needed'**
+  String get backupStorageRulesTitle;
+
+  /// No description provided for @backupCloudPermissionError.
+  ///
+  /// In en, this message translates to:
+  /// **'{action} Cloud failed: account does not have Firebase Storage permission for db_backups.'**
+  String backupCloudPermissionError(String action);
+
+  /// No description provided for @backupCloudNotFoundError.
+  ///
+  /// In en, this message translates to:
+  /// **'{action} Cloud failed: backup file not found on Cloud.'**
+  String backupCloudNotFoundError(String action);
+
+  /// No description provided for @backupCloudAuthError.
+  ///
+  /// In en, this message translates to:
+  /// **'{action} Cloud failed: session expired, please login again.'**
+  String backupCloudAuthError(String action);
+
+  /// No description provided for @backupCloudGenericError.
+  ///
+  /// In en, this message translates to:
+  /// **'{action} Cloud failed: {error}'**
+  String backupCloudGenericError(String action, String error);
+
+  /// No description provided for @backupPresetInventoryCash.
+  ///
+  /// In en, this message translates to:
+  /// **'Inventory & Cash Closing'**
+  String get backupPresetInventoryCash;
+
+  /// No description provided for @backupPresetAccessoriesProducts.
+  ///
+  /// In en, this message translates to:
+  /// **'Accessories / Products'**
+  String get backupPresetAccessoriesProducts;
+
+  /// No description provided for @backupPresetRepairParts.
+  ///
+  /// In en, this message translates to:
+  /// **'Repair Parts'**
+  String get backupPresetRepairParts;
+
+  /// No description provided for @backupPresetSupplierImport.
+  ///
+  /// In en, this message translates to:
+  /// **'Suppliers & Stock-in'**
+  String get backupPresetSupplierImport;
+
+  /// No description provided for @backupPresetPayments.
+  ///
+  /// In en, this message translates to:
+  /// **'Payments'**
+  String get backupPresetPayments;
+
+  /// No description provided for @backupPresetOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get backupPresetOther;
+
+  /// No description provided for @backupPresetHr.
+  ///
+  /// In en, this message translates to:
+  /// **'HR'**
+  String get backupPresetHr;
+
+  /// No description provided for @backupPresetSystemLog.
+  ///
+  /// In en, this message translates to:
+  /// **'System Logs'**
+  String get backupPresetSystemLog;
+
+  /// No description provided for @inventoryManageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'WAREHOUSE'**
   String get inventoryManageTitle;
+
+  /// No description provided for @inventoryManageTotalTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'WAREHOUSE MANAGEMENT'**
   String get inventoryManageTotalTitle;
+
+  /// No description provided for @inventoryNoAccessMsg.
+  ///
+  /// In en, this message translates to:
+  /// **'You don\'t have access\nto warehouse management'**
   String get inventoryNoAccessMsg;
+
+  /// No description provided for @inventoryUnsyncedNote.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} unsynced'**
   String inventoryUnsyncedNote(int count);
+
+  /// No description provided for @inventoryInStockLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'IN STOCK'**
   String get inventoryInStockLabel;
+
+  /// No description provided for @inventoryTempStockLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'TEMP STOCK'**
   String get inventoryTempStockLabel;
+
+  /// No description provided for @inventoryTempStockBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'TEMP STOCK – Waiting for price confirmation'**
   String get inventoryTempStockBanner;
+
+  /// No description provided for @inventoryExpectedSupplier.
+  ///
+  /// In en, this message translates to:
+  /// **'Expected supplier: {supplier}'**
   String inventoryExpectedSupplier(String supplier);
+
+  /// No description provided for @inventoryStockQty.
+  ///
+  /// In en, this message translates to:
+  /// **'Stock qty'**
   String get inventoryStockQty;
+
+  /// No description provided for @inventoryPurchasePrice.
+  ///
+  /// In en, this message translates to:
+  /// **'Purchase price'**
   String get inventoryPurchasePrice;
+
+  /// No description provided for @inventorySalePriceItem.
+  ///
+  /// In en, this message translates to:
+  /// **'Sale price'**
   String get inventorySalePriceItem;
+
+  /// No description provided for @inventoryLoss.
+  ///
+  /// In en, this message translates to:
+  /// **'Loss'**
   String get inventoryLoss;
+
+  /// No description provided for @inventoryCapacityLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Capacity'**
   String get inventoryCapacityLabel;
+
+  /// No description provided for @inventorySizeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Size'**
   String get inventorySizeLabel;
+
+  /// No description provided for @inventorySupplierLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Supplier'**
   String get inventorySupplierLabel;
+
+  /// No description provided for @inventoryPendingConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending confirmation'**
   String get inventoryPendingConfirm;
+
+  /// No description provided for @inventoryWaitingConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for confirmation'**
   String get inventoryWaitingConfirm;
+
+  /// No description provided for @inventoryWarehouseLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Storage location'**
   String get inventoryWarehouseLocation;
+
+  /// No description provided for @inventoryLastUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Last updated'**
   String get inventoryLastUpdated;
+
+  /// No description provided for @inventoryRepairHistorySection.
+  ///
+  /// In en, this message translates to:
+  /// **'REPAIR HISTORY'**
   String get inventoryRepairHistorySection;
+
+  /// No description provided for @inventoryConfirmPriceBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'CONFIRM PRICE – TRANSFER TO MAIN WAREHOUSE'**
   String get inventoryConfirmPriceBtn;
+
+  /// No description provided for @inventoryPrintingLabelMsg.
+  ///
+  /// In en, this message translates to:
+  /// **'Printing label...'**
   String get inventoryPrintingLabelMsg;
+
+  /// No description provided for @inventoryPrintLabelSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Print label successful'**
   String get inventoryPrintLabelSuccess;
+
+  /// No description provided for @inventoryPrintLabelError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error printing label'**
   String get inventoryPrintLabelError;
+
+  /// No description provided for @inventoryPrintLabelAction.
+  ///
+  /// In en, this message translates to:
+  /// **'PRINT LABEL'**
   String get inventoryPrintLabelAction;
+
+  /// No description provided for @inventoryEditAction.
+  ///
+  /// In en, this message translates to:
+  /// **'EDIT'**
   String get inventoryEditAction;
+
+  /// No description provided for @inventorySellAction.
+  ///
+  /// In en, this message translates to:
+  /// **'SELL'**
   String get inventorySellAction;
+
+  /// No description provided for @inventoryStockMoreAction.
+  ///
+  /// In en, this message translates to:
+  /// **'RESTOCK ({count})'**
   String inventoryStockMoreAction(int count);
+
+  /// No description provided for @inventoryDeleteAction.
+  ///
+  /// In en, this message translates to:
+  /// **'DELETE'**
   String get inventoryDeleteAction;
+
+  /// No description provided for @inventoryRestockTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'RESTOCK'**
   String get inventoryRestockTitle;
+
+  /// No description provided for @inventoryCurrentStockNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Current stock: {qty}'**
   String inventoryCurrentStockNote(int qty);
+
+  /// No description provided for @inventoryCurrentCostNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Current cost price: {price}'**
   String inventoryCurrentCostNote(String price);
+
+  /// No description provided for @inventoryRestockQtyLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Additional quantity'**
   String get inventoryRestockQtyLabel;
+
+  /// No description provided for @inventoryRestockPriceLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Purchase price (VND)'**
   String get inventoryRestockPriceLabel;
+
+  /// No description provided for @inventoryWeightedCostNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Weighted cost after restock: {price}'**
   String inventoryWeightedCostNote(String price);
+
+  /// No description provided for @inventoryPaymentMethodLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment method'**
   String get inventoryPaymentMethodLabel;
+
+  /// No description provided for @inventoryCashOption.
+  ///
+  /// In en, this message translates to:
+  /// **'Cash'**
   String get inventoryCashOption;
+
+  /// No description provided for @inventoryBankTransferOption.
+  ///
+  /// In en, this message translates to:
+  /// **'Bank transfer'**
   String get inventoryBankTransferOption;
+
+  /// No description provided for @inventoryDebtOption.
+  ///
+  /// In en, this message translates to:
+  /// **'Debt'**
   String get inventoryDebtOption;
+
+  /// No description provided for @inventoryStockInAction.
+  ///
+  /// In en, this message translates to:
+  /// **'STOCK IN'**
   String get inventoryStockInAction;
+
+  /// No description provided for @inventoryValidQtyError.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a valid quantity'**
   String get inventoryValidQtyError;
+
+  /// No description provided for @inventoryValidPriceError.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a valid purchase price'**
   String get inventoryValidPriceError;
+
+  /// No description provided for @inventoryStockingIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Stocking in...'**
   String get inventoryStockingIn;
+
+  /// No description provided for @inventoryNoSupplierFoundError.
+  ///
+  /// In en, this message translates to:
+  /// **'No valid supplier found for this product. Please update the supplier and restock.'**
   String get inventoryNoSupplierFoundError;
+
+  /// No description provided for @inventoryCreateEntryError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error creating stock-in entry'**
   String get inventoryCreateEntryError;
+
+  /// No description provided for @inventoryStockInSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Added {qty} {name} to warehouse'**
   String inventoryStockInSuccess(int qty, String name);
+
+  /// No description provided for @inventoryConfirmEntryError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error confirming stock-in entry'**
   String get inventoryConfirmEntryError;
+
+  /// No description provided for @inventoryErrorMsg.
+  ///
+  /// In en, this message translates to:
+  /// **'Error: {error}'**
   String inventoryErrorMsg(String error);
+
+  /// No description provided for @inventoryEditOption.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
   String get inventoryEditOption;
+
+  /// No description provided for @inventoryHideOption.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide from warehouse'**
   String get inventoryHideOption;
+
+  /// No description provided for @inventoryCostPriceNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Cost price: {price}'**
   String inventoryCostPriceNote(String price);
+
+  /// No description provided for @inventorySoftDeleteWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'⚠️ IMPORTANT NOTE:'**
   String get inventorySoftDeleteWarning;
+
+  /// No description provided for @inventorySoftDeleteDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'• This is a SOFT DELETE – only hides from inventory list\n• Does NOT affect revenue, debts, import history\n• All other financial data REMAINS UNCHANGED'**
   String get inventorySoftDeleteDesc;
+
+  /// No description provided for @inventoryDeleteReasonLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete reason (optional)'**
   String get inventoryDeleteReasonLabel;
+
+  /// No description provided for @inventoryDeleteReasonHint.
+  ///
+  /// In en, this message translates to:
+  /// **'E.g.: Input error, return to supplier...'**
   String get inventoryDeleteReasonHint;
+
+  /// No description provided for @inventoryAccountPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Account password *'**
   String get inventoryAccountPassword;
+
+  /// No description provided for @inventoryEnterPasswordError.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter password'**
   String get inventoryEnterPasswordError;
+
+  /// No description provided for @inventoryWrongPasswordError.
+  ///
+  /// In en, this message translates to:
+  /// **'Wrong password'**
   String get inventoryWrongPasswordError;
+
+  /// No description provided for @inventoryHideFromWarehouse.
+  ///
+  /// In en, this message translates to:
+  /// **'HIDE FROM WAREHOUSE'**
   String get inventoryHideFromWarehouse;
+
+  /// No description provided for @inventoryHideSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Hidden {product} from warehouse: {name}'**
   String inventoryHideSuccess(String product, String name);
+
+  /// No description provided for @inventoryHideError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error hiding {product}: {error}'**
   String inventoryHideError(String product, String error);
+
+  /// No description provided for @inventoryEmptyFiltered.
+  ///
+  /// In en, this message translates to:
+  /// **'No products found'**
   String get inventoryEmptyFiltered;
+
+  /// No description provided for @inventoryEmptyAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Warehouse is empty'**
   String get inventoryEmptyAll;
+
+  /// No description provided for @inventoryEmptyFilteredSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Try removing filters or search for another keyword'**
   String get inventoryEmptyFilteredSub;
+
+  /// No description provided for @inventoryEmptyOutOfStockSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable \"Out of stock\" to see out-of-stock products'**
   String get inventoryEmptyOutOfStockSub;
+
+  /// No description provided for @inventoryConfirmDeleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'CONFIRM DELETE'**
   String get inventoryConfirmDeleteTitle;
+
+  /// No description provided for @inventoryConfirmDeleteContent.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete {count} items?'**
   String inventoryConfirmDeleteContent(int count);
+
+  /// No description provided for @inventoryEnterPasswordToDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter account password to delete:'**
   String get inventoryEnterPasswordToDelete;
+
+  /// No description provided for @inventoryAccountPasswordLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Account password'**
   String get inventoryAccountPasswordLabel;
+
+  /// No description provided for @inventoryDeleteNow.
+  ///
+  /// In en, this message translates to:
+  /// **'DELETE NOW'**
   String get inventoryDeleteNow;
+
+  /// No description provided for @inventoryAddPartTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Add part'**
   String get inventoryAddPartTooltip;
+
+  /// No description provided for @inventoryStockInAITooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick stock-in (AI)'**
   String get inventoryStockInAITooltip;
+
+  /// No description provided for @inventoryStockInTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Stock in'**
   String get inventoryStockInTooltip;
+
+  /// No description provided for @inventorySearchWithQuery.
+  ///
+  /// In en, this message translates to:
+  /// **'Search: \"{query}\"'**
   String inventorySearchWithQuery(String query);
+
+  /// No description provided for @inventoryMoreTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'More'**
   String get inventoryMoreTooltip;
+
+  /// No description provided for @inventoryStorageLocationMenu.
+  ///
+  /// In en, this message translates to:
+  /// **'Storage location'**
   String get inventoryStorageLocationMenu;
+
+  /// No description provided for @inventoryPrintLabelsMenu.
+  ///
+  /// In en, this message translates to:
+  /// **'Print labels'**
   String get inventoryPrintLabelsMenu;
+
+  /// No description provided for @inventorySelectedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'SELECTED {count}'**
   String inventorySelectedCount(int count);
+
+  /// No description provided for @inventoryShownCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Showing {count} {product}'**
   String inventoryShownCount(int count, String product);
+
+  /// No description provided for @inventoryDisplayOrTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'SHOWING / TOTAL'**
   String get inventoryDisplayOrTotal;
+
+  /// No description provided for @inventoryTotalLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'TOTAL WAREHOUSE'**
   String get inventoryTotalLabel;
+
+  /// No description provided for @inventoryCapitalLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'STOCK CAPITAL'**
   String get inventoryCapitalLabel;
+
+  /// No description provided for @inventoryLocationFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'Location'**
   String get inventoryLocationFilter;
+
+  /// No description provided for @inventoryOutOfStockFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'Out of stock'**
   String get inventoryOutOfStockFilter;
+
+  /// No description provided for @inventoryNoLocationMsg.
+  ///
+  /// In en, this message translates to:
+  /// **'No location has been created.'**
   String get inventoryNoLocationMsg;
+
+  /// No description provided for @inventoryFilterByLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter by location'**
   String get inventoryFilterByLocation;
+
+  /// No description provided for @inventoryAllFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
   String get inventoryAllFilter;
+
+  /// No description provided for @inventoryStatusPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Temp stock'**
   String get inventoryStatusPending;
+
+  /// No description provided for @inventoryStatusLowStock.
+  ///
+  /// In en, this message translates to:
+  /// **'Running low'**
   String get inventoryStatusLowStock;
+
+  /// No description provided for @inventoryWaitingPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'Awaiting price'**
   String get inventoryWaitingPrice;
+
+  /// No description provided for @inventoryRemainingLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'left'**
   String get inventoryRemainingLabel;
+
+  /// No description provided for @inventoryConfirmCostTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm price - Transfer to Main Warehouse'**
   String get inventoryConfirmCostTitle;
+
+  /// No description provided for @inventoryValidCostError.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a valid cost price!'**
   String get inventoryValidCostError;
+
+  /// No description provided for @inventorySelectSupplierError.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select a supplier!'**
   String get inventorySelectSupplierError;
+
+  /// No description provided for @inventoryConfirmCostSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Price confirmed and transferred to Main Warehouse!'**
   String get inventoryConfirmCostSuccess;
+
+  /// No description provided for @inventorySelectSupplierFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select supplier!'**
   String get inventorySelectSupplierFirst;
+
+  /// No description provided for @inventoryCostChangeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cost price change warning'**
   String get inventoryCostChangeTitle;
+
+  /// No description provided for @inventoryCostChangeMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This product has been saved to the warehouse. Changing the cost price will not affect old orders but may distort gross profit reports. Are you sure you want to continue?'**
   String get inventoryCostChangeMessage;
+
+  /// No description provided for @inventoryUpdateSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'UPDATE SUCCESSFUL'**
   String get inventoryUpdateSuccess;
+
+  /// No description provided for @inventoryProductTypeLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Product type (locked)'**
   String get inventoryProductTypeLocked;
+
+  /// No description provided for @inventoryBrandField.
+  ///
+  /// In en, this message translates to:
+  /// **'Brand *'**
   String get inventoryBrandField;
+
+  /// No description provided for @inventoryModelField.
+  ///
+  /// In en, this message translates to:
+  /// **'Model (E.g.: 15 PRO MAX)'**
   String get inventoryModelField;
+
+  /// No description provided for @inventoryCapacityField.
+  ///
+  /// In en, this message translates to:
+  /// **'Capacity'**
   String get inventoryCapacityField;
+
+  /// No description provided for @inventorySizeField.
+  ///
+  /// In en, this message translates to:
+  /// **'Size'**
   String get inventorySizeField;
+
+  /// No description provided for @inventoryColorField.
+  ///
+  /// In en, this message translates to:
+  /// **'Color'**
   String get inventoryColorField;
+
+  /// No description provided for @inventoryConditionField.
+  ///
+  /// In en, this message translates to:
+  /// **'Condition'**
   String get inventoryConditionField;
+
+  /// No description provided for @inventoryLabelInfoField.
+  ///
+  /// In en, this message translates to:
+  /// **'Label print info'**
   String get inventoryLabelInfoField;
+
+  /// No description provided for @inventoryNoteHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Additional notes about the product...'**
   String get inventoryNoteHint;
+
+  /// No description provided for @inventoryCostLockedField.
+  ///
+  /// In en, this message translates to:
+  /// **'Cost price (stocked - locked)'**
   String get inventoryCostLockedField;
+
+  /// No description provided for @inventoryCostField.
+  ///
+  /// In en, this message translates to:
+  /// **'Cost price (k)'**
   String get inventoryCostField;
+
+  /// No description provided for @inventoryPriceField.
+  ///
+  /// In en, this message translates to:
+  /// **'Sale price (k)'**
   String get inventoryPriceField;
+
+  /// No description provided for @inventoryExpiry.
+  ///
+  /// In en, this message translates to:
+  /// **'EXPIRY DATE'**
   String get inventoryExpiry;
+
+  /// No description provided for @inventoryChooseExpiry.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose expiry date'**
   String get inventoryChooseExpiry;
+
+  /// No description provided for @inventoryExpiryLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Expiry date'**
   String get inventoryExpiryLabel;
+
+  /// No description provided for @inventoryNotChosen.
+  ///
+  /// In en, this message translates to:
+  /// **'Not chosen'**
   String get inventoryNotChosen;
+
+  /// No description provided for @inventoryBatchField.
+  ///
+  /// In en, this message translates to:
+  /// **'Batch number'**
   String get inventoryBatchField;
+
+  /// No description provided for @inventoryPhotoSection.
+  ///
+  /// In en, this message translates to:
+  /// **'PHOTO & STORAGE LOCATION'**
   String get inventoryPhotoSection;
+
+  /// No description provided for @inventoryQtyLockedField.
+  ///
+  /// In en, this message translates to:
+  /// **'Stock qty'**
   String get inventoryQtyLockedField;
+
+  /// No description provided for @inventorySupplierLockedField.
+  ///
+  /// In en, this message translates to:
+  /// **'Supplier (locked)'**
   String get inventorySupplierLockedField;
+
+  /// No description provided for @inventoryNoSupplier.
+  ///
+  /// In en, this message translates to:
+  /// **'No supplier'**
   String get inventoryNoSupplier;
+
+  /// No description provided for @inventoryRestockBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Restock into warehouse'**
   String get inventoryRestockBtn;
+
+  /// No description provided for @inventoryUpdateAction.
+  ///
+  /// In en, this message translates to:
+  /// **'UPDATE'**
   String get inventoryUpdateAction;
+
+  /// No description provided for @inventoryStatusReceived.
+  ///
+  /// In en, this message translates to:
+  /// **'Received'**
   String get inventoryStatusReceived;
+
+  /// No description provided for @inventoryStatusRepairing.
+  ///
+  /// In en, this message translates to:
+  /// **'Repairing'**
   String get inventoryStatusRepairing;
+
+  /// No description provided for @inventoryStatusCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
   String get inventoryStatusCompleted;
+
+  /// No description provided for @inventoryStatusDelivered.
+  ///
+  /// In en, this message translates to:
+  /// **'Delivered'**
   String get inventoryStatusDelivered;
+
+  /// No description provided for @inventoryStatusUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown'**
   String get inventoryStatusUnknown;
+
+  /// No description provided for @inventorySearchProduct.
+  ///
+  /// In en, this message translates to:
+  /// **'Find {product}'**
   String inventorySearchProduct(String product);
+
+  /// No description provided for @inventoryExportParts.
+  ///
+  /// In en, this message translates to:
+  /// **'Export parts warehouse'**
   String get inventoryExportParts;
+
+  /// No description provided for @inventoryExportProducts.
+  ///
+  /// In en, this message translates to:
+  /// **'Export product warehouse'**
   String get inventoryExportProducts;
+
+  /// No description provided for @inventorySearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter {product}, {category} or {field}...'**
   String inventorySearchHint(String product, String category, String field);
+
+  /// No description provided for @inventoryHideProductTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'HIDE {product} (WAREHOUSE)'**
   String inventoryHideProductTitle(String product);
+
+  /// No description provided for @inventorySearchTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
   String get inventorySearchTooltip;
+
+  /// No description provided for @inventoryExportExcelMenu.
+  ///
+  /// In en, this message translates to:
+  /// **'Export Excel'**
   String get inventoryExportExcelMenu;
+
+  /// No description provided for @inventoryCapitalChip.
+  ///
+  /// In en, this message translates to:
+  /// **'Capital {price}đ'**
   String inventoryCapitalChip(String price);
+
+  /// No description provided for @inventoryEditProductTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'EDIT {label}'**
   String inventoryEditProductTitle(String label);
+
+  /// No description provided for @inventoryProductNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'{label} name'**
   String inventoryProductNameLabel(String label);
+
+  /// No description provided for @inventoryConfirmBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'CONFIRM'**
   String get inventoryConfirmBtn;
+
+  /// No description provided for @inventoryCostPriceRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'COST PRICE (*)'**
   String get inventoryCostPriceRequired;
+
+  /// No description provided for @inventorySalePriceOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'SALE PRICE (optional)'**
   String get inventorySalePriceOptional;
+
+  /// No description provided for @inventorySupplierRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'SUPPLIER (*)'**
   String get inventorySupplierRequired;
+
+  /// No description provided for @inventoryPaymentLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'PAYMENT'**
   String get inventoryPaymentLabel;
 }
 
