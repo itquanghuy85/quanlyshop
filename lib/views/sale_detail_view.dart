@@ -92,7 +92,21 @@ class _SaleDetailViewState extends State<SaleDetailView> {
         final q = (e['quantity'] as num?)?.toInt() ?? 1;
         return acc + uc * q;
       });
-      if (oldTotal <= 0) return;
+      if (oldTotal <= 0) {
+        // Phân bổ đều khi không có unitCost gốc — chia đều cho tất cả items
+        final itemCount = decoded.length;
+        if (itemCount <= 0) return;
+        final perItem = newTotalCost ~/ itemCount;
+        final updated = decoded.map((e) {
+          final item = Map<String, dynamic>.from(e as Map);
+          final q = (item['quantity'] as num?)?.toInt() ?? 1;
+          item['unitCost'] = q > 0 ? perItem ~/ q : 0;
+          item['lineCostTotal'] = perItem;
+          return item;
+        }).toList();
+        s.itemSnapshotsJson = jsonEncode(updated);
+        return;
+      }
       final updated = decoded.map((e) {
         final item = Map<String, dynamic>.from(e as Map);
         final uc = (item['unitCost'] as num?)?.toInt() ?? 0;
@@ -403,6 +417,7 @@ class _SaleDetailViewState extends State<SaleDetailView> {
       },
     );
 
+    passCtrl.dispose();
     if (ok != true) return;
 
     try {
@@ -626,7 +641,12 @@ class _SaleDetailViewState extends State<SaleDetailView> {
       ),
     );
 
-    if (ok != true) return;
+    if (ok != true) {
+      amountCtrl.dispose();
+      feeCtrl.dispose();
+      noteCtrl.dispose();
+      return;
+    }
 
     // Không nhân 1000 - user đã nhập số đầy đủ với formatter
     final received = MoneyUtils.parseCurrency(amountCtrl.text);
@@ -720,6 +740,9 @@ class _SaleDetailViewState extends State<SaleDetailView> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(AppLocalizations.of(context)!.bankReceivedConfirmed)),
     );
+    amountCtrl.dispose();
+    feeCtrl.dispose();
+    noteCtrl.dispose();
     setState(() {});
   }
 
@@ -816,10 +839,11 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                         children: [
                           Icon(Icons.lock_outline, size: 14, color: Colors.grey.shade500),
                           const SizedBox(width: 6),
-                          Text(
+                          Flexible(child: Text(
                             'Giá bán/vốn chỉ sửa được trong ngày',
                             style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                          ),
+                            overflow: TextOverflow.ellipsis,
+                          )),
                         ],
                       ),
                     ),
@@ -876,7 +900,12 @@ class _SaleDetailViewState extends State<SaleDetailView> {
       },
     );
 
-    if (ok != true) return;
+    if (ok != true) {
+      name.dispose(); phone.dispose(); address.dispose();
+      products.dispose(); imeis.dispose(); notes.dispose();
+      totalPriceCtrl.dispose(); discountCtrl.dispose(); totalCostCtrl.dispose();
+      return;
+    }
 
     // Đọc giá mới trước setState để so sánh
     final newTotalPrice = canEditMoney
@@ -1022,6 +1051,9 @@ class _SaleDetailViewState extends State<SaleDetailView> {
     // Emit event và thông báo
     EventBus().emit('sales_changed');
     EventBus().emit('products_changed');
+    name.dispose(); phone.dispose(); address.dispose();
+    products.dispose(); imeis.dispose(); notes.dispose();
+    totalPriceCtrl.dispose(); discountCtrl.dispose(); totalCostCtrl.dispose();
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -1051,7 +1083,7 @@ class _SaleDetailViewState extends State<SaleDetailView> {
             children: [
               Icon(Icons.delete_forever, color: AppColors.error, size: 22),
               const SizedBox(width: 8),
-              Text(dialogL10n.deleteSaleTitle, style: const TextStyle(fontSize: 17)),
+              Flexible(child: Text(dialogL10n.deleteSaleTitle, style: const TextStyle(fontSize: 17))),
             ],
           ),
           content: Column(

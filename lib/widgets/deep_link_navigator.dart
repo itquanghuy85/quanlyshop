@@ -205,6 +205,11 @@ class DeepLinkNavigator {
         found = await _findProductBySku(rawSku);
       }
 
+      // Priority 4.5: partial IMEI suffix (for short KiotViet serial codes ≤ 8 chars)
+      if (found == null && rawImei.isNotEmpty && rawImei.length <= 8) {
+        found = await db.getProductByImeiSuffix(rawImei);
+      }
+
       // Fallback by name for resilient UX
       if (found == null && rawName.isNotEmpty) {
         found = await db.getProductByNameFlexible(rawName);

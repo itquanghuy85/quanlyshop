@@ -632,6 +632,11 @@ class KiotVietExcelImportService {
               );
               if (prods.isNotEmpty) {
                 final prod = prods.first;
+                // Link product ID in snapshot so deep-link navigation can find it by ID
+                final localId = prod['id']?.toString() ?? '';
+                if (localId.isNotEmpty && snapshot['id'] == null) {
+                  snapshot['id'] = localId;
+                }
                 final upd = <String, dynamic>{};
                 final curImei = (prod['imei'] as String?) ?? '';
                 if (imei.isNotEmpty && curImei.isEmpty) upd['imei'] = imei;
@@ -810,10 +815,15 @@ class KiotVietExcelImportService {
 
           if (dup.isNotEmpty && overwriteExisting) {
             final id = dup.first['id'];
+            // Merge notes: giữ ghi chú cũ, thêm KV marker nếu chưa có
+            final existingNotes = (dup.first['notes'] as String?) ?? '';
+            final mergedNotes = existingNotes.contains('KV')
+                ? existingNotes  // Đã có KV marker, không ghi đè
+                : (existingNotes.isNotEmpty ? '$existingNotes | $notes' : notes);
             final updateMap = <String, dynamic>{
               'address': address.isNotEmpty ? address : null,
               'email': email.isNotEmpty ? email : null,
-              'notes': notes,
+              'notes': mergedNotes,
               'totalSpent': totalSpent,
               'updatedAt': now,
               'isSynced': 0,
@@ -915,7 +925,7 @@ class KiotVietExcelImportService {
           final currentDebt = _int(row, 8);
           final rawNote = _at(row, 11);
           final statusRaw = _at(row, 13);
-          final activeVal = statusRaw == '1' || statusRaw.toLowerCase() == 'active' ? 1 : 1;
+          final activeVal = statusRaw == '1' || statusRaw.toLowerCase() == 'active' ? 1 : 0;
           final createdAt = _datetimeMs(row, 17);
           final now = DateTime.now().millisecondsSinceEpoch;
           // Compose note: preserve existing + append KV code and debt info

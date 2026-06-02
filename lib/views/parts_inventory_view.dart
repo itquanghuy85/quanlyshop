@@ -1643,10 +1643,14 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                             fontSize: AppTextStyles.headline2.fontSize,
                             fontWeight: FontWeight.bold,
                           ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
                         Text(
                           p['compatibleModels'] ?? 'N/A',
                           style: TextStyle(color: Colors.grey.shade600),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
@@ -2724,6 +2728,12 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
             if (mounted) _refreshParts();
           });
         });
+  }
+
+  @override
+  void dispose() {
+    _partsRefreshDebounce2?.cancel();
+    _eventBusSub2?.cancel();
     super.dispose();
   }
 

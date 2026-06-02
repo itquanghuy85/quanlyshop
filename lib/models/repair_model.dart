@@ -537,6 +537,7 @@ class Repair {
           costRecordedAt ?? this.costRecordedAt,
         costRecordedAmount:
           costRecordedAmount ?? this.costRecordedAmount,
+      shopId: shopId ?? this.shopId,
       storageLocationId: storageLocationId ?? this.storageLocationId,
       storageLocationCode: storageLocationCode ?? this.storageLocationCode,
       storageLocationName: storageLocationName ?? this.storageLocationName,

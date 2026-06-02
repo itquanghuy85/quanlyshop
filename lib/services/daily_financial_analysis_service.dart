@@ -187,8 +187,24 @@ class DailyFinancialAnalysisService {
       }
     } else {
       for (final repair in repairs) {
-        repairIncome += _asInt(repair['price']);
-        repairCost += _repairCostValue(repair);
+        final price = _asInt(repair['price']);
+        final totalCost = _repairCostValue(repair);
+        final paymentMethod = _asString(repair['paymentMethod']);
+
+        if (paymentMethod == 'CÔNG NỢ') {
+          repairIncome += price;
+          repairCost += totalCost;
+          repairDebt += price;
+          continue;
+        }
+
+        repairIncome += price;
+        repairCost += totalCost;
+        if (paymentMethod == 'TIỀN MẶT') {
+          cashIn += price;
+        } else {
+          bankIn += price;
+        }
       }
     }
 

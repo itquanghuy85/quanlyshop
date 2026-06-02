@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../widgets/responsive_wrapper.dart';
@@ -34,6 +35,7 @@ class _SupplierDetailViewState extends State<SupplierDetailView> with TickerProv
   final _service = SupplierService();
   final _db = DBHelper();
   late TabController _tab;
+  StreamSubscription? _eventBusSub;
 
   List<Map<String, dynamic>> _imports = [];
   List<Map<String, dynamic>> _importOrders = [];
@@ -49,9 +51,16 @@ class _SupplierDetailViewState extends State<SupplierDetailView> with TickerProv
     super.initState();
     _tab = TabController(length: 4, vsync: this);
     _load();
-    EventBus().stream.where((e) => e == 'debts_changed' || e == 'suppliers_changed').listen((_) {
+    _eventBusSub = EventBus().stream.where((e) => e == 'debts_changed' || e == 'suppliers_changed').listen((_) {
       if (mounted) _load();
     });
+  }
+
+  @override
+  void dispose() {
+    _eventBusSub?.cancel();
+    _tab.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -183,9 +192,15 @@ class _SupplierDetailViewState extends State<SupplierDetailView> with TickerProv
   bool get _isKvSupplier => (widget.supplier.note ?? '').contains('KV:');
   int get _kvDebtFromNote {
     final note = widget.supplier.note ?? '';
-    final match = RegExp(r'N[oợ]\s*KV\s*:\s*([\d.,]+)', caseSensitive: false).firstMatch(note);
+    // Khớp: "Nợ KV: 160000đ" hoặc "No KV: 160,000 đ" hoặc "Nợ KV:160.000"
+    final match = RegExp(
+      r'N[oợ]\s*KV\s*:\s*[đ₫]?\s*([\d.,]+)',
+      caseSensitive: false,
+    ).firstMatch(note);
     if (match == null) return 0;
-    final numStr = (match.group(1) ?? '0').replaceAll('.', '').replaceAll(',', '');
+    final numStr = (match.group(1) ?? '0')
+        .replaceAll('.', '')
+        .replaceAll(',', '');
     return int.tryParse(numStr) ?? 0;
   }
 
@@ -490,7 +505,9 @@ class _SupplierDetailViewState extends State<SupplierDetailView> with TickerProv
               if (paid > 0 && paid < total)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-                  child: Row(children: [
+                  child: Wrap(
+                    spacing: 4,
+                    children: [
                     Text('Đã trả: ', style: AppTextStyles.caption),
                     Text(MoneyUtils.formatCurrency(paid) + 'đ',
                         style: AppTextStyles.caption.copyWith(color: Colors.green.shade700, fontWeight: FontWeight.bold)),
@@ -613,7 +630,7 @@ class _SupplierDetailViewState extends State<SupplierDetailView> with TickerProv
                       subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         Text('Ngày nhập: $date', style: AppTextStyles.caption),
                         Text('Tổng: ${MoneyUtils.formatCurrency(total)}đ · Đã trả: ${MoneyUtils.formatCurrency(paid)}đ',
-                            style: AppTextStyles.caption),
+                            style: AppTextStyles.caption, overflow: TextOverflow.ellipsis),
                       ]),
                       trailing: Text('Còn: ${MoneyUtils.formatCompactCurrency(remain)}đ',
                           style: AppTextStyles.caption.copyWith(
@@ -755,7 +772,8 @@ class _SupplierDetailViewState extends State<SupplierDetailView> with TickerProv
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: AppTextStyles.body1),
+          Flexible(child: Text(label, style: AppTextStyles.body1)),
+          const SizedBox(width: 8),
           Text(value, style: AppTextStyles.body1.copyWith(
             fontWeight: FontWeight.bold,
             color: valueColor,
@@ -924,26 +942,23 @@ class _SupplierDetailViewState extends State<SupplierDetailView> with TickerProv
                               ]),
                               if (hasPrice || hasCost) ...[
                                 const SizedBox(height: 6),
-                                Row(children: [
-                                  if (hasCost) ...[
+                                Wrap(spacing: 8, runSpacing: 2, children: [
+                                  if (hasCost) Row(mainAxisSize: MainAxisSize.min, children: [
                                     Icon(Icons.shopping_cart_outlined, size: 13, color: Colors.orange.shade700),
                                     const SizedBox(width: 3),
                                     Text('Vốn: ${MoneyUtils.formatCompactCurrency(p.cost)}đ',
                                         style: AppTextStyles.caption.copyWith(color: Colors.orange.shade700)),
-                                    const SizedBox(width: 10),
-                                  ],
-                                  if (hasPrice) ...[
+                                  ]),
+                                  if (hasPrice) Row(mainAxisSize: MainAxisSize.min, children: [
                                     Icon(Icons.sell_outlined, size: 13, color: Colors.green.shade700),
                                     const SizedBox(width: 3),
                                     Text('Bán: ${MoneyUtils.formatCompactCurrency(p.price)}đ',
                                         style: AppTextStyles.caption.copyWith(color: Colors.green.shade700)),
-                                  ],
-                                  if (hasCost && hasPrice && profit > 0) ...[
-                                    const SizedBox(width: 10),
+                                  ]),
+                                  if (hasCost && hasPrice && profit > 0)
                                     Text('Lãi: ${MoneyUtils.formatCompactCurrency(profit)}đ',
                                         style: AppTextStyles.caption.copyWith(
                                             color: Colors.teal.shade700, fontWeight: FontWeight.bold)),
-                                  ],
                                 ]),
                               ],
                             ],
@@ -994,7 +1009,8 @@ class _SupplierDetailViewState extends State<SupplierDetailView> with TickerProv
     String note = '';
     await showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
         title: const Text('Thanh toán NCC'),
         content: Form(
           key: formKey,
@@ -1018,7 +1034,7 @@ class _SupplierDetailViewState extends State<SupplierDetailView> with TickerProv
                     .map((m) => ChoiceChip(
                           label: Text(m),
                           selected: method == m,
-                          onSelected: (v) => setState(() => method = m),
+                          onSelected: (v) => setDialogState(() => method = m),
                         ))
                     .toList(),
               ),
@@ -1035,8 +1051,7 @@ class _SupplierDetailViewState extends State<SupplierDetailView> with TickerProv
           ElevatedButton(
             onPressed: () async {
               if (!(formKey.currentState?.validate() ?? false)) return;
-              final raw = MoneyUtils.parseCurrency(payCtrl.text);
-              final amount = raw > 0 && raw < 100000 ? raw * 1000 : raw;
+              final amount = MoneyUtils.parseCurrency(payCtrl.text);
               Navigator.pop(ctx);
               await _confirmPay(amount, method, note);
             },
@@ -1044,7 +1059,9 @@ class _SupplierDetailViewState extends State<SupplierDetailView> with TickerProv
           ),
         ],
       ),
+      ),
     );
+    payCtrl.dispose();
   }
 
   Future<void> _confirmPay(int amount, String methodStr, String note) async {

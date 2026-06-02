@@ -486,7 +486,7 @@ class DBHelper {
       version: 99,
       onConfigure: (db) async {
         try {
-          await db.rawQuery('PRAGMA foreign_keys = ON');
+          await db.execute('PRAGMA foreign_keys = ON');
         } catch (e) {
           debugPrint('DB onConfigure foreign_keys error: $e');
         }
@@ -4881,7 +4881,10 @@ class DBHelper {
 
   /// Tìm nhanh debt theo linkedId (firestoreId của đơn bán/sửa) — không load toàn bộ
   Future<List<Map<String, dynamic>>> getDebtsByLinkedId(String linkedId) async {
-    if (linkedId.isEmpty) return [];
+    if (linkedId.isEmpty) {
+      debugPrint('⚠️ getDebtsByLinkedId: linkedId rỗng — caller cần kiểm tra firestoreId');
+      return [];
+    }
     final db = await database;
     return db.query('debts', where: 'linkedId = ?', whereArgs: [linkedId]);
   }
@@ -5530,6 +5533,17 @@ class DBHelper {
     final res = await (await database).rawQuery(
       'SELECT * FROM products WHERE UPPER(imei) = UPPER(?) AND shopId = ? AND (deleted = 0 OR deleted IS NULL) LIMIT 1',
       [imei, shopId],
+    );
+    return res.isNotEmpty ? Product.fromMap(res.first) : null;
+  }
+
+  /// Tìm sản phẩm theo suffix IMEI — dành cho IMEI ngắn từ KiotViet (VD: "3480")
+  Future<Product?> getProductByImeiSuffix(String suffix) async {
+    final shopId = await _getScopedShopId('getProductByImeiSuffix');
+    if (shopId == null) return null;
+    final res = await (await database).rawQuery(
+      "SELECT * FROM products WHERE imei LIKE ? AND shopId = ? AND (deleted = 0 OR deleted IS NULL) ORDER BY updatedAt DESC LIMIT 1",
+      ['%$suffix', shopId],
     );
     return res.isNotEmpty ? Product.fromMap(res.first) : null;
   }
@@ -6269,6 +6283,26 @@ class DBHelper {
     } else {
       await db.insert('adjustment_entries', filteredData);
     }
+  }
+
+  /// Lấy các bút toán điều chỉnh chưa sync lên cloud
+  Future<List<Map<String, dynamic>>> getUnsyncedAdjustmentEntries() async {
+    final db = await database;
+    return db.query(
+      'adjustment_entries',
+      where: 'isSynced = 0',
+    );
+  }
+
+  /// Đánh dấu bút toán điều chỉnh đã sync
+  Future<void> markAdjustmentEntrySynced(int id, String firestoreId) async {
+    final db = await database;
+    await db.update(
+      'adjustment_entries',
+      {'isSynced': 1, 'firestoreId': firestoreId},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
   }
 
   /// Xóa bút toán điều chỉnh theo firestoreId (for sync)

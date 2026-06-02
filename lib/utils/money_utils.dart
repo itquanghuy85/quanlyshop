@@ -15,9 +15,6 @@ class MoneyUtils {
     final abs = value.abs();
     final sign = value < 0 ? '-' : '';
 
-    if (abs >= 1000000000000) {
-      return '$sign${_formatCompactUnit(abs / 1000000000)} Tỷ';
-    }
     if (abs >= 1000000000) {
       return '$sign${_formatCompactUnit(abs / 1000000000)} Tỷ';
     }

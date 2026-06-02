@@ -166,8 +166,11 @@ class SalaryCalculationService {
               final hours = (checkOutAt - checkInAt) / 3600000.0;
               totalWorkHours += hours;
 
-              // Tính OT: Giờ vượt quá giờ chuẩn
-              if (hours > settings.standardHoursPerDay) {
+              // OT: prefer recorded overtimeOn; fall back to computed from hours
+              final overtimeOn = (data['overtimeOn'] ?? 0).toDouble();
+              if (overtimeOn > 0) {
+                overtimeHours += overtimeOn / 60.0;
+              } else if (hours > settings.standardHoursPerDay) {
                 overtimeHours += hours - settings.standardHoursPerDay;
               }
             }
@@ -175,12 +178,6 @@ class SalaryCalculationService {
             // Đếm đi muộn/về sớm
             if (data['isLate'] == 1) lateDays++;
             if (data['isEarlyLeave'] == 1) earlyLeaveDays++;
-
-            // Thêm OT đã được ghi nhận
-            final overtimeOn = (data['overtimeOn'] ?? 0).toDouble();
-            if (overtimeOn > 0) {
-              overtimeHours += overtimeOn / 60.0;
-            }
           }
         }
       }
@@ -196,15 +193,14 @@ class SalaryCalculationService {
           if (record.checkOutAt != null) {
             final hours = (record.checkOutAt! - record.checkInAt!) / 3600000.0;
             totalWorkHours += hours;
-            if (hours > settings.standardHoursPerDay) {
+            if (record.overtimeOn > 0) {
+              overtimeHours += record.overtimeOn / 60.0;
+            } else if (hours > settings.standardHoursPerDay) {
               overtimeHours += hours - settings.standardHoursPerDay;
             }
           }
           if (record.isLate == 1) lateDays++;
           if (record.isEarlyLeave == 1) earlyLeaveDays++;
-          if (record.overtimeOn > 0) {
-            overtimeHours += record.overtimeOn / 60.0;
-          }
         }
       }
     }
@@ -352,6 +348,8 @@ class SalaryCalculationService {
             .collection('repairs')
             .where('shopId', isEqualTo: shopId)
             .where('status', isEqualTo: 4)
+            .where('deliveredAt', isGreaterThanOrEqualTo: startMs)
+            .where('deliveredAt', isLessThanOrEqualTo: endMs)
             .get();
         
         for (final doc in repairsSnapshot.docs) {

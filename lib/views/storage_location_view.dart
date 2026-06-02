@@ -7,6 +7,7 @@ import '../models/product_model.dart';
 import '../models/repair_model.dart';
 import '../models/storage_location_model.dart';
 import '../services/firestore_service.dart';
+import '../services/sync_service.dart';
 import '../services/user_service.dart';
 import '../theme/popup_theme.dart';
 import '../utils/money_utils.dart';
@@ -104,6 +105,11 @@ class _StorageLocationViewState extends State<StorageLocationView> {
               (l.shelf?.toLowerCase().contains(q) ?? false))
           .toList();
     }
+  }
+
+  Future<void> _syncAndLoad() async {
+    await SyncService.refreshCloudCollections(reason: 'storage_location_refresh', force: true);
+    await _load();
   }
 
   Future<void> _openForm({StorageLocation? existing}) async {
@@ -231,7 +237,7 @@ class _StorageLocationViewState extends State<StorageLocationView> {
       actions: [
         IconButton(
           icon: const Icon(Icons.refresh_rounded, size: 22),
-          onPressed: _load,
+          onPressed: _syncAndLoad,
           tooltip: 'Làm mới',
         ),
       ],

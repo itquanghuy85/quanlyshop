@@ -77,7 +77,8 @@ class _RepairDetailViewState extends State<RepairDetailView> {
   bool _hasPermission = false;
   bool _canViewRevenue = false;
   bool _canViewCostPrice = false;
-  bool _canEditRepairOrder = false;
+  bool _canEditRepairOrder = false;      // Manager: sửa/xóa linh kiện, tài chính
+  bool _canEditRepairBasicInfo = false;  // Staff: sửa thông tin cơ bản (tên KH, model, lỗi...)
   bool _isManagerLike = false;
   bool _canEditRepairNotes = false;
   bool _canAddRepairImage = false;
@@ -611,6 +612,17 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
     };
 
+    // Include storage location in patch so listener never sees a stale doc without location
+    if ((r.storageLocationId ?? '').isNotEmpty) {
+      payload['storageLocationId'] = r.storageLocationId;
+    }
+    if ((r.storageLocationCode ?? '').isNotEmpty) {
+      payload['storageLocationCode'] = r.storageLocationCode;
+    }
+    if ((r.storageLocationName ?? '').isNotEmpty) {
+      payload['storageLocationName'] = r.storageLocationName;
+    }
+
     final lastCaredAt = r.lastCaredAt;
     if (lastCaredAt != null && lastCaredAt > 0) {
       payload['lastCaredAt'] = lastCaredAt;
@@ -717,7 +729,8 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       _canViewRevenue = canViewRevenue;
       _canViewCostPrice = canViewCostPrice;
       _isManagerLike = isManagerLike;
-      _canEditRepairOrder = isManagerLike || perms['allowViewRepairs'] == true;
+      _canEditRepairOrder = isManagerLike;  // Manager only: xóa linh kiện, tài chính
+      _canEditRepairBasicInfo = isManagerLike || perms['allowViewRepairs'] == true; // Staff: thông tin cơ bản
       _canEditRepairNotes = perms['allowViewRepairs'] == true; // KTV/nhân viên được ghi chú và thêm dịch vụ
       _canAddRepairImage = perms['allowViewRepairs'] == true;
       _canEditRepairFinancial = isManagerLike && canViewRevenue;
@@ -888,6 +901,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         storageLocationId: pickedLoc!.firestoreId ?? pickedLoc!.id?.toString(),
         storageLocationCode: pickedLoc!.code,
         storageLocationName: pickedLoc!.name,
+        isSynced: false,
       );
       await db.upsertRepair(updated);
       setState(() => r = updated);
@@ -2219,7 +2233,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
             children: [
               const Icon(Icons.warning_amber_rounded, color: Colors.orange),
               const SizedBox(width: 8),
-              Text(loc.luuYTitle),
+              Flexible(child: Text(loc.luuYTitle)),
             ],
           ),
           content: Column(
@@ -3359,7 +3373,10 @@ class _RepairDetailViewState extends State<RepairDetailView> {
   }
 
   Future<void> _editBasicInfo() async {
-    if (!_ensureCanEditRepairOrder()) return;
+    if (!_canEditRepairBasicInfo) {
+      NotificationService.showSnackBar('Bạn không có quyền sửa thông tin đơn sửa chữa.', color: Colors.orange);
+      return;
+    }
     if (r.status == 4) return; // Đã giao thì khóa chỉnh sửa
 
     final formKey = GlobalKey<FormState>();
@@ -4060,7 +4077,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                               tooltip: 'Mở hồ sơ khách hàng từ phiếu sửa',
                             ),
                           ),
-                          if (r.status < 4 && _canEditRepairOrder)
+                          if (r.status < 4 && _canEditRepairBasicInfo)
                             IconButton(
                               onPressed: _editBasicInfo,
                               icon: const Icon(Icons.edit, size: 16),
@@ -6102,7 +6119,7 @@ class _PartsPaymentDialogState extends State<_PartsPaymentDialog> {
         children: [
           const Icon(Icons.payment, color: Colors.green),
           const SizedBox(width: 10),
-          Text(loc.partsPaymentTitle, style: const TextStyle(fontSize: 17)),
+          Flexible(child: Text(loc.partsPaymentTitle, style: const TextStyle(fontSize: 17))),
         ],
       ),
       content: SingleChildScrollView(

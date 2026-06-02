@@ -1729,7 +1729,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
             createdAt: debtDataForTransaction['createdAt'] as int,
             note: debtDataForTransaction['note'] as String?,
             linkedId: debtDataForTransaction['linkedId'] as String?,
-            isSynced: true, // Đánh dấu đã sync vì đã lưu trên cloud
+            isSynced: !isLocalOnly, // Only mark synced if Firestore transaction succeeded
           );
           await db.upsertDebt(debt);
         } else {

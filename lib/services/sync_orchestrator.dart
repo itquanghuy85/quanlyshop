@@ -395,7 +395,7 @@ class SyncOrchestrator {
     if (existing.isNotEmpty) {
       final existingStatus = existing.first['status'] as String? ?? 'pending';
 
-      if (existingStatus == 'failed' && !allowReviveFailed) {
+      if (existingStatus == 'failed' && !allowReviveFailed && data == null) {
         debugPrint(
           '🔄 SyncOrchestrator: Skip auto-enqueue for failed ${entityType.name}#$entityId',
         );

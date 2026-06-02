@@ -195,6 +195,7 @@ class SyncService {
     'purchase_orders',
     'product_categories',
     'supplier_payments',
+    'storage_locations',
   };
   static final Map<String, int> _realtimeCursorCache = <String, int>{};
   static final Set<String> _incrementalRealtimeDisabled = <String>{};
@@ -3112,45 +3113,52 @@ class SyncService {
       // Sync SALES
       final sales = await dbHelper.getAllSales();
       debugPrint("syncAllToCloud: có ${sales.length} sales cần sync");
-      final WriteBatch saleBatch = _db.batch();
-      final List<SaleOrder> salesToMarkSynced = [];
-      for (var s in sales) {
-        if (s.isSynced) continue;
+      {
+        const batchLimit = 400;
+        WriteBatch saleBatch = _db.batch();
+        final List<SaleOrder> salesToMarkSynced = [];
+        int batchCount = 0;
+        int totalSynced = 0;
 
-        try {
-          Map<String, dynamic> data = s.toMap();
-          data['shopId'] = shopId;
-          data.remove('id');
-          data['updatedAt'] = FirestoreWriteHelper.serverUpdatedAt();
-          data.remove('isSynced');
-          data.remove('firestoreId');
-
-          final docId =
-              s.firestoreId ?? "sale_${s.soldAt}_${s.phone}_${s.id ?? 0}";
-          saleBatch.set(
-            _db.collection('sales').doc(docId),
-            data,
-            SetOptions(merge: true),
-          );
-
-          s.firestoreId = docId;
-          salesToMarkSynced.add(s);
-        } catch (e) {
-          debugPrint("Lỗi sync sale ${s.id}: $e");
-          // Tiếp tục với sale tiếp theo
+        Future<void> commitSalesBatch() async {
+          if (salesToMarkSynced.isEmpty) return;
+          try {
+            await saleBatch.commit();
+            for (var s in salesToMarkSynced) {
+              s.isSynced = true;
+              await dbHelper.updateSale(s);
+            }
+            totalSynced += salesToMarkSynced.length;
+            debugPrint("✅ Committed ${salesToMarkSynced.length} sales batch to cloud");
+          } catch (e) {
+            debugPrint("❌ Batch commit sales failed: $e - sales will retry next sync");
+          }
+          saleBatch = _db.batch();
+          salesToMarkSynced.clear();
+          batchCount = 0;
         }
-      }
-      try {
-        await saleBatch.commit();
-        for (var s in salesToMarkSynced) {
-          s.isSynced = true;
-          await dbHelper.updateSale(s);
+
+        for (var s in sales) {
+          if (s.isSynced) continue;
+          try {
+            Map<String, dynamic> data = s.toMap();
+            data['shopId'] = shopId;
+            data.remove('id');
+            data['updatedAt'] = FirestoreWriteHelper.serverUpdatedAt();
+            data.remove('isSynced');
+            data.remove('firestoreId');
+            final docId = s.firestoreId ?? "sale_${s.soldAt}_${s.phone}_${s.id ?? 0}";
+            saleBatch.set(_db.collection('sales').doc(docId), data, SetOptions(merge: true));
+            s.firestoreId = docId;
+            salesToMarkSynced.add(s);
+            batchCount++;
+            if (batchCount >= batchLimit) await commitSalesBatch();
+          } catch (e) {
+            debugPrint("Lỗi sync sale ${s.id}: $e");
+          }
         }
-        debugPrint("✅ Synced ${salesToMarkSynced.length} sales to cloud");
-      } catch (e) {
-        debugPrint(
-          "❌ Batch commit sales failed: $e - sales will retry next sync",
-        );
+        await commitSalesBatch();
+        debugPrint("✅ Synced $totalSynced sales to cloud");
       }
 
       // Sync EXPENSES (Chi phí)
@@ -3215,72 +3223,70 @@ class SyncService {
       }
 
       // Sync PRODUCTS
-      final products = await dbHelper.getAllProducts();
-      debugPrint("syncAllToCloud: có ${products.length} products cần sync");
-      final WriteBatch productBatch = _db.batch();
-      final List<Product> productsToMarkSynced = [];
-      for (var p in products) {
-        if (p.isSynced) continue;
+      {
+        final products = await dbHelper.getAllProducts();
+        debugPrint("syncAllToCloud: có ${products.length} products cần sync");
+        const prodBatchLimit = 400;
+        WriteBatch productBatch = _db.batch();
+        final List<Product> productsToMarkSynced = [];
+        int prodBatchCount = 0;
+        int totalProductsSynced = 0;
 
-        try {
-          Map<String, dynamic> data = p.toMap();
-          data['shopId'] = shopId;
-          data.remove('id');
-          data['updatedAt'] = FirestoreWriteHelper.serverUpdatedAt();
-          data.remove('isSynced');
-          data.remove('firestoreId');
-
-          // Xử lý upload ảnh nếu là ảnh local với timeout
-          if (_hasLocalImagePath(p.images)) {
-            final allPaths = _splitImagePaths(p.images);
-            List<String> urls =
-                await StorageService.uploadMultipleImages(
-                  allPaths.where((path) => !_isCloudImagePath(path)).toList(),
-                  'products/${p.createdAt}',
-                ).timeout(
-                  const Duration(seconds: 30),
-                  onTimeout: () {
-                    debugPrint(
-                      "Upload ảnh product ${p.id} quá thời gian, bỏ qua",
-                    );
-                    return <String>[];
-                  },
-                );
-            final existingCloud = allPaths
-                .where((path) => _isCloudImagePath(path))
-                .toList();
-            existingCloud.addAll(urls);
-            data['images'] = existingCloud.join(',');
+        Future<void> commitProductsBatch() async {
+          if (productsToMarkSynced.isEmpty) return;
+          try {
+            await productBatch.commit();
+            for (var p in productsToMarkSynced) {
+              p.isSynced = true;
+              await dbHelper.updateProduct(p);
+            }
+            totalProductsSynced += productsToMarkSynced.length;
+            debugPrint("✅ Committed ${productsToMarkSynced.length} products batch to cloud");
+          } catch (e) {
+            debugPrint("❌ Batch commit products failed: $e - products will retry next sync");
           }
-
-          final docId =
-              p.firestoreId ??
-              "product_${p.createdAt}_${p.imei ?? 'noimei'}_${p.id ?? 0}";
-          productBatch.set(
-            _db.collection('products').doc(docId),
-            data,
-            SetOptions(merge: true),
-          );
-
-          p.firestoreId = docId;
-          p.images = data['images'];
-          productsToMarkSynced.add(p);
-        } catch (e) {
-          debugPrint("Lỗi sync product ${p.id}: $e");
-          // Tiếp tục với product tiếp theo
+          productBatch = _db.batch();
+          productsToMarkSynced.clear();
+          prodBatchCount = 0;
         }
-      }
-      try {
-        await productBatch.commit();
-        for (var p in productsToMarkSynced) {
-          p.isSynced = true;
-          await dbHelper.updateProduct(p);
+
+        for (var p in products) {
+          if (p.isSynced) continue;
+          try {
+            Map<String, dynamic> data = p.toMap();
+            data['shopId'] = shopId;
+            data.remove('id');
+            data['updatedAt'] = FirestoreWriteHelper.serverUpdatedAt();
+            data.remove('isSynced');
+            data.remove('firestoreId');
+
+            if (_hasLocalImagePath(p.images)) {
+              final allPaths = _splitImagePaths(p.images);
+              List<String> urls = await StorageService.uploadMultipleImages(
+                allPaths.where((path) => !_isCloudImagePath(path)).toList(),
+                'products/${p.createdAt}',
+              ).timeout(const Duration(seconds: 30), onTimeout: () {
+                debugPrint("Upload ảnh product ${p.id} quá thời gian, bỏ qua");
+                return <String>[];
+              });
+              final existingCloud = allPaths.where((path) => _isCloudImagePath(path)).toList();
+              existingCloud.addAll(urls);
+              data['images'] = existingCloud.join(',');
+            }
+
+            final docId = p.firestoreId ?? "product_${p.createdAt}_${p.imei ?? 'noimei'}_${p.id ?? 0}";
+            productBatch.set(_db.collection('products').doc(docId), data, SetOptions(merge: true));
+            p.firestoreId = docId;
+            p.images = data['images'];
+            productsToMarkSynced.add(p);
+            prodBatchCount++;
+            if (prodBatchCount >= prodBatchLimit) await commitProductsBatch();
+          } catch (e) {
+            debugPrint("Lỗi sync product ${p.id}: $e");
+          }
         }
-        debugPrint("✅ Synced ${productsToMarkSynced.length} products to cloud");
-      } catch (e) {
-        debugPrint(
-          "❌ Batch commit products failed: $e - products will retry next sync",
-        );
+        await commitProductsBatch();
+        debugPrint("✅ Synced $totalProductsSynced products to cloud");
       }
 
       // Sync ATTENDANCE
@@ -4041,12 +4047,148 @@ class SyncService {
         debugPrint("Lỗi sync payment intents collection: $e");
       }
 
+      // Sync ADJUSTMENT ENTRIES (Bút toán điều chỉnh)
+      try {
+        final adjustments = await dbHelper.getUnsyncedAdjustmentEntries();
+        debugPrint(
+          "syncAllToCloud: có ${adjustments.length} adjustment entries cần sync",
+        );
+        if (adjustments.isNotEmpty) {
+          final WriteBatch adjustmentBatch = _db.batch();
+          final List<Map<String, dynamic>> adjustmentsToMarkSynced = [];
+          for (var entry in adjustments) {
+            try {
+              final existingId = entry['firestoreId'] as String?;
+              final localId = entry['id'] as int?;
+              final data = Map<String, dynamic>.from(entry);
+              data['shopId'] = shopId;
+              data.remove('id');
+              data['updatedAt'] = FirestoreWriteHelper.serverUpdatedAt();
+              data.remove('isSynced');
+              data.remove('firestoreId');
+
+              final docId =
+                  (existingId != null && existingId.isNotEmpty)
+                  ? existingId
+                  : "adj_${entry['createdAt']}_${(entry['description'] ?? '').hashCode}";
+              adjustmentBatch.set(
+                _db.collection('adjustment_entries').doc(docId),
+                data,
+                SetOptions(merge: true),
+              );
+              adjustmentsToMarkSynced.add({...entry, '_docId': docId, 'id': localId});
+            } catch (e) {
+              debugPrint("Lỗi sync adjustment entry ${entry['id']}: $e");
+            }
+          }
+          try {
+            await adjustmentBatch.commit();
+            for (var entry in adjustmentsToMarkSynced) {
+              final localId = entry['id'] as int?;
+              final docId = entry['_docId'] as String;
+              if (localId != null) {
+                await dbHelper.markAdjustmentEntrySynced(localId, docId);
+              }
+            }
+            debugPrint(
+              "✅ Synced ${adjustmentsToMarkSynced.length} adjustment entries to cloud",
+            );
+          } catch (e) {
+            debugPrint("❌ Batch commit adjustment entries failed: $e");
+          }
+        }
+      } catch (e) {
+        debugPrint("Lỗi sync adjustment_entries collection: $e");
+      }
+
+      // Sync IMPORT_ORDERS + IMPORT_ORDER_ITEMS (từ KiotViet import)
+      try {
+        await _syncRawTableToCloud(
+          tableName: 'import_orders',
+          collection: 'import_orders',
+          shopId: shopId,
+          dbHelper: dbHelper,
+          firestoreIdFallback: (row) =>
+              'io_${row['importDate'] ?? row['createdAt'] ?? 0}_${row['orderCode'] ?? ''}_${row['id'] ?? 0}',
+        );
+        await _syncRawTableToCloud(
+          tableName: 'import_order_items',
+          collection: 'import_order_items',
+          shopId: shopId,
+          dbHelper: dbHelper,
+          firestoreIdFallback: (row) =>
+              'ioi_${row['importOrderFirestoreId'] ?? ''}_${row['id'] ?? 0}',
+        );
+      } catch (e) {
+        debugPrint('Lỗi sync import_orders/items: $e');
+      }
+
       debugPrint("Đã hoàn thành đồng bộ toàn bộ dữ liệu lên Cloud.");
     } catch (e) {
       debugPrint("Lỗi syncAllToCloud: $e");
     } finally {
       _isSyncingAllToCloud = false;
     }
+  }
+
+  /// Bulk-sync một table local (raw SQL) lên Firestore collection, chunk 400/batch.
+  static Future<void> _syncRawTableToCloud({
+    required String tableName,
+    required String collection,
+    required String shopId,
+    required DBHelper dbHelper,
+    required String Function(Map<String, dynamic> row) firestoreIdFallback,
+  }) async {
+    final db = await dbHelper.database;
+    final rows = await db.query(
+      tableName,
+      where: '(isSynced = 0 OR isSynced IS NULL) AND shopId = ? AND (deleted IS NULL OR deleted = 0)',
+      whereArgs: [shopId],
+    );
+    if (rows.isEmpty) return;
+    debugPrint('syncAllToCloud: $tableName có ${rows.length} rows chưa sync');
+
+    const batchSize = 400;
+    WriteBatch batch = _db.batch();
+    final List<int> syncedIds = [];
+    int count = 0;
+
+    Future<void> commitBatch() async {
+      if (syncedIds.isEmpty) return;
+      try {
+        await batch.commit();
+        final placeholders = List.filled(syncedIds.length, '?').join(',');
+        await db.rawUpdate(
+          'UPDATE $tableName SET isSynced = 1 WHERE id IN ($placeholders)',
+          syncedIds,
+        );
+        debugPrint('✅ Committed ${syncedIds.length} $tableName rows to cloud');
+      } catch (e) {
+        debugPrint('❌ Batch commit $tableName failed: $e');
+      }
+      batch = _db.batch();
+      syncedIds.clear();
+      count = 0;
+    }
+
+    for (final rawRow in rows) {
+      final row = Map<String, dynamic>.from(rawRow);
+      final id = row['id'] as int?;
+      final firestoreId = (row['firestoreId'] as String?)?.isNotEmpty == true
+          ? row['firestoreId'] as String
+          : firestoreIdFallback(row);
+      row['firestoreId'] = firestoreId;
+      row['shopId'] = shopId;
+      row.remove('id');
+      row.remove('isSynced');
+      row['updatedAt'] = FirestoreWriteHelper.serverUpdatedAt();
+      _convertTimestampFields(row);
+      batch.set(_db.collection(collection).doc(firestoreId), row, SetOptions(merge: true));
+      if (id != null) syncedIds.add(id);
+      count++;
+      if (count >= batchSize) await commitBatch();
+    }
+    await commitBatch();
   }
 
   /// Tải toàn bộ dữ liệu từ Cloud về (Dùng khi cài lại app hoặc đổi máy)
