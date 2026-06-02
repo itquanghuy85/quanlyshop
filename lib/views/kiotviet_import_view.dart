@@ -196,7 +196,7 @@ class _KiotVietImportViewState extends State<KiotVietImportView> {
 
     // Trigger Firestore sync: queue-based (recent creates) + bulk upload (isSynced=0)
     SyncOrchestrator().syncAll().ignore();
-    SyncService.syncAllToCloud().ignore();
+    SyncService.syncAllToCloud(force: true).ignore();
 
     if (!mounted) return;
     final msg = 'Nhập xong: ${total.inserted} mới, ${total.updated} cập nhật, '

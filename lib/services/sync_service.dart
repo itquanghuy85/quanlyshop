@@ -2993,13 +2993,13 @@ class SyncService {
   }
 
   /// Đẩy dữ liệu từ Local lên Cloud (Dùng khi có mạng trở lại)
-  static Future<void> syncAllToCloud() async {
+  static Future<void> syncAllToCloud({bool force = false}) async {
     final now = DateTime.now();
     if (_isSyncingAllToCloud) {
       debugPrint('⏭️ syncAllToCloud: already running, skip duplicate trigger');
       return;
     }
-    if (_lastSyncAllToCloudAt != null) {
+    if (!force && _lastSyncAllToCloudAt != null) {
       final elapsed = now.difference(_lastSyncAllToCloudAt!);
       if (elapsed < _syncAllToCloudCooldown) {
         debugPrint(
@@ -3585,8 +3585,21 @@ class SyncService {
             }
             try {
               await batch.commit();
+              // Direct update by original SQLite id — tránh match sai qua phone/firestoreId
+              final db = await dbHelper.database;
               for (final c in toMark) {
-                await dbHelper.upsertCustomer(c);
+                final cId = c['id'];
+                if (cId == null) continue;
+                try {
+                  await db.update(
+                    'customers',
+                    {'isSynced': 1, 'firestoreId': c['firestoreId']},
+                    where: 'id = ?',
+                    whereArgs: [cId],
+                  );
+                } catch (e) {
+                  debugPrint('⚠️ update customer id=$cId isSynced=1 fail: $e');
+                }
               }
               totalSynced += toMark.length;
             } catch (e) {

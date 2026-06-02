@@ -949,7 +949,7 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
     });
 
     try {
-      await SyncService.syncAllToCloud();
+      await SyncService.syncAllToCloud(force: true);
       // Also sync pending queue
       await _orchestrator.syncAll();
       if (mounted) {
@@ -1081,7 +1081,7 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
     });
 
     try {
-      await SyncService.syncAllToCloud();
+      await SyncService.syncAllToCloud(force: true);
       await _orchestrator.syncAll();
 
       setState(() => _loadingMessage = 'Bước 2: Download...');
