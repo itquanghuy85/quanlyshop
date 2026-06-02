@@ -288,28 +288,15 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  Locale? _locale;
-
   @override
   void initState() {
     super.initState();
-    _loadSavedLocale();
-  }
-
-  Future<void> _loadSavedLocale() async {
-    final prefs = await SharedPreferences.getInstance();
-    final languageCode = prefs.getString('app_language');
-    final supportedCodes = ['vi', 'en'];
-    final code = supportedCodes.contains(languageCode) ? languageCode : 'vi';
-    setState(() {
-      _locale = Locale(code!);
-    });
+    // Reset saved locale to 'vi' on startup
+    SharedPreferences.getInstance()
+        .then((p) => p.setString('app_language', 'vi'));
   }
 
   void setLocale(Locale locale) {
-    setState(() {
-      _locale = locale;
-    });
     SharedPreferences.getInstance().then(
       (p) => p.setString('app_language', locale.languageCode),
     );
@@ -322,7 +309,7 @@ class _MyAppState extends State<MyApp> {
       debugShowCheckedModeBanner: false,
       scaffoldMessengerKey: NotificationService.messengerKey,
       theme: AppTheme.lightTheme,
-      locale: _locale,
+      locale: const Locale('vi'),
       supportedLocales: const [Locale('vi'), Locale('en')],
       localizationsDelegates: const [
         AppLocalizations.delegate,
@@ -330,14 +317,6 @@ class _MyAppState extends State<MyApp> {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      localeResolutionCallback: (locale, supportedLocales) {
-        for (var supportedLocale in supportedLocales) {
-          if (supportedLocale.languageCode == locale?.languageCode) {
-            return supportedLocale;
-          }
-        }
-        return supportedLocales.first;
-      },
       home: SplashView(
         setLocale: setLocale,
       ), // Luôn bắt đầu từ SplashView để khởi tạo mượt mà

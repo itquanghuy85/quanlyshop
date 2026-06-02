@@ -3222,18 +3222,29 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       }
     } catch (_) {}
 
-    // Load at most 50 NCC (id/name/phone) — fast SQLite, replaces getSuppliers() (all)
     List<Map<String, dynamic>> suppliers = [];
     try {
       final page = await db.getSuppliersPage(limit: 50);
       suppliers = page.items;
     } catch (_) {
-      suppliers = await db.getSuppliers();
+      try {
+        suppliers = await db.getSuppliers();
+      } catch (_) {}
     }
 
     if (!mounted) return;
 
+    // Validate selName against loaded suppliers list
     String? selName = autoSupplierName;
+    if (selName != null &&
+        !suppliers.any((s) => (s['name'] as String?) == selName)) {
+      selName = null;
+    }
+
+    // Dismiss keyboard and wait for animation before showing dialog
+    FocusManager.instance.primaryFocus?.unfocus();
+    await Future.delayed(const Duration(milliseconds: 250));
+    if (!mounted) return;
 
     final result = await showDialog<Map<String, dynamic>?>(
       context: context,
@@ -3248,148 +3259,142 @@ class _RepairDetailViewState extends State<RepairDetailView> {
               : null;
           final hasSupplier = selSupplier != null;
 
+          // Flat actions list — no Row/Wrap inside actions to avoid
+          // OverflowBar IntrinsicWidth conflict
           return AlertDialog(
-            title: const Text('GHI VÀO SỔ QUỸ?',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Chi phí vốn linh kiện: ${MoneyUtils.formatVND(costAmount)}',
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 15),
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'Ghi chi phí này vào sổ quỹ để cập nhật biến động quỹ tiền mặt / ngân hàng?',
-                    style: TextStyle(fontSize: 13, color: Colors.grey),
-                  ),
-                  const Divider(height: 20),
-                  const Text('Nhà cung cấp',
-                      style: TextStyle(
-                          fontWeight: FontWeight.w600, fontSize: 13)),
-                  const SizedBox(height: 6),
-                  DropdownButtonFormField<String?>(
-                    value: selName,
-                    isExpanded: true,
-                    decoration: const InputDecoration(
-                      prefixIcon: Icon(Icons.store, size: 18),
-                      border: OutlineInputBorder(),
-                      isDense: true,
-                      contentPadding: EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 10),
-                    ),
-                    hint: const Text('Không chọn NCC',
-                        style: TextStyle(fontSize: 13)),
-                    items: [
-                      const DropdownMenuItem<String?>(
-                          value: null,
-                          child: Text('— Không chọn NCC —')),
-                      ...suppliers.map((s) {
-                        final name = (s['name'] as String?) ?? '';
-                        return DropdownMenuItem<String?>(
-                          value: name,
-                          child: Text(name,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontSize: 13)),
-                        );
-                      }),
-                    ],
-                    onChanged: (v) => setS(() => selName = v),
-                  ),
-                  if (hasSupplier) ...[
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: Colors.orange.shade50,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.orange.shade200),
-                      ),
-                      child: Row(children: [
-                        const Icon(Icons.info_outline,
-                            size: 14, color: Colors.orange),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            'Chọn "Nợ NCC" để ghi công nợ cho $selName',
-                            style: const TextStyle(
-                                fontSize: 12, color: Colors.orange),
+            title: const Text('GHI VÀO SỔ QUỬ?'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Chi phí: ${MoneyUtils.formatVND(costAmount)}',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Ghi vào sổ quỹ để cập nhật biến động quỹ?',
+                  style: TextStyle(fontSize: 13, color: Colors.grey),
+                ),
+                const SizedBox(height: 12),
+                InkWell(
+                  onTap: () async {
+                    if (!ctx.mounted) return;
+                    final picked = await showDialog<String?>(
+                      context: ctx,
+                      builder: (ctx2) => AlertDialog(
+                        title: const Text('Chọn nhà cung cấp'),
+                        content: SizedBox(
+                          width: 280,
+                          height: 300,
+                          child: ListView.builder(
+                            itemCount: suppliers.length + 1,
+                            itemBuilder: (_, i) {
+                              if (i == 0) {
+                                return ListTile(
+                                  dense: true,
+                                  title: const Text(
+                                      '— Không chọn NCC —'),
+                                  selected: selName == null,
+                                  onTap: () =>
+                                      Navigator.pop(ctx2, ''),
+                                );
+                              }
+                              final name =
+                                  (suppliers[i - 1]['name'] as String?) ??
+                                      '';
+                              return ListTile(
+                                dense: true,
+                                title: Text(name),
+                                selected: selName == name,
+                                onTap: () =>
+                                    Navigator.pop(ctx2, name),
+                              );
+                            },
                           ),
                         ),
-                      ]),
+                        actions: [
+                          TextButton(
+                            onPressed: () =>
+                                Navigator.pop(ctx2, null),
+                            child: const Text('Đóng'),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (picked != null) {
+                      setS(() => selName =
+                          picked.isEmpty ? null : picked);
+                    }
+                  },
+                  borderRadius: BorderRadius.circular(4),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 8),
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                          color: Colors.grey.shade400),
+                      borderRadius: BorderRadius.circular(4),
                     ),
-                  ],
-                  const SizedBox(height: 16),
-                  Row(children: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(ctx, null),
-                      child: const Text('Không ghi',
-                          style:
-                              TextStyle(color: Colors.grey, fontSize: 13)),
-                    ),
-                    const Spacer(),
-                    if (hasSupplier) ...[
-                      ElevatedButton.icon(
-                        onPressed: () => Navigator.pop(ctx, {
-                          'method': 'CÔNG NỢ',
-                          'name': selName,
-                          'supplier': selSupplier,
-                        }),
-                        icon: const Icon(Icons.receipt_long, size: 14),
-                        label: const Text('Nợ NCC',
-                            style: TextStyle(fontSize: 12)),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.orange,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 8),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.store,
+                            size: 16,
+                            color: Colors.grey.shade600),
+                        const SizedBox(width: 6),
+                        Text(
+                          selName ?? 'Không chọn NCC',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: selName == null
+                                ? Colors.grey
+                                : null,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 6),
-                    ],
-                    ElevatedButton.icon(
-                      onPressed: () => Navigator.pop(ctx, {
-                        'method': 'CHUYỂN KHOẢN',
-                        'name': selName,
-                        'supplier': selSupplier,
-                      }),
-                      icon: const Icon(Icons.account_balance, size: 14),
-                      label:
-                          const Text('CK', style: TextStyle(fontSize: 12)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 8),
-                      ),
+                        const SizedBox(width: 4),
+                        Icon(Icons.arrow_drop_down,
+                            size: 18,
+                            color: Colors.grey.shade600),
+                      ],
                     ),
-                    const SizedBox(width: 6),
-                    ElevatedButton.icon(
-                      onPressed: () => Navigator.pop(ctx, {
-                        'method': 'TIỀN MẶT',
-                        'name': selName,
-                        'supplier': selSupplier,
-                      }),
-                      icon: const Icon(Icons.payments, size: 14),
-                      label:
-                          const Text('TM', style: TextStyle(fontSize: 12)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 8),
-                      ),
-                    ),
-                  ]),
-                ],
-              ),
+                  ),
+                ),
+              ],
             ),
-            actions: const [],
-            actionsPadding: EdgeInsets.zero,
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, null),
+                child: const Text('Không ghi'),
+              ),
+              if (hasSupplier)
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, {
+                    'method': 'CÔNG NỢ',
+                    'name': selName,
+                    'supplier': selSupplier,
+                  }),
+                  style: TextButton.styleFrom(
+                      foregroundColor: Colors.orange),
+                  child: const Text('Nợ NCC'),
+                ),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, {
+                  'method': 'CHUYỂN KHOẢN',
+                  'name': selName,
+                  'supplier': selSupplier,
+                }),
+                child: const Text('CK'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(ctx, {
+                  'method': 'TIỀN MẶT',
+                  'name': selName,
+                  'supplier': selSupplier,
+                }),
+                child: const Text('TM'),
+              ),
+            ],
           );
         },
       ),

@@ -698,7 +698,7 @@ class _DebtViewState extends State<DebtView>
                 style: AppTextStyles.caption.copyWith(
                   color: _syncStatus == l10n.syncErrorStatus
                       ? Colors.orange
-                      : AppBarAccents.customer.withOpacity(0.7),
+                      : Colors.white70,
                   fontWeight: _isSyncing ? FontWeight.bold : FontWeight.normal,
                 ),
               ),
@@ -707,16 +707,16 @@ class _DebtViewState extends State<DebtView>
                 onPressed: _isSyncing ? null : _syncWithFirebase,
                 icon: Icon(
                   _isSyncing ? Icons.sync : Icons.sync_outlined,
-                  color: _isSyncing ? Colors.orange : AppBarAccents.customer,
+                  color: _isSyncing ? Colors.orange : Colors.white,
                 ),
                 tooltip: l10n.syncWithFirebase,
               ),
             ],
           ),
           IconButton(
-            icon: Icon(
+            icon: const Icon(
               Icons.file_download_outlined,
-              color: AppBarAccents.customer,
+              color: Colors.white,
             ),
             tooltip: l10n.exportExcelDebt,
             onPressed: () async {
