@@ -46,7 +46,6 @@ import '../services/event_bus.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 import '../widgets/app_cached_image.dart';
-import '../widgets/supplier_picker_sheet.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'inventory_view.dart';
 import 'repair_partner_view.dart';
@@ -3208,7 +3207,8 @@ class _RepairDetailViewState extends State<RepairDetailView> {
   /// Show popup asking whether to record parts cost in cash fund
   Future<void> _showCostFundRecordingPopup(int costAmount) async {
     // Only fetch the auto-fill supplier name from linked debts (fast single-row query).
-    // Full supplier list is NOT loaded here — picker uses cursor pagination.
+    // Load initial supplier list + auto-fill from linked debt
+    // Only fetches id/name/phone, no full history
     String? autoSupplierName;
     try {
       final fid = r.firestoreId ?? '';
@@ -3224,22 +3224,29 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       }
     } catch (_) {}
 
+    // Load first 30 suppliers (name, phone, id only) — fast SQLite query
+    List<Map<String, dynamic>> supplierList = [];
+    try {
+      final page = await db.getSuppliersPage(limit: 30);
+      supplierList = page.items;
+    } catch (_) {}
+
     if (!mounted) return;
 
-    // Pre-fetch the auto-fill supplier record (id+name+phone only) if we have a name
+    // Find auto-fill supplier in loaded list
     Map<String, dynamic>? autoSupplier;
     if (autoSupplierName != null) {
-      try {
-        final found = await db.getSupplierByName(autoSupplierName);
-        if (found != null) {
-          autoSupplier = {'id': found['id'], 'name': found['name'], 'phone': found['phone']};
-        }
-      } catch (_) {}
+      autoSupplier = supplierList.where((s) =>
+        (s['name'] as String?)?.toUpperCase() == autoSupplierName!.toUpperCase()
+      ).firstOrNull;
     }
 
-    if (!mounted) return;
-
     Map<String, dynamic>? selSupplier = autoSupplier;
+    // Full supplier cache for search (lazy-loaded when user types)
+    List<Map<String, dynamic>> searchResults = [];
+    Timer? searchTimer;
+    final searchCtrl = TextEditingController();
+    bool showSearch = false;
 
     final result = await showDialog<Map<String, dynamic>?>(
       context: context,
@@ -3248,6 +3255,28 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         builder: (ctx, setS) {
           final selName = (selSupplier?['name'] as String?) ?? '';
           final hasSupplier = selSupplier != null;
+
+          void doSearch(String q) {
+            searchTimer?.cancel();
+            if (q.trim().isEmpty) {
+              setS(() => searchResults = []);
+              return;
+            }
+            searchTimer = Timer(const Duration(milliseconds: 300), () async {
+              try {
+                final page = await db.getSuppliersPage(
+                  search: q.trim(),
+                  limit: 20,
+                );
+                try { setS(() => searchResults = page.items); } catch (_) {}
+              } catch (_) {}
+            });
+          }
+
+          // Items to show: search results when searching, else initial list
+          final listItems = searchResults.isNotEmpty
+              ? searchResults
+              : (showSearch ? <Map<String, dynamic>>[] : supplierList);
 
           return AlertDialog(
             title: const Text('GHI VÀO SỔ QUỸ?',
@@ -3283,61 +3312,162 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                       style: TextStyle(fontSize: 12, color: Colors.grey),
                     ),
                     const Divider(height: 20),
-                    const Text('Nhà cung cấp',
-                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                    const SizedBox(height: 6),
-                    // Supplier picker button — opens paginated bottom sheet.
-                    // Must use State's context + useRootNavigator so sheet appears
-                    // above this dialog, not behind it.
-                    InkWell(
-                      onTap: () async {
-                        final picked = await showSupplierPickerSheet(context);
-                        if (mounted) setS(() => selSupplier = picked);
-                      },
-                      borderRadius: BorderRadius.circular(8),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade400),
-                          borderRadius: BorderRadius.circular(8),
+                    // NCC section header + toggle search
+                    Row(children: [
+                      const Text('Nhà cung cấp',
+                          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                      const Spacer(),
+                      GestureDetector(
+                        onTap: () => setS(() {
+                          showSearch = !showSearch;
+                          if (!showSearch) {
+                            searchCtrl.clear();
+                            searchResults = [];
+                          }
+                        }),
+                        child: Text(
+                          showSearch ? 'Đóng tìm' : 'Tìm NCC',
+                          style: const TextStyle(fontSize: 12, color: Colors.blue),
                         ),
-                        child: Row(children: [
-                          Icon(Icons.store_rounded, size: 18,
-                              color: hasSupplier ? Colors.blue : Colors.grey),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              hasSupplier ? selName : '— Không chọn NCC —',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: hasSupplier ? Colors.black87 : Colors.grey,
-                                fontWeight: hasSupplier
-                                    ? FontWeight.w600
-                                    : FontWeight.normal,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          Icon(Icons.arrow_drop_down, color: Colors.grey.shade600),
-                        ]),
                       ),
-                    ),
+                    ]),
+                    const SizedBox(height: 6),
+                    // Search field (shown when toggled)
+                    if (showSearch) ...[
+                      TextField(
+                        controller: searchCtrl,
+                        autofocus: true,
+                        decoration: InputDecoration(
+                          hintText: 'Tìm theo tên, SĐT...',
+                          prefixIcon: const Icon(Icons.search, size: 18),
+                          border: const OutlineInputBorder(),
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 8),
+                        ),
+                        onChanged: doSearch,
+                      ),
+                      const SizedBox(height: 6),
+                    ],
+                    // Selected supplier chip
+                    if (hasSupplier)
+                      InkWell(
+                        onTap: () => setS(() => selSupplier = null),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.shade50,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.blue.shade200),
+                          ),
+                          child: Row(children: [
+                            const Icon(Icons.store, size: 14, color: Colors.blue),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(selName,
+                                  style: const TextStyle(
+                                      fontSize: 13, fontWeight: FontWeight.w600)),
+                            ),
+                            const Icon(Icons.close, size: 14, color: Colors.grey),
+                          ]),
+                        ),
+                      ),
+                    // NCC list (initial or search results)
+                    if (!hasSupplier && listItems.isNotEmpty)
+                      LimitedBox(
+                        maxHeight: 180,
+                        child: ListView.builder(
+                          shrinkWrap: true,
+                          padding: EdgeInsets.zero,
+                          itemCount: listItems.length + 1,
+                          itemBuilder: (_, i) {
+                            if (i == 0) {
+                              return InkWell(
+                                onTap: () => setS(() {
+                                  selSupplier = null;
+                                  showSearch = false;
+                                  searchCtrl.clear();
+                                  searchResults = [];
+                                }),
+                                child: const Padding(
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: 4, vertical: 6),
+                                  child: Text('— Không chọn NCC —',
+                                      style: TextStyle(
+                                          color: Colors.grey, fontSize: 13)),
+                                ),
+                              );
+                            }
+                            final s = listItems[i - 1];
+                            final sName = (s['name'] as String?) ?? '';
+                            final sPhone = (s['phone'] as String?) ?? '';
+                            return InkWell(
+                              onTap: () => setS(() {
+                                selSupplier = s;
+                                showSearch = false;
+                                searchCtrl.clear();
+                                searchResults = [];
+                              }),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 4, vertical: 6),
+                                child: Row(children: [
+                                  CircleAvatar(
+                                    radius: 13,
+                                    backgroundColor: Colors.blue.shade50,
+                                    child: Text(
+                                      sName.isNotEmpty ? sName[0] : '?',
+                                      style: TextStyle(
+                                          fontSize: 11,
+                                          color: Colors.blue.shade700,
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(sName,
+                                            style: const TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w600)),
+                                        if (sPhone.isNotEmpty)
+                                          Text(sPhone,
+                                              style: TextStyle(
+                                                  fontSize: 11,
+                                                  color:
+                                                      Colors.grey.shade600)),
+                                      ],
+                                    ),
+                                  ),
+                                ]),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
                     if (hasSupplier) ...[
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 6),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(
                           color: Colors.orange.shade50,
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: Colors.orange.shade200),
                         ),
                         child: Row(children: [
-                          const Icon(Icons.info_outline, size: 14, color: Colors.orange),
+                          const Icon(Icons.info_outline,
+                              size: 14, color: Colors.orange),
                           const SizedBox(width: 6),
                           Expanded(
                             child: Text(
                               'Chọn "Nợ NCC" để ghi công nợ cho $selName',
-                              style: const TextStyle(fontSize: 12, color: Colors.orange),
+                              style: const TextStyle(
+                                  fontSize: 12, color: Colors.orange),
                             ),
                           ),
                         ]),
@@ -3347,46 +3477,71 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                     // Action buttons
                     Row(children: [
                       TextButton(
-                        onPressed: () => Navigator.pop(ctx, null),
+                        onPressed: () {
+                          searchTimer?.cancel();
+                          Navigator.pop(ctx, null);
+                        },
                         child: const Text('Không ghi',
                             style: TextStyle(color: Colors.grey, fontSize: 13)),
                       ),
                       const Spacer(),
                       if (hasSupplier) ...[
                         ElevatedButton.icon(
-                          onPressed: () => Navigator.pop(ctx,
-                              {'method': 'CÔNG NỢ', 'name': selName, 'supplier': selSupplier}),
+                          onPressed: () {
+                            searchTimer?.cancel();
+                            Navigator.pop(ctx, {
+                              'method': 'CÔNG NỢ',
+                              'name': selName,
+                              'supplier': selSupplier,
+                            });
+                          },
                           icon: const Icon(Icons.receipt_long, size: 14),
-                          label: const Text('Nợ NCC', style: TextStyle(fontSize: 12)),
+                          label: const Text('Nợ NCC',
+                              style: TextStyle(fontSize: 12)),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.orange,
                             foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 8),
                           ),
                         ),
                         const SizedBox(width: 6),
                       ],
                       ElevatedButton.icon(
-                        onPressed: () => Navigator.pop(ctx,
-                            {'method': 'CHUYỂN KHOẢN', 'name': selName, 'supplier': selSupplier}),
+                        onPressed: () {
+                          searchTimer?.cancel();
+                          Navigator.pop(ctx, {
+                            'method': 'CHUYỂN KHOẢN',
+                            'name': selName,
+                            'supplier': selSupplier,
+                          });
+                        },
                         icon: const Icon(Icons.account_balance, size: 14),
                         label: const Text('CK', style: TextStyle(fontSize: 12)),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.blue,
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 8),
                         ),
                       ),
                       const SizedBox(width: 6),
                       ElevatedButton.icon(
-                        onPressed: () => Navigator.pop(ctx,
-                            {'method': 'TIỀN MẶT', 'name': selName, 'supplier': selSupplier}),
+                        onPressed: () {
+                          searchTimer?.cancel();
+                          Navigator.pop(ctx, {
+                            'method': 'TIỀN MẶT',
+                            'name': selName,
+                            'supplier': selSupplier,
+                          });
+                        },
                         icon: const Icon(Icons.payments, size: 14),
                         label: const Text('TM', style: TextStyle(fontSize: 12)),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.green,
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 8),
                         ),
                       ),
                     ]),
@@ -3400,6 +3555,8 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         },
       ),
     );
+    searchTimer?.cancel();
+    searchCtrl.dispose();
 
     if (result == null) {
       setState(() {
