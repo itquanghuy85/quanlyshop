@@ -1221,11 +1221,10 @@ class _RepairDetailViewState extends State<RepairDetailView> {
           data: r.toMap(),
         );
 
-        // Await sync so indicator turns green after status change
-        try {
-          await SyncOrchestrator().syncAll();
+        // Run sync in background — don't block status update flow
+        SyncOrchestrator().syncAll().then((_) {
           if (mounted) setState(() => r.isSynced = true);
-        } catch (_) {}
+        }).ignore();
       }
 
       debugPrint('Repair status updated successfully');
@@ -2142,7 +2141,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
             'Cập nhật đơn sửa ${r.model} - ${r.customerName} - Giá: ${r.price}đ',
       );
 
-      // Queue sync repair to cloud via SyncOrchestrator
+      // Queue sync — run in background so overlay dismisses immediately
       if (r.id != null) {
         await SyncOrchestrator().enqueue(
           entityType: SyncEntityType.repair,
@@ -2151,12 +2150,9 @@ class _RepairDetailViewState extends State<RepairDetailView> {
           operation: SyncOperation.update,
           data: r.toMap(),
         );
-
-        // Await sync so indicator turns green after save
-        try {
-          await SyncOrchestrator().syncAll();
+        SyncOrchestrator().syncAll().then((_) {
           if (mounted) setState(() => r.isSynced = true);
-        } catch (_) {}
+        }).ignore();
       }
 
       // Update debt if payment method is debt and repair is delivered
