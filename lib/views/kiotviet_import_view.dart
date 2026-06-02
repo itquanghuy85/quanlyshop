@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../services/kiotviet_excel_import_service.dart';
 import '../services/notification_service.dart';
 import '../services/sync_orchestrator.dart';
+import '../services/sync_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 import '../widgets/custom_app_bar.dart';
@@ -193,8 +194,9 @@ class _KiotVietImportViewState extends State<KiotVietImportView> {
 
     setState(() => _loading = false);
 
-    // Trigger Firestore sync so imported data reaches cloud
+    // Trigger Firestore sync: queue-based (recent creates) + bulk upload (isSynced=0)
     SyncOrchestrator().syncAll().ignore();
+    SyncService.syncAllToCloud().ignore();
 
     if (!mounted) return;
     final msg = 'Nhập xong: ${total.inserted} mới, ${total.updated} cập nhật, '

@@ -4764,9 +4764,16 @@ class DBHelper {
   }
 
   Future<List<SaleOrder>> getAllSales() async {
-    final maps = await (await database).query('sales', orderBy: 'soldAt DESC');
+    final shopId = await _getScopedShopId('getAllSales');
+    final db = await database;
+    final maps = shopId != null
+        ? await db.query('sales',
+            where: 'shopId = ? AND (deleted IS NULL OR deleted = 0)',
+            whereArgs: [shopId],
+            orderBy: 'soldAt DESC')
+        : await db.query('sales', orderBy: 'soldAt DESC');
     final sales = List.generate(maps.length, (i) => SaleOrder.fromMap(maps[i]));
-    debugPrint("DB_TRACE: getAllSales returned ${sales.length} sales");
+    debugPrint("DB_TRACE: getAllSales returned ${sales.length} sales (shopId=$shopId)");
     return sales;
   }
 

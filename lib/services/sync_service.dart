@@ -3124,9 +3124,20 @@ class SyncService {
           if (salesToMarkSynced.isEmpty) return;
           try {
             await saleBatch.commit();
-            for (var s in salesToMarkSynced) {
-              s.isSynced = true;
-              await dbHelper.updateSale(s);
+            final saleIds = salesToMarkSynced.map((s) => s.id).whereType<int>().toList();
+            if (saleIds.isNotEmpty) {
+              final ph = List.filled(saleIds.length, '?').join(',');
+              try {
+                await (await dbHelper.database).rawUpdate(
+                  'UPDATE sales SET isSynced = 1 WHERE id IN ($ph)',
+                  saleIds,
+                );
+              } catch (e) {
+                debugPrint("⚠️ Bulk sales isSynced update failed, fallback per-item: $e");
+                for (var s in salesToMarkSynced) {
+                  try { s.isSynced = true; await dbHelper.updateSale(s); } catch (_) {}
+                }
+              }
             }
             totalSynced += salesToMarkSynced.length;
             debugPrint("✅ Committed ${salesToMarkSynced.length} sales batch to cloud");
@@ -3236,9 +3247,21 @@ class SyncService {
           if (productsToMarkSynced.isEmpty) return;
           try {
             await productBatch.commit();
-            for (var p in productsToMarkSynced) {
-              p.isSynced = true;
-              await dbHelper.updateProduct(p);
+            // Bulk update isSynced=1 bằng 1 SQL thay vì N round-trips
+            final ids = productsToMarkSynced.map((p) => p.id).whereType<int>().toList();
+            if (ids.isNotEmpty) {
+              final placeholders = List.filled(ids.length, '?').join(',');
+              try {
+                await (await dbHelper.database).rawUpdate(
+                  'UPDATE products SET isSynced = 1 WHERE id IN ($placeholders)',
+                  ids,
+                );
+              } catch (e) {
+                debugPrint("⚠️ Bulk isSynced update failed, fallback per-item: $e");
+                for (var p in productsToMarkSynced) {
+                  try { p.isSynced = true; await dbHelper.updateProduct(p); } catch (_) {}
+                }
+              }
             }
             totalProductsSynced += productsToMarkSynced.length;
             debugPrint("✅ Committed ${productsToMarkSynced.length} products batch to cloud");
