@@ -3206,9 +3206,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
 
   /// Show popup asking whether to record parts cost in cash fund
   Future<void> _showCostFundRecordingPopup(int costAmount) async {
-    // Only fetch the auto-fill supplier name from linked debts (fast single-row query).
-    // Load initial supplier list + auto-fill from linked debt
-    // Only fetches id/name/phone, no full history
+    // Auto-fill: find NCC from linked debt (1 row only)
     String? autoSupplierName;
     try {
       final fid = r.firestoreId ?? '';
@@ -3224,115 +3222,56 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       }
     } catch (_) {}
 
-    // Load first 30 suppliers (name, phone, id only) — fast SQLite query
+    // Load first 50 NCC (id/name/phone only) — fast SQLite, no Firestore
     List<Map<String, dynamic>> supplierList = [];
     try {
-      final page = await db.getSuppliersPage(limit: 30);
+      final page = await db.getSuppliersPage(limit: 50);
       supplierList = page.items;
     } catch (_) {}
 
     if (!mounted) return;
 
-    // Find auto-fill supplier in loaded list
-    Map<String, dynamic>? autoSupplier;
-    if (autoSupplierName != null) {
-      autoSupplier = supplierList.where((s) =>
-        (s['name'] as String?)?.toUpperCase() == autoSupplierName!.toUpperCase()
-      ).firstOrNull;
-    }
-
-    Map<String, dynamic>? selSupplier = autoSupplier;
-    // Full supplier cache for search (lazy-loaded when user types)
-    List<Map<String, dynamic>> searchResults = [];
-    Timer? searchTimer;
+    // State
+    String? selName = autoSupplierName;
     final searchCtrl = TextEditingController();
-    bool showSearch = false;
+    List<Map<String, dynamic>> filtered = List.of(supplierList);
+    Timer? searchTimer;
 
     final result = await showDialog<Map<String, dynamic>?>(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) {
-          final selName = (selSupplier?['name'] as String?) ?? '';
+          final selSupplier = selName != null
+              ? supplierList.where((s) => s['name'] == selName).firstOrNull
+              : null;
           final hasSupplier = selSupplier != null;
 
-          void doSearch(String q) {
+          void doFilter(String q) {
             searchTimer?.cancel();
-            if (q.trim().isEmpty) {
-              setS(() => searchResults = []);
-              return;
-            }
-            searchTimer = Timer(const Duration(milliseconds: 300), () async {
+            searchTimer = Timer(const Duration(milliseconds: 250), () async {
+              if (q.trim().isEmpty) {
+                try { setS(() => filtered = List.of(supplierList)); } catch (_) {}
+                return;
+              }
               try {
-                final page = await db.getSuppliersPage(
-                  search: q.trim(),
-                  limit: 20,
-                );
-                try { setS(() => searchResults = page.items); } catch (_) {}
+                final page = await db.getSuppliersPage(search: q.trim(), limit: 30);
+                try { setS(() => filtered = page.items); } catch (_) {}
               } catch (_) {}
             });
           }
 
-          // Items to show: search results when searching, else initial list
-          final listItems = searchResults.isNotEmpty
-              ? searchResults
-              : (showSearch ? <Map<String, dynamic>>[] : supplierList);
-
-          // Build supplier rows — direct widgets, no ListView inside ScrollView
-          Widget buildSupplierRow(Map<String, dynamic> s) {
-            final sName = (s['name'] as String?) ?? '';
-            final sPhone = (s['phone'] as String?) ?? '';
-            return InkWell(
-              onTap: () => setS(() {
-                selSupplier = s;
-                showSearch = false;
-                searchCtrl.clear();
-                searchResults = [];
-              }),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 5),
-                child: Row(children: [
-                  CircleAvatar(
-                    radius: 13,
-                    backgroundColor: Colors.blue.shade50,
-                    child: Text(
-                      sName.isNotEmpty ? sName[0] : '?',
-                      style: TextStyle(fontSize: 11,
-                          color: Colors.blue.shade700,
-                          fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(sName,
-                            style: const TextStyle(
-                                fontSize: 13, fontWeight: FontWeight.w600),
-                            overflow: TextOverflow.ellipsis),
-                        if (sPhone.isNotEmpty)
-                          Text(sPhone,
-                              style: TextStyle(
-                                  fontSize: 11, color: Colors.grey.shade600)),
-                      ],
-                    ),
-                  ),
-                ]),
-              ),
-            );
-          }
-
           return AlertDialog(
-            title: const Text('GHI VÀO SỔ QUỸ?',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            title: const Text(
+              'GHI VÀO SỔ QUỸ?',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
             content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Cost info
+                  // ── Chi phí vốn ──
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
@@ -3356,183 +3295,216 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                     style: TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                   const Divider(height: 20),
-                  // NCC header + toggle search
-                  Row(children: [
-                    const Text('Nhà cung cấp',
-                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                    const Spacer(),
-                    GestureDetector(
-                      onTap: () => setS(() {
-                        showSearch = !showSearch;
-                        if (!showSearch) {
-                          searchCtrl.clear();
-                          searchResults = [];
-                        }
-                      }),
-                      child: Text(
-                        showSearch ? 'Đóng tìm' : 'Tìm NCC',
-                        style: const TextStyle(fontSize: 12, color: Colors.blue),
-                      ),
-                    ),
-                  ]),
+
+                  // ── NCC header ──
+                  const Text(
+                    'Nhà cung cấp (tùy chọn)',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                  ),
                   const SizedBox(height: 6),
-                  // Search field
-                  if (showSearch) ...[
+
+                  // ── NCC đã chọn hoặc ô tìm kiếm ──
+                  if (selName != null)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade50,
+                        border: Border.all(color: Colors.blue.shade200),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Row(children: [
+                        const Icon(Icons.store, size: 16, color: Colors.blue),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            selName!,
+                            style: const TextStyle(
+                                fontSize: 13, fontWeight: FontWeight.w600),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () {
+                            searchTimer?.cancel();
+                            searchCtrl.clear();
+                            setS(() {
+                              selName = null;
+                              filtered = List.of(supplierList);
+                            });
+                          },
+                          child: const Icon(Icons.close,
+                              size: 16, color: Colors.grey),
+                        ),
+                      ]),
+                    )
+                  else
                     TextField(
                       controller: searchCtrl,
-                      autofocus: true,
                       decoration: const InputDecoration(
-                        hintText: 'Tìm theo tên, SĐT...',
+                        hintText: 'Tìm NCC theo tên, SĐT...',
                         prefixIcon: Icon(Icons.search, size: 18),
                         border: OutlineInputBorder(),
                         isDense: true,
                         contentPadding: EdgeInsets.symmetric(
                             horizontal: 10, vertical: 8),
                       ),
-                      onChanged: doSearch,
+                      onChanged: doFilter,
                     ),
-                    const SizedBox(height: 6),
-                  ],
-                  // Selected supplier chip
-                  if (hasSupplier)
-                    InkWell(
-                      onTap: () => setS(() => selSupplier = null),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.shade50,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.blue.shade200),
-                        ),
-                        child: Row(children: [
-                          const Icon(Icons.store, size: 14, color: Colors.blue),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: Text(selName,
-                                style: const TextStyle(
-                                    fontSize: 13, fontWeight: FontWeight.w600)),
-                          ),
-                          const Icon(Icons.close, size: 14, color: Colors.grey),
-                        ]),
-                      ),
-                    ),
-                  // NCC list — mapped directly, NO ListView inside ScrollView
-                  if (!hasSupplier) ...[
-                    InkWell(
-                      onTap: () => setS(() {
-                        selSupplier = null;
-                        showSearch = false;
-                        searchCtrl.clear();
-                        searchResults = [];
-                      }),
-                      child: const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 5),
-                        child: Text('— Không chọn NCC —',
-                            style: TextStyle(color: Colors.grey, fontSize: 13)),
-                      ),
-                    ),
-                    ...listItems.map(buildSupplierRow),
-                  ],
-                  if (hasSupplier) ...[
-                      const SizedBox(height: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.orange.shade50,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.orange.shade200),
-                        ),
-                        child: Row(children: [
-                          const Icon(Icons.info_outline,
-                              size: 14, color: Colors.orange),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: Text(
-                              'Chọn "Nợ NCC" để ghi công nợ cho $selName',
-                              style: const TextStyle(
-                                  fontSize: 12, color: Colors.orange),
-                            ),
-                          ),
-                        ]),
-                      ),
-                    ],
-                    const SizedBox(height: 16),
-                    // Action buttons
-                    Row(children: [
-                      TextButton(
-                        onPressed: () {
+
+                  // ── NCC list (chỉ hiện khi chưa chọn) ──
+                  if (selName == null && filtered.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    for (final s in filtered.take(8))
+                      InkWell(
+                        onTap: () {
                           searchTimer?.cancel();
-                          Navigator.pop(ctx, null);
+                          searchCtrl.clear();
+                          setS(() {
+                            selName = s['name'] as String?;
+                            filtered = List.of(supplierList);
+                          });
                         },
-                        child: const Text('Không ghi',
-                            style: TextStyle(color: Colors.grey, fontSize: 13)),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 5),
+                          child: Row(children: [
+                            CircleAvatar(
+                              radius: 13,
+                              backgroundColor: Colors.blue.shade50,
+                              child: Text(
+                                ((s['name'] as String?) ?? '?').isNotEmpty
+                                    ? ((s['name'] as String?) ?? '?')[0]
+                                    : '?',
+                                style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.blue.shade700,
+                                    fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                (s['name'] as String?) ?? '',
+                                style: const TextStyle(
+                                    fontSize: 13, fontWeight: FontWeight.w600),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            if ((s['phone'] as String? ?? '').isNotEmpty)
+                              Text(
+                                s['phone'] as String,
+                                style: TextStyle(
+                                    fontSize: 11, color: Colors.grey.shade500),
+                              ),
+                          ]),
+                        ),
                       ),
-                      const Spacer(),
-                      if (hasSupplier) ...[
-                        ElevatedButton.icon(
-                          onPressed: () {
-                            searchTimer?.cancel();
-                            Navigator.pop(ctx, {
-                              'method': 'CÔNG NỢ',
-                              'name': selName,
-                              'supplier': selSupplier,
-                            });
-                          },
-                          icon: const Icon(Icons.receipt_long, size: 14),
-                          label: const Text('Nợ NCC',
-                              style: TextStyle(fontSize: 12)),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.orange,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 8),
+                  ],
+
+                  // ── Nợ NCC hint ──
+                  if (hasSupplier) ...[
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.orange.shade200),
+                      ),
+                      child: Row(children: [
+                        const Icon(Icons.info_outline,
+                            size: 14, color: Colors.orange),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            'Chọn "Nợ NCC" để ghi công nợ cho $selName',
+                            style: const TextStyle(
+                                fontSize: 12, color: Colors.orange),
                           ),
                         ),
-                        const SizedBox(width: 6),
-                      ],
+                      ]),
+                    ),
+                  ],
+
+                  const SizedBox(height: 16),
+
+                  // ── Action buttons — LUÔN HIỆN ──
+                  Row(children: [
+                    TextButton(
+                      onPressed: () {
+                        searchTimer?.cancel();
+                        Navigator.pop(ctx, null);
+                      },
+                      child: const Text(
+                        'Không ghi',
+                        style: TextStyle(color: Colors.grey, fontSize: 13),
+                      ),
+                    ),
+                    const Spacer(),
+                    if (hasSupplier) ...[
                       ElevatedButton.icon(
                         onPressed: () {
                           searchTimer?.cancel();
                           Navigator.pop(ctx, {
-                            'method': 'CHUYỂN KHOẢN',
+                            'method': 'CÔNG NỢ',
                             'name': selName,
                             'supplier': selSupplier,
                           });
                         },
-                        icon: const Icon(Icons.account_balance, size: 14),
-                        label: const Text('CK', style: TextStyle(fontSize: 12)),
+                        icon: const Icon(Icons.receipt_long, size: 14),
+                        label: const Text('Nợ NCC',
+                            style: TextStyle(fontSize: 12)),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
+                          backgroundColor: Colors.orange,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(
                               horizontal: 10, vertical: 8),
                         ),
                       ),
                       const SizedBox(width: 6),
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          searchTimer?.cancel();
-                          Navigator.pop(ctx, {
-                            'method': 'TIỀN MẶT',
-                            'name': selName,
-                            'supplier': selSupplier,
-                          });
-                        },
-                        icon: const Icon(Icons.payments, size: 14),
-                        label: const Text('TM', style: TextStyle(fontSize: 12)),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 8),
-                        ),
+                    ],
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        searchTimer?.cancel();
+                        Navigator.pop(ctx, {
+                          'method': 'CHUYỂN KHOẢN',
+                          'name': selName,
+                          'supplier': selSupplier,
+                        });
+                      },
+                      icon: const Icon(Icons.account_balance, size: 14),
+                      label: const Text('CK', style: TextStyle(fontSize: 12)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 8),
                       ),
-                    ]),
-                  ],
-                ),
+                    ),
+                    const SizedBox(width: 6),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        searchTimer?.cancel();
+                        Navigator.pop(ctx, {
+                          'method': 'TIỀN MẶT',
+                          'name': selName,
+                          'supplier': selSupplier,
+                        });
+                      },
+                      icon: const Icon(Icons.payments, size: 14),
+                      label: const Text('TM', style: TextStyle(fontSize: 12)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 8),
+                      ),
+                    ),
+                  ]),
+                ],
               ),
+            ),
             actions: const [],
             actionsPadding: EdgeInsets.zero,
           );
