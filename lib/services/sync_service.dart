@@ -3549,14 +3549,17 @@ class SyncService {
                 data.remove('isSynced');
                 final phone = (cMap['phone'] ?? '').toString();
                 final ts = cMap['createdAt'] ?? DateTime.now().millisecondsSinceEpoch;
-                final docId = 'customer_${ts}_${phone.isNotEmpty ? phone : cMap['id']}';
+                final existingFid = (cMap['firestoreId'] as String?)?.isNotEmpty == true
+                    ? cMap['firestoreId'] as String
+                    : null;
+                final docId = existingFid ?? 'customer_${ts}_${phone.isNotEmpty ? phone : cMap['id']}';
                 data.remove('firestoreId');
                 batch.set(
                   _db.collection('customers').doc(docId),
                   data,
                   SetOptions(merge: true),
                 );
-                toMark.add({...cMap, 'firestoreId': docId});
+                toMark.add({...cMap, 'firestoreId': docId, 'isSynced': 1});
               } catch (e) {
                 debugPrint('Lỗi chuẩn bị sync customer ${cMap['id']}: $e');
               }

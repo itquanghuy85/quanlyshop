@@ -9379,7 +9379,7 @@ class DBHelper {
     if (shopId == null) return [];
     return await db.query(
       'customers',
-      where: 'shopId = ? AND (firestoreId IS NULL OR firestoreId = "") AND deleted = 0',
+      where: 'shopId = ? AND (isSynced = 0 OR isSynced IS NULL) AND deleted = 0',
       whereArgs: [shopId],
     );
   }
