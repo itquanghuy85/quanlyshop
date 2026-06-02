@@ -3553,15 +3553,34 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     final warrantyC = TextEditingController(text: r.warranty);
     final addressC = TextEditingController(text: r.address);
     final notesC = TextEditingController(text: r.notes ?? '');
+    final searchC = TextEditingController();
+    List<Map<String, dynamic>> customerSearchResults = [];
+    Timer? customerSearchTimer;
+    final shopId = await UserService.getCurrentShopId();
+
+    if (!mounted) return;
 
     final confirmed = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) {
-        final sheetLoc = AppLocalizations.of(ctx)!;
-        return Padding(
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setS) {
+          void doCustomerSearch(String q) {
+            customerSearchTimer?.cancel();
+            if (q.trim().isEmpty) {
+              setS(() => customerSearchResults = []);
+              return;
+            }
+            customerSearchTimer = Timer(const Duration(milliseconds: 300), () async {
+              final results = await db.searchCustomers(q.trim(), shopId);
+              try { setS(() => customerSearchResults = results.take(6).toList()); } catch (_) {}
+            });
+          }
+
+          final sheetLoc = AppLocalizations.of(ctx)!;
+          return Padding(
           padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
           child: Container(
             decoration: const BoxDecoration(
@@ -3603,6 +3622,62 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          // Search existing customer
+                          TextField(
+                            controller: searchC,
+                            decoration: InputDecoration(
+                              hintText: 'Tìm khách hàng cũ (SĐT hoặc tên)...',
+                              prefixIcon: const Icon(Icons.search, size: 18),
+                              border: const OutlineInputBorder(),
+                              isDense: true,
+                              filled: true,
+                              fillColor: Colors.grey.shade100,
+                            ),
+                            onChanged: doCustomerSearch,
+                          ),
+                          if (customerSearchResults.isNotEmpty) ...[
+                            const SizedBox(height: 6),
+                            Container(
+                              constraints: const BoxConstraints(maxHeight: 160),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.blue.shade200),
+                                borderRadius: BorderRadius.circular(8),
+                                color: Colors.blue.shade50,
+                              ),
+                              child: ListView.separated(
+                                shrinkWrap: true,
+                                padding: EdgeInsets.zero,
+                                itemCount: customerSearchResults.length,
+                                separatorBuilder: (_, __) => Divider(height: 1, color: Colors.blue.shade100),
+                                itemBuilder: (_, i) {
+                                  final c = customerSearchResults[i];
+                                  final cName = (c['name'] as String?) ?? '';
+                                  final cPhone = (c['phone'] as String?) ?? '';
+                                  return ListTile(
+                                    dense: true,
+                                    leading: CircleAvatar(
+                                      radius: 14,
+                                      backgroundColor: Colors.blue.shade100,
+                                      child: Text(
+                                        cName.isNotEmpty ? cName[0] : '?',
+                                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                    title: Text(cName, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                                    subtitle: Text(cPhone, style: const TextStyle(fontSize: 12)),
+                                    trailing: const Icon(Icons.arrow_forward_ios, size: 12),
+                                    onTap: () {
+                                      nameC.text = cName;
+                                      phoneC.text = cPhone;
+                                      searchC.clear();
+                                      setS(() => customerSearchResults = []);
+                                    },
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
+                          const Divider(height: 20),
                           TextFormField(
                             controller: nameC,
                             decoration: InputDecoration(
@@ -3720,9 +3795,11 @@ class _RepairDetailViewState extends State<RepairDetailView> {
             ),
           ),
         );
-      },
+        },
+      ),
     );
 
+    customerSearchTimer?.cancel();
     if (confirmed == true) {
       setState(() {
         r.customerName = nameC.text.trim().toUpperCase();

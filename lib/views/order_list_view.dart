@@ -1032,6 +1032,10 @@ class OrderListViewState extends State<OrderListView> {
     final searchCtrl = TextEditingController();
     List<Map<String, dynamic>> searchResults = [];
     Timer? searchTimer;
+    // Load shopId trước để tránh await trong Timer callback (ctx.mounted issue)
+    final shopId = await UserService.getCurrentShopId();
+
+    if (!mounted) return;
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -1039,14 +1043,13 @@ class OrderListViewState extends State<OrderListView> {
         builder: (ctx, setS) {
           void doSearch(String q) {
             searchTimer?.cancel();
-            if (q.trim().length < 2) {
+            if (q.trim().isEmpty) {
               setS(() => searchResults = []);
               return;
             }
             searchTimer = Timer(const Duration(milliseconds: 300), () async {
-              final shopId = await UserService.getCurrentShopId();
               final results = await db.searchCustomers(q.trim(), shopId);
-              if (ctx.mounted) setS(() => searchResults = results.take(5).toList());
+              try { setS(() => searchResults = results.take(6).toList()); } catch (_) {}
             });
           }
 
