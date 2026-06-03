@@ -257,8 +257,19 @@ class _SmartStockInViewState extends State<SmartStockInView> {
 
     // Thông tin điện thoại
     if (code.type == 'DIEN_THOAI') {
-      if (code.brand != null && _brands.contains(code.brand)) {
-        _selectedBrand = code.brand;
+      final rawBrand = (code.brand ?? '').trim().toUpperCase();
+      final mappedBrand = ProductConstants.mapBrand(rawBrand);
+      if (rawBrand.isNotEmpty && _brands.contains(rawBrand)) {
+        _selectedBrand = rawBrand;
+      } else if (mappedBrand != 'KHÁC' && _brands.contains(mappedBrand)) {
+        _selectedBrand = mappedBrand;
+      } else {
+        // Backward compatibility: một số template cũ nhập brand vào name/model.
+        final probe = '${code.name} ${code.model ?? ''}'.trim();
+        final inferred = ProductConstants.mapBrand(probe);
+        if (inferred != 'KHÁC' && _brands.contains(inferred)) {
+          _selectedBrand = inferred;
+        }
       }
       _modelCtrl.text = code.model ?? '';
       if (code.capacity != null && _capacities.contains(code.capacity)) {

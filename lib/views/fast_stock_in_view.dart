@@ -138,8 +138,18 @@ class _FastStockInViewState extends State<FastStockInView> {
 
   void _preFillFromQuickInputCode(QuickInputCode code) {
     // Pre-fill brand
-    if (code.brand != null && brands.contains(code.brand!.toUpperCase())) {
-      selectedBrand = code.brand!.toUpperCase();
+    final rawBrand = (code.brand ?? '').trim().toUpperCase();
+    final mappedBrand = ProductConstants.mapBrand(rawBrand);
+    if (rawBrand.isNotEmpty && brands.contains(rawBrand)) {
+      selectedBrand = rawBrand;
+    } else if (mappedBrand != 'KHÁC' && brands.contains(mappedBrand)) {
+      selectedBrand = mappedBrand;
+    } else {
+      // Backward compatibility: suy luận brand từ name/model nếu dữ liệu cũ thiếu brand.
+      final inferred = ProductConstants.mapBrand('${code.name} ${code.model ?? ''}');
+      if (inferred != 'KHÁC' && brands.contains(inferred)) {
+        selectedBrand = inferred;
+      }
     }
 
     // Pre-fill model

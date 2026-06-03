@@ -32,6 +32,11 @@ class SyncService {
   static final Map<String, int> _collectionFetchCounts = {};
   static bool _isRefreshingCollections = false;
   static DateTime? _lastRefreshCollectionsAt;
+  static bool _isReinitializingAfterAccessChange = false;
+  static DateTime? _lastAccessChangeReinitAt;
+  static const Duration _accessChangeReinitCooldown = Duration(seconds: 20);
+  static String? _lastUserPermissionSignature;
+  static String? _lastShopRestrictionSignature;
 
   // Track active subscriptions and their status for debugging
   static final Map<String, bool> _subscriptionStatus = {};
@@ -41,6 +46,92 @@ class SyncService {
 
   static bool _hasPermission(Map<String, dynamic> permissions, String key) {
     return permissions[key] == true;
+  }
+
+  static String _normalizeSignatureValue(dynamic value) {
+    if (value is List) {
+      return value.map(_normalizeSignatureValue).join(',');
+    }
+    return value?.toString() ?? '';
+  }
+
+  static String _buildUserPermissionSignature(Map<String, dynamic> data) {
+    const keys = [
+      'role',
+      'shopId',
+      'allowViewSales',
+      'allowViewRepairs',
+      'allowViewInventory',
+      'allowViewParts',
+      'allowViewSuppliers',
+      'allowViewCustomers',
+      'allowViewPurchaseOrders',
+      'allowCreatePurchaseOrders',
+      'allowViewWarranty',
+      'allowViewChat',
+      'allowSendChat',
+      'allowPinChat',
+      'allowDeleteOtherChat',
+      'allowCloudAI',
+      'allowViewAttendance',
+      'allowViewPrinter',
+      'allowViewRevenue',
+      'allowViewExpenses',
+      'allowViewDebts',
+      'allowViewCostPrice',
+      'allowViewSettings',
+      'allowManageStaff',
+    ];
+
+    return keys
+      .map((key) => '$key=${_normalizeSignatureValue(data[key])}')
+        .join('|');
+  }
+
+  static String _buildShopRestrictionSignature(Map<String, dynamic> data) {
+    const keys = [
+      'appLocked',
+      'adminFinanceLocked',
+      'staffSalesLocked',
+      'staffInventoryLocked',
+      'staffDebtLocked',
+      'staffSettingsLocked',
+    ];
+
+    return keys
+      .map((key) => '$key=${_normalizeSignatureValue(data[key])}')
+        .join('|');
+  }
+
+  static Future<void> _refreshSyncAfterAccessChange(String reason) async {
+    if (_isReinitializingAfterAccessChange) {
+      return;
+    }
+    if (_isInitializingRealtime) {
+      debugPrint('⏭️ $reason: sync init đang chạy, bỏ qua reinit');
+      return;
+    }
+    if (!_isInitialized) {
+      debugPrint('⏭️ $reason: sync chưa sẵn sàng, bỏ qua reinit');
+      return;
+    }
+
+    final now = DateTime.now();
+    if (_lastAccessChangeReinitAt != null &&
+        now.difference(_lastAccessChangeReinitAt!) <
+            _accessChangeReinitCooldown) {
+      debugPrint('⏭️ $reason: access-change reinit cooldown active, bỏ qua');
+      return;
+    }
+
+    _isReinitializingAfterAccessChange = true;
+    try {
+      _lastAccessChangeReinitAt = now;
+      debugPrint('🔄 Refreshing sync scope after $reason...');
+      await forceReinitializeSync();
+    } finally {
+      _isReinitializingAfterAccessChange = false;
+    }
   }
 
   static bool _isManagerLike(String role, bool isSuperAdmin) {
@@ -78,6 +169,7 @@ class SyncService {
       case 'sales_return_items':
         return _hasPermission(permissions, 'allowViewSales');
       case 'products':
+      case 'storage_locations':
       case 'product_variants':
       case 'quick_input_codes':
       case 'supplier_import_history':
@@ -850,6 +942,11 @@ class SyncService {
       // Super admin cũng cần shopId nếu đã chọn shop
       final String? shopId = await UserService.getCurrentShopId();
 
+      // Baseline signature sẽ lấy từ users stream lần đầu để tránh lệch nguồn
+      // giữa quyền đã chuẩn hóa và dữ liệu profile thô gây reinit giả.
+      _lastUserPermissionSignature = null;
+      _lastShopRestrictionSignature = null;
+
       // Store shopId for later reference
       _currentShopId = shopId;
 
@@ -1207,8 +1304,22 @@ class SyncService {
             // Nếu là user hiện tại, cập nhật cache shopId
             final currentUser = FirebaseAuth.instance.currentUser;
             if (currentUser != null && docId == currentUser.uid) {
+              final newSignature = _buildUserPermissionSignature(data);
+              final signatureChanged =
+                  _lastUserPermissionSignature != null &&
+                  _lastUserPermissionSignature != newSignature;
               UserService.updateCachedShopId(data['shopId']);
               debugPrint("Updated cached shopId: ${data['shopId']}");
+
+              if (_lastUserPermissionSignature == null) {
+                _lastUserPermissionSignature = newSignature;
+              } else if (signatureChanged) {
+                _lastUserPermissionSignature = newSignature;
+                UserService.invalidatePermissionsCache();
+                unawaited(
+                  _refreshSyncAfterAccessChange('user permissions changed'),
+                );
+              }
             }
           } catch (e) {
             debugPrint("Lỗi sync user $docId: $e");
@@ -1230,6 +1341,20 @@ class SyncService {
         if (data == null) return;
 
         try {
+          final newShopSignature = _buildShopRestrictionSignature(data);
+          final shopSignatureChanged =
+              _lastShopRestrictionSignature != null &&
+              _lastShopRestrictionSignature != newShopSignature;
+          if (_lastShopRestrictionSignature == null) {
+            _lastShopRestrictionSignature = newShopSignature;
+          } else if (shopSignatureChanged) {
+            _lastShopRestrictionSignature = newShopSignature;
+            UserService.invalidatePermissionsCache();
+            unawaited(
+              _refreshSyncAfterAccessChange('shop restrictions changed'),
+            );
+          }
+
           debugPrint("📡 Shop data changed for shopId: $shopId");
 
           // Cập nhật SharedPreferences để các màn hình khác có thể đọc
@@ -2574,6 +2699,8 @@ class SyncService {
     _subscriptionStatus.clear();
     _isInitialized = false;
     _currentShopId = null;
+    _lastUserPermissionSignature = null;
+    _lastShopRestrictionSignature = null;
     debugPrint('✅ All subscriptions cancelled');
   }
 

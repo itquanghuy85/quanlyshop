@@ -29,6 +29,11 @@ class ShopSettings {
   final String? updatedBy;
   final bool isSynced;
 
+  // === CÀI ĐẶT GIÁ VỐN ===
+  /// true = cho phép lưu sản phẩm với giá vốn = 0 (nhập vốn sau)
+  /// false (mặc định) = bắt buộc nhập giá vốn > 0 khi xác nhận nhập kho
+  final bool allowPendingCost;
+
   // === DEFAULT FLAG ===
   /// True nếu settings được tạo mặc định (shop chưa thiết lập ngành kinh doanh)
   final bool isDefault;
@@ -52,7 +57,8 @@ class ShopSettings {
     DateTime? updatedAt,
     this.updatedBy,
     this.isSynced = false,
-    this.isDefault = false, // Default false - settings được tạo bình thường
+    this.isDefault = false,
+    this.allowPendingCost = false,
   }) : createdAt = createdAt ?? DateTime.now(),
        updatedAt = updatedAt ?? DateTime.now();
 
@@ -103,8 +109,8 @@ class ShopSettings {
       updatedAt: _parseDateTime(map['updatedAt']),
       updatedBy: map['updatedBy'],
       isSynced: map['isSynced'] == true || map['isSynced'] == 1,
-      isDefault:
-          false, // Always false when loading from DB/Firestore (already saved)
+      isDefault: false,
+      allowPendingCost: map['allowPendingCost'] == true || map['allowPendingCost'] == 1,
     );
   }
 
@@ -135,6 +141,7 @@ class ShopSettings {
       'defaultUnit': defaultUnit,
       'expiryWarningDays': expiryWarningDays,
       'lowStockWarning': lowStockWarning,
+      'allowPendingCost': allowPendingCost,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': DateTime.now().toIso8601String(),
       'updatedBy': updatedBy,
@@ -161,6 +168,7 @@ class ShopSettings {
       'updatedAt': updatedAt.millisecondsSinceEpoch,
       'updatedBy': updatedBy,
       'isSynced': isSynced ? 1 : 0,
+      'allowPendingCost': allowPendingCost ? 1 : 0,
     };
   }
 
@@ -185,6 +193,7 @@ class ShopSettings {
     String? updatedBy,
     bool? isSynced,
     bool? isDefault,
+    bool? allowPendingCost,
   }) {
     return ShopSettings(
       id: id ?? this.id,
@@ -206,6 +215,7 @@ class ShopSettings {
       updatedBy: updatedBy ?? this.updatedBy,
       isSynced: isSynced ?? this.isSynced,
       isDefault: isDefault ?? this.isDefault,
+      allowPendingCost: allowPendingCost ?? this.allowPendingCost,
     );
   }
 

@@ -18,6 +18,7 @@ import '../widgets/gradient_fab.dart';
 import 'smart_stock_in_view.dart';
 import 'fast_stock_in_view.dart';
 import '../widgets/custom_app_bar.dart';
+import '../services/iphone_template_seeder.dart';
 
 enum QuickInputFilter { all, active, inactive, unsynced }
 
@@ -38,14 +39,32 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
+  // Pagination
+  static const int _pageSize = 30;
+  int _currentOffset = 0;
+  bool _hasMore = true;
+  bool _isLoadingMore = false;
+  int _totalCount = 0;
+  final ScrollController _scrollController = ScrollController();
+
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
     _initializeData();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 300) {
+      _loadMoreCodes();
+    }
   }
 
   @override
   void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -71,101 +90,100 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> {
     }
   }
 
+  bool get _usesDbFilter =>
+      _currentFilter == QuickInputFilter.all ||
+      _currentFilter == QuickInputFilter.active;
+
   Future<void> _loadCodes() async {
+    if (!mounted) return;
+    setState(() {
+      _isLoading = true;
+      _currentOffset = 0;
+      _hasMore = true;
+      _codes = [];
+    });
     try {
-      final codes = await db.getQuickInputCodes();
-      if (mounted) {
-        // Filter by shopId
-        var filtered = shopId != null
-            ? codes.where((code) => code.shopId == shopId).toList()
-            : codes;
+      final search = _searchQuery.trim().isEmpty ? null : _searchQuery.trim();
 
-        // Deduplicate by name+type (keep the one with firestoreId or most recent)
-        final Map<String, QuickInputCode> uniqueMap = {};
-        for (final code in filtered) {
-          final key = '${code.name}_${code.type}'.toUpperCase();
-          if (!uniqueMap.containsKey(key)) {
-            uniqueMap[key] = code;
-          } else {
-            final existing = uniqueMap[key]!;
-            // Keep the one that is synced, or the most recent
-            if (code.firestoreId != null && existing.firestoreId == null) {
-              // Delete the one without firestoreId (duplicate)
-              if (existing.id != null)
-                await db.deleteQuickInputCode(existing.id!);
-              uniqueMap[key] = code;
-            } else if (existing.firestoreId != null &&
-                code.firestoreId == null) {
-              // Delete the duplicate without firestoreId
-              if (code.id != null) await db.deleteQuickInputCode(code.id!);
-            } else if (code.createdAt > existing.createdAt) {
-              // Both have or both lack firestoreId — keep newer, delete older
-              if (existing.id != null)
-                await db.deleteQuickInputCode(existing.id!);
-              uniqueMap[key] = code;
-            } else {
-              if (code.id != null) await db.deleteQuickInputCode(code.id!);
-            }
-          }
-        }
-
-        setState(() {
-          _codes = uniqueMap.values.toList();
-          // Sắp xếp: active trước, rồi theo thời gian tạo mới nhất
-          _codes.sort((a, b) {
-            if (a.isActive != b.isActive) {
-              return a.isActive ? -1 : 1;
-            }
-            return b.createdAt.compareTo(a.createdAt);
+      if (_usesDbFilter) {
+        // Paginated DB query
+        final activeOnly = _currentFilter == QuickInputFilter.active ? true : null;
+        final total = await db.countQuickInputCodes(
+          shopId: shopId, search: search, activeOnly: activeOnly,
+        );
+        final page = await db.getQuickInputCodesPaged(
+          _pageSize, 0, shopId: shopId, search: search, activeOnly: activeOnly,
+        );
+        if (mounted) {
+          setState(() {
+            _codes = page;
+            _currentOffset = page.length;
+            _totalCount = total;
+            _hasMore = page.length >= _pageSize;
+            _isLoading = false;
           });
-        });
+        }
+        debugPrint('Paged: ${page.length}/$total quick input codes');
+      } else {
+        // inactive / unsynced — load all then filter in memory (small sets)
+        final all = await db.getQuickInputCodesPaged(
+          10000, 0, shopId: shopId, search: search,
+        );
+        if (mounted) {
+          setState(() {
+            _codes = all;
+            _currentOffset = all.length;
+            _totalCount = all.length;
+            _hasMore = false;
+            _isLoading = false;
+          });
+        }
       }
-      debugPrint('Loaded ${_codes.length} quick input codes (deduped)');
     } catch (e) {
       debugPrint('Error loading codes: $e');
       if (mounted) {
-        NotificationService.showSnackBar(
-          'Lỗi tải mã nhập nhanh: $e',
-          color: Colors.red,
-        );
+        setState(() => _isLoading = false);
+        NotificationService.showSnackBar('Lỗi tải mã nhập nhanh: $e', color: Colors.red);
       }
     }
   }
 
+  Future<void> _loadMoreCodes() async {
+    if (_isLoadingMore || !_hasMore || _isLoading || !_usesDbFilter) return;
+    setState(() => _isLoadingMore = true);
+    try {
+      final search = _searchQuery.trim().isEmpty ? null : _searchQuery.trim();
+      final activeOnly = _currentFilter == QuickInputFilter.active ? true : null;
+      final page = await db.getQuickInputCodesPaged(
+        _pageSize, _currentOffset,
+        shopId: shopId,
+        search: search,
+        activeOnly: activeOnly,
+      );
+      if (mounted) {
+        setState(() {
+          _codes.addAll(page);
+          _currentOffset += page.length;
+          _hasMore = page.length >= _pageSize;
+          _isLoadingMore = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoadingMore = false);
+    }
+  }
+
+  /// DB đã xử lý: search, all, active.
+  /// Chỉ cần filter in-memory cho inactive/unsynced.
   List<QuickInputCode> get _filteredCodes {
-    List<QuickInputCode> filtered = _codes;
-
-    // Apply filter
     switch (_currentFilter) {
-      case QuickInputFilter.all:
-        break;
-      case QuickInputFilter.active:
-        filtered = filtered.where((code) => code.isActive).toList();
-        break;
       case QuickInputFilter.inactive:
-        filtered = filtered.where((code) => !code.isActive).toList();
-        break;
+        return _codes.where((c) => !c.isActive).toList();
       case QuickInputFilter.unsynced:
-        filtered = filtered.where((code) => !code.isSynced).toList();
-        break;
+        return _codes.where((c) => !c.isSynced).toList();
+      default:
+        return _codes;
     }
-
-    // Apply search
-    if (_searchQuery.isNotEmpty) {
-      final query = _searchQuery.toLowerCase();
-      filtered = filtered.where((code) {
-        final name = code.name.toLowerCase();
-        final brand = code.brand?.toLowerCase() ?? '';
-        final model = code.model?.toLowerCase() ?? '';
-        final supplier = code.supplier?.toLowerCase() ?? '';
-        return name.contains(query) ||
-            brand.contains(query) ||
-            model.contains(query) ||
-            supplier.contains(query);
-      }).toList();
-    }
-
-    return filtered;
   }
 
   int get _activeCount => _codes.where((c) => c.isActive).length;
@@ -190,6 +208,55 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> {
     } finally {
       if (mounted) {
         setState(() => _isSyncing = false);
+      }
+    }
+  }
+
+  Future<void> _seedIphoneTemplates() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Text('📱', style: TextStyle(fontSize: 20)),
+            SizedBox(width: 8),
+            Text('Tạo mẫu iPhone'),
+          ],
+        ),
+        content: const Text(
+          'Tạo toàn bộ mẫu nhập nhanh cho dòng iPhone X → 17 Pro Max.\n\n'
+          '• ~500 mẫu: model × màu × dung lượng × tình trạng\n'
+          '• Series 16, 17 có thêm tình trạng NEW\n'
+          '• Không tạo duplicate nếu mã đã tồn tại\n'
+          '• Để trống: IMEI, NCC, giá vốn, giá bán',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Huỷ')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
+            child: const Text('Tạo ngay', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+
+    setState(() => _isLoading = true);
+    try {
+      final sid = shopId ?? await UserService.getCurrentShopId() ?? '';
+      final count = await IphoneTemplateSeeder.seed(db, sid);
+      await _loadCodes();
+      if (mounted) {
+        NotificationService.showSnackBar(
+          count > 0 ? '✅ Đã tạo $count mẫu iPhone mới' : '⚡ Tất cả mẫu đã tồn tại',
+          color: count > 0 ? Colors.teal : Colors.orange,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        NotificationService.showSnackBar('Lỗi tạo mẫu: $e', color: Colors.red);
       }
     }
   }
@@ -375,6 +442,11 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> {
             ],
           ),
           IconButton(
+            onPressed: _seedIphoneTemplates,
+            icon: const Icon(Icons.phone_iphone),
+            tooltip: 'Tạo mẫu iPhone',
+          ),
+          IconButton(
             onPressed: _loadCodes,
             icon: const Icon(Icons.refresh),
             tooltip: 'Làm mới',
@@ -425,8 +497,10 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> {
                           vertical: 12,
                         ),
                       ),
-                      onChanged: (value) =>
-                          setState(() => _searchQuery = value.toLowerCase()),
+                      onChanged: (value) {
+                        setState(() => _searchQuery = value.toLowerCase());
+                        _loadCodes(); // reload từ DB với keyword mới
+                      },
                     ),
                   ),
 
@@ -442,7 +516,7 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> {
                       child: Row(
                         children: [
                           _buildFilterChip(
-                            label: 'Tất cả (${_codes.length})',
+                            label: 'Tất cả ($_totalCount)',
                             filter: QuickInputFilter.all,
                             color: Colors.blue,
                           ),
@@ -476,10 +550,18 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> {
                         : RefreshIndicator(
                             onRefresh: _loadCodes,
                             child: ListView.builder(
+                              controller: _scrollController,
                               padding: const EdgeInsets.all(16),
-                              itemCount: _filteredCodes.length,
-                              itemBuilder: (ctx, i) =>
-                                  _buildCodeCard(_filteredCodes[i]),
+                              itemCount: _filteredCodes.length + (_hasMore || _isLoadingMore ? 1 : 0),
+                              itemBuilder: (ctx, i) {
+                                if (i >= _filteredCodes.length) {
+                                  return const Padding(
+                                    padding: EdgeInsets.symmetric(vertical: 16),
+                                    child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                                  );
+                                }
+                                return _buildCodeCard(_filteredCodes[i]);
+                              },
                             ),
                           ),
                   ),
@@ -510,7 +592,10 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> {
         ),
       ),
       selected: isSelected,
-      onSelected: (_) => setState(() => _currentFilter = filter),
+      onSelected: (_) {
+        setState(() => _currentFilter = filter);
+        _loadCodes();
+      },
       backgroundColor: color.withOpacity(0.1),
       selectedColor: color,
       checkmarkColor: Colors.white,
@@ -951,24 +1036,65 @@ class _QuickInputCodeDialogState extends State<_QuickInputCodeDialog> {
     super.dispose();
   }
 
+  String? _extractLeadingBrand(String value) {
+    final upper = value.trim().toUpperCase();
+    if (upper.isEmpty) return null;
+
+    for (final brand in ProductConstants.brands) {
+      if (brand == 'KHÁC') continue;
+      if (upper.startsWith('$brand ') || upper == brand) {
+        return brand;
+      }
+    }
+
+    // Fallback alias mapping (IP -> IPHONE, etc.)
+    final firstToken = upper.split(RegExp(r'\s+')).first;
+    final mapped = ProductConstants.mapBrand(firstToken);
+    if (mapped != 'KHÁC') return mapped;
+
+    return null;
+  }
+
   void _save() {
     // Finalize currency fields trước khi xử lý
     CurrencyTextField.finalizeAll();
 
     if (!_formKey.currentState!.validate()) return;
 
+    final rawName = _nameCtrl.text.trim().toUpperCase();
+    var normalizedBrand = _brandCtrl.text.trim().toUpperCase();
+    var normalizedModel = _modelCtrl.text.trim().toUpperCase();
+
+    if (_type == 'DIEN_THOAI') {
+      // Nếu user nhập "IPHONE ..." vào tên, tự đưa IPHONE về đúng field brand.
+      final inferredBrand = _extractLeadingBrand(rawName);
+      if (normalizedBrand.isEmpty && inferredBrand != null) {
+        normalizedBrand = inferredBrand;
+      }
+
+      if (normalizedBrand.isNotEmpty) {
+        final mapped = ProductConstants.mapBrand(normalizedBrand);
+        if (mapped != 'KHÁC') {
+          normalizedBrand = mapped;
+        }
+      }
+
+      // Nếu model trống mà tên bắt đầu bằng brand thì cắt phần brand ra làm model.
+      if (normalizedModel.isEmpty &&
+          normalizedBrand.isNotEmpty &&
+          rawName.startsWith(normalizedBrand)) {
+        normalizedModel = rawName.replaceFirst(normalizedBrand, '').trim();
+      }
+    }
+
     final code = QuickInputCode(
       id: widget.code?.id,
       firestoreId: widget.code?.firestoreId,
       shopId: widget.code?.shopId ?? widget.shopId,
-      name: _nameCtrl.text.trim().toUpperCase(),
+      name: rawName,
       type: _type,
-      brand: _type == 'DIEN_THOAI'
-          ? _brandCtrl.text.trim().toUpperCase()
-          : null,
-      model: _type == 'DIEN_THOAI'
-          ? _modelCtrl.text.trim().toUpperCase()
-          : null,
+      brand: _type == 'DIEN_THOAI' ? normalizedBrand : null,
+      model: _type == 'DIEN_THOAI' ? normalizedModel : null,
       capacity: _type == 'DIEN_THOAI' ? _capacityCtrl.text.trim() : null,
       color: _type == 'DIEN_THOAI' ? _colorCtrl.text.trim() : null,
       condition: _type == 'DIEN_THOAI' ? _conditionCtrl.text.trim() : null,

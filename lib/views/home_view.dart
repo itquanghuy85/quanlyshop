@@ -604,6 +604,10 @@ class _HomeViewState extends State<HomeView>
       true; // Default true for backwards compat
   String get _businessType => _shopSettings?.businessType ?? 'electronics';
   bool get _isElectronics => _businessType == 'electronics';
+  // Override riêng để tránh race condition: _loadShopSettings chạy sau tap sẽ không overwrite UI state
+  bool? _pendingCostOverride;
+  bool _isSavingPendingCost = false;
+  bool get _allowPendingCost => _pendingCostOverride ?? _shopSettings?.allowPendingCost ?? false;
 
   final bool _isSuperAdmin = UserService.isCurrentUserSuperAdmin();
   final _settingsSearchController = TextEditingController();
@@ -2276,7 +2280,69 @@ class _HomeViewState extends State<HomeView>
     }
   }
 
-  Future<void> _loadShopSettings() async {
+  Future<void> _saveAllowPendingCost(bool value) async {
+    if (_isSavingPendingCost) return;
+    // Set override NGAY LẬP TỨC — đồng bộ, không có async gap → tránh race condition
+    setState(() {
+      _isSavingPendingCost = true;
+      _pendingCostOverride = value;
+    });
+    try {
+      final shopId = await UserService.getCurrentShopId();
+      if (shopId == null || shopId.isEmpty) {
+        throw Exception('Chưa xác định cửa hàng hiện tại. Vui lòng chọn lại shop.');
+      }
+      final current = _shopSettings ?? ShopSettings.electronics(shopId);
+      final svc = CategoryService();
+      svc.resetRemoteWriteCooldown();
+      final saved = await svc.saveShopSettings(
+        current.copyWith(allowPendingCost: value),
+      );
+      if (!saved) {
+        throw Exception('Không thể lưu cài đặt (local/remote).');
+      }
+
+      // Cập nhật local state trước để UI phản hồi đúng ngay cả khi fetch sau bị stale tạm thời.
+      if (mounted) {
+        setState(() {
+          _shopSettings = current.copyWith(allowPendingCost: value);
+        });
+      }
+
+      // Đồng bộ lại settings từ nguồn chính, nhưng _loadShopSettings sẽ tôn trọng override đang pending.
+      svc.clearCache();
+      await _loadShopSettings(applyPendingOverride: false);
+
+      final confirmed = _shopSettings?.allowPendingCost;
+      if (confirmed != value) {
+        throw Exception('Lưu chưa được xác nhận. Vui lòng thử lại.');
+      }
+
+      if (mounted) {
+        setState(() {
+          _isSavingPendingCost = false;
+          // Chỉ clear override khi state nền đã khớp để tránh bị flash về OFF do stale read.
+          if ((_shopSettings?.allowPendingCost ?? value) == value) {
+            _pendingCostOverride = null;
+          }
+        });
+        NotificationService.showSnackBar(
+          value ? '✅ Đã bật: cho phép nhập giá vốn sau' : '🔒 Đã tắt: bắt buộc nhập giá vốn',
+          color: value ? Colors.teal : Colors.grey.shade700,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isSavingPendingCost = false;
+          _pendingCostOverride = null;
+        });
+      }
+      NotificationService.showSnackBar('Lỗi lưu cài đặt: $e', color: Colors.red);
+    }
+  }
+
+  Future<void> _loadShopSettings({bool applyPendingOverride = true}) async {
     try {
       // CRITICAL: Clear cache to ensure fresh settings are loaded
       CategoryService().clearCache();
@@ -2285,11 +2351,15 @@ class _HomeViewState extends State<HomeView>
       debugPrint('🏠 HomeView: Loading settings for shopId=$shopId');
 
       final settings = await CategoryService().getShopSettings();
+      // Always provide a default if shopId is known — even for owner/admin.
+      // Previously returned null for owner when no Firestore doc existed, hiding the cost-toggle.
       final effectiveSettings =
-          settings ??
-          (!hasFullAccess && shopId != null
-              ? ShopSettings.electronics(shopId)
-              : null);
+          settings ?? (shopId != null ? ShopSettings.electronics(shopId) : null);
+          final pendingOverride = _pendingCostOverride;
+          final hasPendingOverride = applyPendingOverride && pendingOverride != null;
+        final mergedSettings = (effectiveSettings != null && hasPendingOverride)
+          ? effectiveSettings.copyWith(allowPendingCost: pendingOverride)
+          : effectiveSettings;
       debugPrint('🏠 HomeView: Loaded shop settings:');
       debugPrint('   - businessType: ${settings?.businessType}');
       debugPrint('   - enableRepair: ${settings?.enableRepair}');
@@ -2315,7 +2385,13 @@ class _HomeViewState extends State<HomeView>
       }
 
       setState(() {
-        _shopSettings = effectiveSettings;
+        _shopSettings = mergedSettings;
+        // Clear override khi backend đã phản ánh đúng value vừa chọn.
+        if (hasPendingOverride &&
+            effectiveSettings != null &&
+            effectiveSettings.allowPendingCost == pendingOverride) {
+          _pendingCostOverride = null;
+        }
         _expiryStats = expiryStats;
         _variantWarnings = variantWarnings;
         debugPrint(
@@ -6454,6 +6530,84 @@ class _HomeViewState extends State<HomeView>
 
                   // Grouped sections
                   ...buildGroup('shop', 'Cửa hàng'),
+
+                  // Toggle nhập giá vốn sau — chỉ admin/owner
+                  if (hasFullAccess) ...[
+                    _buildSectionHeader('Kho hàng'),
+                    // InkWell bao ngoài để tap bất kỳ đâu cũng toggle (tránh FAB che switch thumb)
+                    InkWell(
+                      onTap: _isSavingPendingCost
+                          ? null
+                          : () => _saveAllowPendingCost(!_allowPendingCost),
+                      borderRadius: BorderRadius.circular(14),
+                      child: Card(
+                      color: Colors.teal.shade50,
+                      margin: const EdgeInsets.symmetric(vertical: 4),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        side: BorderSide(color: Colors.teal.shade200),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(7),
+                                  decoration: BoxDecoration(
+                                    color: Colors.teal.shade100,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Icon(Icons.inventory_2_outlined, color: Colors.teal.shade700, size: 20),
+                                ),
+                                const SizedBox(width: 12),
+                                const Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text('Cho phép nhập giá vốn sau',
+                                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                      SizedBox(height: 2),
+                                      Text('Bật: nhập vốn sau khi có hóa đơn NCC',
+                                          style: TextStyle(fontSize: 12, color: Colors.grey)),
+                                    ],
+                                  ),
+                                ),
+                                // AbsorbPointer để switch không cạnh tranh gesture với InkWell cha
+                                AbsorbPointer(
+                                  child: Switch(
+                                    value: _allowPendingCost,
+                                    activeThumbColor: Colors.teal,
+                                    inactiveThumbColor: Colors.grey.shade400,
+                                    onChanged: _saveAllowPendingCost,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            AnimatedCrossFade(
+                              duration: const Duration(milliseconds: 200),
+                              crossFadeState: _allowPendingCost
+                                  ? CrossFadeState.showSecond
+                                  : CrossFadeState.showFirst,
+                              firstChild: Text(
+                                '🔒 Hiện tại: bắt buộc nhập giá vốn > 0 khi xác nhận nhập kho.',
+                                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                              ),
+                              secondChild: Text(
+                                '✅ Đã bật: có thể bỏ qua giá vốn, nhập sau. Sản phẩm chưa có vốn hiện badge cảnh báo.',
+                                style: TextStyle(fontSize: 12, color: Colors.teal.shade700),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    ), // end InkWell
+                  ],
+
                   ...buildGroup('interface', 'Giao diện & Ngôn ngữ'),
                   ...buildGroup('device', 'Thiết bị & In ấn'),
                   if (hasFullAccess) ...buildGroup('staff', 'Nhân sự & Chấm công'),

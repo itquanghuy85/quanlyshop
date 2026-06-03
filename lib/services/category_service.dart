@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'firestore_write_helper.dart';
 import 'package:flutter/foundation.dart';
+import 'package:sqflite/sqflite.dart';
 import '../models/product_category_model.dart';
 import '../models/shop_settings_model.dart';
 import '../data/db_helper.dart';
@@ -48,6 +49,21 @@ class CategoryService {
 
   // === SHOP SETTINGS ===
 
+  Future<void> _ensureShopSettingsAllowPendingCostColumn(DatabaseExecutor db) async {
+    try {
+      final cols = await db.rawQuery('PRAGMA table_info(shop_settings)');
+      final hasAllowPendingCost = cols.any((c) => c['name'] == 'allowPendingCost');
+      if (!hasAllowPendingCost) {
+        await db.execute(
+          'ALTER TABLE shop_settings ADD COLUMN allowPendingCost INTEGER DEFAULT 0',
+        );
+        debugPrint('CategoryService: added allowPendingCost column to shop_settings');
+      }
+    } catch (e) {
+      debugPrint('CategoryService: ensure shop_settings.allowPendingCost error: $e');
+    }
+  }
+
   /// Lấy ShopSettings từ cache hoặc tạo mới
   Future<ShopSettings?> getShopSettings() async {
     // Skip cache to ensure fresh data
@@ -63,6 +79,7 @@ class CategoryService {
     // Try local DB first
     try {
       final db = await _dbHelper.database;
+      await _ensureShopSettingsAllowPendingCostColumn(db);
       final results = await db.query(
         'shop_settings',
         where: 'shopId = ?',
@@ -224,8 +241,12 @@ class CategoryService {
       }
     }
 
-    // Save locally
-    await _saveSettingsLocally(settingsWithShop);
+    // Save locally (must succeed so UI can reflect latest toggle immediately)
+    final localSaved = await _saveSettingsLocally(settingsWithShop);
+    if (!localSaved) {
+      debugPrint('❌ CategoryService: saveShopSettings failed (local save error)');
+      return false;
+    }
 
     // Update cache
     _cachedSettings = settingsWithShop;
@@ -233,6 +254,11 @@ class CategoryService {
     return true;
   }
   
+  /// Reset cooldown để force-sync ngay lập tức (dùng khi user chủ động lưu cài đặt)
+  void resetRemoteWriteCooldown() {
+    _remoteWriteDeniedAt = null;
+  }
+
   /// Clear cache - gọi khi đổi shop hoặc logout
   void clearCache() {
     _cachedSettings = null;
@@ -240,9 +266,10 @@ class CategoryService {
     debugPrint('🗑️ CategoryService: Cache cleared');
   }
 
-  Future<void> _saveSettingsLocally(ShopSettings settings) async {
+  Future<bool> _saveSettingsLocally(ShopSettings settings) async {
     try {
       final db = await _dbHelper.database;
+      await _ensureShopSettingsAllowPendingCostColumn(db);
       final map = settings.toMap();
 
       // Check if exists
@@ -263,8 +290,10 @@ class CategoryService {
           whereArgs: [settings.shopId],
         );
       }
+      return true;
     } catch (e) {
       debugPrint('Error saving shop settings locally: $e');
+      return false;
     }
   }
 

@@ -97,6 +97,7 @@ class _InventoryViewState extends State<InventoryView>
   String _filterType =
       'TẤT CẢ'; // Filter theo loại: TẤT CẢ, DIEN_THOAI, PHỤ KIỆN, LINH_KIEN
   String? _filterLocationCode; // Filter theo vị trí lưu kho
+  bool _showNoCostOnly = false; // Lọc sản phẩm chưa có giá vốn (cost == 0)
   int _repairPartsCount = 0; // Count for repair parts tab chip
 
   // ScrollController for lazy loading
@@ -120,6 +121,7 @@ class _InventoryViewState extends State<InventoryView>
       _searchQuery.isNotEmpty ||
       _filterType != 'TẤT CẢ' ||
       _showOutOfStock ||
+      _showNoCostOnly ||
       _filterLocationCode != null;
 
   final Set<int> _selectedIds = {};
@@ -147,6 +149,7 @@ class _InventoryViewState extends State<InventoryView>
   String get _businessType => _shopSettings?.businessType ?? 'electronics';
   bool get _isFashion => _businessType == 'fashion';
   bool get _isElectronics => _businessType == 'electronics';
+  bool get _allowPendingCost => _shopSettings?.allowPendingCost ?? false;
 
   // Variant Service for fashion products
   final VariantService _variantService = VariantService();
@@ -1302,7 +1305,7 @@ class _InventoryViewState extends State<InventoryView>
                             final cost = CurrencyTextField.parseValue(
                               costCtrl.text,
                             );
-                            if (cost <= 0) {
+                            if (cost <= 0 && !_allowPendingCost) {
                               NotificationService.showSnackBar(
                                 l10n.inventoryValidPriceError,
                                 color: Colors.red,
@@ -1453,8 +1456,109 @@ class _InventoryViewState extends State<InventoryView>
     ).then((_) => _refresh());
   }
 
+  /// Quick inline dialog để nhập giá vốn cho sản phẩm cost = 0
+  Future<void> _showInlineCostEdit(Product p) async {
+    final costCtrl = TextEditingController();
+    final confirmed = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
+        child: Container(
+          decoration: const BoxDecoration(
+            color: PopupTheme.bgDark,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(PopupTheme.radiusSheet)),
+          ),
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const PopupDragHandle(),
+              Row(
+                children: [
+                  const Icon(Icons.attach_money_rounded, color: Colors.orange, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Nhập giá vốn: ${p.name}',
+                      style: const TextStyle(
+                        color: PopupTheme.textPrimary,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              CurrencyTextField(
+                controller: costCtrl,
+                label: 'Giá vốn (đ)',
+                icon: Icons.account_balance_wallet_outlined,
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(ctx, false),
+                      child: const Text('Bỏ qua'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 2,
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.check, color: Colors.white, size: 16),
+                      label: const Text('Lưu giá vốn', style: TextStyle(color: Colors.white)),
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+                      onPressed: () => Navigator.pop(ctx, true),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+    final newCost = CurrencyTextField.parseValue(costCtrl.text);
+    if (newCost <= 0) {
+      NotificationService.showSnackBar('Giá vốn phải lớn hơn 0', color: Colors.red);
+      return;
+    }
+    try {
+      final updated = p.copyWith(cost: newCost, updatedAt: DateTime.now().millisecondsSinceEpoch);
+      await db.upsertProduct(updated);
+      await SyncOrchestrator().enqueue(
+        entityType: SyncEntityType.product,
+        entityId: updated.id!,
+        firestoreId: updated.firestoreId,
+        operation: SyncOperation.update,
+      );
+      NotificationService.showSnackBar('Đã lưu giá vốn ${MoneyUtils.formatCurrency(newCost)} đ', color: Colors.green);
+      _refresh();
+    } catch (e) {
+      NotificationService.showSnackBar('Lỗi lưu giá vốn: $e', color: Colors.red);
+    }
+  }
+
   void _createSaleOrder(Product p) {
     HapticFeedback.mediumImpact();
+    // Cảnh báo mềm: sản phẩm chưa có giá vốn (không block)
+    if (_allowPendingCost && _canViewCostPrice && p.cost == 0 && !p.isPending) {
+      NotificationService.showSnackBar(
+        '⚠ Sản phẩm chưa có giá vốn — lợi nhuận chưa chính xác',
+        color: Colors.orange.shade700,
+      );
+    }
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => CreateSaleView(preSelectedProduct: p)),
@@ -2253,6 +2357,11 @@ class _InventoryViewState extends State<InventoryView>
           .toList();
     }
 
+    // Lọc sản phẩm chưa có giá vốn
+    if (_showNoCostOnly) {
+      filteredList = filteredList.where((p) => !p.isPending && p.cost == 0).toList();
+    }
+
     // Nếu không bật showOutOfStock, chỉ hiện còn hàng (quantity > 0)
     if (!_showOutOfStock) {
       filteredList = filteredList.where((p) => p.quantity > 0).toList();
@@ -2467,6 +2576,10 @@ class _InventoryViewState extends State<InventoryView>
             _buildLocationFilterChip(),
             const SizedBox(width: 8),
             _buildOutOfStockChip(),
+            if (_allowPendingCost && _canViewCostPrice) ...[
+              const SizedBox(width: 8),
+              _buildNoCostFilterChip(),
+            ],
           ],
         ),
       ),
@@ -2553,6 +2666,45 @@ class _InventoryViewState extends State<InventoryView>
               style: AppTextStyles.subtitle1.copyWith(
                 fontWeight: _showOutOfStock ? FontWeight.bold : FontWeight.normal,
                 color: _showOutOfStock ? Colors.amber.shade800 : Colors.grey.shade700,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNoCostFilterChip() {
+    return InkWell(
+      onTap: () {
+        setState(() => _showNoCostOnly = !_showNoCostOnly);
+        _refreshLocalData();
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: _showNoCostOnly ? Colors.orange.shade100 : Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: _showNoCostOnly ? Colors.orange.shade700 : Colors.grey.shade300,
+            width: _showNoCostOnly ? 2 : 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.warning_amber_rounded,
+              size: 16,
+              color: _showNoCostOnly ? Colors.orange.shade800 : Colors.grey,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              'Chưa nhập vốn',
+              style: AppTextStyles.subtitle1.copyWith(
+                fontWeight: _showNoCostOnly ? FontWeight.bold : FontWeight.normal,
+                color: _showNoCostOnly ? Colors.orange.shade800 : Colors.grey.shade700,
               ),
             ),
           ],
@@ -2903,15 +3055,22 @@ class _InventoryViewState extends State<InventoryView>
                               spacing: 5,
                               runSpacing: 4,
                               children: [
-                                if (_canViewCostPrice &&
-                                    !isPending &&
-                                    p.cost > 0)
+                                if (_canViewCostPrice && !isPending && p.cost > 0)
                                   _metaChip(
-                                    label:
-                                        l10n.inventoryCapitalChip(MoneyUtils.formatCompactCurrency(p.cost)),
+                                    label: l10n.inventoryCapitalChip(MoneyUtils.formatCompactCurrency(p.cost)),
                                     color: Colors.deepPurple.shade500,
                                     bg: Colors.deepPurple.shade50,
                                     icon: Icons.account_balance_wallet_outlined,
+                                  ),
+                                if (_allowPendingCost && _canViewCostPrice && !isPending && p.cost == 0)
+                                  GestureDetector(
+                                    onTap: () => _showInlineCostEdit(p),
+                                    child: _metaChip(
+                                      label: '⚠ Chưa vốn',
+                                      color: Colors.orange.shade700,
+                                      bg: Colors.orange.shade50,
+                                      icon: Icons.edit_rounded,
+                                    ),
                                   ),
                                 if (p.imei != null && p.imei!.trim().isNotEmpty)
                                   _metaChip(
@@ -3174,7 +3333,7 @@ class _InventoryViewState extends State<InventoryView>
             CurrencyTextField.finalizeAll();
 
             final cost = CurrencyTextField.parseValue(costC.text);
-            if (cost <= 0) {
+            if (cost <= 0 && !_allowPendingCost) {
               NotificationService.showSnackBar(
                 l10n.inventoryValidCostError,
                 color: Colors.red,

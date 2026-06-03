@@ -33,6 +33,8 @@ class AiCommandRouterService {
       'kiem kho', 'ton kho', 'hang ton', 'kiem tra kho', 'xem ton kho',
       'con bao nhieu', 'so luong ton', 'hang con',
       'xem kho', 'kho hien tai', 'kho con gi', 'hang hoa ton', 'hang co san',
+      'kho linh kien', 'kho phu kien', 'ton kho hien tai', 'ton kho linh kien',
+      'ton kho phu kien', 'hang ton hien tai', 'con bao nhieu trong kho',
       'inventory', 'stock check', 'so luong hang',
     ])) {
       return AiCommandResult(intent: AiCommandIntent.stockCheck, rawText: rawText);

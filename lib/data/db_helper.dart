@@ -806,6 +806,7 @@ class DBHelper {
             enableSerial INTEGER DEFAULT 1,
             enableWarranty INTEGER DEFAULT 1,
             enableBatch INTEGER DEFAULT 0,
+            allowPendingCost INTEGER DEFAULT 0,
             defaultUnit TEXT DEFAULT 'cái',
             expiryWarningDays INTEGER DEFAULT 7,
             lowStockWarning INTEGER DEFAULT 5,
@@ -1319,6 +1320,7 @@ class DBHelper {
                 enableSerial INTEGER DEFAULT 1,
                 enableWarranty INTEGER DEFAULT 1,
                 enableBatch INTEGER DEFAULT 0,
+                allowPendingCost INTEGER DEFAULT 0,
                 defaultUnit TEXT DEFAULT 'cái',
                 expiryWarningDays INTEGER DEFAULT 7,
                 lowStockWarning INTEGER DEFAULT 5,
@@ -3477,6 +3479,22 @@ class DBHelper {
           debugPrint('DB onOpen check error (quick_input_codes labelInfo): $e');
         }
 
+        // Ensure allowPendingCost column exists in shop_settings table
+        try {
+          final cols = await db.rawQuery('PRAGMA table_info(shop_settings)');
+          final has = cols.any(
+            (c) => (c['name'] ?? c['name'.toString()]) == 'allowPendingCost',
+          );
+          if (!has) {
+            await db.execute(
+              'ALTER TABLE shop_settings ADD COLUMN allowPendingCost INTEGER DEFAULT 0',
+            );
+            debugPrint('DB onOpen: added allowPendingCost to shop_settings');
+          }
+        } catch (e) {
+          debugPrint('DB onOpen check error (shop_settings allowPendingCost): $e');
+        }
+
         // Ensure checkedBy/createdAt columns exist in inventory_checks table
         try {
           final cols = await db.rawQuery('PRAGMA table_info(inventory_checks)');
@@ -5157,6 +5175,77 @@ class DBHelper {
     return {
       'totalQty': (result.first['totalQty'] as num?)?.toInt() ?? 0,
       'totalCapital': (result.first['totalCapital'] as num?)?.toInt() ?? 0,
+    };
+  }
+
+  /// Get inventory breakdown by product type.
+  /// Returns item count, total quantity, and capital for each stock bucket.
+  Future<Map<String, int>> getInventoryBreakdownSummary() async {
+    final shopId = await _getScopedShopId('getInventoryBreakdownSummary');
+    if (shopId == null) {
+      return {
+        'totalItems': 0,
+        'totalQty': 0,
+        'totalCapital': 0,
+        'phoneItems': 0,
+        'phoneQty': 0,
+        'phoneCapital': 0,
+        'accessoryItems': 0,
+        'accessoryQty': 0,
+        'accessoryCapital': 0,
+        'partItems': 0,
+        'partQty': 0,
+        'partCapital': 0,
+      };
+    }
+
+    Future<Map<String, int>> querySnapshot({String? type}) async {
+      final args = <dynamic>[shopId];
+      String where =
+          'shopId = ? AND quantity > 0 AND (status = 1 OR status IS NULL) AND (deleted = 0 OR deleted IS NULL)';
+      if (type != null) {
+        where += ' AND ${_typeWhereClause(type, args)}';
+      }
+
+      final result = await (await database).rawQuery(
+        '''
+          SELECT
+            COALESCE(COUNT(*), 0) as totalItems,
+            COALESCE(SUM(quantity), 0) as totalQty,
+            COALESCE(SUM(cost * quantity), 0) as totalCapital
+          FROM products
+          WHERE $where
+        ''',
+        args,
+      );
+
+      if (result.isEmpty) {
+        return {'totalItems': 0, 'totalQty': 0, 'totalCapital': 0};
+      }
+
+      return {
+        'totalItems': (result.first['totalItems'] as num?)?.toInt() ?? 0,
+        'totalQty': (result.first['totalQty'] as num?)?.toInt() ?? 0,
+        'totalCapital': (result.first['totalCapital'] as num?)?.toInt() ?? 0,
+      };
+    }
+
+    final total = await querySnapshot();
+    final phone = await querySnapshot(type: 'DIEN_THOAI');
+    final accessory = await querySnapshot(type: 'PHU_KIEN');
+    final part = await querySnapshot(type: 'LINH_KIEN');
+
+    return {
+      ...total,
+      'phoneItems': phone['totalItems'] ?? 0,
+      'phoneQty': phone['totalQty'] ?? 0,
+      'phoneCapital': phone['totalCapital'] ?? 0,
+      'accessoryItems': accessory['totalItems'] ?? 0,
+      'accessoryQty': accessory['totalQty'] ?? 0,
+      'accessoryCapital': accessory['totalCapital'] ?? 0,
+      'partItems': part['totalItems'] ?? 0,
+      'partQty': part['totalQty'] ?? 0,
+      'partCapital': part['totalCapital'] ?? 0,
     };
   }
 
@@ -8066,6 +8155,77 @@ class DBHelper {
       orderBy: 'createdAt DESC',
     );
     return List.generate(maps.length, (i) => QuickInputCode.fromMap(maps[i]));
+  }
+
+  /// Phân trang: load tối đa [limit] mã bắt đầu từ [offset].
+  /// [search] lọc theo name/code/model. [shopId] bắt buộc.
+  /// [activeOnly] nếu true chỉ lấy isActive = 1.
+  Future<List<QuickInputCode>> getQuickInputCodesPaged(
+    int limit,
+    int offset, {
+    String? shopId,
+    String? search,
+    bool? activeOnly,
+  }) async {
+    final db = await database;
+    String where = '';
+    final List<dynamic> args = [];
+
+    if (shopId != null) {
+      where += 'shopId = ?';
+      args.add(shopId);
+    }
+    if (activeOnly == true) {
+      where += (where.isEmpty ? '' : ' AND ') + 'isActive = 1';
+    }
+    if (search != null && search.isNotEmpty) {
+      final q = '%$search%';
+      where += (where.isEmpty ? '' : ' AND ') +
+          '(name LIKE ? OR code LIKE ? OR model LIKE ? OR color LIKE ?)';
+      args.addAll([q, q, q, q]);
+    }
+
+    final maps = await db.query(
+      'quick_input_codes',
+      where: where.isEmpty ? null : where,
+      whereArgs: args.isEmpty ? null : args,
+      orderBy: 'isActive DESC, createdAt DESC',
+      limit: limit,
+      offset: offset,
+    );
+    return maps.map((m) => QuickInputCode.fromMap(m)).toList();
+  }
+
+  /// Đếm tổng số mã (dùng cho phân trang).
+  Future<int> countQuickInputCodes({
+    String? shopId,
+    String? search,
+    bool? activeOnly,
+  }) async {
+    final db = await database;
+    String where = '';
+    final List<dynamic> args = [];
+
+    if (shopId != null) {
+      where += 'shopId = ?';
+      args.add(shopId);
+    }
+    if (activeOnly == true) {
+      where += (where.isEmpty ? '' : ' AND ') + 'isActive = 1';
+    }
+    if (search != null && search.isNotEmpty) {
+      final q = '%$search%';
+      where += (where.isEmpty ? '' : ' AND ') +
+          '(name LIKE ? OR code LIKE ? OR model LIKE ? OR color LIKE ?)';
+      args.addAll([q, q, q, q]);
+    }
+
+    final result = await db.rawQuery(
+      'SELECT COUNT(*) as cnt FROM quick_input_codes'
+      '${where.isEmpty ? '' : ' WHERE $where'}',
+      args.isEmpty ? null : args,
+    );
+    return (result.first['cnt'] as int?) ?? 0;
   }
 
   Future<int> insertQuickInputCode(QuickInputCode code) async {

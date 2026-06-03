@@ -108,6 +108,11 @@ class NaturalOrderParserService {
       n.contains('nhap hang') ||
       n.contains('nhan hang') ||
       n.contains('them kho') ||
+      n.contains('ton kho') ||
+      n.contains('kho linh kien') ||
+      n.contains('kho phu kien') ||
+      n.contains('ton kho hien tai') ||
+      n.contains('hang ton hien tai') ||
       RegExp(r'^nhap\s+\d').hasMatch(n);
 
   // ── Repair ───────────────────────────────────────────────────────────────

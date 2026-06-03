@@ -2226,7 +2226,28 @@ Bạn hỗ trợ chủ shop và nhân viên tại các cửa hàng sửa chữa 
 4. Nếu câu hỏi không liên quan đến shop, từ chối nhẹ nhàng và gợi ý chủ đề phù hợp.
 5. Dùng **bold** để nhấn mạnh số liệu quan trọng.
 6. Không dùng markdown heading (#) — chỉ dùng gạch đầu dòng (•) nếu cần liệt kê.
-7. Ngắn gọn, súc tích — không quá 250 từ mỗi câu trả lời.`;
+7. Ngắn gọn, súc tích — không quá 250 từ mỗi câu trả lời.
+8. Không lặp lại cùng một tiêu đề hoặc cùng một khối nội dung trong một câu trả lời.
+9. Với kho hàng: "mặt hàng" là số bản ghi sản phẩm còn hàng, còn "sản phẩm tồn" là tổng quantity. Không được cộng gộp hai khái niệm này.`;
+
+function dedupeConsecutiveBlocks(text) {
+  const raw = String(text || '').trim();
+  if (!raw) return raw;
+
+  const paragraphs = raw.split(/\n{2,}/);
+  const seen = new Set();
+  const out = [];
+
+  for (const paragraph of paragraphs) {
+    const normalized = paragraph.replace(/\s+/g, ' ').trim().toLowerCase();
+    if (!normalized) continue;
+    if (seen.has(normalized)) continue;
+    seen.add(normalized);
+    out.push(paragraph.trim());
+  }
+
+  return out.join('\n\n').replace(/\n{3,}/g, '\n\n').trim();
+}
 
 async function callDeepSeekChat(apiKey, messages, attempt = 1) {
   const controller = new AbortController();
@@ -2329,11 +2350,15 @@ function buildStatsContextByIntent(intent, s, fmt) {
     `• Sửa chữa đang chờ: ${s.repairsPending ?? 0} đơn`,
   ];
 
+  const countFmt = (value) => Number(value || 0).toLocaleString('vi-VN');
+
   if (intent === "stock") {
     return [
       "=== KHO ===",
-      `• Tồn kho: ${s.stockCount ?? 0} sản phẩm`,
-      `• Giá vốn tồn: ${fmt(s.stockCapital)}`,
+      `• Kho điện thoại: ${countFmt(s.phoneStockCount)} mặt hàng | Tồn: ${countFmt(s.phoneStockQuantity)} | Giá vốn: ${fmt(s.phoneStockCapital)}`,
+      `• Kho phụ kiện: ${countFmt(s.accessoryStockCount)} mặt hàng | Tồn: ${countFmt(s.accessoryStockQuantity)} | Giá vốn: ${fmt(s.accessoryStockCapital)}`,
+      `• Kho linh kiện: ${countFmt(s.partStockCount)} mặt hàng | Tồn: ${countFmt(s.partStockQuantity)} | Giá vốn: ${fmt(s.partStockCapital)}`,
+      `• Tồn kho hiện tại: ${countFmt(s.stockCount)} mặt hàng | Tồn: ${countFmt(s.stockQuantity)} | Giá vốn: ${fmt(s.stockCapital)}`,
     ].join("\n");
   }
 
@@ -2461,7 +2486,9 @@ ${statsContext}
       throw new HttpsError("internal", "AI không trả lời được. Hãy thử lại.");
     }
 
-    console.log(`✅ chatAssistant.done rid=${requestId} uid=${uid} intent=${intent} answer_len=${answer.length} latency_ms=${Date.now() - startedAt}`);
-    return { answer };
+    const cleanedAnswer = dedupeConsecutiveBlocks(answer);
+
+    console.log(`✅ chatAssistant.done rid=${requestId} uid=${uid} intent=${intent} answer_len=${cleanedAnswer.length} latency_ms=${Date.now() - startedAt}`);
+    return { answer: cleanedAnswer };
   }
 );

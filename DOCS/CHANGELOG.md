@@ -4,6 +4,205 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-03] - Fix vòng lặp sync `permission_denied:storage_locations -> refresh scope -> permission_denied`
+
+## [2026-06-04] - Fix toggle "Cho phép nhập giá vốn sau" báo bật nhưng UI không đổi
+
+## [2026-06-04] - Chuẩn hóa nhập liệu: "iPhone" là thương hiệu, không phải tên
+
+### Sửa mapping khi tạo/chọn mã nhập nhanh cho sản phẩm điện thoại
+
+**Files thay đổi:**
+- `lib/views/quick_input_codes_view.dart`
+- `lib/views/smart_stock_in_view.dart`
+- `lib/views/fast_stock_in_view.dart`
+
+#### Vấn đề
+- Khi người dùng nhập chuỗi như `IPHONE 13 ...` ở phần tên, một số luồng dữ liệu cũ không đẩy đúng `IPHONE` vào trường `brand`.
+- Kết quả là form nhập kho có thể thiếu thương hiệu hoặc hiển thị sai kỳ vọng.
+
+#### Fix đã áp dụng
+- Trong dialog lưu mã nhập nhanh:
+	- Tự nhận diện thương hiệu đứng đầu chuỗi tên (ví dụ `IPHONE`) và map về `brand` chuẩn.
+	- Nếu `model` đang trống thì tự tách phần sau `brand` vào `model`.
+- Trong luồng nạp mã nhập nhanh ở Smart/Fast Stock In:
+	- Ưu tiên `brand` đã lưu.
+	- Fallback suy luận từ `name + model` cho dữ liệu cũ thiếu `brand`.
+
+### Validation
+- `flutter analyze` cho các file liên quan: không phát sinh compile error mới.
+- `flutter build apk --debug`: thành công.
+
+---
+
+### Sửa triệt để trạng thái công tắc bị trả về OFF do stale settings
+
+**Files thay đổi:**
+- `lib/views/home_view.dart`
+- `lib/services/category_service.dart`
+- `lib/data/db_helper.dart`
+
+#### Vấn đề
+- Khi bật/tắt công tắc ở tab Cài đặt (HomeView), toast/snackbar báo thành công nhưng công tắc có lúc vẫn hiển thị OFF.
+- Nguyên nhân là race condition giữa:
+	- optimistic state ở client
+	- luồng reload settings chạy song song và có thể trả dữ liệu stale tạm thời.
+- Có thêm nguyên nhân gốc trên DB cũ: bảng `shop_settings` chưa có cột `allowPendingCost`, khiến đọc local luôn về `false` và ghi đè UI.
+
+#### Fix đã áp dụng
+- Thêm cờ `_isSavingPendingCost` để chặn double-tap/double-toggle trong lúc lưu.
+- Giữ `_pendingCostOverride` trong suốt quá trình save + reload, không clear sớm.
+- Khi `_loadShopSettings()` trả dữ liệu, merge theo override pending để tránh UI bị ghi đè ngược.
+- Chỉ clear override khi dữ liệu nền đã khớp giá trị vừa lưu.
+- Bổ sung migration phòng thủ cho `shop_settings.allowPendingCost`:
+	- thêm cột trong schema tạo mới
+	- thêm đảm bảo cột tồn tại ở `onOpen`
+	- thêm đảm bảo cột trước khi `CategoryService` đọc/ghi local settings.
+- Siết chặt luồng lưu để không còn "báo thành công giả":
+	- `CategoryService.saveShopSettings()` chỉ trả thành công khi ghi local DB thành công.
+	- `home_view` và `settings_view` kiểm tra kết quả `saveShopSettings()`; nếu fail sẽ hiện lỗi đỏ.
+	- Bổ sung xác nhận sau lưu (read-back) để đảm bảo giá trị đã được phản ánh đúng trước khi báo thành công.
+	- Chặn trường hợp chưa có `shopId` hiện tại (thường gặp ở super admin chưa chọn shop).
+
+#### App Check / permission liên quan
+- Nếu App Check hoặc Firestore Rules chặn ghi, trước đây có thể bị nuốt lỗi và vẫn hiện trạng thái như đã bật.
+- Sau bản vá này, các trường hợp bị chặn sẽ trả lỗi rõ ràng cho người dùng thay vì hiện thành công.
+
+### Validation
+- `flutter analyze lib/views/home_view.dart`
+	- Không có compile error mới; chỉ còn info/lint pre-existing của file lớn.
+- `flutter build apk --debug`
+	- Build thành công.
+
+---
+
+### Xử lý triệt để vòng lặp reinit/sync gây tốn quota App Check
+
+**Files thay đổi:**
+- `lib/services/sync_service.dart`
+
+#### Root cause
+- `SyncService` khởi tạo `_lastUserPermissionSignature` từ permissions đã chuẩn hóa.
+- Sau đó listener `users` lại so sánh với dữ liệu profile thô của Firestore (`users/{uid}`), làm phát sinh false-positive "permissions changed".
+- False-positive này kích hoạt `forceReinitializeSync()` lặp lại, dẫn tới chuỗi:
+	- `permission_denied:storage_locations`
+	- `Refreshing sync scope...`
+	- subscribe/poll lại và tiếp tục `permission_denied`.
+
+#### Fix đã áp dụng
+- Đổi baseline chữ ký quyền người dùng:
+	- Không set `_lastUserPermissionSignature` ở đầu `initRealTimeSync`.
+	- Để listener `users` lấy snapshot đầu tiên làm baseline nhằm tránh lệch nguồn dữ liệu.
+- Bổ sung cooldown cho reinit do access-change (`20s`) để chặn vòng lặp kích hoạt dồn dập.
+- Bổ sung `storage_locations` vào nhóm quyền kho (`allowViewInventory`) trong `_canSubscribeCollection` để không subscribe collection trái quyền.
+
+### Validation
+- `flutter analyze lib/services/sync_service.dart`
+	- 4 info/lint pre-existing (không phát sinh compile error mới từ patch).
+- `flutter build apk --debug`
+	- Build thành công.
+
+---
+
+## [2026-06-03] - Tính năng "Nhập vốn sau" + toggle 2 phương thức giá vốn
+
+### Bật/tắt chế độ cho phép nhập giá vốn sau (Settings)
+
+**Files thay đổi:**
+- `lib/views/inventory_view.dart`
+- `lib/views/settings_view.dart` (đã có từ trước)
+- `lib/models/shop_settings_model.dart` (đã có từ trước)
+
+#### Tính năng mới trong Kho hàng (khi `allowPendingCost = true`):
+- **Badge ⚠ Chưa vốn** — hiện màu cam trên card sản phẩm khi `cost == 0`, nhấn để sửa giá vốn inline
+- **Inline edit giá vốn** — nhấn badge để mở dialog nhập nhanh giá vốn, tự động save + sync lên Firestore
+- **Filter chip "Chưa nhập vốn"** — lọc nhanh toàn bộ sản phẩm chưa có giá vốn (chỉ hiện khi feature bật)
+- **Cảnh báo mềm khi bán** — snack bar cam khi bán sản phẩm cost = 0, không block giao dịch
+
+#### Toggle trong Settings:
+- 🔒 Phương thức cũ: bắt buộc nhập giá vốn > 0 (mặc định)
+- ✅ Phương thức mới: cho phép bỏ qua, nhập vốn sau
+
+### Validation
+- `flutter analyze lib/views/inventory_view.dart` — 8 info warnings (pre-existing, không phải từ code mới)
+- `flutter build apk --release` — Build thành công (117.5MB)
+- Install + test Samsung A32 (RF8R31SS7GY) — App khởi động, đăng nhập OK
+
+---
+
+## [2026-06-03] - AI hiểu ngôn ngữ người dùng: mở rộng cụm kho/tồn kho tự nhiên
+
+### Mở rộng nhận diện câu lệnh tiếng Việt cho các cụm người dùng hay nói
+
+**Files thay đổi:**
+- `lib/services/ai_command_router.dart`
+- `lib/services/natural_order_parser_service.dart`
+
+#### Mở rộng nhận diện tồn kho
+- Thêm các cụm như `kho linh kiện`, `kho phụ kiện`, `tồn kho hiện tại`, `hàng tồn hiện tại`, `còn bao nhiêu trong kho` vào router stock check.
+- Natural order parser cũng nhận thêm các cụm tồn kho tương tự để route đúng intent ngay cả khi người dùng không nói đúng từ khóa kỹ thuật.
+
+### Validation
+- `flutter analyze lib/services/ai_command_router.dart lib/services/natural_order_parser_service.dart`
+	- Không có issue mới.
+- `flutter build apk --debug`
+	- Build thành công.
+
+---
+
+## [2026-06-03] - Permission-gated sync: tự reinit khi quyền/shop-lock thay đổi
+
+### Siết startup sync theo quyền hiện tại và tự mở lại khi quyền được cấp
+
+**Files thay đổi:**
+- `lib/services/sync_service.dart`
+
+#### Đồng bộ theo phạm vi truy cập
+- Thêm nhận diện chữ ký quyền người dùng và chữ ký khóa cấp shop để phát hiện khi scope truy cập thay đổi.
+- Khi `users/{uid}` hoặc `shops/{shopId}` đổi các field ảnh hưởng đến quyền, `SyncService` sẽ tự `forceReinitializeSync()` để tải lại đúng collection được phép.
+- Giữ nguyên cơ chế lọc collection hiện có, nên collection không được phép vẫn không bị subscribe/download khi app mở.
+
+### Validation
+- `flutter analyze lib/services/sync_service.dart`
+	- Không có lỗi compile mới; còn các `info`/lint hiện hữu của dự án.
+
+---
+
+## [2026-06-03] - AI kho hàng: tách đúng mặt hàng/sản phẩm tồn + chặn lặp phản hồi
+
+### Sửa luồng AI trả lời kho và giảm phản hồi bị lặp
+
+**Files thay đổi:**
+- `lib/data/db_helper.dart`
+- `lib/services/ai_chat_service.dart`
+- `functions/index.js`
+
+#### Tách đúng số liệu kho
+- `DBHelper.getInventoryBreakdownSummary()` mới trả về đồng thời:
+	- số `mặt hàng` = số record sản phẩm còn hàng
+	- `sản phẩm tồn` = tổng `quantity`
+	- `giá vốn` theo từng nhóm
+- `AiChatService.getTodayStats()` lấy breakdown theo 4 nhóm:
+	- `Kho điện thoại` (`DIEN_THOAI`)
+	- `Kho phụ kiện` (`PHU_KIEN`)
+	- `Kho linh kiện` (`LINH_KIEN`)
+	- `Tồn kho hiện tại` (toàn bộ kho)
+
+#### Cải thiện câu trả lời AI
+- `quickAnswer()` của AI chat đổi sang format có breakdown rõ ràng, không còn dùng `stockCount` như thể đó là tổng quantity.
+- Cloud Function `chatAssistant` được siết prompt để:
+	- không lặp lại cùng một section trong một câu trả lời
+	- phân biệt rõ `mặt hàng` và `sản phẩm tồn`
+- Thêm lọc khử trùng lặp paragraph ở đầu ra server trước khi trả về app.
+
+### Validation
+- `flutter analyze lib/data/db_helper.dart lib/services/ai_chat_service.dart`
+	- Không còn lỗi compile; chỉ còn 2 `info` hiện hữu của dự án.
+- `flutter build apk --debug`
+	- Build thành công: `build/app/outputs/flutter-apk/app-debug.apk`
+
+---
+
 ## [2026-05-29] - Fix đơn sửa ghi chi phí lặp + bổ sung xóa backup local + xóa dữ liệu local/cloud
 
 ### Sửa nghiệp vụ chi phí đơn sửa và dữ liệu backup/reset

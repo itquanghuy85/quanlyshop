@@ -71,7 +71,17 @@ class AiChatStats {
 
   // Stock
   final int stockCount;
+  final int stockQuantity;
   final int stockCapital;
+  final int phoneStockCount;
+  final int phoneStockQuantity;
+  final int phoneStockCapital;
+  final int accessoryStockCount;
+  final int accessoryStockQuantity;
+  final int accessoryStockCapital;
+  final int partStockCount;
+  final int partStockQuantity;
+  final int partStockCapital;
 
   // Debts
   final int debtReceivable;
@@ -107,7 +117,17 @@ class AiChatStats {
     this.repairsToday = 0,
     this.repairsPending = 0,
     this.stockCount = 0,
+    this.stockQuantity = 0,
     this.stockCapital = 0,
+    this.phoneStockCount = 0,
+    this.phoneStockQuantity = 0,
+    this.phoneStockCapital = 0,
+    this.accessoryStockCount = 0,
+    this.accessoryStockQuantity = 0,
+    this.accessoryStockCapital = 0,
+    this.partStockCount = 0,
+    this.partStockQuantity = 0,
+    this.partStockCapital = 0,
     this.debtReceivable = 0,
     this.debtPayable = 0,
     this.salesThisMonth = 0,
@@ -136,7 +156,17 @@ class AiChatStats {
         'repairsToday': repairsToday,
         'repairsPending': repairsPending,
         'stockCount': stockCount,
+        'stockQuantity': stockQuantity,
         'stockCapital': stockCapital,
+        'phoneStockCount': phoneStockCount,
+        'phoneStockQuantity': phoneStockQuantity,
+        'phoneStockCapital': phoneStockCapital,
+        'accessoryStockCount': accessoryStockCount,
+        'accessoryStockQuantity': accessoryStockQuantity,
+        'accessoryStockCapital': accessoryStockCapital,
+        'partStockCount': partStockCount,
+        'partStockQuantity': partStockQuantity,
+        'partStockCapital': partStockCapital,
         'debtReceivable': debtReceivable,
         'debtPayable': debtPayable,
         'salesThisMonth': salesThisMonth,
@@ -194,7 +224,7 @@ class AiChatService {
     final results = await Future.wait([
       db.getSalesByDateRange(dayStart, dayEnd),                    // [0] sales hôm nay
       db.getRepairsByCreatedAtRange(dayStart, dayEnd),             // [1] tất cả đơn sửa hôm nay
-      db.getInventorySummary(),                                     // [2] tồn kho
+      db.getInventoryBreakdownSummary(),                           // [2] tồn kho breakdown
       db.getDebtsForFinanceSnapshot(),                             // [3] công nợ
       db.getSalesByDateRange(monthStart, monthEnd),                 // [4] sales tháng
       db.getRepairsByCreatedAtRange(monthStart, monthEnd),         // [5] đơn sửa tháng
@@ -331,8 +361,18 @@ class AiChatService {
       deliveredRepairsToday: deliveredRepairs.length,
       repairsToday: repairs.length,
       repairsPending: pending,
-      stockCount: inventory['totalQty'] ?? 0,
+      stockCount: inventory['totalItems'] ?? 0,
+      stockQuantity: inventory['totalQty'] ?? 0,
       stockCapital: inventory['totalCapital'] ?? 0,
+      phoneStockCount: inventory['phoneItems'] ?? 0,
+      phoneStockQuantity: inventory['phoneQty'] ?? 0,
+      phoneStockCapital: inventory['phoneCapital'] ?? 0,
+      accessoryStockCount: inventory['accessoryItems'] ?? 0,
+      accessoryStockQuantity: inventory['accessoryQty'] ?? 0,
+      accessoryStockCapital: inventory['accessoryCapital'] ?? 0,
+      partStockCount: inventory['partItems'] ?? 0,
+      partStockQuantity: inventory['partQty'] ?? 0,
+      partStockCapital: inventory['partCapital'] ?? 0,
       debtReceivable: debtReceivable,
       debtPayable: debtPayable,
       salesThisMonth: salesMonth.length,
@@ -581,16 +621,98 @@ class AiChatService {
       );
     }
 
-    // "có không" / "còn không" / "hết chưa" → tồn kho
-    if (_has(n, ['con khong', 'co khong', 'het chua', 'con bao nhieu',
-                  'con may', 'co san khong', 'da het'])) {
+    // Tồn kho theo loại / tổng kho
+    final asksPhoneStock = _has(n, ['dien thoai', 'kho dien thoai']);
+    final asksAccessoryStock = _has(n, ['phu kien', 'kho phu kien']);
+    final asksPartStock = _has(n, ['linh kien', 'kho linh kien']);
+    final asksCombinedStock = asksAccessoryStock && asksPartStock;
+    final asksGeneralStock = _has(n, ['ton kho', 'hang con', 'kiem kho', 'so luong hang']) ||
+        _has(n, ['con khong', 'co khong', 'het chua', 'con bao nhieu', 'con may', 'co san khong', 'da het']);
+
+    if (asksPhoneStock && !asksAccessoryStock && !asksPartStock) {
       return AiQuickResponse(
-        'Tồn kho hiện có **${stats.stockCount} sản phẩm** '
-        '(giá vốn ${AiChatService.fmt(stats.stockCapital)}).',
+        _stockSection(
+          title: 'Kho điện thoại',
+          items: stats.phoneStockCount,
+          quantity: stats.phoneStockQuantity,
+          capital: stats.phoneStockCapital,
+        ),
+        actions: const [_kViewStockAction],
+        followUpChips: const [
+          ('Tồn kho hiện tại', Icons.inventory_2_rounded),
+          ('Kho phụ kiện', Icons.headphones_rounded),
+          ('Kho linh kiện', Icons.memory_rounded),
+        ],
+      );
+    }
+
+    if (asksAccessoryStock && !asksPartStock && !asksPhoneStock) {
+      return AiQuickResponse(
+        _stockSection(
+          title: 'Kho phụ kiện',
+          items: stats.accessoryStockCount,
+          quantity: stats.accessoryStockQuantity,
+          capital: stats.accessoryStockCapital,
+        ),
+        actions: const [_kViewStockAction],
+        followUpChips: const [
+          ('Tồn kho hiện tại', Icons.inventory_2_rounded),
+          ('Kho điện thoại', Icons.phone_android_rounded),
+          ('Kho linh kiện', Icons.memory_rounded),
+        ],
+      );
+    }
+
+    if (asksPartStock && !asksAccessoryStock && !asksPhoneStock) {
+      return AiQuickResponse(
+        _stockSection(
+          title: 'Kho linh kiện',
+          items: stats.partStockCount,
+          quantity: stats.partStockQuantity,
+          capital: stats.partStockCapital,
+        ),
+        actions: const [_kViewStockAction],
+        followUpChips: const [
+          ('Tồn kho hiện tại', Icons.inventory_2_rounded),
+          ('Kho điện thoại', Icons.phone_android_rounded),
+          ('Kho phụ kiện', Icons.headphones_rounded),
+        ],
+      );
+    }
+
+    if (asksCombinedStock) {
+      return AiQuickResponse(
+        [
+          _stockSection(
+            title: 'Kho linh kiện',
+            items: stats.partStockCount,
+            quantity: stats.partStockQuantity,
+            capital: stats.partStockCapital,
+          ),
+          '',
+          _stockSection(
+            title: 'Kho phụ kiện',
+            items: stats.accessoryStockCount,
+            quantity: stats.accessoryStockQuantity,
+            capital: stats.accessoryStockCapital,
+          ),
+        ].join('\n'),
+        actions: const [_kViewStockAction],
+        followUpChips: const [
+          ('Tồn kho hiện tại', Icons.inventory_2_rounded),
+          ('Kho điện thoại', Icons.phone_android_rounded),
+        ],
+      );
+    }
+
+    if (asksGeneralStock) {
+      return AiQuickResponse(
+        _stockOverview(stats),
         actions: const [_kViewStockAction],
         followUpChips: const [
           ('Sắp hết hàng', Icons.warning_amber_rounded),
           ('Kho linh kiện', Icons.memory_rounded),
+          ('Nhập kho mới', Icons.add_box_rounded),
         ],
       );
     }
@@ -933,8 +1055,7 @@ class AiChatService {
     if (_has(n, ['ton kho', 'hang con', 'kiem kho', 'so luong hang']) &&
         !_has(n, ['linh kien', 'phu kien'])) {
       return AiQuickResponse(
-        'Tồn kho hiện tại: **${stats.stockCount} sản phẩm**, '
-        'giá vốn **${fmt(stats.stockCapital)}**.',
+        _stockOverview(stats),
         actions: const [_kViewStockAction],
         followUpChips: const [
           ('Sắp hết hàng', Icons.warning_amber_rounded),
@@ -947,8 +1068,21 @@ class AiChatService {
     // Kho linh kiện / phụ kiện
     if (_has(n, ['linh kien', 'phu kien', 'kho linh', 'linh phu kien'])) {
       return AiQuickResponse(
-        'Kho linh kiện & phụ kiện: **${stats.stockCount} mặt hàng** '
-        '(giá vốn **${fmt(stats.stockCapital)}**).',
+        [
+          _stockSection(
+            title: 'Kho linh kiện',
+            items: stats.partStockCount,
+            quantity: stats.partStockQuantity,
+            capital: stats.partStockCapital,
+          ),
+          '',
+          _stockSection(
+            title: 'Kho phụ kiện',
+            items: stats.accessoryStockCount,
+            quantity: stats.accessoryStockQuantity,
+            capital: stats.accessoryStockCapital,
+          ),
+        ].join('\n'),
         actions: const [_kViewStockAction],
         followUpChips: const [
           ('Linh kiện sắp hết', Icons.warning_amber_rounded),
@@ -1429,5 +1563,63 @@ class AiChatService {
       count++;
     }
     return '${buf.toString().split('').reversed.join()}đ';
+  }
+
+  static String fmtCount(int amount) {
+    final raw = amount.toString();
+    final buf = StringBuffer();
+    int count = 0;
+    for (int i = raw.length - 1; i >= 0; i--) {
+      if (count > 0 && count % 3 == 0) buf.write('.');
+      buf.write(raw[i]);
+      count++;
+    }
+    return buf.toString().split('').reversed.join();
+  }
+
+  static String _stockSection({
+    required String title,
+    required int items,
+    required int quantity,
+    required int capital,
+  }) {
+    return [
+      '$title:',
+      '${fmtCount(items)} mặt hàng',
+      'Sản phẩm tồn: ${fmtCount(quantity)}',
+      'Giá vốn ${fmt(capital)}',
+    ].join('\n');
+  }
+
+  static String _stockOverview(AiChatStats stats) {
+    return [
+      _stockSection(
+        title: 'Kho điện thoại',
+        items: stats.phoneStockCount,
+        quantity: stats.phoneStockQuantity,
+        capital: stats.phoneStockCapital,
+      ),
+      '',
+      _stockSection(
+        title: 'Kho phụ kiện',
+        items: stats.accessoryStockCount,
+        quantity: stats.accessoryStockQuantity,
+        capital: stats.accessoryStockCapital,
+      ),
+      '',
+      _stockSection(
+        title: 'Kho linh kiện',
+        items: stats.partStockCount,
+        quantity: stats.partStockQuantity,
+        capital: stats.partStockCapital,
+      ),
+      '',
+      _stockSection(
+        title: 'Tồn kho hiện tại',
+        items: stats.stockCount,
+        quantity: stats.stockQuantity,
+        capital: stats.stockCapital,
+      ),
+    ].join('\n');
   }
 }

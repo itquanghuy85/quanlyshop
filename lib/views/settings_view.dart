@@ -30,6 +30,8 @@ import 'shop_selector_view.dart';
 import 'staff_permissions_view.dart';
 import 'category_management_view.dart';
 import '../widgets/responsive_wrapper.dart';
+import '../services/category_service.dart';
+import '../models/shop_settings_model.dart';
 
 class SettingsView extends StatefulWidget {
   final void Function(Locale)? setLocale;
@@ -54,6 +56,11 @@ class _SettingsViewState extends State<SettingsView> {
   List<Map<String, dynamic>> _allShops = [];
   String? _selectedShopId;
   bool _loadingShops = false;
+
+  // Cài đặt giá vốn
+  bool _allowPendingCost = false;
+  ShopSettings? _shopSettings;
+  bool _isSavingPendingCost = false;
   
   // Current selected locale
   // Language selection hidden — Vietnamese only
@@ -65,6 +72,7 @@ class _SettingsViewState extends State<SettingsView> {
     _loadRole();
     _loadCurrentUserProfile();
     _loadShopsForAdmin();
+    _loadShopSettings();
     // Language selection hidden
   }
 
@@ -86,6 +94,75 @@ class _SettingsViewState extends State<SettingsView> {
       });
     } catch (e) {
       debugPrint('Load current user profile failed: $e');
+    }
+  }
+
+  Future<void> _loadShopSettings() async {
+    try {
+      final s = await CategoryService().getShopSettings();
+      if (!mounted || s == null) return;
+      setState(() {
+        _shopSettings = s;
+        _allowPendingCost = s.allowPendingCost;
+      });
+    } catch (e) {
+      debugPrint('SettingsView._loadShopSettings: $e');
+    }
+  }
+
+  Future<void> _saveAllowPendingCost(bool value) async {
+    if (_isSavingPendingCost) return;
+    final shopId = await UserService.getCurrentShopId();
+    final current = _shopSettings ?? ShopSettings.electronics(shopId ?? '');
+    if (shopId == null || shopId.isEmpty) {
+      NotificationService.showSnackBar(
+        'Chưa xác định cửa hàng hiện tại. Vui lòng chọn lại shop.',
+        color: Colors.red,
+      );
+      return;
+    }
+
+    setState(() {
+      _isSavingPendingCost = true;
+      _allowPendingCost = value;
+      _shopSettings = current.copyWith(allowPendingCost: value, shopId: shopId);
+    });
+
+    try {
+      final svc = CategoryService();
+      svc.resetRemoteWriteCooldown();
+      final saved = await svc.saveShopSettings(
+        current.copyWith(allowPendingCost: value, shopId: shopId),
+      );
+      if (!saved) {
+        throw Exception('Không thể lưu cài đặt (local/remote).');
+      }
+
+      svc.clearCache();
+      final refreshed = await svc.getShopSettings();
+      if (refreshed == null || refreshed.allowPendingCost != value) {
+        throw Exception('Lưu chưa được xác nhận. Vui lòng thử lại.');
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _shopSettings = refreshed;
+        _allowPendingCost = refreshed.allowPendingCost;
+        _isSavingPendingCost = false;
+      });
+      NotificationService.showSnackBar(
+        value ? '✅ Đã bật: cho phép nhập giá vốn sau' : '🔒 Đã tắt: bắt buộc nhập giá vốn',
+        color: value ? Colors.teal : Colors.grey.shade700,
+      );
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isSavingPendingCost = false;
+          _allowPendingCost = !value;
+          _shopSettings = current.copyWith(allowPendingCost: !value, shopId: shopId);
+        });
+      }
+      NotificationService.showSnackBar('Lỗi lưu cài đặt: $e', color: Colors.red);
     }
   }
 
@@ -654,7 +731,7 @@ class _SettingsViewState extends State<SettingsView> {
                 _buildSection('Quản lý cửa hàng'),
                 
                 // Quản lý danh mục sản phẩm
-                if (_role == 'owner' || UserService.isCurrentUserSuperAdmin())
+                if (_role == 'owner' || _role == 'admin' || UserService.isCurrentUserSuperAdmin())
                   Card(
                     color: Colors.indigo.shade50,
                     shape: RoundedRectangleBorder(
@@ -699,6 +776,67 @@ class _SettingsViewState extends State<SettingsView> {
                       },
                     ),
                   ),
+
+                // Toggle nhập giá vốn sau (chỉ owner)
+                if (_role == 'owner' || _role == 'admin' || UserService.isCurrentUserSuperAdmin()) ...[
+                  const SizedBox(height: 10),
+                  Card(
+                    color: Colors.teal.shade50,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15),
+                      side: BorderSide(color: Colors.teal.shade200),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.teal.shade100,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Icon(Icons.inventory_2_outlined, color: Colors.teal.shade700, size: 22),
+                              ),
+                              const SizedBox(width: 12),
+                              const Expanded(
+                                child: Text(
+                                  'Cho phép nhập giá vốn sau',
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                                ),
+                              ),
+                              Switch(
+                                value: _allowPendingCost,
+                                activeThumbColor: Colors.teal,
+                                onChanged: (!_isSavingPendingCost && _shopSettings != null)
+                                    ? _saveAllowPendingCost
+                                    : null,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          AnimatedCrossFade(
+                            duration: const Duration(milliseconds: 200),
+                            crossFadeState: _allowPendingCost
+                                ? CrossFadeState.showSecond
+                                : CrossFadeState.showFirst,
+                            firstChild: Text(
+                              '🔒 Phương thức hiện tại: Bắt buộc nhập giá vốn > 0 khi xác nhận nhập kho.',
+                              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                            ),
+                            secondChild: Text(
+                              '✅ Phương thức mới: Có thể bỏ qua giá vốn, nhập sau. Sản phẩm chưa có vốn sẽ hiện badge cảnh báo.',
+                              style: TextStyle(fontSize: 12, color: Colors.teal.shade700),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
 
                 // NÚT XÓA TRẮNG CHỈ HIỆN CHO SUPER ADMIN
                 if (UserService.isCurrentUserSuperAdmin()) ...[
