@@ -366,7 +366,32 @@ class _RegisterViewState extends State<RegisterView> {
           children: [
             Expanded(child: OutlinedButton(onPressed: () => setState(() => _currentStep = 0), child: Text(AppLocalizations.of(context)!.back))),
             const SizedBox(width: 16),
-            Expanded(child: ElevatedButton(onPressed: _loading ? null : _register, child: _loading ? const CircularProgressIndicator() : Text(AppLocalizations.of(context)!.register))),
+            Expanded(
+              child: ElevatedButton(
+                onPressed: _loading ? null : _register,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blueAccent,
+                  disabledBackgroundColor: Colors.blueAccent.withValues(alpha: 0.85),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: _loading
+                    ? const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          ),
+                          SizedBox(width: 8),
+                          Text('Đang tạo...', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        ],
+                      )
+                    : Text(AppLocalizations.of(context)!.register, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              ),
+            ),
           ],
         ),
       ],
