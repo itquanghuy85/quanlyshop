@@ -477,13 +477,51 @@ class DBHelper {
     );
   }
 
+  /// Normalize Vietnamese diacritics to ASCII for accent-insensitive search.
+  static String _normalizeVi(String s) {
+    const map = {
+      'à':'a','á':'a','ả':'a','ã':'a','ạ':'a',
+      'ă':'a','ắ':'a','ằ':'a','ẳ':'a','ẵ':'a','ặ':'a',
+      'â':'a','ấ':'a','ầ':'a','ẩ':'a','ẫ':'a','ậ':'a',
+      'è':'e','é':'e','ẻ':'e','ẽ':'e','ẹ':'e',
+      'ê':'e','ế':'e','ề':'e','ể':'e','ễ':'e','ệ':'e',
+      'ì':'i','í':'i','ỉ':'i','ĩ':'i','ị':'i',
+      'ò':'o','ó':'o','ỏ':'o','õ':'o','ọ':'o',
+      'ô':'o','ố':'o','ồ':'o','ổ':'o','ỗ':'o','ộ':'o',
+      'ơ':'o','ớ':'o','ờ':'o','ở':'o','ỡ':'o','ợ':'o',
+      'ù':'u','ú':'u','ủ':'u','ũ':'u','ụ':'u',
+      'ư':'u','ứ':'u','ừ':'u','ử':'u','ữ':'u','ự':'u',
+      'ỳ':'y','ý':'y','ỷ':'y','ỹ':'y','ỵ':'y',
+      'đ':'d',
+      'À':'A','Á':'A','Ả':'A','Ã':'A','Ạ':'A',
+      'Ă':'A','Ắ':'A','Ằ':'A','Ẳ':'A','Ẵ':'A','Ặ':'A',
+      'Â':'A','Ấ':'A','Ầ':'A','Ẩ':'A','Ẫ':'A','Ậ':'A',
+      'È':'E','É':'E','Ẻ':'E','Ẽ':'E','Ẹ':'E',
+      'Ê':'E','Ế':'E','Ề':'E','Ể':'E','Ễ':'E','Ệ':'E',
+      'Ì':'I','Í':'I','Ỉ':'I','Ĩ':'I','Ị':'I',
+      'Ò':'O','Ó':'O','Ỏ':'O','Õ':'O','Ọ':'O',
+      'Ô':'O','Ố':'O','Ồ':'O','Ổ':'O','Ỗ':'O','Ộ':'O',
+      'Ơ':'O','Ớ':'O','Ờ':'O','Ở':'O','Ỡ':'O','Ợ':'O',
+      'Ù':'U','Ú':'U','Ủ':'U','Ũ':'U','Ụ':'U',
+      'Ư':'U','Ứ':'U','Ừ':'U','Ử':'U','Ữ':'U','Ự':'U',
+      'Ỳ':'Y','Ý':'Y','Ỷ':'Y','Ỹ':'Y','Ỵ':'Y',
+      'Đ':'D',
+    };
+    final buf = StringBuffer();
+    for (int i = 0; i < s.length; i++) {
+      final ch = s[i];
+      buf.write(map[ch] ?? ch);
+    }
+    return buf.toString();
+  }
+
   Future<Database> _initDB() async {
     _ensureDatabaseFactoryInitialized();
     String path = join(await getDatabasesPath(), 'repair_shop_v22.db');
 
     final db = await openDatabase(
       path,
-      version: 99,
+      version: 100,
       onConfigure: (db) async {
         try {
           await db.execute('PRAGMA foreign_keys = ON');
@@ -1983,6 +2021,27 @@ class DBHelper {
               column: entry[0],
               definition: entry[1],
               logScope: 'DB upgrade v99',
+            );
+          }
+        }
+        if (oldV < 100) {
+          // v100: Add nameNorm column for accent-insensitive supplier search
+          await _ensureColumnExists(
+            executor: db,
+            table: 'suppliers',
+            column: 'nameNorm',
+            definition: 'TEXT',
+            logScope: 'DB upgrade v100',
+          );
+          // Backfill existing rows
+          final rows = await db.query('suppliers', columns: ['id', 'name']);
+          for (final row in rows) {
+            final norm = _normalizeVi((row['name'] as String?) ?? '');
+            await db.update(
+              'suppliers',
+              {'nameNorm': norm},
+              where: 'id = ?',
+              whereArgs: [row['id']],
             );
           }
         }
@@ -5662,6 +5721,7 @@ class DBHelper {
   Future<int> insertSupplier(Map<String, dynamic> map) async {
     final dbInstance = await database;
     try {
+      map['nameNorm'] = _normalizeVi((map['name'] as String?) ?? '');
       final id = await dbInstance.insert(
         'suppliers',
         map,
@@ -5688,6 +5748,7 @@ class DBHelper {
     cleanData.remove('id');
     cleanData.remove('_encrypted');
     cleanData.remove('email'); // Loại bỏ email nếu có
+    cleanData['nameNorm'] = _normalizeVi(name ?? '');
     // Strip any Firestore fields not in SQLite schema
     await _filterToTableColumns('suppliers', cleanData);
 
@@ -5820,9 +5881,10 @@ class DBHelper {
 
     final q = search?.trim() ?? '';
     if (q.isNotEmpty) {
-      whereParts.add('(UPPER(name) LIKE ? OR phone LIKE ? OR UPPER(code) LIKE ?)');
       final upper = '%${q.toUpperCase()}%';
-      whereArgs.addAll([upper, '%$q%', upper]);
+      final norm = '%${_normalizeVi(q).toUpperCase()}%';
+      whereParts.add('(UPPER(name) LIKE ? OR phone LIKE ? OR UPPER(nameNorm) LIKE ?)');
+      whereArgs.addAll([upper, '%$q%', norm]);
     }
 
     if (cursorName != null && q.isEmpty) {
@@ -5846,9 +5908,10 @@ class DBHelper {
       final countArgs = <dynamic>[shopId];
       final countParts = <String>['shopId = ?', '(deleted = 0 OR deleted IS NULL)'];
       if (q.isNotEmpty) {
-        countParts.add('(UPPER(name) LIKE ? OR phone LIKE ? OR UPPER(code) LIKE ?)');
         final upper = '%${q.toUpperCase()}%';
-        countArgs.addAll([upper, '%$q%', upper]);
+        final norm = '%${_normalizeVi(q).toUpperCase()}%';
+        countParts.add('(UPPER(name) LIKE ? OR phone LIKE ? OR UPPER(nameNorm) LIKE ?)');
+        countArgs.addAll([upper, '%$q%', norm]);
       }
       final countRes = await db.rawQuery(
         'SELECT COUNT(*) as c FROM suppliers WHERE ${countParts.join(' AND ')}',

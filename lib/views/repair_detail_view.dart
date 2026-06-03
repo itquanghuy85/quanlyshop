@@ -29,6 +29,7 @@ import '../services/category_service.dart';
 import '../models/printer_types.dart';
 import '../widgets/printer_selection_dialog.dart';
 import '../widgets/responsive_wrapper.dart';
+import '../widgets/supplier_picker_sheet.dart';
 import '../services/notification_service.dart';
 import '../services/sync_orchestrator.dart';
 import '../services/sync_service.dart';
@@ -3291,16 +3292,14 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     await Future.delayed(const Duration(milliseconds: 250));
     if (!mounted) return;
 
-    Future<void> openPicker(StateSetter setS, BuildContext ctx) async {
-      if (!ctx.mounted) return;
-      final picked = await showDialog<Map<String, String?>?>(
-        context: ctx,
-        builder: (_) => _SupplierPickerDialog(initialSelection: selName),
-      );
+    Future<void> openPicker(StateSetter setS) async {
+      if (!mounted) return;
+      final picked = await showSupplierPickerSheet(context);
       if (picked != null) {
         setS(() {
-          selName = (picked['name'] ?? '').isEmpty ? null : picked['name'];
-          selPhone = picked['phone'];
+          selName = (picked['name'] as String?) ?? '';
+          if (selName!.isEmpty) selName = null;
+          selPhone = picked['phone'] as String?;
         });
       }
     }
@@ -3313,7 +3312,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
           final hasSupplier = selName != null && selName!.isNotEmpty;
 
           return AlertDialog(
-            title: const Text('GHI VÀO SỔ QUỬ?'),
+            title: const Text('GHI VÀO SỔ QUỸ?'),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -3329,7 +3328,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                 ),
                 const SizedBox(height: 12),
                 InkWell(
-                  onTap: () => openPicker(setS, ctx),
+                  onTap: () => openPicker(setS),
                   borderRadius: BorderRadius.circular(4),
                   child: Container(
                     padding: const EdgeInsets.symmetric(
@@ -3386,12 +3385,12 @@ class _RepairDetailViewState extends State<RepairDetailView> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, null),
-                child: const Text('Không ghi'),
+                child: const Text('Hủy'),
               ),
               TextButton(
                 onPressed: () async {
                   if (!hasSupplier) {
-                    await openPicker(setS, ctx);
+                    await openPicker(setS);
                     return;
                   }
                   Navigator.pop(ctx, {
@@ -3414,7 +3413,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                   'name': selName,
                   'phone': selPhone ?? '',
                 }),
-                child: const Text('CK'),
+                child: const Text('Chuyển khoản'),
               ),
               ElevatedButton(
                 onPressed: () => Navigator.pop(ctx, {
@@ -3422,7 +3421,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                   'name': selName,
                   'phone': selPhone ?? '',
                 }),
-                child: const Text('TM'),
+                child: const Text('Tiền mặt'),
               ),
             ],
           );
@@ -3644,6 +3643,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     final shopId = await UserService.getCurrentShopId();
 
     if (!mounted) return;
+    final sheetLoc = AppLocalizations.of(context)!;
 
     final confirmed = await showModalBottomSheet<bool>(
       context: context,
@@ -3662,6 +3662,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
               const Duration(milliseconds: 300),
               () async {
                 final results = await db.searchCustomers(q.trim(), shopId);
+                if (!ctx.mounted) return;
                 try {
                   setS(() => customerSearchResults = results.take(6).toList());
                 } catch (_) {}
@@ -3669,7 +3670,6 @@ class _RepairDetailViewState extends State<RepairDetailView> {
             );
           }
 
-          final sheetLoc = AppLocalizations.of(ctx)!;
           return Padding(
             padding: EdgeInsets.only(
               bottom: MediaQuery.viewInsetsOf(ctx).bottom,
@@ -6733,234 +6733,6 @@ class _PartsPaymentDialogState extends State<_PartsPaymentDialog> {
           ],
         ),
       ),
-    );
-  }
-}
-
-// Supplier picker với search + phân trang cho popup GHI VÀO SỔ QUỬ
-/// Supplier picker với search theo nút + phân trang cursor-based.
-/// Trả về Map {'name': ..., 'phone': ...} hoặc null (đóng) hoặc {} (bỏ chọn).
-class _SupplierPickerDialog extends StatefulWidget {
-  final String? initialSelection;
-  const _SupplierPickerDialog({this.initialSelection});
-
-  @override
-  State<_SupplierPickerDialog> createState() => _SupplierPickerDialogState();
-}
-
-class _SupplierPickerDialogState extends State<_SupplierPickerDialog> {
-  final _searchCtrl = TextEditingController();
-  final _scrollCtrl = ScrollController();
-  final _db = DBHelper();
-
-  List<Map<String, dynamic>> _items = [];
-  bool _loading = true;
-  bool _hasMore = false;
-  String? _cursor;
-  String _appliedQuery = '';
-
-  static const _pageSize = 20;
-
-  @override
-  void initState() {
-    super.initState();
-    _load(reset: true);
-    _scrollCtrl.addListener(() {
-      if (_scrollCtrl.position.pixels >=
-              _scrollCtrl.position.maxScrollExtent - 80 &&
-          _hasMore &&
-          !_loading) {
-        _load();
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _searchCtrl.dispose();
-    _scrollCtrl.dispose();
-    super.dispose();
-  }
-
-  Future<void> _load({bool reset = false}) async {
-    if (_loading && !reset) return;
-    setState(() => _loading = true);
-    try {
-      final page = await _db.getSuppliersPage(
-        search: _appliedQuery.isEmpty ? null : _appliedQuery,
-        cursorName: reset ? null : _cursor,
-        limit: _pageSize,
-      );
-      setState(() {
-        if (reset) _items = page.items;
-        else _items = [..._items, ...page.items];
-        _hasMore = page.items.length == _pageSize;
-        _cursor = page.items.isNotEmpty
-            ? (page.items.last['name'] as String?)
-            : null;
-        _loading = false;
-      });
-    } catch (_) {
-      setState(() => _loading = false);
-    }
-  }
-
-  void _doSearch() {
-    _appliedQuery = _searchCtrl.text.trim();
-    _cursor = null;
-    _load(reset: true);
-  }
-
-  void _clearSearch() {
-    _searchCtrl.clear();
-    _appliedQuery = '';
-    _cursor = null;
-    _load(reset: true);
-  }
-
-  void _pop(Map<String, dynamic>? s) {
-    if (s == null) {
-      Navigator.pop(context, <String, String?>{});
-    } else {
-      Navigator.pop(context, <String, String?>{
-        'name': (s['name'] as String?) ?? '',
-        'phone': (s['phone'] as String?) ?? '',
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Chọn nhà cung cấp'),
-      contentPadding: const EdgeInsets.fromLTRB(0, 12, 0, 0),
-      content: SizedBox(
-        width: 320,
-        height: 420,
-        child: Column(
-          children: [
-            // Search row: TextField + nút Tìm
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _searchCtrl,
-                      autofocus: false,
-                      textInputAction: TextInputAction.search,
-                      onSubmitted: (_) => _doSearch(),
-                      decoration: InputDecoration(
-                        hintText: 'Nhập tên hoặc SĐT...',
-                        prefixIcon:
-                            const Icon(Icons.store_outlined, size: 16),
-                        suffixIcon: _searchCtrl.text.isNotEmpty
-                            ? IconButton(
-                                icon:
-                                    const Icon(Icons.clear, size: 16),
-                                padding: EdgeInsets.zero,
-                                onPressed: _clearSearch,
-                              )
-                            : null,
-                        isDense: true,
-                        border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8)),
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 8),
-                      ),
-                      onChanged: (_) => setState(() {}),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  ElevatedButton.icon(
-                    onPressed: _doSearch,
-                    icon: const Icon(Icons.search, size: 16),
-                    label: const Text('Tìm'),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 10),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (_appliedQuery.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
-                child: Row(
-                  children: [
-                    Text('Kết quả: "${_appliedQuery}"',
-                        style: const TextStyle(
-                            fontSize: 11, color: Colors.blue)),
-                    const SizedBox(width: 4),
-                    GestureDetector(
-                      onTap: _clearSearch,
-                      child: const Icon(Icons.cancel,
-                          size: 14, color: Colors.blue),
-                    ),
-                  ],
-                ),
-              ),
-            const SizedBox(height: 6),
-            Expanded(
-              child: ListView.builder(
-                controller: _scrollCtrl,
-                itemCount: _items.length + 1 + (_loading ? 1 : 0),
-                itemBuilder: (_, i) {
-                  if (i == 0) {
-                    return ListTile(
-                      dense: true,
-                      leading: const Icon(Icons.clear,
-                          size: 16, color: Colors.grey),
-                      title: const Text('— Bỏ chọn NCC —',
-                          style: TextStyle(color: Colors.grey)),
-                      selected: widget.initialSelection == null,
-                      onTap: () => _pop(null),
-                    );
-                  }
-                  if (i == _items.length + 1) {
-                    return _loading
-                        ? const Padding(
-                            padding: EdgeInsets.all(12),
-                            child: Center(
-                                child: SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(
-                                  strokeWidth: 2),
-                            )))
-                        : const SizedBox.shrink();
-                  }
-                  final s = _items[i - 1];
-                  final name = (s['name'] as String?) ?? '';
-                  final phone = (s['phone'] as String?) ?? '';
-                  return ListTile(
-                    dense: true,
-                    leading:
-                        const Icon(Icons.store, size: 16, color: Colors.teal),
-                    title: Text(name,
-                        style: const TextStyle(fontSize: 13)),
-                    subtitle: phone.isNotEmpty
-                        ? Text(phone,
-                            style: const TextStyle(fontSize: 11))
-                        : null,
-                    selected: widget.initialSelection == name,
-                    selectedTileColor:
-                        Colors.blue.withValues(alpha: 0.08),
-                    onTap: () => _pop(s),
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context, null),
-          child: const Text('Đóng'),
-        ),
-      ],
     );
   }
 }
