@@ -58,8 +58,34 @@ class _RegisterViewState extends State<RegisterView> {
     return err.replaceAll("Exception: ", "").replaceAll("PlatformException(", "").replaceAll(")", "");
   }
 
+  void _showLoadingDialog(String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => PopScope(
+        canPop: false,
+        child: AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          content: Row(
+            children: [
+              const CircularProgressIndicator(strokeWidth: 3),
+              const SizedBox(width: 20),
+              Expanded(
+                child: Text(
+                  message,
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _register() async {
     setState(() { _loading = true; _error = null; });
+    _showLoadingDialog('Đang tạo tài khoản...');
     try {
       final email = _emailC.text.trim();
       final pass = _passC.text.trim();
@@ -77,7 +103,6 @@ class _RegisterViewState extends State<RegisterView> {
           if (_isJoinShop) {
             final success = await UserService.useInviteCode(_inviteCodeC.text.trim(), cred.user!.uid);
             if (!success) throw loc.invalidOrExpiredInviteCode;
-            // Save employee displayName + info to Firestore (useInviteCode only sets shopId)
             await FirebaseFirestore.instance.collection('users').doc(cred.user!.uid).set({
               'displayName': name.toUpperCase(),
               'email': email,
@@ -85,20 +110,15 @@ class _RegisterViewState extends State<RegisterView> {
               'address': _addressC.text.trim().toUpperCase(),
               'role': _selectedRole,
             }, SetOptions(merge: true));
-            // Also set Firebase Auth displayName for fast lookup
             await cred.user!.updateDisplayName(name.toUpperCase());
           } else {
-            // Create user info with business type
             await UserService.syncUserInfo(cred.user!.uid, email, extra: {
               'displayName': name.toUpperCase(),
               'phone': _phoneC.text.trim(),
               'address': _addressC.text.trim().toUpperCase(),
               'shopName': shopName.toUpperCase(),
             });
-            // Also set Firebase Auth displayName for fast lookup
             await cred.user!.updateDisplayName(name.toUpperCase());
-            
-            // Save shop settings with business type
             final shopId = await UserService.getCurrentShopId();
             if (shopId != null) {
               final settings = ShopSettings.fromBusinessType(_selectedBusinessType, shopId);
@@ -106,15 +126,9 @@ class _RegisterViewState extends State<RegisterView> {
             }
           }
         } catch (e) {
-          // Setup failed after Firebase Auth already signed the user in.
-          // Sign out immediately so AuthGate returns to login instead of
-          // staying in a half-configured authenticated state.
           await FirebaseAuth.instance.signOut();
           rethrow;
         }
-
-        // Registration is complete. Keep the authenticated session and simply
-        // close this route so AuthGate can reveal HomeView underneath.
         try {
           await cred.user!.reload();
         } catch (e) {
@@ -122,15 +136,15 @@ class _RegisterViewState extends State<RegisterView> {
         }
       }
       if (!mounted) return;
-      setState(() {
-        _loading = false;
-      });
+      Navigator.of(context).pop(); // đóng loading dialog
+      setState(() { _loading = false; });
       if (Navigator.of(context).canPop()) {
         Navigator.of(context).pop(true);
       }
     } catch (e) {
+      if (mounted) Navigator.of(context).pop(); // đóng loading dialog
       final errorMsg = _formatError(e);
-      setState(() { _error = errorMsg; _loading = false; });
+      if (mounted) setState(() { _error = errorMsg; _loading = false; });
       NotificationService.showSnackBar(errorMsg, color: Colors.red);
     }
   }

@@ -158,6 +158,30 @@ class _StaffListViewState extends State<StaffListView> {
               final messenger = ScaffoldMessenger.of(context);
               final navigator = Navigator.of(ctx);
 
+              // Hiện loading overlay không thể bấm tắt
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (_) => PopScope(
+                  canPop: false,
+                  child: AlertDialog(
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    content: const Row(
+                      children: [
+                        CircularProgressIndicator(strokeWidth: 3),
+                        SizedBox(width: 20),
+                        Expanded(
+                          child: Text(
+                            'Đang tạo tài khoản nhân viên...',
+                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+
               try {
                 final callable = FirebaseFunctions.instanceFor(
                   region: 'asia-southeast1',
@@ -184,7 +208,8 @@ class _StaffListViewState extends State<StaffListView> {
                     ? resultData['shopId']
                     : (_currentShopId ?? '');
                 if (!mounted) return;
-                navigator.pop();
+                Navigator.of(context).pop(); // đóng loading overlay
+                navigator.pop();             // đóng form dialog
 
                 final passwordMessage = autoGeneratePassword
                     ? '\nMật khẩu tạm thời: $password\nKhuyến nghị đổi mật khẩu sau khi đăng nhập!'
@@ -198,10 +223,12 @@ class _StaffListViewState extends State<StaffListView> {
                   ),
                 );
               } on FirebaseFunctionsException catch (e) {
+                if (mounted) Navigator.of(context).pop(); // đóng loading overlay
                 if (mounted) {
                   setState(() => errorText = 'Lỗi Firebase: ${e.message ?? 'Không thể tạo tài khoản'}');
                 }
               } catch (e) {
+                if (mounted) Navigator.of(context).pop(); // đóng loading overlay
                 if (mounted) {
                   setState(() => errorText = 'Lỗi: $e');
                 }
