@@ -53,6 +53,8 @@ import '../models/storage_location_model.dart';
 import 'storage_location_view.dart';
 import 'missing_info_products_view.dart';
 import '../theme/popup_theme.dart';
+import '../services/financial_activity_service.dart';
+import '../widgets/supplier_picker_sheet.dart';
 import '../widgets/app_popup.dart';
 import '../widgets/ai_order_input_sheet.dart';
 import '../models/supplier_model.dart';
@@ -1467,86 +1469,169 @@ class _InventoryViewState extends State<InventoryView>
     ).then((_) => _refresh());
   }
 
-  /// Quick inline dialog để nhập giá vốn cho sản phẩm cost = 0
+  /// Quick inline dialog để nhập giá vốn + phương thức thanh toán cho sản phẩm cost = 0
   Future<void> _showInlineCostEdit(Product p) async {
     final costCtrl = TextEditingController();
-    final confirmed = await showModalBottomSheet<bool>(
+    String selectedPayment = 'TIỀN MẶT';
+    // Pre-fill supplier from product if available
+    String supplierName = p.supplier?.trim() ?? '';
+
+    final result = await showModalBottomSheet<Map<String, dynamic>>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
-        child: Container(
-          decoration: const BoxDecoration(
-            color: PopupTheme.bgDark,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(PopupTheme.radiusSheet)),
-          ),
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const PopupDragHandle(),
-              Row(
-                children: [
-                  const Icon(Icons.attach_money_rounded, color: Colors.orange, size: 20),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Nhập giá vốn: ${p.name}',
-                      style: const TextStyle(
-                        color: PopupTheme.textPrimary,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setS) => Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
+          child: Container(
+            decoration: const BoxDecoration(
+              color: PopupTheme.bgDark,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(PopupTheme.radiusSheet)),
+            ),
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const PopupDragHandle(),
+                Row(
+                  children: [
+                    const Icon(Icons.attach_money_rounded, color: Colors.orange, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Nhập giá vốn: ${p.name}',
+                        style: const TextStyle(
+                          color: PopupTheme.textPrimary,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                CurrencyTextField(
+                  controller: costCtrl,
+                  label: 'Giá vốn (đ)',
+                  icon: Icons.account_balance_wallet_outlined,
+                ),
+                const SizedBox(height: 12),
+                // Phương thức thanh toán
+                DropdownButtonFormField<String>(
+                  initialValue: selectedPayment,
+                  decoration: const InputDecoration(
+                    labelText: 'Phương thức thanh toán',
+                    labelStyle: TextStyle(color: Colors.white70),
+                    prefixIcon: Icon(Icons.payment, color: Colors.white54),
+                    border: OutlineInputBorder(),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.white24),
+                    ),
+                  ),
+                  dropdownColor: PopupTheme.bgDark,
+                  style: const TextStyle(color: Colors.white),
+                  items: ['TIỀN MẶT', 'CHUYỂN KHOẢN', 'CÔNG NỢ'].map((m) =>
+                    DropdownMenuItem(value: m, child: Text(m)),
+                  ).toList(),
+                  onChanged: (v) => setS(() => selectedPayment = v ?? 'TIỀN MẶT'),
+                ),
+                // Nhà cung cấp — hiện khi CÔNG NỢ hoặc enableSupplier
+                if (_enableSupplier) ...[
+                  const SizedBox(height: 12),
+                  InkWell(
+                    onTap: () async {
+                      final picked = await showSupplierPickerSheet(ctx);
+                      if (picked == null) return;
+                      final name = (picked['name'] as String?)?.trim() ?? '';
+                      if (name.isNotEmpty) setS(() => supplierName = name);
+                    },
+                    child: InputDecorator(
+                      decoration: InputDecoration(
+                        labelText: selectedPayment == 'CÔNG NỢ'
+                            ? 'Nhà cung cấp (bắt buộc)'
+                            : 'Nhà cung cấp (tuỳ chọn)',
+                        labelStyle: const TextStyle(color: Colors.white70),
+                        prefixIcon: const Icon(Icons.storefront_outlined, color: Colors.white54),
+                        suffixIcon: const Icon(Icons.search, color: Colors.white54),
+                        border: const OutlineInputBorder(),
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: selectedPayment == 'CÔNG NỢ' && supplierName.isEmpty
+                                ? Colors.red.shade400
+                                : Colors.white24,
+                          ),
+                        ),
+                      ),
+                      child: Text(
+                        supplierName.isEmpty ? '-- Chạm để chọn --' : supplierName,
+                        style: TextStyle(
+                          color: supplierName.isEmpty ? Colors.white38 : Colors.white,
+                        ),
+                      ),
                     ),
                   ),
                 ],
-              ),
-              const SizedBox(height: 16),
-              CurrencyTextField(
-                controller: costCtrl,
-                label: 'Giá vốn (đ)',
-                icon: Icons.account_balance_wallet_outlined,
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(ctx, false),
-                      child: const Text('Bỏ qua'),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        style: OutlinedButton.styleFrom(foregroundColor: Colors.white54),
+                        child: const Text('Bỏ qua'),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    flex: 2,
-                    child: ElevatedButton.icon(
-                      icon: const Icon(Icons.check, color: Colors.white, size: 16),
-                      label: const Text('Lưu giá vốn', style: TextStyle(color: Colors.white)),
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-                      onPressed: () => Navigator.pop(ctx, true),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      flex: 2,
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.check, color: Colors.white, size: 16),
+                        label: const Text('Lưu giá vốn', style: TextStyle(color: Colors.white)),
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+                        onPressed: () {
+                          if (selectedPayment == 'CÔNG NỢ' && supplierName.isEmpty) {
+                            NotificationService.showSnackBar(
+                              'Thanh toán CÔNG NỢ phải chọn nhà cung cấp',
+                              color: Colors.red,
+                            );
+                            return;
+                          }
+                          Navigator.pop(ctx, {
+                            'payment': selectedPayment,
+                            'supplier': supplierName,
+                          });
+                        },
+                      ),
                     ),
-                  ),
-                ],
-              ),
-            ],
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
 
-    if (confirmed != true || !mounted) return;
+    if (result == null || !mounted) return;
     final newCost = CurrencyTextField.parseValue(costCtrl.text);
     if (newCost <= 0) {
       NotificationService.showSnackBar('Giá vốn phải lớn hơn 0', color: Colors.red);
       return;
     }
+    final payment = result['payment'] as String;
+    final supplier = result['supplier'] as String;
+
     try {
-      final updated = p.copyWith(cost: newCost, updatedAt: DateTime.now().millisecondsSinceEpoch);
+      // Cập nhật giá vốn sản phẩm
+      final updated = p.copyWith(
+        cost: newCost,
+        supplier: supplier.isNotEmpty ? supplier : p.supplier,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      );
       await db.upsertProduct(updated);
       await SyncOrchestrator().enqueue(
         entityType: SyncEntityType.product,
@@ -1554,7 +1639,65 @@ class _InventoryViewState extends State<InventoryView>
         firestoreId: updated.firestoreId,
         operation: SyncOperation.update,
       );
-      NotificationService.showSnackBar('Đã lưu giá vốn ${MoneyUtils.formatCurrency(newCost)} đ', color: Colors.green);
+
+      // Ghi tài chính theo phương thức thanh toán
+      final now = DateTime.now().millisecondsSinceEpoch;
+      final shopId = await UserService.getCurrentShopId() ?? '';
+      final supplierLabel = supplier.isNotEmpty ? supplier : 'NCC';
+      final noteText = 'Nhập giá vốn: ${p.name} - ${MoneyUtils.formatCurrency(newCost)}đ';
+
+      if (payment == 'CÔNG NỢ') {
+        // Tạo công nợ NCC
+        await db.insertDebt({
+          'firestoreId': 'debt_cost_${p.firestoreId ?? p.id}_$now',
+          'type': 'SHOP_OWES',
+          'debtType': 'SHOP_OWES',
+          'personName': supplierLabel.toUpperCase().trim(),
+          'phone': '',
+          'totalAmount': newCost,
+          'paidAmount': 0,
+          'status': 'ACTIVE',
+          'note': noteText,
+          'linkedId': p.firestoreId ?? '',
+          'linkedType': 'product_cost',
+          'createdAt': now,
+          'updatedAt': now,
+          'shopId': shopId,
+          'deleted': 0,
+          'isSynced': 0,
+        });
+        EventBus().emit('debts_changed');
+      } else {
+        // Ghi chi phí TIỀN MẶT / CHUYỂN KHOẢN
+        await db.insertExpense({
+          'firestoreId': 'exp_cost_${p.firestoreId ?? p.id}_$now',
+          'category': 'NHẬP HÀNG',
+          'title': 'Giá vốn: ${p.name}',
+          'amount': newCost,
+          'paymentMethod': payment,
+          'note': noteText,
+          'date': now,
+          'shopId': shopId,
+          'isSynced': 0,
+        });
+      }
+
+      // Ghi nhật ký tài chính
+      await FinancialActivityService.logPurchase(
+        firestoreId: 'cost_${p.firestoreId ?? p.id}_$now',
+        amount: newCost,
+        paymentMethod: payment,
+        productName: p.name,
+        supplierName: supplierLabel,
+        quantity: p.quantity,
+        createdAt: now,
+      );
+
+      EventBus().emit('financial_changed');
+      NotificationService.showSnackBar(
+        'Đã lưu giá vốn ${MoneyUtils.formatCurrency(newCost)}đ • $payment',
+        color: Colors.green,
+      );
       _refresh();
     } catch (e) {
       NotificationService.showSnackBar('Lỗi lưu giá vốn: $e', color: Colors.red);

@@ -5586,7 +5586,7 @@ class _HomeViewState extends State<HomeView>
                   ),
                   subtitle: loc.viewManageProducts,
                 ),
-                if (hasFullAccess && (_permissions['allowViewCostPrice'] == true))
+                if (hasFullAccess)
                   _tabMenuItem(
                     'Thiếu vốn / NCC',
                     Icons.warning_amber_rounded,
@@ -5596,7 +5596,7 @@ class _HomeViewState extends State<HomeView>
                       MaterialPageRoute(
                         builder: (_) => MissingInfoProductsView(
                           shopSettings: _shopSettings,
-                          canViewCostPrice: (_permissions['allowViewCostPrice'] == true),
+                          canViewCostPrice: hasFullAccess,
                           role: widget.role,
                         ),
                       ),
