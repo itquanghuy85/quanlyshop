@@ -49,31 +49,26 @@ class _PendingStockListViewState extends State<PendingStockListView> {
   bool get _enableSupplier => _shopSettings?.enableSupplier ?? true;
   bool get _requireSupplier => _shopSettings?.requireSupplier ?? true;
 
-  /// Kiểm tra có thể xác nhận không — tôn trọng cài đặt allowPendingCost và enableSupplier
-  bool _canConfirmEntry(StockEntry entry) {
-    if (entry.items.isEmpty) return false;
-    if (_enableSupplier && _requireSupplier && (entry.supplierId == null || entry.supplierId!.isEmpty)) return false;
-    if (entry.paymentMethod == null || entry.paymentMethod!.isEmpty) return false;
-    if (_allowPendingCost) return true;
-    return entry.items.every((item) => item.hasAccountingInfo);
+  /// NCC bắt buộc khi: cài đặt yêu cầu, HOẶC có giá vốn, HOẶC thanh toán CÔNG NỢ
+  bool _effectiveRequireSupplier(StockEntry entry) {
+    if (!_enableSupplier) return false;
+    if (_requireSupplier) return true;
+    if (entry.paymentMethod == 'CÔNG NỢ') return true;
+    return entry.items.any((i) => i.hasAccountingInfo);
   }
 
-  /// Danh sách thông tin còn thiếu — tôn trọng cài đặt allowPendingCost và enableSupplier
+  bool _canConfirmEntry(StockEntry entry) {
+    return entry.canConfirmWithSettings(
+      allowPendingCost: _allowPendingCost,
+      requireSupplier: _effectiveRequireSupplier(entry),
+    );
+  }
+
   List<String> _missingInfoFor(StockEntry entry) {
-    final missing = <String>[];
-    if (entry.items.isEmpty) {
-      missing.add('Chưa có sản phẩm');
-    } else if (!_allowPendingCost) {
-      final noCost = entry.items.where((i) => !i.hasAccountingInfo).length;
-      if (noCost > 0) missing.add('$noCost sản phẩm chưa có giá vốn');
-    }
-    if (_enableSupplier && _requireSupplier && (entry.supplierId == null || entry.supplierId!.isEmpty)) {
-      missing.add('Chưa chọn nhà cung cấp');
-    }
-    if (entry.paymentMethod == null || entry.paymentMethod!.isEmpty) {
-      missing.add('Chưa chọn thanh toán');
-    }
-    return missing;
+    return entry.missingInfoWithSettings(
+      allowPendingCost: _allowPendingCost,
+      requireSupplier: _effectiveRequireSupplier(entry),
+    );
   }
 
   // Permission: cost price visibility
@@ -265,7 +260,7 @@ class _PendingStockListViewState extends State<PendingStockListView> {
       final success = await _service.confirmEntry(
         entry.firestoreId!,
         allowPendingCost: _allowPendingCost,
-        requireSupplier: _enableSupplier && _requireSupplier,
+        requireSupplier: _effectiveRequireSupplier(entry),
       );
       if (success) {
         await _loadData();

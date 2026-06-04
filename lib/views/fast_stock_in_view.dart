@@ -80,6 +80,17 @@ class _FastStockInViewState extends State<FastStockInView> {
   bool get _enableSupplier => _shopSettings?.enableSupplier ?? true;
   bool get _requireSupplier => _shopSettings?.requireSupplier ?? true;
 
+  /// NCC bắt buộc khi: cài đặt yêu cầu, HOẶC đã nhập giá vốn, HOẶC thanh toán CÔNG NỢ
+  bool get _supplierEffectivelyRequired {
+    if (_requireSupplier) return true;
+    if (selectedPaymentMethod == 'CÔNG NỢ') return true;
+    if (_canViewCostPrice) {
+      final cost = CurrencyTextField.parseValue(costCtrl.text);
+      if (cost > 0) return true;
+    }
+    return false;
+  }
+
   // Permission: cost price visibility
   bool _canViewCostPrice = false;
 
@@ -650,7 +661,7 @@ class _FastStockInViewState extends State<FastStockInView> {
         selectedCapacity == null ||
         selectedColor == null ||
         selectedCondition == null ||
-        (_enableSupplier && _requireSupplier && selectedSupplier == null) ||
+        (_enableSupplier && _supplierEffectivelyRequired && selectedSupplier == null) ||
         selectedPaymentMethod == null) {
       NotificationService.showSnackBar(
         "Vui lòng chọn đầy đủ thông tin!",

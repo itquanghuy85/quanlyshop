@@ -1421,10 +1421,14 @@ class _InventoryViewState extends State<InventoryView>
       }
 
       // Auto-confirm entry to update stock + financial records
+      final effectiveRequireSupplier = _enableSupplier &&
+          (_requireSupplier ||
+              cost > 0 ||
+              paymentMethod == 'CÔNG NỢ');
       final confirmed = await service.confirmEntry(
         created.firestoreId!,
         allowPendingCost: _allowPendingCost,
-        requireSupplier: _enableSupplier && _requireSupplier,
+        requireSupplier: effectiveRequireSupplier,
       );
       if (confirmed) {
         NotificationService.showSnackBar(

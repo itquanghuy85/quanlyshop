@@ -434,13 +434,12 @@ class StockEntry {
 
   bool canConfirmWithSettings({bool allowPendingCost = false, bool requireSupplier = true}) {
     if (items.isEmpty) return false;
-    if (requireSupplier && (supplierId == null || supplierId!.isEmpty)) return false;
     if (paymentMethod == null || paymentMethod!.isEmpty) return false;
+    if (requireSupplier && (supplierId == null || supplierId!.isEmpty)) return false;
     if (allowPendingCost) return true;
     return items.every((item) => item.hasAccountingInfo);
   }
 
-  /// Danh sách thông tin còn thiếu
   List<String> get missingInfo => missingInfoWithSettings();
 
   List<String> missingInfoWithSettings({bool allowPendingCost = false, bool requireSupplier = true}) {
@@ -448,8 +447,8 @@ class StockEntry {
     if (items.isEmpty) {
       missing.add('Chưa có sản phẩm');
     } else if (!allowPendingCost) {
-      final itemsWithoutCost = items.where((i) => !i.hasAccountingInfo).length;
-      if (itemsWithoutCost > 0) missing.add('$itemsWithoutCost sản phẩm chưa có giá vốn');
+      final noCost = items.where((i) => !i.hasAccountingInfo).length;
+      if (noCost > 0) missing.add('$noCost sản phẩm chưa có giá vốn');
     }
     if (requireSupplier && (supplierId == null || supplierId!.isEmpty)) {
       missing.add('Chưa chọn nhà cung cấp');

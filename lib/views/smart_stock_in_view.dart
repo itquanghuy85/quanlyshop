@@ -653,6 +653,14 @@ class _SmartStockInViewState extends State<SmartStockInView> {
 
   bool get _allowPendingCost => _shopSettings?.allowPendingCost ?? false;
 
+  /// NCC bắt buộc khi: cài đặt yêu cầu, HOẶC đã nhập giá vốn, HOẶC thanh toán CÔNG NỢ
+  bool get _supplierEffectivelyRequired {
+    if (_requireSupplier) return true;
+    if (_selectedPaymentMethod == 'CÔNG NỢ') return true;
+    if (_canViewCostPrice && CurrencyTextField.getValue(_costCtrl) > 0) return true;
+    return false;
+  }
+
   /// Kiểm tra đủ thông tin để xác nhận ngay
   bool get _canConfirmNow {
     if (_nameCtrl.text.trim().isEmpty) return false;
@@ -660,7 +668,7 @@ class _SmartStockInViewState extends State<SmartStockInView> {
     if (_canViewCostPrice &&
         !_allowPendingCost &&
         CurrencyTextField.getValue(_costCtrl) <= 0) return false;
-    if (_enableSupplier && _requireSupplier && _selectedSupplier == null) return false;
+    if (_enableSupplier && _supplierEffectivelyRequired && _selectedSupplier == null) return false;
     if (_selectedPaymentMethod == null) return false;
     if (_hasIMEIConflict) return false;
 
@@ -686,7 +694,7 @@ class _SmartStockInViewState extends State<SmartStockInView> {
     if (_canViewCostPrice &&
         !_allowPendingCost &&
         CurrencyTextField.getValue(_costCtrl) <= 0) missing.add('Giá vốn');
-    if (_enableSupplier && _requireSupplier && _selectedSupplier == null) missing.add('Nhà cung cấp');
+    if (_enableSupplier && _supplierEffectivelyRequired && _selectedSupplier == null) missing.add('Nhà cung cấp');
     if (_selectedPaymentMethod == null) missing.add('Phương thức TT');
     if (_isPhone) {
       if (_selectedBrand == null) missing.add('Hãng');
