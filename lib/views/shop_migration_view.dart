@@ -349,7 +349,8 @@ class _ShopMigrationViewState extends State<ShopMigrationView> {
         const Text('Shop đích', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey)),
         const SizedBox(height: 6),
         DropdownButtonFormField<String>(
-          initialValue: _targetShopId,
+          // ignore: deprecated_member_use
+          value: _targetShopId,
           decoration: InputDecoration(
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -481,11 +482,12 @@ class _ShopMigrationViewState extends State<ShopMigrationView> {
 
   Widget _buildRunning() {
     final pct = _total > 0 ? _done / _total : 0.0;
-    return Padding(
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
+          const SizedBox(height: 40),
           const Icon(Icons.swap_horiz_rounded, size: 56, color: Colors.deepOrange),
           const SizedBox(height: 20),
           const Text(
