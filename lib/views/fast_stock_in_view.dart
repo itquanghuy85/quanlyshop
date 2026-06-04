@@ -31,7 +31,7 @@ import '../widgets/storage_location_selector.dart';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/supplier_picker_sheet.dart';
 import '../widgets/image_picker_widget.dart';
-import 'quick_input_codes_view.dart';
+import '../widgets/quick_code_picker_sheet.dart';
 import 'pending_stock_list_view.dart';
 
 // Formatter to force uppercase input without triggering controller loops
@@ -1511,76 +1511,10 @@ class _FastStockInViewState extends State<FastStockInView> {
   }
 
   Future<void> _selectFromLibrary() async {
-    final codes = await db.getQuickInputCodes();
-    final activeCodes = codes.where((c) => c.isActive).toList();
-
-    if (activeCodes.isEmpty) {
-      NotificationService.showSnackBar(
-        'Không có mã nhập nhanh nào đang hoạt động',
-        color: Colors.orange,
-      );
-      return;
-    }
-
     if (!mounted) return;
-
-    final selectedCode = await showDialog<QuickInputCode>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Chọn mã nhập nhanh'),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: ListView.builder(
-            shrinkWrap: true,
-            itemCount: activeCodes.length,
-            itemBuilder: (ctx, i) {
-              final code = activeCodes[i];
-              final isPhone = code.type == 'DIEN_THOAI';
-              return ListTile(
-                leading: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: isPhone
-                        ? Colors.blue.withAlpha(25)
-                        : Colors.orange.withAlpha(25),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    isPhone ? Icons.smartphone : Icons.inventory_2,
-                    color: isPhone ? Colors.blue : Colors.orange,
-                    size: 20,
-                  ),
-                ),
-                title: Text(code.name),
-                subtitle: Text(
-                  isPhone
-                      ? "${code.brand ?? ''} ${code.model ?? ''}".trim()
-                      : code.description ?? '',
-                ),
-                onTap: () => Navigator.pop(ctx, code),
-              );
-            },
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Hủy'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const QuickInputCodesView()),
-            ),
-            child: const Text('Quản lý mã nhập'),
-          ),
-        ],
-      ),
-    );
-
-    if (selectedCode != null) {
-      _applyQuickInputCode(selectedCode);
-    }
+    final selected = await showQuickCodePickerSheet(context);
+    if (!mounted || selected == null) return;
+    _applyQuickInputCode(selected);
   }
 
   void _applyQuickInputCode(QuickInputCode code) {

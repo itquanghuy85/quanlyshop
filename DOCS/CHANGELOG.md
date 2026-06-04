@@ -4,6 +4,30 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-04] - Popup chọn mã nhập nhanh: thêm tìm kiếm + phân trang
+
+### Thêm `showQuickCodePickerSheet` — BottomSheet có search + infinite-scroll pagination
+
+**Files thay đổi:**
+- `lib/widgets/quick_code_picker_sheet.dart` *(mới)*
+- `lib/views/fast_stock_in_view.dart`
+- `lib/views/smart_stock_in_view.dart`
+
+| # | Thay đổi | Chi tiết |
+|---|----------|----------|
+| 1 | **Tạo widget tái sử dụng** | `showQuickCodePickerSheet(context)` → `DraggableScrollableSheet` (88% màn hình), trả về `QuickInputCode?` |
+| 2 | **Search real-time** | TextField với debounce 350ms, gọi `getQuickInputCodesPaged()` với param `search`, có nút X xóa nhanh |
+| 3 | **Phân trang infinite scroll** | 20 item/trang, trigger load-more khi scroll cách đáy 150px, spinner ở cuối list |
+| 4 | **Empty state** | Icon + text theo context (chưa có mã / không tìm thấy), nút "Xóa bộ lọc" khi đang search |
+| 5 | **Item card** | Icon type (điện thoại/phụ kiện), tên, subtitle (brand+model hoặc mô tả), badge giá vốn nếu có |
+| 6 | **Nút Quản lý** | Bấm → đóng sheet + mở `QuickInputCodesView` qua root navigator |
+| 7 | **Thay popup cũ** | `fast_stock_in_view._selectFromLibrary()` và `smart_stock_in_view._selectFromLibrary()` → 3 dòng gọi `showQuickCodePickerSheet()` |
+
+### Validation
+- `flutter analyze` (3 files) → 0 error, 0 warning; 32 info pre-existing
+
+---
+
 ## [2026-06-04] - Fix CHỈNH SỬA PHIẾU NHẬP: NCC bị reset + UX scroll khi thiếu thông tin
 
 ### 2 bug trong smart_stock_in_view (edit mode)

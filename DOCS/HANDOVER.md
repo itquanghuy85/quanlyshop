@@ -24,6 +24,15 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 
 ---
 
+## ✅ Vừa hoàn thành (2026-06-04) — Popup chọn mã nhập nhanh có search + pagination
+
+1. **Tạo `showQuickCodePickerSheet` — widget tái sử dụng cho phiếu nhập**
+   - `lib/widgets/quick_code_picker_sheet.dart`: `DraggableScrollableSheet`, search debounce 350ms, infinite scroll 20 item/trang
+   - Dùng `getQuickInputCodesPaged()` + `countQuickInputCodes()` với `activeOnly: true`
+   - `fast_stock_in_view._selectFromLibrary()` và `smart_stock_in_view._selectFromLibrary()` → 3 dòng
+
+---
+
 ## ✅ Vừa hoàn thành (2026-06-04) — Fix CHỈNH SỬA PHIẾU NHẬP
 
 1. **Fix NCC bị reset + scroll UX trong edit phiếu nhập**
