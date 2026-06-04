@@ -54,6 +54,8 @@ class ChatService {
   // ============== SEND MESSAGES ==============
 
   /// Gửi tin nhắn text
+  static const int _kMaxMessageLength = 2000;
+
   static Future<String?> sendTextMessage({
     required String message,
     String? replyToId,
@@ -62,6 +64,7 @@ class ChatService {
     List<String>? mentions,
     int priority = 0,
   }) async {
+    if (message.trim().isEmpty || message.length > _kMaxMessageLength) return null;
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return null;
@@ -415,9 +418,6 @@ class ChatService {
       final shopId = await UserService.getCurrentShopId();
       if (shopId == null) return;
 
-      // Get unread messages (unused result — only kept for side-effect ordering)
-
-      // Batch update - lấy các tin nhắn chưa đọc
       final allDocs = await _db
           .collection(_collectionChats)
           .where('shopId', isEqualTo: shopId)

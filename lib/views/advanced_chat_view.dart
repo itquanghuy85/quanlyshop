@@ -683,6 +683,7 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
       ChatService.setOnlineStatus(true);
     } else if (state == AppLifecycleState.paused) {
       ChatService.setOnlineStatus(false);
+      ChatService.setTypingStatus(false);
     }
   }
 
@@ -2057,13 +2058,14 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
                     .where((e) => e.value.isNotEmpty)
                     .map(
                       (e) => GestureDetector(
-                        onTap: () {
+                        onTap: () async {
                           if (message.id != null && userId != null) {
-                            ChatService.toggleReaction(
+                            final ok = await ChatService.toggleReaction(
                               message.id!,
                               e.key,
                               e.value.contains(userId),
                             );
+                            if (!ok && mounted) _showError('Không thể thay đổi biểu cảm');
                           }
                         },
                         child: Container(

@@ -101,7 +101,6 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
       soldOnly: !inStock,
       missingInfoOnly: true,
     );
-    final filtered = page; // soldOnly đã xử lý tại DB
     final count = await _db.getProductsCount(
       inStockOnly: inStock,
       soldOnly: !inStock,
@@ -109,7 +108,7 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
     );
     if (!mounted) return;
     setState(() {
-      _products[tab] = filtered;
+      _products[tab] = page;
       _offsets[tab] = _pageSize;
       _hasMore[tab] = page.length >= _pageSize;
       _counts[tab] = count;
@@ -127,10 +126,9 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
       soldOnly: !inStock,
       missingInfoOnly: true,
     );
-    final filtered = page; // soldOnly đã xử lý tại DB
     if (!mounted) return;
     setState(() {
-      _products[tab].addAll(filtered);
+      _products[tab].addAll(page);
       _offsets[tab] += _pageSize;
       _hasMore[tab] = page.length >= _pageSize;
       _loading[tab] = false;

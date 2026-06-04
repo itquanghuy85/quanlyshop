@@ -4,6 +4,33 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-04] - Audit & fix toàn diện chat nội bộ + fix tab "Đã bán" thiếu vốn/NCC
+
+### Audit chat nội bộ → fix 7 vấn đề bảo mật, stability, UX
+
+**Files thay đổi:**
+- `lib/services/chat_service.dart`
+- `lib/services/ai_chat_service.dart`
+- `lib/views/advanced_chat_view.dart`
+- `lib/views/missing_info_products_view.dart`
+- `lib/data/db_helper.dart`
+
+| # | Loại | Vấn đề | Giải pháp |
+|---|------|---------|-----------|
+| 1 | Bug/Count | Tab "Đã bán" hiển thị count=2 nhưng list trống — `getProductsCount` không filter `quantity<=0` | Thêm `soldOnly` param vào `getProductsPaged` + `getProductsCount`; view dùng `soldOnly: tab==1` |
+| 2 | Security | `sendTextMessage()` không giới hạn độ dài → user gửi được tin nhắn 1MB | Thêm `_kMaxMessageLength = 2000` + validate đầu hàm |
+| 3 | Security | `_sanitize()` chỉ strip `<>` và backtick — thiếu `{} $` và role-override pattern | Thêm strip `{→( }→) $→''` + regex strip `system|assistant|human|user` prefix |
+| 4 | Bug/UX | Typing indicator không tắt khi user background app | `didChangeAppLifecycleState(paused)` thêm `ChatService.setTypingStatus(false)` |
+| 5 | Bug/UX | Reaction tap không báo lỗi khi Firestore write fail | Await `toggleReaction()` → show snackbar nếu `!ok` |
+| 6 | UX | AI cloud timeout 20s → user tưởng app hang | Giảm xuống 10s |
+| 7 | Code quality | Comment sai `// Get unread messages (unused result — only kept for side-effect ordering)` trong `markAllAsRead()` | Xóa comment gây nhầm lẫn |
+
+### Validation
+- `flutter analyze` → 0 lỗi mới
+- Commit: (xem git log) | Branch: `master`
+
+---
+
 ## [2026-06-05] - Fix sync bug nghiêm trọng: expense/debt không lên Firestore khi nhập giá vốn
 
 ### Audit luồng tài chính → phát hiện + sửa 2 lỗi sync bị bỏ qua

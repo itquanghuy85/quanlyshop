@@ -1474,16 +1474,19 @@ class AiChatService {
   // ── Cloud AI ──────────────────────────────────────────────────────────────
 
   // ── Prompt sanitizer ─────────────────────────────────────────────────────
-  // Strips characters that could be used for prompt injection:
-  // angle brackets, backticks, and sequences that look like role/system overrides.
+  // Strips characters that could be used for prompt injection.
   static String _sanitize(String s) {
     // Remove HTML/XML tags
     var out = s.replaceAll(RegExp(r'<[^>]*>'), '');
     // Remove backtick blocks
     out = out.replaceAll('`', "'");
-    // Collapse newlines to single space to prevent multi-line injection
+    // Strip template-injection chars: {, }, $
+    out = out.replaceAll('{', '(').replaceAll('}', ')').replaceAll('\$', '');
+    // Collapse multiple newlines — prevent multi-line role override injection
     out = out.replaceAll(RegExp(r'\n{2,}'), '\n');
-    // Limit length to 1000 chars — questions beyond that are unusual
+    // Strip common prompt override patterns (case-insensitive)
+    out = out.replaceAll(RegExp(r'(system|assistant|human|user)\s*:', caseSensitive: false), '');
+    // Limit length to 1000 chars
     if (out.length > 1000) out = out.substring(0, 1000);
     return out.trim();
   }
@@ -1499,7 +1502,7 @@ class AiChatService {
     try {
       final callable = _fn.httpsCallable(
         'chatAssistant',
-        options: HttpsCallableOptions(timeout: const Duration(seconds: 20)),
+        options: HttpsCallableOptions(timeout: const Duration(seconds: 10)),
       );
       // Sanitize user-controlled strings before sending to LLM
       final safeQuestion = _sanitize(question);

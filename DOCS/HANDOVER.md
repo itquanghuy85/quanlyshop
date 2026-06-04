@@ -24,6 +24,16 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 
 ---
 
+## ✅ Vừa hoàn thành (2026-06-04) — Chat nội bộ audit
+
+1. **Audit & fix chat nội bộ: 7 vấn đề security/stability/UX**
+   - `chat_service.dart`: thêm `_kMaxMessageLength=2000` validate đầu vào; xóa comment sai trong `markAllAsRead()`.
+   - `ai_chat_service.dart`: giảm cloud AI timeout 20s→10s; tăng cường `_sanitize()` strip `{} $` + role-override pattern.
+   - `advanced_chat_view.dart`: `didChangeAppLifecycleState(paused)` thêm `setTypingStatus(false)`; reaction tap await + snackbar khi fail.
+   - `missing_info_products_view.dart` + `db_helper.dart`: fix count Tab "Đã bán" — thêm `soldOnly` param, bỏ client-side filter.
+
+---
+
 ## ✅ Vừa hoàn thành (2026-06-05)
 
 1. **Fix sync bug nghiêm trọng: expense/debt không lên Firestore khi nhập giá vốn (2026-06-05)**
