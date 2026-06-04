@@ -12,9 +12,12 @@ import '../services/user_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 import '../utils/money_utils.dart';
+import '../models/sale_order_model.dart';
 import '../widgets/currency_text_field.dart';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/supplier_picker_sheet.dart';
+import 'inventory_detail_view.dart';
+import 'sale_detail_view.dart';
 
 class MissingInfoProductsView extends StatefulWidget {
   final ShopSettings? shopSettings;
@@ -45,6 +48,34 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
   final _hasMore = [true, true];
   final _loading = [true, true];
   final _counts = [0, 0];
+
+  // ── Dedup helpers ────────────────────────────────────────────────────────────
+
+  /// Key duy nhất cho mỗi sản phẩm: ưu tiên firestoreId → imei → name+ngày
+  static String _productKey(Product p) {
+    if (p.firestoreId != null && p.firestoreId!.isNotEmpty) return p.firestoreId!;
+    if (p.imei != null && p.imei!.isNotEmpty) return 'imei:${p.imei}';
+    return 'name:${p.name}:${p.createdAt}';
+  }
+
+  /// Điểm đầy đủ thông tin — record có nhiều info hơn được giữ lại
+  static int _infoScore(Product p) =>
+      (p.firestoreId != null && p.firestoreId!.isNotEmpty ? 4 : 0) +
+      (p.cost > 0 ? 2 : 0) +
+      (p.supplier != null && p.supplier!.isNotEmpty ? 2 : 0) +
+      (p.imei != null && p.imei!.isNotEmpty ? 1 : 0);
+
+  /// Loại bỏ record trùng — khi 2 record cùng key, giữ cái có nhiều thông tin hơn
+  static List<Product> _dedup(List<Product> list, [Map<String, Product>? seen]) {
+    final map = seen ?? <String, Product>{};
+    for (final p in list) {
+      final key = _productKey(p);
+      if (!map.containsKey(key) || _infoScore(p) > _infoScore(map[key]!)) {
+        map[key] = p;
+      }
+    }
+    return map.values.toList();
+  }
   final _scrollCtrs = [ScrollController(), ScrollController()];
   StreamSubscription<String>? _productEventSub;
 
@@ -107,8 +138,9 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
       missingInfoOnly: true,
     );
     if (!mounted) return;
+    final deduped = _dedup(page);
     setState(() {
-      _products[tab] = page;
+      _products[tab] = deduped;
       _offsets[tab] = _pageSize;
       _hasMore[tab] = page.length >= _pageSize;
       _counts[tab] = count;
@@ -127,8 +159,13 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
       missingInfoOnly: true,
     );
     if (!mounted) return;
+    // Dedup mới kết hợp với items hiện có để loại bỏ trùng cross-page
+    final seen = <String, Product>{
+      for (final p in _products[tab]) _productKey(p): p,
+    };
+    final merged = _dedup(page, seen);
     setState(() {
-      _products[tab].addAll(page);
+      _products[tab] = merged;
       _offsets[tab] += _pageSize;
       _hasMore[tab] = page.length >= _pageSize;
       _loading[tab] = false;
@@ -136,6 +173,29 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
   }
 
   Future<void> _refresh(int tab) => _load(tab);
+
+  // ── Navigation ──────────────────────────────────────────────────────────────
+
+  Future<void> _openDetail(Product p, {required bool isSold}) async {
+    if (!mounted) return;
+    if (isSold && p.imei != null && p.imei!.isNotEmpty) {
+      final saleMaps = await _db.getSalesByProductImei(p.imei!);
+      if (!mounted) return;
+      if (saleMaps.isNotEmpty) {
+        final sale = SaleOrder.fromMap(saleMaps.last); // lấy hóa đơn gần nhất
+        Navigator.push(context, MaterialPageRoute(
+          builder: (_) => SaleDetailView(sale: sale),
+        ));
+        return;
+      }
+    }
+    // Fallback hoặc còn hàng → xem chi tiết kho
+    if (mounted) {
+      Navigator.push(context, MaterialPageRoute(
+        builder: (_) => InventoryDetailView(product: p),
+      ));
+    }
+  }
 
   Future<void> _editCost(Product p) async {
     final costCtrl = TextEditingController();
@@ -502,7 +562,9 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
     if (!missingCost && !missingSupplier) return const SizedBox.shrink();
     final isSold = tab == 1;
 
-    return Card(
+    return GestureDetector(
+      onTap: () => _openDetail(p, isSold: isSold),
+      child: Card(
       margin: const EdgeInsets.only(bottom: 10),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
@@ -588,7 +650,8 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
           ],
         ),
       ),
-    );
+    ),   // Card
+    );   // GestureDetector
   }
 
   Widget _chip(String label, Color color, IconData icon) => Container(

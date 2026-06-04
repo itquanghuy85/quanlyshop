@@ -4,6 +4,19 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-04] - Thiếu vốn/NCC: fix trùng dữ liệu + bấm vào mở chi tiết
+
+**Files thay đổi:**
+- `lib/views/missing_info_products_view.dart`
+
+| # | Thay đổi | Chi tiết |
+|---|----------|----------|
+| 1 | **Fix trùng dữ liệu** | Thêm `_productKey()` (ưu tiên firestoreId→imei→name+ngày) + `_infoScore()` + `_dedup()` — sau mỗi lần load giữ record có nhiều thông tin nhất, loại bỏ bản sao |
+| 2 | **Bấm card → chi tiết** | `GestureDetector.onTap` gọi `_openDetail()`: đã bán + có IMEI → `SaleDetailView`; còn hàng hoặc không có IMEI → `InventoryDetailView` |
+| 3 | **Dedup cross-page** | `_loadMore()` truyền `seen` map từ items hiện có → không load bản sao khi phân trang |
+
+---
+
 ## [2026-06-04] - Fix logic NCC + Phương thức TT trong CHỈNH SỬA PHIẾU NHẬP
 
 ### 3 bug logic trong smart_stock_in_view
