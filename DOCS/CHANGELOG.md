@@ -4,6 +4,23 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-04] - Fix CHỈNH SỬA PHIẾU NHẬP: NCC bị reset + UX scroll khi thiếu thông tin
+
+### 2 bug trong smart_stock_in_view (edit mode)
+
+**Files thay đổi:**
+- `lib/views/smart_stock_in_view.dart`
+
+| # | Loại | Vấn đề | Giải pháp |
+|---|------|---------|-----------|
+| 1 | Bug/Data | Khi mở edit phiếu nhập, `_selectedSupplier` bị reset về `null` nếu tên NCC trong entry không khớp chính xác với `_suppliers` list (bị xóa NCC, hoặc không tìm thấy) → "LƯU VÀO HÀNG CHỜ" luôn disabled dù entry đã có NCC | Thêm NCC cũ vào `_suppliers` list tạm thời nếu chưa có, luôn giữ `_selectedSupplier = entry.supplierName` |
+| 2 | UX | Warning "Thiếu: Nhà cung cấp, Phương thức TT" ở bottom nhưng các fields đó ở giữa form (phải scroll) — user không biết phải làm gì | Warning trở thành `GestureDetector`, bấm vào tự `Scrollable.ensureVisible()` scroll đến card kế toán; thêm icon ↑ và text "— bấm để điền" |
+
+### Validation
+- `flutter analyze` → 0 lỗi mới (16 info pre-existing)
+
+---
+
 ## [2026-06-04] - Audit & fix toàn diện chat nội bộ + fix tab "Đã bán" thiếu vốn/NCC
 
 ### Audit chat nội bộ → fix 7 vấn đề bảo mật, stability, UX

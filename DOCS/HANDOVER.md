@@ -24,6 +24,15 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 
 ---
 
+## ✅ Vừa hoàn thành (2026-06-04) — Fix CHỈNH SỬA PHIẾU NHẬP
+
+1. **Fix NCC bị reset + scroll UX trong edit phiếu nhập**
+   - `_loadEditData()`: Giữ `_selectedSupplier` từ entry, thêm NCC cũ vào `_suppliers` tạm nếu cần
+   - Warning "Thiếu" bấm được → `Scrollable.ensureVisible(_accountingKey)` scroll đến card kế toán
+   - Thêm `ScrollController _scrollCtrl` + `GlobalKey _accountingKey`
+
+---
+
 ## ✅ Vừa hoàn thành (2026-06-04) — Chat nội bộ audit
 
 1. **Audit & fix chat nội bộ: 7 vấn đề security/stability/UX**

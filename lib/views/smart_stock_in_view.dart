@@ -106,6 +106,10 @@ class _SmartStockInViewState extends State<SmartStockInView> {
   StorageLocation? _selectedLocation;
   String? _localImagePath;
 
+  // Scroll
+  final _scrollCtrl = ScrollController();
+  final _accountingKey = GlobalKey();
+
   // Data
   List<Map<String, dynamic>> _suppliers = [];
 
@@ -600,16 +604,15 @@ class _SmartStockInViewState extends State<SmartStockInView> {
     }
 
     _selectedSupplierId = entry.supplierId;
-    // Validate supplier name - chỉ set nếu có trong list hiện tại
     if (entry.supplierName != null && entry.supplierName!.isNotEmpty) {
-      final exists = _suppliers.any((s) => s['name'] == entry.supplierName);
-      if (exists) {
-        _selectedSupplier = entry.supplierName;
-      } else {
-        // Nếu supplier name không có trong list, reset để tránh lỗi dropdown
-        _selectedSupplier = null;
-        _selectedSupplierId = null;
+      // Nếu tên NCC chưa có trong list (bị xóa / khác case), thêm tạm để dropdown hiển thị đúng
+      if (!_suppliers.any((s) => s['name'] == entry.supplierName)) {
+        _suppliers = [
+          {'name': entry.supplierName!, 'firestoreId': entry.supplierId ?? ''},
+          ..._suppliers,
+        ];
       }
+      _selectedSupplier = entry.supplierName;
     }
     // Validate payment method - chỉ set nếu có trong list
     if (entry.paymentMethod != null &&
@@ -632,6 +635,7 @@ class _SmartStockInViewState extends State<SmartStockInView> {
     _modelCtrl.dispose();
     _skuCtrl.dispose();
     _customUnitCtrl.dispose();
+    _scrollCtrl.dispose();
     super.dispose();
   }
 
@@ -1007,6 +1011,7 @@ class _SmartStockInViewState extends State<SmartStockInView> {
                   children: [
                     Expanded(
                       child: SingleChildScrollView(
+                        controller: _scrollCtrl,
                         padding: const EdgeInsets.all(12),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1026,7 +1031,7 @@ class _SmartStockInViewState extends State<SmartStockInView> {
                             const Divider(height: 24),
 
                             // Thông tin kế toán
-                            _buildAccountingSection(),
+                            _buildAccountingSection(_accountingKey),
 
                             const SizedBox(height: 12),
 
@@ -1825,8 +1830,9 @@ class _SmartStockInViewState extends State<SmartStockInView> {
     );
   }
 
-  Widget _buildAccountingSection() {
+  Widget _buildAccountingSection([Key? sectionKey]) {
     return Card(
+      key: sectionKey,
       elevation: 1,
       color: Colors.orange.shade50,
       child: Padding(
@@ -2038,39 +2044,57 @@ class _SmartStockInViewState extends State<SmartStockInView> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Hiển thị thông tin còn thiếu
+            // Hiển thị thông tin còn thiếu — bấm để scroll đến phần kế toán
             if (hasMissing && !_isSaving)
-              Container(
-                margin: const EdgeInsets.only(bottom: 8),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.orange.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.orange.shade200),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.info_outline,
-                      size: 16,
-                      color: Colors.orange.shade700,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Thiếu: ${missingInfo.join(", ")}',
-                        style: TextStyle(
-                          fontSize: AppTextStyles.body1.fontSize,
-                          color: Colors.orange.shade700,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+              GestureDetector(
+                onTap: () {
+                  final ctx = _accountingKey.currentContext;
+                  if (ctx != null) {
+                    Scrollable.ensureVisible(
+                      ctx,
+                      duration: const Duration(milliseconds: 400),
+                      curve: Curves.easeInOut,
+                      alignment: 0.1,
+                    );
+                  }
+                },
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.orange.shade200),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        size: 16,
+                        color: Colors.orange.shade700,
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Thiếu: ${missingInfo.join(", ")} — bấm để điền',
+                          style: TextStyle(
+                            fontSize: AppTextStyles.body1.fontSize,
+                            color: Colors.orange.shade700,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Icon(
+                        Icons.keyboard_arrow_up_rounded,
+                        size: 18,
+                        color: Colors.orange.shade700,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             Row(
