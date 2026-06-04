@@ -4,6 +4,35 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-05] - Fix sync bug nghiêm trọng: expense/debt không lên Firestore khi nhập giá vốn
+
+### Audit luồng tài chính → phát hiện + sửa 2 lỗi sync bị bỏ qua
+
+**Files thay đổi:**
+- `lib/views/missing_info_products_view.dart`
+- `lib/views/inventory_view.dart`
+
+| # | Loại | Vấn đề | Giải pháp |
+|---|------|---------|-----------|
+| 1 | Bug/Sync | `insertDebt(isSynced:0)` tại cả 2 màn nhưng KHÔNG `enqueueDebt()` → debt không bao giờ lên Firestore | Thêm `SyncOrchestrator().enqueueDebt(id, firestoreId, operation: create)` cho CÔNG NỢ path |
+| 2 | Bug/Sync | `insertExpense(isSynced:0)` tại cả 2 màn nhưng KHÔNG `enqueueExpense()` → expense không bao giờ lên Firestore | Thêm `SyncOrchestrator().enqueueExpense(id, firestoreId, operation: create)` cho TIỀN MẶT/CK path |
+| 3 | Bug/Schema | Expense record thiếu `createdAt` (chỉ có `date`) | Thêm `'createdAt': now` vào insertExpense map |
+| 4 | Bug/Memory | `inventory_view._showInlineCostEdit()`: `costCtrl` không `dispose()` | Lưu `costText`, `costCtrl.dispose()` ngay sau sheet đóng |
+| 5 | Bug/UX | Validation giá vốn > 0 nằm SAU sheet đóng → user không thấy lỗi | Chuyển validation vào ElevatedButton.onPressed trong modal (trước `Navigator.pop`) |
+| 6 | UX | Nút hủy gọi "Bỏ qua" → khó hiểu | Đổi thành "Hủy" |
+
+**Audit findings (kiến trúc — chưa fix):**
+- 8 views bypass `PaymentIntentService` (inventory, missing_info, debt, sales, repair_order, fast_stock_in, parts_inventory, repair_detail)
+- `daily_financial_analysis_service`: dedup fuzzy `(amount ± 1000đ)` → có thể double-count
+- `importOut` metric chỉ đếm `supplier_import_history`, không đếm expenses có category NHẬP HÀNG
+
+### Validation
+- `flutter analyze` → 0 lỗi mới (8 info pre-existing trong inventory_view không liên quan)
+- `flutter build apk --debug` → thành công
+- Commit: `29ffae55` | Branch: `master`
+
+---
+
 ## [2026-06-04] - Audit & sửa toàn diện màn Thiếu vốn / NCC
 
 ### Audit và fix 6 vấn đề trong missing_info_products_view.dart

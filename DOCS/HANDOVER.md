@@ -7,7 +7,7 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 ## ⚡ Trạng thái hiện tại
 
 **Version:** 1.x (develop) → 2.0 planning  
-**Last Updated:** 2026-06-04  
+**Last Updated:** 2026-06-05  
 **Build Status:** ✅ Debug build passing (`flutter build apk --debug`)  
 **Analyze Status:** ✅ 0 compile error trên các file vừa sửa; còn lint/info hiện hữu của dự án  
 **Database Version:** SQLite v17  
@@ -23,6 +23,19 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Tiến độ:** 0 / 8 phases hoàn thành
 
 ---
+
+## ✅ Vừa hoàn thành (2026-06-05)
+
+1. **Fix sync bug nghiêm trọng: expense/debt không lên Firestore khi nhập giá vốn (2026-06-05)**
+   - `missing_info_products_view._editCost()` + `inventory_view._showInlineCostEdit()`:
+     - Thêm `enqueueDebt()` cho CÔNG NỢ path — trước đó `isSynced=0` nhưng không bao giờ enqueue.
+     - Thêm `enqueueExpense()` cho TIỀN MẶT/CK path — cùng vấn đề.
+     - Thêm `createdAt` vào expense record cho nhất quán với schema.
+   - `inventory_view._showInlineCostEdit()`:
+     - Sửa `costCtrl` memory leak: `dispose()` ngay sau sheet đóng.
+     - Chuyển validation giá vốn > 0 vào modal button (trước `Navigator.pop`).
+     - Đổi "Bỏ qua" → "Hủy".
+   - Commit: `29ffae55` (master).
 
 ## ✅ Vừa hoàn thành (2026-06-04)
 
