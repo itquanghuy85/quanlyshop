@@ -414,10 +414,7 @@ class _HomeViewState extends State<HomeView>
     return source[index]['id'] as String? ?? 'tab_$index';
   }
 
-  bool _usesNestedNavigator(int index) {
-    final tabId = _tabIdAt(index);
-    return tabId != _homeTabId && tabId != _financeTabId;
-  }
+  bool _usesNestedNavigator(int index) => false;
 
   GlobalKey<NavigatorState> _navigatorKeyForTab(int index) {
     final tabId = _tabIdAt(index);
@@ -428,14 +425,7 @@ class _HomeViewState extends State<HomeView>
   }
 
   Future<T?> _pushRoute<T>(BuildContext context, Route<T> route) {
-    final index = _currentIndex.clamp(0, _tabConfigs.length - 1);
-    if (_usesNestedNavigator(index)) {
-      final navigator = _navigatorKeyForTab(index).currentState;
-      if (navigator != null) {
-        return navigator.push(route);
-      }
-    }
-    return Navigator.of(context).push(route);
+    return Navigator.of(context, rootNavigator: true).push(route);
   }
 
   // Fade+slide transition for settings navigations (Phase 6 motion polish)
@@ -498,19 +488,11 @@ class _HomeViewState extends State<HomeView>
       child = _tabWidgets[index];
     }
 
-    if (!_usesNestedNavigator(index)) {
-      return KeyedSubtree(
-        key: ValueKey('home_tab_host_${tabId}_$version'),
-        child: child,
-      );
-    }
-
+    // Không dùng nested Navigator — route push qua root navigator để
+    // che toàn màn hình (tránh ghost topbar — home AppBar hiện sau push).
     return KeyedSubtree(
       key: ValueKey('home_tab_host_${tabId}_$version'),
-      child: Navigator(
-        key: _navigatorKeyForTab(index),
-        onGenerateRoute: (_) => MaterialPageRoute(builder: (_) => child),
-      ),
+      child: child,
     );
   }
 
