@@ -4,6 +4,23 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-04] - feat: Chuyển đơn sửa chữa sang shop mới
+
+**Files thay đổi:**
+- `lib/services/migration_service.dart` (NEW)
+- `lib/views/shop_migration_view.dart` (NEW)
+- `lib/views/backup_restore_view.dart`
+
+| # | Thay đổi | Chi tiết |
+|---|----------|----------|
+| 1 | **MigrationService** | Service copy repairs từ shop nguồn → shop đích, batch 400 docs, paginate 500 docs/trang, hỗ trợ cancel |
+| 2 | **ShopMigrationView** | UI 3 phase: setup (chọn shop đích + xác minh) → running (progress realtime) → done (summary + hướng dẫn tiếp theo) |
+| 3 | **Entry point BackupRestoreView** | Section "Chuyển đơn sửa chữa" ở cuối Firestore tab, chỉ hiện với role owner/super_admin |
+| 4 | **Super-admin UX** | Dropdown chọn shop từ getAllShops(); Owner: text field + nút Xác minh |
+| 5 | **Copy mode** | Tạo doc mới với ID mới + shopId mới, shop cũ giữ nguyên |
+
+---
+
 ## [2026-06-04] - Fix customer sync + const naming warning
 
 **Files thay đổi:**

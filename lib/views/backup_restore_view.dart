@@ -9,6 +9,9 @@ import '../theme/app_text_styles.dart';
 import '../theme/app_spacing.dart';
 import '../widgets/custom_app_bar.dart';
 import 'kiotviet_import_view.dart';
+import 'shop_migration_view.dart';
+import '../services/user_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 // All collection keys in order — used by initState() without needing l10n.
 const _kAllCollectionKeys = [
@@ -1251,6 +1254,8 @@ class _FirestoreTabState extends State<_FirestoreTab> {
                       )),
               ],
             ),
+            AppSpacing.gapMd,
+            _MigrationEntryCard(),
             AppSpacing.gapLg,
           ],
         ),
@@ -1654,6 +1659,86 @@ class _ActionButton extends StatelessWidget {
     );
   }
 }
+
+// ─── Migration entry card (owner / super_admin only) ─────────────────────────
+
+class _MigrationEntryCard extends StatefulWidget {
+  const _MigrationEntryCard();
+
+  @override
+  State<_MigrationEntryCard> createState() => _MigrationEntryCardState();
+}
+
+class _MigrationEntryCardState extends State<_MigrationEntryCard> {
+  String? _role;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRole();
+  }
+
+  Future<void> _loadRole() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    final role = await UserService.getUserRole(uid);
+    if (mounted) setState(() => _role = role);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_role == null) return const SizedBox.shrink();
+    if (_role != 'owner' && _role != 'super_admin') return const SizedBox.shrink();
+
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.deepOrange.shade200),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(children: [
+              const Icon(Icons.swap_horiz_rounded, color: Colors.deepOrange, size: 18),
+              const SizedBox(width: 8),
+              const Text('Chuyển đơn sửa chữa sang shop khác',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+            ]),
+            const Divider(height: 16),
+            const Text(
+              'Copy toàn bộ lịch sử đơn sửa chữa sang một shop mới.\n'
+              'Dữ liệu shop cũ giữ nguyên, không bị xóa.',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.arrow_forward_rounded),
+                label: const Text('Bắt đầu chuyển dữ liệu'),
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ShopMigrationView()),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.deepOrange,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── SQLite backup item ───────────────────────────────────────────────────────
 
 class _SqliteBackupItem extends StatelessWidget {
   final String name;

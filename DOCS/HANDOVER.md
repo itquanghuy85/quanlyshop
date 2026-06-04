@@ -24,6 +24,15 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 
 ---
 
+## ✅ Vừa hoàn thành (2026-06-04) — Tính năng Chuyển đơn sửa chữa sang shop mới
+
+1. **`MigrationService`** (`lib/services/migration_service.dart`) — copy repairs theo batch 400, paginate, hỗ trợ cancel
+2. **`ShopMigrationView`** (`lib/views/shop_migration_view.dart`) — UI 3 phase: setup → running (progress) → done
+3. **Entry point** trong `BackupRestoreView` Firestore tab — chỉ hiện với owner/super_admin
+4. **Copy mode**: tạo doc mới với shopId mới, shop cũ giữ nguyên
+
+---
+
 ## ✅ Vừa hoàn thành (2026-06-04) — Fix ghost topbar trên toàn app
 
 1. **Xóa nested Navigator khỏi `_buildTabHost`** — `home_view.dart`
