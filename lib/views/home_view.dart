@@ -18,6 +18,7 @@ import '../services/current_shop_service.dart';
 import 'order_list_view.dart';
 
 import 'inventory_view.dart';
+import 'missing_info_products_view.dart';
 import 'fast_inventory_input_view.dart';
 import 'fast_inventory_check_view.dart';
 import 'supplier_list_view.dart';
@@ -608,6 +609,10 @@ class _HomeViewState extends State<HomeView>
   bool? _pendingCostOverride;
   bool _isSavingPendingCost = false;
   bool get _allowPendingCost => _pendingCostOverride ?? _shopSettings?.allowPendingCost ?? false;
+  bool get _enableSupplier => _shopSettings?.enableSupplier ?? true;
+  bool get _requireSupplier => _shopSettings?.requireSupplier ?? true;
+  bool _isSavingSupplier = false;
+  bool _isSavingRequireSupplier = false;
 
   final bool _isSuperAdmin = UserService.isCurrentUserSuperAdmin();
   final _settingsSearchController = TextEditingController();
@@ -2282,7 +2287,6 @@ class _HomeViewState extends State<HomeView>
 
   Future<void> _saveAllowPendingCost(bool value) async {
     if (_isSavingPendingCost) return;
-    // Set override NGAY LẬP TỨC — đồng bộ, không có async gap → tránh race condition
     setState(() {
       _isSavingPendingCost = true;
       _pendingCostOverride = value;
@@ -2302,29 +2306,11 @@ class _HomeViewState extends State<HomeView>
         throw Exception('Không thể lưu cài đặt (local/remote).');
       }
 
-      // Cập nhật local state trước để UI phản hồi đúng ngay cả khi fetch sau bị stale tạm thời.
       if (mounted) {
         setState(() {
           _shopSettings = current.copyWith(allowPendingCost: value);
-        });
-      }
-
-      // Đồng bộ lại settings từ nguồn chính, nhưng _loadShopSettings sẽ tôn trọng override đang pending.
-      svc.clearCache();
-      await _loadShopSettings(applyPendingOverride: false);
-
-      final confirmed = _shopSettings?.allowPendingCost;
-      if (confirmed != value) {
-        throw Exception('Lưu chưa được xác nhận. Vui lòng thử lại.');
-      }
-
-      if (mounted) {
-        setState(() {
+          _pendingCostOverride = null;
           _isSavingPendingCost = false;
-          // Chỉ clear override khi state nền đã khớp để tránh bị flash về OFF do stale read.
-          if ((_shopSettings?.allowPendingCost ?? value) == value) {
-            _pendingCostOverride = null;
-          }
         });
         NotificationService.showSnackBar(
           value ? '✅ Đã bật: cho phép nhập giá vốn sau' : '🔒 Đã tắt: bắt buộc nhập giá vốn',
@@ -2339,6 +2325,60 @@ class _HomeViewState extends State<HomeView>
         });
       }
       NotificationService.showSnackBar('Lỗi lưu cài đặt: $e', color: Colors.red);
+    }
+  }
+
+  Future<void> _saveRequireSupplier(bool value) async {
+    if (_isSavingRequireSupplier) return;
+    setState(() => _isSavingRequireSupplier = true);
+    try {
+      final shopId = await UserService.getCurrentShopId();
+      if (shopId == null || shopId.isEmpty) throw Exception('Chưa xác định cửa hàng');
+      final current = _shopSettings ?? ShopSettings.electronics(shopId);
+      final svc = CategoryService();
+      svc.resetRemoteWriteCooldown();
+      final saved = await svc.saveShopSettings(current.copyWith(requireSupplier: value));
+      if (!saved) throw Exception('Không thể lưu cài đặt');
+      if (mounted) {
+        setState(() {
+          _shopSettings = current.copyWith(requireSupplier: value);
+          _isSavingRequireSupplier = false;
+        });
+        NotificationService.showSnackBar(
+          value ? '✅ Bắt buộc chọn NCC khi nhập kho' : '🔓 NCC không bắt buộc khi nhập kho',
+          color: value ? Colors.deepOrange : Colors.grey.shade700,
+        );
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isSavingRequireSupplier = false);
+      NotificationService.showSnackBar('Lỗi: $e', color: Colors.red);
+    }
+  }
+
+  Future<void> _saveEnableSupplier(bool value) async {
+    if (_isSavingSupplier) return;
+    setState(() => _isSavingSupplier = true);
+    try {
+      final shopId = await UserService.getCurrentShopId();
+      if (shopId == null || shopId.isEmpty) throw Exception('Chưa xác định cửa hàng');
+      final current = _shopSettings ?? ShopSettings.electronics(shopId);
+      final svc = CategoryService();
+      svc.resetRemoteWriteCooldown();
+      final saved = await svc.saveShopSettings(current.copyWith(enableSupplier: value));
+      if (!saved) throw Exception('Không thể lưu cài đặt');
+      if (mounted) {
+        setState(() {
+          _shopSettings = current.copyWith(enableSupplier: value);
+          _isSavingSupplier = false;
+        });
+        NotificationService.showSnackBar(
+          value ? '✅ Đã bật: hiển thị nhà cung cấp' : '🔒 Đã tắt: ẩn nhà cung cấp',
+          color: value ? Colors.indigo : Colors.grey.shade700,
+        );
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isSavingSupplier = false);
+      NotificationService.showSnackBar('Lỗi: $e', color: Colors.red);
     }
   }
 
@@ -2395,7 +2435,7 @@ class _HomeViewState extends State<HomeView>
         _expiryStats = expiryStats;
         _variantWarnings = variantWarnings;
         debugPrint(
-          '🏠 HomeView: setState done - _enableRepair=$_enableRepair, _enableVariants=$_enableVariants',
+          '🏠 HomeView: setState done - _enableRepair=$_enableRepair, _enableVariants=$_enableVariants, _allowPendingCost=$_allowPendingCost, _pendingCostOverride=$_pendingCostOverride, shopSettings.allowPendingCost=${_shopSettings?.allowPendingCost}',
         );
         // Re-initialize tabs when shop settings change
         _initializeTabConfigs();
@@ -5546,6 +5586,23 @@ class _HomeViewState extends State<HomeView>
                   ),
                   subtitle: loc.viewManageProducts,
                 ),
+                if (hasFullAccess && (_permissions['allowViewCostPrice'] == true))
+                  _tabMenuItem(
+                    'Thiếu vốn / NCC',
+                    Icons.warning_amber_rounded,
+                    Colors.orange,
+                    () => _pushRoute(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => MissingInfoProductsView(
+                          shopSettings: _shopSettings,
+                          canViewCostPrice: (_permissions['allowViewCostPrice'] == true),
+                          role: widget.role,
+                        ),
+                      ),
+                    ),
+                    subtitle: 'Hàng chưa nhập giá vốn hoặc NCC',
+                  ),
                 _tabMenuItem(
                   loc.suppliersPartners,
                   Icons.business_center,
@@ -6531,81 +6588,58 @@ class _HomeViewState extends State<HomeView>
                   // Grouped sections
                   ...buildGroup('shop', 'Cửa hàng'),
 
-                  // Toggle nhập giá vốn sau — chỉ admin/owner
+                  // Toggles kho hàng — chỉ admin/owner
                   if (hasFullAccess) ...[
                     _buildSectionHeader('Kho hàng'),
-                    // InkWell bao ngoài để tap bất kỳ đâu cũng toggle (tránh FAB che switch thumb)
-                    InkWell(
-                      onTap: _isSavingPendingCost
-                          ? null
-                          : () => _saveAllowPendingCost(!_allowPendingCost),
-                      borderRadius: BorderRadius.circular(14),
-                      child: Card(
-                      color: Colors.teal.shade50,
-                      margin: const EdgeInsets.symmetric(vertical: 4),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        side: BorderSide(color: Colors.teal.shade200),
+                    CheckboxListTile(
+                      value: _allowPendingCost,
+                      onChanged: _isSavingPendingCost ? null : (v) => _saveAllowPendingCost(v ?? false),
+                      activeColor: Colors.teal,
+                      checkboxShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                      secondary: _isSavingPendingCost
+                          ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.teal))
+                          : Icon(Icons.inventory_2_outlined, color: _allowPendingCost ? Colors.teal : Colors.grey, size: 24),
+                      title: const Text('Cho phép nhập giá vốn sau', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                      subtitle: Text(
+                        _allowPendingCost ? 'Có thể bỏ qua giá vốn, nhập sau' : 'Bắt buộc nhập giá vốn > 0 khi xác nhận nhập kho',
+                        style: TextStyle(fontSize: 12, color: _allowPendingCost ? Colors.teal : Colors.grey.shade600),
                       ),
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(7),
-                                  decoration: BoxDecoration(
-                                    color: Colors.teal.shade100,
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: Icon(Icons.inventory_2_outlined, color: Colors.teal.shade700, size: 20),
-                                ),
-                                const SizedBox(width: 12),
-                                const Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text('Cho phép nhập giá vốn sau',
-                                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                                      SizedBox(height: 2),
-                                      Text('Bật: nhập vốn sau khi có hóa đơn NCC',
-                                          style: TextStyle(fontSize: 12, color: Colors.grey)),
-                                    ],
-                                  ),
-                                ),
-                                // AbsorbPointer để switch không cạnh tranh gesture với InkWell cha
-                                AbsorbPointer(
-                                  child: Switch(
-                                    value: _allowPendingCost,
-                                    activeThumbColor: Colors.teal,
-                                    inactiveThumbColor: Colors.grey.shade400,
-                                    onChanged: _saveAllowPendingCost,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 6),
-                            AnimatedCrossFade(
-                              duration: const Duration(milliseconds: 200),
-                              crossFadeState: _allowPendingCost
-                                  ? CrossFadeState.showSecond
-                                  : CrossFadeState.showFirst,
-                              firstChild: Text(
-                                '🔒 Hiện tại: bắt buộc nhập giá vốn > 0 khi xác nhận nhập kho.',
-                                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                              ),
-                              secondChild: Text(
-                                '✅ Đã bật: có thể bỏ qua giá vốn, nhập sau. Sản phẩm chưa có vốn hiện badge cảnh báo.',
-                                style: TextStyle(fontSize: 12, color: Colors.teal.shade700),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                      controlAffinity: ListTileControlAffinity.trailing,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 4),
                     ),
-                    ), // end InkWell
+                    CheckboxListTile(
+                      value: _enableSupplier,
+                      onChanged: _isSavingSupplier ? null : (v) => _saveEnableSupplier(v ?? true),
+                      activeColor: Colors.indigo,
+                      checkboxShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                      secondary: _isSavingSupplier
+                          ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.indigo))
+                          : Icon(Icons.local_shipping_outlined, color: _enableSupplier ? Colors.indigo : Colors.grey, size: 24),
+                      title: const Text('Hiển thị nhà cung cấp (NCC)', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                      subtitle: Text(
+                        _enableSupplier ? 'Có thể chọn và theo dõi NCC trên từng đơn nhập' : 'Ẩn tính năng chọn nhà cung cấp khi nhập kho',
+                        style: TextStyle(fontSize: 12, color: _enableSupplier ? Colors.indigo : Colors.grey.shade600),
+                      ),
+                      controlAffinity: ListTileControlAffinity.trailing,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                    ),
+                    if (_enableSupplier)
+                      CheckboxListTile(
+                        value: _requireSupplier,
+                        onChanged: _isSavingRequireSupplier ? null : (v) => _saveRequireSupplier(v ?? true),
+                        activeColor: Colors.deepOrange,
+                        checkboxShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                        secondary: _isSavingRequireSupplier
+                            ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.deepOrange))
+                            : Icon(Icons.rule_rounded, color: _requireSupplier ? Colors.deepOrange : Colors.grey, size: 24),
+                        title: const Text('Bắt buộc chọn NCC khi nhập kho', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                        subtitle: Text(
+                          _requireSupplier ? 'Phải chọn NCC mới xác nhận được nhập kho' : 'NCC không bắt buộc — có thể bỏ qua',
+                          style: TextStyle(fontSize: 12, color: _requireSupplier ? Colors.deepOrange : Colors.grey.shade600),
+                        ),
+                        controlAffinity: ListTileControlAffinity.trailing,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                      ),
                   ],
 
                   ...buildGroup('interface', 'Giao diện & Ngôn ngữ'),

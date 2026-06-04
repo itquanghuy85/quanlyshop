@@ -45,6 +45,36 @@ class _PendingStockListViewState extends State<PendingStockListView> {
   ShopSettings? _shopSettings;
   BusinessTerminology get _terms =>
       BusinessTypeHelper.instance.getTerminology(_shopSettings);
+  bool get _allowPendingCost => _shopSettings?.allowPendingCost ?? false;
+  bool get _enableSupplier => _shopSettings?.enableSupplier ?? true;
+  bool get _requireSupplier => _shopSettings?.requireSupplier ?? true;
+
+  /// Kiểm tra có thể xác nhận không — tôn trọng cài đặt allowPendingCost và enableSupplier
+  bool _canConfirmEntry(StockEntry entry) {
+    if (entry.items.isEmpty) return false;
+    if (_enableSupplier && _requireSupplier && (entry.supplierId == null || entry.supplierId!.isEmpty)) return false;
+    if (entry.paymentMethod == null || entry.paymentMethod!.isEmpty) return false;
+    if (_allowPendingCost) return true;
+    return entry.items.every((item) => item.hasAccountingInfo);
+  }
+
+  /// Danh sách thông tin còn thiếu — tôn trọng cài đặt allowPendingCost và enableSupplier
+  List<String> _missingInfoFor(StockEntry entry) {
+    final missing = <String>[];
+    if (entry.items.isEmpty) {
+      missing.add('Chưa có sản phẩm');
+    } else if (!_allowPendingCost) {
+      final noCost = entry.items.where((i) => !i.hasAccountingInfo).length;
+      if (noCost > 0) missing.add('$noCost sản phẩm chưa có giá vốn');
+    }
+    if (_enableSupplier && _requireSupplier && (entry.supplierId == null || entry.supplierId!.isEmpty)) {
+      missing.add('Chưa chọn nhà cung cấp');
+    }
+    if (entry.paymentMethod == null || entry.paymentMethod!.isEmpty) {
+      missing.add('Chưa chọn thanh toán');
+    }
+    return missing;
+  }
 
   // Permission: cost price visibility
   bool _canViewCostPrice = false;
@@ -194,7 +224,7 @@ class _PendingStockListViewState extends State<PendingStockListView> {
   }
 
   Future<void> _confirmEntry(StockEntry entry) async {
-    if (!entry.canConfirm) {
+    if (!_canConfirmEntry(entry)) {
       NotificationService.showSnackBar(
         'Chưa đủ thông tin để xác nhận',
         color: Colors.red,
@@ -232,7 +262,11 @@ class _PendingStockListViewState extends State<PendingStockListView> {
     );
 
     if (confirm == true && entry.firestoreId != null) {
-      final success = await _service.confirmEntry(entry.firestoreId!);
+      final success = await _service.confirmEntry(
+        entry.firestoreId!,
+        allowPendingCost: _allowPendingCost,
+        requireSupplier: _enableSupplier && _requireSupplier,
+      );
       if (success) {
         await _loadData();
         if (!mounted) return;
@@ -606,7 +640,7 @@ class _PendingStockListViewState extends State<PendingStockListView> {
         : '';
 
     // Determine card color based on completeness
-    final baseBgColor = entry.canConfirm
+    final baseBgColor = _canConfirmEntry(entry)
         ? Colors.green.shade50
         : entry.daysSinceCreated > 7
         ? Colors.red.shade50
@@ -616,7 +650,7 @@ class _PendingStockListViewState extends State<PendingStockListView> {
         ? Color.alphaBlend(Colors.blue.withOpacity(0.04), baseBgColor)
         : baseBgColor;
 
-    final borderColor = entry.canConfirm
+    final borderColor = _canConfirmEntry(entry)
         ? Colors.green.shade300
         : entry.daysSinceCreated > 7
         ? Colors.red.shade300
@@ -776,7 +810,7 @@ class _PendingStockListViewState extends State<PendingStockListView> {
               ),
 
               // Missing info warning
-              if (!entry.canConfirm) ...[
+              if (_missingInfoFor(entry).isNotEmpty) ...[
                 const SizedBox(height: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(
@@ -797,7 +831,7 @@ class _PendingStockListViewState extends State<PendingStockListView> {
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
-                          'Thiếu: ${entry.missingInfo.join(", ")}',
+                          'Thiếu: ${_missingInfoFor(entry).join(", ")}',
                           style: TextStyle(
                             fontSize: AppTextStyles.body1.fontSize,
                           ),
@@ -874,11 +908,11 @@ class _PendingStockListViewState extends State<PendingStockListView> {
                   SizedBox(
                     height: 32,
                     child: ElevatedButton(
-                      onPressed: entry.canConfirm
+                      onPressed: _canConfirmEntry(entry)
                           ? () => _confirmEntry(entry)
                           : null,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: entry.canConfirm
+                        backgroundColor: _canConfirmEntry(entry)
                             ? Colors.green
                             : Colors.grey,
                         foregroundColor: Colors.white,

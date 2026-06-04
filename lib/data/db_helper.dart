@@ -3495,6 +3495,26 @@ class DBHelper {
           debugPrint('DB onOpen check error (shop_settings allowPendingCost): $e');
         }
 
+        // Ensure enableSupplier / requireSupplier columns exist in shop_settings table
+        try {
+          final cols = await db.rawQuery('PRAGMA table_info(shop_settings)');
+          final names = cols.map((c) => c['name'] as String).toSet();
+          if (!names.contains('enableSupplier')) {
+            await db.execute(
+              'ALTER TABLE shop_settings ADD COLUMN enableSupplier INTEGER DEFAULT 1',
+            );
+            debugPrint('DB onOpen: added enableSupplier to shop_settings');
+          }
+          if (!names.contains('requireSupplier')) {
+            await db.execute(
+              'ALTER TABLE shop_settings ADD COLUMN requireSupplier INTEGER DEFAULT 1',
+            );
+            debugPrint('DB onOpen: added requireSupplier to shop_settings');
+          }
+        } catch (e) {
+          debugPrint('DB onOpen check error (shop_settings supplier cols): $e');
+        }
+
         // Ensure checkedBy/createdAt columns exist in inventory_checks table
         try {
           final cols = await db.rawQuery('PRAGMA table_info(inventory_checks)');
@@ -5088,6 +5108,7 @@ class DBHelper {
     int offset, {
     String? type,
     bool inStockOnly = false,
+    bool missingInfoOnly = false,
   }) async {
     final shopId = await _getScopedShopId('getProductsPaged');
     if (shopId == null) return [];
@@ -5103,6 +5124,12 @@ class DBHelper {
       where += ' AND quantity > 0 AND (status = 1 OR status IS NULL)';
     }
 
+    if (missingInfoOnly) {
+      // Hàng đã vào kho chính (isPending=0) nhưng thiếu giá vốn hoặc NCC
+      where += ' AND (isPending = 0 OR isPending IS NULL)'
+          ' AND (cost = 0 OR cost IS NULL OR supplier IS NULL OR supplier = \'\')';
+    }
+
     final maps = await (await database).query(
       'products',
       where: where,
@@ -5115,7 +5142,11 @@ class DBHelper {
   }
 
   /// Get total count of products for pagination
-  Future<int> getProductsCount({String? type, bool inStockOnly = false}) async {
+  Future<int> getProductsCount({
+    String? type,
+    bool inStockOnly = false,
+    bool missingInfoOnly = false,
+  }) async {
     final shopId = await _getScopedShopId('getProductsCount');
     if (shopId == null) return 0;
 
@@ -5128,6 +5159,11 @@ class DBHelper {
 
     if (inStockOnly) {
       where += ' AND quantity > 0 AND (status = 1 OR status IS NULL)';
+    }
+
+    if (missingInfoOnly) {
+      where += ' AND (isPending = 0 OR isPending IS NULL)'
+          ' AND (cost = 0 OR cost IS NULL OR supplier IS NULL OR supplier = \'\')';
     }
 
     String query = 'SELECT COUNT(*) as count FROM products WHERE $where';

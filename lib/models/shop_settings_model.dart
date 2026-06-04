@@ -34,6 +34,12 @@ class ShopSettings {
   /// false (mặc định) = bắt buộc nhập giá vốn > 0 khi xác nhận nhập kho
   final bool allowPendingCost;
 
+  // === MODULE NHÀ CUNG CẤP ===
+  /// true (mặc định) = bật tính năng quản lý nhà cung cấp
+  final bool enableSupplier;
+  /// true (mặc định) = bắt buộc chọn NCC khi nhập kho (chỉ có hiệu lực khi enableSupplier = true)
+  final bool requireSupplier;
+
   // === DEFAULT FLAG ===
   /// True nếu settings được tạo mặc định (shop chưa thiết lập ngành kinh doanh)
   final bool isDefault;
@@ -59,6 +65,8 @@ class ShopSettings {
     this.isSynced = false,
     this.isDefault = false,
     this.allowPendingCost = false,
+    this.enableSupplier = true,
+    this.requireSupplier = true,
   }) : createdAt = createdAt ?? DateTime.now(),
        updatedAt = updatedAt ?? DateTime.now();
 
@@ -111,6 +119,8 @@ class ShopSettings {
       isSynced: map['isSynced'] == true || map['isSynced'] == 1,
       isDefault: false,
       allowPendingCost: map['allowPendingCost'] == true || map['allowPendingCost'] == 1,
+      enableSupplier: map['enableSupplier'] != false && map['enableSupplier'] != 0,
+      requireSupplier: map['requireSupplier'] != false && map['requireSupplier'] != 0,
     );
   }
 
@@ -142,6 +152,8 @@ class ShopSettings {
       'expiryWarningDays': expiryWarningDays,
       'lowStockWarning': lowStockWarning,
       'allowPendingCost': allowPendingCost,
+      'enableSupplier': enableSupplier,
+      'requireSupplier': requireSupplier,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': DateTime.now().toIso8601String(),
       'updatedBy': updatedBy,
@@ -169,6 +181,8 @@ class ShopSettings {
       'updatedBy': updatedBy,
       'isSynced': isSynced ? 1 : 0,
       'allowPendingCost': allowPendingCost ? 1 : 0,
+      'enableSupplier': enableSupplier ? 1 : 0,
+      'requireSupplier': requireSupplier ? 1 : 0,
     };
   }
 
@@ -194,6 +208,8 @@ class ShopSettings {
     bool? isSynced,
     bool? isDefault,
     bool? allowPendingCost,
+    bool? enableSupplier,
+    bool? requireSupplier,
   }) {
     return ShopSettings(
       id: id ?? this.id,
@@ -216,6 +232,8 @@ class ShopSettings {
       isSynced: isSynced ?? this.isSynced,
       isDefault: isDefault ?? this.isDefault,
       allowPendingCost: allowPendingCost ?? this.allowPendingCost,
+      enableSupplier: enableSupplier ?? this.enableSupplier,
+      requireSupplier: requireSupplier ?? this.requireSupplier,
     );
   }
 

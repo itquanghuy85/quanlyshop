@@ -4706,44 +4706,67 @@ class SyncService {
       final String? shopId = await UserService.getCurrentShopId();
       final dbHelper = DBHelper();
 
-      // Đồng bộ Quick Input Codes
       final quickInputCodes = await dbHelper.getUnsyncedQuickInputCodes();
       debugPrint(
         "syncQuickInputCodesToCloud: có ${quickInputCodes.length} quick input codes cần sync",
       );
 
-      if (quickInputCodes.isNotEmpty) {
-        final WriteBatch quickInputBatch = _db.batch();
-        for (var code in quickInputCodes) {
-          try {
-            Map<String, dynamic> data = code.toMap();
-            data['shopId'] = shopId;
-            data.remove('id');
-
-            final docId =
-                code.firestoreId ??
-                "qic_${code.createdAt}_${code.name.replaceAll(' ', '_')}";
-            quickInputBatch.set(
-              _db.collection('quick_input_codes').doc(docId),
-              data,
-              SetOptions(merge: true),
-            );
-
-            code.firestoreId = docId;
-            code.shopId = shopId;
-            code.isSynced = true;
-            await dbHelper.updateQuickInputCode(code);
-          } catch (e) {
-            debugPrint("Lỗi sync quick input code ${code.id}: $e");
-          }
-        }
-        await quickInputBatch.commit();
-        debugPrint(
-          "Đã đồng bộ thành công ${quickInputCodes.length} mã nhập nhanh lên Cloud",
-        );
-      } else {
+      if (quickInputCodes.isEmpty) {
         debugPrint("Không có mã nhập nhanh nào cần đồng bộ");
+        return;
       }
+
+      // Firestore giới hạn 500 docs/batch — chia nhỏ để tránh lỗi
+      const batchSize = 450;
+      int totalSynced = 0;
+
+      for (int start = 0; start < quickInputCodes.length; start += batchSize) {
+        final chunk = quickInputCodes.sublist(
+          start,
+          (start + batchSize).clamp(0, quickInputCodes.length),
+        );
+
+        // Chuẩn bị dữ liệu cho từng code trước
+        final toUpdate = <QuickInputCode>[];
+        final batch = _db.batch();
+
+        for (var code in chunk) {
+          final docId =
+              code.firestoreId ??
+              "qic_${code.createdAt}_${code.name.replaceAll(' ', '_')}";
+          final Map<String, dynamic> data = code.toMap();
+          data['shopId'] = shopId;
+          data.remove('id');
+          // Firestore dùng bool, không phải int như SQLite
+          data['isActive'] = code.isActive;
+          data['isSynced'] = true;
+          // Đảm bảo code field luôn có giá trị (rule yêu cầu has(['code', 'shopId']))
+          data['code'] = code.code ?? docId;
+
+          batch.set(
+            _db.collection('quick_input_codes').doc(docId),
+            data,
+            SetOptions(merge: true),
+          );
+
+          code
+            ..firestoreId = docId
+            ..shopId = shopId
+            ..isSynced = true;
+          toUpdate.add(code);
+        }
+
+        // Commit batch trước — chỉ cập nhật local DB khi Firestore thành công
+        await batch.commit();
+
+        for (final code in toUpdate) {
+          await dbHelper.updateQuickInputCode(code);
+        }
+        totalSynced += chunk.length;
+        debugPrint("syncQuickInputCodesToCloud: đã sync $totalSynced/${quickInputCodes.length}");
+      }
+
+      debugPrint("Đã đồng bộ thành công $totalSynced mã nhập nhanh lên Cloud");
     } catch (e) {
       debugPrint("Lỗi syncQuickInputCodesToCloud: $e");
       rethrow;

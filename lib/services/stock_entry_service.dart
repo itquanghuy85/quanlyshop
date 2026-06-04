@@ -284,7 +284,7 @@ class StockEntryService {
   /// Xác nhận nhập kho - PHẢI atomic
   /// Tạo products + financial_activity + supplier_debt (nếu công nợ)
   /// Stock accumulation: phụ kiện/linh kiện trùng tên+thuộc tính → cộng dồn SL
-  Future<bool> confirmEntry(String entryId) async {
+  Future<bool> confirmEntry(String entryId, {bool allowPendingCost = false, bool requireSupplier = true}) async {
     debugPrint('🔄 confirmEntry: START entryId=$entryId');
     try {
       // === PRE-READ: Lấy entry + query existing products/parts TRƯỚC transaction ===
@@ -422,8 +422,12 @@ class StockEntryService {
         if (entry.status != StockEntryStatus.draft) {
           throw Exception('Phiếu đã được xử lý');
         }
-        if (!entry.canConfirm) {
-          throw Exception('Chưa đủ thông tin: ${entry.missingInfo.join(", ")}');
+        final missing = entry.missingInfoWithSettings(
+          allowPendingCost: allowPendingCost,
+          requireSupplier: requireSupplier,
+        );
+        if (missing.isNotEmpty) {
+          throw Exception('Chưa đủ thông tin: ${missing.join(", ")}');
         }
 
         // 3. Tạo/cập nhật products từ items
@@ -1085,11 +1089,15 @@ class StockEntryService {
   }
 
   /// Nhập nhanh - tạo và xác nhận ngay trong 1 bước
-  Future<bool> quickStockIn(StockEntry entry) async {
+  Future<bool> quickStockIn(StockEntry entry, {bool allowPendingCost = false, bool requireSupplier = true}) async {
     try {
       // Validate đủ thông tin
-      if (!entry.canConfirm) {
-        _showError('Chưa đủ thông tin: ${entry.missingInfo.join(", ")}');
+      final missing = entry.missingInfoWithSettings(
+        allowPendingCost: allowPendingCost,
+        requireSupplier: requireSupplier,
+      );
+      if (missing.isNotEmpty) {
+        _showError('Chưa đủ thông tin: ${missing.join(", ")}');
         return false;
       }
 
@@ -1102,7 +1110,11 @@ class StockEntryService {
       }
 
       // Xác nhận ngay
-      final confirmed = await confirmEntry(created.firestoreId!);
+      final confirmed = await confirmEntry(
+        created.firestoreId!,
+        allowPendingCost: allowPendingCost,
+        requireSupplier: requireSupplier,
+      );
       if (!confirmed) {
         // Nếu confirm fail, hủy entry đã tạo
         await cancelEntry(created.firestoreId!);

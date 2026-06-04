@@ -23,6 +23,7 @@ import '../widgets/image_picker_widget.dart';
 import 'quick_input_codes_view.dart';
 import 'pending_stock_list_view.dart';
 import '../widgets/custom_app_bar.dart';
+import '../widgets/supplier_picker_sheet.dart';
 
 /// Form nhập kho thông minh - hỗ trợ cả Nhập nhanh và Nhập tạm
 class SmartStockInView extends StatefulWidget {
@@ -65,6 +66,8 @@ class _SmartStockInViewState extends State<SmartStockInView> {
   bool get _isFood => _shopSettings?.businessType == 'food';
   bool get _isFashion => _shopSettings?.businessType == 'fashion';
   bool get _showImei => _shopSettings?.enableSerial ?? true;
+  bool get _enableSupplier => _shopSettings?.enableSupplier ?? true;
+  bool get _requireSupplier => _shopSettings?.requireSupplier ?? true;
 
   /// Terminology động theo ngành
   BusinessTerminology get _terms =>
@@ -648,17 +651,19 @@ class _SmartStockInViewState extends State<SmartStockInView> {
     return imei.isNotEmpty && qty != 1;
   }
 
+  bool get _allowPendingCost => _shopSettings?.allowPendingCost ?? false;
+
   /// Kiểm tra đủ thông tin để xác nhận ngay
   bool get _canConfirmNow {
     if (_nameCtrl.text.trim().isEmpty) return false;
-    // Sử dụng CurrencyTextField.getValue() để check giá vốn đúng cách
-    if (_canViewCostPrice && CurrencyTextField.getValue(_costCtrl) <= 0)
-      return false;
-    if (_selectedSupplier == null) return false;
+    // Bỏ qua yêu cầu giá vốn khi shop cho phép nhập giá vốn sau
+    if (_canViewCostPrice &&
+        !_allowPendingCost &&
+        CurrencyTextField.getValue(_costCtrl) <= 0) return false;
+    if (_enableSupplier && _requireSupplier && _selectedSupplier == null) return false;
     if (_selectedPaymentMethod == null) return false;
-    if (_hasIMEIConflict) return false; // Có IMEI nhưng SL != 1
+    if (_hasIMEIConflict) return false;
 
-    // Điện thoại phải có đầy đủ: IMEI (hoặc nhập lô), Hãng, Dung lượng, Màu, Tình trạng
     if (_isPhone) {
       if (_selectedBrand == null) return false;
       if (_selectedCapacity == null) return false;
@@ -666,7 +671,6 @@ class _SmartStockInViewState extends State<SmartStockInView> {
       if (_selectedCondition == null) return false;
     }
 
-    // Thời trang phải có: Size, Màu sắc
     if (_isFashionProduct) {
       if (_selectedSize == null) return false;
       if (_selectedColor == null) return false;
@@ -678,9 +682,11 @@ class _SmartStockInViewState extends State<SmartStockInView> {
   List<String> get _missingConfirmInfo {
     final missing = <String>[];
     if (_nameCtrl.text.trim().isEmpty) missing.add('Tên sản phẩm');
-    if (_canViewCostPrice && CurrencyTextField.getValue(_costCtrl) <= 0)
-      missing.add('Giá vốn');
-    if (_selectedSupplier == null) missing.add('Nhà cung cấp');
+    // Giá vốn chỉ bắt buộc khi shop chưa bật "cho phép nhập giá vốn sau"
+    if (_canViewCostPrice &&
+        !_allowPendingCost &&
+        CurrencyTextField.getValue(_costCtrl) <= 0) missing.add('Giá vốn');
+    if (_enableSupplier && _requireSupplier && _selectedSupplier == null) missing.add('Nhà cung cấp');
     if (_selectedPaymentMethod == null) missing.add('Phương thức TT');
     if (_isPhone) {
       if (_selectedBrand == null) missing.add('Hãng');
@@ -688,7 +694,6 @@ class _SmartStockInViewState extends State<SmartStockInView> {
       if (_selectedColor == null) missing.add('Màu sắc');
       if (_selectedCondition == null) missing.add('Tình trạng');
     }
-    // Thời trang cần Size và Màu sắc
     if (_isFashionProduct) {
       if (_selectedSize == null) missing.add('Size');
       if (_selectedColor == null) missing.add('Màu sắc');
@@ -1874,7 +1879,7 @@ class _SmartStockInViewState extends State<SmartStockInView> {
             const SizedBox(height: 12),
 
             // Nhà cung cấp
-            Row(
+            if (_enableSupplier) Row(
               children: [
                 Expanded(
                   child: DropdownButtonFormField<String>(
@@ -1931,7 +1936,33 @@ class _SmartStockInViewState extends State<SmartStockInView> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 4),
+                // Tìm kiếm NCC
+                IconButton(
+                  onPressed: () async {
+                    final picked = await showSupplierPickerSheet(context);
+                    if (!mounted || picked == null) return;
+                    final name = picked['name'] as String? ?? '';
+                    if (name.isEmpty) return;
+                    setState(() {
+                      // Thêm vào _suppliers nếu chưa có để dropdown nhận diện
+                      if (!_suppliers.any((s) => s['name'] == name)) {
+                        _suppliers = [picked, ..._suppliers];
+                      }
+                      _selectedSupplier = name;
+                      final match = _suppliers.firstWhere(
+                        (s) => s['name'] == name,
+                        orElse: () => {},
+                      );
+                      _selectedSupplierId =
+                          match['firestoreId']?.toString() ??
+                          match['id']?.toString();
+                    });
+                  },
+                  icon: const Icon(Icons.search, color: Colors.blue, size: 26),
+                  tooltip: 'Tìm nhà cung cấp',
+                ),
+                // Thêm NCC mới
                 IconButton(
                   onPressed: _addNewSupplier,
                   icon: const Icon(
@@ -1943,7 +1974,7 @@ class _SmartStockInViewState extends State<SmartStockInView> {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            if (_enableSupplier) const SizedBox(height: 12),
 
             // Phương thức thanh toán
             Text(

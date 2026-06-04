@@ -57,10 +57,16 @@ class _SettingsViewState extends State<SettingsView> {
   String? _selectedShopId;
   bool _loadingShops = false;
 
-  // Cài đặt giá vốn
-  bool _allowPendingCost = false;
   ShopSettings? _shopSettings;
   bool _isSavingPendingCost = false;
+  bool _isSavingSupplier = false;
+  bool? _pendingCostOverride;
+  int _settingsVersion = 0;
+  bool get _allowPendingCost =>
+      _pendingCostOverride ?? _shopSettings?.allowPendingCost ?? false;
+  bool get _enableSupplier => _shopSettings?.enableSupplier ?? true;
+  bool get _requireSupplier => _shopSettings?.requireSupplier ?? true;
+  bool _isSavingRequireSupplier = false;
   
   // Current selected locale
   // Language selection hidden — Vietnamese only
@@ -98,71 +104,128 @@ class _SettingsViewState extends State<SettingsView> {
   }
 
   Future<void> _loadShopSettings() async {
+    // Ghi nhớ version tại thời điểm bắt đầu load
+    final loadedVersion = _settingsVersion;
     try {
+      final shopId = await UserService.getCurrentShopId();
       final s = await CategoryService().getShopSettings();
-      if (!mounted || s == null) return;
-      setState(() {
-        _shopSettings = s;
-        _allowPendingCost = s.allowPendingCost;
-      });
+      final effective = s ?? (shopId != null ? ShopSettings.electronics(shopId) : null);
+      if (!mounted || effective == null) return;
+      // Nếu có save xảy ra trong khi đang load → bỏ qua kết quả cũ
+      if (_settingsVersion != loadedVersion) return;
+      setState(() => _shopSettings = effective);
     } catch (e) {
       debugPrint('SettingsView._loadShopSettings: $e');
     }
   }
 
   Future<void> _saveAllowPendingCost(bool value) async {
+    debugPrint('🔄 TOGGLE: _saveAllowPendingCost called value=$value, _isSavingPendingCost=$_isSavingPendingCost');
     if (_isSavingPendingCost) return;
-    final shopId = await UserService.getCurrentShopId();
-    final current = _shopSettings ?? ShopSettings.electronics(shopId ?? '');
-    if (shopId == null || shopId.isEmpty) {
-      NotificationService.showSnackBar(
-        'Chưa xác định cửa hàng hiện tại. Vui lòng chọn lại shop.',
-        color: Colors.red,
-      );
-      return;
-    }
 
     setState(() {
       _isSavingPendingCost = true;
-      _allowPendingCost = value;
-      _shopSettings = current.copyWith(allowPendingCost: value, shopId: shopId);
+      _pendingCostOverride = value;
     });
+    debugPrint('🔄 TOGGLE: after first setState: _allowPendingCost=$_allowPendingCost override=$_pendingCostOverride');
 
     try {
+      final shopId = await UserService.getCurrentShopId();
+      debugPrint('🔄 TOGGLE: shopId=$shopId');
+      if (shopId == null || shopId.isEmpty) {
+        throw Exception('Chưa xác định cửa hàng hiện tại. Vui lòng chọn lại shop.');
+      }
+
+      final current = _shopSettings ?? ShopSettings.electronics(shopId);
+      final updated = current.copyWith(allowPendingCost: value, shopId: shopId);
+      debugPrint('🔄 TOGGLE: updated.allowPendingCost=${updated.allowPendingCost}');
+
       final svc = CategoryService();
       svc.resetRemoteWriteCooldown();
-      final saved = await svc.saveShopSettings(
-        current.copyWith(allowPendingCost: value, shopId: shopId),
-      );
+      final saved = await svc.saveShopSettings(updated);
+      debugPrint('🔄 TOGGLE: saveShopSettings returned=$saved');
       if (!saved) {
         throw Exception('Không thể lưu cài đặt (local/remote).');
       }
 
-      svc.clearCache();
-      final refreshed = await svc.getShopSettings();
-      if (refreshed == null || refreshed.allowPendingCost != value) {
-        throw Exception('Lưu chưa được xác nhận. Vui lòng thử lại.');
-      }
-
       if (!mounted) return;
       setState(() {
-        _shopSettings = refreshed;
-        _allowPendingCost = refreshed.allowPendingCost;
+        _shopSettings = updated;
+        _settingsVersion++;
+        _pendingCostOverride = null;
         _isSavingPendingCost = false;
       });
+      debugPrint('🔄 TOGGLE: SUCCESS → _allowPendingCost=$_allowPendingCost shopSettings.allowPendingCost=${_shopSettings?.allowPendingCost}');
       NotificationService.showSnackBar(
         value ? '✅ Đã bật: cho phép nhập giá vốn sau' : '🔒 Đã tắt: bắt buộc nhập giá vốn',
         color: value ? Colors.teal : Colors.grey.shade700,
       );
     } catch (e) {
+      debugPrint('🔄 TOGGLE: CATCH ERROR=$e');
       if (mounted) {
         setState(() {
           _isSavingPendingCost = false;
-          _allowPendingCost = !value;
-          _shopSettings = current.copyWith(allowPendingCost: !value, shopId: shopId);
+          _pendingCostOverride = null;
         });
       }
+      debugPrint('🔄 TOGGLE: after catch setState: _allowPendingCost=$_allowPendingCost shopSettings=${_shopSettings?.allowPendingCost}');
       NotificationService.showSnackBar('Lỗi lưu cài đặt: $e', color: Colors.red);
+    }
+  }
+
+  Future<void> _saveRequireSupplier(bool value) async {
+    if (_isSavingRequireSupplier) return;
+    setState(() => _isSavingRequireSupplier = true);
+    try {
+      final shopId = await UserService.getCurrentShopId();
+      if (shopId == null || shopId.isEmpty) throw Exception('Chưa xác định cửa hàng');
+      final current = _shopSettings ?? ShopSettings.electronics(shopId);
+      final svc = CategoryService();
+      svc.resetRemoteWriteCooldown();
+      final saved = await svc.saveShopSettings(current.copyWith(requireSupplier: value));
+      if (!saved) throw Exception('Không thể lưu cài đặt');
+      if (mounted) {
+        setState(() {
+          _shopSettings = current.copyWith(requireSupplier: value);
+          _settingsVersion++;
+          _isSavingRequireSupplier = false;
+        });
+        NotificationService.showSnackBar(
+          value ? '✅ Bắt buộc chọn NCC khi nhập kho' : '🔓 NCC không bắt buộc khi nhập kho',
+          color: value ? Colors.deepOrange : Colors.grey.shade700,
+        );
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isSavingRequireSupplier = false);
+      NotificationService.showSnackBar('Lỗi: $e', color: Colors.red);
+    }
+  }
+
+  Future<void> _saveEnableSupplier(bool value) async {
+    if (_isSavingSupplier) return;
+    setState(() => _isSavingSupplier = true);
+    try {
+      final shopId = await UserService.getCurrentShopId();
+      if (shopId == null || shopId.isEmpty) throw Exception('Chưa xác định cửa hàng');
+      final current = _shopSettings ?? ShopSettings.electronics(shopId);
+      final svc = CategoryService();
+      svc.resetRemoteWriteCooldown();
+      final saved = await svc.saveShopSettings(current.copyWith(enableSupplier: value));
+      if (!saved) throw Exception('Không thể lưu cài đặt');
+      if (mounted) {
+        setState(() {
+          _shopSettings = current.copyWith(enableSupplier: value);
+          _settingsVersion++;
+          _isSavingSupplier = false;
+        });
+        NotificationService.showSnackBar(
+          value ? '✅ Đã bật: hiển thị nhà cung cấp' : '🔒 Đã tắt: ẩn tính năng nhà cung cấp',
+          color: value ? Colors.indigo : Colors.grey.shade700,
+        );
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isSavingSupplier = false);
+      NotificationService.showSnackBar('Lỗi: $e', color: Colors.red);
     }
   }
 
@@ -777,65 +840,44 @@ class _SettingsViewState extends State<SettingsView> {
                     ),
                   ),
 
-                // Toggle nhập giá vốn sau (chỉ owner)
+                // Các toggle kho/NCC — chỉ owner/admin
                 if (_role == 'owner' || _role == 'admin' || UserService.isCurrentUserSuperAdmin()) ...[
                   const SizedBox(height: 10),
-                  Card(
-                    color: Colors.teal.shade50,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15),
-                      side: BorderSide(color: Colors.teal.shade200),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: Colors.teal.shade100,
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Icon(Icons.inventory_2_outlined, color: Colors.teal.shade700, size: 22),
-                              ),
-                              const SizedBox(width: 12),
-                              const Expanded(
-                                child: Text(
-                                  'Cho phép nhập giá vốn sau',
-                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                                ),
-                              ),
-                              Switch(
-                                value: _allowPendingCost,
-                                activeThumbColor: Colors.teal,
-                                onChanged: (!_isSavingPendingCost && _shopSettings != null)
-                                    ? _saveAllowPendingCost
-                                    : null,
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          AnimatedCrossFade(
-                            duration: const Duration(milliseconds: 200),
-                            crossFadeState: _allowPendingCost
-                                ? CrossFadeState.showSecond
-                                : CrossFadeState.showFirst,
-                            firstChild: Text(
-                              '🔒 Phương thức hiện tại: Bắt buộc nhập giá vốn > 0 khi xác nhận nhập kho.',
-                              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                            ),
-                            secondChild: Text(
-                              '✅ Phương thức mới: Có thể bỏ qua giá vốn, nhập sau. Sản phẩm chưa có vốn sẽ hiện badge cảnh báo.',
-                              style: TextStyle(fontSize: 12, color: Colors.teal.shade700),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                  // Toggle nhập giá vốn sau
+                  _buildToggleCard(
+                    icon: Icons.inventory_2_outlined,
+                    iconColor: Colors.teal,
+                    title: 'Cho phép nhập giá vốn sau',
+                    descOff: 'Bắt buộc nhập giá vốn > 0 khi xác nhận nhập kho.',
+                    descOn: 'Có thể bỏ qua giá vốn, nhập sau. Sản phẩm chưa có vốn hiện badge cảnh báo.',
+                    value: _allowPendingCost,
+                    isSaving: _isSavingPendingCost || _shopSettings == null,
+                    onTap: () => _saveAllowPendingCost(!_allowPendingCost),
                   ),
+                  const SizedBox(height: 8),
+                  _buildToggleCard(
+                    icon: Icons.local_shipping_outlined,
+                    iconColor: Colors.indigo,
+                    title: 'Hiển thị nhà cung cấp (NCC)',
+                    descOff: 'Ẩn tính năng chọn nhà cung cấp khi nhập kho.',
+                    descOn: 'Có thể chọn và theo dõi nhà cung cấp trên từng đơn nhập.',
+                    value: _enableSupplier,
+                    isSaving: _isSavingSupplier || _shopSettings == null,
+                    onTap: () => _saveEnableSupplier(!_enableSupplier),
+                  ),
+                  if (_enableSupplier) ...[
+                    const SizedBox(height: 8),
+                    _buildToggleCard(
+                      icon: Icons.rule_rounded,
+                      iconColor: Colors.deepOrange,
+                      title: 'Bắt buộc chọn NCC khi nhập kho',
+                      descOff: 'NCC không bắt buộc — có thể bỏ qua khi nhập.',
+                      descOn: 'Bắt buộc phải chọn NCC mới được xác nhận nhập kho.',
+                      value: _requireSupplier,
+                      isSaving: _isSavingRequireSupplier || _shopSettings == null,
+                      onTap: () => _saveRequireSupplier(!_requireSupplier),
+                    ),
+                  ],
                 ],
 
                 // NÚT XÓA TRẮNG CHỈ HIỆN CHO SUPER ADMIN
@@ -1860,6 +1902,34 @@ class _SettingsViewState extends State<SettingsView> {
         );
       }
     }
+  }
+
+  Widget _buildToggleCard({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String descOff,
+    required String descOn,
+    required bool value,
+    required bool isSaving,
+    required VoidCallback onTap,
+  }) {
+    return CheckboxListTile(
+      value: value,
+      onChanged: isSaving ? null : (_) => onTap(),
+      activeColor: iconColor,
+      checkboxShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+      secondary: isSaving
+          ? SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: iconColor))
+          : Icon(icon, color: value ? iconColor : Colors.grey, size: 24),
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+      subtitle: Text(
+        value ? descOn : descOff,
+        style: TextStyle(fontSize: 12, color: value ? iconColor : Colors.grey.shade600),
+      ),
+      controlAffinity: ListTileControlAffinity.trailing,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+    );
   }
 
   Widget _buildSection(String title) => Padding(

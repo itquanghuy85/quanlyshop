@@ -183,17 +183,13 @@ class CategoryService {
     }
 
     final settingsWithShop = settings.copyWith(shopId: shopId);
-    
-    debugPrint('💾 CategoryService.saveShopSettings: businessType=${settingsWithShop.businessType}, enableRepair=${settingsWithShop.enableRepair}, shopId=$shopId');
 
-    // Clear existing local cache for this shop first
-    try {
-      final db = await _dbHelper.database;
-      await db.delete('shop_settings', where: 'shopId = ?', whereArgs: [shopId]);
-      debugPrint('💾 CategoryService: Cleared old local settings for shopId=$shopId');
-    } catch (e) {
-      debugPrint('Error clearing old shop settings: $e');
-    }
+    debugPrint('💾 CategoryService.saveShopSettings: businessType=${settingsWithShop.businessType}, enableRepair=${settingsWithShop.enableRepair}, allowPendingCost=${settingsWithShop.allowPendingCost}, shopId=$shopId');
+
+    // KHÔNG DELETE trước Firestore write — tránh race condition:
+    // Nếu xóa trước khi Firestore xong (~500ms), concurrent getShopSettings()
+    // sẽ không thấy record → fallback auto-create với allowPendingCost=false → ghi đè.
+    // _saveSettingsLocally() đã xử lý upsert (check exists → update / insert).
 
     // Save to Firestore
     if (_isRemoteWriteCooldownActive()) {

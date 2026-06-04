@@ -51,6 +51,7 @@ import '../widgets/storage_location_selector.dart';
 import '../services/product_image_service.dart';
 import '../models/storage_location_model.dart';
 import 'storage_location_view.dart';
+import 'missing_info_products_view.dart';
 import '../theme/popup_theme.dart';
 import '../widgets/app_popup.dart';
 import '../widgets/ai_order_input_sheet.dart';
@@ -86,7 +87,8 @@ class _InventoryViewState extends State<InventoryView>
   static const int _pageSize =
       20; // Load 20 products at a time to reduce frequent paging on long lists
   int _unsyncedCount = 0;
-  bool _canViewCostPrice = false; // Phân quyền xem giá vốn
+  bool _canViewCostPrice = false;
+  bool _isSavingPendingCost = false;
 
   // Total inventory summary from DB (not from paginated data)
   int _totalQtyFromDB = 0;
@@ -97,7 +99,7 @@ class _InventoryViewState extends State<InventoryView>
   String _filterType =
       'TẤT CẢ'; // Filter theo loại: TẤT CẢ, DIEN_THOAI, PHỤ KIỆN, LINH_KIEN
   String? _filterLocationCode; // Filter theo vị trí lưu kho
-  bool _showNoCostOnly = false; // Lọc sản phẩm chưa có giá vốn (cost == 0)
+
   int _repairPartsCount = 0; // Count for repair parts tab chip
 
   // ScrollController for lazy loading
@@ -121,7 +123,6 @@ class _InventoryViewState extends State<InventoryView>
       _searchQuery.isNotEmpty ||
       _filterType != 'TẤT CẢ' ||
       _showOutOfStock ||
-      _showNoCostOnly ||
       _filterLocationCode != null;
 
   final Set<int> _selectedIds = {};
@@ -150,6 +151,8 @@ class _InventoryViewState extends State<InventoryView>
   bool get _isFashion => _businessType == 'fashion';
   bool get _isElectronics => _businessType == 'electronics';
   bool get _allowPendingCost => _shopSettings?.allowPendingCost ?? false;
+  bool get _enableSupplier => _shopSettings?.enableSupplier ?? true;
+  bool get _requireSupplier => _shopSettings?.requireSupplier ?? true;
 
   // Variant Service for fashion products
   final VariantService _variantService = VariantService();
@@ -1418,7 +1421,11 @@ class _InventoryViewState extends State<InventoryView>
       }
 
       // Auto-confirm entry to update stock + financial records
-      final confirmed = await service.confirmEntry(created.firestoreId!);
+      final confirmed = await service.confirmEntry(
+        created.firestoreId!,
+        allowPendingCost: _allowPendingCost,
+        requireSupplier: _enableSupplier && _requireSupplier,
+      );
       if (confirmed) {
         NotificationService.showSnackBar(
           l10n.inventoryStockInSuccess(qty, p.name),
@@ -1870,6 +1877,91 @@ class _InventoryViewState extends State<InventoryView>
     _refresh();
   }
 
+  Future<void> _saveAllowPendingCost(bool value) async {
+    if (_isSavingPendingCost) return;
+    setState(() => _isSavingPendingCost = true);
+    try {
+      final shopId = await UserService.getCurrentShopId();
+      if (shopId == null || shopId.isEmpty) throw Exception('Chưa xác định cửa hàng');
+      final current = _shopSettings ?? ShopSettings.electronics(shopId);
+      final svc = CategoryService();
+      svc.resetRemoteWriteCooldown();
+      final saved = await svc.saveShopSettings(current.copyWith(allowPendingCost: value));
+      if (!saved) throw Exception('Không thể lưu cài đặt');
+      if (mounted) {
+        setState(() {
+          _shopSettings = current.copyWith(allowPendingCost: value);
+          _isSavingPendingCost = false;
+        });
+        NotificationService.showSnackBar(
+          value ? '✅ Đã bật: cho phép nhập giá vốn sau' : '🔒 Đã tắt: bắt buộc nhập giá vốn',
+          color: value ? Colors.teal : Colors.grey.shade700,
+        );
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isSavingPendingCost = false);
+      NotificationService.showSnackBar('Lỗi: $e', color: Colors.red);
+    }
+  }
+
+  bool _isSavingSupplier = false;
+
+  bool _isSavingRequireSupplier = false;
+
+  Future<void> _saveRequireSupplier(bool value) async {
+    if (_isSavingRequireSupplier) return;
+    setState(() => _isSavingRequireSupplier = true);
+    try {
+      final shopId = await UserService.getCurrentShopId();
+      if (shopId == null || shopId.isEmpty) throw Exception('Chưa xác định cửa hàng');
+      final current = _shopSettings ?? ShopSettings.electronics(shopId);
+      final svc = CategoryService();
+      svc.resetRemoteWriteCooldown();
+      final saved = await svc.saveShopSettings(current.copyWith(requireSupplier: value));
+      if (!saved) throw Exception('Không thể lưu cài đặt');
+      if (mounted) {
+        setState(() {
+          _shopSettings = current.copyWith(requireSupplier: value);
+          _isSavingRequireSupplier = false;
+        });
+        NotificationService.showSnackBar(
+          value ? '✅ Bắt buộc chọn NCC khi nhập kho' : '🔓 NCC không bắt buộc khi nhập kho',
+          color: value ? Colors.deepOrange : Colors.grey.shade700,
+        );
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isSavingRequireSupplier = false);
+      NotificationService.showSnackBar('Lỗi: $e', color: Colors.red);
+    }
+  }
+
+  Future<void> _saveEnableSupplier(bool value) async {
+    if (_isSavingSupplier) return;
+    setState(() => _isSavingSupplier = true);
+    try {
+      final shopId = await UserService.getCurrentShopId();
+      if (shopId == null || shopId.isEmpty) throw Exception('Chưa xác định cửa hàng');
+      final current = _shopSettings ?? ShopSettings.electronics(shopId);
+      final svc = CategoryService();
+      svc.resetRemoteWriteCooldown();
+      final saved = await svc.saveShopSettings(current.copyWith(enableSupplier: value));
+      if (!saved) throw Exception('Không thể lưu cài đặt');
+      if (mounted) {
+        setState(() {
+          _shopSettings = current.copyWith(enableSupplier: value);
+          _isSavingSupplier = false;
+        });
+        NotificationService.showSnackBar(
+          value ? '✅ Đã bật: hiển thị nhà cung cấp' : '🔒 Đã tắt: ẩn nhà cung cấp',
+          color: value ? Colors.indigo : Colors.grey.shade700,
+        );
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isSavingSupplier = false);
+      NotificationService.showSnackBar('Lỗi: $e', color: Colors.red);
+    }
+  }
+
   /// Get default inventory type based on business type
   String _getDefaultInventoryType() {
     switch (_businessType) {
@@ -2277,34 +2369,87 @@ class _InventoryViewState extends State<InventoryView>
                     endMs: result['endMs'],
                   );
                 }
+              } else if (value == 'pending_cost') {
+                _saveAllowPendingCost(!_allowPendingCost);
+              } else if (value == 'supplier') {
+                _saveEnableSupplier(!_enableSupplier);
+              } else if (value == 'require_supplier') {
+                _saveRequireSupplier(!_requireSupplier);
               }
             },
-            itemBuilder: (_) => [
-              PopupMenuItem(
-                value: 'location',
-                child: Row(children: [
-                  const Icon(Icons.location_on_rounded, size: 18),
-                  const SizedBox(width: 10),
-                  Text(l10n.inventoryStorageLocationMenu),
-                ]),
-              ),
-              PopupMenuItem(
-                value: 'print',
-                child: Row(children: [
-                  const Icon(Icons.qr_code_2_rounded, size: 18),
-                  const SizedBox(width: 10),
-                  Text(l10n.inventoryPrintLabelsMenu),
-                ]),
-              ),
-              PopupMenuItem(
-                value: 'excel',
-                child: Row(children: [
-                  const Icon(Icons.file_download_outlined, size: 18),
-                  const SizedBox(width: 10),
-                  Text(l10n.inventoryExportExcelMenu),
-                ]),
-              ),
-            ],
+            itemBuilder: (_) {
+              final canManage = widget.role == 'owner' ||
+                  widget.role == 'admin' ||
+                  UserService.isCurrentUserSuperAdmin();
+              return [
+                PopupMenuItem(
+                  value: 'location',
+                  child: Row(children: [
+                    const Icon(Icons.location_on_rounded, size: 18),
+                    const SizedBox(width: 10),
+                    Text(l10n.inventoryStorageLocationMenu),
+                  ]),
+                ),
+                PopupMenuItem(
+                  value: 'print',
+                  child: Row(children: [
+                    const Icon(Icons.qr_code_2_rounded, size: 18),
+                    const SizedBox(width: 10),
+                    Text(l10n.inventoryPrintLabelsMenu),
+                  ]),
+                ),
+                PopupMenuItem(
+                  value: 'excel',
+                  child: Row(children: [
+                    const Icon(Icons.file_download_outlined, size: 18),
+                    const SizedBox(width: 10),
+                    Text(l10n.inventoryExportExcelMenu),
+                  ]),
+                ),
+                if (canManage) ...[
+                  PopupMenuItem(
+                    value: 'pending_cost',
+                    child: Row(children: [
+                      Icon(
+                        _allowPendingCost ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                        size: 18,
+                        color: _allowPendingCost ? Colors.teal : Colors.grey,
+                      ),
+                      const SizedBox(width: 10),
+                      Text('Nhập giá vốn sau',
+                        style: TextStyle(color: _allowPendingCost ? Colors.teal : null, fontWeight: _allowPendingCost ? FontWeight.w600 : null)),
+                    ]),
+                  ),
+                  PopupMenuItem(
+                    value: 'supplier',
+                    child: Row(children: [
+                      Icon(
+                        _enableSupplier ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                        size: 18,
+                        color: _enableSupplier ? Colors.indigo : Colors.grey,
+                      ),
+                      const SizedBox(width: 10),
+                      Text('Nhà cung cấp (NCC)',
+                        style: TextStyle(color: _enableSupplier ? Colors.indigo : null, fontWeight: _enableSupplier ? FontWeight.w600 : null)),
+                    ]),
+                  ),
+                  if (_enableSupplier)
+                    PopupMenuItem(
+                      value: 'require_supplier',
+                      child: Row(children: [
+                        Icon(
+                          _requireSupplier ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                          size: 18,
+                          color: _requireSupplier ? Colors.deepOrange : Colors.grey,
+                        ),
+                        const SizedBox(width: 10),
+                        Text('Bắt buộc chọn NCC',
+                          style: TextStyle(color: _requireSupplier ? Colors.deepOrange : null, fontWeight: _requireSupplier ? FontWeight.w600 : null)),
+                      ]),
+                    ),
+                ],
+              ];
+            },
           ),
           IconButton(
             onPressed: _refresh,
@@ -2357,10 +2502,6 @@ class _InventoryViewState extends State<InventoryView>
           .toList();
     }
 
-    // Lọc sản phẩm chưa có giá vốn
-    if (_showNoCostOnly) {
-      filteredList = filteredList.where((p) => !p.isPending && p.cost == 0).toList();
-    }
 
     // Nếu không bật showOutOfStock, chỉ hiện còn hàng (quantity > 0)
     if (!_showOutOfStock) {
@@ -2576,7 +2717,7 @@ class _InventoryViewState extends State<InventoryView>
             _buildLocationFilterChip(),
             const SizedBox(width: 8),
             _buildOutOfStockChip(),
-            if (_allowPendingCost && _canViewCostPrice) ...[
+            if ((_allowPendingCost && _canViewCostPrice) || _enableSupplier) ...[
               const SizedBox(width: 8),
               _buildNoCostFilterChip(),
             ],
@@ -2677,34 +2818,35 @@ class _InventoryViewState extends State<InventoryView>
   Widget _buildNoCostFilterChip() {
     return InkWell(
       onTap: () {
-        setState(() => _showNoCostOnly = !_showNoCostOnly);
-        _refreshLocalData();
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => MissingInfoProductsView(
+              shopSettings: _shopSettings,
+              canViewCostPrice: _canViewCostPrice,
+              role: widget.role,
+            ),
+          ),
+        ).then((_) => _refresh());
       },
       borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: _showNoCostOnly ? Colors.orange.shade100 : Colors.grey.shade100,
+          color: Colors.orange.shade50,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: _showNoCostOnly ? Colors.orange.shade700 : Colors.grey.shade300,
-            width: _showNoCostOnly ? 2 : 1,
-          ),
+          border: Border.all(color: Colors.orange.shade300),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.warning_amber_rounded,
-              size: 16,
-              color: _showNoCostOnly ? Colors.orange.shade800 : Colors.grey,
-            ),
+            Icon(Icons.warning_amber_rounded, size: 16, color: Colors.orange.shade700),
             const SizedBox(width: 4),
             Text(
-              'Chưa nhập vốn',
+              'Thiếu vốn/NCC',
               style: AppTextStyles.subtitle1.copyWith(
-                fontWeight: _showNoCostOnly ? FontWeight.bold : FontWeight.normal,
-                color: _showNoCostOnly ? Colors.orange.shade800 : Colors.grey.shade700,
+                fontWeight: FontWeight.w600,
+                color: Colors.orange.shade800,
               ),
             ),
           ],
@@ -3071,6 +3213,13 @@ class _InventoryViewState extends State<InventoryView>
                                       bg: Colors.orange.shade50,
                                       icon: Icons.edit_rounded,
                                     ),
+                                  ),
+                                if (_enableSupplier && !isPending && (p.supplier == null || p.supplier!.trim().isEmpty))
+                                  _metaChip(
+                                    label: '⚠ Chưa NCC',
+                                    color: Colors.red.shade600,
+                                    bg: Colors.red.shade50,
+                                    icon: Icons.store_mall_directory_outlined,
                                   ),
                                 if (p.imei != null && p.imei!.trim().isNotEmpty)
                                   _metaChip(

@@ -29,6 +29,7 @@ import '../widgets/imei_scan_result_dialog.dart';
 import '../models/storage_location_model.dart';
 import '../widgets/storage_location_selector.dart';
 import '../widgets/custom_app_bar.dart';
+import '../widgets/supplier_picker_sheet.dart';
 import '../widgets/image_picker_widget.dart';
 import 'quick_input_codes_view.dart';
 import 'pending_stock_list_view.dart';
@@ -76,6 +77,8 @@ class _FastStockInViewState extends State<FastStockInView> {
   bool get _isElectronics =>
       _shopSettings?.businessType == 'electronics' || _shopSettings == null;
   bool get _enableSerial => _shopSettings?.enableSerial ?? true;
+  bool get _enableSupplier => _shopSettings?.enableSupplier ?? true;
+  bool get _requireSupplier => _shopSettings?.requireSupplier ?? true;
 
   // Permission: cost price visibility
   bool _canViewCostPrice = false;
@@ -647,7 +650,7 @@ class _FastStockInViewState extends State<FastStockInView> {
         selectedCapacity == null ||
         selectedColor == null ||
         selectedCondition == null ||
-        selectedSupplier == null ||
+        (_enableSupplier && _requireSupplier && selectedSupplier == null) ||
         selectedPaymentMethod == null) {
       NotificationService.showSnackBar(
         "Vui lòng chọn đầy đủ thông tin!",
@@ -1293,6 +1296,26 @@ class _FastStockInViewState extends State<FastStockInView> {
               ),
             ),
             const SizedBox(width: 4),
+            // Nút tìm kiếm nhà cung cấp
+            IconButton(
+              onPressed: () async {
+                final picked = await showSupplierPickerSheet(context);
+                if (!mounted || picked == null) return;
+                final name = picked['name'] as String? ?? '';
+                if (name.isEmpty) return;
+                setState(() {
+                  // Thêm vào list nếu chưa có để dropdown nhận diện
+                  if (!suppliers.any((s) => s['name'] == name)) {
+                    suppliers = [{'name': name, ...picked}, ...suppliers];
+                  }
+                  selectedSupplier = name;
+                });
+              },
+              icon: const Icon(Icons.search, color: Colors.blue, size: 20),
+              tooltip: 'Tìm nhà cung cấp',
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+            ),
             // Nút thêm nhà cung cấp
             IconButton(
               onPressed: _addNewSupplier,
@@ -1758,8 +1781,10 @@ class _FastStockInViewState extends State<FastStockInView> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  _buildSupplierField(),
+                  if (_enableSupplier) ...[
+                    const SizedBox(height: 8),
+                    _buildSupplierField(),
+                  ],
                   // Thanh toán đặt dưới nhà cung cấp để người dùng thấy rõ liên quan tới thanh toán
                   const SizedBox(height: 6),
                   _buildChipRow(

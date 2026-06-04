@@ -19,6 +19,7 @@ import 'smart_stock_in_view.dart';
 import 'fast_stock_in_view.dart';
 import '../widgets/custom_app_bar.dart';
 import '../services/iphone_template_seeder.dart';
+import '../widgets/supplier_picker_sheet.dart';
 
 enum QuickInputFilter { all, active, inactive, unsynced }
 
@@ -204,7 +205,16 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> {
       );
       await _loadCodes();
     } catch (e) {
-      NotificationService.showSnackBar('Lỗi đồng bộ: $e', color: Colors.red);
+      final errStr = e.toString().toLowerCase();
+      final isPermDenied = errStr.contains('permission-denied') ||
+          errStr.contains('permission denied') ||
+          errStr.contains('unauthorized');
+      NotificationService.showSnackBar(
+        isPermDenied
+            ? 'Không có quyền đồng bộ lên cloud. Liên hệ quản trị viên cửa hàng.'
+            : 'Lỗi đồng bộ: $e',
+        color: Colors.orange,
+      );
     } finally {
       if (mounted) {
         setState(() => _isSyncing = false);
@@ -368,6 +378,9 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> {
                 color: Colors.green,
               );
             }
+            SyncService.syncQuickInputCodesToCloud().catchError(
+              (e) => debugPrint('Auto-sync quick input codes failed: $e'),
+            );
             await _loadCodes();
           } catch (e) {
             NotificationService.showSnackBar(
@@ -454,119 +467,125 @@ class _QuickInputCodesViewState extends State<QuickInputCodesView> {
         ],
       ),
       body: ResponsiveCenter(
-        child: _isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : Column(
-                children: [
-                  // Search bar
-                  Container(
-                    color: Colors.blue.shade700,
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                    child: TextField(
-                      controller: _searchController,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: InputDecoration(
-                        hintText: 'Tìm kiếm mã nhập nhanh...',
-                        hintStyle: TextStyle(
-                          color: Colors.white.withOpacity(0.7),
-                        ),
-                        prefixIcon: Icon(
-                          Icons.search,
-                          color: Colors.white.withOpacity(0.7),
-                        ),
-                        suffixIcon: _searchQuery.isNotEmpty
-                            ? IconButton(
-                                icon: const Icon(
-                                  Icons.clear,
-                                  color: Colors.white,
-                                ),
-                                onPressed: () {
-                                  _searchController.clear();
-                                  setState(() => _searchQuery = '');
-                                },
-                              )
-                            : null,
-                        filled: true,
-                        fillColor: Colors.white.withOpacity(0.2),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                      ),
-                      onChanged: (value) {
-                        setState(() => _searchQuery = value.toLowerCase());
-                        _loadCodes(); // reload từ DB với keyword mới
-                      },
-                    ),
+        child: Column(
+          children: [
+            // Search bar — always visible so focus is never lost while typing
+            Container(
+              color: Colors.blue.shade700,
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: TextField(
+                controller: _searchController,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: 'Tìm kiếm mã nhập nhanh...',
+                  hintStyle: TextStyle(
+                    color: Colors.white.withOpacity(0.7),
                   ),
-
-                  // Filter chips
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                    color: Colors.white,
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: [
-                          _buildFilterChip(
-                            label: 'Tất cả ($_totalCount)',
-                            filter: QuickInputFilter.all,
-                            color: Colors.blue,
-                          ),
-                          const SizedBox(width: 8),
-                          _buildFilterChip(
-                            label: 'Đang bật ($_activeCount)',
-                            filter: QuickInputFilter.active,
-                            color: Colors.green,
-                          ),
-                          const SizedBox(width: 8),
-                          _buildFilterChip(
-                            label: 'Đang tắt ($_inactiveCount)',
-                            filter: QuickInputFilter.inactive,
-                            color: Colors.grey,
-                          ),
-                          const SizedBox(width: 8),
-                          _buildFilterChip(
-                            label: 'Chưa đồng bộ ($_unsyncedCount)',
-                            filter: QuickInputFilter.unsynced,
-                            color: Colors.orange,
-                          ),
-                        ],
-                      ),
-                    ),
+                  prefixIcon: Icon(
+                    Icons.search,
+                    color: Colors.white.withOpacity(0.7),
                   ),
-
-                  // List
-                  Expanded(
-                    child: _filteredCodes.isEmpty
-                        ? _buildEmptyState()
-                        : RefreshIndicator(
-                            onRefresh: _loadCodes,
-                            child: ListView.builder(
-                              controller: _scrollController,
-                              padding: const EdgeInsets.all(16),
-                              itemCount: _filteredCodes.length + (_hasMore || _isLoadingMore ? 1 : 0),
-                              itemBuilder: (ctx, i) {
-                                if (i >= _filteredCodes.length) {
-                                  return const Padding(
-                                    padding: EdgeInsets.symmetric(vertical: 16),
-                                    child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
-                                  );
-                                }
-                                return _buildCodeCard(_filteredCodes[i]);
-                              },
-                            ),
+                  suffixIcon: _searchQuery.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(
+                            Icons.clear,
+                            color: Colors.white,
                           ),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() => _searchQuery = '');
+                            _loadCodes();
+                          },
+                        )
+                      : null,
+                  filled: true,
+                  fillColor: Colors.white.withOpacity(0.2),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
                   ),
-                ],
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                ),
+                onChanged: (value) {
+                  setState(() => _searchQuery = value.toLowerCase());
+                  _loadCodes();
+                },
               ),
+            ),
+
+            // Filter chips
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 12,
+              ),
+              color: Colors.white,
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _buildFilterChip(
+                      label: 'Tất cả ($_totalCount)',
+                      filter: QuickInputFilter.all,
+                      color: Colors.blue,
+                    ),
+                    const SizedBox(width: 8),
+                    _buildFilterChip(
+                      label: 'Đang bật ($_activeCount)',
+                      filter: QuickInputFilter.active,
+                      color: Colors.green,
+                    ),
+                    const SizedBox(width: 8),
+                    _buildFilterChip(
+                      label: 'Đang tắt ($_inactiveCount)',
+                      filter: QuickInputFilter.inactive,
+                      color: Colors.grey,
+                    ),
+                    const SizedBox(width: 8),
+                    _buildFilterChip(
+                      label: 'Chưa đồng bộ ($_unsyncedCount)',
+                      filter: QuickInputFilter.unsynced,
+                      color: Colors.orange,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // List area — loading spinner stays below the search bar
+            Expanded(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _filteredCodes.isEmpty
+                      ? _buildEmptyState()
+                      : RefreshIndicator(
+                          onRefresh: _loadCodes,
+                          child: ListView.builder(
+                            controller: _scrollController,
+                            padding: const EdgeInsets.all(16),
+                            itemCount: _filteredCodes.length +
+                                (_hasMore || _isLoadingMore ? 1 : 0),
+                            itemBuilder: (ctx, i) {
+                              if (i >= _filteredCodes.length) {
+                                return const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 16),
+                                  child: Center(
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  ),
+                                );
+                              }
+                              return _buildCodeCard(_filteredCodes[i]);
+                            },
+                          ),
+                        ),
+            ),
+          ],
+        ),
       ),
       floatingActionButton: GradientFab.teal(
         onPressed: () => _showAddEditDialog(),
@@ -908,6 +927,7 @@ class _QuickInputCodeDialogState extends State<_QuickInputCodeDialog> {
   bool get _isFashion => _shopSettings?.businessType == 'fashion';
   bool get _isElectronics =>
       _shopSettings?.businessType == 'electronics' || _shopSettings == null;
+  bool get _enableSupplier => _shopSettings?.enableSupplier ?? true;
 
   String _type = 'DIEN_THOAI';
   String? _paymentMethod;
@@ -1555,50 +1575,65 @@ class _QuickInputCodeDialogState extends State<_QuickInputCodeDialog> {
                           color: Colors.grey,
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      // Nhà cung cấp - Dropdown từ danh sách NCC
-                      DropdownButtonFormField<String>(
-                        value:
-                            _selectedSupplier != null &&
-                                _suppliers.any(
-                                  (s) => s['name'] == _selectedSupplier,
-                                )
-                            ? _selectedSupplier
-                            : null,
-                        decoration: InputDecoration(
-                          labelText: 'Nhà cung cấp',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          suffixIcon: IconButton(
-                            icon: const Icon(Icons.refresh, size: 18),
-                            onPressed: _loadSuppliers,
-                            tooltip: 'Tải lại danh sách NCC',
-                          ),
-                        ),
-                        items: [
-                          const DropdownMenuItem<String>(
-                            value: null,
-                            child: Text('-- Chọn nhà cung cấp --'),
-                          ),
-                          ..._suppliers.map(
-                            (supplier) => DropdownMenuItem<String>(
-                              value: supplier['name'] as String,
-                              child: Text(
-                                supplier['name'] as String,
-                                overflow: TextOverflow.ellipsis,
+                      if (_enableSupplier) ...[
+                        const SizedBox(height: 8),
+                        // Nhà cung cấp - picker sheet (giống chọn khách hàng)
+                        InkWell(
+                          borderRadius: BorderRadius.circular(12),
+                          onTap: () async {
+                            final picked =
+                                await showSupplierPickerSheet(context);
+                            if (!mounted) return;
+                            if (picked == null) {
+                              // "Không chọn NCC" — xóa
+                              setState(() {
+                                _selectedSupplier = null;
+                                _supplierCtrl.clear();
+                              });
+                            } else {
+                              final name = picked['name'] as String? ?? '';
+                              setState(() {
+                                _selectedSupplier = name;
+                                _supplierCtrl.text = name;
+                              });
+                            }
+                          },
+                          child: IgnorePointer(
+                            child: TextFormField(
+                              controller: _supplierCtrl,
+                              readOnly: true,
+                              decoration: InputDecoration(
+                                labelText: 'Nhà cung cấp',
+                                hintText: '-- Chạm để chọn NCC --',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                prefixIcon: const Icon(
+                                  Icons.store_rounded,
+                                  size: 20,
+                                ),
+                                suffixIcon: _selectedSupplier != null
+                                    ? IconButton(
+                                        icon: const Icon(
+                                          Icons.clear,
+                                          size: 18,
+                                        ),
+                                        tooltip: 'Xóa NCC',
+                                        onPressed: () => setState(() {
+                                          _selectedSupplier = null;
+                                          _supplierCtrl.clear();
+                                        }),
+                                      )
+                                    : const Icon(
+                                        Icons.search,
+                                        size: 20,
+                                      ),
                               ),
                             ),
                           ),
-                        ],
-                        onChanged: (val) {
-                          setState(() {
-                            _selectedSupplier = val;
-                            _supplierCtrl.text = val ?? '';
-                          });
-                        },
-                      ),
-                      const SizedBox(height: 16),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
 
                       // Phương thức thanh toán
                       DropdownButtonFormField<String>(
