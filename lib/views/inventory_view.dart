@@ -1581,8 +1581,11 @@ class _InventoryViewState extends State<InventoryView>
                     Expanded(
                       child: OutlinedButton(
                         onPressed: () => Navigator.pop(ctx),
-                        style: OutlinedButton.styleFrom(foregroundColor: Colors.white54),
-                        child: const Text('Bỏ qua'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.grey.shade700,
+                          side: BorderSide(color: Colors.grey.shade400),
+                        ),
+                        child: const Text('Hủy'),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -1593,6 +1596,11 @@ class _InventoryViewState extends State<InventoryView>
                         label: const Text('Lưu giá vốn', style: TextStyle(color: Colors.white)),
                         style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
                         onPressed: () {
+                          final cost = CurrencyTextField.parseValue(costCtrl.text);
+                          if (cost <= 0) {
+                            NotificationService.showSnackBar('Giá vốn phải lớn hơn 0', color: Colors.red);
+                            return;
+                          }
                           if (selectedPayment == 'CÔNG NỢ' && supplierName.isEmpty) {
                             NotificationService.showSnackBar(
                               'Thanh toán CÔNG NỢ phải chọn nhà cung cấp',
@@ -1617,11 +1625,12 @@ class _InventoryViewState extends State<InventoryView>
     );
 
     if (result == null || !mounted) return;
-    final newCost = CurrencyTextField.parseValue(costCtrl.text);
-    if (newCost <= 0) {
-      NotificationService.showSnackBar('Giá vốn phải lớn hơn 0', color: Colors.red);
-      return;
-    }
+    // costCtrl dispose sau khi lấy text (tránh memory leak)
+    final costText = costCtrl.text;
+    costCtrl.dispose();
+    final newCost = CurrencyTextField.parseValue(costText);
+    // Double-check: đã validate trong modal nhưng an toàn hơn
+    if (newCost <= 0) return;
     final payment = result['payment'] as String;
     final supplier = result['supplier'] as String;
 

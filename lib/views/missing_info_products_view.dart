@@ -296,8 +296,9 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
       final supplierLabel = supplier.isNotEmpty ? supplier : 'NCC';
 
       if (payment == 'CÔNG NỢ') {
-        await _db.insertDebt({
-          'firestoreId': 'debt_cost_${p.firestoreId ?? p.id}_$now',
+        final debtFid = 'debt_cost_${p.firestoreId ?? p.id}_$now';
+        final debtId = await _db.insertDebt({
+          'firestoreId': debtFid,
           'type': 'SHOP_OWES',
           'debtType': 'SHOP_OWES',
           'personName': supplierLabel.toUpperCase().trim(),
@@ -314,19 +315,35 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
           'deleted': 0,
           'isSynced': 0,
         });
+        if (debtId > 0) {
+          await SyncOrchestrator().enqueueDebt(
+            debtId,
+            firestoreId: debtFid,
+            operation: SyncOperation.create,
+          );
+        }
         EventBus().emit('debts_changed');
       } else {
-        await _db.insertExpense({
-          'firestoreId': 'exp_cost_${p.firestoreId ?? p.id}_$now',
+        final expFid = 'exp_cost_${p.firestoreId ?? p.id}_$now';
+        final expId = await _db.insertExpense({
+          'firestoreId': expFid,
           'category': 'NHẬP HÀNG',
           'title': 'Giá vốn: ${p.name}',
           'amount': newCost,
           'paymentMethod': payment,
           'note': 'Nhập giá vốn: ${p.name}',
           'date': now,
+          'createdAt': now,
           'shopId': shopId,
           'isSynced': 0,
         });
+        if (expId > 0) {
+          await SyncOrchestrator().enqueueExpense(
+            expId,
+            firestoreId: expFid,
+            operation: SyncOperation.create,
+          );
+        }
       }
 
       await FinancialActivityService.logPurchase(
