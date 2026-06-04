@@ -63,6 +63,9 @@ class FirestoreService {
 
     if (useIndexedQuery) {
       query = query.orderBy('updatedAt', descending: true).limit(indexedLimit.clamp(20, 500));
+    } else {
+      // Fallback mode (missing index): still cap at 300 to avoid unbounded reads.
+      query = query.limit(300);
     }
 
     return query.snapshots();

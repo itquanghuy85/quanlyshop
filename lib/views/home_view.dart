@@ -2101,8 +2101,7 @@ class _HomeViewState extends State<HomeView>
   }
 
   Future<void> _openMyStaffProfile() async {
-    await Navigator.push(
-      context,
+    await Navigator.of(context, rootNavigator: true).push(
       MaterialPageRoute(builder: (_) => const StaffSelfProfileView()),
     );
     if (!mounted) return;
@@ -2118,8 +2117,7 @@ class _HomeViewState extends State<HomeView>
       );
       return;
     }
-    await Navigator.push(
-      context,
+    await Navigator.of(context, rootNavigator: true).push(
       MaterialPageRoute(builder: (_) => const ShopSettingsView()),
     );
     if (!mounted) return;
@@ -3680,8 +3678,7 @@ class _HomeViewState extends State<HomeView>
   /// Navigate to dashboard customization settings
   Future<void> _openDashboardSettings() async {
     HapticFeedback.mediumImpact();
-    final result = await Navigator.push<dynamic>(
-      context,
+    final result = await Navigator.of(context, rootNavigator: true).push<dynamic>(
       MaterialPageRoute(
         builder: (_) => DashboardSettingsView(
           role: widget.role,

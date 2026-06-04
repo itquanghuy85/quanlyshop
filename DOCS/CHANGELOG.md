@@ -4,6 +4,30 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-04] - Fix customer sync + const naming warning
+
+**Files thay đổi:**
+- `lib/services/sync_service.dart`
+
+| # | Thay đổi | Chi tiết |
+|---|----------|----------|
+| 1 | **Rename `_customerBatchSize`** | Đổi thành `customerBatchSize` để tránh lint warning về private const trong function body |
+
+---
+
+## [2026-06-04] - Fix ghost topbar: xóa nested Navigator + dùng rootNavigator:true
+
+**Files thay đổi:**
+- `lib/views/home_view.dart`
+
+| # | Thay đổi | Chi tiết |
+|---|----------|----------|
+| 1 | **Xóa nested Navigator** | `_buildTabHost` không còn bọc tabs trong `Navigator` widget — tất cả route push tự động lên root navigator, che toàn màn hình |
+| 2 | **rootNavigator: true** | `_openMyStaffProfile`, `_openShopSettingsFromGreeting`, `_openDashboardSettings` đổi từ `Navigator.push(context,…)` sang `Navigator.of(context, rootNavigator: true).push(…)` |
+| 3 | **_usesNestedNavigator** | Luôn trả `false` — không còn nested navigator nào trong tab host |
+
+---
+
 ## [2026-06-04] - Thiếu vốn/NCC: fix trùng dữ liệu + bấm vào mở chi tiết
 
 **Files thay đổi:**

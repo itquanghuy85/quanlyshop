@@ -26,7 +26,7 @@ class CommunityService {
     // This avoids FAILED_PRECONDITION composite-index errors on community feed.
     return _postsRef
         .where('shopId', isEqualTo: shopId)
-        .limit(limit * 5)
+        .limit(limit)
         .snapshots();
   }
 

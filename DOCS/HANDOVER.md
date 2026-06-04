@@ -24,6 +24,15 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 
 ---
 
+## ✅ Vừa hoàn thành (2026-06-04) — Fix ghost topbar trên toàn app
+
+1. **Xóa nested Navigator khỏi `_buildTabHost`** — `home_view.dart`
+   - `_buildTabHost` không còn bọc tabs trong `Navigator` widget; `_usesNestedNavigator` luôn `false`
+   - `_openMyStaffProfile`, `_openShopSettingsFromGreeting`, `_openDashboardSettings` dùng `rootNavigator: true`
+   - Tất cả route push từ bất kỳ tab nào sẽ che toàn màn hình, không còn ghost white topbar
+
+---
+
 ## ✅ Vừa hoàn thành (2026-06-04) — Fix logic NCC + PT thanh toán phiếu nhập
 
 1. **Fix `_requireSupplier ?? true` → `?? false`** — tránh bắt buộc NCC khi settings chưa load

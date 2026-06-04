@@ -513,6 +513,7 @@ class ChatService {
       final snapshot = await _db
           .collection(_collectionChats)
           .where('shopId', isEqualTo: shopId)
+          .limit(500)
           .get();
 
       int count = 0;

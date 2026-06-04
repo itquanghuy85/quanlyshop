@@ -3684,13 +3684,13 @@ class SyncService {
         debugPrint(
             'syncAllToCloud: có ${unsyncedCustomers.length} customers chưa sync');
         if (unsyncedCustomers.isNotEmpty) {
-          const _customerBatchSize = 400;
+          const customerBatchSize = 400;
           final chunks = <List<Map<String, dynamic>>>[];
-          for (int i = 0; i < unsyncedCustomers.length; i += _customerBatchSize) {
+          for (int i = 0; i < unsyncedCustomers.length; i += customerBatchSize) {
             chunks.add(unsyncedCustomers.sublist(
-                i, i + _customerBatchSize > unsyncedCustomers.length
+                i, i + customerBatchSize > unsyncedCustomers.length
                     ? unsyncedCustomers.length
-                    : i + _customerBatchSize));
+                    : i + customerBatchSize));
           }
           int totalSynced = 0;
           for (final chunk in chunks) {
