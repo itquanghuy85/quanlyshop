@@ -4,6 +4,21 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-04] - Fix logic NCC + Phương thức TT trong CHỈNH SỬA PHIẾU NHẬP
+
+### 3 bug logic trong smart_stock_in_view
+
+**Files thay đổi:**
+- `lib/views/smart_stock_in_view.dart`
+
+| # | Bug | Nguyên nhân | Fix |
+|---|-----|-------------|-----|
+| 1 | `_requireSupplier ?? true` → bắt buộc NCC khi settings chưa load | Default sai | Đổi thành `?? false` |
+| 2 | `_supplierEffectivelyRequired`: `cost > 0` → ép NCC dù "Bắt buộc NCC" đã OFF | Logic thừa | Xóa điều kiện `cost > 0`; chỉ giữ `_requireSupplier` và `CÔNG NỢ` |
+| 3 | Phương thức TT luôn required dù không có cost + allowPendingCost ON | Hard-coded | Thêm getter `_paymentMethodRequired`: chỉ bắt buộc khi `!allowPendingCost`, hoặc `cost > 0`, hoặc `NCC đã chọn` |
+
+---
+
 ## [2026-06-04] - Popup chọn mã nhập nhanh: thêm tìm kiếm + phân trang
 
 ### Thêm `showQuickCodePickerSheet` — BottomSheet có search + infinite-scroll pagination

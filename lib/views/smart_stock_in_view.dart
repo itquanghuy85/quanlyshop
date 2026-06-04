@@ -66,7 +66,7 @@ class _SmartStockInViewState extends State<SmartStockInView> {
   bool get _isFashion => _shopSettings?.businessType == 'fashion';
   bool get _showImei => _shopSettings?.enableSerial ?? true;
   bool get _enableSupplier => _shopSettings?.enableSupplier ?? true;
-  bool get _requireSupplier => _shopSettings?.requireSupplier ?? true;
+  bool get _requireSupplier => _shopSettings?.requireSupplier ?? false;
 
   /// Terminology động theo ngành
   BusinessTerminology get _terms =>
@@ -582,8 +582,17 @@ class _SmartStockInViewState extends State<SmartStockInView> {
   /// NCC bắt buộc khi: cài đặt yêu cầu, HOẶC đã nhập giá vốn, HOẶC thanh toán CÔNG NỢ
   bool get _supplierEffectivelyRequired {
     if (_requireSupplier) return true;
+    // CÔNG NỢ luôn cần NCC để ghi nợ
     if (_selectedPaymentMethod == 'CÔNG NỢ') return true;
+    return false;
+  }
+
+  /// Payment method bắt buộc khi: có giá vốn, hoặc hệ thống không cho phép pending,
+  /// hoặc đã chọn NCC (chọn NCC rồi thì phải chỉ rõ thanh toán thế nào).
+  bool get _paymentMethodRequired {
+    if (!_allowPendingCost) return true;
     if (_canViewCostPrice && CurrencyTextField.getValue(_costCtrl) > 0) return true;
+    if (_selectedSupplier != null) return true;
     return false;
   }
 
@@ -595,7 +604,7 @@ class _SmartStockInViewState extends State<SmartStockInView> {
         !_allowPendingCost &&
         CurrencyTextField.getValue(_costCtrl) <= 0) return false;
     if (_enableSupplier && _supplierEffectivelyRequired && _selectedSupplier == null) return false;
-    if (_selectedPaymentMethod == null) return false;
+    if (_paymentMethodRequired && _selectedPaymentMethod == null) return false;
     if (_hasIMEIConflict) return false;
 
     if (_isPhone) {
@@ -621,7 +630,7 @@ class _SmartStockInViewState extends State<SmartStockInView> {
         !_allowPendingCost &&
         CurrencyTextField.getValue(_costCtrl) <= 0) missing.add('Giá vốn');
     if (_enableSupplier && _supplierEffectivelyRequired && _selectedSupplier == null) missing.add('Nhà cung cấp');
-    if (_selectedPaymentMethod == null) missing.add('Phương thức TT');
+    if (_paymentMethodRequired && _selectedPaymentMethod == null) missing.add('Phương thức TT');
     if (_isPhone) {
       if (_selectedBrand == null) missing.add('Hãng');
       if (_selectedCapacity == null) missing.add('Dung lượng');

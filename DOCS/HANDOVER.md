@@ -24,6 +24,14 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 
 ---
 
+## ✅ Vừa hoàn thành (2026-06-04) — Fix logic NCC + PT thanh toán phiếu nhập
+
+1. **Fix `_requireSupplier ?? true` → `?? false`** — tránh bắt buộc NCC khi settings chưa load
+2. **Fix `_supplierEffectivelyRequired`** — bỏ điều kiện `cost > 0`; chỉ bắt buộc khi setting ON hoặc CÔNG NỢ
+3. **Thêm `_paymentMethodRequired` getter** — PT thanh toán chỉ bắt buộc khi `!allowPendingCost` hoặc `cost > 0` hoặc `NCC đã chọn`
+
+---
+
 ## ✅ Vừa hoàn thành (2026-06-04) — Popup chọn mã nhập nhanh có search + pagination
 
 1. **Tạo `showQuickCodePickerSheet` — widget tái sử dụng cho phiếu nhập**
