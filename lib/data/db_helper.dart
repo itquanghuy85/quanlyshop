@@ -5108,6 +5108,7 @@ class DBHelper {
     int offset, {
     String? type,
     bool inStockOnly = false,
+    bool soldOnly = false,
     bool missingInfoOnly = false,
   }) async {
     final shopId = await _getScopedShopId('getProductsPaged');
@@ -5122,6 +5123,10 @@ class DBHelper {
 
     if (inStockOnly) {
       where += ' AND quantity > 0 AND (status = 1 OR status IS NULL)';
+    }
+
+    if (soldOnly) {
+      where += ' AND quantity <= 0';
     }
 
     if (missingInfoOnly) {
@@ -5145,6 +5150,7 @@ class DBHelper {
   Future<int> getProductsCount({
     String? type,
     bool inStockOnly = false,
+    bool soldOnly = false,
     bool missingInfoOnly = false,
   }) async {
     final shopId = await _getScopedShopId('getProductsCount');
@@ -5159,6 +5165,10 @@ class DBHelper {
 
     if (inStockOnly) {
       where += ' AND quantity > 0 AND (status = 1 OR status IS NULL)';
+    }
+
+    if (soldOnly) {
+      where += ' AND quantity <= 0';
     }
 
     if (missingInfoOnly) {

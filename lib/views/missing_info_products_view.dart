@@ -46,6 +46,7 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
   final _loading = [true, true];
   final _counts = [0, 0];
   final _scrollCtrs = [ScrollController(), ScrollController()];
+  StreamSubscription<String>? _productEventSub;
 
   bool get _allowPendingCost => widget.shopSettings?.allowPendingCost ?? false;
   bool get _enableSupplier => widget.shopSettings?.enableSupplier ?? true;
@@ -62,10 +63,14 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
     _scrollCtrs[1].addListener(() => _onScroll(1));
     _load(0);
     _load(1);
+    _productEventSub = EventBus().stream
+        .where((e) => e == 'financial_changed' || e == 'products_changed')
+        .listen((_) { if (mounted) { _load(0); _load(1); } });
   }
 
   @override
   void dispose() {
+    _productEventSub?.cancel();
     _tabController.dispose();
     _scrollCtrs[0].dispose();
     _scrollCtrs[1].dispose();
@@ -93,12 +98,13 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
     final page = await _db.getProductsPaged(
       _pageSize, 0,
       inStockOnly: inStock,
+      soldOnly: !inStock,
       missingInfoOnly: true,
     );
-    // Tab 1 (đã bán): chỉ lấy quantity <= 0
-    final filtered = inStock ? page : page.where((p) => p.quantity <= 0).toList();
+    final filtered = page; // soldOnly đã xử lý tại DB
     final count = await _db.getProductsCount(
       inStockOnly: inStock,
+      soldOnly: !inStock,
       missingInfoOnly: true,
     );
     if (!mounted) return;
@@ -118,9 +124,10 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
     final page = await _db.getProductsPaged(
       _pageSize, _offsets[tab],
       inStockOnly: inStock,
+      soldOnly: !inStock,
       missingInfoOnly: true,
     );
-    final filtered = inStock ? page : page.where((p) => p.quantity <= 0).toList();
+    final filtered = page; // soldOnly đã xử lý tại DB
     if (!mounted) return;
     setState(() {
       _products[tab].addAll(filtered);
@@ -136,6 +143,8 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
     final costCtrl = TextEditingController();
     String selectedPayment = 'TIỀN MẶT';
     String supplierName = p.supplier?.trim() ?? '';
+    const fieldTextColor = Color(0xFF1F2937);
+    const fieldLabelColor = Color(0xFF6B7280);
 
     final result = await showModalBottomSheet<Map<String, dynamic>>(
       context: context,
@@ -146,9 +155,9 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
         builder: (ctx, setS) => Padding(
           padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
           child: Container(
-            decoration: const BoxDecoration(
-              color: Color(0xFF1C2331),
-              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
             ),
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
             child: Column(
@@ -157,7 +166,7 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
               children: [
                 Center(child: Container(
                   width: 36, height: 4,
-                  decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2)),
+                  decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)),
                 )),
                 const SizedBox(height: 12),
                 Row(children: [
@@ -165,7 +174,7 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
                   const SizedBox(width: 8),
                   Expanded(child: Text(
                     'Nhập giá vốn: ${p.name}',
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14),
+                    style: const TextStyle(color: Color(0xFF1C2331), fontWeight: FontWeight.w700, fontSize: 15),
                     maxLines: 1, overflow: TextOverflow.ellipsis,
                   )),
                 ]),
@@ -176,13 +185,15 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
                   initialValue: selectedPayment,
                   decoration: const InputDecoration(
                     labelText: 'Phương thức thanh toán',
-                    labelStyle: TextStyle(color: Colors.white70),
-                    prefixIcon: Icon(Icons.payment, color: Colors.white54),
+                    labelStyle: TextStyle(color: fieldLabelColor),
+                    prefixIcon: Icon(Icons.payment, color: fieldLabelColor),
                     border: OutlineInputBorder(),
-                    enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+                    filled: true,
+                    fillColor: Colors.white,
+                    enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Color(0xFFD1D5DB))),
                   ),
-                  dropdownColor: const Color(0xFF1C2331),
-                  style: const TextStyle(color: Colors.white),
+                  dropdownColor: Colors.white,
+                  style: const TextStyle(color: fieldTextColor, fontWeight: FontWeight.w600),
                   items: ['TIỀN MẶT', 'CHUYỂN KHOẢN', 'CÔNG NỢ']
                       .map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(),
                   onChanged: (v) => setS(() => selectedPayment = v ?? 'TIỀN MẶT'),
@@ -198,18 +209,23 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
                     child: InputDecorator(
                       decoration: InputDecoration(
                         labelText: selectedPayment == 'CÔNG NỢ' ? 'Nhà cung cấp (bắt buộc)' : 'Nhà cung cấp',
-                        labelStyle: const TextStyle(color: Colors.white70),
-                        prefixIcon: const Icon(Icons.storefront_outlined, color: Colors.white54),
-                        suffixIcon: const Icon(Icons.search, color: Colors.white54),
+                        labelStyle: const TextStyle(color: fieldLabelColor),
+                        prefixIcon: const Icon(Icons.storefront_outlined, color: fieldLabelColor),
+                        suffixIcon: const Icon(Icons.search, color: fieldLabelColor),
                         border: const OutlineInputBorder(),
+                        filled: true,
+                        fillColor: Colors.white,
                         enabledBorder: OutlineInputBorder(borderSide: BorderSide(
                           color: selectedPayment == 'CÔNG NỢ' && supplierName.isEmpty
-                              ? Colors.red.shade400 : Colors.white24,
+                              ? Colors.red.shade400 : const Color(0xFFD1D5DB),
                         )),
                       ),
                       child: Text(
                         supplierName.isEmpty ? '-- Chạm để chọn --' : supplierName,
-                        style: TextStyle(color: supplierName.isEmpty ? Colors.white38 : Colors.white),
+                        style: TextStyle(
+                          color: supplierName.isEmpty ? fieldLabelColor : fieldTextColor,
+                          fontWeight: supplierName.isEmpty ? FontWeight.w500 : FontWeight.w600,
+                        ),
                       ),
                     ),
                   ),
@@ -218,8 +234,11 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
                 Row(children: [
                   Expanded(child: OutlinedButton(
                     onPressed: () => Navigator.pop(ctx),
-                    style: OutlinedButton.styleFrom(foregroundColor: Colors.white54),
-                    child: const Text('Bỏ qua'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.grey.shade700,
+                      side: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    child: const Text('Hủy'),
                   )),
                   const SizedBox(width: 12),
                   Expanded(flex: 2, child: ElevatedButton.icon(
@@ -227,6 +246,11 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
                     label: const Text('Lưu giá vốn', style: TextStyle(color: Colors.white)),
                     style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
                     onPressed: () {
+                      final cost = CurrencyTextField.parseValue(costCtrl.text);
+                      if (cost <= 0) {
+                        NotificationService.showSnackBar('Giá vốn phải lớn hơn 0', color: Colors.red);
+                        return;
+                      }
                       if (selectedPayment == 'CÔNG NỢ' && supplierName.isEmpty) {
                         NotificationService.showSnackBar('Thanh toán CÔNG NỢ phải chọn nhà cung cấp', color: Colors.red);
                         return;
@@ -242,12 +266,13 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
       ),
     );
 
+    // dispose controller sau khi sheet đóng
+    final costText = costCtrl.text;
+    costCtrl.dispose();
     if (result == null || !mounted) return;
-    final newCost = CurrencyTextField.parseValue(costCtrl.text);
-    if (newCost <= 0) {
-      NotificationService.showSnackBar('Giá vốn phải lớn hơn 0', color: Colors.red);
-      return;
-    }
+    // newCost đã validate trong modal, nhưng double-check để an toàn
+    final newCost = CurrencyTextField.parseValue(costText);
+    if (newCost <= 0) return;
     final payment = result['payment'] as String;
     final supplier = result['supplier'] as String;
 
@@ -267,6 +292,7 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
 
       final now = DateTime.now().millisecondsSinceEpoch;
       final shopId = await UserService.getCurrentShopId() ?? '';
+      if (!mounted) return;
       final supplierLabel = supplier.isNotEmpty ? supplier : 'NCC';
 
       if (payment == 'CÔNG NỢ') {
@@ -318,7 +344,9 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
         'Đã lưu giá vốn ${MoneyUtils.formatCurrency(newCost)}đ • $payment',
         color: Colors.green,
       );
-      _load(_tabController.index);
+      // Reload cả 2 tabs để count badges cập nhật đúng
+      _load(0);
+      _load(1);
     } catch (e) {
       NotificationService.showSnackBar('Lỗi: $e', color: Colors.red);
     }
@@ -340,7 +368,9 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
         operation: SyncOperation.update,
       );
       NotificationService.showSnackBar('Đã gán NCC: $name', color: Colors.teal);
-      _load(_tabController.index);
+      // Reload cả 2 tabs để count badges cập nhật đúng
+      _load(0);
+      _load(1);
     } catch (e) {
       NotificationService.showSnackBar('Lỗi: $e', color: Colors.red);
     }
@@ -361,8 +391,42 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
       appBar: CustomAppBar.build(
         title: 'Thiếu vốn / NCC',
         subtitle: 'Hàng chưa đủ thông tin kế toán',
+        titleWidget: const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Thiếu vốn / NCC',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+                fontSize: 17,
+                letterSpacing: -0.2,
+              ),
+            ),
+            SizedBox(height: 2),
+            Text(
+              'Hàng chưa đủ thông tin kế toán',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: Colors.white70,
+                fontWeight: FontWeight.w500,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
         bottom: TabBar(
           controller: _tabController,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
+          labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+          indicatorColor: Colors.white,
+          indicatorWeight: 3,
           tabs: [
             Tab(text: 'Còn hàng (${_counts[0]})'),
             Tab(text: 'Đã bán (${_counts[1]})'),
@@ -419,6 +483,8 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
   Widget _buildCard(Product p, int tab) {
     final missingCost = _allowPendingCost && widget.canViewCostPrice && p.cost == 0;
     final missingSupplier = _enableSupplier && (p.supplier == null || p.supplier!.trim().isEmpty);
+    // Edge case: cả 2 chức năng tắt → không có badge/action nào → ẩn card
+    if (!missingCost && !missingSupplier) return const SizedBox.shrink();
     final isSold = tab == 1;
 
     return Card(

@@ -4,6 +4,53 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-04] - Audit & sửa toàn diện màn Thiếu vốn / NCC
+
+### Audit và fix 6 vấn đề trong missing_info_products_view.dart
+
+**Files thay đổi:**
+- `lib/views/missing_info_products_view.dart`
+- `lib/data/db_helper.dart`
+
+#### Vấn đề tìm thấy & đã sửa
+
+| # | Loại | Vấn đề | Giải pháp |
+|---|------|---------|-----------|
+| 1 | Bug/Memory leak | `costCtrl` (TextEditingController) không `dispose()` sau mỗi lần mở popup | Lưu `costText`, gọi `costCtrl.dispose()` ngay sau `showModalBottomSheet` trả về |
+| 2 | Bug/Logic | Thiếu `mounted` guard sau `await getCurrentShopId()` | Thêm `if (!mounted) return;` |
+| 3 | Bug/Count sai | `_counts[1]` (Tab "Đã bán") tính tổng không filter `quantity ≤ 0` | Thêm `soldOnly` param vào `getProductsCount`, gọi với `soldOnly: !inStock` |
+| 4 | UI/Theme | Popup nền tối `0xFF1C2331` nhưng fields đã trắng → không nhất quán | Đổi container sang `Colors.grey.shade50`, handle và tiêu đề theo light theme |
+| 5 | UX/State | Không subscribe EventBus → màn không tự refresh khi nhập vốn từ nơi khác | Thêm `StreamSubscription _productEventSub` lắng nghe `financial_changed` / `products_changed` |
+| 6 | UX/Edge | Nếu cả `_allowPendingCost=false` lẫn `_enableSupplier=false`, card render rỗng | `_buildCard` trả về `SizedBox.shrink()` khi không có badge/action nào |
+
+### Validation
+- `flutter analyze lib/views/missing_info_products_view.dart lib/data/db_helper.dart` → No errors (6 info pre-existing trong db_helper không liên quan).
+- `flutter build apk --debug` → thành công.
+
+
+## [2026-06-04] - Sửa độ rõ chữ AppBar và màu chữ popup Nhập giá vốn
+
+### Cải thiện UI màn Thiếu vốn / NCC
+
+**Files thay đổi:**
+- `lib/views/missing_info_products_view.dart`
+
+#### Vấn đề
+- Chữ AppBar/Tab ở màn Thiếu vốn / NCC hiển thị mờ, độ tương phản thấp.
+- Popup Nhập giá vốn có trạng thái chữ bị chìm/trùng nền sáng ở một số trường nhập liệu.
+
+#### Fix đã áp dụng
+- Tăng độ rõ tiêu đề AppBar bằng `titleWidget` riêng với cỡ chữ và trọng số đậm hơn.
+- Chuẩn hóa màu chữ TabBar (`labelColor`, `unselectedLabelColor`, `indicatorColor`) để đọc rõ trên nền gradient.
+- Điều chỉnh nhóm field trong popup Nhập giá vốn:
+	- Dropdown phương thức thanh toán: nền trắng + chữ đậm màu tối + label/icon màu xám trung tính.
+	- Picker nhà cung cấp: nền trắng + chữ tối, placeholder xám, viền rõ ràng.
+
+### Validation
+- `flutter analyze lib/views/missing_info_products_view.dart` → No issues found.
+- `flutter build apk --debug` → thành công.
+
+
 ## [2026-06-03] - Fix vòng lặp sync `permission_denied:storage_locations -> refresh scope -> permission_denied`
 
 ## [2026-06-04] - Fix toggle "Cho phép nhập giá vốn sau" báo bật nhưng UI không đổi

@@ -7,7 +7,7 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 ## ⚡ Trạng thái hiện tại
 
 **Version:** 1.x (develop) → 2.0 planning  
-**Last Updated:** 2026-06-03  
+**Last Updated:** 2026-06-04  
 **Build Status:** ✅ Debug build passing (`flutter build apk --debug`)  
 **Analyze Status:** ✅ 0 compile error trên các file vừa sửa; còn lint/info hiện hữu của dự án  
 **Database Version:** SQLite v17  
@@ -24,7 +24,26 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 
 ---
 
-## ✅ Vừa hoàn thành (2026-06-03)
+## ✅ Vừa hoàn thành (2026-06-04)
+
+1. **Audit & sửa toàn diện màn Thiếu vốn / NCC (2026-06-04)**
+  - `lib/views/missing_info_products_view.dart` + `lib/data/db_helper.dart`:
+    - Sửa memory leak: `costCtrl.dispose()` sau mỗi lần đóng popup.
+    - Thêm `mounted` guard sau `await getCurrentShopId()`.
+    - Fix count Tab "Đã bán": thêm `soldOnly` param vào `getProductsCount`, filter đúng `quantity ≤ 0`.
+    - Đổi popup Nhập giá vốn sang light theme (`Colors.grey.shade50`) — nhất quán với fields trắng.
+    - Thêm `StreamSubscription _productEventSub` lắng nghe EventBus (`financial_changed`, `products_changed`) → màn tự refresh khi nhập vốn từ màn khác.
+    - `_buildCard` skip card rỗng (không badge, không action) khi cả 2 feature `allowPendingCost` và `enableSupplier` đều tắt.
+  - Validation: analyze = 0 error, build thành công.
+
+1. **Sửa độ rõ AppBar + popup Nhập giá vốn ở màn Thiếu vốn / NCC (2026-06-04)**
+  - `missing_info_products_view.dart`:
+    - Tăng độ rõ phần chữ AppBar bằng `titleWidget` riêng (font đậm hơn, dễ đọc hơn trên nền gradient).
+    - Chuẩn hóa màu chữ TabBar (`Còn hàng`, `Đã bán`) để trạng thái chọn/không chọn rõ ràng.
+    - Sửa popup `Nhập giá vốn`: đổi màu chữ/label/icon của dropdown và chọn NCC sang tông tối trên nền trắng để không còn hiện tượng chữ trùng nền.
+  - Validation:
+    - `flutter analyze lib/views/missing_info_products_view.dart`: không có issue.
+    - `flutter build apk --debug`: thành công.
 
 1. **Chuẩn hóa nhập liệu: "iPhone" là thương hiệu, không phải tên (2026-06-04)**
   - `quick_input_codes_view.dart`:
