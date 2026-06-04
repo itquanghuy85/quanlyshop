@@ -156,6 +156,7 @@ class _SettingsViewState extends State<SettingsView> {
         _isSavingPendingCost = false;
       });
       debugPrint('🔄 TOGGLE: SUCCESS → _allowPendingCost=$_allowPendingCost shopSettings.allowPendingCost=${_shopSettings?.allowPendingCost}');
+      EventBus().emit('settings_changed');
       NotificationService.showSnackBar(
         value ? '✅ Đã bật: cho phép nhập giá vốn sau' : '🔒 Đã tắt: bắt buộc nhập giá vốn',
         color: value ? Colors.teal : Colors.grey.shade700,
@@ -190,6 +191,7 @@ class _SettingsViewState extends State<SettingsView> {
           _settingsVersion++;
           _isSavingRequireSupplier = false;
         });
+        EventBus().emit('settings_changed');
         NotificationService.showSnackBar(
           value ? '✅ Bắt buộc chọn NCC khi nhập kho' : '🔓 NCC không bắt buộc khi nhập kho',
           color: value ? Colors.deepOrange : Colors.grey.shade700,
@@ -218,6 +220,7 @@ class _SettingsViewState extends State<SettingsView> {
           _settingsVersion++;
           _isSavingSupplier = false;
         });
+        EventBus().emit('settings_changed');
         NotificationService.showSnackBar(
           value ? '✅ Đã bật: hiển thị nhà cung cấp' : '🔒 Đã tắt: ẩn tính năng nhà cung cấp',
           color: value ? Colors.indigo : Colors.grey.shade700,

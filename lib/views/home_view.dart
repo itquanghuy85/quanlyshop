@@ -291,6 +291,13 @@ class _HomeViewState extends State<HomeView>
           unawaited(_refreshHomeCommunityStream());
           setState(() {});
         }
+
+        // Handle settings change — reload shop settings để MissingInfoProductsView
+        // và các view con nhận được giá trị mới nhất (allowPendingCost, enableSupplier...)
+        if (event == 'settings_changed' && mounted) {
+          debugPrint('HomeView: Settings changed, reloading shop settings');
+          unawaited(_loadShopSettings());
+        }
       }, onError: (e) => debugPrint('HomeView: EventBus error: $e'));
 
       // NOTE: listenToNotifications already called in AuthGate (main.dart)
