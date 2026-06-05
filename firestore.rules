@@ -347,16 +347,26 @@ service cloud.firestore {
       // Stores shop settings including businessType and module flags
       match /settings/{settingId} {
         // READ: Any shop member
-        allow read: if isAuth() && belongsTo(shopId);
+        // Fallback: token-based check khi get() calls chậm/fail do App Check
+        allow read: if isAuth() && (
+          belongsTo(shopId) ||
+          request.auth.token.shopId == shopId
+        );
         
         // WRITE: Shop owner can always create/update settings (even before claims refresh)
         // Also allow any owner-role user who belongs to this shop
-        allow create, update: if isAuth() && 
-                         (isShopOwner(shopId) || 
-                          (belongsTo(shopId) && isOwner()));
+        // Fallback: token-based check không cần get() khi claims đã sẵn sàng
+        allow create, update: if isAuth() && (
+          isShopOwner(shopId) || 
+          (belongsTo(shopId) && isOwner()) ||
+          (request.auth.token.shopId == shopId && request.auth.token.role == 'owner')
+        );
         
         // DELETE: Owner only (during shop deletion cleanup)
-        allow delete: if isAuth() && isShopOwnerAnyState(shopId) && isOwner();
+        allow delete: if isAuth() && (
+          isShopOwnerAnyState(shopId) && isOwner() ||
+          (request.auth.token.shopId == shopId && request.auth.token.role == 'owner')
+        );
       }
 
       // ─────────── SUBCOLLECTION: product_categories (Multi-industry) ───────────
@@ -1371,6 +1381,29 @@ service cloud.firestore {
 
       // DELETE: Owner+ or super admin (for shop reset cleanup)
       allow delete: if isAuth() && (docInMyShopForDelete() && isOwner() || isSuperAdmin());
+    }
+
+    // ═══════════ 12.5 STORAGE_LOCATIONS (Vị trí / kệ kho) ═══════════
+    // Quản lý các vị trí kho (kệ, ngăn, phòng) theo cửa hàng
+    // BUG-FIX: Collection này hoàn toàn vắng mặt khỏi rules, bị deny bởi catch-all
+    match /storage_locations/{locationId} {
+      // READ: Toàn bộ nhân viên trong shop (cần để picker vị trí hoạt động)
+      allow read: if isAuth() && docInMyShop();
+      
+      // CREATE: Employee+ tạo vị trí mới
+      allow create: if isAuth() && 
+                       isEmployee() &&
+                       newDocInMyShop() &&
+                       has(['shopId']);
+      
+      // UPDATE: Employee+ cập nhật vị trí
+      allow update: if isAuth() && 
+                       isEmployee() &&
+                       docInMyShop() &&
+                       shopIdLocked();
+      
+      // DELETE: Owner only
+      allow delete: if isAuth() && docInMyShopForDelete() && isOwner();
     }
 
     // ┌──────────────────────────────────────────────────────────────────┐
