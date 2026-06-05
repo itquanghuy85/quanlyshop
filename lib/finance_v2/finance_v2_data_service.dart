@@ -120,6 +120,9 @@ class FinanceV2Snapshot {
 
   /// Tiền thanh toán đối tác sửa chữa (repair_partner_payments)
   final int partnerPaymentOut;
+
+  /// Tiền nhập hàng (supplier_import_history + chi phí nhập)
+  final int importExpenseOut;
   final int receivableTotal;
   final int payableTotal;
   final int netCashflow;
@@ -158,6 +161,7 @@ class FinanceV2Snapshot {
     required this.operatingExpenseOut,
     required this.debtRepayOut,
     this.partnerPaymentOut = 0,
+    this.importExpenseOut = 0,
     required this.receivableTotal,
     required this.payableTotal,
     required this.netCashflow,
@@ -1029,6 +1033,7 @@ class FinanceV2DataService {
       operatingExpenseOut: operatingExpenseOut,
       debtRepayOut: debtRepayOut,
       partnerPaymentOut: partnerPaymentOut,
+      importExpenseOut: importExpenseOut,
       receivableTotal: receivableTotal,
       payableTotal: payableTotal,
       netCashflow: netCashflow,

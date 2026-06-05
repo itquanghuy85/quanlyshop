@@ -2753,22 +2753,6 @@ class _HomeViewState extends State<HomeView>
           .where((t) => !t.isIncome && t.type.toUpperCase() == 'DEBT_PAY')
           .fold<int>(0, (v, t) => v + t.amount);
 
-      int importOutConsistent = 0;
-      for (final expense in fExpenses) {
-        final category = (expense['category'] ?? '').toString().toUpperCase();
-        final type = (expense['type'] ?? 'CHI').toString().toUpperCase();
-        if (type == 'THU') continue;
-        if (category.contains('NHẬP') ||
-            category.contains('LINH KIỆN') ||
-            category.contains('PURCHASE')) {
-          final amount =
-              (expense['amount'] as num?)?.toInt() ??
-              int.tryParse((expense['amount'] ?? '0').toString()) ??
-              0;
-          importOutConsistent += amount;
-        }
-      }
-
       // Dùng finance_v2 làm source of truth để partnerPaid nhất quán với operatingExpenseOut
       final partnerPaidExtraConsistent = financeSnapshot.partnerPaymentOut;
 
@@ -2879,12 +2863,10 @@ class _HomeViewState extends State<HomeView>
           _todaySaleIncome = financeSnapshot.incomeFromSales;
           _todayRepairIncome = financeSnapshot.incomeFromRepairs;
           _todayDebtCollected = debtCollectedConsistent;
-          _todayMiscIncome =
-              (financeSnapshot.incomeOther - debtCollectedConsistent).clamp(
-                0,
-                financeSnapshot.incomeOther,
-              );
-          _todayImportOut = importOutConsistent;
+          // incomeOther đã net debt (= extraIn - debtCollectIn), không trừ tiếp
+          _todayMiscIncome = financeSnapshot.incomeOther;
+          // Dùng importExpenseOut từ finance_v2 để nhất quán với operatingExpenseOut
+          _todayImportOut = financeSnapshot.importExpenseOut;
           _todayPartnerPaid = partnerPaidExtraConsistent;
           _todaySettlementIncome = analysis.settlementIncome;
           _todayRefundOut = analysis.refundOut;
