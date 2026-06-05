@@ -60,9 +60,12 @@ class SupplierPaymentService {
     final shopId = await UserService.getCurrentShopId();
     final docId = payment.firestoreId ?? 'sup_pay_${DateTime.now().millisecondsSinceEpoch}';
     payment.firestoreId = docId;
+    // P1-FIX: Ghi firestoreId trước nhưng giữ isSynced=0.
+    // Chỉ đặt isSynced=1 SAU KHI Firestore xác nhận thành công.
+    // Nếu cloud write thất bại, bản ghi giữ isSynced=0 để tránh cloud cũ ghi đè.
     await _db.database.then((db) => db.update(
       'supplier_payments',
-      {'firestoreId': docId, 'isSynced': 1},
+      {'firestoreId': docId, 'isSynced': 0},
       where: 'id = ?',
       whereArgs: [payment.id],
     ));
@@ -71,6 +74,13 @@ class SupplierPaymentService {
       'shopId': shopId,
       'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
     }, SetOptions(merge: true));
+    // P1-FIX: Firestore đã xác nhận → đánh dấu đã sync
+    await _db.database.then((db) => db.update(
+      'supplier_payments',
+      {'isSynced': 1},
+      where: 'id = ?',
+      whereArgs: [payment.id],
+    ));
   }
 
   Future<Map<String, int>> getPaymentStats(int supplierId) async {

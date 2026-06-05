@@ -62,13 +62,14 @@ class RepairPartnerPaymentService {
     final shopId = await UserService.getCurrentShopId();
     final docId = payment.firestoreId ?? 'part_pay_${DateTime.now().millisecondsSinceEpoch}';
     payment.firestoreId = docId;
+    // P1-FIX: Ghi firestoreId trước nhưng giữ isSynced=0.
+    // Chỉ đặt isSynced=1 SAU KHI Firestore xác nhận thành công.
     await _db.database.then((db) => db.update(
       'repair_partner_payments',
-      {'firestoreId': docId, 'isSynced': 1},
+      {'firestoreId': docId, 'isSynced': 0},
       where: 'id = ?',
       whereArgs: [payment.id],
     ));
-    // FIX: Save to Firestore with proper boolean values
     final mapData = payment.toMap();
     mapData['deleted'] = payment.deleted; // boolean, not integer
     mapData['isSynced'] = true; // for consistency
@@ -78,6 +79,13 @@ class RepairPartnerPaymentService {
       'shopId': shopId,
       'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
     }, SetOptions(merge: true));
+    // P1-FIX: Firestore đã xác nhận → đánh dấu đã sync
+    await _db.database.then((db) => db.update(
+      'repair_partner_payments',
+      {'isSynced': 1},
+      where: 'id = ?',
+      whereArgs: [payment.id],
+    ));
   }
 
   Future<Map<String, int>> getPaymentStats(int partnerId) async {
