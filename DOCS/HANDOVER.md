@@ -6,21 +6,100 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 
 ## ⚡ Trạng thái hiện tại
 
-**Version:** 1.x (develop) → 2.0 planning  
+**Version:** 1.x (develop) → Production live  
 **Last Updated:** 2026-06-05  
 **Build Status:** ✅ Debug build passing (`flutter build apk --debug`)  
-**Analyze Status:** ✅ 0 compile error trên các file vừa sửa; còn lint/info hiện hữu của dự án  
+**Analyze Status:** ✅ 0 compile error; 1753 info/lint là pre-existing, không ảnh hưởng build  
 **Database Version:** SQLite v17  
 **Branch:** master  
-**Active Initiative:** ✅ Hardening startup sync theo quyền + AI/domain audit
+**Active Initiative:** ✅ Kiểm toán + sửa lỗi đồng bộ dữ liệu kiến trúc — P1 XONG, P2-P3 ghi nhận
+
+---
+
+## 🔴 RỦIRO ĐỒNG BỘ CÒN LẠI — ĐÃ GHI NHẬN, CHƯA SỬA
+
+> **Đây là đầu vào quan trọng nhất cho chu kỳ bảo trì tiếp theo.**  
+> P1 đã được sửa. P2-P4 không gây mất dữ liệu ngay lập tức nhưng cần xử lý trước khi scale.
+
+### P1 — ĐÃ SỬA (2026-06-05)
+| Mô tả | File | Trạng thái |
+|-------|------|------------|
+| `isSynced=1` đặt TRƯỚC khi Firestore xác nhận trong `supplier_payment_service` | `lib/services/supplier_payment_service.dart` | ✅ ĐÃ SỬA |
+| `isSynced=1` đặt TRƯỚC khi Firestore xác nhận trong `repair_partner_payment_service` | `lib/services/repair_partner_payment_service.dart` | ✅ ĐÃ SỬA |
+
+### P2 — CHƯA SỬA (rủi ro trung bình-cao)
+| Mô tả | File | Vị trí |
+|-------|------|--------|
+| `downloadAllFromCloud` upsert toàn bộ doc không qua `_shouldAcceptCloudData` — có thể đạp local mới | `lib/services/sync_service.dart` | dòng 4576 |
+| `sendChat()` nuốt lỗi `catch (_) {}` — UI báo thành công giả khi Firestore fail | `lib/services/firestore_service.dart` | dòng 514 |
+| Conflict check `_shouldAcceptCloudData` chỉ bảo vệ riêng `repairs` — các collection khác (sales/products/debts) dùng timestamp field thay thế (soldAt/date) không chuẩn | `lib/services/sync_service.dart` | dòng 746-770 |
+
+### P3 — CHƯA SỬA (rủi ro thấp-trung bình)
+| Mô tả | File | Vị trí |
+|-------|------|--------|
+| Gọi `syncAll()` sau lưu kho nhưng không kiểm tra `SyncResult.failed` — không thông báo khi queue fail | `lib/views/inventory_view.dart` | dòng 1441, 3760 |
+| Gọi `syncAll()` trong `salvage_phone_view` bọc bởi `catch (_) {}` — nuốt lỗi hoàn toàn | `lib/views/salvage_phone_view.dart` | dòng 963, 1002 |
+| `customer_service.updateCustomer()` cập nhật local trước, cloud sau; cloud fail không có retry queue | `lib/services/customer_service.dart` | dòng 75-78 |
+| `supplier_service.addSupplier()` trả thành công kể cả khi Firestore fail | `lib/services/supplier_service.dart` | dòng 281-284 |
+
+### P4 — CHƯA SỬA (rủi ro thấp)
+| Mô tả | File |
+|-------|------|
+| EventBus emit sau batch dù có thể có doc lỗi cục bộ — UI reload với trạng thái không nhất quán | `lib/services/sync_service.dart` |
+| `import_order_service.dart` set `isSynced=1` dựa trên fact Firestore đã được gọi — không check kết quả | `lib/services/import_order_service.dart` |
+
+---
+
+## ✅ CHECKLIST CHỐT BÀN GIAO PRODUCTION
+
+> Dùng checklist này mỗi lần chuẩn bị release lên production với user thực.
+
+### Trước khi build release
+- [ ] `flutter analyze` → không có `error` cứng
+- [ ] `flutter build apk --release` → build thành công
+- [ ] Kiểm tra tất cả P1 bug đã được sửa (xem bảng trên)
+- [ ] Chạy test quan trọng: tạo đơn sửa, bán hàng, nhập kho, thanh toán NCC
+
+### Kiểm tra dữ liệu production
+- [ ] Mở app với user thực → không có crash khi khởi động
+- [ ] Kiểm tra sync badge ở đầu app → 0 bản ghi pending quá 5 phút
+- [ ] Thử tạo 1 thanh toán NCC → kiểm tra Firestore console có bản ghi không
+- [ ] Thử offline → online: dữ liệu sync lại đúng
+
+### Giám sát sau release
+- [ ] Theo dõi Firebase Crashlytics 24 giờ đầu
+- [ ] Kiểm tra Firestore console: `supplier_payments`, `repair_partner_payments` có đủ bản ghi không
+- [ ] Kiểm tra `sync_queue` SQLite local không có item stuck ở trạng thái `failed`
+
+### Tài liệu bàn giao tối thiểu
+- [ ] CHANGELOG.md cập nhật
+- [ ] HANDOVER.md cập nhật (file này)
+- [ ] Rủi ro còn lại được ghi rõ (bảng P2-P4 ở trên)
 
 ---
 
 ## 🎯 Phase hiện tại
 
-**Phase đang thực hiện:** Chưa bắt đầu (chuẩn bị khởi động Phase 01)  
+**Phase đang thực hiện:** Stabilization (sửa lỗi kiến trúc, không thêm tính năng mới)  
 **Tài liệu đã khởi tạo:** Toàn bộ `docs/` structure  
-**Tiến độ:** 0 / 8 phases hoàn thành
+**Tiến độ:** P1 sync bugs → đã fix | P2-P4 → backlog có kiểm soát
+
+---
+
+## ✅ Vừa hoàn thành (2026-06-05) — Kiểm toán kiến trúc sync + Fix P1 payment services
+
+1. **Kiểm toán kiến trúc đồng bộ dữ liệu toàn hệ thống (điều tra tĩnh)**
+   - Phân tích đầy đủ: SyncOrchestrator, SyncService listeners, `_shouldAcceptCloudData`, `downloadAllFromCloud`, tất cả `syncAll()` call sites, payment services, inventory, sales, customer, supplier, debt.
+   - Kết quả: 10-point risk report với bằng chứng source code cụ thể theo từng dòng.
+   - Xếp hạng P1→P4 và ghi vào mục "RỦI RO ĐỒNG BỘ CÒN LẠI" ở trên.
+
+2. **P1-FIX: `supplier_payment_service.dart`**
+   - Nguyên nhân: `isSynced=1` đặt TRƯỚC khi `_firestore.set()` → nếu cloud fail thì local tin là đã sync nhưng Firestore không có bản ghi.
+   - Sửa: đặt `isSynced=0` → ghi Firestore → chỉ đặt `isSynced=1` sau khi Firestore xác nhận thành công.
+
+3. **P1-FIX: `repair_partner_payment_service.dart`** — cùng pattern và cùng sửa.
+
+4. **Validation:** `flutter analyze` 2 file → No issues. Toàn repo → 0 error cứng.
 
 ---
 

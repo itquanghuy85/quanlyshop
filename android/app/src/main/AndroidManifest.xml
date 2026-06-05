@@ -31,10 +31,10 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
-        <!-- Tắt Impeller để tương thích với các thiết bị cũ -->
+        <!-- TEST: bật Impeller để kiểm tra rendering issue -->
         <meta-data
             android:name="io.flutter.embedding.android.EnableImpeller"
-            android:value="false" />
+            android:value="true" />
     </application>
     <!-- Quyền truy cập internet -->
     <uses-permission android:name="android.permission.INTERNET" />

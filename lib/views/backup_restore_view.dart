@@ -1719,8 +1719,7 @@ class _MigrationEntryCardState extends State<_MigrationEntryCard> {
               child: ElevatedButton.icon(
                 icon: const Icon(Icons.arrow_forward_rounded),
                 label: const Text('Bắt đầu chuyển dữ liệu'),
-                onPressed: () => Navigator.push(
-                  context,
+                onPressed: () => Navigator.of(context, rootNavigator: true).push(
                   MaterialPageRoute(builder: (_) => const ShopMigrationView()),
                 ),
                 style: ElevatedButton.styleFrom(

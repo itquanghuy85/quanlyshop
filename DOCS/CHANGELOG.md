@@ -4,6 +4,35 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-05] - fix(sync-P1): Sửa 2 lỗi đồng bộ nguy hiểm trong payment services + kiểm toán kiến trúc
+
+**Files thay đổi:**
+- `lib/services/supplier_payment_service.dart`
+- `lib/services/repair_partner_payment_service.dart`
+
+| # | Thay đổi | Chi tiết |
+|---|----------|----------|
+| 1 | **P1-FIX `supplier_payment_service`** | `_syncToCloud()`: trước đây set `isSynced=1` TRƯỚC khi `_firestore.set()` — nếu cloud fail, local tin là đã sync nhưng cloud không có bản ghi. Sửa: đặt `isSynced=0`, ghi Firestore, sau đó set `isSynced=1` chỉ khi Firestore xác nhận thành công. |
+| 2 | **P1-FIX `repair_partner_payment_service`** | Cùng pattern lỗi và cùng cách sửa như trên. |
+| 3 | **Kiểm toán kiến trúc sync toàn hệ thống** | Điều tra tĩnh (không sửa code) toàn bộ luồng sync: SyncOrchestrator, SyncService, tất cả listeners, downloadAllFromCloud, các view gọi syncAll, và payment/inventory/sales/customer/supplier/debt. Báo cáo 10 điểm với bằng chứng source code cụ thể. |
+
+**Bằng chứng kỹ thuật P1:**
+- `supplier_payment_service.dart` dòng 65 (trước fix): `{'firestoreId': docId, 'isSynced': 1}` trước dòng 69 `_firestore.set()`
+- `repair_partner_payment_service.dart` dòng 67 (trước fix): cùng pattern
+- Khi Firestore fail, local bản ghi có `isSynced=1`, listener real-time không nhận doc (doc không tồn tại), => bản ghi payment bị mất hoàn toàn trên cloud mà app không biết
+
+**Các rủi ro còn lại đã được ghi nhận (chưa sửa — xem HANDOVER.md):**
+- P2: `downloadAllFromCloud` upsert toàn bộ mà không đi qua `_shouldAcceptCloudData`
+- P2: `sendChat()` trong `FirestoreService` nuốt lỗi `catch (_) {}` nhưng UI vẫn báo thành công
+- P3: các `syncAll()` call ở `inventory_view`, `salvage_phone_view`, `fast_stock_in_view` không kiểm tra `SyncResult.failed`
+- P3: `customer_service.updateCustomer()` cập nhật local trước, cloud sau; cloud fail không enqueue retry
+
+**Validation:**
+- `flutter analyze lib/services/supplier_payment_service.dart lib/services/repair_partner_payment_service.dart`: No issues found
+- `flutter analyze` toàn repo: 0 error cứng (1753 info/lint là pre-existing)
+
+---
+
 ## [2026-06-04] - feat: Chuyển đơn sửa chữa sang shop mới
 
 **Files thay đổi:**
