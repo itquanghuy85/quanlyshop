@@ -443,7 +443,7 @@ class _DebtViewState extends State<DebtView>
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) => Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
+          padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
           child: Container(
             decoration: const BoxDecoration(
               color: PopupTheme.bgDark,
@@ -2003,7 +2003,7 @@ class _DebtViewState extends State<DebtView>
         builder: (ctx, setS) {
           return Padding(
             padding: EdgeInsets.only(
-              bottom: MediaQuery.viewInsetsOf(ctx).bottom,
+              bottom: MediaQuery.viewInsetsOf(context).bottom,
             ),
             child: Container(
               decoration: const BoxDecoration(
@@ -2307,7 +2307,7 @@ class _DebtViewState extends State<DebtView>
       useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
+        padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
         child: Container(
           decoration: const BoxDecoration(
             color: PopupTheme.bgDark,
@@ -2500,7 +2500,7 @@ class _DebtViewState extends State<DebtView>
       useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
+        padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
         child: Container(
           decoration: const BoxDecoration(
             color: PopupTheme.bgDark,

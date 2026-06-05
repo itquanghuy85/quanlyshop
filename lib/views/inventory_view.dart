@@ -325,7 +325,7 @@ class _InventoryViewState extends State<InventoryView>
       useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
+        padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
         child: Container(
           decoration: const BoxDecoration(
             color: PopupTheme.bgDark,
@@ -1114,7 +1114,7 @@ class _InventoryViewState extends State<InventoryView>
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheetState) => Padding(
           padding: EdgeInsets.only(
-            bottom: MediaQuery.viewInsetsOf(ctx).bottom,
+            bottom: MediaQuery.viewInsetsOf(context).bottom,
           ),
           child: Container(
             decoration: const BoxDecoration(
@@ -1481,7 +1481,7 @@ class _InventoryViewState extends State<InventoryView>
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) => Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
+          padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
           child: Container(
             decoration: const BoxDecoration(
               color: PopupTheme.bgDark,

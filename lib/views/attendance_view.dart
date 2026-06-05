@@ -1106,7 +1106,7 @@ class _AttendanceViewState extends State<AttendanceView>
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDlg) {
           return Padding(
-            padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
+            padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
             child: Container(
               decoration: const BoxDecoration(
                 color: PopupTheme.bgDark,
@@ -1313,7 +1313,7 @@ class _AttendanceViewState extends State<AttendanceView>
         builder: (ctx, setDlg) {
           final days = endDate.difference(startDate).inDays + 1;
           return Padding(
-            padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
+            padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
             child: Container(
               decoration: const BoxDecoration(
                 color: PopupTheme.bgDark,

@@ -1548,7 +1548,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDlg) {
           return Padding(
-            padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
+            padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
             child: Container(
               decoration: const BoxDecoration(
                 color: PopupTheme.bgDark,
@@ -1689,7 +1689,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
               ? ((otEnd!.hour * 60 + otEnd!.minute) - (otStart!.hour * 60 + otStart!.minute)).clamp(0, 480)
               : 0;
           return Padding(
-            padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
+            padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
             child: Container(
               decoration: const BoxDecoration(
                 color: PopupTheme.bgDark,
@@ -2136,7 +2136,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
         builder: (ctx, setDlg) {
           final days = endDate.difference(startDate).inDays + 1;
           return Padding(
-            padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
+            padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
             child: Container(
               decoration: const BoxDecoration(
                 color: PopupTheme.bgDark,
@@ -2553,7 +2553,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDlg) {
           return Padding(
-            padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
+            padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
             child: Container(
               decoration: const BoxDecoration(
                 color: PopupTheme.bgDark,
@@ -3310,7 +3310,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
       useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
+        padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
         child: Container(
           decoration: const BoxDecoration(
             color: PopupTheme.bgDark,

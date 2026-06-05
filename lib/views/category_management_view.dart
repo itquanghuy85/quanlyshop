@@ -221,7 +221,7 @@ class _CategoryManagementViewState extends State<CategoryManagementView> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) {
           return Padding(
-            padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
+            padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
             child: Container(
               decoration: const BoxDecoration(
                 color: PopupTheme.bgDark,

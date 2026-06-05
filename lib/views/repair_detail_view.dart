@@ -3528,7 +3528,10 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       builder: (ctx) {
         final sheetLoc = AppLocalizations.of(ctx)!;
         return Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
+          // Dùng outer context để tránh Padding phụ thuộc vào inner MediaQuery của
+          // sheet — khi sheet đóng, inner MediaQuery bị deactivate trước Padding
+          // → '_dependents.isEmpty' assertion crash.
+          padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
           child: Container(
             decoration: const BoxDecoration(
               color: PopupTheme.bgDark,
@@ -3678,7 +3681,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
 
           return Padding(
             padding: EdgeInsets.only(
-              bottom: MediaQuery.viewInsetsOf(ctx).bottom,
+              bottom: MediaQuery.viewInsetsOf(context).bottom,
             ),
             child: Container(
               decoration: const BoxDecoration(

@@ -211,7 +211,7 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) => Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
+          padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
           child: Container(
             decoration: BoxDecoration(
               color: Colors.grey.shade50,

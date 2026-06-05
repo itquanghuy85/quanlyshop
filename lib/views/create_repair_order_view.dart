@@ -978,7 +978,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
           }
 
           return Padding(
-            padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
+            padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
             child: Container(
               decoration: const BoxDecoration(
                 color: PopupTheme.bgDark,

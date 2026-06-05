@@ -579,7 +579,7 @@ class _ExpenseViewState extends State<ExpenseView> {
           titleC.addListener(() => setS(() {}));
           amountC.addListener(() => setS(() {}));
           return Padding(
-            padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
+            padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
             child: Container(
               decoration: const BoxDecoration(
                 color: PopupTheme.bgDark,
@@ -1246,7 +1246,7 @@ class _ExpenseViewState extends State<ExpenseView> {
           titleC.addListener(() => setS(() {}));
           amountC.addListener(() => setS(() {}));
           return Padding(
-            padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
+            padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
             child: Container(
               decoration: const BoxDecoration(
                 color: PopupTheme.bgDark,
