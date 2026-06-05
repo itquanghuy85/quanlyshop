@@ -521,7 +521,7 @@ class DBHelper {
 
     final db = await openDatabase(
       path,
-      version: 100,
+      version: 101,
       onConfigure: (db) async {
         try {
           await db.execute('PRAGMA foreign_keys = ON');
@@ -1095,6 +1095,40 @@ class DBHelper {
         ''');
         await db.execute(
           'CREATE INDEX IF NOT EXISTS idx_storage_locations_shopId ON storage_locations(shopId)',
+        );
+        // payment_requests (v101) — được tạo đầy đủ trong onCreate
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS payment_requests(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            firestoreId TEXT UNIQUE,
+            shopId TEXT,
+            senderId TEXT,
+            senderName TEXT,
+            customerName TEXT,
+            customerPhone TEXT,
+            customerAddress TEXT,
+            customerNote TEXT,
+            paymentType TEXT,
+            paymentTypeLabel TEXT,
+            amount REAL,
+            accountNumber TEXT,
+            bankName TEXT,
+            description TEXT,
+            imageUrls TEXT,
+            status TEXT DEFAULT 'pending',
+            processedBy TEXT,
+            processedByName TEXT,
+            rejectReason TEXT,
+            paymentMethod TEXT,
+            processedAt INTEGER,
+            createdAt INTEGER,
+            updatedAt INTEGER,
+            isSynced INTEGER DEFAULT 0,
+            deleted INTEGER DEFAULT 0
+          )
+        ''');
+        await db.execute(
+          'CREATE INDEX IF NOT EXISTS idx_payment_requests_shopId ON payment_requests(shopId)',
         );
       },
       onUpgrade: (db, oldV, newV) async {
@@ -2045,6 +2079,48 @@ class DBHelper {
               where: 'id = ?',
               whereArgs: [row['id']],
             );
+          }
+        }
+        if (oldV < 101) {
+          // v101: Tạo bảng payment_requests chính thức trong schema
+          // (trước đây chỉ được tạo lazy bên trong upsertPaymentRequest())
+          try {
+            await db.execute('''
+              CREATE TABLE IF NOT EXISTS payment_requests(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                firestoreId TEXT UNIQUE,
+                shopId TEXT,
+                senderId TEXT,
+                senderName TEXT,
+                customerName TEXT,
+                customerPhone TEXT,
+                customerAddress TEXT,
+                customerNote TEXT,
+                paymentType TEXT,
+                paymentTypeLabel TEXT,
+                amount REAL,
+                accountNumber TEXT,
+                bankName TEXT,
+                description TEXT,
+                imageUrls TEXT,
+                status TEXT DEFAULT 'pending',
+                processedBy TEXT,
+                processedByName TEXT,
+                rejectReason TEXT,
+                paymentMethod TEXT,
+                processedAt INTEGER,
+                createdAt INTEGER,
+                updatedAt INTEGER,
+                isSynced INTEGER DEFAULT 0,
+                deleted INTEGER DEFAULT 0
+              )
+            ''');
+            await db.execute(
+              'CREATE INDEX IF NOT EXISTS idx_payment_requests_shopId ON payment_requests(shopId)',
+            );
+            debugPrint('DB upgrade v101: payment_requests table created');
+          } catch (e) {
+            debugPrint('DB upgrade error (payment_requests v101): \$e');
           }
         }
         if (oldV < 26) {
