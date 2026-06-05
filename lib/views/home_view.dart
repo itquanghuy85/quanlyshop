@@ -2769,7 +2769,8 @@ class _HomeViewState extends State<HomeView>
         }
       }
 
-      final partnerPaidExtraConsistent = analysis.partnerPaid;
+      // Dùng finance_v2 làm source of truth để partnerPaid nhất quán với operatingExpenseOut
+      final partnerPaidExtraConsistent = financeSnapshot.partnerPaymentOut;
 
       // Thống kê số lượng
       soldT = fSales.length;

@@ -112,11 +112,14 @@ class FinanceV2Snapshot {
   final int totalIn;
   final int totalOut;
 
-  /// Tiền ra thuần (không tính trả nợ NCC/đối tác)
+  /// Tiền ra thuần (không tính trả nợ NCC, nhập hàng, TT đối tác)
   final int operatingExpenseOut;
 
   /// Tiền trả nợ nhà cung cấp / đối tác (SHOP_OWES)
   final int debtRepayOut;
+
+  /// Tiền thanh toán đối tác sửa chữa (repair_partner_payments)
+  final int partnerPaymentOut;
   final int receivableTotal;
   final int payableTotal;
   final int netCashflow;
@@ -154,6 +157,7 @@ class FinanceV2Snapshot {
     required this.totalOut,
     required this.operatingExpenseOut,
     required this.debtRepayOut,
+    this.partnerPaymentOut = 0,
     required this.receivableTotal,
     required this.payableTotal,
     required this.netCashflow,
@@ -353,6 +357,7 @@ class FinanceV2DataService {
     int repairIn = 0;
     int expenseOut = 0;
     int importExpenseOut = 0;
+    int partnerPaymentOut = 0; // TT đối tác sửa chữa — tách riêng để hiển thị
     int debtRepayOut =
         0; // Trả nợ NCC/đối tác (SHOP_OWES) — tách riêng để hiển thị
     int extraIn = 0;
@@ -516,6 +521,8 @@ class FinanceV2DataService {
         expenseOut += amount;
         if (_isImportExpense(e)) {
           importExpenseOut += amount;
+        } else if ((e['firestoreId'] ?? '').toString().startsWith('exp_partner_')) {
+          partnerPaymentOut += amount;
         }
       }
       transactions.add(
@@ -637,6 +644,7 @@ class FinanceV2DataService {
       final method = (p['paymentMethod'] ?? '').toString().trim();
 
       expenseOut += amount;
+      partnerPaymentOut += amount;
       transactions.add(
         FinanceV2Txn(
           id: 'partner_payment_${p['id'] ?? paymentFid}',
@@ -906,7 +914,8 @@ class FinanceV2DataService {
     final operatingExpenseOut =
         expenseOut -
         debtRepayOut -
-        importExpenseOut; // chi vận hành thuần, loại trả nợ NCC và nhập hàng
+        importExpenseOut -
+        partnerPaymentOut; // chi vận hành thuần, loại trả nợ NCC, nhập hàng, TT đối tác
     final netCashflow = totalIn - totalOut;
     // Lãi gộp bán hàng theo cash basis — nhất quán với incomeFromSales (saleIn)
     final grossProfitFromSales = saleIn - saleCogs;
@@ -1019,6 +1028,7 @@ class FinanceV2DataService {
       totalOut: totalOut,
       operatingExpenseOut: operatingExpenseOut,
       debtRepayOut: debtRepayOut,
+      partnerPaymentOut: partnerPaymentOut,
       receivableTotal: receivableTotal,
       payableTotal: payableTotal,
       netCashflow: netCashflow,
