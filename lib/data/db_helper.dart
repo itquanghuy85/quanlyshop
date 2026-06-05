@@ -4544,12 +4544,25 @@ class DBHelper {
   }
 
   Future<List<Repair>> getAllRepairs() async {
-    final maps = await (await database).query(
-      'repairs',
-      orderBy: 'createdAt DESC',
-    );
+    final db = await database;
+    final shopId = await _getScopedShopId('getAllRepairs');
+    final List<Map<String, dynamic>> maps;
+    if (shopId != null && shopId.isNotEmpty) {
+      maps = await db.query(
+        'repairs',
+        where: '(shopId = ? OR shopId IS NULL) AND (deleted = 0 OR deleted IS NULL)',
+        whereArgs: [shopId],
+        orderBy: 'createdAt DESC',
+      );
+    } else {
+      maps = await db.query(
+        'repairs',
+        where: '(deleted = 0 OR deleted IS NULL)',
+        orderBy: 'createdAt DESC',
+      );
+    }
     final repairs = List.generate(maps.length, (i) => Repair.fromMap(maps[i]));
-    debugPrint("DB_TRACE: getAllRepairs returned ${repairs.length} repairs");
+    debugPrint("DB_TRACE: getAllRepairs returned ${repairs.length} repairs (shopId=$shopId)");
     return repairs;
   }
 
@@ -4673,12 +4686,23 @@ class DBHelper {
     int endMs,
   ) async {
     final db = await database;
-    final maps = await db.query(
-      'repairs',
-      where: 'createdAt >= ? AND createdAt <= ?',
-      whereArgs: [startMs, endMs],
-      orderBy: 'createdAt DESC',
-    );
+    final shopId = await _getScopedShopId('getRepairsByCreatedAtRange');
+    final List<Map<String, dynamic>> maps;
+    if (shopId != null && shopId.isNotEmpty) {
+      maps = await db.query(
+        'repairs',
+        where: '(shopId = ? OR shopId IS NULL) AND createdAt >= ? AND createdAt <= ? AND (deleted = 0 OR deleted IS NULL)',
+        whereArgs: [shopId, startMs, endMs],
+        orderBy: 'createdAt DESC',
+      );
+    } else {
+      maps = await db.query(
+        'repairs',
+        where: 'createdAt >= ? AND createdAt <= ? AND (deleted = 0 OR deleted IS NULL)',
+        whereArgs: [startMs, endMs],
+        orderBy: 'createdAt DESC',
+      );
+    }
     return List.generate(maps.length, (i) => Repair.fromMap(maps[i]));
   }
 
