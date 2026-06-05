@@ -33,6 +33,7 @@ import 'adjustment_history_view.dart';
 import 'hr_salary_settings_view.dart';
 import 'label_designer_view.dart';
 import 'backup_restore_view.dart';
+import 'import_export_view.dart';
 import 'kiotviet_settings_view.dart';
 
 class ShopSettingsView extends StatefulWidget {
@@ -1555,6 +1556,27 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const BackupRestoreView()),
+            ),
+          ),
+          const Divider(height: 1),
+          ListTile(
+            dense: true,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            leading: Container(
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                color: const Color(0xFFDCFCE7),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.import_export, color: Color(0xFF16A34A), size: 18),
+            ),
+            title: const Text('Nhập / Xuất dữ liệu', style: TextStyle(fontSize: 15)),
+            subtitle: const Text('Xuất & nhập Excel: sửa chữa, bán hàng, kho, khách, NCC', style: TextStyle(fontSize: 12, color: Colors.grey)),
+            trailing: const Icon(Icons.chevron_right, size: 16, color: Colors.grey),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ImportExportView()),
             ),
           ),
           const Divider(height: 1),

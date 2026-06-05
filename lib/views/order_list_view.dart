@@ -30,8 +30,6 @@ import '../services/firestore_write_helper.dart';
 import 'repair_detail_view.dart';
 import 'create_repair_order_view.dart';
 import 'global_search_view.dart';
-import '../utils/excel_export_helper.dart';
-import '../widgets/export_date_filter_dialog.dart';
 import '../theme/app_colors.dart';
 import '../widgets/responsive_wrapper.dart';
 import '../widgets/app_cached_image.dart';
@@ -1682,23 +1680,6 @@ class OrderListViewState extends State<OrderListView> {
                   ),
               ],
             ),
-          IconButton(
-            icon: const Icon(Icons.file_download_outlined, color: Colors.white),
-            tooltip: 'Xuất Excel đơn sửa',
-            onPressed: () async {
-              final result = await ExportDateFilterDialog.show(
-                context,
-                title: 'Xuất đơn sửa',
-              );
-              if (result == null) return;
-              if (!mounted) return;
-              await ExcelExportHelper.exportRepairs(
-                context,
-                startMs: result['startMs'],
-                endMs: result['endMs'],
-              );
-            },
-          ),
         ],
       ),
       body: ResponsiveCenter(

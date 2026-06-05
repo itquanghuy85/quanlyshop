@@ -42,8 +42,6 @@ import '../widgets/custom_app_bar.dart';
 import '../services/category_service.dart';
 import '../services/business_type_helper.dart';
 import '../models/shop_settings_model.dart';
-import '../utils/excel_export_helper.dart';
-import '../widgets/export_date_filter_dialog.dart';
 import '../widgets/responsive_wrapper.dart';
 import '../widgets/app_cached_image.dart';
 import '../widgets/image_picker_widget.dart';
@@ -2501,30 +2499,6 @@ class _InventoryViewState extends State<InventoryView>
                   MaterialPageRoute(
                       builder: (_) => const PtyPrintDesignerView()),
                 );
-              } else if (value == 'excel') {
-                if (_filterType == 'LINH_KIEN') {
-                  final result = await ExportDateFilterDialog.show(
-                    context,
-                    title: l10n.inventoryExportParts,
-                  );
-                  if (result == null || !mounted) return;
-                  await ExcelExportHelper.exportRepairParts(
-                    context,
-                    startMs: result['startMs'],
-                    endMs: result['endMs'],
-                  );
-                } else {
-                  final result = await ExportDateFilterDialog.show(
-                    context,
-                    title: l10n.inventoryExportProducts,
-                  );
-                  if (result == null || !mounted) return;
-                  await ExcelExportHelper.exportProducts(
-                    context,
-                    startMs: result['startMs'],
-                    endMs: result['endMs'],
-                  );
-                }
               } else if (value == 'pending_cost') {
                 _saveAllowPendingCost(!_allowPendingCost);
               } else if (value == 'supplier') {
@@ -2552,14 +2526,6 @@ class _InventoryViewState extends State<InventoryView>
                     const Icon(Icons.qr_code_2_rounded, size: 18),
                     const SizedBox(width: 10),
                     Text(l10n.inventoryPrintLabelsMenu),
-                  ]),
-                ),
-                PopupMenuItem(
-                  value: 'excel',
-                  child: Row(children: [
-                    const Icon(Icons.file_download_outlined, size: 18),
-                    const SizedBox(width: 10),
-                    Text(l10n.inventoryExportExcelMenu),
                   ]),
                 ),
                 if (canManage) ...[

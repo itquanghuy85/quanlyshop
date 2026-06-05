@@ -2107,4 +2107,60 @@ class ExcelExportHelper {
     final fileName = _buildFileName('nhap_kho', startMs, endMs);
     await _saveAndShare(excel, fileName, context);
   }
+
+  // ──────────────────────────────────────────────
+  //  EXPORT SUPPLIERS (NHÀ CUNG CẤP)
+  // ──────────────────────────────────────────────
+
+  static Future<void> exportSuppliers(
+    BuildContext context, {
+    int? startMs,
+    int? endMs,
+  }) async {
+    List<Map<String, dynamic>> suppliers = await _db.getSuppliers();
+
+    if (startMs != null || endMs != null) {
+      suppliers = suppliers.where((s) {
+        final ts = s['createdAt'] as int? ?? 0;
+        if (startMs != null && ts < startMs) return false;
+        if (endMs != null && ts > endMs) return false;
+        return true;
+      }).toList();
+    }
+
+    final excel = Excel.createExcel();
+    final sheet = excel['Nhà cung cấp'];
+
+    _writeHeaders(sheet, [
+      'STT',
+      'Tên nhà cung cấp',
+      'SĐT',
+      'Email',
+      'Địa chỉ',
+      'Ghi chú',
+      'Trạng thái',
+      'Ngày tạo',
+    ]);
+
+    for (int i = 0; i < suppliers.length; i++) {
+      final s = suppliers[i];
+      _writeRow(sheet, i + 1, [
+        i + 1,
+        s['name'] ?? '',
+        s['phone'] ?? '',
+        s['email'] ?? '',
+        s['address'] ?? '',
+        s['note'] ?? '',
+        s['active'] == 1 ? 'Hoạt động' : 'Không hoạt động',
+        _fmtDateTime(s['createdAt']),
+      ]);
+    }
+
+    if (excel.sheets.containsKey('Sheet1')) {
+      excel.delete('Sheet1');
+    }
+
+    final fileName = _buildFileName('nha_cung_cap', startMs, endMs);
+    await _saveAndShare(excel, fileName, context);
+  }
 }

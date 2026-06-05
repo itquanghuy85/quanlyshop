@@ -18,8 +18,6 @@ import '../widgets/empty_state_widget.dart';
 import '../widgets/skeleton_list.dart';
 import '../utils/vietnamese_utils.dart';
 import '../utils/money_utils.dart';
-import '../utils/excel_export_helper.dart';
-import '../widgets/export_date_filter_dialog.dart';
 import '../widgets/responsive_wrapper.dart';
 import '../services/sales_return_service.dart';
 import '../services/user_service.dart';
@@ -740,24 +738,6 @@ class _SaleListViewState extends State<SaleListView> {
               color: Colors.white,
             ),
             tooltip: l10n.createSale,
-          ),
-          // Export Excel
-          IconButton(
-            onPressed: () async {
-              final result = await ExportDateFilterDialog.show(
-                context,
-                title: l10n.saleListExportOrders,
-              );
-              if (result == null) return;
-              if (!mounted) return;
-              await ExcelExportHelper.exportSales(
-                context,
-                startMs: result['startMs'],
-                endMs: result['endMs'],
-              );
-            },
-            icon: const Icon(Icons.file_download_outlined, color: Colors.white),
-            tooltip: l10n.exportExcel,
           ),
           // Sort
           PopupMenuButton<String>(
