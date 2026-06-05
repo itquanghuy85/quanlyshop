@@ -4,6 +4,105 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-05] - fix(finance): audit & sửa 3 lỗi tính toán tài chính home screen
+
+**Files thay đổi:**
+- `lib/finance_v2/finance_v2_data_service.dart` — thêm `partnerPaymentOut` + `importExpenseOut` vào `FinanceV2Snapshot`
+- `lib/views/home_view.dart` — dùng finance_v2 làm source of truth cho tất cả breakdown
+
+| # | Bug | Root cause | Fix |
+|---|-----|-----------|-----|
+| 1 | Chi tiêu biểu đồ > tổng Chi (thừa TT đối tác) | `operatingExpenseOut` đã gồm partner payment, nhưng `_todayPartnerPaid` lại lấy từ `analysis.partnerPaid` khác service → double-count | Track `partnerPaymentOut` riêng trong finance_v2, trừ khỏi `operatingExpenseOut`, dùng `financeSnapshot.partnerPaymentOut` |
+| 2 | Thu khác bị under-report khi có thu nợ KH | `incomeOther` snapshot đã net debt (`extraIn-debtCollectIn`), nhưng home_view lại trừ `debtCollectedConsistent` lần nữa | `_todayMiscIncome = financeSnapshot.incomeOther` (không trừ thêm) |
+| 3 | Nhập hàng hiển thị thấp hơn thực tế | `importOutConsistent` chỉ scan bảng `expenses`, bỏ sót `importHistory`; `operatingExpenseOut` lại dùng `importExpenseOut` đầy đủ → breakdown < totalOut | Expose `importExpenseOut` từ snapshot, dùng nhất quán |
+
+---
+
+## [2026-06-05] - fix(crash): _dependents.isEmpty assertion khi đóng bottom sheet có TextField
+
+**Files thay đổi:**
+- `lib/views/repair_detail_view.dart`, `attendance_management_view.dart`, `attendance_view.dart`, `category_management_view.dart`, `create_repair_order_view.dart`, `debt_view.dart`, `expense_view.dart`, `inventory_view.dart`, `missing_info_products_view.dart`, `sale_detail_view.dart`
+
+| # | Thay đổi | Chi tiết |
+|---|----------|----------|
+| 1 | **Root cause** | `showModalBottomSheet(isScrollControlled: true)` tạo inner `MediaQuery`. `Padding(EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom))` đăng ký phụ thuộc vào inner MediaQuery. Khi sheet đóng, inner MediaQuery deactivate trước khi Padding hủy đăng ký → `'_dependents.isEmpty': is not true` |
+| 2 | **Fix** | Thay toàn bộ `MediaQuery.viewInsetsOf(ctx)` → `MediaQuery.viewInsetsOf(context)` (outer State context) trong 11 files, 21 chỗ |
+
+---
+
+## [2026-06-05] - fix(import): FieldValue poison map → SQLite crash khi nhập Khách/NCC
+
+**Files thay đổi:**
+- `lib/services/excel_import_service.dart` — pass `Map.of(data)` vào `addCustomer`/`addSupplier`
+
+| # | Thay đổi | Chi tiết |
+|---|----------|----------|
+| 1 | **Root cause** | `addCustomer(data)` và `addSupplier(data)` mutate map gốc in-place: `data['updatedAt'] = FieldValue.serverTimestamp()`. Sau đó `_db.upsertCustomer(data)` gặp FieldValue → SQLite throw `Invalid argument: Instance of 'FieldValue'` → 0/N thành công |
+| 2 | **Fix** | Pass shallow copy `Map.of(data)` thay vì `data` trực tiếp → map gốc không bị contaminate |
+
+---
+
+## [2026-06-05] - fix(index): Thêm Firestore index repairs shopId+updatedAt DESC
+
+**Files thay đổi:**
+- `firestore.indexes.json` — Thêm index `repairs: shopId ASC + updatedAt DESC + __name__ DESC`
+
+| # | Thay đổi | Chi tiết |
+|---|----------|----------|
+| 1 | **Missing index** | `watchRepairsByShop` dùng `orderBy('updatedAt', descending: true)` nhưng index chỉ có `updatedAt ASC` → `failed-precondition` mỗi lần mở OrderListView |
+| 2 | **Deployed** | `firebase deploy --only firestore:indexes` — index đang build trên Firebase |
+
+---
+
+## [2026-06-05] - fix(sync): upsertRepair block repair giá 0đ / cost 0đ
+
+**Files thay đổi:**
+- `lib/services/firestore_service.dart` — `validateAmount` allowZero: true cho price + cost trong upsertRepair
+
+| # | Thay đổi | Chi tiết |
+|---|----------|----------|
+| 1 | **Bug** | `upsertRepair` gọi `validateAmount(r.price)` và `validateAmount(r.cost)` với `allowZero=false` — block toàn bộ repair bảo hành (price=0) và repair không dùng linh kiện (cost=0), không sync lên Firestore |
+| 2 | **Fix** | Truyền `allowZero: true` cho cả hai — số âm vẫn bị chặn |
+
+---
+
+## [2026-06-05] - fix(sync): Giảm log nhiễu TimeoutException + bỏ qua poll khi offline
+
+**Files thay đổi:**
+- `lib/services/sync_service.dart` — Thêm import ConnectivityService, offline guard, phân loại timeout log
+
+| # | Thay đổi | Chi tiết |
+|---|----------|----------|
+| 1 | **Offline guard** | `pollCollection()` trả về sớm nếu `!ConnectivityService.instance.isOnline` — không gửi Firestore query khi mất mạng |
+| 2 | **Timeout log downgrade** | `TimeoutException` giờ log `⏱️` (transient) thay vì `❌ Poll sync error` — giảm nhiễu console khi mạng kém / token đang refresh |
+| 3 | **Root cause** | 35+ collection đều timeout cùng lúc do Firebase Auth token refresh hang, làm tất cả query xếp hàng 20s |
+
+---
+
+## [2026-06-05] - feat(import-export): Trang Nhập/Xuất Excel hợp nhất trong Cài đặt
+
+**Files thêm mới:**
+- `lib/services/excel_import_service.dart` — Import service (5 loại dữ liệu, Firestore + SQLite sync)
+- `lib/views/import_export_view.dart` — Trang Nhập/Xuất chuyên nghiệp với date filter + progress dialog
+
+**Files thay đổi:**
+- `lib/utils/excel_export_helper.dart` — Thêm `exportSuppliers()`
+- `lib/views/shop_settings_view.dart` — Thêm entry "Nhập / Xuất dữ liệu" trong mục Sao lưu
+- `lib/views/order_list_view.dart` — Xóa nút Xuất Excel đơn sửa
+- `lib/views/sale_list_view.dart` — Xóa nút Xuất Excel đơn bán
+- `lib/views/inventory_view.dart` — Xóa menu item Xuất Excel kho hàng
+- `lib/views/customer_management_view.dart` — Xóa nút Xuất Excel khách hàng
+
+| # | Thay đổi | Chi tiết |
+|---|----------|----------|
+| 1 | **ExcelImportService** | Import 5 loại: Đơn sửa, Đơn bán, Kho hàng, Khách hàng, Nhà cung cấp. Header-based column detection, money/date parsing, progress callback, Firestore + SQLite upsert |
+| 2 | **ImportExportView** | Bộ lọc ngày (Hôm nay/Tuần/Tháng/Năm/Tuỳ chọn), 5 card loại dữ liệu mỗi card có Xuất + Nhập, progress dialog với chi tiết lỗi |
+| 3 | **exportSuppliers** | Xuất danh sách NCC ra Excel (8 cột: STT, Tên, SĐT, Email, Địa chỉ, Ghi chú, Trạng thái, Ngày tạo) |
+| 4 | **Xóa nút export riêng lẻ** | Xóa 4 nút xuất Excel rải rác (đơn sửa, đơn bán, kho, khách hàng) — tập trung vào trang Cài đặt |
+| 5 | **Build** | `flutter build apk --debug` pass, 0 compile error |
+
+---
+
 ## [2026-06-05] - fix(sync): chặn re-init real-time sync trùng lặp theo cùng user/shop
 
 **Files thay đổi:**

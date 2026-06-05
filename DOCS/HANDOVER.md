@@ -9,10 +9,32 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Version:** 1.x (develop) → Production live  
 **Last Updated:** 2026-06-05  
 **Build Status:** ✅ Debug build passing (`flutter build apk --debug`)  
-**Analyze Status:** ✅ 0 compile error; 1753 info/lint là pre-existing, không ảnh hưởng build  
+**Analyze Status:** ✅ 0 compile error; 1754 info/lint là pre-existing, không ảnh hưởng build  
 **Database Version:** SQLite v17  
 **Branch:** master  
-**Active Initiative:** ✅ Kiểm toán + sửa lỗi đồng bộ dữ liệu kiến trúc — P1 XONG, P2-P3 ghi nhận
+**Active Initiative:** ✅ Trang Nhập/Xuất Excel hợp nhất + Fix sync timeout log — HOÀN THÀNH
+
+### ✅ Vừa hoàn thành (2026-06-05): Audit & fix tài chính home screen (3 bugs)
+- **Bug 1**: TT đối tác (partner payment) double-count trong biểu đồ Chi tiêu → thêm `partnerPaymentOut` field trong `FinanceV2Snapshot`, trừ khỏi `operatingExpenseOut`
+- **Bug 2**: Thu khác bị under-report khi có thu nợ → `_todayMiscIncome = financeSnapshot.incomeOther` (không double-trừ debt)
+- **Bug 3**: Nhập hàng chart thiếu import từ `importHistory` → expose `importExpenseOut` từ snapshot, dùng nhất quán
+- Sau fix: `Chi phí + Nhập hàng + Trả nợ NCC + TT đối tác = totalOut` chính xác 100%
+
+### ✅ Vừa hoàn thành (2026-06-05): Fix crash _dependents.isEmpty khi đóng bottom sheet
+- **Root cause**: `MediaQuery.viewInsetsOf(ctx)` trong builder của `showModalBottomSheet` tạo dependency vào inner MediaQuery. Khi sheet đóng, inner MediaQuery deactivate trước Padding → assertion crash
+- **Fix**: Thay tất cả `viewInsetsOf(ctx)` → `viewInsetsOf(context)` (outer context) trong 11 files, 21 vị trí
+- Cũng đã thêm `FocusScope.of(ctx).unfocus()` trước `Navigator.pop` trong tất cả dialog/sheet có TextField
+
+### ✅ Vừa hoàn thành (2026-06-05): Fix sync timeout log noise
+- **Root cause**: Firebase Auth token refresh hang → 35+ collection query xếp hàng → tất cả hit 20s timeout cùng lúc
+- `pollCollection()` bỏ qua ngay nếu offline (`ConnectivityService.instance.isOnline`)
+- `TimeoutException` giờ log `⏱️` (transient) thay vì `❌ Poll sync error` — giảm nhiễu console
+
+### ✅ Vừa hoàn thành (2026-06-05): Import/Export Excel hợp nhất
+- **Cài đặt → Nhập/Xuất dữ liệu**: Trang mới thay thế tất cả nút xuất rời rạc
+- Import 5 loại: Đơn sửa, Đơn bán, Kho hàng, Khách hàng, NCC — sync Firestore + SQLite
+- Export: Bộ lọc ngày (Hôm nay/Tuần/Tháng/Năm/Tuỳ chọn), xuất từng loại ra XLSX
+- Progress dialog trực quan (thanh tiến trình + đếm hàng + chi tiết lỗi)
 
 ---
 
