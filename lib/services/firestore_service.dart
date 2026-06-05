@@ -276,9 +276,10 @@ class FirestoreService {
     if (r.firestoreId == null) return;
     try {
       // --- MONEY VALIDATION ---
+      // allowZero: repairs can have price=0 (warranty) or cost=0 (no parts)
       try {
-        MoneyValidationService.validateAmount(r.price);
-        MoneyValidationService.validateAmount(r.cost);
+        MoneyValidationService.validateAmount(r.price, allowZero: true);
+        MoneyValidationService.validateAmount(r.cost, allowZero: true);
       } catch (e) {
         debugPrint('❌ upsertRepair: MoneyValidationService failed: $e');
         return;
