@@ -1461,7 +1461,7 @@ class _CashClosingViewState extends State<CashClosingView>
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: () => Navigator.pop(ctx),
+                      onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx); },
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
@@ -1487,6 +1487,8 @@ class _CashClosingViewState extends State<CashClosingView>
                         debugPrint(
                           'Saving opening balance: cash=$cashEnd, bank=$bankEnd',
                         );
+
+                        FocusManager.instance.primaryFocus?.unfocus();
 
                         Navigator.pop(ctx);
                         await _saveOpeningBalance(cashEnd, bankEnd);
@@ -2457,6 +2459,7 @@ class _CashClosingViewState extends State<CashClosingView>
                         setState(() {
                           _txTypeFilter = val.isEmpty ? null : val;
                         });
+                        FocusManager.instance.primaryFocus?.unfocus();
                         Navigator.pop(ctx);
                       },
                     );
@@ -2469,6 +2472,7 @@ class _CashClosingViewState extends State<CashClosingView>
                     child: OutlinedButton.icon(
                       onPressed: () {
                         setState(() => _txTypeFilter = null);
+                        FocusManager.instance.primaryFocus?.unfocus();
                         Navigator.pop(ctx);
                       },
                       icon: const Icon(Icons.clear_all, size: 18),

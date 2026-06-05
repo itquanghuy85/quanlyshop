@@ -3580,7 +3580,10 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                   children: [
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: () => Navigator.pop(ctx, false),
+                        onPressed: () {
+                          FocusScope.of(ctx).unfocus();
+                          Navigator.pop(ctx, false);
+                        },
                         child: Text(sheetLoc.cancel),
                       ),
                     ),
@@ -3588,7 +3591,10 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                     Expanded(
                       flex: 2,
                       child: ElevatedButton(
-                        onPressed: () => Navigator.pop(ctx, true),
+                        onPressed: () {
+                          FocusScope.of(ctx).unfocus();
+                          Navigator.pop(ctx, true);
+                        },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.orange,
                           foregroundColor: Colors.white,

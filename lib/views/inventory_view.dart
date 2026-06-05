@@ -371,7 +371,7 @@ class _InventoryViewState extends State<InventoryView>
                   ),
                   const SizedBox(width: 4),
                   TextButton(
-                    onPressed: () => Navigator.pop(ctx),
+                    onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx); },
                     child: Text(l10n.cancel),
                   ),
                   const Spacer(),
@@ -1277,7 +1277,7 @@ class _InventoryViewState extends State<InventoryView>
                     children: [
                       Expanded(
                         child: OutlinedButton(
-                          onPressed: () => Navigator.pop(ctx),
+                          onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx); },
                           child: Text(l10n.cancel),
                         ),
                       ),
@@ -1578,7 +1578,7 @@ class _InventoryViewState extends State<InventoryView>
                   children: [
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: () => Navigator.pop(ctx),
+                        onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx); },
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.grey.shade700,
                           side: BorderSide(color: Colors.grey.shade400),
@@ -1903,7 +1903,7 @@ class _InventoryViewState extends State<InventoryView>
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(ctx),
+              onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx); },
               child: Text(l10n.cancel),
             ),
             ElevatedButton(
@@ -2270,7 +2270,7 @@ class _InventoryViewState extends State<InventoryView>
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
+            onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx, false); },
             child: Text(l10n.cancel),
           ),
           ElevatedButton(
@@ -4695,7 +4695,7 @@ class _InventoryViewState extends State<InventoryView>
                   SizedBox(
                     width: 100,
                     child: OutlinedButton(
-                      onPressed: () => Navigator.pop(ctx),
+                      onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx); },
                       style: PopupTheme.secondaryButton(),
                       child: Text(l10n.cancel),
                     ),

@@ -316,11 +316,11 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx),
+            onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx); },
             child: Text(AppLocalizations.of(context)!.cancel),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, password),
+            onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx, password); },
             child: Text(AppLocalizations.of(context)!.confirmBtn),
           ),
         ],

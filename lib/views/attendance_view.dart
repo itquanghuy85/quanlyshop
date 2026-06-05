@@ -1224,7 +1224,7 @@ class _AttendanceViewState extends State<AttendanceView>
                       children: [
                         Expanded(
                           child: OutlinedButton(
-                            onPressed: () => Navigator.pop(ctx),
+                            onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx); },
                             child: const Text('HỦY'),
                           ),
                         ),
@@ -1258,6 +1258,7 @@ class _AttendanceViewState extends State<AttendanceView>
                                       checkOutTime!.minute,
                                     ).millisecondsSinceEpoch
                                   : null;
+                              FocusManager.instance.primaryFocus?.unfocus();
                               Navigator.pop(ctx);
                               final ok = await AttendanceApprovalService.createForgotCheckinRequest(
                                 userId: user.uid,
@@ -1459,7 +1460,7 @@ class _AttendanceViewState extends State<AttendanceView>
                       children: [
                         Expanded(
                           child: OutlinedButton(
-                            onPressed: () => Navigator.pop(ctx),
+                            onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx); },
                             child: const Text('HỦY'),
                           ),
                         ),
@@ -1486,6 +1487,7 @@ class _AttendanceViewState extends State<AttendanceView>
                                 updatedAt: DateTime.now().millisecondsSinceEpoch,
                                 isSynced: false,
                               );
+                              FocusManager.instance.primaryFocus?.unfocus();
                               Navigator.pop(ctx);
                               final ok = await AttendanceApprovalService.createLeaveRequest(request);
                               if (ok) {
@@ -1562,7 +1564,7 @@ class _AttendanceViewState extends State<AttendanceView>
                   ),
                 ),
                 IconButton(
-                  onPressed: () => Navigator.pop(ctx),
+                  onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx); },
                   icon: const Icon(Icons.close),
                 ),
               ],
@@ -1767,7 +1769,7 @@ class _AttendanceViewState extends State<AttendanceView>
               automaticallyImplyLeading: false,
               actions: [
                 IconButton(
-                  onPressed: () => Navigator.pop(ctx),
+                  onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx); },
                   icon: const Icon(Icons.close),
                 ),
               ],

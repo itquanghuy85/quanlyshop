@@ -453,11 +453,11 @@ class _ExpenseViewState extends State<ExpenseView> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
+            onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx, false); },
             child: Text(l10n.cancel),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
+            onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx, true); },
             style: AppButtonStyles.errorElevatedButtonStyle,
             child: Text(
               l10n.confirmDeleteButton,
@@ -742,7 +742,7 @@ class _ExpenseViewState extends State<ExpenseView> {
                         children: [
                           Expanded(
                             child: OutlinedButton(
-                              onPressed: () => Navigator.pop(ctx),
+                              onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx); },
                               child: Text(l10n.cancel),
                             ),
                           ),
@@ -1409,7 +1409,7 @@ class _ExpenseViewState extends State<ExpenseView> {
                         children: [
                           Expanded(
                             child: OutlinedButton(
-                              onPressed: () => Navigator.pop(ctx),
+                              onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx); },
                               child: Text(l10n.cancel),
                             ),
                           ),

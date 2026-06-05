@@ -532,7 +532,7 @@ class _DebtViewState extends State<DebtView>
                     children: [
                       Expanded(
                         child: OutlinedButton(
-                          onPressed: () => Navigator.pop(ctx),
+                          onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx); },
                           child: Text(l10n.cancelButton),
                         ),
                       ),
@@ -2207,7 +2207,7 @@ class _DebtViewState extends State<DebtView>
                         children: [
                           Expanded(
                             child: OutlinedButton(
-                              onPressed: () => Navigator.pop(ctx),
+                              onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx); },
                               child: Text(l10n.cancelButton),
                             ),
                           ),
@@ -2254,7 +2254,10 @@ class _DebtViewState extends State<DebtView>
 
                                 EventBus().emit('debts_changed');
                                 if (!mounted) return;
-                                if (ctx.mounted) Navigator.pop(ctx);
+                                if (ctx.mounted) {
+                                  FocusScope.of(ctx).unfocus();
+                                  Navigator.pop(ctx);
+                                }
                                 NotificationService.showSnackBar(
                                   l10n.debtCreated,
                                   color: Colors.green,
@@ -2384,7 +2387,7 @@ class _DebtViewState extends State<DebtView>
                     children: [
                       Expanded(
                         child: OutlinedButton(
-                          onPressed: () => Navigator.pop(ctx),
+                          onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx); },
                           child: Text(l10n.cancelButton),
                         ),
                       ),
@@ -2442,7 +2445,8 @@ class _DebtViewState extends State<DebtView>
 
                               EventBus().emit('debts_changed');
                               if (!mounted) return;
-                              if (ctx.mounted) Navigator.pop(ctx);
+                              FocusManager.instance.primaryFocus?.unfocus();
+                                  if (ctx.mounted) Navigator.pop(ctx);
                               NotificationService.showSnackBar(
                                 l10n.customerDebtCreated,
                                 color: Colors.green,
@@ -2578,7 +2582,7 @@ class _DebtViewState extends State<DebtView>
                     children: [
                       Expanded(
                         child: OutlinedButton(
-                          onPressed: () => Navigator.pop(ctx),
+                          onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx); },
                           child: Text(l10n.cancelButton),
                         ),
                       ),
@@ -2636,7 +2640,8 @@ class _DebtViewState extends State<DebtView>
 
                               EventBus().emit('debts_changed');
                               if (!mounted) return;
-                              if (ctx.mounted) Navigator.pop(ctx);
+                              FocusManager.instance.primaryFocus?.unfocus();
+                                  if (ctx.mounted) Navigator.pop(ctx);
                               NotificationService.showSnackBar(
                                 l10n.supplierDebtCreated,
                                 color: Colors.green,

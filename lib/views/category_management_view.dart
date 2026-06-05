@@ -345,7 +345,7 @@ class _CategoryManagementViewState extends State<CategoryManagementView> {
                       children: [
                         Expanded(
                           child: OutlinedButton(
-                            onPressed: () => Navigator.pop(ctx),
+                            onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx); },
                             child: const Text('HỦY'),
                           ),
                         ),

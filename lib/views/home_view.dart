@@ -3134,11 +3134,11 @@ class _HomeViewState extends State<HomeView>
               title: Text(loc.exitApp),
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.pop(ctx, false),
+                  onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx, false); },
                   child: Text(loc.cancel),
                 ),
                 TextButton(
-                  onPressed: () => Navigator.pop(ctx, true),
+                  onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx, true); },
                   child: Text(loc.exit),
                 ),
               ],
@@ -3206,7 +3206,7 @@ class _HomeViewState extends State<HomeView>
             ),
             actions: [
               TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
+                onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx, false); },
                 child: const Text('Hủy'),
               ),
               ElevatedButton.icon(
@@ -3251,7 +3251,7 @@ class _HomeViewState extends State<HomeView>
                 ),
               ),
               ElevatedButton(
-                onPressed: () => Navigator.pop(ctx, true),
+                onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx, true); },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red,
                   foregroundColor: Colors.white,
@@ -6124,7 +6124,7 @@ class _HomeViewState extends State<HomeView>
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx),
+            onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx); },
             child: Text(
               AppLocalizations.of(context)!.understood,
               style: const TextStyle(
@@ -7049,11 +7049,11 @@ class _HomeViewState extends State<HomeView>
         content: Text('Bạn có chắc muốn hủy liên kết $provider?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
+            onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx, false); },
             child: const Text('HỦY'),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
+            onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx, true); },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             child: const Text(
               'XÁC NHẬN',
@@ -7098,11 +7098,11 @@ class _HomeViewState extends State<HomeView>
         content: Text(loc.logoutConfirmMessage),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
+            onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx, false); },
             child: Text(loc.cancel),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
+            onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx, true); },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             child: Text(
               loc.logout,
