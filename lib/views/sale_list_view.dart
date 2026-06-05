@@ -1339,8 +1339,20 @@ class _SaleListViewState extends State<SaleListView> {
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Hủy')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Lưu')),
+          TextButton(
+            onPressed: () {
+              FocusScope.of(ctx).unfocus();
+              Navigator.pop(ctx, false);
+            },
+            child: const Text('Hủy'),
+          ),
+          FilledButton(
+            onPressed: () {
+              FocusScope.of(ctx).unfocus();
+              Navigator.pop(ctx, true);
+            },
+            child: const Text('Lưu'),
+          ),
         ],
       ),
     );

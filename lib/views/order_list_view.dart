@@ -1196,6 +1196,10 @@ class OrderListViewState extends State<OrderListView> {
             actions: [
               TextButton(
                 onPressed: () {
+                  // Unfocus trước khi pop — tránh '_dependents.isEmpty' assertion
+                  // khi text selection overlay của TextField vẫn còn ref đến
+                  // InheritedWidgets của dialog trong lúc chúng đang deactivate.
+                  FocusScope.of(ctx).unfocus();
                   dialogActive = false;
                   searchTimer?.cancel();
                   Navigator.pop(ctx, false);
@@ -1204,6 +1208,7 @@ class OrderListViewState extends State<OrderListView> {
               ),
               FilledButton(
                 onPressed: () {
+                  FocusScope.of(ctx).unfocus();
                   dialogActive = false;
                   searchTimer?.cancel();
                   Navigator.pop(ctx, true);
