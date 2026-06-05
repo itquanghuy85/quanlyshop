@@ -460,7 +460,8 @@ class ExcelImportService {
       };
 
       try {
-        final docId = await FirestoreService.addCustomer(data);
+        // Pass a copy so addCustomer doesn't mutate `data` with FieldValue.serverTimestamp()
+        final docId = await FirestoreService.addCustomer(Map<String, dynamic>.of(data));
         if (docId != null) {
           data['firestoreId'] = docId;
         }
@@ -545,7 +546,8 @@ class ExcelImportService {
       };
 
       try {
-        final docId = await FirestoreService.addSupplier(data);
+        // Pass a copy so addSupplier doesn't mutate `data` with FieldValue.serverTimestamp()
+        final docId = await FirestoreService.addSupplier(Map<String, dynamic>.of(data));
         if (docId != null) {
           data['firestoreId'] = docId;
         }
