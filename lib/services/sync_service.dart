@@ -3089,8 +3089,9 @@ class SyncService {
       debugPrint('⚡ syncRepairData: starting targeted repair sync...');
 
       // Sync unsynced repairs
-      final repairs = await dbHelper.getAllRepairs();
-      final unsyncedRepairs = repairs
+      // OPT: Dùng getUnsyncedRepairs() thay vì getAllRepairs().where(!isSynced)
+      // để tránh load toàn bộ records vào RAM chỉ để filter.
+      final unsyncedRepairs = (await dbHelper.getUnsyncedRepairs())
           .where((r) => !r.isSynced || _hasLocalImagePath(r.imagePath))
           .toList();
 
@@ -3219,7 +3220,9 @@ class SyncService {
 
       // Chỉ đẩy những đơn hàng CHƯA đồng bộ hoặc CÓ thay đổi hình ảnh
       {
-        final repairs = await dbHelper.getAllRepairs();
+        // OPT: Dùng getUnsyncedRepairs() thay vì getAllRepairs().filter()
+        // để tránh load toàn bộ object vào RAM.
+        final repairs = await dbHelper.getUnsyncedRepairs();
         debugPrint("syncAllToCloud: có ${repairs.length} repairs cần sync");
         const repairBatchLimit = 400;
         WriteBatch repairBatch = _db.batch();
@@ -4495,12 +4498,12 @@ class SyncService {
       }
 
       // Log local data counts before sync
-      final localRepairs = await db.getAllRepairs();
-      final localProducts = await db.getAllProducts();
-      final localSales = await db.getAllSales();
-      final localAttendance = await db.getAllAttendance();
+      // OPT: Dùng count query thay vì load toàn bộ objects chỉ để lấy .length
+      final repairsCountBefore = await db.getRepairsCount();
+      final productsCountBefore = await db.getProductsCount();
+      final salesCountBefore = await db.getSalesCount();
       debugPrint(
-        "LOCAL DATA BEFORE SYNC: repairs=${localRepairs.length}, products=${localProducts.length}, sales=${localSales.length}, attendance=${localAttendance.length}",
+        "LOCAL DATA BEFORE SYNC: repairs=$repairsCountBefore, products=$productsCountBefore, sales=$salesCountBefore",
       );
 
       // Chỉ tải các collection có shopId - đảm bảo chỉ lấy dữ liệu của shop hiện tại
@@ -4711,14 +4714,14 @@ class SyncService {
       }
 
       // Log local data counts after sync
-      final localRepairsAfter = await db.getAllRepairs();
-      final localProductsAfter = await db.getAllProducts();
-      final localSalesAfter = await db.getAllSales();
-      final localAttendanceAfter = await db.getAllAttendance();
+      // OPT: Dùng count query thay vì load toàn bộ objects
+      final repairsCountAfter = await db.getRepairsCount();
+      final productsCountAfter = await db.getProductsCount();
+      final salesCountAfter = await db.getSalesCount();
       final localExpenses = await db.getAllExpensesForSync();
       final localDebts = await db.getAllDebts();
       debugPrint(
-        "LOCAL DATA AFTER SYNC: repairs=${localRepairsAfter.length}, products=${localProductsAfter.length}, sales=${localSalesAfter.length}, attendance=${localAttendanceAfter.length}, expenses=${localExpenses.length}, debts=${localDebts.length}",
+        "LOCAL DATA AFTER SYNC: repairs=$repairsCountAfter, products=$productsCountAfter, sales=$salesCountAfter, expenses=${localExpenses.length}, debts=${localDebts.length}",
       );
 
       debugPrint("Đã hoàn thành downloadAllFromCloud.");
