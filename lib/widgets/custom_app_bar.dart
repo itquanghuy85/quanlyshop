@@ -125,11 +125,21 @@ class CustomAppBar {
                 const SizedBox(width: 4),
               ]
             : null,
-        bottom: bottom ??
-            PreferredSize(
-              preferredSize: const Size.fromHeight(1),
-              child: Container(color: kSubDivider, height: 1),
-            ),
+        bottom: bottom != null
+            ? PreferredSize(
+                preferredSize: bottom.preferredSize,
+                child: Material(
+                  color: Colors.transparent,
+                  child: DecoratedBox(
+                    decoration: const BoxDecoration(gradient: kSubGradient),
+                    child: bottom,
+                  ),
+                ),
+              )
+            : PreferredSize(
+                preferredSize: const Size.fromHeight(1),
+                child: Container(color: kSubDivider, height: 1),
+              ),
       );
     }
 
@@ -716,7 +726,9 @@ class CustomTabBar {
   }) {
     return PreferredSize(
       preferredSize: const Size.fromHeight(CustomAppBar.kTabBarHeight),
-      child: TabBar(
+      child: Material(
+        color: Colors.transparent,
+        child: TabBar(
         controller: controller,
         isScrollable: isScrollable,
         labelColor: const Color(0xFF143E82),
@@ -746,6 +758,7 @@ class CustomTabBar {
         padding: padding ?? const EdgeInsets.symmetric(horizontal: 4),
         labelPadding: const EdgeInsets.symmetric(horizontal: 12),
         tabs: tabs,
+        ),
       ),
     );
   }

@@ -11260,8 +11260,9 @@ class DBHelper {
     final db = await database;
     final map = Map<String, dynamic>.from(data);
     map.remove('id');
-    // Normalize booleans from Firestore
-    if (map['isActive'] is bool) map['isActive'] = (map['isActive'] as bool) ? 1 : 0;
+    // Normalize booleans/nulls from Firestore
+    final rawActive = map['isActive'];
+    map['isActive'] = rawActive is bool ? (rawActive ? 1 : 0) : (rawActive ?? 1);
     if (map['deleted'] is bool) map['deleted'] = (map['deleted'] as bool) ? 1 : 0;
     map['isSynced'] = 1;
     await db.insert(
@@ -11304,7 +11305,7 @@ class DBHelper {
   Future<List<StorageLocation>> getStorageLocations(String shopId, {bool activeOnly = false}) async {
     final db = await database;
     final where = activeOnly
-        ? 'shopId = ? AND (deleted = 0 OR deleted IS NULL) AND isActive = 1'
+        ? 'shopId = ? AND (deleted = 0 OR deleted IS NULL) AND (isActive = 1 OR isActive IS NULL)'
         : 'shopId = ? AND (deleted = 0 OR deleted IS NULL)';
     final rows = await db.query(
       'storage_locations',

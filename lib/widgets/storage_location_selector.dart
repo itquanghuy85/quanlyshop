@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../data/db_helper.dart';
 import '../models/storage_location_model.dart';
+import '../services/sync_service.dart';
 import '../services/user_service.dart';
 
 /// Compact selector that shows current location and lets user pick a new one.
@@ -52,7 +53,15 @@ class _StorageLocationSelectorState extends State<StorageLocationSelector> {
         if (mounted) setState(() => _loading = false);
         return;
       }
-      final locs = await DBHelper().getStorageLocations(shopId!, activeOnly: true);
+      var locs = await DBHelper().getStorageLocations(shopId!, activeOnly: true);
+      if (locs.isEmpty) {
+        // SQLite trống — trigger sync và thử lại một lần
+        await SyncService.refreshCloudCollections(
+          reason: 'storage_location_selector_empty',
+          force: true,
+        );
+        locs = await DBHelper().getStorageLocations(shopId, activeOnly: true);
+      }
       if (mounted) setState(() { _locations = locs; _loading = false; });
     } catch (e) {
       debugPrint('StorageLocationSelector._load error: $e');
