@@ -22,6 +22,7 @@ import 'event_bus.dart';
 import 'claims_service.dart';
 import 'shop_deletion_service.dart';
 import 'firebase_usage_stats_service.dart';
+import 'connectivity_service.dart';
 import '../utils/perf_monitor.dart';
 
 class SyncService {
@@ -168,8 +169,9 @@ class SyncService {
       case 'sales_returns':
       case 'sales_return_items':
         return _hasPermission(permissions, 'allowViewSales');
-      case 'products':
       case 'storage_locations':
+        return true; // visible to all roles — used for repair/product location assignment
+      case 'products':
       case 'product_variants':
       case 'quick_input_codes':
       case 'supplier_import_history':
@@ -288,7 +290,8 @@ class SyncService {
     'purchase_orders',
     'product_categories',
     'supplier_payments',
-    'storage_locations',
+    // storage_locations intentionally excluded: small dataset, always full-fetch to avoid
+    // requiring a composite (shopId, updatedAt) Firestore index that is hard to deploy.
   };
   static final Map<String, int> _realtimeCursorCache = <String, int>{};
   static final Set<String> _incrementalRealtimeDisabled = <String>{};
@@ -2532,6 +2535,7 @@ class SyncService {
 
     Future<void> pollCollection({String reason = 'initial'}) async {
       if (isPolling) return;
+      if (!ConnectivityService.instance.isOnline) return;
       isPolling = true;
       try {
         if (shopId != null && ShopDeletionService.isShopBeingDeleted(shopId)) {
@@ -2604,7 +2608,13 @@ class SyncService {
         onBatchDone();
       } catch (e) {
         final errorStr = e.toString();
-        debugPrint("❌ Poll sync error in $collection: $errorStr");
+        final isTimeout =
+            e is TimeoutException || errorStr.contains('TimeoutException');
+        if (isTimeout) {
+          debugPrint("⏱️ Poll timeout $collection (transient, will retry)");
+        } else {
+          debugPrint("❌ Poll sync error in $collection: $errorStr");
+        }
 
         final isPermissionError =
             errorStr.contains('permission-denied') ||
