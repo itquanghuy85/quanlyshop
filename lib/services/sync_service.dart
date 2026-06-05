@@ -254,6 +254,7 @@ class SyncService {
   static DateTime? _lastDownloadTime;
   static bool _isDownloading = false;
   static bool _isInitializingRealtime = false;
+  static String? _lastRealtimeInitSignature;
   static const _downloadCooldown = Duration(seconds: 60);
   static bool _isSyncingAllToCloud = false;
   static DateTime? _lastSyncAllToCloudAt;
@@ -323,6 +324,26 @@ class SyncService {
       return true;
     }
     return false;
+  }
+
+  static String _buildRealtimeInitSignature({
+    required String uid,
+    required String? shopId,
+    required String role,
+    required bool isSuperAdmin,
+    required Map<String, dynamic> permissions,
+  }) {
+    final permissionBits = permissions.entries
+        .map((entry) => '${entry.key}=${entry.value}')
+        .toList()
+      ..sort();
+    return [
+      uid,
+      shopId ?? '',
+      role.toLowerCase(),
+      isSuperAdmin ? '1' : '0',
+      permissionBits.join('|'),
+    ].join('::');
   }
 
   static Future<QuerySnapshot<Map<String, dynamic>>> _getQueryWithTimeout({
@@ -919,17 +940,7 @@ class SyncService {
       debugPrint('⏸️ initRealTimeSync: đang khởi tạo, bỏ qua lần gọi trùng');
       return;
     }
-
-    _isInitializingRealtime = true;
-    PerfMonitor.start('initRealTimeSync');
     try {
-      debugPrint("Khởi tạo real-time sync...");
-      // Hủy các subscription cũ nếu có để tránh rò rỉ bộ nhớ hoặc lặp sự kiện
-      await cancelAllSubscriptions();
-
-      // Store callback for potential reinitialization
-      _onDataChangedCallback = onDataChanged;
-
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
         debugPrint("initRealTimeSync: Không có user, bỏ qua");
@@ -941,6 +952,29 @@ class SyncService {
       final role = await UserService.getUserRole(user.uid);
       // Super admin cũng cần shopId nếu đã chọn shop
       final String? shopId = await UserService.getCurrentShopId();
+      final initSignature = _buildRealtimeInitSignature(
+        uid: user.uid,
+        shopId: shopId,
+        role: role,
+        isSuperAdmin: isSuperAdmin,
+        permissions: permissions,
+      );
+
+      if (isRealTimeSyncActive && _lastRealtimeInitSignature == initSignature) {
+        debugPrint(
+          '⏭️ initRealTimeSync: duplicate init for same user/shop/permissions skipped',
+        );
+        return;
+      }
+
+      _isInitializingRealtime = true;
+      PerfMonitor.start('initRealTimeSync');
+      debugPrint("Khởi tạo real-time sync...");
+      // Hủy các subscription cũ nếu có để tránh rò rỉ bộ nhớ hoặc lặp sự kiện
+      await cancelAllSubscriptions();
+
+      // Store callback for potential reinitialization
+      _onDataChangedCallback = onDataChanged;
 
       // Baseline signature sẽ lấy từ users stream lần đầu để tránh lệch nguồn
       // giữa quyền đã chuẩn hóa và dữ liệu profile thô gây reinit giả.
@@ -1418,6 +1452,7 @@ class SyncService {
       // CRITICAL subscriptions done — mark as initialized so UI can proceed
       // ═══════════════════════════════════════════════════════════════════════
       _isInitialized = true;
+      _lastRealtimeInitSignature = initSignature;
       PerfMonitor.stop('initRealTimeSync');
       debugPrint(
         "✅ Critical sync ready (${_subscriptions.length} subs) — "
@@ -2701,6 +2736,7 @@ class SyncService {
     _currentShopId = null;
     _lastUserPermissionSignature = null;
     _lastShopRestrictionSignature = null;
+    _lastRealtimeInitSignature = null;
     debugPrint('✅ All subscriptions cancelled');
   }
 

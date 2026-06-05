@@ -4,6 +4,19 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-05] - fix(sync): chặn re-init real-time sync trùng lặp theo cùng user/shop
+
+**Files thay đổi:**
+- `lib/services/sync_service.dart`
+
+| # | Thay đổi | Chi tiết |
+|---|----------|----------|
+| 1 | **Dedupe `initRealTimeSync`** | Thêm signature theo `uid + shopId + role + permissions`; nếu cùng session đã active thì bỏ qua lần gọi trùng để tránh `cancelAllSubscriptions()` rồi dựng lại listener vô ích. |
+| 2 | **Giảm loop runtime** | Giảm nguy cơ log kiểu `Canceling all subscriptions` / `Khởi tạo real-time sync...` lặp lại do HomeView hoặc EventBus kích hoạt nhiều nguồn cùng lúc. |
+| 3 | **Validation** | `flutter analyze lib/services/sync_service.dart` không còn lỗi compile; còn 3 info/lint pre-existing của file. |
+
+---
+
 ## [2026-06-05] - fix(sync-P1): Sửa 2 lỗi đồng bộ nguy hiểm trong payment services + kiểm toán kiến trúc
 
 **Files thay đổi:**

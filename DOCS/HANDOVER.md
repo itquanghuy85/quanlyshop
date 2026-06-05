@@ -48,6 +48,11 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 | EventBus emit sau batch dù có thể có doc lỗi cục bộ — UI reload với trạng thái không nhất quán | `lib/services/sync_service.dart` |
 | `import_order_service.dart` set `isSynced=1` dựa trên fact Firestore đã được gọi — không check kết quả | `lib/services/import_order_service.dart` |
 
+### ĐÃ GIẢM RỦI RO TRONG PHIÊN NÀY
+| Mô tả | File | Kết quả |
+|-------|------|---------|
+| Re-init real-time sync trùng lặp theo cùng user/shop/role/permissions | `lib/services/sync_service.dart` | ✅ Đã chặn duplicate init để tránh `cancelAllSubscriptions()` lặp vô ích |
+
 ---
 
 ## ✅ CHECKLIST CHỐT BÀN GIAO PRODUCTION
@@ -87,6 +92,12 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 ---
 
 ## ✅ Vừa hoàn thành (2026-06-05) — Kiểm toán kiến trúc sync + Fix P1 payment services
+
+1. **Chặn re-init real-time sync trùng lặp**
+  - `sync_service.dart`: thêm signature cho session realtime sync theo `uid + shopId + role + permissions`.
+  - Nếu sync đã active và cùng session gọi lại, app bỏ qua lần init trùng thay vì hủy toàn bộ subscription rồi dựng lại.
+  - Mục tiêu: giảm nguy cơ loop runtime kiểu `Init → Fetch → Destroy → Init lại` quan sát từ log iPhone.
+  - Validation: `flutter analyze lib/services/sync_service.dart` không phát sinh lỗi compile; còn 3 info/lint pre-existing.
 
 1. **Kiểm toán kiến trúc đồng bộ dữ liệu toàn hệ thống (điều tra tĩnh)**
    - Phân tích đầy đủ: SyncOrchestrator, SyncService listeners, `_shouldAcceptCloudData`, `downloadAllFromCloud`, tất cả `syncAll()` call sites, payment services, inventory, sales, customer, supplier, debt.
