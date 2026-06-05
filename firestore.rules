@@ -274,6 +274,7 @@ service cloud.firestore {
       // UPDATE: Own profile OR manager/owner of same shop
       // Owner can change role of staff in their shop
       // Also allow if current user owns the shop that the target user belongs to
+      // Also allow users with allowManageStaff permission to update non-admin permissions for shop members
       allow update: if isAuth() &&
                        (uid() == userId || 
                         isSuperAdmin() || 
@@ -281,7 +282,12 @@ service cloud.firestore {
                         // Fallback: Check if current user is the shop owner directly
                         ('shopId' in resource.data && 
                          exists(/databases/$(database)/documents/shops/$(resource.data.shopId)) &&
-                         get(/databases/$(database)/documents/shops/$(resource.data.shopId)).data.ownerUid == uid())
+                         get(/databases/$(database)/documents/shops/$(resource.data.shopId)).data.ownerUid == uid()) ||
+                        // Staff with allowManageStaff can update permissions but cannot escalate their own allowManageStaff flag
+                        (hasUserPermission('allowManageStaff') &&
+                         'shopId' in resource.data &&
+                         belongsTo(resource.data.shopId) &&
+                         !changed('allowManageStaff'))
                        ) &&
                        protectedOK() &&
                        roleChangeOK();

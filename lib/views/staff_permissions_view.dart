@@ -94,31 +94,53 @@ class _StaffPermissionsViewState extends State<StaffPermissionsView> {
 
   String _permissionLabel(String key) => _permissionLabels[key] ?? key;
 
+  Future<void> _doUpdateUserPermission(String uid, String permissionKey, bool value, Map<String, dynamic> userData) async {
+    await UserService.updateUserPermissions(
+      uid: uid,
+      allowViewSales: permissionKey == 'allowViewSales' ? value : (userData['allowViewSales'] ?? false),
+      allowViewRepairs: permissionKey == 'allowViewRepairs' ? value : (userData['allowViewRepairs'] ?? false),
+      allowViewInventory: permissionKey == 'allowViewInventory' ? value : (userData['allowViewInventory'] ?? false),
+      allowViewParts: permissionKey == 'allowViewParts' ? value : (userData['allowViewParts'] ?? false),
+      allowViewSuppliers: permissionKey == 'allowViewSuppliers' ? value : (userData['allowViewSuppliers'] ?? false),
+      allowViewCustomers: permissionKey == 'allowViewCustomers' ? value : (userData['allowViewCustomers'] ?? false),
+      allowViewWarranty: permissionKey == 'allowViewWarranty' ? value : (userData['allowViewWarranty'] ?? false),
+      allowViewChat: permissionKey == 'allowViewChat' ? value : (userData['allowViewChat'] ?? false),
+      allowViewAttendance: permissionKey == 'allowViewAttendance' ? value : (userData['allowViewAttendance'] ?? false),
+      allowViewPrinter: permissionKey == 'allowViewPrinter' ? value : (userData['allowViewPrinter'] ?? false),
+      allowViewRevenue: permissionKey == 'allowViewRevenue' ? value : (userData['allowViewRevenue'] ?? false),
+      allowViewExpenses: permissionKey == 'allowViewExpenses' ? value : (userData['allowViewExpenses'] ?? false),
+      allowViewDebts: permissionKey == 'allowViewDebts' ? value : (userData['allowViewDebts'] ?? false),
+      allowViewCostPrice: permissionKey == 'allowViewCostPrice' ? value : (userData['allowViewCostPrice'] ?? false),
+      allowManageStaff: permissionKey == 'allowManageStaff' ? value : (userData['allowManageStaff'] ?? false),
+      allowViewSettings: permissionKey == 'allowViewSettings' ? value : (userData['allowViewSettings'] ?? false),
+    );
+  }
+
+  bool _isPermissionDeniedError(Object e) {
+    final msg = e.toString().toLowerCase();
+    return msg.contains('permission-denied') || msg.contains('permission denied');
+  }
+
   Future<void> _updateUserPermission(String uid, String permissionKey, bool value) async {
     try {
       // Lấy dữ liệu user hiện tại để có tất cả permissions
       final userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
       final userData = userDoc.data() ?? {};
 
-      await UserService.updateUserPermissions(
-        uid: uid,
-        allowViewSales: permissionKey == 'allowViewSales' ? value : (userData['allowViewSales'] ?? false),
-        allowViewRepairs: permissionKey == 'allowViewRepairs' ? value : (userData['allowViewRepairs'] ?? false),
-        allowViewInventory: permissionKey == 'allowViewInventory' ? value : (userData['allowViewInventory'] ?? false),
-        allowViewParts: permissionKey == 'allowViewParts' ? value : (userData['allowViewParts'] ?? false),
-        allowViewSuppliers: permissionKey == 'allowViewSuppliers' ? value : (userData['allowViewSuppliers'] ?? false),
-        allowViewCustomers: permissionKey == 'allowViewCustomers' ? value : (userData['allowViewCustomers'] ?? false),
-        allowViewWarranty: permissionKey == 'allowViewWarranty' ? value : (userData['allowViewWarranty'] ?? false),
-        allowViewChat: permissionKey == 'allowViewChat' ? value : (userData['allowViewChat'] ?? false),
-        allowViewAttendance: permissionKey == 'allowViewAttendance' ? value : (userData['allowViewAttendance'] ?? false),
-        allowViewPrinter: permissionKey == 'allowViewPrinter' ? value : (userData['allowViewPrinter'] ?? false),
-        allowViewRevenue: permissionKey == 'allowViewRevenue' ? value : (userData['allowViewRevenue'] ?? false),
-        allowViewExpenses: permissionKey == 'allowViewExpenses' ? value : (userData['allowViewExpenses'] ?? false),
-        allowViewDebts: permissionKey == 'allowViewDebts' ? value : (userData['allowViewDebts'] ?? false),
-        allowViewCostPrice: permissionKey == 'allowViewCostPrice' ? value : (userData['allowViewCostPrice'] ?? false),
-        allowManageStaff: permissionKey == 'allowManageStaff' ? value : (userData['allowManageStaff'] ?? false),
-        allowViewSettings: permissionKey == 'allowViewSettings' ? value : (userData['allowViewSettings'] ?? false),
-      );
+      try {
+        await _doUpdateUserPermission(uid, permissionKey, value, userData);
+      } catch (e) {
+        if (!_isPermissionDeniedError(e) || _isSuperAdmin || _currentShopId == null) rethrow;
+
+        // Nhân viên chưa được gán đúng shop → gán trước rồi thử lại
+        debugPrint('⚠️ Permission denied khi cập nhật quyền cho $uid, thử gán shop và thử lại...');
+        await UserService.assignUserToCurrentShop(uid);
+        try {
+          await FirebaseAuth.instance.currentUser?.getIdToken(true);
+        } catch (_) {}
+        await _doUpdateUserPermission(uid, permissionKey, value, userData);
+      }
+
       if (mounted) {
         // Ghi log thay đổi quyền
         await AuditService.logAction(
