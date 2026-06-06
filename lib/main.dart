@@ -324,6 +324,18 @@ class _MyAppState extends State<MyApp> {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
+      // Edge-to-edge fix: some sub-screens get MediaQuery.padding.top=0 on Android 16
+      // even though the physical status bar is still present. Read the authoritative
+      // inset from the Flutter engine window and inject it if it's larger.
+      builder: (context, child) {
+        final view = View.of(context);
+        final rawTop = view.padding.top / view.devicePixelRatio;
+        final mq = MediaQuery.of(context);
+        final fixed = rawTop > mq.padding.top
+            ? mq.copyWith(padding: mq.padding.copyWith(top: rawTop))
+            : mq;
+        return MediaQuery(data: fixed, child: child!);
+      },
       home: SplashView(
         setLocale: setLocale,
       ), // Luôn bắt đầu từ SplashView để khởi tạo mượt mà

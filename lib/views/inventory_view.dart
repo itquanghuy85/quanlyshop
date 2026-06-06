@@ -95,6 +95,8 @@ class _InventoryViewState extends State<InventoryView>
   int _totalCapitalFromDB = 0;
   bool _hasInventoryAccess = false;
   String _searchQuery = "";
+  bool _isSearchBarVisible = false;
+  late TextEditingController _inlineSearchController;
   bool _showOutOfStock = false; // Hiển thị cả hàng hết
   String _filterType =
       'TẤT CẢ'; // Filter theo loại: TẤT CẢ, DIEN_THOAI, PHỤ KIỆN, LINH_KIEN
@@ -175,6 +177,7 @@ class _InventoryViewState extends State<InventoryView>
   void initState() {
     super.initState();
     _filterType = widget.initialFilterType;
+    _inlineSearchController = TextEditingController();
     _tabController = TabController(length: 1, vsync: this);
     _bindInventoryRefreshEvents();
     _init(); // _init sẽ gọi _initCheckData sau khi load shop settings
@@ -234,6 +237,7 @@ class _InventoryViewState extends State<InventoryView>
   @override
   void dispose() {
     _partsAddTrigger.dispose();
+    _inlineSearchController.dispose();
     _inventoryRefreshDebounce?.cancel();
     _inventoryEventSub?.cancel();
     _scrollController.removeListener(_onScroll);
@@ -316,91 +320,6 @@ class _InventoryViewState extends State<InventoryView>
     }
   }
 
-  Future<void> _openSearchDialog() async {
-    final l10n = AppLocalizations.of(context)!;
-    final controller = TextEditingController(text: _searchQuery);
-    final value = await showModalBottomSheet<String>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
-        child: Container(
-          decoration: const BoxDecoration(
-            color: PopupTheme.bgDark,
-            borderRadius: BorderRadius.vertical(
-              top: Radius.circular(PopupTheme.radiusSheet),
-            ),
-          ),
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const PopupDragHandle(),
-              Text(
-                l10n.inventorySearchProduct(_terms.productLabel.toLowerCase()),
-                style: AppTextStyles.headline4.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: PopupTheme.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: controller,
-                autofocus: true,
-                decoration: InputDecoration(
-                  hintText: l10n.inventorySearchHint(
-                      _terms.productLabel.toLowerCase(),
-                      _terms.category2.toLowerCase(),
-                      _terms.specialField1Label),
-                  prefixIcon: const Icon(Icons.search),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(PopupTheme.radiusField),
-                  ),
-                ),
-                onSubmitted: (text) {
-                  FocusScope.of(ctx).unfocus();
-                  Navigator.pop(ctx, text);
-                },
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  TextButton(
-                    onPressed: () {
-                      FocusScope.of(ctx).unfocus();
-                      Navigator.pop(ctx, '');
-                    },
-                    child: Text(l10n.delete),
-                  ),
-                  const SizedBox(width: 4),
-                  TextButton(
-                    onPressed: () {
-                      FocusScope.of(ctx).unfocus();
-                      Navigator.pop(ctx);
-                    },
-                    child: Text(l10n.cancel),
-                  ),
-                  const Spacer(),
-                  ElevatedButton(
-                    onPressed: () {
-                      FocusScope.of(ctx).unfocus();
-                      Navigator.pop(ctx, controller.text);
-                    },
-                    child: Text(l10n.search),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-
-    if (value == null) return;
-    _applySearchQuery(value);
-  }
 
   static ButtonStyle _compactFilledBtn(Color color) =>
       ElevatedButton.styleFrom(
@@ -2477,15 +2396,22 @@ class _InventoryViewState extends State<InventoryView>
             ),
           ],
           IconButton(
-            onPressed: _openSearchDialog,
-            icon: const Icon(
-              Icons.search,
-              color: AppBarAccents.inventory,
+            onPressed: () {
+              final opening = !_isSearchBarVisible;
+              setState(() => _isSearchBarVisible = opening);
+              if (opening) {
+                _inlineSearchController.text = _searchQuery;
+              } else {
+                _inlineSearchController.clear();
+                _applySearchQuery('');
+              }
+            },
+            icon: Icon(
+              _isSearchBarVisible ? Icons.search_off_rounded : Icons.search,
+              color: _isSearchBarVisible ? AppBarAccents.inventory.withValues(alpha: 0.6) : AppBarAccents.inventory,
               size: 22,
             ),
-            tooltip: _searchQuery.trim().isEmpty
-                ? l10n.inventorySearchTooltip
-                : l10n.inventorySearchProduct(_searchQuery),
+            tooltip: _isSearchBarVisible ? l10n.cancel : l10n.inventorySearchTooltip,
             splashRadius: 20,
           ),
           PopupMenuButton<String>(
@@ -2597,6 +2523,38 @@ class _InventoryViewState extends State<InventoryView>
       body: ResponsiveCenter(
         child: Column(
           children: [
+            // Inline search bar — visible when _isSearchBarVisible (keyboard safe via Scaffold resizeToAvoidBottomInset)
+            if (_isSearchBarVisible)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+                child: TextField(
+                  controller: _inlineSearchController,
+                  autofocus: true,
+                  decoration: InputDecoration(
+                    hintText: l10n.inventorySearchHint(
+                      _terms.productLabel.toLowerCase(),
+                      _terms.category2.toLowerCase(),
+                      _terms.specialField1Label,
+                    ),
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              _inlineSearchController.clear();
+                              _applySearchQuery('');
+                            },
+                          )
+                        : null,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  ),
+                  onChanged: _applySearchQuery,
+                ),
+              ),
             // Category filter chips - always visible
             _buildCategoryChips(),
             Expanded(
