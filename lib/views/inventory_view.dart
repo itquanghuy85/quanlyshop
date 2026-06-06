@@ -325,7 +325,7 @@ class _InventoryViewState extends State<InventoryView>
       useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+        padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
         child: Container(
           decoration: const BoxDecoration(
             color: PopupTheme.bgDark,
@@ -360,13 +360,19 @@ class _InventoryViewState extends State<InventoryView>
                     borderRadius: BorderRadius.circular(PopupTheme.radiusField),
                   ),
                 ),
-                onSubmitted: (text) => Navigator.pop(ctx, text),
+                onSubmitted: (text) {
+                  FocusScope.of(ctx).unfocus();
+                  Navigator.pop(ctx, text);
+                },
               ),
               const SizedBox(height: 12),
               Row(
                 children: [
                   TextButton(
-                    onPressed: () => Navigator.pop(ctx, ''),
+                    onPressed: () {
+                      FocusScope.of(ctx).unfocus();
+                      Navigator.pop(ctx, '');
+                    },
                     child: Text(l10n.delete),
                   ),
                   const SizedBox(width: 4),
@@ -376,7 +382,10 @@ class _InventoryViewState extends State<InventoryView>
                   ),
                   const Spacer(),
                   ElevatedButton(
-                    onPressed: () => Navigator.pop(ctx, controller.text),
+                    onPressed: () {
+                      FocusScope.of(ctx).unfocus();
+                      Navigator.pop(ctx, controller.text);
+                    },
                     child: Text(l10n.search),
                   ),
                 ],
