@@ -324,73 +324,78 @@ class _InventoryViewState extends State<InventoryView>
       isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
-        child: Container(
-          decoration: const BoxDecoration(
-            color: PopupTheme.bgDark,
-            borderRadius: BorderRadius.vertical(
-              top: Radius.circular(PopupTheme.radiusSheet),
+      builder: (ctx) => StatefulBuilder(
+        builder: (stateCtx, _) => Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(stateCtx).bottom),
+          child: Container(
+            decoration: const BoxDecoration(
+              color: PopupTheme.bgDark,
+              borderRadius: BorderRadius.vertical(
+                top: Radius.circular(PopupTheme.radiusSheet),
+              ),
             ),
-          ),
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const PopupDragHandle(),
-              Text(
-                l10n.inventorySearchProduct(_terms.productLabel.toLowerCase()),
-                style: AppTextStyles.headline4.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: PopupTheme.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: controller,
-                autofocus: true,
-                decoration: InputDecoration(
-                  hintText: l10n.inventorySearchHint(
-                      _terms.productLabel.toLowerCase(),
-                      _terms.category2.toLowerCase(),
-                      _terms.specialField1Label),
-                  prefixIcon: const Icon(Icons.search),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(PopupTheme.radiusField),
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const PopupDragHandle(),
+                Text(
+                  l10n.inventorySearchProduct(_terms.productLabel.toLowerCase()),
+                  style: AppTextStyles.headline4.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: PopupTheme.textPrimary,
                   ),
                 ),
-                onSubmitted: (text) {
-                  FocusScope.of(ctx).unfocus();
-                  Navigator.pop(ctx, text);
-                },
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  TextButton(
-                    onPressed: () {
-                      FocusScope.of(ctx).unfocus();
-                      Navigator.pop(ctx, '');
-                    },
-                    child: Text(l10n.delete),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: controller,
+                  autofocus: true,
+                  decoration: InputDecoration(
+                    hintText: l10n.inventorySearchHint(
+                        _terms.productLabel.toLowerCase(),
+                        _terms.category2.toLowerCase(),
+                        _terms.specialField1Label),
+                    prefixIcon: const Icon(Icons.search),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(PopupTheme.radiusField),
+                    ),
                   ),
-                  const SizedBox(width: 4),
-                  TextButton(
-                    onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx); },
-                    child: Text(l10n.cancel),
-                  ),
-                  const Spacer(),
-                  ElevatedButton(
-                    onPressed: () {
-                      FocusScope.of(ctx).unfocus();
-                      Navigator.pop(ctx, controller.text);
-                    },
-                    child: Text(l10n.search),
-                  ),
-                ],
-              ),
-            ],
+                  onSubmitted: (text) {
+                    FocusScope.of(stateCtx).unfocus();
+                    Navigator.pop(ctx, text);
+                  },
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    TextButton(
+                      onPressed: () {
+                        FocusScope.of(stateCtx).unfocus();
+                        Navigator.pop(ctx, '');
+                      },
+                      child: Text(l10n.delete),
+                    ),
+                    const SizedBox(width: 4),
+                    TextButton(
+                      onPressed: () {
+                        FocusScope.of(stateCtx).unfocus();
+                        Navigator.pop(ctx);
+                      },
+                      child: Text(l10n.cancel),
+                    ),
+                    const Spacer(),
+                    ElevatedButton(
+                      onPressed: () {
+                        FocusScope.of(stateCtx).unfocus();
+                        Navigator.pop(ctx, controller.text);
+                      },
+                      child: Text(l10n.search),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -1123,7 +1128,7 @@ class _InventoryViewState extends State<InventoryView>
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheetState) => Padding(
           padding: EdgeInsets.only(
-            bottom: MediaQuery.viewInsetsOf(context).bottom,
+            bottom: MediaQuery.viewInsetsOf(ctx).bottom,
           ),
           child: Container(
             decoration: const BoxDecoration(
@@ -1490,7 +1495,7 @@ class _InventoryViewState extends State<InventoryView>
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) => Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+          padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
           child: Container(
             decoration: const BoxDecoration(
               color: PopupTheme.bgDark,

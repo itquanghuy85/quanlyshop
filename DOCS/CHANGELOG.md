@@ -4,6 +4,20 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-06] - fix(inventory): search bottom sheet không hiện trên bàn phím + dashboard tab icon
+
+**Files thay đổi:**
+- `lib/views/inventory_view.dart` — fix keyboard handling trong `_openSearchDialog`, restock sheet, inline cost edit sheet
+- `lib/views/dashboard_settings_view.dart` — thu nhỏ tab icon size 18 → 14 để vừa tab bar
+
+| # | Bug | Root cause | Fix |
+|---|-----|-----------|-----|
+| 1 | Tìm kiếm kho: chỉ thấy bàn phím, không thấy TextField | `StatefulBuilder` trong `_openSearchDialog` builder dùng `viewInsetsOf(stateCtx)` → Padding nhận giá trị đúng nhưng layout không đẩy nội dung lên trên bàn phím | Dùng `StatefulBuilder(builder: (stateCtx, _))` với `stateCtx` để Padding phụ thuộc đúng inner MediaQuery; unfocus với `stateCtx` trước `Navigator.pop` |
+| 2 | Restock sheet & inline cost edit sheet cũng bị vùi bàn phím | Các sheet dùng `viewInsetsOf(context)` (outer context) không tự cập nhật khi bàn phím mở trong modal | Đổi `viewInsetsOf(context)` → `viewInsetsOf(ctx)` (inner StatefulBuilder context) tại dòng ~1129 và ~1497 |
+| 3 | Tab bar Dashboard Settings bị chật/overflow | Icon size 18 quá to cho `Tab(icon+text)` compact | Giảm icon size xuống 14 |
+
+---
+
 ## [2026-06-05] - fix(finance): audit & sửa 3 lỗi tính toán tài chính home screen
 
 **Files thay đổi:**

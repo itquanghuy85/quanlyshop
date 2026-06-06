@@ -149,11 +149,11 @@ class _DashboardSettingsViewState extends State<DashboardSettingsView>
           controller: _tabController,
           tabs: const [
             Tab(
-              icon: Icon(Icons.dashboard, size: 18),
+              icon: Icon(Icons.dashboard, size: 14),
               text: 'Thẻ Dashboard',
             ),
             Tab(
-              icon: Icon(Icons.apps, size: 18),
+              icon: Icon(Icons.apps, size: 14),
               text: 'Lối tắt nhanh',
             ),
           ],

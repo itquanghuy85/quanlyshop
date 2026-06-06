@@ -7,12 +7,17 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 ## ⚡ Trạng thái hiện tại
 
 **Version:** 1.x (develop) → Production live  
-**Last Updated:** 2026-06-05  
+**Last Updated:** 2026-06-06  
 **Build Status:** ✅ Debug build passing (`flutter build apk --debug`)  
 **Analyze Status:** ✅ 0 compile error; 1754 info/lint là pre-existing, không ảnh hưởng build  
 **Database Version:** SQLite v17  
 **Branch:** master  
-**Active Initiative:** ✅ Trang Nhập/Xuất Excel hợp nhất + Fix sync timeout log — HOÀN THÀNH
+**Active Initiative:** ✅ Fix search bottom sheet + dashboard tab icon — HOÀN THÀNH
+
+### ✅ Vừa hoàn thành (2026-06-06): Fix search bottom sheet + dashboard tab icon
+- **Bug 1**: Tìm kiếm kho → chỉ thấy bàn phím, không thấy TextField → dùng `StatefulBuilder(builder: (stateCtx, _))` để `Padding(viewInsetsOf(stateCtx).bottom)` phụ thuộc đúng inner MediaQuery, nội dung được đẩy lên trên bàn phím
+- **Bug 2**: Restock sheet + inline cost edit sheet cũng bị vùi bàn phím → đổi `viewInsetsOf(context)` → `viewInsetsOf(ctx)` tại inventory_view.dart dòng ~1129 và ~1497
+- **Bug 3**: Dashboard Settings tab bar bị chật → giảm Tab icon size 18 → 14
 
 ### ✅ Vừa hoàn thành (2026-06-05): Audit & fix tài chính home screen (3 bugs)
 - **Bug 1**: TT đối tác (partner payment) double-count trong biểu đồ Chi tiêu → thêm `partnerPaymentOut` field trong `FinanceV2Snapshot`, trừ khỏi `operatingExpenseOut`
