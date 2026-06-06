@@ -12,8 +12,8 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 | # | Bug | Root cause | Fix |
 |---|-----|-----------|-----|
-| 1 | Tìm kiếm kho: chỉ thấy bàn phím, không thấy TextField | `StatefulBuilder` trong `_openSearchDialog` builder dùng `viewInsetsOf(stateCtx)` → Padding nhận giá trị đúng nhưng layout không đẩy nội dung lên trên bàn phím | Dùng `StatefulBuilder(builder: (stateCtx, _))` với `stateCtx` để Padding phụ thuộc đúng inner MediaQuery; unfocus với `stateCtx` trước `Navigator.pop` |
-| 2 | Restock sheet & inline cost edit sheet cũng bị vùi bàn phím | Các sheet dùng `viewInsetsOf(context)` (outer context) không tự cập nhật khi bàn phím mở trong modal | Đổi `viewInsetsOf(context)` → `viewInsetsOf(ctx)` (inner StatefulBuilder context) tại dòng ~1129 và ~1497 |
+| 1 | Tìm kiếm kho: chỉ thấy bàn phím, không thấy TextField | `MediaQuery.viewInsetsOf(stateCtx)` bên trong `StatefulBuilder` dùng `InheritedModel` aspect-based dependency → không propagate keyboard insets trong bottom sheet route → `Padding(bottom: 0)` → container bị keyboard che hoàn toàn | Bỏ `StatefulBuilder`, bỏ `useSafeArea: true`, dùng `MediaQuery.of(ctx).viewInsets.bottom` (full dependency từ outer builder ctx) |
+| 2 | Restock sheet & inline cost edit sheet cũng bị vùi bàn phím | Cùng root cause: `viewInsetsOf(innerCtx)` trả về 0 | Đổi sang `MediaQuery.of(outerCtx).viewInsets.bottom`; outer ctx truyền dependency đúng vào StatefulBuilder |
 | 3 | Tab bar Dashboard Settings bị chật/overflow | Icon size 18 quá to cho `Tab(icon+text)` compact | Giảm icon size xuống 14 |
 
 ---
