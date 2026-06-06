@@ -4,6 +4,17 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-06] - fix(edge-to-edge): AppBar/topbar bị che bởi status bar trên Android 16
+
+**Files thay đổi:**
+- `lib/main.dart` — gọi `SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge)` sau `WidgetsFlutterBinding.ensureInitialized()`
+
+| # | Bug | Root cause | Fix |
+|---|-----|-----------|-----|
+| 1 | Back button và action icons trên AppBar bị che bởi status bar trên một số màn hình | `targetSdk = 36` (Android 16) bắt buộc edge-to-edge mode. Flutter engine không được thông báo → `MediaQuery.padding.top = 0` → `Scaffold + AppBar` render toolbar content từ y=0, chồng lên status bar | Thêm `SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge)` trong `main()` trước `runApp()` (chỉ Android) — fix tất cả màn hình bị ảnh hưởng |
+
+---
+
 ## [2026-06-06] - fix(inventory): search bottom sheet không hiện trên bàn phím + dashboard tab icon
 
 **Files thay đổi:**

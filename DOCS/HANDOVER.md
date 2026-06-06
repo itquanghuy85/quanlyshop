@@ -14,6 +14,11 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Branch:** master  
 **Active Initiative:** ✅ Fix search bottom sheet + dashboard tab icon — HOÀN THÀNH
 
+### ✅ Vừa hoàn thành (2026-06-06): Fix AppBar/topbar bị che status bar — Android 16 edge-to-edge
+- **Root cause**: `targetSdk = 36` → Android 16 bắt buộc edge-to-edge, nhưng Flutter engine không nhận window insets đúng → `MediaQuery.padding.top = 0` → toolbar content (back button, action icons) render tại y=0, chồng lên status bar
+- **Fix**: Thêm 3 dòng trong `main()` — `SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge)` trước `runApp()` — một thay đổi duy nhất fix tất cả màn hình bị ảnh hưởng
+- **Xác nhận**: User test trên thiết bị — các màn hình bị ảnh hưởng đã hiển thị AppBar đúng vị trí bên dưới status bar
+
 ### ✅ Vừa hoàn thành (2026-06-06 v2): Fix search bottom sheet THỰC SỰ hiện trên bàn phím
 - **Root cause thực sự**: `MediaQuery.viewInsetsOf(stateCtx)` dùng `InheritedModel` aspect-based dependency → KHÔNG propagate keyboard insets trong bottom sheet route → `Padding(bottom: 0)` → container bị keyboard che
 - **Fix `_openSearchDialog`**: Bỏ `StatefulBuilder`, bỏ `useSafeArea: true`, dùng `MediaQuery.of(ctx).viewInsets.bottom` (full dependency, outer builder ctx)
