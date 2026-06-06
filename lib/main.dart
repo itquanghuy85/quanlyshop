@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show SystemChrome, SystemUiMode;
 import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
@@ -224,6 +225,12 @@ Future<void> main() async {
   await runZonedGuarded<Future<void>>(
     () async {
       final binding = WidgetsFlutterBinding.ensureInitialized();
+      // Android 15+ (API 35+) enforces edge-to-edge. Without this call Flutter
+      // engine does not receive correct window insets, causing MediaQuery.padding.top
+      // = 0 and all AppBar toolbar content to render behind the status bar.
+      if (!kIsWeb && Platform.isAndroid) {
+        SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+      }
       if (!kIsWeb) {
         FlutterNativeSplash.preserve(widgetsBinding: binding);
       }
