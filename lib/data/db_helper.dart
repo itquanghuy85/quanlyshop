@@ -5230,9 +5230,8 @@ class DBHelper {
     }
 
     if (missingInfoOnly) {
-      // Hàng đã vào kho chính (isPending=0) nhưng thiếu giá vốn hoặc NCC
-      where += ' AND (isPending = 0 OR isPending IS NULL)'
-          ' AND (cost = 0 OR cost IS NULL OR supplier IS NULL OR supplier = \'\')';
+      // Hàng thiếu giá vốn hoặc NCC, bao gồm cả kho tạm (isPending=1)
+      where += ' AND (cost = 0 OR cost IS NULL OR supplier IS NULL OR supplier = \'\')';
     }
 
     final maps = await (await database).query(
@@ -5272,8 +5271,7 @@ class DBHelper {
     }
 
     if (missingInfoOnly) {
-      where += ' AND (isPending = 0 OR isPending IS NULL)'
-          ' AND (cost = 0 OR cost IS NULL OR supplier IS NULL OR supplier = \'\')';
+      where += ' AND (cost = 0 OR cost IS NULL OR supplier IS NULL OR supplier = \'\')';
     }
 
     String query = 'SELECT COUNT(*) as count FROM products WHERE $where';

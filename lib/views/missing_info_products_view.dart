@@ -338,6 +338,8 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
       final updated = p.copyWith(
         cost: newCost,
         supplier: supplier.isNotEmpty ? supplier : p.supplier,
+        // Chuyển kho tạm → kho chính khi đã có giá vốn
+        isPending: false,
         updatedAt: DateTime.now().millisecondsSinceEpoch,
       );
       await _db.upsertProduct(updated);
