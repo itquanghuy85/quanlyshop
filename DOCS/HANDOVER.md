@@ -7,12 +7,23 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 ## ⚡ Trạng thái hiện tại
 
 **Version:** 1.x (develop) → Production live  
-**Last Updated:** 2026-06-06  
+**Last Updated:** 2026-06-07  
 **Build Status:** ✅ Debug build passing (`flutter build apk --debug`)  
-**Analyze Status:** ✅ 0 compile error; 1754 info/lint là pre-existing, không ảnh hưởng build  
+**Analyze Status:** ✅ 0 compile error; pre-existing infos không ảnh hưởng build  
 **Database Version:** SQLite v17  
 **Branch:** master  
-**Active Initiative:** ✅ Fix search bottom sheet + dashboard tab icon — HOÀN THÀNH
+**Active Initiative:** ✅ Fix 3 bugs nhập giá vốn (_showInlineCostEdit) — HOÀN THÀNH
+
+### ✅ Vừa hoàn thành (2026-06-07): Fix 3 bugs trong sheet Nhập giá vốn
+- **Bug 1 (cut-off)**: Thêm `SingleChildScrollView` wrapper quanh `Column` → user có thể cuộn khi keyboard lên
+- **Bug 2 (dropdown invisible)**: Đổi `style: Colors.white` → `Colors.black87` trên `DropdownButtonFormField` → chữ tối hiển thị trên nền trắng (`PopupTheme.bgDark = 0xFFFFFFFF`)
+- **Bug 3 (crash `_dependents.isEmpty`)**: Đổi `MediaQuery.of(outerCtx)` → `MediaQuery.of(ctx)` → không còn cross-tree InheritedWidget dependency khi route đóng
+
+### ✅ Vừa hoàn thành (2026-06-06 P3): Inventory inline search + Dashboard Settings AppBar fix toàn diện
+- **Root cause cuối**: Sub-screens nhận `MediaQuery.padding.top = 0` → AppBar touch targets nằm tại y=39-105 bên trong status bar region (y=0-110) → system UI intercept tất cả tap → search button không hoạt động; toolbar bị status bar che
+- **Fix global** (`main.dart`): Thêm `MaterialApp.builder` đọc `View.of(context).padding.top / devicePixelRatio` và inject vào `MediaQuery` nếu lớn hơn — fix tất cả sub-screens cùng lúc
+- **Fix inventory search** (`inventory_view.dart`): Thay `showModalBottomSheet` (keyboard insets không propagate) bằng inline `TextField` trong `Scaffold` body; `Scaffold(resizeToAvoidBottomInset: true)` tự đẩy field lên trên keyboard
+- **Verified trên Samsung A32**: Inventory search — TextField + keyboard visible đồng thời ✅; Dashboard Settings — full AppBar với back button, title, tabs, action icons ✅
 
 ### ✅ Vừa hoàn thành (2026-06-06): Fix AppBar/topbar bị che status bar — Android 16 edge-to-edge
 - **Root cause**: `targetSdk = 36` → Android 16 bắt buộc edge-to-edge, nhưng Flutter engine không nhận window insets đúng → `MediaQuery.padding.top = 0` → toolbar content (back button, action icons) render tại y=0, chồng lên status bar

@@ -4,6 +4,37 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-07] - fix(inventory): 3 bugs trong _showInlineCostEdit (nhập giá vốn)
+
+**Files thay đổi:**
+- `lib/views/inventory_view.dart` — fix `_showInlineCostEdit`
+
+| # | Bug | Root cause | Fix |
+|---|-----|-----------|-----|
+| 1 | Sheet bị cắt ở dưới, không thấy hết nội dung | `Column(mainAxisSize: min)` không scroll khi nội dung vượt chiều cao màn hình | Wrap Column trong `SingleChildScrollView` để user cuộn được |
+| 2 | Text dropdown "Phương thức thanh toán" invisible khi mở | `style: TextStyle(color: Colors.white)` trên `DropdownButtonFormField` + `dropdownColor: PopupTheme.bgDark` (= white `0xFFFFFFFF`) → chữ trắng trên nền trắng | Đổi `style` sang `Colors.black87` — chữ tối trên nền trắng |
+| 3 | Crash `_dependents.isEmpty` khi bấm "Lưu giá vốn" | `MediaQuery.of(outerCtx)` tạo cross-tree InheritedWidget dependency. Khi `Navigator.pop(ctx)` đóng route, overlay MediaQuery deactivate trước khi Padding release dependency → assertion fail | Đổi sang `MediaQuery.of(ctx)` (same-tree context của StatefulBuilder) |
+
+---
+
+## [2026-06-06] - fix(edge-to-edge P2): Inventory search keyboard + Dashboard Settings AppBar
+
+**Files thay đổi:**
+- `lib/main.dart` — thêm `MaterialApp.builder` override `MediaQuery.padding.top` từ `View.of(context)` toàn app
+- `lib/views/inventory_view.dart` — thay `showModalBottomSheet` search bằng inline `TextField` trong `Scaffold` body; xóa `_openSearchDialog`; thêm `_isSearchBarVisible` + `_inlineSearchController`
+- `lib/views/dashboard_settings_view.dart` — wrap `Scaffold` với `MediaQuery` override per-screen (belt-and-suspenders)
+
+| # | Bug | Root cause | Fix |
+|---|-----|-----------|-----|
+| 1 | Inventory search: bấm 🔍 → bàn phím hiện nhưng không thấy TextField | Bottom sheet context nhận `MediaQuery.viewInsets.bottom = 0` trong edge-to-edge mode → container bị keyboard che | Chuyển sang inline `TextField` đặt trong `Scaffold` body; `Scaffold(resizeToAvoidBottomInset: true)` tự đẩy field lên trên keyboard |
+| 2 | Dashboard Settings: AppBar toolbar bị che bởi status bar | Sub-screens (pushed via `rootNavigator`) nhận `MediaQuery.padding.top = 0` → `AppBar` đặt toolbar tại y=0, chồng lên status bar; touch targets nằm trong vùng status bar (y=39-105 vs status bar y=0-110) | Thêm `MaterialApp.builder` global: đọc `View.of(context).padding.top / devicePixelRatio`, inject vào `MediaQuery` nếu lớn hơn giá trị hiện tại — fix toàn bộ sub-screens cùng lúc |
+
+**Verified on device (Samsung A32 RF8R31SS7GY, Android 16):**
+- ✅ Inventory search: TextField + keyboard visible đồng thời, filter hoạt động
+- ✅ Dashboard Settings: back button, title "Tùy chỉnh Dashboard", 2 tabs, restore/save icons đều hiện đúng
+
+---
+
 ## [2026-06-06] - fix(edge-to-edge): AppBar/topbar bị che bởi status bar trên Android 16
 
 **Files thay đổi:**
