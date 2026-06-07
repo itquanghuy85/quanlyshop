@@ -3519,6 +3519,40 @@ class SyncService {
         }
         await commitProductsBatch();
         debugPrint("✅ Synced $totalProductsSynced products to cloud");
+
+        // Sync DELETED products → push deleted:true lên Firestore
+        final deletedProducts = await dbHelper.getDeletedUnsyncedProducts();
+        if (deletedProducts.isNotEmpty) {
+          debugPrint("syncAllToCloud: có ${deletedProducts.length} deleted products cần push lên cloud");
+          WriteBatch deletedBatch = _db.batch();
+          final List<int> deletedIds = [];
+          for (final p in deletedProducts) {
+            try {
+              final docId = p.firestoreId!;
+              deletedBatch.set(
+                _db.collection('products').doc(docId),
+                {'deleted': true, 'updatedAt': FirestoreWriteHelper.serverUpdatedAt(), 'shopId': shopId},
+                SetOptions(merge: true),
+              );
+              if (p.id != null) deletedIds.add(p.id!);
+            } catch (e) {
+              debugPrint("Lỗi queue deleted product ${p.id}: $e");
+            }
+          }
+          try {
+            await deletedBatch.commit();
+            if (deletedIds.isNotEmpty) {
+              final placeholders = List.filled(deletedIds.length, '?').join(',');
+              await (await dbHelper.database).rawUpdate(
+                'UPDATE products SET isSynced = 1 WHERE id IN ($placeholders)',
+                deletedIds,
+              );
+            }
+            debugPrint("✅ Synced ${deletedIds.length} deleted products to cloud");
+          } catch (e) {
+            debugPrint("❌ Batch commit deleted products failed: $e");
+          }
+        }
       }
 
       // Sync ATTENDANCE

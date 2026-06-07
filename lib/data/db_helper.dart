@@ -5507,6 +5507,18 @@ class DBHelper {
     return List.generate(maps.length, (i) => Product.fromMap(maps[i]));
   }
 
+  /// Lấy products đã soft-delete nhưng chưa sync lên cloud (để push deletion lên Firestore)
+  Future<List<Product>> getDeletedUnsyncedProducts() async {
+    final shopId = await _getScopedShopId('getDeletedUnsyncedProducts');
+    if (shopId == null) return [];
+    final maps = await (await database).query(
+      'products',
+      where: 'shopId = ? AND deleted = 1 AND isSynced = 0 AND firestoreId IS NOT NULL',
+      whereArgs: [shopId],
+    );
+    return List.generate(maps.length, (i) => Product.fromMap(maps[i]));
+  }
+
   /// Lấy sản phẩm theo loại (ĐITHOAI, PHỤ KIỆN, LINH KIỆN)
   Future<List<Product>> getProductsByType(
     String type, {
