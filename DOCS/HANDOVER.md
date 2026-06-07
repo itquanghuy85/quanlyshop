@@ -12,7 +12,11 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Analyze Status:** ✅ 0 compile error; pre-existing infos không ảnh hưởng build  
 **Database Version:** SQLite v17  
 **Branch:** master  
-**Active Initiative:** ✅ Fix 3 bugs nhập giá vốn (_showInlineCostEdit) — HOÀN THÀNH
+**Active Initiative:** ✅ Fix lỗi iOS log trước khi lên store — HOÀN THÀNH
+
+### ✅ Vừa hoàn thành (2026-06-07b): Fix 2 lỗi từ iOS log review
+- **Bug 1 (InventoryCheck type cast crash)**: `checks.cast<InventoryCheck?>()` fail vì SQLite trả về `Map<String, dynamic>` không thể cast trực tiếp → Đổi sang `checks.map((raw) { decode itemsJson; return InventoryCheck.fromMap(m); })` — thêm `dart:convert` import
+- **Bug 2 (product_categories permission-denied)**: Firestore rules `belongsTo()` dùng `get()` calls có thể fail timing → Thêm `|| request.auth.token.shopId == shopId` fallback, deploy `firestore.rules` lên production
 
 ### ✅ Vừa hoàn thành (2026-06-07): Fix 3 bugs trong sheet Nhập giá vốn
 - **Bug 1 (cut-off)**: Thêm `SingleChildScrollView` wrapper quanh `Column` → user có thể cuộn khi keyboard lên
