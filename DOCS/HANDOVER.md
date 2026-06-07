@@ -12,7 +12,12 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Analyze Status:** ✅ 0 compile error; pre-existing infos không ảnh hưởng build  
 **Database Version:** SQLite v17  
 **Branch:** master  
-**Active Initiative:** ✅ Fix lỗi iOS log trước khi lên store — HOÀN THÀNH
+**Active Initiative:** ✅ Fix 2 bug nghiêm trọng: supplier search + staff profile — HOÀN THÀNH
+
+### ✅ Vừa hoàn thành (2026-06-07c): Fix supplier search + staff profile 0 đơn
+- **Bug 1 (search NCC)**: `nameNorm` không có trong CREATE TABLE → fresh install thiếu column → SQL error bị catch silently → kết quả rỗng → thêm `nameNorm TEXT` vào CREATE TABLE
+- **Bug 1b (race condition)**: `_isLoading=true` khi scroll đang load → search timer fires → guard return sớm → search không chạy → reset `_isLoading=false` khi search thay đổi
+- **Bug 2 (staff 0 đơn)**: Stat cards dùng monthly count (June=0) + `getSalesBySellerName` không tìm theo email prefix → đổi cards sang all-time count + fetch theo cả display name và email prefix với dedup
 
 ### ✅ Vừa hoàn thành (2026-06-07b): Fix 2 lỗi từ iOS log review
 - **Bug 1 (InventoryCheck type cast crash)**: `checks.cast<InventoryCheck?>()` fail vì SQLite trả về `Map<String, dynamic>` không thể cast trực tiếp → Đổi sang `checks.map((raw) { decode itemsJson; return InventoryCheck.fromMap(m); })` — thêm `dart:convert` import
