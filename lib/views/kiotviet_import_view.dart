@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+import '../data/db_helper.dart';
 import '../services/kiotviet_excel_import_service.dart';
 import '../services/notification_service.dart';
 import '../services/sync_service.dart';
@@ -19,6 +20,8 @@ class _KiotVietImportViewState extends State<KiotVietImportView> {
   bool _loading = false;
   bool _overwrite = false;
   bool _isSyncingToCloud = false;
+  bool _isDedupRunning = false;
+  final _db = DBHelper();
 
   // Per-type state
   final Map<String, _FileState> _files = {
@@ -214,6 +217,41 @@ class _KiotVietImportViewState extends State<KiotVietImportView> {
     });
   }
 
+  Future<void> _runDedup() async {
+    if (_isDedupRunning) return;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Dọn dẹp máy trùng?'),
+        content: const Text('Tìm và xóa các điện thoại bị import trùng (cùng IMEI + cùng tên). Thao tác không thể hoàn tác.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Hủy')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Dọn dẹp', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+    setState(() => _isDedupRunning = true);
+    try {
+      final result = await _db.deduplicateProductsByImei();
+      final removed = result['dedupRemoved'] ?? 0;
+      if (mounted) {
+        NotificationService.showSnackBar(
+          removed > 0 ? '✅ Đã xóa $removed máy trùng' : 'Không tìm thấy máy trùng',
+          color: removed > 0 ? Colors.green : Colors.grey,
+        );
+      }
+    } catch (e) {
+      if (mounted) NotificationService.showSnackBar('Lỗi: $e', color: Colors.red);
+    } finally {
+      if (mounted) setState(() => _isDedupRunning = false);
+    }
+  }
+
   Future<void> _pushToCloud() async {
     if (_isSyncingToCloud) return;
     final confirm = await showDialog<bool>(
@@ -355,6 +393,45 @@ class _KiotVietImportViewState extends State<KiotVietImportView> {
                       ),
                     ),
                     Icon(Icons.arrow_forward_ios, size: 14, color: Colors.orange.shade400),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            InkWell(
+              onTap: _isDedupRunning ? null : _runDedup,
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.red.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade100,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: _isDedupRunning
+                          ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5))
+                          : Icon(Icons.cleaning_services_rounded, color: Colors.red.shade700, size: 22),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Dọn dẹp máy trùng', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red.shade800)),
+                          const SizedBox(height: 2),
+                          Text('Xóa điện thoại bị import trùng (cùng IMEI + tên)', style: TextStyle(fontSize: 12, color: Colors.red.shade700)),
+                        ],
+                      ),
+                    ),
+                    Icon(Icons.arrow_forward_ios, size: 14, color: Colors.red.shade400),
                   ],
                 ),
               ),
