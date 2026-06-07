@@ -1412,6 +1412,9 @@ class _InventoryViewState extends State<InventoryView>
         builder: (ctx, setS) => Padding(
           padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
           child: Container(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(ctx).size.height * 0.88 - MediaQuery.of(ctx).viewInsets.bottom,
+            ),
             decoration: const BoxDecoration(
               color: PopupTheme.bgDark,
               borderRadius: BorderRadius.vertical(top: Radius.circular(PopupTheme.radiusSheet)),
