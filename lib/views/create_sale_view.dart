@@ -3000,6 +3000,10 @@ class _CreateSaleViewState extends State<CreateSaleView> {
         final product = item['product'] as Product;
         final quantity = item['quantity'] as int? ?? 1;
         final variant = item['variant'] as ProductVariant?;
+        // Phones with a single IMEI represent one physical unit — qty must stay at 1.
+        final isPhoneUnit = product.type == 'DIEN_THOAI' &&
+            (product.imei ?? '').isNotEmpty &&
+            !(product.imei ?? '').contains('|');
         final variantName = item['variantName'] as String?;
         final displayName = _cleanProductDisplayName(product.name);
         final showVariantName = _shouldShowVariantName(product.name, variantName);
@@ -3220,14 +3224,16 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                     const Text("Số lượng: "),
                     IconButton(
                       icon: const Icon(Icons.remove, size: 20),
-                      onPressed: () {
-                        if (quantity > 1) {
-                          setState(() {
-                            item['quantity'] = quantity - 1;
-                            _calculateTotal();
-                          });
-                        }
-                      },
+                      onPressed: isPhoneUnit
+                          ? null
+                          : () {
+                              if (quantity > 1) {
+                                setState(() {
+                                  item['quantity'] = quantity - 1;
+                                  _calculateTotal();
+                                });
+                              }
+                            },
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
                     ),
@@ -3237,13 +3243,16 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                         initialValue: quantity.toString(),
                         keyboardType: TextInputType.number,
                         textAlign: TextAlign.center,
-                        onChanged: (value) {
-                          final newQuantity = int.tryParse(value) ?? 1;
-                          setState(() {
-                            item['quantity'] = newQuantity;
-                            _calculateTotal();
-                          });
-                        },
+                        readOnly: isPhoneUnit,
+                        onChanged: isPhoneUnit
+                            ? null
+                            : (value) {
+                                final newQuantity = int.tryParse(value) ?? 1;
+                                setState(() {
+                                  item['quantity'] = newQuantity;
+                                  _calculateTotal();
+                                });
+                              },
                         decoration: const InputDecoration(
                           isDense: true,
                           contentPadding: EdgeInsets.symmetric(
@@ -3256,12 +3265,14 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                     ),
                     IconButton(
                       icon: const Icon(Icons.add, size: 20),
-                      onPressed: () {
-                        setState(() {
-                          item['quantity'] = quantity + 1;
-                          _calculateTotal();
-                        });
-                      },
+                      onPressed: isPhoneUnit
+                          ? null
+                          : () {
+                              setState(() {
+                                item['quantity'] = quantity + 1;
+                                _calculateTotal();
+                              });
+                            },
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
                     ),

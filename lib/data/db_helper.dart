@@ -521,7 +521,7 @@ class DBHelper {
 
     final db = await openDatabase(
       path,
-      version: 101,
+      version: 102,
       onConfigure: (db) async {
         try {
           await db.execute('PRAGMA foreign_keys = ON');
@@ -2121,6 +2121,48 @@ class DBHelper {
             debugPrint('DB upgrade v101: payment_requests table created');
           } catch (e) {
             debugPrint('DB upgrade error (payment_requests v101): \$e');
+          }
+        }
+        if (oldV < 102) {
+          // v102: Split DIEN_THOAI products with pipe-separated IMEIs into individual records.
+          // Each phone unit gets its own row (quantity=1, single IMEI) for easier inventory tracking.
+          try {
+            final rows = await db.rawQuery(
+              "SELECT * FROM products WHERE type = 'DIEN_THOAI' AND imei LIKE '%|%' AND (deleted = 0 OR deleted IS NULL)",
+            );
+            int created = 0;
+            for (final row in rows) {
+              final rawImei = (row['imei'] as String? ?? '');
+              final imeis = rawImei.split('|').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+              if (imeis.length <= 1) continue;
+              final parentId = row['id'] as int;
+              final parentFid = (row['firestoreId'] as String?) ?? 'prod_${row['createdAt']}';
+              final now = DateTime.now().millisecondsSinceEpoch;
+              // Update original: keep first IMEI, set quantity to 1
+              await db.update(
+                'products',
+                {'imei': imeis[0], 'quantity': 1, 'updatedAt': now},
+                where: 'id = ?',
+                whereArgs: [parentId],
+              );
+              // Insert sibling records for the remaining IMEIs
+              for (int i = 1; i < imeis.length; i++) {
+                final newFid = '${parentFid}__s$i';
+                final Map<String, dynamic> newRow = Map<String, dynamic>.from(row);
+                newRow.remove('id');
+                newRow['firestoreId'] = newFid;
+                newRow['imei'] = imeis[i];
+                newRow['quantity'] = 1;
+                newRow['isSynced'] = 0;
+                newRow['createdAt'] = now + i;
+                newRow['updatedAt'] = now;
+                await db.insert('products', newRow, conflictAlgorithm: ConflictAlgorithm.ignore);
+                created++;
+              }
+            }
+            debugPrint('DB v102: split ${rows.length} DIEN_THOAI products → $created new IMEI records');
+          } catch (e) {
+            debugPrint('DB upgrade v102 error: $e');
           }
         }
         if (oldV < 26) {
@@ -5033,8 +5075,33 @@ class DBHelper {
   }
 
   // --- PRODUCTS ---
-  Future<void> upsertProduct(Product p) async =>
-      _upsert('products', p.toMap(), p.firestoreId ?? "prod_${p.createdAt}");
+  Future<void> upsertProduct(Product p) async {
+    // For phones with multiple pipe-separated IMEIs (e.g. from KiotViet), split into individual records.
+    if (p.type == 'DIEN_THOAI' && (p.imei ?? '').contains('|')) {
+      await _upsertPhoneSplit(p);
+      return;
+    }
+    await _upsert('products', p.toMap(), p.firestoreId ?? "prod_${p.createdAt}");
+  }
+
+  Future<void> _upsertPhoneSplit(Product p) async {
+    final imeis = (p.imei ?? '').split('|').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+    if (imeis.isEmpty) {
+      await _upsert('products', p.toMap(), p.firestoreId ?? "prod_${p.createdAt}");
+      return;
+    }
+    final parentFid = p.firestoreId ?? "prod_${p.createdAt}";
+    for (int i = 0; i < imeis.length; i++) {
+      final fid = i == 0 ? parentFid : '${parentFid}__s$i';
+      final split = p.copyWith(
+        firestoreId: fid,
+        imei: imeis[i],
+        quantity: 1,
+        isSynced: i == 0 ? p.isSynced : false,
+      );
+      await _upsert('products', split.toMap(), fid);
+    }
+  }
   Future<int> updateProduct(Product p) async => (await database).update(
     'products',
     p.toMap(),

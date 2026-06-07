@@ -4,6 +4,22 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-07g] - feat: tách kho điện thoại — mỗi IMEI = 1 sản phẩm riêng
+
+**Files thay đổi:**
+- `lib/data/db_helper.dart` — version 102, migration v102 split multi-IMEI, upsertProduct + _upsertPhoneSplit
+- `lib/views/create_sale_view.dart` — lock qty=1 cho sản phẩm phone có 1 IMEI
+
+| # | Thay đổi | Mô tả |
+|---|---------|-------|
+| 1 | **DB v102 migration** | Query tất cả `DIEN_THOAI` có `imei LIKE '%|%'`; update record gốc (IMEI đầu, qty=1); insert record mới cho mỗi IMEI còn lại với `firestoreId = parentFid__s{i}`, `isSynced=0` |
+| 2 | **upsertProduct auto-split** | Khi nhận phone từ KiotViet với IMEI dạng `"A\|B\|C"` → delegate sang `_upsertPhoneSplit` → upsert riêng từng IMEI với firestoreId độc lập |
+| 3 | **Cart qty lock** | Trong `create_sale_view.dart`: `isPhoneUnit = type==DIEN_THOAI && imei != null && !imei.contains('|')` → disable `+`/`-` button và text field, qty cố định 1 |
+
+**Kết quả:** Mỗi điện thoại có IMEI riêng = 1 row trong DB → dễ theo dõi tồn kho + bán hàng biết đúng máy nào được bán.
+
+---
+
 ## [2026-06-07f] - fix: giá bán 0đ + IMEI không xác định trong chi tiết đơn bán
 
 **Files thay đổi:**
