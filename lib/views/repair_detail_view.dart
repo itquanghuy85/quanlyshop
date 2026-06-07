@@ -3532,10 +3532,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       builder: (ctx) {
         final sheetLoc = AppLocalizations.of(ctx)!;
         return Padding(
-          // Dùng outer context để tránh Padding phụ thuộc vào inner MediaQuery của
-          // sheet — khi sheet đóng, inner MediaQuery bị deactivate trước Padding
-          // → '_dependents.isEmpty' assertion crash.
-          padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+          padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
           child: Container(
             decoration: const BoxDecoration(
               color: PopupTheme.bgDark,
@@ -3685,7 +3682,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
 
           return Padding(
             padding: EdgeInsets.only(
-              bottom: MediaQuery.viewInsetsOf(context).bottom,
+              bottom: MediaQuery.viewInsetsOf(ctx).bottom,
             ),
             child: Container(
               decoration: const BoxDecoration(
@@ -3899,7 +3896,10 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                       children: [
                         Expanded(
                           child: OutlinedButton(
-                            onPressed: () => Navigator.pop(ctx, false),
+                            onPressed: () {
+                              FocusScope.of(ctx).unfocus();
+                              Navigator.pop(ctx, false);
+                            },
                             child: Text(sheetLoc.cancelButton),
                           ),
                         ),
@@ -3912,6 +3912,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                                   false)) {
                                 return;
                               }
+                              FocusScope.of(ctx).unfocus();
                               Navigator.pop(ctx, true);
                             },
                             style: ElevatedButton.styleFrom(

@@ -4,6 +4,17 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-07i] - fix: bàn phím che nội dung khi bấm KTV/sửa thông tin trong đơn sửa
+
+**Files thay đổi:**
+- `lib/views/repair_detail_view.dart` — fix `MediaQuery.viewInsetsOf` dùng inner `ctx` thay outer `context` trong 2 bottom sheet (_editTechnicianNotes + _editBasicInfo); thêm `unfocus()` trước `pop()` trong _editBasicInfo
+
+**Root cause:** `showModalBottomSheet` với `isScrollControlled: true` cần outer `Padding(bottom: viewInsets)` để đẩy nội dung lên trên bàn phím. Nhưng code đang dùng `MediaQuery.viewInsetsOf(context)` với outer widget context — outer context không re-render khi bàn phím mở trong sheet → padding = 0 → bàn phím che TextField.
+
+**Fix:** Đổi sang `MediaQuery.viewInsetsOf(ctx)` (builder context của sheet) để Padding reactive với keyboard. Đảm bảo tất cả close handlers đều gọi `FocusScope.of(ctx).unfocus()` trước `Navigator.pop()` để tránh `_dependents.isEmpty` crash.
+
+---
+
 ## [2026-06-07h] - feat: đẩy dữ liệu KiotViet lên Firestore (force re-sync)
 
 **Files thay đổi:**
