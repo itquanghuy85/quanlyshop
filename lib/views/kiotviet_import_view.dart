@@ -18,6 +18,7 @@ class KiotVietImportView extends StatefulWidget {
 class _KiotVietImportViewState extends State<KiotVietImportView> {
   bool _loading = false;
   bool _overwrite = false;
+  bool _isSyncingToCloud = false;
 
   // Per-type state
   final Map<String, _FileState> _files = {
@@ -213,6 +214,44 @@ class _KiotVietImportViewState extends State<KiotVietImportView> {
     });
   }
 
+  Future<void> _pushToCloud() async {
+    if (_isSyncingToCloud) return;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Đẩy dữ liệu lên Cloud'),
+        content: const Text(
+          'Thao tác này sẽ đồng bộ toàn bộ đơn bán và sản phẩm '
+          'đã import từ KiotViet lên Firestore.\n\n'
+          'Có thể mất vài phút tùy số lượng dữ liệu.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Huỷ')),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Đồng bộ ngay')),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+
+    setState(() => _isSyncingToCloud = true);
+    try {
+      final result = await SyncService.forceResyncKiotVietData();
+      if (!mounted) return;
+      final backfilled = (result['salesBackfilled'] ?? 0) + (result['productsBackfilled'] ?? 0);
+      final reset = (result['salesReset'] ?? 0) + (result['productsReset'] ?? 0);
+      NotificationService.showSnackBar(
+        'Đang đồng bộ — $reset bản ghi re-sync'
+        '${backfilled > 0 ? " ($backfilled đã gán shopId)" : ""}',
+        color: Colors.teal,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      NotificationService.showSnackBar('Lỗi: $e', color: Colors.red);
+    } finally {
+      if (mounted) setState(() => _isSyncingToCloud = false);
+    }
+  }
+
   // ── Build ─────────────────────────────────────────────────────────────────
 
   @override
@@ -259,6 +298,68 @@ class _KiotVietImportViewState extends State<KiotVietImportView> {
                 style: AppTextStyles.caption.copyWith(color: Colors.grey),
               ),
             ),
+            const SizedBox(height: 24),
+            const Divider(),
+            const SizedBox(height: 8),
+            Text(
+              'Dữ liệu đã import trước đây',
+              style: AppTextStyles.body2.copyWith(
+                fontWeight: FontWeight.bold,
+                color: Colors.grey.shade600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            InkWell(
+              onTap: _isSyncingToCloud ? null : _pushToCloud,
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.orange.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.shade100,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: _isSyncingToCloud
+                          ? const SizedBox(
+                              width: 22, height: 22,
+                              child: CircularProgressIndicator(strokeWidth: 2.5),
+                            )
+                          : Icon(Icons.upload_rounded, color: Colors.orange.shade700, size: 22),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Đẩy dữ liệu KiotViet lên Cloud',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.orange.shade800,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Đồng bộ đơn bán & sản phẩm đã import lên Firestore',
+                            style: TextStyle(fontSize: 12, color: Colors.orange.shade700),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(Icons.arrow_forward_ios, size: 14, color: Colors.orange.shade400),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
           ],
         ),
       ),
