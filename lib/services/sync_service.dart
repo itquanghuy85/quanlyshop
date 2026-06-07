@@ -3176,6 +3176,33 @@ class SyncService {
     }
   }
 
+  /// One-time fix: backfill shopId for KiotViet-imported records with NULL shopId,
+  /// then reset isSynced=0 for all sales + products so they get pushed to Firestore.
+  static Future<Map<String, int>> forceResyncKiotVietData() async {
+    final shopId = await UserService.getCurrentShopId();
+    if (shopId == null) return {};
+    final db = DBHelper();
+
+    final salesBackfilled = await db.backfillShopId('sales', shopId);
+    final productsBackfilled = await db.backfillShopId('products', shopId);
+    final salesReset = await db.markAllUnsynced('sales');
+    final productsReset = await db.markAllUnsynced('products');
+
+    debugPrint(
+      'forceResyncKiotVietData: backfilled sales=$salesBackfilled, products=$productsBackfilled'
+      ' | reset isSynced: sales=$salesReset, products=$productsReset',
+    );
+
+    await syncAllToCloud(force: true);
+
+    return {
+      'salesBackfilled': salesBackfilled,
+      'productsBackfilled': productsBackfilled,
+      'salesReset': salesReset,
+      'productsReset': productsReset,
+    };
+  }
+
   /// Đẩy dữ liệu từ Local lên Cloud (Dùng khi có mạng trở lại)
   static Future<void> syncAllToCloud({bool force = false}) async {
     final now = DateTime.now();

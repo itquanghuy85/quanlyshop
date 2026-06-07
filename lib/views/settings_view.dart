@@ -60,6 +60,7 @@ class _SettingsViewState extends State<SettingsView> {
   ShopSettings? _shopSettings;
   bool _isSavingPendingCost = false;
   bool _isSavingSupplier = false;
+  bool _isResyncingKiotViet = false;
   bool? _pendingCostOverride;
   int _settingsVersion = 0;
   bool get _allowPendingCost =>
@@ -116,6 +117,51 @@ class _SettingsViewState extends State<SettingsView> {
       setState(() => _shopSettings = effective);
     } catch (e) {
       debugPrint('SettingsView._loadShopSettings: $e');
+    }
+  }
+
+  Future<void> _forceResyncKiotViet() async {
+    if (_isResyncingKiotViet) return;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Đẩy dữ liệu KiotViet lên Cloud'),
+        content: const Text(
+          'Thao tác này sẽ:\n'
+          '• Gán shopId cho các bản ghi thiếu (import cũ)\n'
+          '• Đặt lại cờ isSynced=0 cho toàn bộ đơn bán và sản phẩm\n'
+          '• Đẩy tất cả lên Firestore (có thể mất vài phút)\n\n'
+          'Tiếp tục?',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Huỷ')),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Đồng bộ ngay')),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+
+    setState(() => _isResyncingKiotViet = true);
+    try {
+      final result = await SyncService.forceResyncKiotVietData();
+      if (!mounted) return;
+      final backfilled = (result['salesBackfilled'] ?? 0) + (result['productsBackfilled'] ?? 0);
+      final reset = (result['salesReset'] ?? 0) + (result['productsReset'] ?? 0);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Đang đồng bộ — $reset bản ghi đã được đánh dấu re-sync'
+              '${backfilled > 0 ? " ($backfilled đã gán shopId)" : ""}'),
+          backgroundColor: Colors.teal,
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi: $e'), backgroundColor: Colors.red),
+      );
+    } finally {
+      if (mounted) setState(() => _isResyncingKiotViet = false);
     }
   }
 
@@ -789,6 +835,44 @@ class _SettingsViewState extends State<SettingsView> {
                         builder: (context) => const SyncCenterSheet(),
                       );
                     },
+                  ),
+                ),
+
+                // Card: force-push KiotViet imported data to Firestore
+                const SizedBox(height: 8),
+                Card(
+                  color: Colors.orange.shade50,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
+                    side: BorderSide(color: Colors.orange.shade200),
+                  ),
+                  child: ListTile(
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.shade100,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: _isResyncingKiotViet
+                          ? const SizedBox(
+                              width: 28, height: 28,
+                              child: CircularProgressIndicator(strokeWidth: 2.5),
+                            )
+                          : Icon(Icons.upload_rounded, color: Colors.orange.shade700, size: 28),
+                    ),
+                    title: Text(
+                      'Đẩy dữ liệu KiotViet lên Cloud',
+                      style: TextStyle(
+                        color: Colors.orange.shade800,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    subtitle: Text(
+                      'Đồng bộ đơn bán và sản phẩm đã import từ KiotViet lên Firestore',
+                      style: TextStyle(fontSize: AppTextStyles.body1.fontSize),
+                    ),
+                    trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Colors.orange.shade400),
+                    onTap: _isResyncingKiotViet ? null : _forceResyncKiotViet,
                   ),
                 ),
 

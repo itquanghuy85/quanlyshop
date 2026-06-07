@@ -5074,6 +5074,25 @@ class DBHelper {
     return res.isNotEmpty ? SaleOrder.fromMap(res.first) : null;
   }
 
+  /// Backfill shopId for rows that have NULL/empty shopId (e.g. old KiotViet imports).
+  /// Returns number of rows updated.
+  Future<int> backfillShopId(String table, String shopId) async {
+    final db = await database;
+    return db.rawUpdate(
+      "UPDATE $table SET shopId = ? WHERE (shopId IS NULL OR shopId = '') AND (deleted = 0 OR deleted IS NULL)",
+      [shopId],
+    );
+  }
+
+  /// Reset isSynced=0 for all active rows in a table so they get pushed to Firestore on next sync.
+  /// Returns number of rows updated.
+  Future<int> markAllUnsynced(String table) async {
+    final db = await database;
+    return db.rawUpdate(
+      "UPDATE $table SET isSynced = 0 WHERE deleted = 0 OR deleted IS NULL",
+    );
+  }
+
   // --- PRODUCTS ---
   Future<void> upsertProduct(Product p) async {
     // For phones with multiple pipe-separated IMEIs (e.g. from KiotViet), split into individual records.

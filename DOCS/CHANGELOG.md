@@ -4,6 +4,27 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-07h] - feat: đẩy dữ liệu KiotViet lên Firestore (force re-sync)
+
+**Files thay đổi:**
+- `lib/data/db_helper.dart` — thêm `backfillShopId()` + `markAllUnsynced()`
+- `lib/services/sync_service.dart` — thêm `forceResyncKiotVietData()`
+- `lib/views/settings_view.dart` — thêm nút "Đẩy dữ liệu KiotViet lên Cloud" trong Sync section
+
+**Root cause:** Dữ liệu import từ KiotViet Excel được lưu với `shopId=NULL` (cột chưa tồn tại lúc import). `getAllSales()` dùng `WHERE shopId = ?` (strict) → không tìm thấy → `syncAllToCloud` không push lên Firestore. `products` đã có shopId nhưng `isSynced=1` sai do write Firestore fail thầm lặng (App Check error).
+
+| Bước | Action | Kết quả |
+|------|--------|---------|
+| 1 | `backfillShopId('sales', shopId)` | Gán shopId cho đơn bán thiếu → `getAllSales()` tìm thấy chúng |
+| 2 | `backfillShopId('products', shopId)` | Tương tự cho sản phẩm |
+| 3 | `markAllUnsynced('sales')` | Reset `isSynced=0` → syncAllToCloud pick up |
+| 4 | `markAllUnsynced('products')` | Reset `isSynced=0` |
+| 5 | `syncAllToCloud(force: true)` | Push toàn bộ lên Firestore (idempotent merge) |
+
+**UI:** Settings > Đồng bộ dữ liệu → card cam "Đẩy dữ liệu KiotViet lên Cloud"
+
+---
+
 ## [2026-06-07g] - feat: tách kho điện thoại — mỗi IMEI = 1 sản phẩm riêng
 
 **Files thay đổi:**
