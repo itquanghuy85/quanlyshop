@@ -4,6 +4,17 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-07d] - fix: storage_locations không sync lên cloud khi nhiều thiết bị
+
+**Files thay đổi:**
+- `lib/views/storage_location_view.dart` — fix save flow + thêm re-upload recovery khi view mở
+
+| # | Bug | Root cause | Fix |
+|---|-----|-----------|-----|
+| 1 | storage_locations: local=2, cloud=0 — thiết bị khác không thấy vị trí kho | `isSynced: true` được set TRƯỚC Firestore write. Nếu write fail (offline/rules), record kẹt local mãi mãi với flag "đã sync" → sync engine bỏ qua | (a) Đổi save flow: save local với `isSynced: false` → Firestore write → cập nhật `isSynced: true` chỉ khi write thành công; (b) Thêm `_reuploadLocalToCloud()` trong `_syncAndLoad` — re-upload tất cả local locations (merge=true, idempotent) để recover records bị kẹt |
+
+---
+
 ## [2026-06-07c] - fix(critical): Supplier search + Staff profile 0 orders
 
 **Files thay đổi:**

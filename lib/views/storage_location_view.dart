@@ -109,7 +109,22 @@ class _StorageLocationViewState extends State<StorageLocationView> {
 
   Future<void> _syncAndLoad() async {
     await SyncService.refreshCloudCollections(reason: 'storage_location_refresh', force: true);
+    await _reuploadLocalToCloud();
     await _load();
+  }
+
+  /// Re-uploads all local storage locations to Firestore (idempotent — uses merge=true).
+  /// Recovers records that were saved locally but failed to reach Firestore.
+  Future<void> _reuploadLocalToCloud() async {
+    if (_shopId == null) return;
+    try {
+      final all = await _db.getStorageLocations(_shopId!);
+      for (final loc in all) {
+        if (loc.firestoreId != null) {
+          await FirestoreService.addStorageLocation(loc);
+        }
+      }
+    } catch (_) {}
   }
 
   Future<void> _openForm({StorageLocation? existing}) async {
@@ -121,18 +136,24 @@ class _StorageLocationViewState extends State<StorageLocationView> {
       ),
     );
     if (result != null) {
-      // Ensure firestoreId is set before writing to Firestore
       final fid = result.firestoreId ?? 'loc_${result.createdAt}_${result.code}';
-      final withFid = result.copyWith(firestoreId: fid, isSynced: true);
+      // Save locally as unsynced first; mark synced only after Firestore confirms
+      final withFid = result.copyWith(firestoreId: fid, isSynced: false);
       final id = await _db.upsertStorageLocation(withFid);
+      final withId = withFid.copyWith(id: id);
       if (result.id == null) {
-        await _db.upsertStorageLocation(withFid.copyWith(id: id));
+        await _db.upsertStorageLocation(withId);
       }
       // Sync to Firestore
+      String? cloudId;
       if (existing == null) {
-        await FirestoreService.addStorageLocation(withFid.copyWith(id: id));
+        cloudId = await FirestoreService.addStorageLocation(withId);
       } else {
-        await FirestoreService.updateStorageLocation(withFid.copyWith(id: id));
+        await FirestoreService.updateStorageLocation(withId);
+        cloudId = withId.firestoreId;
+      }
+      if (cloudId != null) {
+        await _db.upsertStorageLocation(withId.copyWith(isSynced: true));
       }
       await _load();
     }
