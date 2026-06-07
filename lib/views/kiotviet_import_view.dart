@@ -255,9 +255,84 @@ class _KiotVietImportViewState extends State<KiotVietImportView> {
   }
 
   bool _isCloudCleanupRunning = false;
+  bool _isCloudRestoreRunning = false;
 
-  /// Đẩy deleted:true lên Firestore cho sản phẩm tồn tại trên cloud nhưng không có trong local.
-  /// Dùng khi đã xóa sản phẩm bằng hard-delete (trước khi có fix soft-delete).
+  /// Emergency restore: find products marked deleted=true within the last 60 minutes
+  /// and set deleted=false on them (undoes accidental mass-deletion).
+  Future<void> _runCloudRestore() async {
+    if (_isCloudRestoreRunning) return;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('⚠️ Khôi phục kho cloud?'),
+        content: const Text(
+          'Tìm tất cả sản phẩm bị xóa trên cloud trong 60 phút vừa qua và khôi phục lại.\n\n'
+          'Dùng để undo sau khi "Dọn kho cloud" xóa nhầm.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Hủy')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+            child: const Text('Khôi phục', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+    setState(() => _isCloudRestoreRunning = true);
+    try {
+      final shopId = await UserService.getCurrentShopId();
+      if (shopId == null) throw Exception('Không lấy được shopId');
+
+      final fs = FirebaseFirestore.instance;
+      final cutoff = DateTime.now().subtract(const Duration(minutes: 60));
+
+      // Fetch all deleted products, then filter by updatedAt in memory (avoids composite index)
+      final snap = await fs
+          .collection('products')
+          .where('shopId', isEqualTo: shopId)
+          .where('deleted', isEqualTo: true)
+          .get();
+
+      final recentlyDeleted = snap.docs.where((d) {
+        final ts = d.data()['updatedAt'];
+        if (ts == null) return false;
+        final dt = (ts as Timestamp).toDate();
+        return dt.isAfter(cutoff);
+      }).toList();
+
+      if (recentlyDeleted.isEmpty) {
+        if (mounted) NotificationService.showSnackBar('Không tìm thấy sản phẩm nào để khôi phục', color: Colors.orange);
+        return;
+      }
+
+      int restored = 0;
+      for (int i = 0; i < recentlyDeleted.length; i += 400) {
+        final batch = fs.batch();
+        final chunk = recentlyDeleted.skip(i).take(400);
+        for (final doc in chunk) {
+          batch.update(doc.reference, {'deleted': false, 'updatedAt': FieldValue.serverTimestamp()});
+        }
+        await batch.commit();
+        restored += chunk.length;
+      }
+
+      if (mounted) {
+        NotificationService.showSnackBar(
+          '✅ Đã khôi phục $restored sản phẩm trên cloud',
+          color: Colors.green,
+        );
+      }
+    } catch (e) {
+      if (mounted) NotificationService.showSnackBar('Lỗi: $e', color: Colors.red);
+    } finally {
+      if (mounted) setState(() => _isCloudRestoreRunning = false);
+    }
+  }
+
+  /// Push deleted:true to Firestore ONLY for products soft-deleted locally (deleted=1).
+  /// Safe to run from any device — only affects records this device knows are deleted.
   Future<void> _runCloudCleanup() async {
     if (_isCloudCleanupRunning) return;
     final confirm = await showDialog<bool>(
@@ -265,7 +340,9 @@ class _KiotVietImportViewState extends State<KiotVietImportView> {
       builder: (ctx) => AlertDialog(
         title: const Text('Dọn kho cloud?'),
         content: const Text(
-          'Tìm sản phẩm còn trên cloud nhưng đã xóa khỏi máy này, rồi đánh dấu xóa trên cloud.\n\nChỉ dùng khi kho cloud lệch nhiều so với local.',
+          'Tìm sản phẩm đã xóa trên máy này (deleted=1) nhưng cloud chưa cập nhật, '
+          'rồi đánh dấu xóa trên cloud.\n\n'
+          'Chỉ xử lý sản phẩm đã xóa trên CHÍNH MÁY NÀY, không ảnh hưởng sản phẩm máy khác.',
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Hủy')),
@@ -283,38 +360,43 @@ class _KiotVietImportViewState extends State<KiotVietImportView> {
       final shopId = await UserService.getCurrentShopId();
       if (shopId == null) throw Exception('Không lấy được shopId');
 
-      // Lấy tất cả firestoreId trong local (bao gồm cả deleted=1)
       final db = _db;
-      final localRows = await (await db.database).query(
+      // ONLY get products that are soft-deleted locally (deleted=1) with a firestoreId
+      final deletedLocalRows = await (await db.database).query(
         'products',
         columns: ['firestoreId'],
-        where: 'shopId = ? AND firestoreId IS NOT NULL',
+        where: 'shopId = ? AND deleted = 1 AND firestoreId IS NOT NULL',
         whereArgs: [shopId],
       );
-      final localIds = localRows.map((r) => r['firestoreId'] as String).toSet();
 
-      // Lấy tất cả docs trên Firestore chưa bị deleted (root collection, filter by shopId)
+      if (deletedLocalRows.isEmpty) {
+        if (mounted) NotificationService.showSnackBar('Không có sản phẩm nào đã xóa cần đồng bộ', color: Colors.green);
+        return;
+      }
+
+      final deletedLocalIds = deletedLocalRows.map((r) => r['firestoreId'] as String).toSet();
+
+      // Find which of those are still non-deleted on cloud
       final fs = FirebaseFirestore.instance;
       final snap = await fs
           .collection('products')
           .where('shopId', isEqualTo: shopId)
           .get();
 
-      final cloudOnlyIds = snap.docs
-          .where((d) => d.data()['deleted'] != true && !localIds.contains(d.id))
+      final toDeleteIds = snap.docs
+          .where((d) => d.data()['deleted'] != true && deletedLocalIds.contains(d.id))
           .map((d) => d.id)
           .toList();
 
-      if (cloudOnlyIds.isEmpty) {
-        if (mounted) NotificationService.showSnackBar('Cloud đã sạch, không có gì thừa', color: Colors.green);
+      if (toDeleteIds.isEmpty) {
+        if (mounted) NotificationService.showSnackBar('Cloud đã đồng bộ, không có gì thừa', color: Colors.green);
         return;
       }
 
-      // Batch push deleted:true
       int pushed = 0;
-      for (int i = 0; i < cloudOnlyIds.length; i += 400) {
+      for (int i = 0; i < toDeleteIds.length; i += 400) {
         final batch = fs.batch();
-        final chunk = cloudOnlyIds.skip(i).take(400);
+        final chunk = toDeleteIds.skip(i).take(400);
         for (final docId in chunk) {
           batch.set(
             fs.collection('products').doc(docId),
@@ -558,6 +640,46 @@ class _KiotVietImportViewState extends State<KiotVietImportView> {
                       ),
                     ),
                     Icon(Icons.arrow_forward_ios, size: 14, color: Colors.deepPurple.shade400),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            // Emergency restore button (orange)
+            InkWell(
+              onTap: _isCloudRestoreRunning ? null : _runCloudRestore,
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.orange.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.shade100,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: _isCloudRestoreRunning
+                          ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5))
+                          : Icon(Icons.restore_rounded, color: Colors.orange.shade700, size: 22),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('⚠️ Khôi phục kho cloud', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange.shade800)),
+                          const SizedBox(height: 2),
+                          Text('Undo "Dọn kho cloud" — khôi phục sản phẩm bị xóa nhầm trong 60 phút qua', style: TextStyle(fontSize: 12, color: Colors.orange.shade700)),
+                        ],
+                      ),
+                    ),
+                    Icon(Icons.arrow_forward_ios, size: 14, color: Colors.orange.shade400),
                   ],
                 ),
               ),

@@ -4,6 +4,18 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-08c] - fix(critical): sửa logic "Dọn kho cloud" + thêm nút khôi phục khẩn cấp
+
+**Files thay đổi:**
+- `lib/views/kiotviet_import_view.dart`
+  - **BUG FIX**: `_runCloudCleanup` trước đây xóa TẤT CẢ sản phẩm cloud không có trong local device (kể cả sản phẩm valid của máy khác). Fix: chỉ push `deleted:true` cho sản phẩm **có deleted=1 trong local SQLite** của thiết bị này.
+  - **Thêm**: `_runCloudRestore()` — khôi phục khẩn cấp: tìm sản phẩm bị đánh dấu xóa trên cloud trong 60 phút qua và set `deleted:false`.
+  - **Thêm**: Nút "⚠️ Khôi phục kho cloud" (màu cam) bên dưới nút "Dọn kho cloud".
+
+**Root cause của bug:** OPPO A94 chỉ có 262 sản phẩm trong local SQLite, cloud có 1093 sản phẩm. Khi chạy "Dọn kho cloud" từ A94, hàm tìm 831 sản phẩm "cloud-only" (không có trong A94 local) và đánh dấu xóa — bao gồm cả sản phẩm valid của Samsung A32 và các máy khác.
+
+---
+
 ## [2026-06-08b] - fix: stop auto-restore products từ cloud + nút Dọn kho cloud
 
 **Files thay đổi:**
