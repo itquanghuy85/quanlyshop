@@ -4,6 +4,20 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-07e] - fix: 3 bugs kiểm kho + sync + topbar
+
+**Files thay đổi:**
+- `lib/views/fast_inventory_check_view.dart` — fix await + dọn topbar
+- `lib/views/repair_detail_view.dart` — fix sync delay
+
+| # | Bug | Root cause | Fix |
+|---|-----|-----------|-----|
+| 1 | "Chờ sync" badge tới 1 phút sau khi lưu đơn | `syncAll()` xử lý toàn bộ queue (có thể nhiều items) trước khi `.then()` fire → badge đợi tất cả items xong | Thêm direct `FirestoreService.upsertRepair(r)` ngay trong `_saveData()` — badge clear sau <2s khi write thành công; orchestrator vẫn chạy cho queue còn lại |
+| 2 | "Lỗi lưu kiểm kho: Invalid argument: Instance of 'Future<String>'" khi bấm nút lưu | `UserService.getCurrentUserName()` là `Future<String>` nhưng gọi không có `await` → `createdBy` field trong DB insert nhận `Future<String>` thay vì `String` | Thêm `await` trước `getCurrentUserName()` |
+| 3 | Topbar kiểm kho quá nhiều icon (7+ icon) | Tất cả actions nằm bên ngoài | Giữ 3 icon quan trọng (zone selector, QR scan, flash khi đang scan); checklist/keyboard/save draft/save DB/history/settings vào `PopupMenuButton` |
+
+---
+
 ## [2026-06-07d] - fix: storage_locations không sync lên cloud khi nhiều thiết bị
 
 **Files thay đổi:**

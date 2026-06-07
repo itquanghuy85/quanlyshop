@@ -1072,7 +1072,7 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
 
     try {
       final now = DateTime.now().millisecondsSinceEpoch;
-      final userName = UserService.getCurrentUserName();
+      final userName = await UserService.getCurrentUserName();
 
       // Build InventoryCheckItem list from scanned data
       final List<InventoryCheckItem> items = [];
@@ -1928,58 +1928,97 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
               padding: const EdgeInsets.symmetric(horizontal: 8),
             ),
           ),
-          IconButton(
-            icon: Icon(
-              _showChecklist ? Icons.checklist : Icons.checklist_outlined,
-            ),
-            onPressed: () => setState(() => _showChecklist = !_showChecklist),
-            tooltip: _showChecklist ? 'Ẩn checklist' : 'Hiện checklist',
-          ),
-          // NÚT NHẬP IMEI THỦ CÔNG - cho trường hợp QR bị mờ/rách
-          IconButton(
-            icon: const Icon(Icons.keyboard),
-            onPressed: _showManualInputDialog,
-            tooltip: 'Nhập ${_terms.specialField1Label} thủ công',
-          ),
-          // NÚT LƯU TẠM - lưu kết quả kiểm kho để tiếp tục sau
-          if (_totalScanned > 0)
-            IconButton(
-              icon: const Icon(Icons.save_outlined),
-              onPressed: () => _saveDraft(),
-              tooltip: 'Lưu tạm ($_totalScanned mục)',
-            ),
-          // NÚT LƯU KẾT QUẢ VÀO DB
-          if (_totalScanned > 0)
-            IconButton(
-              icon: const Icon(Icons.inventory_2),
-              onPressed: _saveResultsToDB,
-              tooltip: 'Lưu kết quả kiểm kho',
-            ),
-          // NÚT LỊCH SỬ KIỂM KHO
-          IconButton(
-            icon: const Icon(Icons.history),
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const InventoryCheckHistoryView()),
-            ),
-            tooltip: 'Lịch sử kiểm kho',
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: _showScanSettings,
-            tooltip: 'Cài đặt scan',
-          ),
-          IconButton(
-            icon: Icon(_isScanning ? Icons.stop : Icons.qr_code_scanner),
-            onPressed: _toggleScanning,
-            tooltip: _isScanning ? 'Dừng scan' : 'Bắt đầu scan',
-          ),
+          // Flash torch (only while scanning — must stay reachable)
           if (_isScanning)
             IconButton(
               icon: const Icon(Icons.flashlight_on),
               onPressed: () => _scannerController.toggleTorch(),
               tooltip: 'Bật/tắt đèn flash',
             ),
+          // Start/stop scan (most critical action)
+          IconButton(
+            icon: Icon(_isScanning ? Icons.stop : Icons.qr_code_scanner),
+            onPressed: _toggleScanning,
+            tooltip: _isScanning ? 'Dừng scan' : 'Bắt đầu scan',
+          ),
+          // More options
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert, color: Colors.white),
+            onSelected: (value) {
+              switch (value) {
+                case 'checklist':
+                  setState(() => _showChecklist = !_showChecklist);
+                case 'keyboard':
+                  _showManualInputDialog();
+                case 'save_draft':
+                  _saveDraft();
+                case 'save_db':
+                  _saveResultsToDB();
+                case 'history':
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const InventoryCheckHistoryView()),
+                  );
+                case 'settings':
+                  _showScanSettings();
+              }
+            },
+            itemBuilder: (ctx) => [
+              PopupMenuItem(
+                value: 'checklist',
+                child: Row(children: [
+                  Icon(_showChecklist
+                      ? Icons.checklist
+                      : Icons.checklist_outlined),
+                  const SizedBox(width: 12),
+                  Text(_showChecklist ? 'Ẩn checklist' : 'Hiện checklist'),
+                ]),
+              ),
+              const PopupMenuItem(
+                value: 'keyboard',
+                child: Row(children: [
+                  Icon(Icons.keyboard),
+                  SizedBox(width: 12),
+                  Text('Nhập IMEI thủ công'),
+                ]),
+              ),
+              if (_totalScanned > 0)
+                PopupMenuItem(
+                  value: 'save_draft',
+                  child: Row(children: [
+                    const Icon(Icons.save_outlined),
+                    const SizedBox(width: 12),
+                    Text('Lưu tạm ($_totalScanned mục)'),
+                  ]),
+                ),
+              if (_totalScanned > 0)
+                const PopupMenuItem(
+                  value: 'save_db',
+                  child: Row(children: [
+                    Icon(Icons.inventory_2),
+                    SizedBox(width: 12),
+                    Text('Lưu kết quả kiểm kho'),
+                  ]),
+                ),
+              const PopupMenuItem(
+                value: 'history',
+                child: Row(children: [
+                  Icon(Icons.history),
+                  SizedBox(width: 12),
+                  Text('Lịch sử kiểm kho'),
+                ]),
+              ),
+              const PopupMenuItem(
+                value: 'settings',
+                child: Row(children: [
+                  Icon(Icons.settings),
+                  SizedBox(width: 12),
+                  Text('Cài đặt scan'),
+                ]),
+              ),
+            ],
+          ),
         ],
       ),
       body: ResponsiveCenter(child: Column(

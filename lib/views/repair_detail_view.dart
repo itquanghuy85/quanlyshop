@@ -2167,7 +2167,13 @@ class _RepairDetailViewState extends State<RepairDetailView> {
             'Cập nhật đơn sửa ${r.model} - ${r.customerName} - Giá: ${r.price}đ',
       );
 
-      // Queue sync — run in background so overlay dismisses immediately
+      // Direct write for immediate badge clear (< 2s); orchestrator is backup
+      unawaited(FirestoreService.upsertRepair(r).then((_) async {
+        r.isSynced = true;
+        await db.upsertRepair(r);
+        if (mounted) setState(() {});
+      }).catchError((_) {}));
+      // Also queue via orchestrator for any remaining pending items
       if (r.id != null) {
         await SyncOrchestrator().enqueue(
           entityType: SyncEntityType.repair,
@@ -2176,9 +2182,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
           operation: SyncOperation.update,
           data: r.toMap(),
         );
-        SyncOrchestrator().syncAll().then((_) {
-          if (mounted) setState(() => r.isSynced = true);
-        }).ignore();
+        unawaited(SyncOrchestrator().syncAll());
       }
 
       // Update debt if payment method is debt and repair is delivered
