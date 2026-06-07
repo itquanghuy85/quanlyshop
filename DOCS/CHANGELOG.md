@@ -4,6 +4,22 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-07f] - fix: giá bán 0đ + IMEI không xác định trong chi tiết đơn bán
+
+**Files thay đổi:**
+- `lib/views/sale_detail_view.dart` — fix đọc key snapshot + truyền soldImei
+- `lib/widgets/deep_link_navigator.dart` — thêm soldImei vào ProductLinkRef và openProductDetail
+- `lib/widgets/clickable_product_chip.dart` — pass soldImei đến navigator
+- `lib/widgets/clickable_product_list.dart` — pass soldImei đến chip
+- `lib/views/inventory_detail_view.dart` — thêm soldImei param + hiển thị "IMEI đã bán"
+
+| # | Bug | Root cause | Fix |
+|---|-----|-----------|-----|
+| 1 | "Giá bán: 0" trong chi tiết sản phẩm từ đơn bán | `_buildSaleItemSnapshotsJson` lưu giá vào key `unitPrice`, nhưng `_buildLinkedProducts` đọc key `price` → null → `product.price` từ DB (= 0) được hiển thị | Đọc `item['price'] ?? item['unitPrice']` |
+| 2 | "Không biết IMEI nào đã bán" | Snapshot lưu IMEI vào `productImei`, nhưng đọc `item['imei']` → null; `soldImei` không được truyền qua chain; `InventoryDetailView` chỉ hiện `product.imei` (tất cả IMEI) | Đọc `item['imei'] ?? item['serial'] ?? item['productImei']`; thêm `soldImei` xuyên suốt chain; hiển thị "IMEI đã bán" riêng trong `InventoryDetailView` |
+
+---
+
 ## [2026-06-07e] - fix: 3 bugs kiểm kho + sync + topbar
 
 **Files thay đổi:**

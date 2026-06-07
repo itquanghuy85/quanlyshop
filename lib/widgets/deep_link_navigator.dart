@@ -21,6 +21,7 @@ class ProductLinkRef {
   final String? sourceEvent;
   final int? soldQty;
   final int? soldPrice;
+  final String? soldImei;
 
   const ProductLinkRef({
     this.productId,
@@ -32,6 +33,7 @@ class ProductLinkRef {
     this.sourceEvent,
     this.soldQty,
     this.soldPrice,
+    this.soldImei,
   });
 }
 
@@ -170,6 +172,7 @@ class DeepLinkNavigator {
     String? sourceEvent,
     int? soldQty,
     int? soldPrice,
+    String? soldImei,
   }) async {
     try {
       final db = DBHelper();
@@ -243,6 +246,7 @@ class DeepLinkNavigator {
             product: found!,
             soldQty: soldQty,
             soldPrice: soldPrice,
+            soldImei: soldImei,
           ),
         ),
       );

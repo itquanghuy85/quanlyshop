@@ -313,17 +313,23 @@ class _SaleDetailViewState extends State<SaleDetailView> {
               (item['name'] ?? item['productName'] ?? '').toString(),
             ).trim();
             if (name.isEmpty) continue;
-            final imei = (item['imei'] ?? item['serial'] ?? '')
+            // snapshot keys: imei (legacy) | serial | productImei (create_sale_view)
+            final rawImei = (item['imei'] ?? item['serial'] ?? item['productImei'] ?? '')
                 .toString()
                 .trim();
+            // Filter out placeholder values used for non-phone items
+            final isPlaceholderImei = rawImei.isEmpty ||
+                rawImei.toUpperCase() == 'NO_IMEI' ||
+                rawImei.toUpperCase().startsWith('PKX');
+            final imei = isPlaceholderImei ? '' : rawImei;
             final sku = (item['sku'] ?? '').toString().trim();
             final productId =
-                (item['id'] ?? item['productId'] ?? item['firestoreId'] ?? '')
+                (item['id'] ?? item['productId'] ?? item['productFirestoreId'] ?? item['firestoreId'] ?? '')
                     .toString()
                     .trim();
             final qty = (item['quantity'] as num?)?.toInt();
-            // Use only unit price — do NOT fall back to totalPrice (which is qty×unit)
-            final price = (item['price'] as num?)?.toInt();
+            // snapshot key: price (legacy) | unitPrice (create_sale_view)
+            final price = ((item['price'] ?? item['unitPrice']) as num?)?.toInt();
             items.add(
               ProductLinkRef(
                 productId: productId.isEmpty ? null : productId,
@@ -335,6 +341,7 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                 sourceEvent: 'product_detail_opened_from_sale',
                 soldQty: (qty != null && qty > 0) ? qty : null,
                 soldPrice: (price != null && price > 0) ? price : null,
+                soldImei: imei.isEmpty ? null : imei,
               ),
             );
           }

@@ -19,12 +19,14 @@ class InventoryDetailView extends StatefulWidget {
   final Product product;
   final int? soldQty;
   final int? soldPrice;
+  final String? soldImei;
 
   const InventoryDetailView({
     super.key,
     required this.product,
     this.soldQty,
     this.soldPrice,
+    this.soldImei,
   });
 
   @override
@@ -261,6 +263,14 @@ class _InventoryDetailViewState extends State<InventoryDetailView> {
                       'Bán trong đơn này',
                       '${widget.soldQty} cái',
                       valueColor: Colors.blue.shade700,
+                    ),
+                  ],
+                  if (widget.soldImei != null && widget.soldImei!.isNotEmpty) ...[
+                    _divider(),
+                    _row(
+                      'IMEI đã bán',
+                      widget.soldImei!,
+                      valueColor: Colors.deepPurple.shade600,
                     ),
                   ],
                   _divider(),

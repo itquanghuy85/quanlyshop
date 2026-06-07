@@ -12,6 +12,7 @@ class ClickableProductChip extends StatelessWidget {
   final String tooltip;
   final int? soldQty;
   final int? soldPrice;
+  final String? soldImei;
 
   const ClickableProductChip({
     super.key,
@@ -24,6 +25,7 @@ class ClickableProductChip extends StatelessWidget {
     this.tooltip = 'Xem chi tiết sản phẩm',
     this.soldQty,
     this.soldPrice,
+    this.soldImei,
   });
 
   @override
@@ -54,6 +56,7 @@ class ClickableProductChip extends StatelessWidget {
                 sourceEvent: sourceEvent,
                 soldQty: soldQty,
                 soldPrice: soldPrice,
+                soldImei: soldImei,
               );
             },
             child: Container(
