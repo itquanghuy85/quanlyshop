@@ -6109,6 +6109,15 @@ class DBHelper {
     final shopId = await _getScopedShopId('getSuppliersPage');
     if (shopId == null) return (items: <Map<String, dynamic>>[], total: 0);
 
+    // Defensive: ensure nameNorm exists even if v100 migration was skipped or failed
+    await _ensureColumnExists(
+      executor: db,
+      table: 'suppliers',
+      column: 'nameNorm',
+      definition: 'TEXT',
+      logScope: 'getSuppliersPage',
+    );
+
     final whereParts = <String>['shopId = ?', '(deleted = 0 OR deleted IS NULL)'];
     final whereArgs = <dynamic>[shopId];
 
