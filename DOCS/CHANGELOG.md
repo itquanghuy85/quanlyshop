@@ -4,6 +4,19 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-07b] - fix: InventoryCheck type cast + Firestore product_categories permission
+
+**Files thay đổi:**
+- `lib/views/inventory_view.dart` — fix type cast crash khi load kiểm kê kho
+- `firestore.rules` — thêm token-claim fallback cho `product_categories` read rule
+
+| # | Bug | Root cause | Fix |
+|---|-----|-----------|-----|
+| 1 | `Error loading current check: type 'QueryRow' is not a subtype of type 'InventoryCheck?'` | `checks.cast<InventoryCheck?>()` cố cast `Map<String, dynamic>` (SQLite row) trực tiếp sang `InventoryCheck` — không thể dùng `cast<>()` để convert class | Map từng row sang `InventoryCheck.fromMap()` sau khi decode `itemsJson` JSON string, rồi mới cast<InventoryCheck?> |
+| 2 | `product_categories: Missing or insufficient permissions` lặp 5 lần/session | `belongsTo(shopId)` trong Firestore rules gọi nhiều `get()` calls — nếu timing không đúng (boot lần đầu, App Check fail), các get() này fail → toàn bộ rule evaluation fail | Thêm `|| request.auth.token.shopId == shopId` fallback — bypass `get()` calls khi JWT token đã có sẵn claim, giống pattern đang dùng ở `settings` subcollection rule |
+
+---
+
 ## [2026-06-07] - fix(inventory): 3 bugs trong _showInlineCostEdit (nhập giá vốn)
 
 **Files thay đổi:**

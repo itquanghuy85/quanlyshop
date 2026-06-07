@@ -378,8 +378,8 @@ service cloud.firestore {
       // ─────────── SUBCOLLECTION: product_categories (Multi-industry) ───────────
       // Dynamic product categories per shop
       match /product_categories/{categoryId} {
-        // READ: Any shop member
-        allow read: if isAuth() && belongsTo(shopId);
+        // READ: Any shop member (token fallback bypasses get() calls when claims are fresh)
+        allow read: if isAuth() && (belongsTo(shopId) || request.auth.token.shopId == shopId);
         
         // CREATE: Manager+ only
         allow create: if isAuth() && 

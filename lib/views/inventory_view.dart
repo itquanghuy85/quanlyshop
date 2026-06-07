@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -2310,7 +2311,17 @@ class _InventoryViewState extends State<InventoryView>
       final todayKey = DateFormat('yyyy-MM-dd').format(today);
 
       // Find today's check for this type or create new one
-      _currentCheck = checks.cast<InventoryCheck?>().firstWhere(
+      _currentCheck = checks.map((raw) {
+        final m = Map<String, dynamic>.from(raw);
+        if (m['itemsJson'] is String) {
+          try {
+            m['itemsJson'] = jsonDecode(m['itemsJson'] as String);
+          } catch (_) {
+            m['itemsJson'] = <dynamic>[];
+          }
+        }
+        return InventoryCheck.fromMap(m);
+      }).cast<InventoryCheck?>().firstWhere(
         (check) =>
             check != null &&
             DateFormat('yyyy-MM-dd').format(
