@@ -4,6 +4,18 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-08d] - fix: KiotViet import restore sản phẩm đã xóa thay vì tạo bản ghi mới
+
+**Files thay đổi:**
+- `lib/services/kiotviet_excel_import_service.dart`
+  - **BUG FIX**: Hàm `importProducts` trước đây bỏ qua sản phẩm có `deleted=1` khi kiểm tra trùng tên, dẫn đến INSERT bản ghi mới với `id` mới (thay vì UPDATE bản ghi cũ). Kết quả: cùng một tên sản phẩm có 2 bản ghi active, đơn bán cũ mất tham chiếu `productId`.
+  - Fix: Duplicate check giờ tìm TẤT CẢ bản ghi (kể cả `deleted=1`). Nếu tìm thấy bản ghi đã xóa → UPDATE (khôi phục) thay vì INSERT, giữ nguyên `id` gốc.
+  - Fix thêm: Khi khôi phục bản ghi đã xóa, tự động soft-delete các bản ghi active trùng tên (tạo ra bởi lần import lỗi trước) để tránh duplicate.
+
+**Root cause:** Sau sự cố "Dọn kho cloud" xóa 831 sản phẩm, user re-import từ KiotViet Excel. Vì query duplicate bỏ qua `deleted=1`, tất cả sản phẩm được INSERT mới với `id` auto-increment mới. Đơn bán cũ lưu `productId` (SQLite int) của sản phẩm cũ → không còn khớp, hiển thị sản phẩm sai.
+
+---
+
 ## [2026-06-08c] - fix(critical): sửa logic "Dọn kho cloud" + thêm nút khôi phục khẩn cấp
 
 **Files thay đổi:**

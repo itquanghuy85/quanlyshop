@@ -231,13 +231,15 @@ class KiotVietExcelImportService {
           final name = _at(row, 4);
           if (name.isEmpty) { skipped++; continue; }
 
+          // Check ALL records including deleted so re-imports restore original IDs
           final dup = await db.query('products',
-              where:
-                  'UPPER(name) = UPPER(?) AND shopId = ? AND (deleted IS NULL OR deleted != 1)',
+              where: 'UPPER(name) = UPPER(?) AND shopId = ?',
               whereArgs: [name, shopId],
               limit: 1);
 
-          if (dup.isNotEmpty && !overwriteExisting) { skipped++; continue; }
+          final isDeletedDup = dup.isNotEmpty && (dup.first['deleted'] == 1);
+          // Skip only if an ACTIVE duplicate exists and we are not overwriting
+          if (dup.isNotEmpty && !isDeletedDup && !overwriteExisting) { skipped++; continue; }
 
           final now = DateTime.now().millisecondsSinceEpoch;
           final brand = _at(row, 5);
@@ -295,10 +297,22 @@ class KiotVietExcelImportService {
             'supplier': null,
           };
 
-          if (dup.isNotEmpty && overwriteExisting) {
-            final id = dup.first['id'];
+          if (dup.isNotEmpty && (overwriteExisting || isDeletedDup)) {
+            final id = dup.first['id'] as int;
             map.remove('createdAt');
+            // Always clear deleted flag when restoring via import
+            map['deleted'] = 0;
             await db.update('products', map, where: 'id = ?', whereArgs: [id]);
+            // When restoring a deleted record, soft-delete any newer duplicates
+            // created by a previous faulty re-import that skipped deleted records.
+            if (isDeletedDup) {
+              await db.rawUpdate(
+                'UPDATE products SET deleted = 1, isSynced = 0 '
+                'WHERE UPPER(name) = UPPER(?) AND shopId = ? AND id != ? '
+                'AND (deleted = 0 OR deleted IS NULL)',
+                [map['name'], shopId, id],
+              );
+            }
             updated++;
           } else {
             await db.insert('products', map);
