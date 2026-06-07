@@ -3555,6 +3555,26 @@ class SyncService {
         }
       }
 
+      // Sync DELETED records cho tất cả tables có soft-delete
+      for (final entry in {
+        'sales': 'sales',
+        'customers': 'customers',
+        'suppliers': 'suppliers',
+        'purchase_orders': 'purchase_orders',
+        'repair_parts': 'repair_parts',
+      }.entries) {
+        try {
+          await _syncDeletedRowsToCloud(
+            tableName: entry.key,
+            collection: entry.value,
+            shopId: shopId,
+            dbHelper: dbHelper,
+          );
+        } catch (e) {
+          debugPrint('_syncDeletedRowsToCloud ${entry.key} error: $e');
+        }
+      }
+
       // Sync ATTENDANCE
       try {
         final attendance = await dbHelper.getAllAttendance();
@@ -4477,6 +4497,63 @@ class SyncService {
       row['updatedAt'] = FirestoreWriteHelper.serverUpdatedAt();
       _convertTimestampFields(row);
       batch.set(_db.collection(collection).doc(firestoreId), row, SetOptions(merge: true));
+      if (id != null) syncedIds.add(id);
+      count++;
+      if (count >= batchSize) await commitBatch();
+    }
+    await commitBatch();
+  }
+
+  /// Push deleted=1 records lên Firestore với {deleted:true} cho bất kỳ table nào.
+  /// Dùng cho sales, customers, suppliers, products, etc. sau khi soft-delete.
+  static Future<void> _syncDeletedRowsToCloud({
+    required String tableName,
+    required String collection,
+    required String shopId,
+    required DBHelper dbHelper,
+  }) async {
+    final db = await dbHelper.database;
+    final tableInfo = await db.rawQuery('PRAGMA table_info($tableName)');
+    final cols = tableInfo.map((r) => r['name']?.toString() ?? '').toSet();
+    if (!cols.contains('deleted') || !cols.contains('firestoreId') || !cols.contains('isSynced')) return;
+
+    final shopClause = cols.contains('shopId') ? ' AND shopId = ?' : '';
+    final whereArgs = cols.contains('shopId') ? [shopId] : <dynamic>[];
+    final rows = await db.rawQuery(
+      'SELECT * FROM $tableName WHERE deleted = 1 AND (isSynced = 0 OR isSynced IS NULL) AND firestoreId IS NOT NULL$shopClause',
+      whereArgs,
+    );
+    if (rows.isEmpty) return;
+    debugPrint('_syncDeletedRowsToCloud: $tableName có ${rows.length} deleted rows cần push');
+
+    const batchSize = 400;
+    WriteBatch batch = _db.batch();
+    final List<int> syncedIds = [];
+    int count = 0;
+
+    Future<void> commitBatch() async {
+      if (syncedIds.isEmpty) return;
+      try {
+        await batch.commit();
+        final ph = List.filled(syncedIds.length, '?').join(',');
+        await db.rawUpdate('UPDATE $tableName SET isSynced = 1 WHERE id IN ($ph)', syncedIds);
+        debugPrint('✅ Pushed ${syncedIds.length} deleted $tableName rows to cloud');
+      } catch (e) {
+        debugPrint('❌ Batch commit deleted $tableName failed: $e');
+      }
+      batch = _db.batch();
+      syncedIds.clear();
+      count = 0;
+    }
+
+    for (final rawRow in rows) {
+      final firestoreId = rawRow['firestoreId'] as String;
+      final id = rawRow['id'] as int?;
+      batch.set(
+        _db.collection(collection).doc(firestoreId),
+        {'deleted': true, 'updatedAt': FirestoreWriteHelper.serverUpdatedAt(), 'shopId': shopId},
+        SetOptions(merge: true),
+      );
       if (id != null) syncedIds.add(id);
       count++;
       if (count >= batchSize) await commitBatch();

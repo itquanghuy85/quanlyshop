@@ -4,6 +4,17 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-07l] - fix(sync): đẩy deleted lên Firestore cho tất cả bảng
+
+**Files thay đổi:**
+- `lib/services/sync_service.dart` — thêm `_syncDeletedRowsToCloud()` generic helper + loop gọi cho sales, customers, suppliers, purchase_orders, repair_parts
+
+**Vấn đề:** Khi xóa mềm (deleted=1) records trong bất kỳ bảng nào, `syncAllToCloud()` chỉ sync records với `deleted=0` → Firestore không nhận được thông tin xóa → thiết bị khác vẫn thấy record đã xóa.
+
+**Fix:** `_syncDeletedRowsToCloud()` query `deleted=1 AND isSynced=0 AND firestoreId IS NOT NULL`, batch push `{deleted:true, updatedAt, shopId}` lên Firestore, sau đó mark `isSynced=1` trong SQLite.
+
+---
+
 ## [2026-06-07k] - fix(critical): khôi phục phones bị dedup xóa nhầm (DB v103)
 
 **Files thay đổi:**
