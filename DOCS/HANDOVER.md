@@ -7,12 +7,16 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 ## ⚡ Trạng thái hiện tại
 
 **Version:** 1.x (develop) → Production live  
-**Last Updated:** 2026-06-07  
-**Build Status:** ✅ Debug build passing (`flutter build apk --debug`)  
+**Last Updated:** 2026-06-08  
+**Build Status:** ✅ Analyze clean (0 errors)  
 **Analyze Status:** ✅ 0 compile error; pre-existing infos không ảnh hưởng build  
 **Database Version:** SQLite v102  
 **Branch:** master  
-**Active Initiative:** ✅ Tách kho điện thoại — mỗi IMEI = 1 sản phẩm riêng — HOÀN THÀNH
+**Active Initiative:** ✅ Fix KiotViet import duplicate + product mismatch — HOÀN THÀNH
+
+### ✅ Vừa hoàn thành (2026-06-08d): Fix KiotViet import tạo bản ghi trùng sau sự cố xóa kho
+- **Bug**: Sau sự cố "Dọn kho cloud", sản phẩm bị `deleted=1` local. Re-import từ KiotViet tạo sản phẩm MỚI với `id` auto-increment mới (vì query duplicate bỏ qua `deleted=1`). Đơn bán cũ lưu `productId` cũ → không khớp → hiển thị sản phẩm sai.
+- **Fix**: `kiotviet_excel_import_service.dart` — duplicate check không filter `deleted`, nếu tìm thấy bản ghi đã xóa → UPDATE (khôi phục) giữ nguyên `id` gốc + xóa mềm bất kỳ bản active trùng tên nào từ lần import lỗi trước.
 
 ### ✅ Vừa hoàn thành (2026-06-07h): Force re-sync dữ liệu KiotViet lên Firestore
 - **Root cause**: KiotViet Excel import lưu sales với `shopId=NULL` → `getAllSales(shopId=X)` không tìm thấy → `syncAllToCloud` skip → 3892 đơn bán và 521 sản phẩm kẹt local-only
