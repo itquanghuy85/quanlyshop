@@ -4,6 +4,16 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-08b] - fix: stop auto-restore products từ cloud + nút Dọn kho cloud
+
+**Files thay đổi:**
+- `lib/services/sync_health_check.dart` — tắt auto-restore cho `products` (cloud-only records không tự download về nữa, tránh vòng lặp restore)
+- `lib/views/kiotviet_import_view.dart` — thêm nút "Dọn kho cloud": đẩy `deleted:true` lên Firestore cho sản phẩm tồn tại trên cloud nhưng đã bị xóa local
+
+**Root cause:** Health check thấy cloud có 237 records hơn local → tự download về (auto-fix) → user xóa lại → health check restore lại → vòng lặp vô tận. Fix: products không tự restore từ cloud; user tự dọn bằng nút "Dọn kho cloud".
+
+---
+
 ## [2026-06-08a] - fix: bulk xóa kho dùng soft-delete + fix đơn duyệt giao vẫn hiện chờ duyệt
 
 **Files thay đổi:**

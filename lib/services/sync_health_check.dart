@@ -276,8 +276,13 @@ class SyncHealthCheck {
 
       final cloudOnly = cloudIds.difference(localIds).length;
 
+      // Products không auto-restore từ cloud — user có thể đã xóa có chủ đích.
+      // Products được quản lý qua KiotViet import + soft-delete, không nên tự kéo về.
+      // Các collection khác: tự download nếu cloud có mà local thiếu.
+      const noAutoRestoreCollections = {'products'};
+
       // AUTO-FIX: Tự động download records thiếu trên local
-      if (cloudOnly > 0) {
+      if (cloudOnly > 0 && !noAutoRestoreCollections.contains(collection)) {
         debugPrint(
           '   🔧 Auto-fix: Tải $cloudOnly records thiếu cho $collection...',
         );
@@ -299,6 +304,10 @@ class SyncHealthCheck {
         }
         debugPrint(
           '   ✅ Đã tải $fixed/$cloudOnly records thiếu cho $collection',
+        );
+      } else if (cloudOnly > 0 && noAutoRestoreCollections.contains(collection)) {
+        debugPrint(
+          '   ℹ️ $collection: $cloudOnly cloud-only records — skip auto-restore (user may have deleted intentionally)',
         );
       }
 

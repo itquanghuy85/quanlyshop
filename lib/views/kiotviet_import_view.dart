@@ -1,10 +1,12 @@
 import 'dart:typed_data';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import '../data/db_helper.dart';
 import '../services/kiotviet_excel_import_service.dart';
 import '../services/notification_service.dart';
 import '../services/sync_service.dart';
+import '../services/user_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 import '../widgets/custom_app_bar.dart';
@@ -252,6 +254,91 @@ class _KiotVietImportViewState extends State<KiotVietImportView> {
     }
   }
 
+  bool _isCloudCleanupRunning = false;
+
+  /// Đẩy deleted:true lên Firestore cho sản phẩm tồn tại trên cloud nhưng không có trong local.
+  /// Dùng khi đã xóa sản phẩm bằng hard-delete (trước khi có fix soft-delete).
+  Future<void> _runCloudCleanup() async {
+    if (_isCloudCleanupRunning) return;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Dọn kho cloud?'),
+        content: const Text(
+          'Tìm sản phẩm còn trên cloud nhưng đã xóa khỏi máy này, rồi đánh dấu xóa trên cloud.\n\nChỉ dùng khi kho cloud lệch nhiều so với local.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Hủy')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.deepPurple),
+            child: const Text('Dọn cloud', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+    setState(() => _isCloudCleanupRunning = true);
+    try {
+      final shopId = await UserService.getCurrentShopId();
+      if (shopId == null) throw Exception('Không lấy được shopId');
+
+      // Lấy tất cả firestoreId trong local (bao gồm cả deleted=1)
+      final db = _db;
+      final localRows = await (await db.database).query(
+        'products',
+        columns: ['firestoreId'],
+        where: 'shopId = ? AND firestoreId IS NOT NULL',
+        whereArgs: [shopId],
+      );
+      final localIds = localRows.map((r) => r['firestoreId'] as String).toSet();
+
+      // Lấy tất cả docs trên Firestore chưa bị deleted (root collection, filter by shopId)
+      final fs = FirebaseFirestore.instance;
+      final snap = await fs
+          .collection('products')
+          .where('shopId', isEqualTo: shopId)
+          .get();
+
+      final cloudOnlyIds = snap.docs
+          .where((d) => d.data()['deleted'] != true && !localIds.contains(d.id))
+          .map((d) => d.id)
+          .toList();
+
+      if (cloudOnlyIds.isEmpty) {
+        if (mounted) NotificationService.showSnackBar('Cloud đã sạch, không có gì thừa', color: Colors.green);
+        return;
+      }
+
+      // Batch push deleted:true
+      int pushed = 0;
+      for (int i = 0; i < cloudOnlyIds.length; i += 400) {
+        final batch = fs.batch();
+        final chunk = cloudOnlyIds.skip(i).take(400);
+        for (final docId in chunk) {
+          batch.set(
+            fs.collection('products').doc(docId),
+            {'deleted': true, 'updatedAt': FieldValue.serverTimestamp(), 'shopId': shopId},
+            SetOptions(merge: true),
+          );
+        }
+        await batch.commit();
+        pushed += chunk.length;
+      }
+
+      if (mounted) {
+        NotificationService.showSnackBar(
+          '✅ Đã đánh dấu xóa $pushed sản phẩm thừa trên cloud',
+          color: Colors.green,
+        );
+      }
+    } catch (e) {
+      if (mounted) NotificationService.showSnackBar('Lỗi: $e', color: Colors.red);
+    } finally {
+      if (mounted) setState(() => _isCloudCleanupRunning = false);
+    }
+  }
+
   Future<void> _pushToCloud() async {
     if (_isSyncingToCloud) return;
     final confirm = await showDialog<bool>(
@@ -432,6 +519,45 @@ class _KiotVietImportViewState extends State<KiotVietImportView> {
                       ),
                     ),
                     Icon(Icons.arrow_forward_ios, size: 14, color: Colors.red.shade400),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            InkWell(
+              onTap: _isCloudCleanupRunning ? null : _runCloudCleanup,
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.deepPurple.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.deepPurple.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.deepPurple.shade100,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: _isCloudCleanupRunning
+                          ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5))
+                          : Icon(Icons.cloud_sync_rounded, color: Colors.deepPurple.shade700, size: 22),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Dọn kho cloud', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.deepPurple.shade800)),
+                          const SizedBox(height: 2),
+                          Text('Xóa sản phẩm thừa trên cloud (đã xóa local nhưng cloud chưa cập nhật)', style: TextStyle(fontSize: 12, color: Colors.deepPurple.shade700)),
+                        ],
+                      ),
+                    ),
+                    Icon(Icons.arrow_forward_ios, size: 14, color: Colors.deepPurple.shade400),
                   ],
                 ),
               ),
