@@ -10,9 +10,24 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Last Updated:** 2026-06-07  
 **Build Status:** ✅ Debug build passing (`flutter build apk --debug`)  
 **Analyze Status:** ✅ 0 compile error; pre-existing infos không ảnh hưởng build  
-**Database Version:** SQLite v17  
+**Database Version:** SQLite v102  
 **Branch:** master  
-**Active Initiative:** ✅ Fix storage_locations không sync — HOÀN THÀNH
+**Active Initiative:** ✅ Tách kho điện thoại — mỗi IMEI = 1 sản phẩm riêng — HOÀN THÀNH
+
+### ✅ Vừa hoàn thành (2026-06-07h): Force re-sync dữ liệu KiotViet lên Firestore
+- **Root cause**: KiotViet Excel import lưu sales với `shopId=NULL` → `getAllSales(shopId=X)` không tìm thấy → `syncAllToCloud` skip → 3892 đơn bán và 521 sản phẩm kẹt local-only
+- **Fix**: `backfillShopId()` gán shopId cho rows thiếu + `markAllUnsynced()` reset isSynced=0 + `syncAllToCloud(force:true)`
+- **UI trigger**: Settings > Đồng bộ dữ liệu > card cam "Đẩy dữ liệu KiotViet lên Cloud"
+
+### ✅ Vừa hoàn thành (2026-06-07g): Tách kho điện thoại — mỗi IMEI = 1 record
+- **DB v102 migration**: Query `DIEN_THOAI` có `imei LIKE '%|%'` → split từng IMEI thành record riêng (qty=1, firestoreId = `parentFid__s{i}`, isSynced=0 cho bản mới)
+- **upsertProduct auto-split**: KiotViet sync phone với IMEIs gộp → `_upsertPhoneSplit` tách và upsert từng IMEI độc lập
+- **Cart qty lock**: Trong `create_sale_view.dart`, phone với IMEI đơn → disable `+`/`-`/textField, qty cố định 1
+
+### ✅ Vừa hoàn thành (2026-06-07e): Fix 3 bugs kiểm kho nhanh
+- **Bug 1 (Chờ sync 1 phút)**: `syncAll()` đợi toàn bộ queue → thêm direct `FirestoreService.upsertRepair` trong `_saveData()` → badge clear trong <2s
+- **Bug 2 (crash lưu kiểm kho)**: `getCurrentUserName()` thiếu `await` → `Future<String>` vào SQLite → crash → thêm `await`
+- **Bug 3 (topbar quá nhiều icon)**: 7+ icon cùng lúc → giữ zone selector + QR scan + flash; còn lại vào `PopupMenuButton` "..."
 
 ### ✅ Vừa hoàn thành (2026-06-07d): Fix storage_locations không sync lên cloud
 - **Root cause**: `isSynced: true` set TRƯỚC Firestore write → nếu write fail thì record kẹt local mãi mãi (sync engine bỏ qua vì thấy flag "đã sync")
