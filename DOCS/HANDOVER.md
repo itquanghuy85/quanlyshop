@@ -12,7 +12,12 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Analyze Status:** ✅ 0 compile error; pre-existing infos không ảnh hưởng build  
 **Database Version:** SQLite v17  
 **Branch:** master  
-**Active Initiative:** ✅ Fix 2 bug nghiêm trọng: supplier search + staff profile — HOÀN THÀNH
+**Active Initiative:** ✅ Fix storage_locations không sync — HOÀN THÀNH
+
+### ✅ Vừa hoàn thành (2026-06-07d): Fix storage_locations không sync lên cloud
+- **Root cause**: `isSynced: true` set TRƯỚC Firestore write → nếu write fail thì record kẹt local mãi mãi (sync engine bỏ qua vì thấy flag "đã sync")
+- **Fix 1 (preventive)**: Save flow đúng thứ tự: local `isSynced: false` → Firestore → `isSynced: true` chỉ khi thành công
+- **Fix 2 (recovery)**: `_reuploadLocalToCloud()` chạy khi view mở — upload lại tất cả local locations với `firestoreId` lên Firestore (idempotent vì dùng merge=true) → recover 2 records đang bị kẹt
 
 ### ✅ Vừa hoàn thành (2026-06-07c): Fix supplier search + staff profile 0 đơn
 - **Bug 1 (search NCC)**: `nameNorm` không có trong CREATE TABLE → fresh install thiếu column → SQL error bị catch silently → kết quả rỗng → thêm `nameNorm TEXT` vào CREATE TABLE
